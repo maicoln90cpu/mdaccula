@@ -395,6 +395,7 @@ const Blog = () => {
                         alt={featuredPost.title}
                         className="max-w-full max-h-full object-contain"
                         loading="lazy"
+                        onError={(e) => { e.currentTarget.src = djImage; }}
                       />
                       <div className="absolute top-4 left-4">
                         <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
@@ -474,6 +475,7 @@ const Blog = () => {
                               className="max-w-full max-h-full object-contain"
                               loading="lazy"
                               decoding="async"
+                              onError={(e) => { e.currentTarget.src = djImage; }}
                             />
                             <div className="absolute top-4 left-4">
                               <Badge className={getCategoryColor(post.category)}>{post.category}</Badge>
