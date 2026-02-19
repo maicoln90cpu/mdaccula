@@ -1,64 +1,59 @@
 
 
-## Corrigir Importacao de Dados - Abordagem Robusta
+## Configuracao de Secrets e Limpeza de Edge Functions
 
-### Problemas Identificados
+### 1. RESEND_API_KEY (Obrigatorio para emails)
 
-1. **Efeito cascata de foreign keys**: events depende de blog_posts, custom_links depende de events e link_groups, ai_generated_posts depende de blog_posts. Como blog_posts e events falharam parcialmente, tudo que depende deles falha.
+Usado por 3 edge functions:
+- `send-contact-email` - formulario de contato
+- `send-mass-newsletter` - envio de newsletter em massa
+- `send-podcast-notification` - notificacao de novos podcasts
 
-2. **CSV parsing com HTML**: Alguns blog_posts tem conteudo HTML complexo com aspas e newlines que quebram o parser CSV, causando desalinhamento de colunas (titulo vai para campo UUID).
+**O que voce precisa fazer:**
+1. Acesse [resend.com](https://resend.com) e crie uma conta (ou faca login)
+2. Va em **API Keys** e copie sua chave
+3. Quando eu pedir, cole a chave no campo que vai aparecer
 
-3. **Upsert em batch**: Quando 1 registro de um batch de 10-20 falha, o batch inteiro eh rejeitado pelo PostgreSQL, perdendo os outros registros validos.
+### 2. OPENAI_API_KEY (Opcional)
 
-### Solucao
+Usado por 3 edge functions quando o modelo selecionado no admin eh OpenAI (GPT):
+- `generate-blog-post-v2`
+- `generate-blog-suggestions`
+- `generate-multi-event-article`
 
-**Duas mudancas principais na edge function:**
+Todas essas funcoes ja funcionam com o `LOVABLE_API_KEY` (Gemini via gateway Lovable AI) que ja esta configurado. O OPENAI_API_KEY so eh necessario se voce quiser usar modelos GPT especificamente.
 
-**A. Upsert registro-por-registro** (em vez de batch)
-- Em vez de enviar 20 registros de uma vez para o PostgreSQL, inserir um por um
-- Se um registro falha, os outros continuam
-- Retorna contagem exata de sucesso/falha
+**Se quiser configurar:**
+1. Acesse [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+2. Crie uma nova API key
+3. Os custos sao cobrados diretamente pela OpenAI
 
-**B. Limpar foreign keys orfas antes do upsert**
-- Para events: se `blog_post_id` nao existe em blog_posts, setar como null
-- Para custom_links: se `event_id` nao existe em events, setar como null. Se `group_id` nao existe em link_groups, setar como null
-- Para ai_generated_posts: se `blog_post_id` nao existe em blog_posts, setar como null
+### 3. FIRECRAWL_API_KEY (Opcional)
 
-Isso garante que todos os registros sao importados, mesmo que percam a referencia FK (que pode ser corrigida manualmente depois).
+Usado por 2 edge functions para scraping de fontes de noticias:
+- `generate-blog-post-v2` - busca contexto de fontes antes de gerar artigo
+- `generate-blog-suggestions` - scrape de fontes para sugestoes
 
-### Mudancas nos Arquivos
+Sem essa chave, as funcoes continuam funcionando mas nao fazem scraping de fontes externas.
 
-**1. `supabase/functions/import-csv-data/index.ts`**
-- Adicionar funcao `getExistingIds(supabase, table)` que busca todos os IDs de uma tabela
-- Antes do upsert, verificar se FKs existem; se nao, setar como null
-- Trocar upsert em batch por loop de upsert individual
-- Retornar contagem detalhada: `{ inserted, skipped, errors, orphanedFKs }`
+**Se quiser configurar:**
+1. Acesse [firecrawl.dev](https://firecrawl.dev) e crie uma conta
+2. Copie sua API key
 
-**2. `src/pages/admin/DataImport.tsx`**
-- Reduzir batch size para 5 registros (menor payload por request)
-- Melhorar exibicao de resultados com contagem de FKs orfas
-- Contar resultados parciais (se 3 de 5 deram certo, somar 3)
+### 4. EXTERNAL_SUPABASE_URL e EXTERNAL_SUPABASE_SERVICE_KEY
 
-### Fluxo Atualizado
+Usados **apenas** pela edge function `sync-to-external` que sincroniza dados para um projeto Supabase externo. A pagina `BackupSync.tsx` em `/admin/backup-sync` chama essa funcao.
 
-```text
-Frontend envia batch de 5 registros
-        |
-Edge function recebe records
-        |
-Busca IDs existentes das tabelas FK (blog_posts, events, link_groups)
-        |
-Para cada registro:
-  - Limpa FK fields que referenciam IDs inexistentes (seta null)
-  - Tenta upsert individual
-  - Se falha, registra erro e continua
-        |
-Retorna { inserted: 4, errors: 1, orphanedFKs: 2, errorDetails: [...] }
-```
+**Decisao necessaria:** Voce usa ou pretende usar sincronizacao com um Supabase externo?
+- Se **nao**: vou remover a edge function `sync-to-external` e a pagina `BackupSync.tsx`, eliminando a necessidade desses secrets
+- Se **sim**: precisarei das credenciais do projeto externo
 
-### Resultado Esperado
+### Plano de Implementacao
 
-- blog_posts: ~106 (os que falharem serao por HTML mal-formado no CSV, inevitavel)
-- events: ~141 (todos, com blog_post_id null onde necessario)
-- custom_links: ~180 (todos, com event_id null onde necessario)  
-- ai_generated_posts: ~117 (todos, com blog_post_id null onde necessario)
+1. Solicitar o secret `RESEND_API_KEY` ao usuario
+2. Perguntar se deseja configurar `OPENAI_API_KEY` e `FIRECRAWL_API_KEY`
+3. Baseado na resposta sobre sync externo:
+   - Remover `sync-to-external` e `BackupSync.tsx` se nao necessario
+   - Ou solicitar os secrets se necessario
+4. Atualizar o `README.md` para refletir o estado correto dos secrets
+
