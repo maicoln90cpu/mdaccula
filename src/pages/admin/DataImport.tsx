@@ -65,10 +65,10 @@ interface ImportStep {
 }
 
 const IMPORT_STEPS: Omit<ImportStep, "status">[] = [
-  { table: "blog_posts", csvFile: "/import/blog_posts.csv", label: "Blog Posts (UPSERT)", count: "~113", batchSize: 10 },
-  { table: "events", csvFile: "/import/events.csv", label: "Events", count: "~141", batchSize: 20 },
-  { table: "custom_links", csvFile: "/import/custom_links.csv", label: "Custom Links", count: "~180", batchSize: 20 },
-  { table: "ai_generated_posts", csvFile: "/import/ai_generated_posts.csv", label: "AI Generated Posts", count: "~117", batchSize: 20 },
+  { table: "blog_posts", csvFile: "/import/blog_posts.csv", label: "Blog Posts (UPSERT)", count: "~113", batchSize: 5 },
+  { table: "events", csvFile: "/import/events.csv", label: "Events", count: "~141", batchSize: 5 },
+  { table: "custom_links", csvFile: "/import/custom_links.csv", label: "Custom Links", count: "~180", batchSize: 5 },
+  { table: "ai_generated_posts", csvFile: "/import/ai_generated_posts.csv", label: "AI Generated Posts", count: "~117", batchSize: 5 },
   { table: "fix_urls", csvFile: "", label: "Corrigir URLs de imagens", count: "todas tabelas", batchSize: 1 },
 ];
 
@@ -126,6 +126,7 @@ export default function DataImport() {
       // 2. Send in batches
       const { batchSize } = step;
       let totalInserted = 0;
+      let totalOrphanedFKs = 0;
       const errors: string[] = [];
       const totalBatches = Math.ceil(records.length / batchSize);
 
@@ -140,16 +141,25 @@ export default function DataImport() {
 
         if (error) {
           errors.push(`Batch ${batchNum}: ${error.message}`);
-        } else if (data?.success === false) {
+        } else if (data?.success === false && data?.inserted === undefined) {
           errors.push(`Batch ${batchNum}: ${data.error}`);
         } else {
-          totalInserted += batch.length;
+          // Handle partial results from individual upserts
+          const batchInserted = data?.inserted ?? batch.length;
+          totalInserted += batchInserted;
+          if (data?.errors > 0) {
+            errors.push(`Batch ${batchNum}: ${data.errors} erros de ${batch.length}`);
+          }
+          if (data?.orphanedFKs > 0) {
+            totalOrphanedFKs += data.orphanedFKs;
+          }
         }
       }
 
       const resultMsg = JSON.stringify({
         total: records.length,
         inserted: totalInserted,
+        orphanedFKs: totalOrphanedFKs > 0 ? totalOrphanedFKs : undefined,
         errors: errors.length,
         errorDetails: errors.length > 0 ? errors : undefined,
       }, null, 2);

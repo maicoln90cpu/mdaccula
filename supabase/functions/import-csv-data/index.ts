@@ -40,15 +40,22 @@ function cleanArray(val: unknown): string[] {
   }
 }
 
-function cleanJsonb(val: unknown): unknown {
-  if (typeof val === "object" && val !== null) return val;
-  const str = String(val ?? "");
-  if (!str) return {};
-  try {
-    return JSON.parse(str);
-  } catch {
-    return {};
+// Fetch all existing IDs from a table (handles pagination beyond 1000)
+async function getExistingIds(supabase: any, table: string): Promise<Set<string>> {
+  const ids = new Set<string>();
+  let from = 0;
+  const pageSize = 1000;
+  while (true) {
+    const { data, error } = await supabase
+      .from(table)
+      .select("id")
+      .range(from, from + pageSize - 1);
+    if (error || !data || data.length === 0) break;
+    for (const row of data) ids.add(row.id);
+    if (data.length < pageSize) break;
+    from += pageSize;
   }
+  return ids;
 }
 
 function mapBlogPost(r: Record<string, unknown>) {
@@ -175,7 +182,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    let mappedData: unknown[];
+    let mappedData: any[];
     let tableName: string;
 
     switch (table) {
@@ -202,19 +209,65 @@ Deno.serve(async (req) => {
         });
     }
 
-    console.log(`Upserting ${mappedData.length} records into ${tableName}`);
+    // --- FK sanitization ---
+    let orphanedFKs = 0;
 
-    const { error } = await supabase.from(tableName).upsert(mappedData, { onConflict: "id" });
-
-    if (error) {
-      console.error(`Upsert error for ${tableName}:`, error);
-      return new Response(JSON.stringify({ success: false, error: error.message }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (tableName === "events") {
+      const blogIds = await getExistingIds(supabase, "blog_posts");
+      for (const rec of mappedData) {
+        if (rec.blog_post_id && !blogIds.has(rec.blog_post_id)) {
+          rec.blog_post_id = null;
+          orphanedFKs++;
+        }
+      }
+    } else if (tableName === "custom_links") {
+      const eventIds = await getExistingIds(supabase, "events");
+      const groupIds = await getExistingIds(supabase, "link_groups");
+      for (const rec of mappedData) {
+        if (rec.event_id && !eventIds.has(rec.event_id)) {
+          rec.event_id = null;
+          orphanedFKs++;
+        }
+        if (rec.group_id && !groupIds.has(rec.group_id)) {
+          rec.group_id = null;
+          orphanedFKs++;
+        }
+      }
+    } else if (tableName === "ai_generated_posts") {
+      const blogIds = await getExistingIds(supabase, "blog_posts");
+      for (const rec of mappedData) {
+        if (rec.blog_post_id && !blogIds.has(rec.blog_post_id)) {
+          rec.blog_post_id = null;
+          orphanedFKs++;
+        }
+      }
     }
 
-    return new Response(JSON.stringify({ success: true, table: tableName, count: mappedData.length }), {
+    // --- Individual upserts ---
+    let inserted = 0;
+    const errors: string[] = [];
+
+    for (const rec of mappedData) {
+      const { error } = await supabase.from(tableName).upsert(rec, { onConflict: "id" });
+      if (error) {
+        errors.push(`${rec.id}: ${error.message}`);
+        console.error(`Upsert error for ${tableName} id=${rec.id}:`, error.message);
+      } else {
+        inserted++;
+      }
+    }
+
+    console.log(`${tableName}: ${inserted} inserted, ${errors.length} errors, ${orphanedFKs} orphaned FKs`);
+
+    return new Response(JSON.stringify({
+      success: errors.length === 0,
+      table: tableName,
+      inserted,
+      total: mappedData.length,
+      errors: errors.length,
+      orphanedFKs,
+      errorDetails: errors.length > 0 ? errors.slice(0, 10) : undefined,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 
