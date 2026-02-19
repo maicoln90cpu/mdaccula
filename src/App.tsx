@@ -52,6 +52,7 @@ const RecurringEventsManager = lazy(() => import("./pages/admin/RecurringEventsM
 const AutoGenerationDashboard = lazy(() => import("./pages/admin/AutoGenerationDashboard"));
 const PodcastManager = lazy(() => import("./pages/admin/PodcastManager"));
 const RedirectsManager = lazy(() => import("./pages/admin/RedirectsManager"));
+const DataImport = lazy(() => import("./pages/admin/DataImport"));
 const Redirect = lazy(() => import("./pages/Redirect"));
 
 const queryClient = new QueryClient({
@@ -140,6 +141,7 @@ const App = () => (
                       <Route path="/admin/mdaccula-radio" element={<PageWithError name="Inscrições MDAccula Radio"><PodcastManager /></PageWithError>} />
                       <Route path="/admin/podcast" element={<Navigate to="/admin/mdaccula-radio" replace />} />
                       <Route path="/admin/redirects" element={<PageWithError name="Redirecionador de Links"><RedirectsManager /></PageWithError>} />
+                      <Route path="/admin/data-import" element={<PageWithError name="Importação de Dados"><DataImport /></PageWithError>} />
                       
                       {/* Redirect shortener */}
                       <Route path="/r/:slug" element={<Redirect />} />
