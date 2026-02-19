@@ -11,12 +11,42 @@ const SOURCE_MANIFEST_URL =
 const SOURCE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56Ynl5dXF2aHJ3YXRteWR4aWFnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyNDg3MTAsImV4cCI6MjA3NzgyNDcxMH0.tBbQNUzdS5qBH0ER_AhxnMdpa805HqZEA3bmzPD3svc";
 
+async function listAllFiles(supabase: any, bucket: string): Promise<Set<string>> {
+  const paths = new Set<string>();
+  
+  async function listRecursive(prefix: string) {
+    const { data, error } = await supabase.storage.from(bucket).list(prefix, { limit: 1000 });
+    if (error || !data) return;
+    
+    for (const item of data) {
+      const fullPath = prefix ? `${prefix}/${item.name}` : item.name;
+      if (item.id) {
+        // It's a file
+        paths.add(fullPath);
+      } else {
+        // It's a folder
+        await listRecursive(fullPath);
+      }
+    }
+  }
+  
+  await listRecursive("");
+  return paths;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Parse optional offset from body
+    let offset = 0;
+    try {
+      const body = await req.json();
+      offset = body?.offset || 0;
+    } catch { /* no body, start from 0 */ }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -35,92 +65,79 @@ Deno.serve(async (req) => {
     }
 
     const manifest = await manifestRes.json();
-    const buckets: Record<string, { path: string; publicUrl: string }[]> =
-      manifest.buckets;
+    const buckets: Record<string, { path: string; publicUrl: string }[]> = manifest.buckets;
 
-    let imported = 0;
-    let skipped = 0;
-    let errors = 0;
-    const errorDetails: string[] = [];
-    const BATCH_LIMIT = 30; // process up to 30 files per call to stay within timeout
-    let processed = 0;
-
+    // 2. Build flat list of all files with bucket info
+    const allFiles: { bucket: string; path: string; publicUrl: string }[] = [];
     for (const [bucket, files] of Object.entries(buckets)) {
       for (const file of files) {
-        if (processed >= BATCH_LIMIT) break;
-
-        try {
-          // Check if file already exists
-          const { data: existing } = await supabase.storage
-            .from(bucket)
-            .download(file.path);
-
-          if (existing && existing.size > 0) {
-            skipped++;
-            processed++;
-            continue;
-          }
-        } catch {
-          // File doesn't exist, proceed to download
-        }
-
-        try {
-          // Download from old project
-          const fileRes = await fetch(file.publicUrl);
-          if (!fileRes.ok) {
-            errors++;
-            errorDetails.push(`${bucket}/${file.path}: download ${fileRes.status}`);
-            processed++;
-            continue;
-          }
-
-          const blob = await fileRes.blob();
-          const arrayBuffer = await blob.arrayBuffer();
-          const contentType =
-            fileRes.headers.get("content-type") || "application/octet-stream";
-
-          // Upload to this project
-          const { error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(file.path, arrayBuffer, {
-              contentType,
-              upsert: true,
-            });
-
-          if (uploadError) {
-            errors++;
-            errorDetails.push(`${bucket}/${file.path}: ${uploadError.message}`);
-          } else {
-            imported++;
-          }
-        } catch (err: any) {
-          errors++;
-          errorDetails.push(`${bucket}/${file.path}: ${err.message}`);
-        }
-
-        processed++;
+        allFiles.push({ bucket, path: file.path, publicUrl: file.publicUrl });
       }
-      if (processed >= BATCH_LIMIT) break;
     }
 
-    const totalFiles = Object.values(buckets).reduce(
-      (sum, files) => sum + files.length,
-      0
+    // 3. Get existing files for each bucket to know what to skip
+    const existingByBucket: Record<string, Set<string>> = {};
+    for (const bucket of Object.keys(buckets)) {
+      existingByBucket[bucket] = await listAllFiles(supabase, bucket);
+    }
+
+    // 4. Filter to only files that don't exist yet
+    const pendingFiles = allFiles.filter(
+      (f) => !existingByBucket[f.bucket]?.has(f.path)
     );
+
+    // 5. Process a batch of pending files
+    const BATCH_LIMIT = 30;
+    const batch = pendingFiles.slice(0, BATCH_LIMIT);
+
+    let imported = 0;
+    let errors = 0;
+    const errorDetails: string[] = [];
+
+    for (const file of batch) {
+      try {
+        const fileRes = await fetch(file.publicUrl);
+        if (!fileRes.ok) {
+          errors++;
+          errorDetails.push(`${file.bucket}/${file.path}: download ${fileRes.status}`);
+          continue;
+        }
+
+        const arrayBuffer = await fileRes.arrayBuffer();
+        const contentType = fileRes.headers.get("content-type") || "application/octet-stream";
+
+        const { error: uploadError } = await supabase.storage
+          .from(file.bucket)
+          .upload(file.path, arrayBuffer, { contentType, upsert: true });
+
+        if (uploadError) {
+          errors++;
+          errorDetails.push(`${file.bucket}/${file.path}: ${uploadError.message}`);
+        } else {
+          imported++;
+        }
+      } catch (err: any) {
+        errors++;
+        errorDetails.push(`${file.bucket}/${file.path}: ${err.message}`);
+      }
+    }
+
+    const totalExisting = allFiles.length - pendingFiles.length;
 
     return new Response(
       JSON.stringify({
         success: true,
-        totalFiles,
+        totalFiles: allFiles.length,
         imported,
-        skipped,
+        skipped: totalExisting,
         errors,
+        pending: pendingFiles.length - batch.length,
         errorDetails: errorDetails.length > 0 ? errorDetails : undefined,
-        complete: imported + skipped + errors >= totalFiles,
+        complete: pendingFiles.length - imported - errors <= 0,
         message:
-          imported + skipped + errors >= totalFiles
+          pendingFiles.length <= batch.length
             ? "Importação completa!"
-            : `Processados ${processed} arquivos. Execute novamente para continuar.`,
+            : `Importados ${imported} arquivos. Restam ${pendingFiles.length - imported} pendentes. Execute novamente.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
