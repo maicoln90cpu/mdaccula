@@ -1,0 +1,149 @@
+/**
+ * Tipos compartilhados para o projeto MDAccula
+ * Centraliza interfaces e types usados em múltiplos arquivos
+ */
+
+import type { Json } from '@/integrations/supabase/types';
+
+// ============================================
+// Tipos de Erro
+// ============================================
+
+/**
+ * Erro genérico com mensagem
+ */
+export interface AppError {
+  message: string;
+  code?: string;
+  details?: string;
+}
+
+/**
+ * Erro de sync log
+ */
+export interface SyncError {
+  table?: string;
+  error: string;
+}
+
+// ============================================
+// Tipos de Prompt Template
+// ============================================
+
+export interface PromptRequiredFields {
+  [key: string]: boolean;
+}
+
+// ============================================
+// Tipos de Eventos
+// ============================================
+
+export interface Event {
+  id: string;
+  title: string;
+  slug: string;
+  subtitle?: string | null;
+  date: string;
+  time: string;
+  end_time?: string | null;
+  venue: string;
+  address?: string | null;
+  location_city: string;
+  location_state: string;
+  genres: string[];
+  lineup?: string[] | null;
+  description?: string | null;
+  image_url?: string | null;
+  ticket_link?: string | null;
+  vip_link?: string | null;
+  views?: number | null;
+  blog_post_id?: string | null;
+  created_by?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// ============================================
+// Tipos de Links
+// ============================================
+
+export interface RawLinkData {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  url: string;
+  thumbnail_url: string | null;
+  icon: string;
+  color_gradient: string | null;
+  clicks: number | null;
+  enabled: boolean | null;
+  is_internal: boolean | null;
+  is_featured?: boolean | null;
+  display_order: number | null;
+  card_height?: number | null;
+  card_width?: number | null;
+  group_id?: string | null;
+  event_id?: string | null;
+  override_date?: string | null;
+  override_time?: string | null;
+  manual_order_override?: boolean | null;
+  events?: {
+    venue: string;
+    location_city: string;
+    location_state: string;
+    date: string;
+    time: string;
+  } | null;
+}
+
+// ============================================
+// Tipos de Podcast Submissions
+// ============================================
+
+export type PodcastSubmissionStatus = 'pending' | 'approved' | 'rejected' | 'contacted';
+
+export interface PodcastSubmission {
+  id: string;
+  full_name: string;
+  city: string;
+  phone: string;
+  project_name: string;
+  project_age: string;
+  genre: string;
+  has_original_track: boolean;
+  original_track_link?: string | null;
+  instagram?: string | null;
+  spotify?: string | null;
+  soundcloud?: string | null;
+  tiktok?: string | null;
+  email: string;
+  project_description: string;
+  status: PodcastSubmissionStatus;
+  admin_notes?: string | null;
+  notification_sent: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PodcastSubmissionInsert {
+  full_name: string;
+  city: string;
+  phone: string;
+  project_name: string;
+  project_age: string;
+  genre: string;
+  has_original_track?: boolean;
+  original_track_link?: string;
+  instagram?: string;
+  spotify?: string;
+  soundcloud?: string;
+  tiktok?: string;
+  email: string;
+  project_description: string;
+}
+
+// ============================================
+// Re-export de tipos do Supabase para conveniência
+// ============================================
+
+export type { Json };

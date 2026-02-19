@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- Preconnect to critical origins for faster loading -->
+    <link rel="preconnect" href="https://nzbyyuqvhrwatmydxiag.supabase.co" crossorigin>
+    <link rel="dns-prefetch" href="https://nzbyyuqvhrwatmydxiag.supabase.co">
+    
+    <!-- Preload hero image for LCP optimization -->
+    <link rel="preload" as="image" href="/src/assets/hero-club.jpg" fetchpriority="high">
+    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
+    <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
+    <link rel="dns-prefetch" href="https://connect.facebook.net">
+    
+    <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/2XgRjzO8wCZENbXdb3kgSTCiXwZ2/uploads/1762826615702-Logo MDAccula 4x4.jpeg">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <!-- Controle de cache para atualizações rápidas -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica.">
+    <meta name="keywords" content="música eletrônica, techno, house, são paulo, eventos, festas, dj, mdaccula">
+    <meta name="author" content="MDAccula" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="MDAccula" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="canonical" href="https://mdaccula.com" />
+    <title>MDAccula - Música Eletrônica em São Paulo</title>
+    
+    <!-- RSS Feed -->
+    <link rel="alternate" type="application/rss+xml" title="MDAccula Blog" href="/functions/v1/blog-rss" />
+    
+    <!-- Sitemap -->
+    <link rel="sitemap" type="application/xml" href="/functions/v1/sitemap" />
+    <meta property="og:title" content="MDAccula - Música Eletrônica em São Paulo">
+  <meta name="twitter:title" content="MDAccula - Música Eletrônica em São Paulo">
+  <meta property="og:description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica.">
+  <meta name="twitter:description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica.">
+  <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/2XgRjzO8wCZENbXdb3kgSTCiXwZ2/social-images/social-1762826621840-Logo MDAccula 4x4.jpeg">
+  <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/2XgRjzO8wCZENbXdb3kgSTCiXwZ2/social-images/social-1762826621840-Logo MDAccula 4x4.jpeg">
+</head>
+
+  <body>
+    <!-- Critical inline CSS for immediate FCP -->
+    <style>
+      #root-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #0a0a0a;
+        color: #fff;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #root-loader .logo {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #9333ea, #c026d3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 1rem;
+      }
+      #root-loader .spinner {
+        width: 32px;
+        height: 32px;
+        border: 3px solid rgba(147, 51, 234, 0.3);
+        border-top-color: #9333ea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      #root:not(:empty) + #root-loader { display: none; }
+    </style>
+    <div id="root"></div>
+    <div id="root-loader">
+      <div class="logo">MDAccula</div>
+      <div class="spinner"></div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

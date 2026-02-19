@@ -1,0 +1,70 @@
+project_id = "nzbyyuqvhrwatmydxiag"
+
+[functions.auto-article-cron]
+verify_jwt = false
+
+[functions.batch-convert-webp]
+verify_jwt = true
+
+[functions.blog-rss]
+verify_jwt = false
+
+[functions.cleanup-storage]
+verify_jwt = true
+
+[functions.cleanup-sync-logs]
+verify_jwt = true
+
+[functions.convert-to-webp]
+verify_jwt = true
+
+[functions.create-recurring-events]
+verify_jwt = false
+
+[functions.fetch-link-metadata]
+verify_jwt = false
+
+[functions.generate-blog-post-v2]
+verify_jwt = true
+
+[functions.generate-blog-suggestions]
+verify_jwt = true
+
+[functions.generate-multi-event-article]
+verify_jwt = true
+
+[functions.persist-logs]
+verify_jwt = false
+
+[functions.regenerate-blog-image]
+verify_jwt = true
+
+[functions.request-data-deletion]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
+
+[functions.send-mass-newsletter]
+verify_jwt = true
+
+[functions.sitemap]
+verify_jwt = false
+
+[functions.sync-to-external]
+verify_jwt = true
+
+[functions.systemhealth]
+verify_jwt = false
+
+[functions.track-link-click]
+verify_jwt = false
+
+[functions.track-share]
+verify_jwt = false
+
+[functions.track-redirect-click]
+verify_jwt = false
+
+[functions.track-view]
+verify_jwt = false

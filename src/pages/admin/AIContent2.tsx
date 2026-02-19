@@ -1,0 +1,559 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Sparkles, Lightbulb, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { GenerateForm } from "@/components/admin/ai-content/GenerateForm";
+import { SuggestionsList, GenerationProgress } from "@/components/admin/ai-content/SuggestionsList";
+import { PostsHistory } from "@/components/admin/ai-content/PostsHistory";
+
+interface Suggestion {
+  title: string;
+  summary: string;
+  category: string;
+  keywords?: string[];
+  mood?: string;
+  visualElements?: string[];
+}
+
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  published: boolean;
+  created_at: string;
+  image_url?: string | null;
+  ai_data?: {
+    model_used?: string;
+    total_tokens?: number;
+    image_tokens?: number;
+    generated_at?: string;
+  };
+}
+
+interface PromptTemplate {
+  id: string;
+  name: string;
+  description: string;
+  required_fields: string[];
+  category: string;
+}
+
+export default function AIContent2() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // States
+  const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
+  const [generatedPosts, setGeneratedPosts] = useState<BlogPost[]>([]);
+  const [templates, setTemplates] = useState<PromptTemplate[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [generateWithImage, setGenerateWithImage] = useState(true);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchTemplates();
+    fetchGeneratedPosts();
+  }, []);
+
+  const fetchTemplates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("ai_prompt_templates")
+        .select("*")
+        .eq("enabled", true)
+        .order("is_default", { ascending: false });
+
+      if (error) throw error;
+
+      const mappedTemplates: PromptTemplate[] = (data || []).map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description || "",
+        // Normalizar required_fields - pode ser objeto ou array
+        required_fields: (() => {
+          if (Array.isArray(t.required_fields)) {
+            return t.required_fields as string[];
+          }
+          if (typeof t.required_fields === 'object' && t.required_fields !== null) {
+            return Object.keys(t.required_fields);
+          }
+          return [];
+        })(),
+        category: t.category || "",
+      }));
+
+      setTemplates(mappedTemplates);
+
+      // Set default template
+      const defaultTemplate = mappedTemplates.find((t) => t.category === "default") || mappedTemplates[0];
+      if (defaultTemplate) {
+        setSelectedTemplate(defaultTemplate);
+        initializeFormData(defaultTemplate.required_fields);
+      }
+    } catch (error) {
+      console.error("Error fetching templates:", error);
+      toast({
+        title: "Erro ao carregar templates",
+        description: "Não foi possível carregar os templates de prompt.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchGeneratedPosts = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch recent blog posts
+      const { data: posts, error: postsError } = await supabase
+        .from("blog_posts")
+        .select("id, title, slug, category, published, created_at, image_url")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (postsError) throw postsError;
+
+      // Fetch AI generation data for these posts
+      const postIds = posts?.map((p) => p.id) || [];
+      const { data: aiData, error: aiError } = await supabase
+        .from("ai_generated_posts")
+        .select("blog_post_id, model_used, total_tokens, image_tokens, generated_at")
+        .in("blog_post_id", postIds);
+
+      if (aiError) throw aiError;
+
+      // Merge data
+      const mergedPosts: BlogPost[] = (posts || []).map((post) => {
+        const ai = aiData?.find((a) => a.blog_post_id === post.id);
+        return {
+          ...post,
+          ai_data: ai
+            ? {
+                model_used: ai.model_used || undefined,
+                total_tokens: ai.total_tokens || undefined,
+                image_tokens: ai.image_tokens || undefined,
+                generated_at: ai.generated_at || undefined,
+              }
+            : undefined,
+        };
+      });
+
+      setGeneratedPosts(mergedPosts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      toast({
+        title: "Erro ao carregar posts",
+        description: "Não foi possível carregar o histórico de posts.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const initializeFormData = (fields: string[]) => {
+    const initial: Record<string, string> = {};
+    fields.forEach((field) => {
+      initial[field] = "";
+    });
+    setFormData(initial);
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    const template = templates.find((t) => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(template);
+      initializeFormData(template.required_fields);
+    }
+  };
+
+  const handleFormDataChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const getFieldLabel = (field: string): string => {
+    const labels: Record<string, string> = {
+      topic: "Tópico",
+      artist_name: "Nome do Artista",
+      event_name: "Nome do Evento",
+      track_name: "Nome da Track",
+      genre: "Gênero",
+      label_name: "Nome da Label",
+      news_topic: "Tópico da Notícia",
+      source_url: "URL da Fonte",
+    };
+    return labels[field] || field.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  };
+
+  const handleGenerate = async () => {
+    if (!selectedTemplate) {
+      toast({
+        title: "Selecione um template",
+        description: "Escolha um template antes de gerar o artigo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate required fields
+    const missingFields = selectedTemplate.required_fields.filter(
+      (field) => !formData[field]?.trim()
+    );
+
+    if (missingFields.length > 0) {
+      toast({
+        title: "Campos obrigatórios",
+        description: `Preencha: ${missingFields.map(getFieldLabel).join(", ")}`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
+        body: {
+          templateId: selectedTemplate.id,
+          formData,
+          generateImage: generateWithImage,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Artigo gerado com sucesso!",
+        description: `"${data.title}" foi criado e salvo como rascunho.`,
+      });
+
+      // Refresh posts list
+      fetchGeneratedPosts();
+
+      // Clear form
+      initializeFormData(selectedTemplate.required_fields);
+    } catch (error: any) {
+      console.error("Error generating article:", error);
+      toast({
+        title: "Erro ao gerar artigo",
+        description: error.message || "Ocorreu um erro durante a geração.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateSuggestions = async () => {
+    setIsLoadingSuggestions(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-suggestions", {
+        body: { count: 5 },
+      });
+
+      if (error) throw error;
+
+      // Normalizar keywords e visualElements (podem vir como string ou array)
+      const normalizedSuggestions = (data.suggestions || []).map((s: any) => ({
+        ...s,
+        keywords: typeof s.keywords === 'string' 
+          ? s.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)
+          : (Array.isArray(s.keywords) ? s.keywords : []),
+        visualElements: typeof s.visualElements === 'string'
+          ? s.visualElements.split(',').map((v: string) => v.trim()).filter(Boolean)
+          : (Array.isArray(s.visualElements) ? s.visualElements : []),
+      }));
+
+      setSuggestions(normalizedSuggestions);
+
+      toast({
+        title: "Sugestões geradas!",
+        description: `${data.suggestions?.length || 0} ideias de artigos foram geradas.`,
+      });
+    } catch (error: any) {
+      console.error("Error generating suggestions:", error);
+      toast({
+        title: "Erro ao gerar sugestões",
+        description: error.message || "Ocorreu um erro ao buscar sugestões.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  const handleGenerateFromSuggestion = async (suggestion: Suggestion, index: number) => {
+    setIsGenerating(true);
+    setGeneratingIndex(index);
+
+    try {
+      // Find the default template or first available
+      const template = templates.find((t) => t.category === "default") || templates[0];
+
+      if (!template) {
+        throw new Error("Nenhum template disponível");
+      }
+
+      const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
+        body: {
+          templateId: template.id,
+          // Campos no root level que a edge function espera
+          title: suggestion.title,
+          eventName: suggestion.title,
+          summary: suggestion.summary,
+          category: suggestion.category,
+          keywords: Array.isArray(suggestion.keywords) ? suggestion.keywords.join(", ") : (suggestion.keywords || ""),
+          mood: suggestion.mood || "",
+          visualElements: Array.isArray(suggestion.visualElements) ? suggestion.visualElements.join(", ") : (suggestion.visualElements || ""),
+          generateImage: generateWithImage,
+          // Manter formData para compatibilidade
+          formData: {
+            topic: suggestion.title,
+            summary: suggestion.summary,
+            category: suggestion.category,
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Artigo gerado!",
+        description: `"${data.title}" foi criado a partir da sugestão.`,
+      });
+
+      // Remove from suggestions
+      setSuggestions((prev) => prev.filter((_, i) => i !== index));
+
+      // Refresh posts
+      fetchGeneratedPosts();
+    } catch (error: any) {
+      console.error("Error generating from suggestion:", error);
+      toast({
+        title: "Erro ao gerar artigo",
+        description: error.message || "Ocorreu um erro durante a geração.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+      setGeneratingIndex(null);
+    }
+  };
+
+  const handleGenerateSelected = async (selected: Suggestion[]) => {
+    if (selected.length === 0) return;
+
+    setIsGenerating(true);
+    
+    // Initialize progress tracking
+    const progress: GenerationProgress = {
+      current: 0,
+      total: selected.length,
+      currentTitle: "",
+      completed: [],
+      failed: [],
+    };
+    setGenerationProgress(progress);
+
+    try {
+      for (let i = 0; i < selected.length; i++) {
+        const suggestion = selected[i];
+        const originalIndex = suggestions.findIndex((s) => s.title === suggestion.title);
+        
+        // Update progress
+        progress.current = i + 1;
+        progress.currentTitle = suggestion.title;
+        setGenerationProgress({ ...progress });
+        setGeneratingIndex(originalIndex);
+
+        const template = templates.find((t) => t.category === "default") || templates[0];
+
+        if (!template) {
+          progress.failed.push(suggestion.title);
+          setGenerationProgress({ ...progress });
+          continue;
+        }
+
+        try {
+          const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
+            body: {
+              templateId: template.id,
+              title: suggestion.title,
+              eventName: suggestion.title,
+              summary: suggestion.summary,
+              category: suggestion.category,
+              keywords: Array.isArray(suggestion.keywords) ? suggestion.keywords.join(", ") : (suggestion.keywords || ""),
+              mood: suggestion.mood || "",
+              visualElements: Array.isArray(suggestion.visualElements) ? suggestion.visualElements.join(", ") : (suggestion.visualElements || ""),
+              generateImage: generateWithImage,
+              formData: {
+                topic: suggestion.title,
+                summary: suggestion.summary,
+                category: suggestion.category,
+              },
+            },
+          });
+
+          if (error) {
+            console.error(`Error generating "${suggestion.title}":`, error);
+            progress.failed.push(suggestion.title);
+            setGenerationProgress({ ...progress });
+            
+            toast({
+              title: `Erro: ${suggestion.title.slice(0, 30)}...`,
+              description: error.message || "Falha ao gerar artigo",
+              variant: "destructive",
+            });
+          } else {
+            progress.completed.push(suggestion.title);
+            setGenerationProgress({ ...progress });
+            
+            // Remove generated suggestion
+            setSuggestions((prev) => prev.filter((s) => s.title !== suggestion.title));
+            
+            toast({
+              title: `Gerado: ${(data.title || suggestion.title).slice(0, 30)}...`,
+              description: "Artigo criado com sucesso!",
+            });
+          }
+        } catch (err: any) {
+          console.error(`Error generating "${suggestion.title}":`, err);
+          progress.failed.push(suggestion.title);
+          setGenerationProgress({ ...progress });
+          
+          toast({
+            title: `Erro: ${suggestion.title.slice(0, 30)}...`,
+            description: err.message || "Falha ao gerar artigo",
+            variant: "destructive",
+          });
+        }
+
+        // Wait a bit between requests
+        if (i < selected.length - 1) {
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+      }
+
+      // Final summary toast
+      const successCount = progress.completed.length;
+      const failCount = progress.failed.length;
+      
+      toast({
+        title: "Geração em lote concluída!",
+        description: `${successCount} artigos gerados com sucesso${failCount > 0 ? `, ${failCount} falhas` : ""}.`,
+        variant: failCount > 0 && successCount === 0 ? "destructive" : "default",
+      });
+
+      fetchGeneratedPosts();
+    } catch (error: any) {
+      console.error("Error in batch generation:", error);
+      toast({
+        title: "Erro na geração em lote",
+        description: error.message || "Alguns artigos podem não ter sido gerados.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+      setGeneratingIndex(null);
+      // Clear progress after a delay so user can see final state
+      setTimeout(() => setGenerationProgress(null), 3000);
+    }
+  };
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-3xl font-bold">IA Gerador de Conteúdo</h1>
+                  <Badge variant="secondary">V2</Badge>
+                </div>
+                <p className="text-muted-foreground mt-1">
+                  Gere artigos com inteligência artificial usando templates personalizados
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <Tabs defaultValue="generate" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6">
+              <TabsTrigger value="generate" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                Gerar
+              </TabsTrigger>
+              <TabsTrigger value="suggestions" className="gap-2">
+                <Lightbulb className="h-4 w-4" />
+                Sugestões
+              </TabsTrigger>
+              <TabsTrigger value="history" className="gap-2">
+                <Clock className="h-4 w-4" />
+                Histórico
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="generate">
+              <div className="max-w-2xl">
+                <GenerateForm
+                  templates={templates}
+                  selectedTemplate={selectedTemplate}
+                  formData={formData}
+                  generateWithImage={generateWithImage}
+                  isGenerating={isGenerating}
+                  onTemplateChange={handleTemplateChange}
+                  onFormDataChange={handleFormDataChange}
+                  onGenerateWithImageChange={setGenerateWithImage}
+                  onGenerate={handleGenerate}
+                  getFieldLabel={getFieldLabel}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="suggestions">
+              <div className="max-w-3xl">
+                <SuggestionsList
+                  suggestions={suggestions}
+                  generateWithImage={generateWithImage}
+                  isLoadingSuggestions={isLoadingSuggestions}
+                  isGenerating={isGenerating}
+                  generatingIndex={generatingIndex}
+                  generationProgress={generationProgress}
+                  onGenerateSuggestions={handleGenerateSuggestions}
+                  onGenerateWithImageChange={setGenerateWithImage}
+                  onGenerateFromSuggestion={handleGenerateFromSuggestion}
+                  onGenerateSelected={handleGenerateSelected}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="history">
+              <div className="max-w-4xl">
+                <PostsHistory posts={generatedPosts} isLoading={isLoading} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+}

@@ -1,0 +1,320 @@
+export interface LinkTheme {
+  id: string;
+  name: string;
+  background: string; // Tailwind classes for background
+  cardDefault: string; // Gradient for normal cards
+  cardFeatured: string; // Gradient for featured cards
+  cardNavigation: string; // Specific color for navigation cards
+  cardEvent: string; // Specific color for event cards
+  textPrimary: string;
+  textSecondary: string;
+  iconColor: string;
+  cardBorder: string;
+  cardShadow: string;
+  cardRoundedness: string;
+  cardBackdrop: string;
+  cardHoverEffect: string;
+}
+
+export const linkThemes: Record<string, LinkTheme> = {
+  sunset: {
+    id: 'sunset',
+    name: 'Sunset',
+    background: 'bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600',
+    cardDefault: 'from-orange-500/80 to-pink-500/80',
+    cardFeatured: 'from-pink-500/90 to-purple-600/90',
+    cardNavigation: 'from-orange-500 to-pink-500',
+    cardEvent: 'from-pink-500 to-purple-600',
+    textPrimary: 'text-white',
+    textSecondary: 'text-white/80',
+    iconColor: 'text-white',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  ocean: {
+    id: 'ocean',
+    name: 'Ocean',
+    background: 'bg-gradient-to-br from-cyan-400 via-blue-500 to-blue-700',
+    cardDefault: 'from-cyan-500/80 to-blue-500/80',
+    cardFeatured: 'from-blue-500/90 to-blue-700/90',
+    cardNavigation: 'from-cyan-500 to-blue-500',
+    cardEvent: 'from-blue-500 to-blue-700',
+    textPrimary: 'text-white',
+    textSecondary: 'text-white/80',
+    iconColor: 'text-white',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  forest: {
+    id: 'forest',
+    name: 'Forest',
+    background: 'bg-gradient-to-br from-green-300 via-emerald-500 to-green-800',
+    cardDefault: 'from-green-400/80 to-emerald-600/80',
+    cardFeatured: 'from-emerald-500/90 to-green-800/90',
+    cardNavigation: 'from-green-400 to-emerald-600',
+    cardEvent: 'from-emerald-500 to-green-700',
+    textPrimary: 'text-white',
+    textSecondary: 'text-white/80',
+    iconColor: 'text-white',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  night: {
+    id: 'night',
+    name: 'Night',
+    background: 'bg-gradient-to-br from-gray-900 via-purple-900 to-black',
+    cardDefault: 'from-gray-800/80 to-purple-900/80',
+    cardFeatured: 'from-purple-900/90 to-black/90',
+    cardNavigation: 'from-gray-700 to-purple-800',
+    cardEvent: 'from-purple-900 to-indigo-900',
+    textPrimary: 'text-white',
+    textSecondary: 'text-white/80',
+    iconColor: 'text-white',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  candy: {
+    id: 'candy',
+    name: 'Candy',
+    background: 'bg-gradient-to-br from-pink-300 via-purple-400 to-indigo-500',
+    cardDefault: 'from-pink-400/80 to-purple-500/80',
+    cardFeatured: 'from-purple-500/90 to-indigo-600/90',
+    cardNavigation: 'from-pink-400 to-purple-500',
+    cardEvent: 'from-purple-500 to-indigo-600',
+    textPrimary: 'text-white',
+    textSecondary: 'text-white/80',
+    iconColor: 'text-white',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  blackGradient: {
+    id: 'blackGradient',
+    name: 'Black Gradient',
+    background: 'bg-gradient-to-br from-black via-gray-900 to-black',
+    cardDefault: 'from-gray-900/90 to-black/90',
+    cardFeatured: 'from-black/95 to-gray-900/95',
+    cardNavigation: 'from-gray-800 to-gray-900',
+    cardEvent: 'from-gray-900 to-black',
+    textPrimary: 'text-white',
+    textSecondary: 'text-white/70',
+    iconColor: 'text-white',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  minimalBlack: {
+    id: 'minimalBlack',
+    name: 'Minimal Black',
+    background: 'bg-black',
+    cardDefault: 'from-gray-900/80 to-gray-800/80',
+    cardFeatured: 'from-gray-800/90 to-gray-900/90',
+    cardNavigation: 'from-gray-800 to-gray-700',
+    cardEvent: 'from-gray-700 to-gray-800',
+    textPrimary: 'text-white',
+    textSecondary: 'text-gray-400',
+    iconColor: 'text-gray-300',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  neonPurple: {
+    id: 'neonPurple',
+    name: 'Neon Purple',
+    background: 'bg-gradient-to-br from-purple-950 via-fuchsia-900 to-purple-950',
+    cardDefault: 'from-purple-600/80 to-fuchsia-600/80',
+    cardFeatured: 'from-fuchsia-600/90 to-purple-700/90',
+    cardNavigation: 'from-purple-600 to-fuchsia-600',
+    cardEvent: 'from-fuchsia-600 to-purple-700',
+    textPrimary: 'text-white',
+    textSecondary: 'text-purple-200',
+    iconColor: 'text-purple-200',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  goldLuxury: {
+    id: 'goldLuxury',
+    name: 'Gold Luxury',
+    background: 'bg-gradient-to-br from-amber-900 via-yellow-700 to-amber-950',
+    cardDefault: 'from-amber-600/80 to-yellow-600/80',
+    cardFeatured: 'from-yellow-600/90 to-amber-700/90',
+    cardNavigation: 'from-amber-600 to-yellow-600',
+    cardEvent: 'from-yellow-600 to-amber-700',
+    textPrimary: 'text-white',
+    textSecondary: 'text-amber-100',
+    iconColor: 'text-amber-200',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  deepBlue: {
+    id: 'deepBlue',
+    name: 'Deep Blue',
+    background: 'bg-gradient-to-br from-slate-950 via-blue-950 to-slate-950',
+    cardDefault: 'from-slate-800/80 to-blue-900/80',
+    cardFeatured: 'from-blue-900/90 to-slate-900/90',
+    cardNavigation: 'from-slate-700 to-blue-800',
+    cardEvent: 'from-blue-800 to-slate-900',
+    textPrimary: 'text-white',
+    textSecondary: 'text-blue-200',
+    iconColor: 'text-blue-300',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  fireRed: {
+    id: 'fireRed',
+    name: 'Fire Red',
+    background: 'bg-gradient-to-br from-red-950 via-orange-800 to-red-950',
+    cardDefault: 'from-red-600/80 to-orange-600/80',
+    cardFeatured: 'from-orange-600/90 to-red-700/90',
+    cardNavigation: 'from-red-600 to-orange-600',
+    cardEvent: 'from-orange-600 to-red-700',
+    textPrimary: 'text-white',
+    textSecondary: 'text-red-100',
+    iconColor: 'text-orange-200',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  arctic: {
+    id: 'arctic',
+    name: 'Arctic',
+    background: 'bg-gradient-to-br from-slate-100 via-cyan-100 to-blue-100',
+    cardDefault: 'from-white/90 to-cyan-50/90',
+    cardFeatured: 'from-cyan-50/95 to-blue-50/95',
+    cardNavigation: 'from-cyan-400 to-blue-400',
+    cardEvent: 'from-blue-400 to-cyan-500',
+    textPrimary: 'text-gray-900',
+    textSecondary: 'text-gray-600',
+    iconColor: 'text-cyan-700',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+  monochrome: {
+    id: 'monochrome',
+    name: 'Monochrome',
+    background: 'bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400',
+    cardDefault: 'from-gray-700/80 to-gray-600/80',
+    cardFeatured: 'from-gray-800/90 to-gray-700/90',
+    cardNavigation: 'from-gray-700 to-gray-600',
+    cardEvent: 'from-gray-600 to-gray-700',
+    textPrimary: 'text-white',
+    textSecondary: 'text-gray-200',
+    iconColor: 'text-gray-100',
+    cardBorder: 'border border-white/10',
+    cardShadow: 'shadow-lg hover:shadow-xl',
+    cardRoundedness: 'rounded-2xl',
+    cardBackdrop: 'backdrop-blur-sm',
+    cardHoverEffect: 'hover:scale-[1.02]',
+  },
+};
+
+// Opções de cores de gradiente para cards
+export const cardColorOptions = [
+  { label: 'Padrão do Tema', value: '' },
+  { label: 'Preto Gradiente', value: 'from-gray-900/90 to-black/90' },
+  { label: 'Preto Escuro', value: 'from-black/95 to-gray-950/95' },
+  { label: 'Azul para Ciano', value: 'from-blue-500 to-cyan-500' },
+  { label: 'Roxo para Rosa', value: 'from-purple-500 to-pink-500' },
+  { label: 'Verde para Esmeralda', value: 'from-green-500 to-emerald-500' },
+  { label: 'Laranja para Vermelho', value: 'from-orange-500 to-red-500' },
+  { label: 'Rosa para Laranja', value: 'from-pink-500 to-orange-500' },
+  { label: 'Índigo para Roxo', value: 'from-indigo-500 to-purple-500' },
+  { label: 'Ciano para Azul', value: 'from-cyan-500 to-blue-500' },
+  { label: 'Amarelo para Laranja', value: 'from-yellow-500 to-orange-500' },
+  { label: 'Vermelho para Rosa', value: 'from-red-500 to-pink-500' },
+  { label: 'Esmeralda para Teal', value: 'from-emerald-500 to-teal-500' },
+];
+
+// Opções de cores de borda para cards
+export const cardBorderColorOptions = [
+  { label: 'Padrão do Tema', value: '' },
+  { label: 'Branco Sutil', value: 'border border-white/10' },
+  { label: 'Branco Médio', value: 'border-2 border-white/30' },
+  { label: 'Branco Forte', value: 'border-2 border-white/50' },
+  { label: 'Preto', value: 'border-2 border-black/50' },
+  { label: 'Roxo', value: 'border-2 border-purple-500/50' },
+  { label: 'Azul', value: 'border-2 border-blue-500/50' },
+  { label: 'Verde', value: 'border-2 border-green-500/50' },
+  { label: 'Vermelho', value: 'border-2 border-red-500/50' },
+  { label: 'Laranja', value: 'border-2 border-orange-500/50' },
+  { label: 'Rosa', value: 'border-2 border-pink-500/50' },
+  { label: 'Dourado', value: 'border-2 border-yellow-500/50' },
+];
+
+export const cardBorderOptions = [
+  { label: 'Sem Borda', value: 'border-0' },
+  { label: 'Borda Sutil', value: 'border border-white/10' },
+  { label: 'Borda Média', value: 'border-2 border-white/20' },
+  { label: 'Borda Forte', value: 'border-2 border-white/40' },
+  { label: 'Borda Neon', value: 'border-2 border-white shadow-[0_0_10px_rgba(255,255,255,0.3)]' },
+];
+
+export const cardShadowOptions = [
+  { label: 'Sem Sombra', value: 'shadow-none' },
+  { label: 'Sombra Sutil', value: 'shadow-md' },
+  { label: 'Sombra Normal', value: 'shadow-lg hover:shadow-xl' },
+  { label: 'Sombra Forte', value: 'shadow-2xl hover:shadow-[0_20px_50px_rgba(0,0,0,0.5)]' },
+  { label: 'Sombra Neon', value: 'shadow-[0_0_20px_rgba(139,92,246,0.5)]' },
+];
+
+export const cardRoundednessOptions = [
+  { label: 'Quadrado', value: 'rounded-none' },
+  { label: 'Levemente Arredondado', value: 'rounded-lg' },
+  { label: 'Arredondado', value: 'rounded-2xl' },
+  { label: 'Muito Arredondado', value: 'rounded-3xl' },
+  { label: 'Circular', value: 'rounded-full' },
+];
+
+export const cardBackdropOptions = [
+  { label: 'Sem Blur', value: 'backdrop-blur-none' },
+  { label: 'Blur Sutil', value: 'backdrop-blur-sm' },
+  { label: 'Blur Médio', value: 'backdrop-blur-md' },
+  { label: 'Blur Forte', value: 'backdrop-blur-lg' },
+];
+
+export const cardHoverOptions = [
+  { label: 'Sem Efeito', value: 'hover:scale-100' },
+  { label: 'Escala Sutil', value: 'hover:scale-[1.01]' },
+  { label: 'Escala Normal', value: 'hover:scale-[1.02]' },
+  { label: 'Escala + Brilho', value: 'hover:scale-[1.02] hover:brightness-110' },
+  { label: 'Elevação', value: 'hover:-translate-y-1 transition-transform' },
+];
+
+export const getTheme = (themeId?: string): LinkTheme => {
+  if (!themeId || !linkThemes[themeId]) {
+    return linkThemes.sunset;
+  }
+  return linkThemes[themeId];
+};

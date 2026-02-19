@@ -1,0 +1,431 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, MapPin, Pencil, Trash2, Plus, ArrowLeft, Copy, FileText, Loader2, CalendarDays, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/useToast";
+import { NavLink } from "react-router-dom";
+import Navigation from "@/components/ui/navigation";
+import Footer from "@/components/ui/footer";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { EventForm } from "@/components/events/EventForm";
+import { MultiEventArticleModal } from "@/components/admin/MultiEventArticleModal";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { addHours } from "date-fns";
+import { parseLocalDateTime } from "@/lib/dateUtils";
+
+interface Event {
+  id: string;
+  title: string;
+  slug: string;
+  venue: string;
+  date: string;
+  time: string;
+  end_time?: string;
+  location_city: string;
+  location_state: string;
+  genres: string[];
+  image_url?: string;
+  blog_post_id?: string | null;
+  description?: string;
+  lineup?: string[];
+  ticket_link?: string;
+  vip_link?: string;
+}
+
+const EventsManager = () => {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'ativos' | 'inativos'>('todos');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [generatingArticle, setGeneratingArticle] = useState<string | null>(null);
+  const [showMultiEventModal, setShowMultiEventModal] = useState(false);
+  const { toast } = useToast();
+
+  const fetchEvents = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .order("date", { ascending: true });
+
+      if (error) throw error;
+      setEvents(data || []);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar eventos",
+        description: error.message,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.from("events").delete().eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Evento deletado",
+        description: "O evento foi removido com sucesso.",
+      });
+      fetchEvents();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao deletar evento",
+        description: error.message,
+      });
+    } finally {
+      setDeletingEventId(null);
+    }
+  };
+
+  const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+    setShowForm(true);
+  };
+
+  const handleFormClose = () => {
+    setShowForm(false);
+    setEditingEvent(null);
+    fetchEvents();
+  };
+
+  const handleDuplicate = (event: Event) => {
+    // Criar evento duplicado com dados do original
+    setEditingEvent({
+      ...event,
+      id: '', // Remover ID para criar novo
+      title: `${event.title} (Cópia)`,
+      slug: '', // Slug será gerado automaticamente
+    });
+    setShowForm(true);
+  };
+
+  const handleGenerateArticle = async (event: Event) => {
+    setGeneratingArticle(event.id);
+    
+    try {
+      console.log('[EventsManager] Iniciando geração de artigo para evento:', event.title);
+      
+      // Compor eventLocation para o template
+      const eventLocation = [event.venue, event.location_city, event.location_state]
+        .filter(Boolean)
+        .join(' - ');
+
+      const payload = {
+        eventName: event.title,
+        title: event.title,
+        eventLocation, // local formatado para o template
+        venue: event.venue,
+        eventDate: event.date,
+        eventTime: event.time,
+        locationCity: event.location_city,
+        locationState: event.location_state,
+        description: event.description || '',
+        genres: event.genres?.join(', ') || '',
+        lineup: event.lineup?.join(', ') || '',
+        ticketLink: event.ticket_link || '',
+        vipLink: event.vip_link || '',
+        eventImageUrl: event.image_url || '',
+        category: 'Eventos',
+        tone: 'engaging',
+        generateImage: !event.image_url,
+      };
+      
+      console.log('[EventsManager] Payload para generate-blog-post-v2:', payload);
+      
+      const { data: blogData, error: blogError } = await supabase.functions.invoke('generate-blog-post-v2', {
+        body: payload
+      });
+      
+      console.log('[EventsManager] Resposta da edge function:', { blogData, blogError });
+      
+      if (blogError) {
+        throw new Error(blogError.message || 'Erro ao gerar artigo');
+      }
+      
+      if (blogData?.post?.id) {
+        // Vincular o blog post ao evento
+        const { error: updateError } = await supabase
+          .from('events')
+          .update({ blog_post_id: blogData.post.id })
+          .eq('id', event.id);
+        
+        if (updateError) {
+          console.error('[EventsManager] Erro ao vincular blog post ao evento:', updateError);
+        }
+        
+        toast({
+          title: "Artigo gerado com sucesso!",
+          description: `O artigo "${blogData.post.title}" foi criado e vinculado ao evento.`,
+        });
+        
+        fetchEvents();
+      } else {
+        throw new Error('Resposta inválida da API');
+      }
+    } catch (error: any) {
+      console.error('[EventsManager] Erro ao gerar artigo:', error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao gerar artigo",
+        description: error.message || 'Ocorreu um erro ao gerar o artigo do blog.',
+      });
+    } finally {
+      setGeneratingArticle(null);
+    }
+  };
+
+  const filteredEvents = events.filter(event => {
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!event.title.toLowerCase().includes(term) && !event.venue.toLowerCase().includes(term)) {
+        return false;
+      }
+    }
+    
+    if (statusFilter === 'todos') return true;
+    
+    const now = new Date();
+    const eventDateTime = parseLocalDateTime(event.date, event.time);
+    const eventEndTime = addHours(eventDateTime, 24);
+    
+    if (statusFilter === 'ativos') {
+      return eventEndTime > now;
+    } else {
+      return eventEndTime <= now;
+    }
+  });
+
+  const activeCount = events.filter(event => {
+    const now = new Date();
+    const eventDateTime = parseLocalDateTime(event.date, event.time);
+    const eventEndTime = addHours(eventDateTime, 24);
+    return eventEndTime > now;
+  }).length;
+
+  const inactiveCount = events.length - activeCount;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  return (
+    <ProtectedRoute>
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 pt-20 md:pt-24 pb-12 md:pb-16">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
+              <div className="w-full sm:w-auto">
+                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Painel
+                </NavLink>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold hero-text">Gerenciar Eventos</h1>
+              </div>
+              <div className="flex gap-2 w-full sm:w-auto">
+                <Button 
+                  variant="secondary" 
+                  onClick={() => setShowMultiEventModal(true)} 
+                  className="min-h-[44px] flex-1 sm:flex-none"
+                >
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  Artigo Multi-Datas
+                </Button>
+                <Button onClick={() => setShowForm(true)} className="min-h-[44px] flex-1 sm:flex-none">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Adicionar Evento
+                </Button>
+              </div>
+            </div>
+
+            {/* Search + Filters */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar evento por nome ou local..."
+                className="pl-10 h-11"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2 mb-6 flex-wrap">
+              <Button 
+                variant={statusFilter === 'todos' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('todos')}
+                size="sm"
+              >
+                Todos ({events.length})
+              </Button>
+              <Button 
+                variant={statusFilter === 'ativos' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('ativos')}
+                size="sm"
+              >
+                Ativos ({activeCount})
+              </Button>
+              <Button 
+                variant={statusFilter === 'inativos' ? 'default' : 'outline'}
+                onClick={() => setStatusFilter('inativos')}
+                size="sm"
+              >
+                Inativos ({inactiveCount})
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <Card key={event.id} className="overflow-hidden">
+                  {event.image_url && (
+                    <div className="h-48 overflow-hidden">
+                      <img
+                        src={event.image_url}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {event.date} às {event.time}
+                      </div>
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        {event.venue}, {event.location_city} - {event.location_state}
+                      </div>
+                      <div className="text-xs text-muted-foreground/70">
+                        Slug: {event.slug}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => handleEdit(event)}
+                      >
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Editar
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleDuplicate(event)}
+                        title="Duplicar evento"
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                      {!event.blog_post_id && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleGenerateArticle(event)}
+                          disabled={generatingArticle === event.id}
+                          title="Gerar artigo do blog"
+                          className="bg-primary/10 hover:bg-primary/20 text-primary"
+                        >
+                          {generatingArticle === event.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <FileText className="w-4 h-4" />
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setDeletingEventId(event.id)}
+                        title="Deletar evento"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {events.length === 0 && (
+              <Card className="col-span-full">
+                <CardContent className="text-center py-16">
+                  <Calendar className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-xl font-semibold mb-2">Nenhum evento cadastrado</h3>
+                  <p className="text-muted-foreground mb-6">
+                    Comece adicionando seu primeiro evento clicando no botão acima.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </main>
+        <Footer />
+
+        <Dialog open={showForm} onOpenChange={(open) => !open && handleFormClose()}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <EventForm
+              event={editingEvent}
+              onSuccess={handleFormClose}
+              onCancel={handleFormClose}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <MultiEventArticleModal 
+          open={showMultiEventModal} 
+          onOpenChange={setShowMultiEventModal}
+          onSuccess={fetchEvents}
+        />
+
+        <AlertDialog open={!!deletingEventId} onOpenChange={() => setDeletingEventId(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja deletar este evento? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deletingEventId && handleDelete(deletingEventId)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Deletar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </ProtectedRoute>
+  );
+};
+
+export default EventsManager;

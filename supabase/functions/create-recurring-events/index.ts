@@ -1,0 +1,218 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface RecurringConfig {
+  id: string;
+  name: string;
+  title: string;
+  weekday: number;
+  venue: string;
+  address: string | null;
+  location_city: string;
+  location_state: string;
+  time: string;
+  end_time: string | null;
+  subtitle: string | null;
+  description: string | null;
+  genres: string[];
+  ticket_link: string | null;
+  vip_link: string | null;
+  image_url: string | null;
+  link_group_id: string | null;
+}
+
+function generateSlug(title: string): string {
+  const base = title
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  
+  const random = Math.random().toString(36).substring(2, 8);
+  return `${base}-${random}`;
+}
+
+function getNextDateForWeekday(weekday: number, referenceDate: Date): string {
+  const result = new Date(referenceDate);
+  const currentDay = result.getDay();
+  
+  let daysToAdd = weekday - currentDay;
+  if (daysToAdd <= 0) {
+    daysToAdd += 7;
+  }
+  
+  result.setDate(result.getDate() + daysToAdd);
+  
+  const year = result.getFullYear();
+  const month = String(result.getMonth() + 1).padStart(2, "0");
+  const day = String(result.getDate()).padStart(2, "0");
+  
+  return `${year}-${month}-${day}`;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log("[create-recurring-events] Starting execution...");
+    
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Fetch all enabled recurring configs
+    const { data: configs, error: configError } = await supabase
+      .from("recurring_event_configs")
+      .select("*")
+      .eq("enabled", true);
+    
+    if (configError) {
+      console.error("[create-recurring-events] Error fetching configs:", configError);
+      throw configError;
+    }
+    
+    if (!configs || configs.length === 0) {
+      console.log("[create-recurring-events] No enabled configs found");
+      return new Response(
+        JSON.stringify({ success: true, message: "No enabled configs found", created: 0 }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`[create-recurring-events] Found ${configs.length} enabled configs`);
+    
+    const today = new Date();
+    const results: { config: string; date: string; action: string; linkCreated?: boolean }[] = [];
+    let createdCount = 0;
+    
+    for (const config of configs as RecurringConfig[]) {
+      const nextDate = getNextDateForWeekday(config.weekday, today);
+      console.log(`[create-recurring-events] Processing ${config.name}: weekday ${config.weekday} -> ${nextDate}`);
+      
+      // Check if event already exists for this title and date
+      const { data: existing, error: checkError } = await supabase
+        .from("events")
+        .select("id")
+        .eq("title", config.title)
+        .eq("date", nextDate)
+        .maybeSingle();
+      
+      if (checkError) {
+        console.error(`[create-recurring-events] Error checking existing event for ${config.name}:`, checkError);
+        results.push({ config: config.name, date: nextDate, action: `error: ${checkError.message}` });
+        continue;
+      }
+      
+      if (existing) {
+        console.log(`[create-recurring-events] Event already exists for ${config.name} on ${nextDate}`);
+        results.push({ config: config.name, date: nextDate, action: "skipped (already exists)" });
+        continue;
+      }
+      
+      // Create new event
+      const slug = generateSlug(config.title);
+      
+      const { data: newEvent, error: insertError } = await supabase
+        .from("events")
+        .insert({
+          title: config.title,
+          subtitle: config.subtitle,
+          date: nextDate,
+          time: config.time,
+          end_time: config.end_time,
+          venue: config.venue,
+          address: config.address,
+          location_city: config.location_city,
+          location_state: config.location_state,
+          description: config.description,
+          genres: config.genres,
+          ticket_link: config.ticket_link,
+          vip_link: config.vip_link,
+          image_url: config.image_url,
+          slug: slug,
+        })
+        .select("id")
+        .single();
+      
+      if (insertError) {
+        console.error(`[create-recurring-events] Error creating event for ${config.name}:`, insertError);
+        results.push({ config: config.name, date: nextDate, action: `error: ${insertError.message}` });
+        continue;
+      }
+      
+      console.log(`[create-recurring-events] Created event: ${config.title} on ${nextDate} (ID: ${newEvent.id})`);
+      
+      let linkCreated = false;
+      
+      // Create link if link_group_id is configured
+      if (config.link_group_id && newEvent) {
+        try {
+          // Get max display_order in the group
+          const { data: maxOrderData } = await supabase
+            .from("custom_links")
+            .select("display_order")
+            .eq("group_id", config.link_group_id)
+            .order("display_order", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          const nextOrder = (maxOrderData?.display_order || 0) + 1;
+          
+          const { error: linkError } = await supabase
+            .from("custom_links")
+            .insert({
+              title: config.title,
+              url: config.ticket_link || `#event-${newEvent.id}`,
+              group_id: config.link_group_id,
+              event_id: newEvent.id,
+              enabled: true,
+              icon: "Calendar",
+              color_gradient: "from-purple-500 to-pink-500",
+              thumbnail_url: config.image_url,
+              subtitle: config.subtitle,
+              display_order: nextOrder,
+            });
+          
+          if (linkError) {
+            console.error(`[create-recurring-events] Error creating link for ${config.name}:`, linkError);
+          } else {
+            console.log(`[create-recurring-events] Created link for event ${config.title}`);
+            linkCreated = true;
+          }
+        } catch (linkErr) {
+          console.error(`[create-recurring-events] Exception creating link:`, linkErr);
+        }
+      }
+      
+      results.push({ config: config.name, date: nextDate, action: "created", linkCreated });
+      createdCount++;
+    }
+    
+    console.log(`[create-recurring-events] Finished. Created ${createdCount} events`);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Created ${createdCount} events`,
+        created: createdCount,
+        results: results,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+    
+  } catch (error) {
+    console.error("[create-recurring-events] Fatal error:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
