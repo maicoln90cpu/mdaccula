@@ -9,7 +9,7 @@ import {
   Link as LinkIcon, 
   BarChart3, 
   Layers, 
-  Cloud, 
+   
   PieChart, 
   Mail, 
   Activity,
@@ -140,13 +140,6 @@ const Admin = () => {
           icon: Settings,
           href: "/admin/settings",
           color: "text-pink-500",
-        },
-        {
-          title: "Backup & Sincronização",
-          description: "Backup automático para Supabase externo",
-          icon: Cloud,
-          href: "/admin/backup-sync",
-          color: "text-violet-500",
         },
         {
           title: "Status do Sistema",
