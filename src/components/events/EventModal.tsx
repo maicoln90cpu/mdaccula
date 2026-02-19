@@ -46,12 +46,17 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
 
         <div className="space-y-4 sm:space-y-6">
           {event.image_url && (
-            <div className="w-full aspect-video rounded-lg overflow-hidden">
+            <div className="w-full aspect-video rounded-lg overflow-hidden bg-muted/20">
               <img 
                 src={event.image_url} 
                 alt={event.title}
                 className="w-full h-full object-contain"
                 loading="lazy"
+                onError={(e) => {
+                  const target = e.currentTarget;
+                  target.style.display = 'none';
+                  target.parentElement!.classList.add('flex', 'items-center', 'justify-center', 'bg-gradient-to-br', 'from-primary/20', 'via-muted/30', 'to-accent/20');
+                }}
               />
             </div>
           )}
