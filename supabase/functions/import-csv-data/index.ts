@@ -128,32 +128,65 @@ Deno.serve(async (req) => {
 
     const contentType = req.headers.get("content-type") || "";
     let table: string;
-    let csvText: string;
+    let records: Record<string, string>[];
     
     if (contentType.includes("application/json")) {
       const body = await req.json();
       table = body.table;
-      if (body.csv_base64) {
-        csvText = new TextDecoder().decode(Uint8Array.from(atob(body.csv_base64), c => c.charCodeAt(0)));
-      } else {
-        csvText = body.csv;
+      
+      // Option 1: Fetch CSV from URL
+      if (body.csv_url) {
+        console.log(`Fetching CSV from URL: ${body.csv_url}`);
+        const csvResp = await fetch(body.csv_url);
+        if (!csvResp.ok) {
+          return new Response(JSON.stringify({ error: `Failed to fetch CSV: ${csvResp.status}` }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const csvText = await csvResp.text();
+        records = parseCSV(csvText);
+        console.log(`Fetched and parsed ${records.length} records from URL for table ${table}`);
+      }
+      // Option 2: Direct JSON records array
+      else if (body.records && Array.isArray(body.records)) {
+        records = body.records;
+        console.log(`Received ${records.length} JSON records for table ${table}`);
+      }
+      // Option 3: CSV text or base64
+      else {
+        const csvText = body.csv_base64
+          ? new TextDecoder().decode(Uint8Array.from(atob(body.csv_base64), c => c.charCodeAt(0)))
+          : body.csv;
+        if (!csvText) {
+          return new Response(JSON.stringify({ error: "Missing csv_url, records, or csv" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        records = parseCSV(csvText);
+        console.log(`Parsed ${records.length} CSV records for table ${table}`);
       }
     } else {
-      // Raw text body with table in query param
       const url = new URL(req.url);
       table = url.searchParams.get("table") || "";
-      csvText = await req.text();
+      const csvText = await req.text();
+      if (!table || !csvText) {
+        return new Response(JSON.stringify({ error: "Missing table or csv" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      records = parseCSV(csvText);
+      console.log(`Parsed ${records.length} CSV records for table ${table}`);
     }
     
-    if (!table || !csvText) {
-      return new Response(JSON.stringify({ error: "Missing table or csv" }), {
+    if (!table || !records || records.length === 0) {
+      return new Response(JSON.stringify({ error: "Missing table or empty records" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const records = parseCSV(csvText);
-    console.log(`Parsed ${records.length} records for table ${table}`);
 
     let result;
     
