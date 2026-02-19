@@ -46,7 +46,7 @@ const LinksManager = lazy(() => import("./pages/admin/LinksManager"));
 const LinksAnalytics = lazy(() => import("./pages/admin/LinksAnalytics"));
 const NewsletterABResults = lazy(() => import("./pages/admin/NewsletterABResults"));
 const NewsletterManager = lazy(() => import("./pages/admin/NewsletterManager"));
-const BackupSync = lazy(() => import("./pages/admin/BackupSync"));
+
 const SystemHealth = lazy(() => import("./pages/admin/SystemHealth"));
 const RecurringEventsManager = lazy(() => import("./pages/admin/RecurringEventsManager"));
 const AutoGenerationDashboard = lazy(() => import("./pages/admin/AutoGenerationDashboard"));
@@ -134,7 +134,7 @@ const App = () => (
                       <Route path="/admin/links-analytics" element={<PageWithError name="Analytics de Links"><LinksAnalytics /></PageWithError>} />
                       <Route path="/admin/newsletter-ab-results" element={<PageWithError name="Resultados A/B Newsletter"><NewsletterABResults /></PageWithError>} />
                       <Route path="/admin/newsletter" element={<PageWithError name="Gerenciar Newsletter"><NewsletterManager /></PageWithError>} />
-                      <Route path="/admin/backup-sync" element={<PageWithError name="Backup & Sync"><BackupSync /></PageWithError>} />
+                      
                       <Route path="/admin/system-health" element={<PageWithError name="Status do Sistema"><SystemHealth /></PageWithError>} />
                       <Route path="/admin/recurring-events" element={<PageWithError name="Eventos Recorrentes"><RecurringEventsManager /></PageWithError>} />
                       <Route path="/admin/auto-generation" element={<PageWithError name="Geração Automática"><AutoGenerationDashboard /></PageWithError>} />
