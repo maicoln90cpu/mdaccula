@@ -1,93 +1,68 @@
 
+## Nova Abordagem: Parse CSV no Frontend + Envio JSON
 
-## Plano de Importacao Completa dos Dados e Correcao de URLs
+### Problema Atual
+O parser CSV na edge function nao consegue lidar com campos que contem arrays JSON como `["House","Deep House","Progressive"]`. As virgulas dentro desses arrays quebram o parse, desalinhando todas as colunas subsequentes. Por isso:
+- blog_posts: titulo vai para campo UUID
+- events: slug vai para campo UUID  
+- custom_links: boolean vai para campo timestamp
+- ai_generated_posts: texto vai para campo timestamp
 
-### Resumo
+### Nova Estrategia
+Abandonar o parse de CSV na edge function. Em vez disso:
 
-Existem 5 CSVs para importar e um problema de URLs apontando para o Supabase antigo (`nzbyyuqvhrwatmydxiag`) que precisa ser corrigido para o novo (`xfvpuzlspvvsmmunznxw`).
+1. **Frontend (DataImport.tsx)** faz o parse do CSV usando a biblioteca **Papa Parse** (robusta, lida com campos quoted, arrays, HTML, etc.)
+2. Frontend converte os registros CSV em **objetos JSON** com os nomes corretos dos campos
+3. Frontend envia os objetos JSON para a edge function via `{ table: "...", records: [...] }`
+4. Edge function recebe JSON puro e faz o upsert direto (sem parse de CSV)
 
-### Estado Atual do Banco
+### Mudancas Necessarias
 
-| Tabela | No banco | No CSV | Acao |
-|---|---|---|---|
-| blog_posts | 34 | 113 | Inserir ~79 faltantes via UPSERT |
-| events | 0 | 141 | Inserir todos |
-| custom_links | 0 | 180 | Inserir todos |
-| link_groups | 21 | Ja existem (importados anteriormente) | Nenhuma |
-| ai_prompt_templates | 0 | 6 | Inserir todos |
-| ai_generated_posts | 0 | 117 | Inserir todos |
+**1. Adicionar dependencia `papaparse`**
+Biblioteca robusta de parse CSV que lida corretamente com campos quoted, newlines dentro de campos, e caracteres especiais.
 
-### Etapas de Importacao
+**2. Atualizar `src/pages/admin/DataImport.tsx`**
+- Importar PapaParse
+- Para cada tabela, fetch o CSV de `/import/`, parse com PapaParse, enviar como JSON records
+- Enviar em batches de 10-20 registros para evitar timeout
+- Mostrar progresso por batch
 
-**Etapa 1 - ai_prompt_templates (6 registros)**
-Inserir os 6 templates de IA. Sem dependencias.
+**3. Atualizar `supabase/functions/import-csv-data/index.ts`**
+- Limpar/simplificar: quando receber `records` como JSON, nao precisa converter tipos -- os valores ja vem corretos do frontend
+- Adicionar limpeza de campos: remover `search_vector` dos blog_posts, converter strings "true"/"false" para boolean, tratar arrays JSON, tratar campos vazios como null
 
-**Etapa 2 - blog_posts (79 registros faltantes)**
-UPSERT dos 113 registros do CSV. Os 34 existentes serao atualizados, os 79 novos serao inseridos. A coluna `search_vector` sera ignorada pois o trigger `update_blog_posts_search_trigger` regenera automaticamente.
+**4. Copiar os CSVs atualizados do usuario para `/public/import/`**
+Os CSVs que o usuario enviou nesta conversa substituem os anteriores.
 
-**Etapa 3 - events (141 registros)**
-Inserir todos os eventos. Referencias a `blog_post_id` dependem dos blog_posts ja estarem no banco (Etapa 2). Arrays como `lineup` e `genres` precisam de conversao de formato JSON (`["a","b"]`) para PostgreSQL (`{a,b}`).
+### Fluxo
 
-**Etapa 4 - custom_links (180 registros)**
-Inserir todos os links. Referencias a `group_id` (link_groups ja existem) e `event_id` (events da Etapa 3). Os IDs dos link_groups no CSV batem com os IDs ja no banco.
+```text
+Usuario clica "Importar"
+       |
+DataImport.tsx busca /import/events.csv
+       |
+PapaParse converte CSV → JSON objects
+       |
+Frontend envia batches de JSON para edge function
+  { table: "events", records: [{id: "...", title: "...", ...}, ...] }
+       |
+Edge function faz upsert direto no Supabase
+       |
+Resultado mostrado na tela
+```
 
-**Etapa 5 - ai_generated_posts (117 registros)**
-Inserir todos. Referencias a `blog_post_id` e `template_id` dependem das Etapas 1 e 2.
+### Ordem de Importacao (mantida)
+1. blog_posts (UPSERT, ~113 registros)
+2. events (~141 registros)
+3. custom_links (~180 registros)
+4. ai_generated_posts (~117 registros)
+5. Correcao de URLs de imagens (todas as tabelas)
 
-**Etapa 6 - Correcao de URLs de imagens**
-Executar UPDATE em massa em todas as tabelas para substituir:
-`nzbyyuqvhrwatmydxiag.supabase.co` por `xfvpuzlspvvsmmunznxw.supabase.co`
+### Detalhes Tecnicos
 
-Tabelas afetadas: `blog_posts.image_url`, `blog_posts.content` (URLs dentro do HTML), `events.image_url`, `custom_links.thumbnail_url`, `event_templates.image_url`, `recurring_event_configs.image_url`
-
-### Desafios Tecnicos
-
-1. **blog_posts.content** contem HTML extenso com aspas, quebras de linha e caracteres especiais -- requer escape cuidadoso
-2. **blog_posts.search_vector** sera ignorado na importacao (regenerado pelo trigger)
-3. **Arrays** no CSV usam formato JSON que precisa ser convertido para formato PostgreSQL
-4. **Campos vazios** no CSV precisam ser tratados como NULL
-5. **Volume**: ~630 registros no total, sera dividido em multiplas migrations para evitar timeout
-
-### Sobre as Imagens
-
-IMPORTANTE: A Etapa 6 so funciona se as imagens fisicas ja existirem nos buckets do novo projeto Supabase (`xfvpuzlspvvsmmunznxw`). Se as imagens nao foram copiadas do projeto antigo para o novo, as URLs corrigidas vao apontar para arquivos inexistentes. 
-
-Voce precisara confirmar se as imagens ja foram migradas entre os buckets, ou se precisaremos de outro plano para isso.
-
-### Sobre UI/Animacoes/Cores do Site Antigo
-
-Para capturar todos os detalhes visuais do projeto antigo, envie este prompt ao projeto anterior:
-
----
-
-**Prompt para o projeto antigo:**
-
-> Liste TODOS os detalhes visuais e de UI do sistema atual, incluindo:
->
-> 1. **Cores e Gradientes**: Todas as cores primarias, secundarias, de destaque, gradientes usados em backgrounds, cards, botoes e headers
-> 2. **Tipografia**: Fontes utilizadas (font-family), tamanhos (font-size) para h1-h6, paragrafos e labels, font-weight e line-height
-> 3. **Espacamento**: Paddings e margins padrao em containers, sections, cards e entre elementos
-> 4. **Border-radius**: Arredondamentos usados em cards, botoes, inputs, modais e imagens
-> 5. **Sombras (box-shadow)**: Todas as sombras usadas em cards, botoes elevados, modais e dropdowns
-> 6. **Animacoes e Transicoes**: Todas as animacoes CSS (keyframes), transicoes hover, efeitos de entrada/saida, duracoes e easing functions
-> 7. **Layout**: Larguras maximas de containers, breakpoints responsivos, grid/flex gaps
-> 8. **Componentes especificos**: Estilo do Navbar (fixo/sticky, transparente, blur), Footer, Cards de eventos, Cards de links, Modais, Botoes (primario, secundario, outline, ghost), Inputs e forms
-> 9. **Temas**: Configuracao de dark/light mode, variaveis CSS customizadas (--variavel)
-> 10. **Efeitos visuais**: Backdrop-blur, glassmorphism, neon effects, hover scales, gradientes animados
-> 11. **Icones**: Biblioteca de icones usada, tamanhos padrao
-> 12. **Imagens**: Aspect ratios, object-fit, filtros aplicados, placeholders
->
-> Extraia do index.css, tailwind.config.ts, componentes de UI e de cada pagina. Formate como um JSON ou tabela organizada por categoria.
-
----
-
-### Ordem de Execucao
-
-1. ai_prompt_templates
-2. blog_posts (UPSERT)
-3. events
-4. custom_links
-5. ai_generated_posts
-6. UPDATE URLs de imagens (todas as tabelas)
-
-Cada etapa sera uma migration SQL separada, executada em sequencia.
+- **PapaParse config**: `{ header: true, skipEmptyLines: true, dynamicTyping: false }` -- mantemos tudo como string e convertemos no edge function
+- **Batching**: 10 registros por batch para blog_posts (conteudo HTML grande), 20 para as demais
+- **Campo `search_vector`**: Removido no frontend antes do envio (regenerado por trigger no banco)
+- **Arrays (`lineup`, `genres`, `source_urls`)**: PapaParse vai retornar a string JSON como esta. O edge function ja tem `cleanArray()` que converte para PostgreSQL array
+- **Campos booleanos**: `cleanBool()` ja existe no edge function
+- **Campos de timestamp**: `cleanValue()` ja retorna a string ou null
