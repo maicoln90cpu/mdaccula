@@ -239,8 +239,15 @@ Deno.serve(async (req) => {
       console.log(`Parsed ${records.length} CSV records for table ${table}`);
     }
     
-    if (!table || !records || records.length === 0) {
-      return new Response(JSON.stringify({ error: "Missing table or empty records" }), {
+    if (!table) {
+      return new Response(JSON.stringify({ error: "Missing table" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    if (table !== "fix_urls" && (!records || records.length === 0)) {
+      return new Response(JSON.stringify({ error: "Missing or empty records" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
