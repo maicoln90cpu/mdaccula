@@ -4,7 +4,54 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, AlertCircle, Upload } from "lucide-react";
-import Papa from "papaparse";
+/** RFC 4180 compliant CSV parser that handles quoted fields with commas, newlines, etc. */
+function parseCSV(text: string): Record<string, string>[] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < text.length && text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        row.push(field);
+        field = "";
+      } else if (ch === '\r' || ch === '\n') {
+        if (ch === '\r' && i + 1 < text.length && text[i + 1] === '\n') i++;
+        row.push(field);
+        field = "";
+        if (row.some(c => c.trim() !== "")) rows.push(row);
+        row = [];
+      } else {
+        field += ch;
+      }
+    }
+  }
+  row.push(field);
+  if (row.some(c => c.trim() !== "")) rows.push(row);
+
+  if (rows.length < 2) return [];
+  const headers = rows[0].map(h => h.replace(/^\uFEFF/, '').trim());
+  return rows.slice(1).map(r => {
+    const obj: Record<string, string> = {};
+    headers.forEach((h, i) => { obj[h] = r[i] ?? ""; });
+    return obj;
+  });
+}
 
 interface ImportStep {
   table: string;
@@ -39,21 +86,7 @@ export default function DataImport() {
     const resp = await fetch(csvFile);
     if (!resp.ok) throw new Error(`Failed to fetch ${csvFile}: ${resp.status}`);
     const csvText = await resp.text();
-
-    return new Promise((resolve, reject) => {
-      Papa.parse<Record<string, string>>(csvText, {
-        header: true,
-        skipEmptyLines: true,
-        dynamicTyping: false,
-        complete: (results) => {
-          if (results.errors.length > 0) {
-            console.warn("CSV parse warnings:", results.errors);
-          }
-          resolve(results.data);
-        },
-        error: (err: Error) => reject(err),
-      });
-    });
+    return parseCSV(csvText);
   };
 
   const importTable = async (index: number) => {
