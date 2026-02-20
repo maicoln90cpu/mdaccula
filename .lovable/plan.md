@@ -1,61 +1,55 @@
 
-## Correcao de Imagens Quebradas
 
-### Diagnostico
+## Melhorias na pagina /admin/redirects
 
-Todas as imagens do projeto estao retornando **404 (Object not found)** do Supabase Storage. Isso acontece porque o ambiente de **Test** (preview) do Lovable Cloud possui o banco de dados com as URLs de imagens, mas o **bucket de storage** `event-images` esta vazio neste ambiente. Os arquivos de imagem existem apenas no ambiente **Live** (producao).
+### 1. Filtro por periodo de data
 
-Isso afeta:
-- Blog posts (imagens de artigos)
-- Eventos (imagens de flyers)
-- Links customizados (thumbnails)
-- Carousel de eventos
+Adicionar um novo `Select` na barra de filtros existente (linha 221-273) com as opcoes:
+- "Todo periodo" (padrao)
+- "Hoje"
+- "Ultimos 7 dias"
+- "Ultimos 30 dias"
 
-### Solucao em 2 Partes
+**Implementacao:**
+- Novo estado `filterPeriod` com valores `"all" | "today" | "7days" | "30days"`
+- No `filteredLinks` (linha 94-101), adicionar logica que compara `link.created_at` com a data calculada
+- Importar `CalendarDays` do lucide-react para o icone (opcional)
 
-#### Parte 1: Melhorar o tratamento de fallback no codigo
+### 2. Ordenacao por mais clicados
 
-Atualmente, quando uma imagem falha ao carregar, o navegador exibe o texto alternativo (alt) como icone de imagem quebrada. Vou corrigir todos os componentes para exibir um **placeholder visual bonito** com gradiente quando a imagem falhar.
+Adicionar um novo `Select` ao lado dos filtros para ordenacao:
+- "Mais recentes" (padrao, ordenacao atual por `created_at` desc)
+- "Mais clicados" (ordena por `clicks` desc)
 
-**Arquivos a modificar:**
+**Implementacao:**
+- Novo estado `sortBy` com valores `"recent" | "clicks"`
+- Aplicar `.sort()` no `filteredLinks` apos o `.filter()`, ordenando por `clicks` desc quando selecionado
+- Importar `ArrowDownWideNarrow` do lucide-react
 
-1. **`src/components/OptimizedImage.tsx`** - Ja possui fallback para `/placeholder.svg`, mas o placeholder.svg em si pode nao ser visivel. Melhorar para mostrar um gradiente com icone quando a imagem falha.
+### 3. Data de criacao no card
 
-2. **`src/pages/Blog.tsx`** - Os `<img>` tags no featured post e nos cards do blog nao possuem tratamento de erro (`onError`). Adicionar fallback para imagem local `djImage` que ja esta importada no componente.
+Exibir a data de criacao formatada em cada card de link, junto aos badges de UTM (linha 310-315).
 
-3. **`src/components/sections/LatestNews.tsx`** - Usa `OptimizedImage` que ja tem fallback, mas o fallback `/placeholder.svg` pode nao funcionar. Melhorar.
+**Implementacao:**
+- Adicionar um `<p>` ou `<span>` com `new Date(link.created_at).toLocaleDateString('pt-BR')` abaixo da descricao ou junto aos badges
+- Usar icone `Calendar` do lucide-react
 
-4. **`src/components/sections/FeaturedEvents.tsx`** - Usa `OptimizedImage`, mesmo caso acima.
+### Detalhes tecnicos
 
-5. **`src/components/events/EventModal.tsx`** - O `<img>` do modal nao tem `onError` handler.
+**Arquivo modificado:** `src/pages/admin/RedirectsManager.tsx`
 
-6. **`src/components/events/EventsCarousel.tsx`** - Ja possui fallback com gradiente (o `LazyEventImage` ja trata erro). OK, nao precisa de alteracao.
+| Mudanca | Local no codigo |
+|---------|----------------|
+| Estado `filterPeriod` | Junto aos estados de filtro (linhas 73-75) |
+| Estado `sortBy` | Junto aos estados de filtro |
+| Logica de filtro por data | Dentro do `filteredLinks` useMemo (linhas 94-101) |
+| Logica de ordenacao | Novo `.sort()` encadeado no `filteredLinks` |
+| Select de periodo | Na barra de filtros (linhas 222-254) |
+| Select de ordenacao | Na barra de filtros, apos os selects existentes |
+| Data de criacao no card | Dentro do card (linha ~308-315), apos description |
+| `hasActiveFilters` | Atualizar para incluir `filterPeriod !== "all"` e `sortBy !== "recent"` |
 
-**Mudancas especificas:**
+**Imports adicionais:** `Calendar`, `ArrowDownWideNarrow` do lucide-react
 
-- Em `Blog.tsx`: Adicionar `onError` handler nos `<img>` tags do featured post e dos cards que substitui o `src` pelo `djImage` importado localmente (que ja funciona pois esta no bundle).
+Nenhuma mudanca de banco de dados necessaria -- `created_at` e `clicks` ja existem na tabela `redirect_links`.
 
-- Em `EventModal.tsx`: Adicionar `onError` handler que esconde a imagem ou mostra um gradiente placeholder.
-
-- Em `OptimizedImage.tsx`: Melhorar o fallback para usar um gradiente visual ao inves de `/placeholder.svg` (que tambem pode estar inacessivel).
-
-- Em `LatestNews.tsx` e `FeaturedEvents.tsx`: Garantir que o fallback funcione adequadamente.
-
-#### Parte 2: Re-upload das imagens (acao do usuario)
-
-As imagens precisam ser re-enviadas para o storage do ambiente Test, ou o usuario pode **publicar** o projeto para que o ambiente Live seja usado (onde as imagens ja existem). Isso nao eh algo que eu consiga resolver via codigo - depende de:
-
-- **Publicar o projeto** para usar o ambiente Live (mais rapido)
-- **Ou** re-fazer upload das imagens pelo painel admin
-
-### Detalhes Tecnicos
-
-Componentes modificados e a mudanca em cada um:
-
-| Arquivo | Mudanca |
-|---------|---------|
-| `src/pages/Blog.tsx` (linhas 393-398, 471-477) | Adicionar `onError={(e) => { e.currentTarget.src = djImage }}` nos dois `<img>` tags |
-| `src/components/events/EventModal.tsx` (linha 52-57) | Adicionar estado `hasError` e `onError` handler com fallback para gradiente |
-| `src/components/OptimizedImage.tsx` (linha 73-80) | Melhorar fallback: ao inves de `/placeholder.svg`, mostrar div com gradiente |
-| `src/components/sections/LatestNews.tsx` (linha 103-109) | Substituir `OptimizedImage` por `<img>` com `onError` fallback para `djImage` |
-| `src/components/sections/FeaturedEvents.tsx` (linha 104-110) | Mesmo tratamento - adicionar fallback robusto |
