@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/useToast";
-import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2 } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar, ArrowDownWideNarrow } from "lucide-react";
 
 interface RedirectLink {
   id: string;
@@ -73,6 +73,8 @@ const RedirectsManager = () => {
   const [filterSource, setFilterSource] = useState("__all__");
   const [filterMedium, setFilterMedium] = useState("__all__");
   const [filterCampaign, setFilterCampaign] = useState("__all__");
+  const [filterPeriod, setFilterPeriod] = useState<"all" | "today" | "7days" | "30days">("all");
+  const [sortBy, setSortBy] = useState<"recent" | "clicks">("recent");
 
   const { data: links = [], isLoading } = useQuery({
     queryKey: ["redirect-links"],
@@ -92,15 +94,33 @@ const RedirectsManager = () => {
   const uniqueCampaigns = useMemo(() => [...new Set(links.map(l => l.utm_campaign).filter(Boolean) as string[])].sort(), [links]);
 
   const filteredLinks = useMemo(() => {
-    return links.filter(link => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const filtered = links.filter(link => {
       if (filterSource !== "__all__" && (link.utm_source || "") !== filterSource) return false;
       if (filterMedium !== "__all__" && (link.utm_medium || "") !== filterMedium) return false;
       if (filterCampaign !== "__all__" && (link.utm_campaign || "") !== filterCampaign) return false;
+
+      if (filterPeriod !== "all") {
+        const createdAt = new Date(link.created_at);
+        createdAt.setHours(0, 0, 0, 0);
+        if (filterPeriod === "today" && createdAt.getTime() !== now.getTime()) return false;
+        if (filterPeriod === "7days" && now.getTime() - createdAt.getTime() > 7 * 86400000) return false;
+        if (filterPeriod === "30days" && now.getTime() - createdAt.getTime() > 30 * 86400000) return false;
+      }
+
       return true;
     });
-  }, [links, filterSource, filterMedium, filterCampaign]);
 
-  const hasActiveFilters = filterSource !== "__all__" || filterMedium !== "__all__" || filterCampaign !== "__all__";
+    if (sortBy === "clicks") {
+      filtered.sort((a, b) => b.clicks - a.clicks);
+    }
+
+    return filtered;
+  }, [links, filterSource, filterMedium, filterCampaign, filterPeriod, sortBy]);
+
+  const hasActiveFilters = filterSource !== "__all__" || filterMedium !== "__all__" || filterCampaign !== "__all__" || filterPeriod !== "all" || sortBy !== "recent";
 
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -253,12 +273,32 @@ const RedirectsManager = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                    <Select value={filterPeriod} onValueChange={(v) => setFilterPeriod(v as typeof filterPeriod)}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Período" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todo período</SelectItem>
+                        <SelectItem value="today">Hoje</SelectItem>
+                        <SelectItem value="7days">Últimos 7 dias</SelectItem>
+                        <SelectItem value="30days">Últimos 30 dias</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
+                      <SelectTrigger className="w-[160px] h-8 text-xs">
+                        <SelectValue placeholder="Ordenar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="recent">Mais recentes</SelectItem>
+                        <SelectItem value="clicks">Mais clicados</SelectItem>
+                      </SelectContent>
+                    </Select>
                     {hasActiveFilters && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-8 text-xs"
-                        onClick={() => { setFilterSource("__all__"); setFilterMedium("__all__"); setFilterCampaign("__all__"); }}
+                        onClick={() => { setFilterSource("__all__"); setFilterMedium("__all__"); setFilterCampaign("__all__"); setFilterPeriod("all"); setSortBy("recent"); }}
                       >
                         Limpar filtros
                       </Button>
@@ -307,11 +347,15 @@ const RedirectsManager = () => {
                           {link.description && (
                             <p className="text-xs text-muted-foreground mt-1">{link.description}</p>
                           )}
-                          <div className="flex gap-1 mt-2 flex-wrap">
+                          <div className="flex gap-1 mt-2 flex-wrap items-center">
                             {link.utm_source && <Badge variant="outline" className="text-[10px]">source: {link.utm_source}</Badge>}
                             {link.utm_medium && <Badge variant="outline" className="text-[10px]">medium: {link.utm_medium}</Badge>}
                             {link.utm_campaign && <Badge variant="outline" className="text-[10px]">campaign: {link.utm_campaign}</Badge>}
                             {link.utm_content && <Badge variant="outline" className="text-[10px]">content: {link.utm_content}</Badge>}
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(link.created_at).toLocaleDateString('pt-BR')}
+                            </span>
                           </div>
                         </div>
 
