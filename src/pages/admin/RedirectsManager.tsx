@@ -13,8 +13,14 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/useToast";
-import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar, ArrowDownWideNarrow } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar as CalendarIcon, ArrowDownWideNarrow, CalendarDays } from "lucide-react";
+import { format, startOfDay, subDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import type { DateRange } from "react-day-picker";
 
 interface RedirectLink {
   id: string;
@@ -73,8 +79,9 @@ const RedirectsManager = () => {
   const [filterSource, setFilterSource] = useState("__all__");
   const [filterMedium, setFilterMedium] = useState("__all__");
   const [filterCampaign, setFilterCampaign] = useState("__all__");
-  const [filterPeriod, setFilterPeriod] = useState<"all" | "today" | "7days" | "30days">("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [sortBy, setSortBy] = useState<"recent" | "clicks">("recent");
+  const [periodLabel, setPeriodLabel] = useState<string>("Todo período");
 
   const { data: links = [], isLoading } = useQuery({
     queryKey: ["redirect-links"],
@@ -88,28 +95,50 @@ const RedirectsManager = () => {
     },
   });
 
+  // Query period clicks from redirect_click_events
+  const { data: periodClicks = {} } = useQuery({
+    queryKey: ["redirect-period-clicks", dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
+    queryFn: async () => {
+      if (!dateRange?.from) return {};
+      
+      let query = supabase
+        .from("redirect_click_events" as any)
+        .select("redirect_link_id")
+        .gte("clicked_at", dateRange.from.toISOString());
+      
+      if (dateRange.to) {
+        const endOfDay = new Date(dateRange.to);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.lte("clicked_at", endOfDay.toISOString());
+      }
+
+      const { data, error } = await query;
+      if (error) {
+        console.error("Error fetching period clicks:", error);
+        return {};
+      }
+
+      // Count clicks per redirect_link_id
+      const counts: Record<string, number> = {};
+      (data as any[])?.forEach((row: any) => {
+        const id = row.redirect_link_id;
+        counts[id] = (counts[id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: !!dateRange?.from,
+  });
+
   // Derive unique UTM values for filter selects
   const uniqueSources = useMemo(() => [...new Set(links.map(l => l.utm_source).filter(Boolean) as string[])].sort(), [links]);
   const uniqueMediums = useMemo(() => [...new Set(links.map(l => l.utm_medium).filter(Boolean) as string[])].sort(), [links]);
   const uniqueCampaigns = useMemo(() => [...new Set(links.map(l => l.utm_campaign).filter(Boolean) as string[])].sort(), [links]);
 
   const filteredLinks = useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
     const filtered = links.filter(link => {
       if (filterSource !== "__all__" && (link.utm_source || "") !== filterSource) return false;
       if (filterMedium !== "__all__" && (link.utm_medium || "") !== filterMedium) return false;
       if (filterCampaign !== "__all__" && (link.utm_campaign || "") !== filterCampaign) return false;
-
-      if (filterPeriod !== "all") {
-        const createdAt = new Date(link.created_at);
-        createdAt.setHours(0, 0, 0, 0);
-        if (filterPeriod === "today" && createdAt.getTime() !== now.getTime()) return false;
-        if (filterPeriod === "7days" && now.getTime() - createdAt.getTime() > 7 * 86400000) return false;
-        if (filterPeriod === "30days" && now.getTime() - createdAt.getTime() > 30 * 86400000) return false;
-      }
-
       return true;
     });
 
@@ -118,9 +147,20 @@ const RedirectsManager = () => {
     }
 
     return filtered;
-  }, [links, filterSource, filterMedium, filterCampaign, filterPeriod, sortBy]);
+  }, [links, filterSource, filterMedium, filterCampaign, sortBy]);
 
-  const hasActiveFilters = filterSource !== "__all__" || filterMedium !== "__all__" || filterCampaign !== "__all__" || filterPeriod !== "all" || sortBy !== "recent";
+  const hasActiveFilters = filterSource !== "__all__" || filterMedium !== "__all__" || filterCampaign !== "__all__" || !!dateRange?.from || sortBy !== "recent";
+
+  const hasPeriodFilter = !!dateRange?.from;
+
+  const handlePeriodShortcut = (label: string, from: Date | null, to: Date | null) => {
+    setPeriodLabel(label);
+    if (!from) {
+      setDateRange(undefined);
+    } else {
+      setDateRange({ from, to: to || new Date() });
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
@@ -273,17 +313,76 @@ const RedirectsManager = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Select value={filterPeriod} onValueChange={(v) => setFilterPeriod(v as typeof filterPeriod)}>
-                      <SelectTrigger className="w-[160px] h-8 text-xs">
-                        <SelectValue placeholder="Período" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todo período</SelectItem>
-                        <SelectItem value="today">Hoje</SelectItem>
-                        <SelectItem value="7days">Últimos 7 dias</SelectItem>
-                        <SelectItem value="30days">Últimos 30 dias</SelectItem>
-                      </SelectContent>
-                    </Select>
+
+                    {/* Date Range Popover */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "h-8 text-xs justify-start min-w-[160px]",
+                            !dateRange?.from && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarDays className="w-3 h-3 mr-1" />
+                          {dateRange?.from ? (
+                            dateRange.to && dateRange.from.getTime() !== dateRange.to.getTime()
+                              ? `${format(dateRange.from, "dd/MM", { locale: ptBR })} - ${format(dateRange.to, "dd/MM", { locale: ptBR })}`
+                              : format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
+                          ) : (
+                            periodLabel
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <div className="flex flex-wrap gap-1 p-2 border-b">
+                          <Button
+                            variant={periodLabel === "Hoje" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handlePeriodShortcut("Hoje", startOfDay(new Date()), new Date())}
+                          >
+                            Hoje
+                          </Button>
+                          <Button
+                            variant={periodLabel === "7 dias" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handlePeriodShortcut("7 dias", startOfDay(subDays(new Date(), 7)), new Date())}
+                          >
+                            7 dias
+                          </Button>
+                          <Button
+                            variant={periodLabel === "30 dias" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handlePeriodShortcut("30 dias", startOfDay(subDays(new Date(), 30)), new Date())}
+                          >
+                            30 dias
+                          </Button>
+                          <Button
+                            variant={periodLabel === "Todo período" ? "default" : "ghost"}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handlePeriodShortcut("Todo período", null, null)}
+                          >
+                            Todo período
+                          </Button>
+                        </div>
+                        <Calendar
+                          mode="range"
+                          selected={dateRange}
+                          onSelect={(range) => {
+                            setDateRange(range);
+                            setPeriodLabel("Personalizado");
+                          }}
+                          numberOfMonths={1}
+                          locale={ptBR}
+                          className={cn("p-3 pointer-events-auto")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+
                     <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
                       <SelectTrigger className="w-[160px] h-8 text-xs">
                         <SelectValue placeholder="Ordenar" />
@@ -298,7 +397,7 @@ const RedirectsManager = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 text-xs"
-                        onClick={() => { setFilterSource("__all__"); setFilterMedium("__all__"); setFilterCampaign("__all__"); setFilterPeriod("all"); setSortBy("recent"); }}
+                        onClick={() => { setFilterSource("__all__"); setFilterMedium("__all__"); setFilterCampaign("__all__"); setDateRange(undefined); setPeriodLabel("Todo período"); setSortBy("recent"); }}
                       >
                         Limpar filtros
                       </Button>
@@ -353,7 +452,7 @@ const RedirectsManager = () => {
                             {link.utm_campaign && <Badge variant="outline" className="text-[10px]">campaign: {link.utm_campaign}</Badge>}
                             {link.utm_content && <Badge variant="outline" className="text-[10px]">content: {link.utm_content}</Badge>}
                             <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-1">
-                              <Calendar className="w-3 h-3" />
+                              <CalendarIcon className="w-3 h-3" />
                               {new Date(link.created_at).toLocaleDateString('pt-BR')}
                             </span>
                           </div>
@@ -363,6 +462,11 @@ const RedirectsManager = () => {
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <MousePointerClick className="w-4 h-4" />
                             <span className="text-sm font-medium">{link.clicks}</span>
+                            {hasPeriodFilter && (
+                              <span className="text-xs text-primary ml-1">
+                                | {periodClicks[link.id] || 0} no período
+                              </span>
+                            )}
                           </div>
                           <Switch
                             checked={link.enabled}
