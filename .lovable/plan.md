@@ -1,55 +1,79 @@
 
 
-## Melhorias na pagina /admin/redirects
+## Melhorias no filtro de periodo e cliques por periodo
 
-### 1. Filtro por periodo de data
+### Problema atual
 
-Adicionar um novo `Select` na barra de filtros existente (linha 221-273) com as opcoes:
-- "Todo periodo" (padrao)
-- "Hoje"
-- "Ultimos 7 dias"
-- "Ultimos 30 dias"
+O filtro de periodo esconde os cards (filtra por `created_at`). O usuario quer que **todos os cards aparecam sempre**, e o periodo sirva apenas para filtrar a **contagem de cliques**.
 
-**Implementacao:**
-- Novo estado `filterPeriod` com valores `"all" | "today" | "7days" | "30days"`
-- No `filteredLinks` (linha 94-101), adicionar logica que compara `link.created_at` com a data calculada
-- Importar `CalendarDays` do lucide-react para o icone (opcional)
+Porem, atualmente os cliques sao armazenados apenas como um contador inteiro (`clicks` na tabela `redirect_links`). Nao existe tabela de eventos de clique com timestamp, entao nao e possivel saber quantos cliques ocorreram "hoje" ou "esta semana".
 
-### 2. Ordenacao por mais clicados
+### Solucao
 
-Adicionar um novo `Select` ao lado dos filtros para ordenacao:
-- "Mais recentes" (padrao, ordenacao atual por `created_at` desc)
-- "Mais clicados" (ordena por `clicks` desc)
+#### Parte 1: Criar tabela de eventos de clique
 
-**Implementacao:**
-- Novo estado `sortBy` com valores `"recent" | "clicks"`
-- Aplicar `.sort()` no `filteredLinks` apos o `.filter()`, ordenando por `clicks` desc quando selecionado
-- Importar `ArrowDownWideNarrow` do lucide-react
+Criar a tabela `redirect_click_events` para registrar cada clique individualmente com timestamp:
 
-### 3. Data de criacao no card
+```text
+redirect_click_events
+- id (uuid, PK)
+- redirect_link_id (uuid, FK -> redirect_links.id)
+- clicked_at (timestamptz, default now())
+- ip_hash (text, opcional)
+```
 
-Exibir a data de criacao formatada em cada card de link, junto aos badges de UTM (linha 310-315).
+RLS: admins podem ler (SELECT), service role pode inserir (INSERT).
 
-**Implementacao:**
-- Adicionar um `<p>` ou `<span>` com `new Date(link.created_at).toLocaleDateString('pt-BR')` abaixo da descricao ou junto aos badges
-- Usar icone `Calendar` do lucide-react
+#### Parte 2: Atualizar Edge Function `track-redirect-click`
+
+Alem de incrementar o contador (`increment_redirect_clicks`), tambem inserir um registro em `redirect_click_events` com o `redirect_link_id` e timestamp.
+
+#### Parte 3: Query de cliques por periodo
+
+Adicionar uma query separada que busca cliques agrupados por `redirect_link_id` dentro do periodo selecionado:
+
+```sql
+SELECT redirect_link_id, COUNT(*) as period_clicks
+FROM redirect_click_events
+WHERE clicked_at >= [data_inicio]
+GROUP BY redirect_link_id
+```
+
+#### Parte 4: UI - Substituir Select de periodo por Popover com calendario
+
+Remover o `Select` de periodo atual e substituir por um `Popover` contendo:
+- Botoes de atalho: "Hoje", "7 dias", "30 dias", "Todo periodo"
+- Calendario (DatePicker) para selecionar intervalo customizado (data inicio e fim)
+- Estado: `dateRange: { from: Date | null, to: Date | null }`
+
+#### Parte 5: UI - Cliques por periodo no card
+
+No card de cada link, ao lado do contador total de cliques, mostrar os cliques do periodo selecionado:
+
+```text
+[icon] 142 total  |  23 no periodo
+```
+
+Quando "Todo periodo" estiver selecionado, mostrar apenas o total (comportamento atual).
+
+#### Parte 6: Remover filtro de cards por data
+
+O `filterPeriod` atual que esconde cards sera removido. Todos os cards sempre aparecem. O periodo afeta apenas a contagem de cliques exibida.
 
 ### Detalhes tecnicos
 
-**Arquivo modificado:** `src/pages/admin/RedirectsManager.tsx`
+| Item | Detalhe |
+|------|---------|
+| Nova tabela | `redirect_click_events` (migracao SQL) |
+| Edge function modificada | `supabase/functions/track-redirect-click/index.ts` |
+| Arquivo principal | `src/pages/admin/RedirectsManager.tsx` |
+| Novos imports | `Popover`, `PopoverContent`, `PopoverTrigger`, `Calendar` (shadcn), `format` (date-fns) |
+| Estado removido | `filterPeriod` (tipo string) |
+| Estado adicionado | `dateRange: { from: Date \| null, to: Date \| null }` |
+| Nova query | `useQuery` para buscar `redirect_click_events` agrupados por link no periodo |
+| `hasActiveFilters` | Atualizar para usar `dateRange.from !== null` |
 
-| Mudanca | Local no codigo |
-|---------|----------------|
-| Estado `filterPeriod` | Junto aos estados de filtro (linhas 73-75) |
-| Estado `sortBy` | Junto aos estados de filtro |
-| Logica de filtro por data | Dentro do `filteredLinks` useMemo (linhas 94-101) |
-| Logica de ordenacao | Novo `.sort()` encadeado no `filteredLinks` |
-| Select de periodo | Na barra de filtros (linhas 222-254) |
-| Select de ordenacao | Na barra de filtros, apos os selects existentes |
-| Data de criacao no card | Dentro do card (linha ~308-315), apos description |
-| `hasActiveFilters` | Atualizar para incluir `filterPeriod !== "all"` e `sortBy !== "recent"` |
+### Limitacao
 
-**Imports adicionais:** `Calendar`, `ArrowDownWideNarrow` do lucide-react
-
-Nenhuma mudanca de banco de dados necessaria -- `created_at` e `clicks` ja existem na tabela `redirect_links`.
+Cliques antigos (anteriores a criacao da tabela `redirect_click_events`) nao terao dados por periodo -- apenas o total historico (coluna `clicks`) continuara disponivel. Os cliques por periodo so contarao a partir do momento em que a nova tabela estiver ativa.
 
