@@ -833,6 +833,35 @@ export type Database = {
           },
         ]
       }
+      redirect_click_events: {
+        Row: {
+          clicked_at: string
+          id: string
+          ip_hash: string | null
+          redirect_link_id: string
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          redirect_link_id: string
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          redirect_link_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redirect_click_events_redirect_link_id_fkey"
+            columns: ["redirect_link_id"]
+            isOneToOne: false
+            referencedRelation: "redirect_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       redirect_links: {
         Row: {
           clicks: number

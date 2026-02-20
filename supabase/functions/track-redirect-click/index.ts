@@ -73,11 +73,37 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { error } = await supabase.rpc('increment_redirect_clicks', { redirect_slug: slug });
+    // Get the redirect_link_id for this slug
+    const { data: linkData, error: linkError } = await supabase
+      .from('redirect_links')
+      .select('id')
+      .eq('slug', slug)
+      .eq('enabled', true)
+      .maybeSingle();
 
-    if (error) {
-      console.error('Error incrementing redirect clicks:', error);
-      throw error;
+    if (linkError || !linkData) {
+      console.error('Error finding redirect link:', linkError);
+      return new Response(JSON.stringify({ error: 'Link not found', success: false }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Increment counter and insert click event in parallel
+    const ipHash = clientIP !== 'unknown' ? clientIP : null;
+    const [rpcResult, insertResult] = await Promise.all([
+      supabase.rpc('increment_redirect_clicks', { redirect_slug: slug }),
+      supabase.from('redirect_click_events').insert({
+        redirect_link_id: linkData.id,
+        ip_hash: ipHash,
+      }),
+    ]);
+
+    if (rpcResult.error) {
+      console.error('Error incrementing redirect clicks:', rpcResult.error);
+    }
+    if (insertResult.error) {
+      console.error('Error inserting click event:', insertResult.error);
     }
 
     console.log(`Redirect click tracked: ${slug}`);
