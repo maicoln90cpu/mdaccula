@@ -1,79 +1,64 @@
 
 
-## Melhorias no filtro de periodo e cliques por periodo
+## Diagnostico: Geracao Automatica Parada
 
-### Problema atual
+### Problema Principal Encontrado
 
-O filtro de periodo esconde os cards (filtra por `created_at`). O usuario quer que **todos os cards aparecam sempre**, e o periodo sirva apenas para filtrar a **contagem de cliques**.
+A funcao `auto-article-cron` **nunca e chamada automaticamente** porque **nao existe nenhum cron job configurado** no banco de dados. As extensoes `pg_cron` e `pg_net` nao estao instaladas.
 
-Porem, atualmente os cliques sao armazenados apenas como um contador inteiro (`clicks` na tabela `redirect_links`). Nao existe tabela de eventos de clique com timestamp, entao nao e possivel saber quantos cliques ocorreram "hoje" ou "esta semana".
+A funcao Edge Function existe e funciona, mas ela depende de algo que a chame periodicamente. Sem o cron job, ela so executa quando voce clica em "Forcar Geracao Agora".
 
-### Solucao
+### Evidencias
 
-#### Parte 1: Criar tabela de eventos de clique
+| Verificacao | Resultado |
+|-------------|-----------|
+| Extensao `pg_cron` instalada | NAO |
+| Extensao `pg_net` instalada | NAO |
+| Tabela `cron.job` existe | NAO |
+| Logs da Edge Function `auto-article-cron` | NENHUM log encontrado |
+| Logs de "Auto-geracao" no `application_logs` | NENHUM registro |
+| `ai_auto_generate_last_run` | `2026-02-19T00:00:04.282Z` (4 dias atras, provavelmente de um clique manual) |
+| `ai_auto_generate_fail_count` | 0 |
+| `ai_auto_generate_enabled` | true |
 
-Criar a tabela `redirect_click_events` para registrar cada clique individualmente com timestamp:
+### Correcao Necessaria
 
-```text
-redirect_click_events
-- id (uuid, PK)
-- redirect_link_id (uuid, FK -> redirect_links.id)
-- clicked_at (timestamptz, default now())
-- ip_hash (text, opcional)
-```
+#### Passo 1: Habilitar extensoes `pg_cron` e `pg_net`
 
-RLS: admins podem ler (SELECT), service role pode inserir (INSERT).
+Criar uma migracao SQL para habilitar as duas extensoes necessarias para agendar chamadas HTTP periodicas.
 
-#### Parte 2: Atualizar Edge Function `track-redirect-click`
+#### Passo 2: Criar o cron job
 
-Alem de incrementar o contador (`increment_redirect_clicks`), tambem inserir um registro em `redirect_click_events` com o `redirect_link_id` e timestamp.
-
-#### Parte 3: Query de cliques por periodo
-
-Adicionar uma query separada que busca cliques agrupados por `redirect_link_id` dentro do periodo selecionado:
-
-```sql
-SELECT redirect_link_id, COUNT(*) as period_clicks
-FROM redirect_click_events
-WHERE clicked_at >= [data_inicio]
-GROUP BY redirect_link_id
-```
-
-#### Parte 4: UI - Substituir Select de periodo por Popover com calendario
-
-Remover o `Select` de periodo atual e substituir por um `Popover` contendo:
-- Botoes de atalho: "Hoje", "7 dias", "30 dias", "Todo periodo"
-- Calendario (DatePicker) para selecionar intervalo customizado (data inicio e fim)
-- Estado: `dateRange: { from: Date | null, to: Date | null }`
-
-#### Parte 5: UI - Cliques por periodo no card
-
-No card de cada link, ao lado do contador total de cliques, mostrar os cliques do periodo selecionado:
+Configurar um cron job que chame a Edge Function `auto-article-cron` periodicamente (a cada 1 hora). A funcao ja possui a logica interna para verificar se o intervalo de 48h passou, entao chamar a cada hora e seguro -- ela simplesmente retorna "skipped" quando nao e hora de gerar.
 
 ```text
-[icon] 142 total  |  23 no periodo
+Frequencia: a cada 1 hora (* */1 * * *)
+Alvo: POST para /functions/v1/auto-article-cron
+Headers: Authorization Bearer + anon key
 ```
 
-Quando "Todo periodo" estiver selecionado, mostrar apenas o total (comportamento atual).
+#### Passo 3 (opcional): Melhorar visibilidade no dashboard
 
-#### Parte 6: Remover filtro de cards por data
+O dashboard mostra "Nenhum log de execucao encontrado" porque a funcao nunca rodou automaticamente. Apos ativar o cron, os logs comecam a aparecer.
 
-O `filterPeriod` atual que esconde cards sera removido. Todos os cards sempre aparecem. O periodo afeta apenas a contagem de cliques exibida.
+### Detalhes Tecnicos
 
-### Detalhes tecnicos
+**Arquivo criado:** Nova migracao SQL
 
-| Item | Detalhe |
-|------|---------|
-| Nova tabela | `redirect_click_events` (migracao SQL) |
-| Edge function modificada | `supabase/functions/track-redirect-click/index.ts` |
-| Arquivo principal | `src/pages/admin/RedirectsManager.tsx` |
-| Novos imports | `Popover`, `PopoverContent`, `PopoverTrigger`, `Calendar` (shadcn), `format` (date-fns) |
-| Estado removido | `filterPeriod` (tipo string) |
-| Estado adicionado | `dateRange: { from: Date \| null, to: Date \| null }` |
-| Nova query | `useQuery` para buscar `redirect_click_events` agrupados por link no periodo |
-| `hasActiveFilters` | Atualizar para usar `dateRange.from !== null` |
+```text
+1. CREATE EXTENSION IF NOT EXISTS pg_cron
+2. CREATE EXTENSION IF NOT EXISTS pg_net
+3. SELECT cron.schedule(
+     'auto-article-cron',
+     '0 * * * *',  -- a cada hora cheia
+     POST para SUPABASE_URL/functions/v1/auto-article-cron
+     com Authorization header
+   )
+```
 
-### Limitacao
+**Nenhum arquivo TypeScript precisa ser alterado** -- a Edge Function ja esta correta, so precisa ser chamada.
 
-Cliques antigos (anteriores a criacao da tabela `redirect_click_events`) nao terao dados por periodo -- apenas o total historico (coluna `clicks`) continuara disponivel. Os cliques por periodo so contarao a partir do momento em que a nova tabela estiver ativa.
+### Por que a "ultima execucao" mostra 4 dias atras?
+
+Provavelmente foi um clique manual no botao "Forcar Geracao Agora" em 18/02. Como nao ha cron, nunca mais foi chamada automaticamente.
 
