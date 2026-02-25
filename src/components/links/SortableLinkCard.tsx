@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn, parseLocalDate } from "@/lib/utils";
+import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
 import { CopyPlus, Edit } from "lucide-react";
 import { StaticIcon } from "./StaticIcon";
 
@@ -82,9 +83,10 @@ export const SortableLinkCard = ({
   });
 
   // Resolve image: thumbnail_url first, then event image_url as fallback
-  const resolvedImage = imgError 
+  const rawImage = imgError 
     ? (link.events?.image_url || null) 
     : (link.thumbnail_url || link.events?.image_url || null);
+  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage, IMAGE_PRESETS.thumbnail) : null;
 
   const style = {
     transform: CSS.Transform.toString(transform),

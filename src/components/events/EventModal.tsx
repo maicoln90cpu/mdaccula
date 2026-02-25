@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, ExternalLink, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { parseLocalDate } from '@/lib/utils';
+import { getOptimizedImageUrl, IMAGE_PRESETS } from '@/lib/imageUtils';
 
 interface EventModalProps {
   event: any;
@@ -48,7 +49,7 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
           {event.image_url && (
             <div className="w-full aspect-video rounded-lg overflow-hidden bg-muted/20">
               <img 
-                src={event.image_url} 
+                src={getOptimizedImageUrl(event.image_url, IMAGE_PRESETS.detail)} 
                 alt={event.title}
                 className="w-full h-full object-contain"
                 loading="lazy"
