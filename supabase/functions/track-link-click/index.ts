@@ -112,6 +112,15 @@ Deno.serve(async (req) => {
       throw error;
     }
 
+    // Insert tracking event with timestamp
+    const ipHash = clientIP !== 'unknown' ? clientIP : null;
+    await supabase.from('link_click_events').insert({
+      link_id: linkId,
+      ip_hash: ipHash,
+    }).then(({ error: trackError }) => {
+      if (trackError) console.error('Error inserting link_click_event:', trackError);
+    });
+
     console.log(`Link click tracked: ${linkId}`);
     return jsonSuccess();
   } catch (error) {

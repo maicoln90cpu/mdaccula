@@ -232,6 +232,35 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_view_events: {
+        Row: {
+          id: string
+          ip_hash: string | null
+          post_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          ip_hash?: string | null
+          post_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          ip_hash?: string | null
+          post_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_view_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custom_links: {
         Row: {
           card_height: number | null
@@ -376,6 +405,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_view_events: {
+        Row: {
+          event_id: string
+          id: string
+          ip_hash: string | null
+          viewed_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          ip_hash?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          ip_hash?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_view_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           address: string | null
@@ -462,6 +520,35 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      link_click_events: {
+        Row: {
+          clicked_at: string
+          id: string
+          ip_hash: string | null
+          link_id: string
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          link_id: string
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          link_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "link_click_events_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "custom_links"
             referencedColumns: ["id"]
           },
         ]

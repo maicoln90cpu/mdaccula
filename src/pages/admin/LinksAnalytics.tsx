@@ -99,22 +99,15 @@ const LinksAnalytics = () => {
       setLoading(true);
       const dateFilter = getDateFilter();
 
-      // Buscar dados dos links com seus grupos (sempre total acumulado)
+      // Buscar metadados dos links com seus grupos
       const { data: linksData, error: linksError } = await supabase
         .from("custom_links")
-        .select(`
-          id,
-          title,
-          url,
-          clicks,
-          is_internal,
-          link_groups (name)
-        `)
+        .select(`id, title, url, clicks, is_internal, link_groups (name)`)
         .order("clicks", { ascending: false });
 
       if (linksError) throw linksError;
 
-      // Buscar dados do blog (sempre total acumulado)
+      // Buscar metadados do blog
       const { data: blogData, error: blogError } = await supabase
         .from("blog_posts")
         .select("id, title, slug, views, likes, category")
@@ -123,7 +116,7 @@ const LinksAnalytics = () => {
 
       if (blogError) throw blogError;
 
-      // Buscar dados dos eventos (sempre total acumulado)
+      // Buscar metadados dos eventos
       const { data: eventsData, error: eventsError } = await supabase
         .from("events")
         .select("id, title, slug, views, date, venue")
@@ -131,7 +124,7 @@ const LinksAnalytics = () => {
 
       if (eventsError) throw eventsError;
 
-      // Buscar dados dos redirect links (metadata)
+      // Buscar metadados dos redirect links
       const { data: redirectsData, error: redirectsError } = await supabase
         .from("redirect_links")
         .select("id, slug, destination_url, description, clicks, enabled")
@@ -139,18 +132,54 @@ const LinksAnalytics = () => {
 
       if (redirectsError) throw redirectsError;
 
-      // Buscar cliques de redirect por período (redirect_click_events TEM timestamps reais)
+      // Se há filtro de período, buscar contagens das tabelas de tracking
+      let linkClicksByPeriod: Record<string, number> = {};
+      let blogViewsByPeriod: Record<string, number> = {};
+      let eventViewsByPeriod: Record<string, number> = {};
       let redirectClicksByPeriod: Record<string, number> = {};
+
       if (dateFilter) {
-        const { data: clickEvents, error: clickEventsError } = await supabase
+        // Buscar cliques de links por período
+        const { data: linkClicks } = await supabase
+          .from("link_click_events")
+          .select("link_id")
+          .gte("clicked_at", dateFilter);
+        if (linkClicks) {
+          (linkClicks as any[]).forEach((row: any) => {
+            linkClicksByPeriod[row.link_id] = (linkClicksByPeriod[row.link_id] || 0) + 1;
+          });
+        }
+
+        // Buscar views de blog por período
+        const { data: blogViews } = await supabase
+          .from("blog_view_events")
+          .select("post_id")
+          .gte("viewed_at", dateFilter);
+        if (blogViews) {
+          (blogViews as any[]).forEach((row: any) => {
+            blogViewsByPeriod[row.post_id] = (blogViewsByPeriod[row.post_id] || 0) + 1;
+          });
+        }
+
+        // Buscar views de eventos por período
+        const { data: eventViews } = await supabase
+          .from("event_view_events")
+          .select("event_id")
+          .gte("viewed_at", dateFilter);
+        if (eventViews) {
+          (eventViews as any[]).forEach((row: any) => {
+            eventViewsByPeriod[row.event_id] = (eventViewsByPeriod[row.event_id] || 0) + 1;
+          });
+        }
+
+        // Buscar cliques de redirect por período
+        const { data: clickEvents } = await supabase
           .from("redirect_click_events")
           .select("redirect_link_id")
           .gte("clicked_at", dateFilter);
-
-        if (!clickEventsError && clickEvents) {
+        if (clickEvents) {
           (clickEvents as any[]).forEach((row: any) => {
-            const id = row.redirect_link_id;
-            redirectClicksByPeriod[id] = (redirectClicksByPeriod[id] || 0) + 1;
+            redirectClicksByPeriod[row.redirect_link_id] = (redirectClicksByPeriod[row.redirect_link_id] || 0) + 1;
           });
         }
       }
@@ -160,11 +189,13 @@ const LinksAnalytics = () => {
         id: link.id,
         title: link.title,
         url: link.url,
-        clicks: link.clicks || 0,
+        clicks: dateFilter ? (linkClicksByPeriod[link.id] || 0) : (link.clicks || 0),
         group_name: link.link_groups?.name || "Sem grupo",
         is_internal: link.is_internal,
       })) || [];
 
+      // Ordenar por cliques (do período ou total)
+      processedLinks.sort((a, b) => b.clicks - a.clicks);
       setLinks(processedLinks);
 
       // Processar dados do blog
@@ -172,14 +203,15 @@ const LinksAnalytics = () => {
         id: post.id,
         title: post.title,
         slug: post.slug,
-        views: post.views || 0,
+        views: dateFilter ? (blogViewsByPeriod[post.id] || 0) : (post.views || 0),
         likes: post.likes || 0,
         category: post.category,
       })) || [];
 
+      processedBlog.sort((a, b) => b.views - a.views);
       setBlogPosts(processedBlog);
 
-      // Calcular totais (sempre acumulados para links/blog/events)
+      // Calcular totais
       const clicksTotal = processedLinks.reduce((sum, link) => sum + link.clicks, 0);
       setTotalClicks(clicksTotal);
 
@@ -187,23 +219,24 @@ const LinksAnalytics = () => {
       setTotalViews(viewsTotal);
 
       const likesTotal = processedBlog.reduce((sum, post) => sum + post.likes, 0);
+      setTotalLikes(likesTotal);
 
       // Processar dados dos eventos
       const processedEvents = eventsData?.map((event: any) => ({
         id: event.id,
         title: event.title,
         slug: event.slug,
-        views: event.views || 0,
+        views: dateFilter ? (eventViewsByPeriod[event.id] || 0) : (event.views || 0),
         date: event.date,
         venue: event.venue,
       })) || [];
 
+      processedEvents.sort((a, b) => b.views - a.views);
       setEvents(processedEvents);
       const eventViewsTotal = processedEvents.reduce((sum, e) => sum + e.views, 0);
       setTotalEventViews(eventViewsTotal);
-      setTotalLikes(likesTotal);
 
-      // Processar dados dos redirects — usar clicks do período se filtrado
+      // Processar dados dos redirects
       const processedRedirects = redirectsData?.map((r: any) => ({
         id: r.id,
         slug: r.slug,
@@ -213,16 +246,13 @@ const LinksAnalytics = () => {
         enabled: r.enabled,
       })) || [];
 
-      // Ordenar por cliques (do período ou total)
       processedRedirects.sort((a, b) => b.clicks - a.clicks);
-
       setRedirects(processedRedirects);
       const redirectClicksTotal = processedRedirects.reduce((sum: number, r: RedirectAnalytics) => sum + r.clicks, 0);
       setTotalRedirectClicks(redirectClicksTotal);
 
       // Agrupar dados por grupo
       const groupMap = new Map<string, { total_clicks: number; link_count: number }>();
-      
       processedLinks.forEach((link) => {
         const existing = groupMap.get(link.group_name) || { total_clicks: 0, link_count: 0 };
         groupMap.set(link.group_name, {
@@ -297,7 +327,7 @@ const LinksAnalytics = () => {
             ))}
             {timePeriod !== 'all' && (
               <span className="text-xs text-muted-foreground self-center ml-2">
-                ⚠️ Apenas Redirects filtra por período real. Links, Blog e Eventos mostram total acumulado.
+                ℹ️ Dados filtrados por período usando tabelas de tracking. Dados anteriores à ativação do tracking não aparecem.
               </span>
             )}
           </div>
@@ -313,7 +343,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalClicks}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
               </CardContent>
             </Card>
 
@@ -338,7 +368,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalEventViews}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
               </CardContent>
             </Card>
 
@@ -351,7 +381,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalViews}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
               </CardContent>
             </Card>
 
@@ -364,7 +394,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalLikes}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
               </CardContent>
             </Card>
 
