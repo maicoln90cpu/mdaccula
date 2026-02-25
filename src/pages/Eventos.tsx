@@ -564,11 +564,11 @@ const Eventos = () => {
                     style={{ animationDelay: `${index * 0.1}s` }}
                     onClick={() => handleEventClick(event)}
                   >
-                    <div className="relative overflow-hidden rounded-t-lg aspect-square bg-muted/20 flex items-center justify-center">
+                    <div className="relative overflow-hidden rounded-t-lg aspect-[3/4] bg-muted/20">
                       <img 
                         src={getOptimizedImageUrl(event.image_url, IMAGE_PRESETS.card) || djImage} 
                         alt={event.title}
-                        className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                         onError={(e) => {
                           const target = e.currentTarget;
                           if (target.src !== djImage) {

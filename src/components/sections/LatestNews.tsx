@@ -105,7 +105,7 @@ const LatestNews = () => {
                           src={item.image_url || '/placeholder.svg'}
                           alt={item.title}
                           className="w-full h-full"
-                          objectFit="contain"
+                          objectFit="cover"
                           priority={index === 0}
                           transformWidth={IMAGE_PRESETS.card.width}
                           transformQuality={IMAGE_PRESETS.card.quality}
