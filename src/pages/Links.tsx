@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react";
+import { useState, lazy, Suspense, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
@@ -10,6 +10,7 @@ import { SocialIcons } from "@/components/links/SocialIcons";
 import { SortableLinkCard } from "@/components/links/SortableLinkCard";
 import { LinksSkeleton } from "@/components/links/LinksSkeleton";
 import { getTheme } from "@/lib/linkThemes";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Plus, Copy, User } from "lucide-react";
 import { CustomLinkForm } from "@/components/links/CustomLinkForm";
 import Navigation from "@/components/ui/navigation";
@@ -182,7 +183,7 @@ export default function Links() {
             {/* Avatar */}
             {avatarUrl ? (
               <img
-                src={avatarUrl}
+                src={getOptimizedImageUrl(avatarUrl)}
                 alt="Avatar"
                 loading="eager"
                 decoding="async"

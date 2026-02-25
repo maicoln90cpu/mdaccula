@@ -195,7 +195,7 @@ const EventDetail = () => {
         />
         <meta property="og:title" content={event.title} />
         <meta property="og:description" content={event.description || `${event.genres.join(", ")} - ${event.venue}`} />
-        <meta property="og:image" content={event.image_url || "/hero-club.jpg"} />
+        <meta property="og:image" content={getOptimizedImageUrl(event.image_url) || "/hero-club.jpg"} />
         <meta property="og:url" content={currentUrl} />
         <meta property="og:type" content="event" />
         <meta name="twitter:card" content="summary_large_image" />

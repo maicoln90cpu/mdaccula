@@ -146,13 +146,13 @@ const BlogPost = () => {
         <meta name="description" content={post.excerpt || post.content?.substring(0, 160)} />
         <meta property="og:title" content={post.title} />
         <meta property="og:description" content={post.excerpt || post.content?.substring(0, 160)} />
-        <meta property="og:image" content={post.image_url || ""} />
+        <meta property="og:image" content={getOptimizedImageUrl(post.image_url) || ""} />
         <meta property="og:url" content={currentUrl} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={post.title} />
         <meta name="twitter:description" content={post.excerpt || post.content?.substring(0, 160)} />
-        <meta name="twitter:image" content={post.image_url || ""} />
+        <meta name="twitter:image" content={getOptimizedImageUrl(post.image_url) || ""} />
         <link rel="canonical" href={currentUrl} />
         {/* Preload post image for LCP optimization */}
         {post.image_url && (

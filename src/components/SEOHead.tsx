@@ -1,4 +1,6 @@
 import { Helmet } from 'react-helmet-async';
+import { useMemo } from 'react';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface SEOProps {
   title: string;
@@ -26,6 +28,7 @@ export const SEOHead = ({
   const fullTitle = `${title} | MDAccula - Música Eletrônica`;
   const defaultKeywords = ['música eletrônica', 'techno', 'house', 'são paulo', 'eventos', 'festas', 'dj'];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
+  const optimizedImage = useMemo(() => getOptimizedImageUrl(image) || image, [image]);
 
   return (
     <Helmet>
@@ -37,7 +40,7 @@ export const SEOHead = ({
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
-      <meta property="og:image" content={image} />
+      <meta property="og:image" content={optimizedImage} />
       <meta property="og:type" content={type} />
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content="MDAccula" />
@@ -47,7 +50,7 @@ export const SEOHead = ({
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={image} />
+      <meta name="twitter:image" content={optimizedImage} />
       
       {/* Canonical URL */}
       <link rel="canonical" href={url} />
