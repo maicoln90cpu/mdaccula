@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -382,9 +382,9 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
                     
                     {event.image_url && (
                       <img 
-                        src={getOptimizedImageUrl(event.image_url, IMAGE_PRESETS.thumbnail)} 
+                        src={getOptimizedImageUrl(event.image_url)} 
                         alt={event.title}
-                        className="w-10 h-10 rounded object-cover flex-shrink-0"
+                        className="w-10 h-10 rounded object-contain flex-shrink-0"
                       />
                     )}
 

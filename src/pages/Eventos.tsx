@@ -28,7 +28,7 @@ import EventsCarousel from "@/components/events/EventsCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { parseLocalDate } from "@/lib/utils";
 import { useEvents } from "@/hooks/useEvents";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -566,9 +566,9 @@ const Eventos = () => {
                   >
                     <div className="relative overflow-hidden rounded-t-lg aspect-[3/4] bg-muted/20">
                       <img 
-                        src={getOptimizedImageUrl(event.image_url, IMAGE_PRESETS.card) || djImage} 
+                        src={getOptimizedImageUrl(event.image_url) || djImage} 
                         alt={event.title}
-                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
                         onError={(e) => {
                           const target = e.currentTarget;
                           if (target.src !== djImage) {

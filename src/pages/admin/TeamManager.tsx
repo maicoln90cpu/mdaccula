@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -257,9 +257,9 @@ const TeamManager = () => {
                     <CardContent className="p-4 sm:p-6 pt-0">
                       {member.image_url && (
                         <img
-                          src={getOptimizedImageUrl(member.image_url, IMAGE_PRESETS.card)}
+                          src={getOptimizedImageUrl(member.image_url)}
                           alt={member.name}
-                          className="w-full h-48 object-cover rounded-lg mb-4"
+                          className="w-full h-48 object-contain rounded-lg mb-4"
                         />
                       )}
                       {member.bio && (

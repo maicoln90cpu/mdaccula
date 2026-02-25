@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -292,9 +292,9 @@ const BlogManager = () => {
                               <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
                                 {post.image_url ? (
                                   <img 
-                                    src={getOptimizedImageUrl(post.image_url, IMAGE_PRESETS.thumbnail)} 
+                                    src={getOptimizedImageUrl(post.image_url)} 
                                     alt={post.title}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-contain"
                                   />
                                 ) : (
                                   <div className="w-full h-full flex items-center justify-center text-muted-foreground">
