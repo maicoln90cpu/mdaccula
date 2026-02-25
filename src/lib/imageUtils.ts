@@ -41,5 +41,5 @@ export function getOptimizedImageUrl(
 
   const imagePath = match[1];
 
-  return `${BUNNY_CDN_HOST}/${imagePath}`;
+  return `${BUNNY_CDN_HOST}/${imagePath}?quality=75`;
 }
