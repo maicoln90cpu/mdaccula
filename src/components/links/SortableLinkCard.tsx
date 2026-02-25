@@ -167,7 +167,7 @@ export const SortableLinkCard = ({
       loading="lazy"
       decoding="async"
       onError={() => setImgError(true)}
-      className="w-16 h-16 object-cover flex-shrink-0 rounded-sm" /> :
+      className="w-22 h-22 object-cover flex-shrink-0 rounded-s" /> :
 
     link.icon ?
     <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
