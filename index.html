@@ -6,6 +6,8 @@
     <!-- Preconnect to critical origins for faster loading -->
     <link rel="preconnect" href="https://nzbyyuqvhrwatmydxiag.supabase.co" crossorigin>
     <link rel="dns-prefetch" href="https://nzbyyuqvhrwatmydxiag.supabase.co">
+    <link rel="preconnect" href="https://mdaccula.b-cdn.net" crossorigin>
+    <link rel="dns-prefetch" href="https://mdaccula.b-cdn.net">
     
     <!-- Preload hero image for LCP optimization -->
     <link rel="preload" as="image" href="/src/assets/hero-club.jpg" fetchpriority="high">
@@ -80,12 +82,13 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
-      #root:not(:empty) + #root-loader { display: none; }
     </style>
-    <div id="root"></div>
-    <div id="root-loader">
-      <div class="logo">MDAccula</div>
-      <div class="spinner"></div>
+    <div id="root">
+      <!-- Loader inside root: React will replace this on mount -->
+      <div id="root-loader">
+        <div class="logo">MDAccula</div>
+        <div class="spinner"></div>
+      </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

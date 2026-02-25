@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
@@ -313,7 +314,7 @@ const RecurringEventsManager = () => {
                       {config.image_url && (
                         <div className="mt-3">
                           <img
-                            src={config.image_url}
+                            src={getOptimizedImageUrl(config.image_url, IMAGE_PRESETS.thumbnail)}
                             alt={config.name}
                             className="h-16 w-28 object-cover rounded-md"
                           />
@@ -462,7 +463,7 @@ const RecurringEventsManager = () => {
                   />
                   {editingConfig.image_url && (
                     <img
-                      src={editingConfig.image_url}
+                      src={getOptimizedImageUrl(editingConfig.image_url, IMAGE_PRESETS.thumbnail)}
                       alt="Preview"
                       className="mt-2 h-20 w-32 object-cover rounded-md"
                     />

@@ -1,13 +1,29 @@
 /**
  * Utilitário para gerar URLs otimizadas de imagens do Supabase Storage.
- * Usa Supabase Image Transformation para redimensionar e comprimir na edge.
+ * Usa Supabase Image Transformation + Bunny CDN para cache de borda.
  */
 
 const SUPABASE_STORAGE_PATTERN = /\/storage\/v1\/object\/public\//;
 
 /**
+ * Bunny CDN Pull Zone configurada como proxy do Supabase Storage.
+ * Origin: https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public
+ * O Bunny cacheia as imagens na borda, eliminando egress repetido do Supabase.
+ */
+const BUNNY_CDN_HOST = 'https://mdaccula.b-cdn.net';
+
+/**
+ * Regex para extrair o path após /storage/v1/object/public/
+ * Ex: https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public/event-images/foto.webp
+ * Captura: event-images/foto.webp
+ */
+const SUPABASE_PATH_REGEX = /\/storage\/v1\/object\/public\/(.+)$/;
+
+/**
  * Transforma uma URL de imagem do Supabase Storage em uma URL otimizada
- * usando render/image (Image Transformation).
+ * servida pelo Bunny CDN com parâmetros de Image Transformation.
+ * 
+ * Fluxo: Visitante → Bunny CDN (cache) → Supabase Storage (origin)
  * 
  * Para URLs que não são do Supabase, retorna a URL original.
  */
@@ -22,27 +38,30 @@ export function getOptimizedImageUrl(
 ): string {
   if (!url) return '';
   
-  const { width = 600, quality = 75, resize = 'cover', height } = options;
+  const { width = 600, quality = 75, height, resize } = options;
 
   // Only transform Supabase storage URLs
   if (!SUPABASE_STORAGE_PATTERN.test(url)) {
     return url;
   }
 
-  // Replace /object/public/ with /render/image/public/ and add params
-  const renderUrl = url.replace(
-    '/storage/v1/object/public/',
-    '/storage/v1/render/image/public/'
-  );
+  // Extract the path after /storage/v1/object/public/
+  const match = url.match(SUPABASE_PATH_REGEX);
+  if (!match) return url;
 
+  const imagePath = match[1];
+
+  // Build Bunny CDN URL with Supabase Image Transformation query params
   const params = new URLSearchParams();
   params.set('width', String(width));
   if (height) params.set('height', String(height));
   params.set('quality', String(quality));
-  params.set('resize', resize);
+  // Only include resize when height is set (avoid cropping portrait images)
+  if (height && resize) {
+    params.set('resize', resize);
+  }
 
-  const separator = renderUrl.includes('?') ? '&' : '?';
-  return `${renderUrl}${separator}${params.toString()}`;
+  return `${BUNNY_CDN_HOST}/${imagePath}?${params.toString()}`;
 }
 
 /**
