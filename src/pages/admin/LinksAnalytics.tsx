@@ -97,8 +97,9 @@ const LinksAnalytics = () => {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
+      const dateFilter = getDateFilter();
 
-      // Buscar dados dos links com seus grupos
+      // Buscar dados dos links com seus grupos (sempre total acumulado)
       const { data: linksData, error: linksError } = await supabase
         .from("custom_links")
         .select(`
@@ -113,35 +114,46 @@ const LinksAnalytics = () => {
 
       if (linksError) throw linksError;
 
-      // Buscar dados do blog
-      const dateFilter = getDateFilter();
-      let blogQuery = supabase
+      // Buscar dados do blog (sempre total acumulado)
+      const { data: blogData, error: blogError } = await supabase
         .from("blog_posts")
         .select("id, title, slug, views, likes, category")
         .eq("published", true)
         .order("views", { ascending: false });
-      if (dateFilter) blogQuery = blogQuery.gte("published_at", dateFilter);
-      const { data: blogData, error: blogError } = await blogQuery;
 
       if (blogError) throw blogError;
 
-      // Buscar dados dos eventos
-      let eventsQuery = supabase
+      // Buscar dados dos eventos (sempre total acumulado)
+      const { data: eventsData, error: eventsError } = await supabase
         .from("events")
         .select("id, title, slug, views, date, venue")
         .order("views", { ascending: false, nullsFirst: false });
-      if (dateFilter) eventsQuery = eventsQuery.gte("date", dateFilter);
-      const { data: eventsData, error: eventsError } = await eventsQuery;
 
       if (eventsError) throw eventsError;
 
-      // Buscar dados dos redirect links
+      // Buscar dados dos redirect links (metadata)
       const { data: redirectsData, error: redirectsError } = await supabase
         .from("redirect_links")
         .select("id, slug, destination_url, description, clicks, enabled")
         .order("clicks", { ascending: false });
 
       if (redirectsError) throw redirectsError;
+
+      // Buscar cliques de redirect por período (redirect_click_events TEM timestamps reais)
+      let redirectClicksByPeriod: Record<string, number> = {};
+      if (dateFilter) {
+        const { data: clickEvents, error: clickEventsError } = await supabase
+          .from("redirect_click_events")
+          .select("redirect_link_id")
+          .gte("clicked_at", dateFilter);
+
+        if (!clickEventsError && clickEvents) {
+          (clickEvents as any[]).forEach((row: any) => {
+            const id = row.redirect_link_id;
+            redirectClicksByPeriod[id] = (redirectClicksByPeriod[id] || 0) + 1;
+          });
+        }
+      }
 
       // Processar dados dos links
       const processedLinks = linksData?.map((link: any) => ({
@@ -167,7 +179,7 @@ const LinksAnalytics = () => {
 
       setBlogPosts(processedBlog);
 
-      // Calcular totais
+      // Calcular totais (sempre acumulados para links/blog/events)
       const clicksTotal = processedLinks.reduce((sum, link) => sum + link.clicks, 0);
       setTotalClicks(clicksTotal);
 
@@ -191,15 +203,18 @@ const LinksAnalytics = () => {
       setTotalEventViews(eventViewsTotal);
       setTotalLikes(likesTotal);
 
-      // Processar dados dos redirects
+      // Processar dados dos redirects — usar clicks do período se filtrado
       const processedRedirects = redirectsData?.map((r: any) => ({
         id: r.id,
         slug: r.slug,
         destination_url: r.destination_url,
         description: r.description,
-        clicks: r.clicks || 0,
+        clicks: dateFilter ? (redirectClicksByPeriod[r.id] || 0) : (r.clicks || 0),
         enabled: r.enabled,
       })) || [];
+
+      // Ordenar por cliques (do período ou total)
+      processedRedirects.sort((a, b) => b.clicks - a.clicks);
 
       setRedirects(processedRedirects);
       const redirectClicksTotal = processedRedirects.reduce((sum: number, r: RedirectAnalytics) => sum + r.clicks, 0);
@@ -282,7 +297,7 @@ const LinksAnalytics = () => {
             ))}
             {timePeriod !== 'all' && (
               <span className="text-xs text-muted-foreground self-center ml-2">
-                ⚠️ Cliques em links mostram total acumulado (sem timestamp individual)
+                ⚠️ Apenas Redirects filtra por período real. Links, Blog e Eventos mostram total acumulado.
               </span>
             )}
           </div>
@@ -298,6 +313,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalClicks}</div>
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
               </CardContent>
             </Card>
 
@@ -322,6 +338,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalEventViews}</div>
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
               </CardContent>
             </Card>
 
@@ -334,6 +351,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalViews}</div>
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
               </CardContent>
             </Card>
 
@@ -346,6 +364,7 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalLikes}</div>
+                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">total acumulado</p>}
               </CardContent>
             </Card>
 
@@ -370,7 +389,9 @@ const LinksAnalytics = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalRedirectClicks}</div>
-                <p className="text-xs text-muted-foreground">{redirects.length} links</p>
+                <p className="text-xs text-muted-foreground">
+                  {redirects.length} links{timePeriod !== 'all' ? ' • filtrado por período' : ''}
+                </p>
               </CardContent>
             </Card>
           </div>
