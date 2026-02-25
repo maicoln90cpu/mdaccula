@@ -5,7 +5,7 @@ import heroImage from "@/assets/hero-club.jpg";
 
 const Hero = () => {
   return (
-    <section className="relative min-h-[75vh] flex items-center justify-center overflow-hidden">
+    <section className="relative min-h-[90vh] sm:min-h-[75vh] flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
@@ -56,7 +56,7 @@ const Hero = () => {
           </div>
 
           {/* Social Proof */}
-          <div className="mt-6 sm:mt-10 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center px-4">
+          <div className="mt-4 sm:mt-10 grid grid-cols-3 gap-2 sm:gap-6 text-center px-4">
             <div className="animate-float">
               <div className="text-2xl sm:text-3xl font-bold text-primary">500+</div>
               <div className="text-sm sm:text-base text-muted-foreground">Eventos Promovidos</div>
