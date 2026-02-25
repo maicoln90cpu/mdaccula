@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import imageCompression from "browser-image-compression";
+import { Upload, Loader2 } from "lucide-react";
 import { ThemeSelector } from "./ThemeSelector";
 import {
   Select,
@@ -62,6 +64,8 @@ export const LinksPageSettings = ({
 }: LinksPageSettingsProps) => {
   const [handle, setHandle] = useState(currentHandle || "@MDAccula");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(currentAvatar || null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(currentTheme || "sunset");
   const [cardBorder, setCardBorder] = useState(currentCardBorder || 'border border-white/10');
   const [cardShadow, setCardShadow] = useState(currentCardShadow || 'shadow-lg hover:shadow-xl');
@@ -73,27 +77,38 @@ export const LinksPageSettings = ({
   const [loading, setLoading] = useState(false);
   const queryClient = useQueryClient();
 
+  const handleAvatarUpload = async (file: File) => {
+    setUploadingAvatar(true);
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 400,
+        useWebWorker: true,
+      });
+      const fileName = `avatar-${Date.now()}.webp`;
+      const { data, error } = await supabase.storage
+        .from('link-thumbnails')
+        .upload(fileName, compressed, { upsert: true });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage
+        .from('link-thumbnails')
+        .getPublicUrl(data.path);
+      setAvatarPreview(publicUrl);
+      setAvatarFile(null); // We already uploaded directly
+      return publicUrl;
+    } catch (err: any) {
+      toast.error("Erro no upload do avatar: " + err.message);
+      return null;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true);
     try {
-      let avatarUrl = currentAvatar;
-
-      // Upload avatar if changed
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const fileName = `avatar-${Date.now()}.${fileExt}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("link-thumbnails")
-          .upload(fileName, avatarFile, { upsert: true });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("link-thumbnails")
-          .getPublicUrl(uploadData.path);
-
-        avatarUrl = publicUrl;
-      }
+      // Use the avatarPreview URL (already uploaded) or current
+      const avatarUrl = avatarPreview || currentAvatar;
 
       // Update settings
       const updates = [
@@ -141,12 +156,31 @@ export const LinksPageSettings = ({
         <div className="space-y-6 py-4 overflow-y-auto">
           <div>
             <Label>Avatar</Label>
-            <ImageUploadWithCrop
-              onImageSelect={setAvatarFile}
-              currentImageUrl={currentAvatar}
-              aspectRatio={1}
-              label="Escolher Avatar"
-            />
+            <div className="flex items-center gap-4 mt-2">
+              {avatarPreview && (
+                <img src={avatarPreview} alt="Avatar" className="w-16 h-16 rounded-full object-cover bg-muted/20" />
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                disabled={uploadingAvatar}
+                onClick={() => document.getElementById('avatar-upload-input')?.click()}
+              >
+                {uploadingAvatar ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {avatarPreview ? "Trocar Avatar" : "Enviar Avatar"}
+              </Button>
+              <input
+                id="avatar-upload-input"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) await handleAvatarUpload(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
           </div>
 
           <div>

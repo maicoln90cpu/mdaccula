@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, User, Search, ArrowRight, Eye, Heart, Rss } from "lucide-react";
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
@@ -452,7 +452,7 @@ const Blog = () => {
           )}
 
           {/* Posts Grid */}
-          <section className="py-12 bg-darker-surface">
+          <section className="py-12 bg-darker-surface overflow-x-hidden">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold mb-8 hero-text">Últimos Artigos</h2>
 
@@ -462,79 +462,69 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="space-y-4">
                     {posts.map((post, index) => (
                       <Link to={`/blog/${post.slug}`} key={post.id}>
                         <Card
-                          className="card-hover group cursor-pointer overflow-hidden h-full"
-                          style={{ animationDelay: `${index * 0.1}s` }}
+                          className="card-hover group cursor-pointer overflow-hidden"
+                          style={{ animationDelay: `${index * 0.05}s` }}
                         >
-                          <div className="relative overflow-hidden aspect-video bg-muted/20">
-                            <img
-                              src={getOptimizedImageUrl(post.image_url) || djImage}
-                              alt={post.title}
-                              className="w-full h-full object-contain"
-                              loading="lazy"
-                              decoding="async"
-                              onError={(e) => { e.currentTarget.src = djImage; }}
-                            />
-                            <div className="absolute top-4 left-4">
-                              <Badge className={getCategoryColor(post.category)}>{post.category}</Badge>
+                          <div className="flex flex-row">
+                            {/* Image lateral */}
+                            <div className="relative flex-shrink-0 w-28 sm:w-36 md:w-44 min-h-[100px] bg-muted/20 overflow-hidden">
+                              <img
+                                src={getOptimizedImageUrl(post.image_url) || djImage}
+                                alt={post.title}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => { e.currentTarget.src = djImage; }}
+                              />
+                              <div className="absolute top-2 left-2">
+                                <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>{post.category}</Badge>
+                              </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
+                              <div>
+                                <h3 className="text-sm sm:text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                                  {post.title}
+                                </h3>
+                                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 hidden sm:block">
+                                  {post.excerpt || "Clique para ler mais..."}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-3">
+                                  <span className="flex items-center">
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    {post.views}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <Heart className="w-3 h-3 mr-1" />
+                                    {post.likes}
+                                  </span>
+                                </div>
+                                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors hidden sm:block" />
+                              </div>
                             </div>
                           </div>
-
-                          <CardHeader>
-                            <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
-                              {post.title}
-                            </CardTitle>
-                          </CardHeader>
-
-                          <CardContent className="space-y-4">
-                            <p className="text-muted-foreground line-clamp-3">
-                              {post.excerpt || "Clique para ler mais..."}
-                            </p>
-
-                            <div className="flex items-center justify-between text-sm text-muted-foreground">
-                              <div className="flex items-center space-x-3">
-                                <div className="flex items-center">
-                                  <User className="w-3 h-3 mr-1" />
-                                  MDAccula
-                                </div>
-                                <div className="flex items-center">
-                                  <Calendar className="w-3 h-3 mr-1" />
-                                  {new Date(post.created_at).toLocaleDateString("pt-BR")}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-border">
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center">
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  {post.views}
-                                </div>
-                                <div className="flex items-center">
-                                  <Heart className="w-3 h-3 mr-1" />
-                                  {post.likes}
-                                </div>
-                              </div>
-
-                              <Button variant="ghost" size="sm">
-                                Ler mais
-                                <ArrowRight className="w-4 h-4 ml-1" />
-                              </Button>
-                            </div>
-                          </CardContent>
                         </Card>
                       </Link>
                     ))}
                   </div>
 
-                  {/* Pagination */}
+                  {/* Smart Pagination */}
                   {totalPages > 1 && (
                     <div className="mt-12 flex justify-center">
                       <Pagination>
-                        <PaginationContent>
+                        <PaginationContent className="flex-wrap gap-1">
                           <PaginationItem>
                             <PaginationPrevious
                               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
@@ -542,17 +532,37 @@ const Blog = () => {
                             />
                           </PaginationItem>
                           
-                          {[...Array(totalPages)].map((_, i) => (
-                            <PaginationItem key={i + 1}>
-                              <PaginationLink
-                                onClick={() => setCurrentPage(i + 1)}
-                                isActive={currentPage === i + 1}
-                                className="cursor-pointer"
-                              >
-                                {i + 1}
-                              </PaginationLink>
-                            </PaginationItem>
-                          ))}
+                          {(() => {
+                            const pages: (number | 'ellipsis')[] = [];
+                            if (totalPages <= 5) {
+                              for (let i = 1; i <= totalPages; i++) pages.push(i);
+                            } else {
+                              pages.push(1);
+                              const start = Math.max(2, currentPage - 1);
+                              const end = Math.min(totalPages - 1, currentPage + 1);
+                              if (start > 2) pages.push('ellipsis');
+                              for (let i = start; i <= end; i++) pages.push(i);
+                              if (end < totalPages - 1) pages.push('ellipsis');
+                              pages.push(totalPages);
+                            }
+                            return pages.map((p, idx) =>
+                              p === 'ellipsis' ? (
+                                <PaginationItem key={`e-${idx}`}>
+                                  <PaginationEllipsis />
+                                </PaginationItem>
+                              ) : (
+                                <PaginationItem key={p}>
+                                  <PaginationLink
+                                    onClick={() => setCurrentPage(p)}
+                                    isActive={currentPage === p}
+                                    className="cursor-pointer"
+                                  >
+                                    {p}
+                                  </PaginationLink>
+                                </PaginationItem>
+                              )
+                            );
+                          })()}
                           
                           <PaginationItem>
                             <PaginationNext

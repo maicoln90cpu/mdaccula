@@ -15,8 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, FileText } from "lucide-react";
+import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, FileText, Upload } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import imageCompression from "browser-image-compression";
 
 interface RecurringConfig {
   id: string;
@@ -58,6 +59,7 @@ const RecurringEventsManager = () => {
   const [executing, setExecuting] = useState(false);
   const [editingConfig, setEditingConfig] = useState<RecurringConfig | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchConfigs = async () => {
     setLoading(true);
@@ -453,19 +455,64 @@ const RecurringEventsManager = () => {
                   />
                 </div>
                 <div>
-                  <Label>URL da Imagem</Label>
-                  <Input
-                    value={editingConfig.image_url || ""}
-                    onChange={(e) =>
-                      setEditingConfig({ ...editingConfig, image_url: e.target.value })
-                    }
-                    placeholder="https://..."
-                  />
+                  <Label>Imagem do Evento</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input
+                      value={editingConfig.image_url || ""}
+                      onChange={(e) =>
+                        setEditingConfig({ ...editingConfig, image_url: e.target.value })
+                      }
+                      placeholder="https://... ou faça upload"
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      disabled={uploadingImage}
+                      onClick={() => document.getElementById('recurring-image-upload')?.click()}
+                    >
+                      {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    </Button>
+                    <input
+                      id="recurring-image-upload"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingImage(true);
+                        try {
+                          const compressed = await imageCompression(file, {
+                            maxSizeMB: 0.5,
+                            maxWidthOrHeight: 1200,
+                            useWebWorker: true,
+                          });
+                          const fileName = `recurring-${Date.now()}.webp`;
+                          const { data, error } = await supabase.storage
+                            .from('event-images')
+                            .upload(fileName, compressed, { upsert: true });
+                          if (error) throw error;
+                          const { data: { publicUrl } } = supabase.storage
+                            .from('event-images')
+                            .getPublicUrl(data.path);
+                          setEditingConfig({ ...editingConfig, image_url: publicUrl });
+                          toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });
+                        } catch (err: any) {
+                          toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+                        } finally {
+                          setUploadingImage(false);
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </div>
                   {editingConfig.image_url && (
                     <img
                       src={getOptimizedImageUrl(editingConfig.image_url)}
                       alt="Preview"
-                      className="mt-2 h-20 w-32 object-contain rounded-md"
+                      className="mt-2 h-20 w-32 object-contain rounded-md bg-muted/20"
                     />
                   )}
                 </div>
