@@ -203,11 +203,11 @@ const BlogPost = () => {
         {post.image_url && (
           <section className="py-6 sm:py-8 bg-background">
             <div className="container mx-auto px-4">
-              <div className="max-w-2xl mx-auto bg-muted/20 rounded-lg overflow-hidden">
+              <div className="max-w-xl mx-auto bg-muted/20 rounded-lg overflow-hidden">
                 <img 
                   src={getOptimizedImageUrl(post.image_url)} 
                   alt={post.title} 
-                  className="w-full h-auto max-h-[55vh] object-contain rounded-lg mx-auto" 
+                  className="w-full h-auto max-h-[42vh] object-contain rounded-lg mx-auto" 
                   loading="eager"
                   fetchPriority="high"
                 />

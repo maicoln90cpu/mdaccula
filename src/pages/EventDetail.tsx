@@ -372,7 +372,7 @@ const EventDetail = () => {
                               <img
                                 src={getOptimizedImageUrl(relatedPost.image_url)}
                                 alt={relatedPost.title}
-                                className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full object-contain"
                               />
                             </div>
                           )}
@@ -450,7 +450,7 @@ const EventDetail = () => {
                                 <img
                                   src={getOptimizedImageUrl(relatedEvent.image_url)}
                                   alt={relatedEvent.title}
-                                  className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                                  className="w-full h-full object-contain"
                                 />
                               </div>
                             )}

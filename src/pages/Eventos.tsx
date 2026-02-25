@@ -568,7 +568,7 @@ const Eventos = () => {
                       <img 
                         src={getOptimizedImageUrl(event.image_url) || djImage} 
                         alt={event.title}
-                        className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-110"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                           const target = e.currentTarget;
                           if (target.src !== djImage) {
