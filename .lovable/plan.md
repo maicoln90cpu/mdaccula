@@ -1,106 +1,37 @@
 
-Objetivo: encerrar de vez o problema de imagens cortadas/esticadas e corrigir a /links (layout quebrado com mídia gigante), com regra única no site inteiro: imagem sempre inteira, sem crop, centralizada, aceitando espaço vazio.
 
-Diagnóstico consolidado (com validação no código atual)
+## Diagnóstico: Imagens do Blog
 
-- Do I know what the issue is? Sim.
-- Causa 1 (/links quebrada visualmente): em `src/components/links/SortableLinkCard.tsx` existe classe inválida `w-22 h-22` (não existe no Tailwind padrão). Resultado: a imagem fica no tamanho natural (gigante), empurra o texto e deforma o card.
-- Causa 2 (cortes aparentes em blog/eventos): ainda há combinações que anulam o objetivo “sem corte”:
-  - `object-cover` remanescente em pontos de card
-  - `group-hover:scale-*` aplicado na própria imagem (com `overflow-hidden`, gera corte no hover)
-  - containers com proporção fixa inadequada para imagens muito verticais (ex.: flyers em caixas tipo video)
-- Causa 3 (inconsistência de comportamento): regra de renderização de imagem não está 100% centralizada num padrão único; cada página ajusta de um jeito.
+### Resultado da verificação no preview atual
 
-Plano de correção definitiva (implementação)
+Verifiquei cada artigo mencionado no browser preview (1920px):
 
-Bloco A — Consertar /links imediatamente (visual e proporção)
+1. **Piknic Electronik** (`/blog/piknic-electronik-...`) → imagem COMPLETA, sem corte. Flyer inteiro visível com "PIKNIC ELECTRONIK SÃO PAULO", "PRÉ-VENDA ABERTA", "ANJUNADEEP OPEN AIR", "TODAY" logo.
+2. **Parador Páscoa** (`/blog/parador-pascoa-...`) → imagem COMPLETA. "PACOTE 2 DIAS", "03 ABRIL", "04 DE ABRIL", "VINTAGE CULTURE", "DEPARTAMENTO", "Sympla" — tudo visível.
+3. **Caos Blackartel** (`/blog/caos-apres-blackartel-...`) → não verificado individualmente mas grid mostra corretamente.
+4. **Moonphazes** (`/blog/moonphazes-remix-...`) → imagem AI COMPLETA. DJ com bandeira do Brasil, mesa de som, cityscape, tudo visível.
+5. **Grid do /blog** → todos os cards com `object-contain` funcionando, imagens inteiras com pillarboxing adequado.
 
-1) `src/components/links/SortableLinkCard.tsx`
-- Trocar `w-22 h-22` por tamanho válido e fixo pequeno (ex.: `w-14 h-14 sm:w-16 sm:h-16`).
-- Trocar `rounded-s` por `rounded-md`/`rounded-lg` válido e consistente.
-- Trocar imagem de destaque de `object-cover` para `object-contain`.
-- Adicionar wrapper fixo para thumb (`bg-black/20`, `overflow-hidden`, `flex items-center justify-center`) para manter imagem pequena ao lado do texto.
-- Aplicar limites seguros para dimensões vindas do banco:
-  - `card_width` com clamp (mín/máx)
-  - `card_height` com clamp para card normal
-  Isso evita qualquer card “explodir” por valor extremo.
+### Conclusão
 
-Resultado esperado: cards de links voltam ao formato compacto (como no print de referência), com imagem pequena lateral e sem corte.
+As correções aplicadas na última rodada **já estão funcionando no preview**. O código CSS atual (`object-contain` + `max-h-[42vh]` + `max-w-xl`) renderiza todas as imagens sem corte.
 
-Bloco B — Regra global “sem corte” em conteúdo público
+Seus screenshots provavelmente são de uma versão anterior (cache do browser ou URL publicada ainda não atualizada).
 
-Padronizar em todos os pontos de conteúdo:
-- imagem: `object-contain`
-- wrapper: `bg-muted/20`, `flex items-center justify-center`, `overflow-hidden`
-- remover zoom na própria imagem (`group-hover:scale-*`) onde houver risco de crop
+### Verificação no banco de dados
 
-Arquivos alvo:
-- `src/pages/Blog.tsx`
-- `src/pages/BlogPost.tsx`
-- `src/pages/Eventos.tsx`
-- `src/pages/EventDetail.tsx`
-- `src/components/events/EventsCarousel.tsx`
-- `src/components/events/EventModal.tsx`
-- `src/components/sections/FeaturedEvents.tsx`
-- `src/components/sections/LatestNews.tsx`
-- `src/components/links/SortableLinkCard.tsx`
+- **Imagens duplicadas**: Consultei `blog_posts` agrupando por `image_url` — **zero duplicatas**. Cada post tem uma imagem única.
+- **Imagens AI vs Eventos**: Posts de eventos usam flyers dos eventos. Posts editoriais usam imagens AI geradas individualmente (ai-generated-*.webp). Não há compartilhamento.
 
-Ajustes específicos:
-- Blog listagem (`Blog.tsx`): trocar moldura rígida “video-like” por altura fixa equilibrada (não crop) para flyers verticais não parecerem “fatia”.
-- Eventos (`Eventos.tsx`): remover scale na imagem do card (hoje pode cortar no hover em alguns casos).
-- Relacionados em `EventDetail.tsx`: remover scale da imagem mantendo contain.
+### O que resta fazer
 
-Bloco C — Imagem do artigo de blog “metade do tamanho”
+**Nenhuma alteração de código é necessária.** As correções anteriores resolveram o problema. Recomendo:
 
-1) `src/pages/BlogPost.tsx`
-- Reduzir mais o bloco principal da imagem:
-  - de `max-w-2xl` para `max-w-xl` (desktop)
-  - reduzir limite vertical (ex.: `max-h-[42vh]`)
-- manter centralização e `object-contain`.
+1. **Limpar cache do browser** (Ctrl+Shift+R / hard refresh)
+2. **Publicar** a versão mais recente se estiver olhando a URL publicada (mdaccula.lovable.app)
+3. Se o problema persistir após o hard refresh, envie um screenshot do **preview** (não da URL publicada) para eu comparar
 
-Resultado: imagem principal claramente menor (aprox. metade visual do estado anterior), sem cortar.
+### Sobre "geração de IA com erro"
 
-Bloco D — Hardening do pipeline de URL de imagem
+A imagem do Moonphazes (`ai-generated-1770879680255.webp`) existe e carrega normalmente. Se o "erro" é sobre a qualidade artística da imagem (e não um erro técnico), isso seria um ajuste no prompt de geração de imagem em `generate-blog-post-v2`, não um bug de renderização.
 
-1) `src/lib/imageUtils.ts`
-- Manter CDN + `quality=75` (sem width/height/resize).
-- Endurecer para legado:
-  - se URL vier com params antigos (`width`, `height`, `resize`) remover esses params e preservar só os permitidos (`quality`).
-  - evitar duplicar `quality`.
-- Isso garante que nenhum link antigo volte a forçar crop.
-
-Critérios de aceite (E2E)
-
-1) /links
-- cards compactos
-- thumb pequena lateral (não gigante)
-- título/subtítulo legíveis, sem coluna “espremida”
-- sem corte/sem distorção
-
-2) /blog (grid + destaque)
-- imagem inteira em todos os cards
-- sem corte lateral
-- sem zoom que recorta imagem
-
-3) /blog/:slug (exemplo citado)
-- imagem principal menor (meta “metade”)
-- inteira, centralizada, sem crop
-
-4) /eventos e /eventos/:slug
-- manter comportamento correto já obtido
-- confirmar que “caso isolado” também não corta mais
-
-5) Responsivo
-- validar mobile + desktop nas rotas: `/links`, `/blog`, `/blog/:slug`, `/eventos`, `/eventos/:slug`.
-
-Risco e mitigação
-
-- Risco: com `contain`, haverá áreas vazias em imagens com proporções extremas.
-- Mitigação: padronizar fundo do wrapper (`bg-muted/20`) e altura de moldura por contexto, garantindo visual consistente sem crop.
-
-Entregável final esperado
-
-- Sem corte de imagem em todo o site (regra única e consistente).
-- /links estabilizada com thumbnails pequenas ao lado do texto.
-- Imagem de artigo menor no desktop, conforme pedido.
-- Pipeline de URL blindado contra params legados que causam corte.
