@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    const ipHash = clientIP !== 'unknown' ? clientIP : null;
 
     if (postId) {
       const { error } = await withTimeout(
@@ -109,6 +110,9 @@ Deno.serve(async (req) => {
         console.error('Error incrementing post views:', error);
         throw error;
       }
+      // Insert tracking event
+      await supabase.from('blog_view_events').insert({ post_id: postId, ip_hash: ipHash })
+        .then(({ error: e }) => { if (e) console.error('Error inserting blog_view_event:', e); });
       console.log(`Post view tracked: ${postId}`);
     }
 
@@ -121,6 +125,9 @@ Deno.serve(async (req) => {
         console.error('Error incrementing event views:', error);
         throw error;
       }
+      // Insert tracking event
+      await supabase.from('event_view_events').insert({ event_id: eventId, ip_hash: ipHash })
+        .then(({ error: e }) => { if (e) console.error('Error inserting event_view_event:', e); });
       console.log(`Event view tracked: ${eventId}`);
     }
 
