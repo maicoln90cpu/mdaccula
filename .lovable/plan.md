@@ -1,37 +1,76 @@
 
 
-## Diagnóstico: Imagens do Blog
+## Analise completa das imagens
 
-### Resultado da verificação no preview atual
+### Verificacao no banco + CDN + preview
 
-Verifiquei cada artigo mencionado no browser preview (1920px):
+Verifiquei cada URL citada diretamente:
 
-1. **Piknic Electronik** (`/blog/piknic-electronik-...`) → imagem COMPLETA, sem corte. Flyer inteiro visível com "PIKNIC ELECTRONIK SÃO PAULO", "PRÉ-VENDA ABERTA", "ANJUNADEEP OPEN AIR", "TODAY" logo.
-2. **Parador Páscoa** (`/blog/parador-pascoa-...`) → imagem COMPLETA. "PACOTE 2 DIAS", "03 ABRIL", "04 DE ABRIL", "VINTAGE CULTURE", "DEPARTAMENTO", "Sympla" — tudo visível.
-3. **Caos Blackartel** (`/blog/caos-apres-blackartel-...`) → não verificado individualmente mas grid mostra corretamente.
-4. **Moonphazes** (`/blog/moonphazes-remix-...`) → imagem AI COMPLETA. DJ com bandeira do Brasil, mesa de som, cityscape, tudo visível.
-5. **Grid do /blog** → todos os cards com `object-contain` funcionando, imagens inteiras com pillarboxing adequado.
+1. **Banco de dados**: as `image_url` estao corretas (URLs Supabase Storage originais, sem params de resize)
+2. **CDN (Bunny)**: a transformacao `?quality=75` funciona e retorna a imagem **INTEIRA** (confirmado via fetch direto com screenshot)
+3. **Preview do Lovable (browser sandbox)**: artigo do Piknic Electronik mostra imagem **INTEIRA, sem corte** com `object-contain`
+4. **URL publicada (mdaccula.lovable.app)**: tambem mostra imagem **inteira, sem corte**
 
-### Conclusão
+### Causa raiz do que voce esta percebendo
 
-As correções aplicadas na última rodada **já estão funcionando no preview**. O código CSS atual (`object-contain` + `max-h-[42vh]` + `max-w-xl`) renderiza todas as imagens sem corte.
+O problema NAO e corte de imagem propriamente dito. O codigo ja usa `object-contain`. O que acontece e:
 
-Seus screenshots provavelmente são de uma versão anterior (cache do browser ou URL publicada ainda não atualizada).
+- Os cards do grid do `/blog` usam `aspect-video` (16:9) como container
+- Quando a imagem e vertical (flyer, ex.: Piknic = 864x1080), ela fica **comprimida dentro da caixa 16:9** com barras escuras nas laterais
+- Visualmente, parece "cortada" porque a imagem ocupa apenas ~40% da largura do card, com espacos enormes
+- Isso e especialmente ruim em flyers verticais que sao a maioria do conteudo
 
-### Verificação no banco de dados
+### Solucao escolhida: Layout lateral (imagem ao lado do texto)
 
-- **Imagens duplicadas**: Consultei `blog_posts` agrupando por `image_url` — **zero duplicatas**. Cada post tem uma imagem única.
-- **Imagens AI vs Eventos**: Posts de eventos usam flyers dos eventos. Posts editoriais usam imagens AI geradas individualmente (ai-generated-*.webp). Não há compartilhamento.
+Voce escolheu o formato de **imagem lateral**, igual ao `/links`. Isso resolve o problema porque:
 
-### O que resta fazer
+- A imagem ganha uma area vertical adequada (nao precisa caber numa caixa 16:9)
+- Flyers verticais exibem naturalmente sem desperdicar espaco
+- Imagens horizontais (AI-generated) tambem ficam bem com `object-contain`
 
-**Nenhuma alteração de código é necessária.** As correções anteriores resolveram o problema. Recomendo:
+## Plano de implementacao
 
-1. **Limpar cache do browser** (Ctrl+Shift+R / hard refresh)
-2. **Publicar** a versão mais recente se estiver olhando a URL publicada (mdaccula.lovable.app)
-3. Se o problema persistir após o hard refresh, envie um screenshot do **preview** (não da URL publicada) para eu comparar
+### 1. Blog grid cards (`src/pages/Blog.tsx`, linhas 465-529)
 
-### Sobre "geração de IA com erro"
+Trocar o layout vertical (imagem em cima + texto embaixo) por layout horizontal:
 
-A imagem do Moonphazes (`ai-generated-1770879680255.webp`) existe e carrega normalmente. Se o "erro" é sobre a qualidade artística da imagem (e não um erro técnico), isso seria um ajuste no prompt de geração de imagem em `generate-blog-post-v2`, não um bug de renderização.
+```
+De:
+  Card vertical
+    [aspect-video image]
+    [title]
+    [excerpt]
+    [meta]
+
+Para:
+  Card horizontal (flex-row)
+    [imagem fixa w-32 sm:w-40 h-auto, object-contain, bg-muted/20]
+    [coluna direita: title + excerpt + meta + botao]
+```
+
+Detalhes:
+- Imagem: wrapper fixo `w-32 sm:w-40 lg:w-48` com `min-h-[120px]`, `flex-shrink-0`, `bg-muted/20`, `overflow-hidden`, `rounded-l-lg`
+- Imagem tag: `w-full h-full object-contain`
+- Badge de categoria: posicionada sobre a imagem (absolute)
+- Texto: `flex-1 p-4` com title (line-clamp-2), excerpt (line-clamp-2), meta e botao
+- Responsivo: mobile fica `flex-col` (imagem em cima com altura menor), desktop fica `flex-row`
+
+### 2. Featured post (linhas 391-449)
+
+Ja esta em formato lateral (grid-cols-2). Manter como esta, apenas garantir que o container de imagem tenha `min-h-[200px]` para flyers verticais nao ficarem esmagados.
+
+### 3. BlogPost hero image (ja ajustado)
+
+Manter `max-w-xl` + `max-h-[42vh]` + `object-contain` (ja esta funcionando corretamente).
+
+### 4. Nenhuma mudanca em imageUtils.ts
+
+O pipeline CDN esta correto. As imagens chegam inteiras, o problema era apenas CSS do grid.
+
+## Resultado esperado
+
+- Cards do blog com imagem lateral, leitura limpa, flyers inteiros visiveis
+- Sem "barras pretas" ou sensacao de imagem cortada
+- Layout semelhante ao `/links` (compacto, imagem ao lado do texto)
+- Responsivo: mobile empilha verticalmente, desktop fica lado a lado
 
