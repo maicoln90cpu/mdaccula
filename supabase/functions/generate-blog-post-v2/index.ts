@@ -29,7 +29,7 @@ function jsonError(message: string, status: number = 500): Response {
 }
 // ============= END SHARED UTILITIES =============
 
-const FUNCTION_TIMEOUT_MS = 145000; // 145 seconds - edge functions suportam até 150s (margem de 5s)
+const FUNCTION_TIMEOUT_MS = 140000; // 140 seconds - margem de segurança de 10s
 
 // Fetch with timeout using AbortController
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
@@ -62,7 +62,7 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<{ succe
         onlyMainContent: true,
         waitFor: 2000,
       }),
-    }, 10000); // 10 second timeout for scraping
+    }, 5000); // 5 second timeout for scraping
 
     if (!response.ok) {
       return { success: false, error: `HTTP ${response.status}` };
@@ -261,7 +261,7 @@ Deno.serve(async (req) => {
 
     // Buscar fontes de notícias para contexto adicional (scraping)
     let scrapedContext = '';
-    if (FIRECRAWL_API_KEY && remainingMs > 15000) {
+    if (FIRECRAWL_API_KEY && remainingMs > 15000 && !generateImage) {
       try {
         const { data: sources } = await supabase
           .from('news_sources')
@@ -422,6 +422,15 @@ ${hasRealTicketLink
       console.log(`Usando temperature ${temperature} para modelo Gemini`);
     }
     
+    // Calculate remaining time for AI text generation
+    const elapsedBeforeAI = Date.now() - startTime;
+    const aiTextTimeout = Math.min(50000, FUNCTION_TIMEOUT_MS - elapsedBeforeAI - (generateImage ? 35000 : 5000));
+    console.log(`⏱️ AI text timeout: ${aiTextTimeout}ms (elapsed: ${elapsedBeforeAI}ms, reserving ${generateImage ? '35s' : '5s'} for remaining steps)`);
+    
+    if (aiTextTimeout < 10000) {
+      return jsonError('Tempo insuficiente para geração. Tente novamente.', 504);
+    }
+
     const aiResponse = await fetchWithTimeout(apiEndpoint, {
       method: 'POST',
       headers: {
@@ -429,7 +438,7 @@ ${hasRealTicketLink
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
-    }, 45000); // 45 second timeout for AI generation
+    }, aiTextTimeout);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
@@ -556,7 +565,7 @@ ${hasRealTicketLink
             messages: [{ role: 'user', content: imagePrompt }],
             modalities: ['image', 'text']
           })
-        }, 40000); // 40 second timeout for image generation
+        }, Math.min(30000, timeForImage - 5000)); // dynamic timeout, max 30s for image
 
         if (imageResponse.ok) {
           const imageData = await imageResponse.json();
