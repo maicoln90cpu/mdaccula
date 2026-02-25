@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Globe } from "lucide-react";
+import { Plus, Pencil, Trash2, Globe, ArrowLeft } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -155,6 +156,10 @@ const NewsSourcesManager = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
+                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Painel
+                </NavLink>
                 <h1 className="text-4xl font-bold mb-2 hero-text">Fontes de Notícias</h1>
                 <p className="text-muted-foreground">
                   Configure os sites que a IA usará como referência para gerar posts

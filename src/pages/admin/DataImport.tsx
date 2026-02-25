@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle, Loader2, AlertCircle, Upload } from "lucide-react";
+import { CheckCircle, Loader2, AlertCircle, Upload, ArrowLeft } from "lucide-react";
+import { NavLink } from "react-router-dom";
 /** RFC 4180 compliant CSV parser that handles quoted fields with commas, newlines, etc. */
 function parseCSV(text: string): Record<string, string>[] {
   const rows: string[][] = [];
@@ -193,6 +194,10 @@ export default function DataImport() {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-3xl">
+      <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Voltar ao Painel
+      </NavLink>
       <h1 className="text-2xl font-bold mb-6">Importação de Dados</h1>
       <p className="text-muted-foreground mb-6">
         Parse CSV no frontend com PapaParse → envia JSON para edge function → upsert no banco.

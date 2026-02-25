@@ -506,7 +506,7 @@ const LinksManager = () => {
                 </Button>
                 <Button variant="outline" onClick={() => setShowTemplateSettings(true)}>
                   <Palette className="w-4 h-4 mr-2" />
-                  Alterar Template
+                  Template & Avatar
                 </Button>
               </div>
 

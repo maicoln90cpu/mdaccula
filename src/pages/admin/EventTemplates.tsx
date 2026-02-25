@@ -11,7 +11,8 @@ import { logger } from "@/lib";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import { Plus, Trash2, Edit2, Save, X } from "lucide-react";
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 
@@ -276,6 +277,10 @@ const EventTemplates = () => {
           <div className="max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-8">
               <div>
+                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Painel
+                </NavLink>
                 <h1 className="text-3xl font-bold">Templates de Eventos</h1>
                 <p className="text-muted-foreground mt-2">
                   Crie templates com dados pré-preenchidos para agilizar a criação de eventos

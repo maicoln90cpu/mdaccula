@@ -16,7 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/useToast";
-import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar as CalendarIcon, ArrowDownWideNarrow, CalendarDays } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar as CalendarIcon, ArrowDownWideNarrow, CalendarDays, ArrowLeft } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { format, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -266,6 +267,10 @@ const RedirectsManager = () => {
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
+                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Painel
+                </NavLink>
                 <h1 className="text-3xl font-bold hero-text">Redirecionador de Links</h1>
                 <p className="text-muted-foreground">Links curtos com UTM tracking</p>
               </div>
