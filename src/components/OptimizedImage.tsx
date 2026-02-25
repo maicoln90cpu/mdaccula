@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface OptimizedImageProps {
   src: string;
@@ -9,6 +10,10 @@ interface OptimizedImageProps {
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   sizes?: string;
   widths?: number[];
+  /** Width for Supabase Image Transformation (default: 600) */
+  transformWidth?: number;
+  /** Quality for Supabase Image Transformation (default: 75) */
+  transformQuality?: number;
 }
 
 // Default breakpoint widths for srcset
@@ -44,10 +49,18 @@ export const OptimizedImage = ({
   priority = false,
   objectFit = 'cover',
   sizes = '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
-  widths = DEFAULT_WIDTHS
+  widths = DEFAULT_WIDTHS,
+  transformWidth = 600,
+  transformQuality = 75,
 }: OptimizedImageProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+
+  // Use Supabase Image Transformation for optimized URL
+  const optimizedSrc = useMemo(() => {
+    if (!src) return src;
+    return getOptimizedImageUrl(src, { width: transformWidth, quality: transformQuality });
+  }, [src, transformWidth, transformQuality]);
 
   const srcset = useMemo(() => {
     if (!src || hasError) return undefined;
@@ -81,7 +94,7 @@ export const OptimizedImage = ({
         </div>
       ) : (
         <img
-          src={src}
+          src={optimizedSrc || src}
           srcSet={srcset}
           sizes={srcset ? sizes : undefined}
           alt={alt || 'MDAccula - Música Eletrônica'}
