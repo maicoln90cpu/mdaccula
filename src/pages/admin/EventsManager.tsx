@@ -41,7 +41,8 @@ const EventsManager = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'todos' | 'ativos' | 'inativos'>('todos');
+  const [statusFilter, setStatusFilter] = useState<'todos' | 'ativos' | 'inativos'>('ativos');
+  const [articleFilter, setArticleFilter] = useState<'todos' | 'sem-artigo' | 'com-artigo'>('todos');
   const [searchTerm, setSearchTerm] = useState('');
   const [generatingArticle, setGeneratingArticle] = useState<string | null>(null);
   const [showMultiEventModal, setShowMultiEventModal] = useState(false);
@@ -199,6 +200,9 @@ const EventsManager = () => {
       }
     }
     
+    if (articleFilter === 'sem-artigo' && event.blog_post_id) return false;
+    if (articleFilter === 'com-artigo' && !event.blog_post_id) return false;
+
     if (statusFilter === 'todos') return true;
     
     const now = new Date();
@@ -290,6 +294,28 @@ const EventsManager = () => {
                 size="sm"
               >
                 Inativos ({inactiveCount})
+              </Button>
+              <span className="text-muted-foreground mx-1">|</span>
+              <Button 
+                variant={articleFilter === 'todos' ? 'default' : 'outline'}
+                onClick={() => setArticleFilter('todos')}
+                size="sm"
+              >
+                Artigo: Todos
+              </Button>
+              <Button 
+                variant={articleFilter === 'sem-artigo' ? 'default' : 'outline'}
+                onClick={() => setArticleFilter('sem-artigo')}
+                size="sm"
+              >
+                Sem Artigo
+              </Button>
+              <Button 
+                variant={articleFilter === 'com-artigo' ? 'default' : 'outline'}
+                onClick={() => setArticleFilter('com-artigo')}
+                size="sm"
+              >
+                Com Artigo
               </Button>
             </div>
 

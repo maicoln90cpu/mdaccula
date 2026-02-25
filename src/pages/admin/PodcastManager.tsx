@@ -22,7 +22,9 @@ import {
   Save,
   X,
   Loader2,
+  ArrowLeft,
 } from "lucide-react";
+import { NavLink } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
@@ -245,6 +247,10 @@ const PodcastManager = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
               <div>
+                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Painel
+                </NavLink>
                 <h1 className="text-3xl font-bold text-gradient flex items-center gap-3">
                   <Mic className="w-8 h-8 text-primary" />
                   Inscrições Podcast

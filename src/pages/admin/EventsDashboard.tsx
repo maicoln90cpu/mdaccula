@@ -7,6 +7,8 @@ import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { format, isFuture, parseISO } from "date-fns";
+import { NavLink } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import { ptBR } from "date-fns/locale";
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', 'hsl(var(--destructive))'];
@@ -92,6 +94,10 @@ const EventsDashboard = () => {
         <main className="container mx-auto px-4 pt-24 pb-16">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
+              <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Voltar ao Painel
+              </NavLink>
               <h1 className="text-4xl font-bold mb-2 hero-text">Dashboard de Eventos</h1>
               <p className="text-muted-foreground">Visão geral e estatísticas dos eventos</p>
             </div>

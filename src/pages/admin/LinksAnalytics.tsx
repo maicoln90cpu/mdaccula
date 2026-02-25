@@ -67,19 +67,32 @@ const LinksAnalytics = () => {
   const [totalEventViews, setTotalEventViews] = useState(0);
   const [totalRedirectClicks, setTotalRedirectClicks] = useState(0);
   
-  // Estados para seções colapsáveis
-  const [linksOpen, setLinksOpen] = useState(true);
-  const [blogOpen, setBlogOpen] = useState(true);
-  const [eventsOpen, setEventsOpen] = useState(true);
-  const [groupsOpen, setGroupsOpen] = useState(true);
-  const [linkPerformanceOpen, setLinkPerformanceOpen] = useState(true);
-  const [viewsOpen, setViewsOpen] = useState(true);
-  const [likesOpen, setLikesOpen] = useState(true);
-  const [redirectsOpen, setRedirectsOpen] = useState(true);
+  // Estados para seções colapsáveis — iniciam colapsadas
+  const [linksOpen, setLinksOpen] = useState(false);
+  const [blogOpen, setBlogOpen] = useState(false);
+  const [eventsOpen, setEventsOpen] = useState(false);
+  const [groupsOpen, setGroupsOpen] = useState(false);
+  const [linkPerformanceOpen, setLinkPerformanceOpen] = useState(false);
+  const [viewsOpen, setViewsOpen] = useState(false);
+  const [likesOpen, setLikesOpen] = useState(false);
+  const [redirectsOpen, setRedirectsOpen] = useState(false);
+  
+  // Filtro de período
+  const [timePeriod, setTimePeriod] = useState<'today' | '7d' | '30d' | 'all'>('all');
+
+  const getDateFilter = () => {
+    const now = new Date();
+    switch (timePeriod) {
+      case 'today': return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      case '30d': return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      default: return null;
+    }
+  };
 
   useEffect(() => {
     fetchAnalytics();
-  }, []);
+  }, [timePeriod]);
 
   const fetchAnalytics = async () => {
     try {
@@ -101,19 +114,24 @@ const LinksAnalytics = () => {
       if (linksError) throw linksError;
 
       // Buscar dados do blog
-      const { data: blogData, error: blogError } = await supabase
+      const dateFilter = getDateFilter();
+      let blogQuery = supabase
         .from("blog_posts")
         .select("id, title, slug, views, likes, category")
         .eq("published", true)
         .order("views", { ascending: false });
+      if (dateFilter) blogQuery = blogQuery.gte("published_at", dateFilter);
+      const { data: blogData, error: blogError } = await blogQuery;
 
       if (blogError) throw blogError;
 
       // Buscar dados dos eventos
-      const { data: eventsData, error: eventsError } = await supabase
+      let eventsQuery = supabase
         .from("events")
         .select("id, title, slug, views, date, venue")
         .order("views", { ascending: false, nullsFirst: false });
+      if (dateFilter) eventsQuery = eventsQuery.gte("date", dateFilter);
+      const { data: eventsData, error: eventsError } = await eventsQuery;
 
       if (eventsError) throw eventsError;
 
@@ -243,6 +261,30 @@ const LinksAnalytics = () => {
                 Performance de links e blog posts
               </p>
             </div>
+          </div>
+
+          {/* Filtro de período */}
+          <div className="flex gap-2 mb-6 flex-wrap">
+            {([
+              { value: 'today', label: 'Hoje' },
+              { value: '7d', label: '7 dias' },
+              { value: '30d', label: '30 dias' },
+              { value: 'all', label: 'Todo período' },
+            ] as const).map(opt => (
+              <Button
+                key={opt.value}
+                variant={timePeriod === opt.value ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setTimePeriod(opt.value)}
+              >
+                {opt.label}
+              </Button>
+            ))}
+            {timePeriod !== 'all' && (
+              <span className="text-xs text-muted-foreground self-center ml-2">
+                ⚠️ Cliques em links mostram total acumulado (sem timestamp individual)
+              </span>
+            )}
           </div>
 
           {/* Cards de resumo geral */}
