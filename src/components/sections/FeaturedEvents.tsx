@@ -114,7 +114,7 @@ const FeaturedEvents = () => {
                       src={event.image_url || '/placeholder.svg'}
                       alt={event.title}
                       className="w-full h-full"
-                      objectFit="contain"
+                      objectFit="cover"
                       priority={index === 0}
                       transformWidth={IMAGE_PRESETS.card.width}
                       transformQuality={IMAGE_PRESETS.card.quality}

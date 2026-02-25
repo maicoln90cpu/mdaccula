@@ -390,11 +390,11 @@ const Blog = () => {
 
                 <Card className="card-hover overflow-hidden">
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                    <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20 flex items-center justify-center">
+                    <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20">
                       <img
                         src={getOptimizedImageUrl(featuredPost.image_url, IMAGE_PRESETS.featured) || djImage}
                         alt={featuredPost.title}
-                        className="max-w-full max-h-full object-contain"
+                        className="w-full h-full object-cover"
                         loading="lazy"
                         onError={(e) => { e.currentTarget.src = djImage; }}
                       />
@@ -469,11 +469,11 @@ const Blog = () => {
                           className="card-hover group cursor-pointer overflow-hidden h-full"
                           style={{ animationDelay: `${index * 0.1}s` }}
                         >
-                          <div className="relative overflow-hidden aspect-video bg-muted/20 flex items-center justify-center">
+                          <div className="relative overflow-hidden aspect-video bg-muted/20">
                             <img
                               src={getOptimizedImageUrl(post.image_url, IMAGE_PRESETS.card) || djImage}
                               alt={post.title}
-                              className="max-w-full max-h-full object-contain"
+                              className="w-full h-full object-cover"
                               loading="lazy"
                               decoding="async"
                               onError={(e) => { e.currentTarget.src = djImage; }}
