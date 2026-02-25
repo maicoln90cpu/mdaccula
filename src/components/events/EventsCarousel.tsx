@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MapPin, Clock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Badge } from "@/components/ui/badge";
 import {
   Carousel,
@@ -59,13 +59,13 @@ const LazyEventImage = ({
       {/* Actual image with lazy loading */}
       {src && !hasError && (
         <img
-          src={getOptimizedImageUrl(src, IMAGE_PRESETS.thumbnail)}
+          src={getOptimizedImageUrl(src)}
           alt={alt}
           loading="lazy"
           decoding="async"
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
-          className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
+          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 group-hover:scale-105 ${
             isLoaded ? "opacity-100" : "opacity-0"
           }`}
         />

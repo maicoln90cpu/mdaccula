@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
-import { IMAGE_PRESETS } from "@/lib/imageUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const LatestNews = () => {
@@ -105,10 +104,8 @@ const LatestNews = () => {
                           src={item.image_url || '/placeholder.svg'}
                           alt={item.title}
                           className="w-full h-full"
-                          objectFit="cover"
+                          objectFit="contain"
                           priority={index === 0}
-                          transformWidth={IMAGE_PRESETS.card.width}
-                          transformQuality={IMAGE_PRESETS.card.quality}
                         />
                       </div>
 

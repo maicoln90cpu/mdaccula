@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -87,9 +87,9 @@ export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
                   <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted">
                     {post.image_url ? (
                       <img
-                        src={getOptimizedImageUrl(post.image_url, IMAGE_PRESETS.thumbnail)}
+                        src={getOptimizedImageUrl(post.image_url)}
                         alt={post.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

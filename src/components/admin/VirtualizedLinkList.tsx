@@ -3,7 +3,7 @@
  * Renderiza apenas os itens visíveis na viewport
  */
 import { useRef } from "react";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { Button } from "@/components/ui/button";
 import { GripVertical, Eye, EyeOff, RotateCcw, FolderPlus, CopyPlus, Edit, Trash2 } from "lucide-react";
@@ -82,9 +82,9 @@ export const VirtualizedLinkList = ({
         </SortableItem>
         {link.thumbnail_url && (
           <img 
-            src={getOptimizedImageUrl(link.thumbnail_url, IMAGE_PRESETS.thumbnail)} 
+            src={getOptimizedImageUrl(link.thumbnail_url)} 
             alt={link.title} 
-            className="w-10 h-10 rounded object-cover flex-shrink-0"
+            className="w-10 h-10 rounded object-contain flex-shrink-0"
             loading="lazy"
           />
         )}

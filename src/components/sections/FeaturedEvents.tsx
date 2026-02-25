@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
-import { IMAGE_PRESETS } from "@/lib/imageUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { parseLocalDate } from "@/lib/utils";
 import { isEventVisible } from "@/lib/eventDateHelper";
@@ -114,10 +113,8 @@ const FeaturedEvents = () => {
                       src={event.image_url || '/placeholder.svg'}
                       alt={event.title}
                       className="w-full h-full"
-                      objectFit="cover"
+                      objectFit="contain"
                       priority={index === 0}
-                      transformWidth={IMAGE_PRESETS.card.width}
-                      transformQuality={IMAGE_PRESETS.card.quality}
                     />
                     <div className="absolute top-4 right-4 flex flex-wrap gap-1 justify-end">
                       {event.genres && event.genres.length > 0 && event.genres.slice(0, 2).map((genre, idx) => (

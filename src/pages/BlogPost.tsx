@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, Eye, Heart, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { ShareButtons } from "@/components/ShareButtons";
 import { LikeButton } from "@/components/blog/LikeButton";
 
@@ -156,7 +156,7 @@ const BlogPost = () => {
         <link rel="canonical" href={currentUrl} />
         {/* Preload post image for LCP optimization */}
         {post.image_url && (
-          <link rel="preload" as="image" href={getOptimizedImageUrl(post.image_url, IMAGE_PRESETS.detail)} fetchPriority="high" />
+          <link rel="preload" as="image" href={getOptimizedImageUrl(post.image_url)} fetchPriority="high" />
         )}
       </Helmet>
       <Navigation />
@@ -205,7 +205,7 @@ const BlogPost = () => {
             <div className="container mx-auto px-4">
               <div className="max-w-4xl mx-auto bg-muted/20 rounded-lg overflow-hidden">
                 <img 
-                  src={getOptimizedImageUrl(post.image_url, IMAGE_PRESETS.detail)} 
+                  src={getOptimizedImageUrl(post.image_url)} 
                   alt={post.title} 
                   className="w-full h-auto object-contain rounded-lg" 
                   loading="eager"

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { CopyPlus, Edit } from "lucide-react";
 import { StaticIcon } from "./StaticIcon";
 
@@ -86,7 +86,7 @@ export const SortableLinkCard = ({
   const rawImage = imgError 
     ? (link.events?.image_url || null) 
     : (link.thumbnail_url || link.events?.image_url || null);
-  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage, IMAGE_PRESETS.thumbnail) : null;
+  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage) : null;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -133,7 +133,7 @@ export const SortableLinkCard = ({
           loading="lazy"
           decoding="async"
           onError={() => setImgError(true)}
-          className="w-40 h-40 rounded-lg object-cover flex-shrink-0"
+          className="w-40 h-40 rounded-lg object-contain flex-shrink-0"
         />
       )}
       
@@ -167,7 +167,7 @@ export const SortableLinkCard = ({
           loading="lazy"
           decoding="async"
           onError={() => setImgError(true)}
-          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+          className="w-16 h-16 rounded-lg object-contain flex-shrink-0"
         />
       ) : link.icon ? (
         <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">

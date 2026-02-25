@@ -23,7 +23,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface BlogPost {
   id: string;
@@ -392,9 +392,9 @@ const Blog = () => {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                     <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20">
                       <img
-                        src={getOptimizedImageUrl(featuredPost.image_url, IMAGE_PRESETS.featured) || djImage}
+                        src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
                         alt={featuredPost.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                         loading="lazy"
                         onError={(e) => { e.currentTarget.src = djImage; }}
                       />
@@ -471,9 +471,9 @@ const Blog = () => {
                         >
                           <div className="relative overflow-hidden aspect-video bg-muted/20">
                             <img
-                              src={getOptimizedImageUrl(post.image_url, IMAGE_PRESETS.card) || djImage}
+                              src={getOptimizedImageUrl(post.image_url) || djImage}
                               alt={post.title}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                               loading="lazy"
                               decoding="async"
                               onError={(e) => { e.currentTarget.src = djImage; }}
