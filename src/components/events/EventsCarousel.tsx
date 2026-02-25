@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MapPin, Clock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
+import { getOptimizedImageUrl, IMAGE_PRESETS } from "@/lib/imageUtils";
 import { Badge } from "@/components/ui/badge";
 import {
   Carousel,
@@ -58,7 +59,7 @@ const LazyEventImage = ({
       {/* Actual image with lazy loading */}
       {src && !hasError && (
         <img
-          src={src}
+          src={getOptimizedImageUrl(src, IMAGE_PRESETS.thumbnail)}
           alt={alt}
           loading="lazy"
           decoding="async"
