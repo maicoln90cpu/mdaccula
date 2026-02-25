@@ -39,7 +39,25 @@ export function getOptimizedImageUrl(
   const match = url.match(SUPABASE_PATH_REGEX);
   if (!match) return url;
 
-  const imagePath = match[1];
+  let imagePath = match[1];
+
+  // Strip legacy resize/dimension params that cause cropping
+  try {
+    const hasQuery = imagePath.includes('?');
+    if (hasQuery) {
+      const [basePath, queryString] = imagePath.split('?');
+      const params = new URLSearchParams(queryString);
+      // Remove any forced dimension/resize params
+      params.delete('width');
+      params.delete('height');
+      params.delete('resize');
+      const remaining = params.toString();
+      imagePath = remaining ? `${basePath}?${remaining}` : basePath;
+    }
+  } catch {
+    // If URL parsing fails, continue with original path
+  }
+
   const cdnUrl = `${BUNNY_CDN_HOST}/${imagePath}`;
 
   // Avoid duplicating quality param if already present

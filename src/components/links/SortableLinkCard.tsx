@@ -92,7 +92,7 @@ export const SortableLinkCard = ({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    maxWidth: link.card_width ? `${link.card_width}px` : '650px',
+    maxWidth: link.card_width ? `${Math.min(Math.max(link.card_width, 200), 650)}px` : '650px',
     width: '100%'
   };
 
@@ -127,14 +127,15 @@ export const SortableLinkCard = ({
   const renderFeaturedCard = () =>
   <div className="flex items-center gap-4 p-4 w-full h-full">
       {resolvedImage &&
-    <img
-      src={resolvedImage}
-      alt={link.title}
-      loading="lazy"
-      decoding="async"
-      onError={() => setImgError(true)}
-      className="w-40 h-40 rounded-lg object-cover flex-shrink-0" />
-
+    <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20 flex items-center justify-center">
+      <img
+        src={resolvedImage}
+        alt={link.title}
+        loading="lazy"
+        decoding="async"
+        onError={() => setImgError(true)}
+        className="w-full h-full object-contain" />
+    </div>
     }
       
       <div className="flex-1 min-w-0 text-left space-y-1">
@@ -161,13 +162,15 @@ export const SortableLinkCard = ({
   const renderStandardCard = () =>
   <div className="flex items-center gap-3 flex-1 min-w-0 p-3">
       {resolvedImage ?
-    <img
-      src={resolvedImage}
-      alt={link.title}
-      loading="lazy"
-      decoding="async"
-      onError={() => setImgError(true)}
-      className="w-22 h-22 flex-shrink-0 rounded-s object-contain" /> :
+    <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted/20 flex items-center justify-center">
+      <img
+        src={resolvedImage}
+        alt={link.title}
+        loading="lazy"
+        decoding="async"
+        onError={() => setImgError(true)}
+        className="w-full h-full object-contain" />
+    </div> :
 
     link.icon ?
     <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
@@ -221,7 +224,7 @@ export const SortableLinkCard = ({
           isDragging && "opacity-50 scale-95"
         )}
         style={{
-          minHeight: link.is_featured ? '200px' : `${link.card_height || templateCardHeight || 100}px`,
+          minHeight: link.is_featured ? '120px' : `${Math.min(link.card_height || templateCardHeight || 80, 150)}px`,
           height: 'auto'
         }}>
 

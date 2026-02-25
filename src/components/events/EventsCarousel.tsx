@@ -65,7 +65,7 @@ const LazyEventImage = ({
           decoding="async"
           onLoad={() => setIsLoaded(true)}
           onError={() => setHasError(true)}
-          className={`absolute inset-0 w-full h-full object-contain transition-all duration-300 group-hover:scale-105 ${
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
             isLoaded ? "opacity-100" : "opacity-0"
           }`}
         />
