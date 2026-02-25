@@ -462,69 +462,64 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {posts.map((post, index) => (
                       <Link to={`/blog/${post.slug}`} key={post.id}>
                         <Card
                           className="card-hover group cursor-pointer overflow-hidden h-full"
                           style={{ animationDelay: `${index * 0.1}s` }}
                         >
-                          <div className="relative overflow-hidden aspect-video bg-muted/20">
-                            <img
-                              src={getOptimizedImageUrl(post.image_url) || djImage}
-                              alt={post.title}
-                              className="w-full h-full object-contain"
-                              loading="lazy"
-                              decoding="async"
-                              onError={(e) => { e.currentTarget.src = djImage; }}
-                            />
-                            <div className="absolute top-4 left-4">
-                              <Badge className={getCategoryColor(post.category)}>{post.category}</Badge>
+                          <div className="flex flex-row">
+                            {/* Imagem lateral */}
+                            <div className="relative w-32 sm:w-40 lg:w-48 min-h-[120px] flex-shrink-0 bg-muted/20 overflow-hidden">
+                              <img
+                                src={getOptimizedImageUrl(post.image_url) || djImage}
+                                alt={post.title}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => { e.currentTarget.src = djImage; }}
+                              />
+                              <div className="absolute top-2 left-2">
+                                <Badge className={`text-xs ${getCategoryColor(post.category)}`}>{post.category}</Badge>
+                              </div>
+                            </div>
+
+                            {/* Conteúdo */}
+                            <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+                              <div>
+                                <h3 className="text-base sm:text-lg font-bold group-hover:text-primary transition-colors line-clamp-2 mb-1">
+                                  {post.title}
+                                </h3>
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                                  {post.excerpt || "Clique para ler mais..."}
+                                </p>
+                              </div>
+
+                              <div>
+                                <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
+                                  <span className="flex items-center">
+                                    <Calendar className="w-3 h-3 mr-1" />
+                                    {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <Eye className="w-3 h-3 mr-1" />
+                                    {post.views}
+                                  </span>
+                                  <span className="flex items-center">
+                                    <Heart className="w-3 h-3 mr-1" />
+                                    {post.likes}
+                                  </span>
+                                </div>
+                                <div className="flex justify-end">
+                                  <Button variant="ghost" size="sm" className="text-xs h-7 px-2">
+                                    Ler mais
+                                    <ArrowRight className="w-3 h-3 ml-1" />
+                                  </Button>
+                                </div>
+                              </div>
                             </div>
                           </div>
-
-                          <CardHeader>
-                            <CardTitle className="text-xl group-hover:text-primary transition-colors line-clamp-2">
-                              {post.title}
-                            </CardTitle>
-                          </CardHeader>
-
-                          <CardContent className="space-y-4">
-                            <p className="text-muted-foreground line-clamp-3">
-                              {post.excerpt || "Clique para ler mais..."}
-                            </p>
-
-                            <div className="flex items-center justify-between text-sm text-muted-foreground">
-                              <div className="flex items-center space-x-3">
-                                <div className="flex items-center">
-                                  <User className="w-3 h-3 mr-1" />
-                                  MDAccula
-                                </div>
-                                <div className="flex items-center">
-                                  <Calendar className="w-3 h-3 mr-1" />
-                                  {new Date(post.created_at).toLocaleDateString("pt-BR")}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between pt-4 border-t border-border">
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center">
-                                  <Eye className="w-3 h-3 mr-1" />
-                                  {post.views}
-                                </div>
-                                <div className="flex items-center">
-                                  <Heart className="w-3 h-3 mr-1" />
-                                  {post.likes}
-                                </div>
-                              </div>
-
-                              <Button variant="ghost" size="sm">
-                                Ler mais
-                                <ArrowRight className="w-4 h-4 ml-1" />
-                              </Button>
-                            </div>
-                          </CardContent>
                         </Card>
                       </Link>
                     ))}
