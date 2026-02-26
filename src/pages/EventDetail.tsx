@@ -113,12 +113,12 @@ const EventDetail = () => {
       // Buscar eventos relacionados (mesmos gêneros, excluindo o atual)
       const { data: relatedData } = await supabase
         .from("events")
-        .select("*")
+        .select("id, title, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, description, image_url, ticket_link, vip_link, blog_post_id, views, created_at")
         .overlaps("genres", eventData.genres)
         .neq("id", eventData.id)
         .gte("date", new Date().toISOString().split("T")[0])
         .order("date", { ascending: true })
-        .limit(10);
+        .limit(5);
 
       if (relatedData) {
         // Filtrar eventos - só ocultar 24h após o horário de início

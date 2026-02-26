@@ -15,7 +15,7 @@ const LatestNews = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('blog_posts')
-        .select('*')
+        .select('id, title, slug, excerpt, category, image_url, views, likes, created_at, published_at')
         .eq('published', true)
         .order('published_at', { ascending: false })
         .limit(3);
@@ -67,10 +67,11 @@ const LatestNews = () => {
     return null;
   }
   
-  const calculateReadTime = (content: string) => {
-    const wordsPerMinute = 200;
-    const wordCount = content.split(/\s+/).length;
-    return Math.ceil(wordCount / wordsPerMinute);
+  // Estimate read time from excerpt length (content not fetched for performance)
+  const estimateReadTime = (excerpt: string | null) => {
+    if (!excerpt) return 5;
+    // Rough estimate: excerpt is ~10% of full content
+    return Math.max(3, Math.ceil((excerpt.length / 100) * 5));
   };
 
   return (
@@ -96,7 +97,7 @@ const LatestNews = () => {
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 {posts.map((item, index) => {
-                  const readTime = item.content ? calculateReadTime(item.content) : 5;
+                  const readTime = estimateReadTime(item.excerpt);
                   return (
                     <Card key={item.id} className="card-hover flex flex-col h-full min-h-[450px] sm:min-h-[500px]">
                       <div className="relative aspect-video overflow-hidden bg-muted/20">
