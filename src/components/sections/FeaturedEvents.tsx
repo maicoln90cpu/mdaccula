@@ -20,11 +20,17 @@ const FeaturedEvents = () => {
       const graceHours = parseInt(settings?.event_grace_hours || "6");
       const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
       
+      // Filter server-side: only future/active events
+      const today = new Date();
+      today.setDate(today.getDate() - 1); // 1 day grace
+      const dateFilter = today.toISOString().split('T')[0];
+      
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select('id, title, subtitle, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views')
+        .gte('date', dateFilter)
         .order('date', { ascending: true })
-        .limit(10); // Buscar mais eventos para filtrar depois
+        .limit(10);
 
       if (error) throw error;
       

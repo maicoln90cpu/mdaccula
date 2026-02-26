@@ -30,12 +30,12 @@ interface BlogPost {
   title: string;
   slug: string;
   excerpt: string | null;
-  content: string;
   category: string;
   image_url: string | null;
   views: number;
   likes: number;
   created_at: string;
+  published_at?: string | null;
 }
 
 interface PaginatedResult {
@@ -55,7 +55,7 @@ const fetchBlogPostsWithFeatured = async (
   // Build base query
   let query = supabase
     .from("blog_posts")
-    .select("*", { count: "exact" })
+    .select("id, title, slug, excerpt, category, image_url, views, likes, created_at, published_at", { count: "exact" })
     .eq("published", true);
 
   // Apply category filter

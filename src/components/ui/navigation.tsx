@@ -14,36 +14,7 @@ const Navigation = () => {
   const { theme, setTheme } = useTheme();
   const queryClient = useQueryClient();
 
-  // Prefetch functions for critical routes
-  const prefetchBlogPosts = useCallback(() => {
-    queryClient.prefetchQuery({
-      queryKey: ['blog-posts'],
-      queryFn: async () => {
-        const { data } = await supabase
-          .from("blog_posts")
-          .select("*")
-          .eq("published", true)
-          .order("created_at", { ascending: false });
-        return data || [];
-      },
-      staleTime: 2 * 60 * 1000,
-    });
-  }, [queryClient]);
-
-  const prefetchEvents = useCallback(() => {
-    queryClient.prefetchQuery({
-      queryKey: ['events'],
-      queryFn: async () => {
-        const { data } = await supabase
-          .from('events')
-          .select('*')
-          .order('date', { ascending: true });
-        return data || [];
-      },
-      staleTime: 2 * 60 * 1000,
-    });
-  }, [queryClient]);
-
+  // Lightweight prefetch for links only (blog and events removed - too heavy)
   const prefetchLinks = useCallback(() => {
     queryClient.prefetchQuery({
       queryKey: ['link-groups'],
@@ -60,9 +31,9 @@ const Navigation = () => {
   }, [queryClient]);
 
   const navigationItems = [
-    { name: "Eventos", href: "/eventos", icon: Calendar, prefetch: prefetchEvents },
+    { name: "Eventos", href: "/eventos", icon: Calendar, prefetch: undefined },
     { name: "MDAcculaRadio", href: "/MDAcculaRadio", icon: Mic, prefetch: undefined },
-    { name: "Blog", href: "/blog", icon: BookOpen, prefetch: prefetchBlogPosts },
+    { name: "Blog", href: "/blog", icon: BookOpen, prefetch: undefined },
     { name: "Links", href: "/links", icon: Link, prefetch: prefetchLinks },
     { name: "Quem Somos", href: "/quem-somos", icon: Users, prefetch: undefined },
     { name: "Contato", href: "/contato", icon: MessageCircle, prefetch: undefined },

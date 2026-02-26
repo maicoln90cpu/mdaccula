@@ -14,10 +14,17 @@ export function useEvents() {
   const query = useQuery({
     queryKey: ["events", graceHours, timezoneOffset],
     queryFn: async (): Promise<Event[]> => {
+      // Server-side filter: only events from recent days (grace period)
+      const graceDate = new Date();
+      graceDate.setDate(graceDate.getDate() - Math.ceil(graceHours / 24) - 1);
+      const dateFilter = graceDate.toISOString().split('T')[0];
+      
       const { data, error } = await supabase
         .from("events")
-        .select("*")
-        .order("date", { ascending: true });
+        .select("id, title, subtitle, slug, venue, address, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views, blog_post_id, created_at, updated_at, description")
+        .gte("date", dateFilter)
+        .order("date", { ascending: true })
+        .limit(50);
 
       if (error) throw error;
 
