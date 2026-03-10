@@ -395,12 +395,12 @@ NÃO inclua texto na imagem.`;
             const base64Data = base64Image.split(',')[1];
             const pngBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
             
-            const fileName = `multi-event-${Date.now()}.png`;
+            const fileName = `multi-event-${Date.now()}.webp`;
             
             const { data: uploadData, error: uploadError } = await supabase.storage
               .from('event-images')
               .upload(fileName, pngBuffer, { 
-                contentType: 'image/png',
+                contentType: 'image/webp',
                 upsert: false
               });
 

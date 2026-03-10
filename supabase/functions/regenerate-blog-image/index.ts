@@ -204,14 +204,14 @@ Deno.serve(async (req) => {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     
-    const fileName = `blog-${postId}-${Date.now()}.jpg`;
+    const fileName = `blog-${postId}-${Date.now()}.webp`;
     
     console.log(`📤 Fazendo upload da imagem: ${fileName}`);
     
     const { error: uploadError } = await supabase.storage
       .from('event-images')
       .upload(fileName, imageBytes, {
-        contentType: 'image/jpeg',
+        contentType: 'image/webp',
         upsert: true
       });
 
