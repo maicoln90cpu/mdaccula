@@ -108,7 +108,7 @@ const TeamManager = () => {
 
         const { data: { publicUrl } } = supabase.storage
           .from('team-images')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
         imageUrl = publicUrl;
       }

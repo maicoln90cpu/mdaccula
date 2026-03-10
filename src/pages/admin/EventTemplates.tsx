@@ -95,11 +95,11 @@ const EventTemplates = () => {
     if (!imageFile) return null;
     
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const webpFile = await convertToWebP(imageFile);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
       const { error: uploadError } = await supabase.storage
         .from('event-images')
-        .upload(fileName, imageFile);
+        .upload(fileName, webpFile, { contentType: 'image/webp' });
       
       if (uploadError) throw uploadError;
       

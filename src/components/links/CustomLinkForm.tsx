@@ -190,13 +190,12 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
 
   const uploadThumbnail = async (file: File): Promise<string | null> => {
     try {
-      // Generate filename with original extension for initial upload
-      const fileExt = file.name.split('.').pop()?.toLowerCase();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      const webpFile = await convertToWebP(file);
+      const fileName = `${crypto.randomUUID()}.webp`;
       
       const { error: uploadError } = await supabase.storage
         .from('link-thumbnails')
-        .upload(fileName, file);
+        .upload(fileName, webpFile, { contentType: 'image/webp' });
 
       if (uploadError) throw uploadError;
 

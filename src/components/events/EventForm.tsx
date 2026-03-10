@@ -233,12 +233,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
     setUploading(true);
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const webpFile = await convertToWebP(imageFile);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
       
       const { data, error } = await supabase.storage
         .from('event-images')
-        .upload(fileName, imageFile);
+        .upload(fileName, webpFile, { contentType: 'image/webp' });
 
       if (error) throw error;
 
