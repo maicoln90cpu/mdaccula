@@ -37,44 +37,29 @@ export const LinkCardImage = ({
 }: LinkCardImageProps) => {
   const [imgError, setImgError] = useState(false);
 
-  const rawImage = imgError
-    ? fallbackUrl || null
-    : thumbnailUrl || fallbackUrl || null;
+  const rawImage = imgError ? fallbackUrl || null : thumbnailUrl || fallbackUrl || null;
 
-  const resolvedImage = rawImage
-    ? skipOptimization
-      ? rawImage
-      : getThumbnailUrl(rawImage)
-    : null;
+  const resolvedImage = rawImage ? (skipOptimization ? rawImage : getThumbnailUrl(rawImage)) : null;
 
-  const containerClass = featured
-    ? "w-20 h-20 sm:w-24 sm:h-24"
-    : "w-16 h-16";
+  const containerClass = featured ? "w-20 h-20 sm:w-24 sm:h-24" : "w-16 h-16";
 
   if (!resolvedImage) {
     return (
-      <div
-        className={`${containerClass} flex-shrink-0 rounded-lg bg-white/10 flex items-center justify-center`}
-      >
-        <StaticIcon
-          name={iconName}
-          className={featured ? "w-8 h-8" : "w-6 h-6"}
-        />
+      <div className={`${containerClass} flex-shrink-0 rounded-lg bg-white/10 flex items-center justify-center`}>
+        <StaticIcon name={iconName} className={featured ? "w-8 h-8" : "w-6 h-6"} />
       </div>
     );
   }
 
   return (
-    <div
-      className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden`}
-    >
+    <div className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden`}>
       <img
         src={resolvedImage}
         alt={alt}
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover rounded-md"
       />
     </div>
   );
