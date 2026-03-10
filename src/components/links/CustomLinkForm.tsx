@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/useToast";
 import { X } from "lucide-react";
 import { z } from "zod";
+import { convertToWebP } from "@/lib/webpConverter";
 
 const linkSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório").max(100, "Título muito longo"),
