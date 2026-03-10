@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { getThumbnailUrl } from "@/lib/imageUtils";
-import { StaticIcon } from "./StaticIcon";
+import { LinkCardImage } from "./LinkCardImage";
 
 interface LinkEvent {
   venue: string;
@@ -66,19 +64,10 @@ export const SimpleLinkCard = ({
   templateBorderColor,
   templateCardHeight,
 }: SimpleLinkCardProps) => {
-  const [imgError, setImgError] = useState(false);
-
-  const rawImage = imgError
-    ? link.events?.image_url || null
-    : link.thumbnail_url || link.events?.image_url || null;
-  const resolvedImage = rawImage ? getThumbnailUrl(rawImage) : null;
-
   const style = {
     maxWidth: link.card_width ? `${Math.min(Math.max(link.card_width, 200), 650)}px` : '650px',
     width: '100%',
   };
-
-  const iconName = link.icon || 'ExternalLink';
 
   const getCardColor = () => {
     if (link.color_gradient && link.color_gradient.includes('from-')) return link.color_gradient;
@@ -95,11 +84,13 @@ export const SimpleLinkCard = ({
 
   const renderFeaturedCard = () => (
     <div className="flex items-center gap-4 p-4 w-full h-full">
-      {resolvedImage && (
-        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-full object-cover" />
-        </div>
-      )}
+      <LinkCardImage
+        thumbnailUrl={link.thumbnail_url}
+        fallbackUrl={link.events?.image_url}
+        alt={link.title}
+        iconName={link.icon || 'ExternalLink'}
+        featured
+      />
       <div className="flex-1 min-w-0 text-left space-y-1">
         <span className="font-bold text-xl break-words block">{link.title}</span>
         {(link.override_date || link.events?.date) && showEventDate && (
@@ -119,20 +110,12 @@ export const SimpleLinkCard = ({
 
   const renderStandardCard = () => (
     <div className="flex items-center gap-3 flex-1 min-w-0 p-3">
-      {resolvedImage ? (
-        <div className="w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-full object-cover" />
-        </div>
-      ) : link.icon ? (
-        <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
-          <StaticIcon name={iconName} className="w-8 h-8" />
-        </div>
-      ) : null}
-      {!resolvedImage && !link.icon && (
-        <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center">
-          <StaticIcon name={iconName} className="w-5 h-5" />
-        </div>
-      )}
+      <LinkCardImage
+        thumbnailUrl={link.thumbnail_url}
+        fallbackUrl={link.events?.image_url}
+        alt={link.title}
+        iconName={link.icon || 'ExternalLink'}
+      />
       <div className="flex-1 min-w-0 text-left space-y-0.5">
         <span className="font-semibold text-base break-words block">{link.title}</span>
         {(link.override_date || link.events?.date) && showEventDate && (
