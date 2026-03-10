@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/useToast";
 import { Loader2, Plus, Edit, Trash2, Instagram, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import { convertToWebP } from "@/lib/webpConverter";
 
 interface TeamMember {
   id: string;
