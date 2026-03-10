@@ -9,7 +9,7 @@ import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from 'react-helmet-async';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
-import Index from "./pages/Index";
+const Index = lazy(() => import("./pages/Index"));
 import GoogleTagManager from "@/components/GoogleTagManager";
 import { NewsletterPopup } from "@/components/NewsletterPopup";
 import { WebVitals } from "@/components/WebVitals";

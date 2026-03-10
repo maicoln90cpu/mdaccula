@@ -1,6 +1,17 @@
 /**
  * Utilitário para gerar URLs otimizadas de imagens do Supabase Storage.
  * Faz reescrita de domínio Supabase → Bunny CDN para cache de borda.
+ *
+ * ╔══════════════════════════════════════════════════════════════════╗
+ * ║  REGRA DE OURO: NUNCA cortar imagens.                          ║
+ * ║  Todas as transformações devem apenas:                         ║
+ * ║    1. Redimensionar proporcionalmente (width param no CDN)     ║
+ * ║    2. Converter formato (WebP/AVIF via Bunny Optimizer)        ║
+ * ║    3. Ajustar qualidade (quality param)                        ║
+ * ║  No CSS: usar sempre object-contain. NUNCA object-cover        ║
+ * ║  em thumbnails ou cards. Containers devem adaptar-se à         ║
+ * ║  proporção natural da imagem (sem altura fixa forçada).        ║
+ * ╚══════════════════════════════════════════════════════════════════╝
  */
 
 const SUPABASE_STORAGE_PATTERN = /\/storage\/v1\/object\/public\//;

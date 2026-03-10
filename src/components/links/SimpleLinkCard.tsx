@@ -96,8 +96,8 @@ export const SimpleLinkCard = ({
   const renderFeaturedCard = () => (
     <div className="flex items-center gap-4 p-4 w-full h-full">
       {resolvedImage && (
-        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20 flex items-center justify-center">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" width={96} height={96} onError={() => setImgError(true)} className="w-full h-full object-contain" />
+        <div className="w-20 sm:w-24 max-h-28 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20 flex items-center justify-center">
+          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-auto object-contain" />
         </div>
       )}
       <div className="flex-1 min-w-0 text-left space-y-1">
@@ -120,8 +120,8 @@ export const SimpleLinkCard = ({
   const renderStandardCard = () => (
     <div className="flex items-center gap-3 flex-1 min-w-0 p-3">
       {resolvedImage ? (
-        <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted/20 flex items-center justify-center">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" width={64} height={64} onError={() => setImgError(true)} className="w-full h-full object-contain" />
+        <div className="w-14 sm:w-16 max-h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted/20 flex items-center justify-center">
+          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-auto object-contain" />
         </div>
       ) : link.icon ? (
         <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
