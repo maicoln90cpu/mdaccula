@@ -204,7 +204,6 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
         .getPublicUrl(fileName);
 
       return publicUrl;
-      }
     } catch (error) {
       logger.error('Error uploading thumbnail', error, { component: 'CustomLinkForm' });
       toast({
