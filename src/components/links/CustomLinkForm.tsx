@@ -203,40 +203,7 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
         .from('link-thumbnails')
         .getPublicUrl(fileName);
 
-      // If it's already a WebP or SVG, return as is
-      if (fileExt === 'webp' || fileExt === 'svg') {
-        return publicUrl;
-      }
-
-      // Convert to WebP using edge function
-      try {
-        const { data: conversionData, error: conversionError } = await supabase.functions.invoke('convert-to-webp', {
-          body: { 
-            imageUrl: publicUrl, 
-            bucket: 'link-thumbnails',
-            quality: 80 
-          }
-        });
-
-        if (conversionError) {
-          logger.warn('WebP conversion failed, using original', { error: conversionError });
-          return publicUrl; // Fallback to original if conversion fails
-        }
-
-        if (conversionData?.success && conversionData?.newUrl) {
-          logger.info('Thumbnail converted to WebP', { 
-            originalSize: conversionData.originalSize,
-            newSize: conversionData.newSize,
-            reduction: conversionData.reduction
-          });
-          return conversionData.newUrl;
-        }
-
-        return publicUrl;
-      } catch (convError) {
-        // Silently fallback to original if conversion fails
-        logger.warn('WebP conversion exception, using original', { error: convError });
-        return publicUrl;
+      return publicUrl;
       }
     } catch (error) {
       logger.error('Error uploading thumbnail', error, { component: 'CustomLinkForm' });
