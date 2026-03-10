@@ -69,3 +69,25 @@ export function getOptimizedImageUrl(
   const separator = imagePath.includes('?') ? '&' : '?';
   return `${cdnUrl}${separator}quality=75`;
 }
+
+/**
+ * Gera URL de thumbnail redimensionada para cards pequenos.
+ * Adiciona `&width=160` ao CDN URL para que o Bunny Optimizer
+ * entregue a imagem já redimensionada (~15 KiB em vez de ~244 KiB).
+ *
+ * Usar apenas em imagens exibidas em tamanhos pequenos (w-14 a w-24).
+ * Para imagens grandes (hero, avatar), usar `getOptimizedImageUrl`.
+ */
+export function getThumbnailUrl(
+  url: string | null | undefined,
+  width: number = 160,
+): string {
+  const optimized = getOptimizedImageUrl(url);
+  if (!optimized) return '';
+
+  // Only append width to CDN URLs (avoid breaking external URLs)
+  if (!optimized.startsWith(BUNNY_CDN_HOST)) return optimized;
+
+  const separator = optimized.includes('?') ? '&' : '?';
+  return `${optimized}${separator}width=${width}`;
+}

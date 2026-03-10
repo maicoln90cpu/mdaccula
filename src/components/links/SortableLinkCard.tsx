@@ -170,6 +170,7 @@ export const SortableLinkCard = ({
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
+        width={64} height={64}
         className="w-full h-full object-contain" />
     </div> :
 

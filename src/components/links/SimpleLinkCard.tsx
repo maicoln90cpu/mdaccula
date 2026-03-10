@@ -121,7 +121,7 @@ export const SimpleLinkCard = ({
     <div className="flex items-center gap-3 flex-1 min-w-0 p-3">
       {resolvedImage ? (
         <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted/20 flex items-center justify-center">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-full object-contain" />
+          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" width={64} height={64} onError={() => setImgError(true)} className="w-full h-full object-contain" />
         </div>
       ) : link.icon ? (
         <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
