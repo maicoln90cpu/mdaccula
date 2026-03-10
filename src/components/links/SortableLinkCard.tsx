@@ -127,14 +127,14 @@ export const SortableLinkCard = ({
   const renderFeaturedCard = () =>
   <div className="flex items-center gap-4 p-4 w-full h-full">
       {resolvedImage &&
-    <div className="w-20 sm:w-24 flex-shrink-0 rounded-lg bg-muted/20">
+    <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden">
       <img
         src={resolvedImage}
         alt={link.title}
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
-        className="w-full h-auto object-contain rounded-lg" />
+        className="w-full h-full object-cover" />
     </div>
     }
       
