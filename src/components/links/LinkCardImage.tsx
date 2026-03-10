@@ -24,7 +24,7 @@ interface LinkCardImageProps {
  * Rules:
  * - Fixed square container with overflow-hidden + rounded-lg
  * - Standard: w-16 h-16 | Featured: w-20 h-20 sm:w-24 sm:h-24
- * - img: w-full h-full object-cover
+ * - img: w-full h-full object-contain
  * - On error: tries fallbackUrl, then shows icon
  */
 export const LinkCardImage = ({
