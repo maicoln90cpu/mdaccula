@@ -24,7 +24,7 @@ interface LinkCardImageProps {
  * Rules:
  * - Fixed square container with overflow-hidden + rounded-lg
  * - Standard: w-16 h-16 | Featured: w-20 h-20 sm:w-24 sm:h-24
- * - img: w-full h-full object-cover
+ * - img: w-full h-full object-contain
  * - On error: tries fallbackUrl, then shows icon
  */
 export const LinkCardImage = ({
@@ -52,14 +52,14 @@ export const LinkCardImage = ({
   }
 
   return (
-    <div className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden`}>
+    <div className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden bg-white/10`}>
       <img
         src={resolvedImage}
         alt={alt}
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
-        className="w-full h-full object-cover rounded-md"
+        className="w-full h-full object-contain rounded-md"
       />
     </div>
   );
