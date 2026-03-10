@@ -58,7 +58,7 @@ export default function AutoGenerationDashboard() {
   const [isForcing, setIsForcing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setTimeout> | null>(null);
   
   const [settings, setSettings] = useState<AutoGenSettings>({
     enabled: false,

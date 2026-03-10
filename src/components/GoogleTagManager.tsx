@@ -5,25 +5,32 @@ const GoogleTagManager = () => {
   const [gtmId, setGtmId] = useState<string>("");
 
   useEffect(() => {
-    const fetchGTMId = async () => {
-      const { data } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "google_tag_manager_id")
-        .single();
+    // Defer fetching GTM ID until after main content is interactive
+    const initGTM = () => {
+      const fetchGTMId = async () => {
+        const { data } = await supabase
+          .from("site_settings")
+          .select("value")
+          .eq("key", "google_tag_manager_id")
+          .single();
 
-      if (data?.value && data.value.trim() !== "") {
-        setGtmId(data.value);
-      }
+        if (data?.value && data.value.trim() !== "") {
+          setGtmId(data.value);
+        }
+      };
+      fetchGTMId();
     };
 
-    fetchGTMId();
+    if ('requestIdleCallback' in window) {
+      (window as any).requestIdleCallback(initGTM, { timeout: 4000 });
+    } else {
+      setTimeout(initGTM, 3000);
+    }
   }, []);
 
   useEffect(() => {
     if (!gtmId) return;
 
-    // Inject GTM script
     const script1 = document.createElement("script");
     script1.innerHTML = `
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -34,7 +41,6 @@ const GoogleTagManager = () => {
     `;
     document.head.appendChild(script1);
 
-    // Inject GTM noscript
     const noscript = document.createElement("noscript");
     const iframe = document.createElement("iframe");
     iframe.src = `https://www.googletagmanager.com/ns.html?id=${gtmId}`;
@@ -46,7 +52,6 @@ const GoogleTagManager = () => {
     document.body.insertBefore(noscript, document.body.firstChild);
 
     return () => {
-      // Cleanup
       document.head.removeChild(script1);
       if (noscript.parentNode) {
         document.body.removeChild(noscript);
