@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { StaticIcon } from "./StaticIcon";
 
 interface LinkEvent {
