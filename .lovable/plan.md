@@ -1,74 +1,35 @@
 
 
-## Analise item a item das recomendacoes
+## Explicacao dos parametros
 
-### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
-Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
+### `quality=75`
+Controla a compressao da imagem servida pelo Bunny CDN Optimizer. O valor vai de 1 a 100:
+- **100** = sem compressao adicional, qualidade maxima, arquivo maior
+- **75** (atual) = compressao moderada, boa qualidade, arquivo ~40-60% menor
+- **50** = compressao agressiva, qualidade aceitavel, arquivo ~60-75% menor
+- **25** = compressao muito agressiva, perda visivel de nitidez, arquivo ~80% menor
 
-### 2. Cloudflare -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+Para thumbnails pequenas (64x64px na tela), quality=50 seria visualmente indistinguivel de 75.
 
-### 3. Bunny -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+### `width=160`
+Forca o Bunny CDN a redimensionar a imagem para 160px de largura antes de entregar. Isso significa que o navegador recebe uma imagem de 160px de largura, independente do tamanho original.
 
-### 4. HTML/HEAD -- PARCIALMENTE CORRETO
+**Este e o problema.** O container do card e `w-16` = 64px CSS. Com `object-contain`, a imagem de 160px e encaixada dentro de 64x64. Para imagens quadradas funciona bem. Para imagens retangulares (flyers de eventos sao tipicamente 3:4 ou 4:3), o `width=160` forca uma proporcao que depois precisa ser re-adaptada pelo browser dentro do quadrado, causando inconsistencias visuais dependendo do aspect ratio original.
 
-**4a. Remover preconnect do Supabase?**
-- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
-- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
-- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
+### O que muda removendo `width=160`
+- O browser recebe a imagem no tamanho original (ex: 1200x800px) e faz o downscale localmente
+- A imagem fica mais fiel ao original dentro do container
+- O arquivo sera maior (mais banda), mas como ja esta em WebP e passa pelo CDN com cache de 1 ano, o impacto e minimo
 
-**4b. Remover meta tags de no-cache?**
-- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
+### Plano de alteracao
 
-**4c. Manter preconnect cdn.mdaccula.com?**
-- **CONCORDO**. Ja esta correto no codigo.
+**Arquivo:** `src/lib/imageUtils.ts`
 
-### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
+1. Em `getOptimizedImageUrl`: mudar `quality=75` para `quality=85` (melhor qualidade para flyers com texto)
+2. Em `LinkCardImage.tsx` (linha 42): trocar `getThumbnailUrl(rawImage)` por `getOptimizedImageUrl(rawImage)` — isso remove o `width=160` dos cards de /links, entregando a imagem no tamanho original com apenas compressao de qualidade
 
-O `index.html` usa `storage.googleapis.com` em 3 lugares:
-- Linha 19: favicon
-- Linha 44: og:image (imagem social da home)
-- Linha 45: twitter:image
+Isso elimina a distorcao causada pelo redimensionamento forcado no servidor e mantem a otimizacao de compressao.
 
-Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
-- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
-- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
-- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
-
-### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
-
-A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
-
-O `?quality=75` no seu caso e apenas um parametro na URL que:
-- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
-- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
-
-**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
-
-**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
-
-### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
-
-O texto do blog (JSON) gera egress sim, mas:
-- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
-- Ja removemos o prefetch de 110 posts na navigation
-- Ja aumentamos staleTime do site_settings para 15 min
-- Ja filtramos eventos inativos no servidor
-
-O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
-
-As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
-
----
-
-## Plano de implementacao
-
-Apenas 2 mudancas simples no `index.html`:
-
-**1. Remover preconnect para Supabase errado** (linhas 7-8)
-O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
-
-**2. Remover meta tags de no-cache** (linhas 22-25)
-Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
+### Alternativa mais conservadora
+Manter `getThumbnailUrl` mas aumentar o width para 256 (4x o container de 64px, suficiente para telas retina) em vez de remover completamente. Isso preserva economia de banda mas com qualidade muito melhor.
 
