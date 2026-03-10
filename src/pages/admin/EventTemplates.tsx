@@ -15,6 +15,7 @@ import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import { convertToWebP } from "@/lib/webpConverter";
 
 interface EventTemplate {
   id: string;
