@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import { convertToWebP } from "@/lib/webpConverter";
 import { Search, Calendar, MapPin, Music, Loader2, FileText, X, ImageIcon, Upload, Link } from "lucide-react";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
