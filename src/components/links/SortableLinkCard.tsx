@@ -86,7 +86,7 @@ export const SortableLinkCard = ({
   const rawImage = imgError ?
   link.events?.image_url || null :
   link.thumbnail_url || link.events?.image_url || null;
-  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage) : null;
+  const resolvedImage = rawImage ? getThumbnailUrl(rawImage) : null;
 
   const style = {
     transform: CSS.Transform.toString(transform),
