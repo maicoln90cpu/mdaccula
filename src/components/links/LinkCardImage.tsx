@@ -52,14 +52,14 @@ export const LinkCardImage = ({
   }
 
   return (
-    <div className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden`}>
+    <div className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden bg-white/10`}>
       <img
         src={resolvedImage}
         alt={alt}
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
-        className="w-full h-full object-cover rounded-md"
+        className="w-full h-full object-contain rounded-md"
       />
     </div>
   );
