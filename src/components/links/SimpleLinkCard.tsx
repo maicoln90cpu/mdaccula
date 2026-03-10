@@ -96,8 +96,8 @@ export const SimpleLinkCard = ({
   const renderFeaturedCard = () => (
     <div className="flex items-center gap-4 p-4 w-full h-full">
       {resolvedImage && (
-        <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20 flex items-center justify-center">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" width={96} height={96} onError={() => setImgError(true)} className="w-full h-full object-contain" />
+        <div className="w-20 sm:w-24 max-h-28 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20 flex items-center justify-center">
+          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-auto object-contain" />
         </div>
       )}
       <div className="flex-1 min-w-0 text-left space-y-1">
