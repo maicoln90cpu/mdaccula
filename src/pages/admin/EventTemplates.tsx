@@ -15,6 +15,7 @@ import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import { convertToWebP } from "@/lib/webpConverter";
 
 interface EventTemplate {
   id: string;
@@ -94,11 +95,11 @@ const EventTemplates = () => {
     if (!imageFile) return null;
     
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const webpFile = await convertToWebP(imageFile);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
       const { error: uploadError } = await supabase.storage
         .from('event-images')
-        .upload(fileName, imageFile);
+        .upload(fileName, webpFile, { contentType: 'image/webp' });
       
       if (uploadError) throw uploadError;
       

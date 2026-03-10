@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/useToast";
 import { Loader2, Plus, Edit, Trash2, Instagram, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import { convertToWebP } from "@/lib/webpConverter";
 
 interface TeamMember {
   id: string;
@@ -92,13 +93,13 @@ const TeamManager = () => {
 
       // Upload da imagem se houver arquivo selecionado
       if (uploadedFile) {
-        const fileExt = uploadedFile.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `${fileName}`;
+        const webpFile = await convertToWebP(uploadedFile);
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
 
         const { error: uploadError } = await supabase.storage
           .from('team-images')
-          .upload(filePath, uploadedFile, {
+          .upload(fileName, webpFile, {
+            contentType: 'image/webp',
             cacheControl: '3600',
             upsert: false
           });
@@ -107,7 +108,7 @@ const TeamManager = () => {
 
         const { data: { publicUrl } } = supabase.storage
           .from('team-images')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
 
         imageUrl = publicUrl;
       }

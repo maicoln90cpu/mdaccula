@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
+import { convertToWebP } from "@/lib/webpConverter";
 import { Search, Calendar, MapPin, Music, Loader2, FileText, X, ImageIcon, Upload, Link } from "lucide-react";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -160,13 +161,14 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
 
   // Upload image to storage if needed
   const uploadImageToStorage = async (file: File): Promise<string> => {
-    const fileExt = file.name.split('.').pop() || 'jpg';
-    const fileName = `multi-event-${Date.now()}.${fileExt}`;
+    const webpFile = await convertToWebP(file);
+    const fileName = `multi-event-${Date.now()}.webp`;
     const filePath = `blog-images/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from('event-images')
-      .upload(filePath, file, {
+      .upload(filePath, webpFile, {
+        contentType: 'image/webp',
         cacheControl: '3600',
         upsert: false,
       });

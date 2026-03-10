@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/useToast';
 import { Switch } from '@/components/ui/switch';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
+import { convertToWebP } from '@/lib/webpConverter';
 
 interface BlogFormData {
   title: string;
@@ -74,12 +75,12 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
 
     setUploading(true);
     try {
-      const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const webpFile = await convertToWebP(imageFile);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
       
       const { data, error } = await supabase.storage
         .from('event-images')
-        .upload(fileName, imageFile);
+        .upload(fileName, webpFile, { contentType: 'image/webp' });
 
       if (error) throw error;
 

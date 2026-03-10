@@ -1,90 +1,74 @@
 
 
-## Plano: Conversao WebP em todos os uploads + Correcao de imagens cortadas na /links
+## Analise item a item das recomendacoes
+
+### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
+Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
+
+### 2. Cloudflare -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
+
+### 3. Bunny -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
+
+### 4. HTML/HEAD -- PARCIALMENTE CORRETO
+
+**4a. Remover preconnect do Supabase?**
+- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
+- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
+- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
+
+**4b. Remover meta tags de no-cache?**
+- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
+
+**4c. Manter preconnect cdn.mdaccula.com?**
+- **CONCORDO**. Ja esta correto no codigo.
+
+### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
+
+O `index.html` usa `storage.googleapis.com` em 3 lugares:
+- Linha 19: favicon
+- Linha 44: og:image (imagem social da home)
+- Linha 45: twitter:image
+
+Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
+- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
+- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
+- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
+
+### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
+
+A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
+
+O `?quality=75` no seu caso e apenas um parametro na URL que:
+- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
+- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
+
+**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
+
+**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
+
+### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
+
+O texto do blog (JSON) gera egress sim, mas:
+- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
+- Ja removemos o prefetch de 110 posts na navigation
+- Ja aumentamos staleTime do site_settings para 15 min
+- Ja filtramos eventos inativos no servidor
+
+O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
+
+As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
 
 ---
 
-### Parte 1: Correcao das imagens cortadas na pagina /links
+## Plano de implementacao
 
-**Problema**: O container tem `overflow-hidden` + `max-h-20` (80px). Imagens retrato (flyers) sao mais altas que 80px e ficam cortadas pelo overflow. Grid e Klandestine funcionam porque sao mais quadradas.
+Apenas 2 mudancas simples no `index.html`:
 
-**Solucao**: Remover `max-h-20` e `overflow-hidden` do container. Usar apenas largura fixa (`w-14 sm:w-16`) e deixar a altura adaptar naturalmente. A imagem usa `w-full h-auto object-contain`, entao a largura fixa ja controla o tamanho total. O card tem `height: auto` e se adapta.
+**1. Remover preconnect para Supabase errado** (linhas 7-8)
+O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
 
-**Arquivos**:
-- `SimpleLinkCard.tsx` — Standard: trocar `w-14 sm:w-16 max-h-20 flex-shrink-0 rounded-md overflow-hidden bg-muted/20 flex items-center justify-center` por `w-14 sm:w-16 flex-shrink-0 rounded-md bg-muted/20 flex items-center justify-center`. Featured: trocar `w-20 sm:w-24 max-h-28 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20` por `w-20 sm:w-24 flex-shrink-0 rounded-lg bg-muted/20`
-- `SortableLinkCard.tsx` — Mesmas mudancas nos mesmos containers
-
----
-
-### Parte 2: Utilitario central de conversao WebP
-
-Criar `src/lib/webpConverter.ts` com uma funcao reutilizavel:
-
-```ts
-export async function convertToWebP(file: File | Blob, maxSizeMB = 1, maxDimension = 1920): Promise<File>
-```
-
-Internamente usa `browser-image-compression` (ja instalado) com `fileType: 'image/webp'`. Retorna um `File` com nome `.webp`. Todos os uploads do frontend passarao por esta funcao antes de chamar `supabase.storage.upload()`.
-
----
-
-### Parte 3: Migrar todos os uploads do frontend para WebP
-
-**Uploads que JA convertem para WebP** (via ImageUploadWithCrop):
-- LinksPageSettings (avatar)
-- RecurringEventsManager (ja usa `imageCompression` + `.webp`)
-
-**Uploads que NAO convertem** (precisam ser corrigidos):
-
-1. **EventForm.tsx** (linha 230) — `handleImageChange` aceita qualquer formato e faz upload direto. Adicionar `convertToWebP()` antes do upload e mudar extensao para `.webp`.
-
-2. **BlogForm.tsx** (linha 72) — Usa `ImageUploadWithCrop` que ja converte para WebP, MAS o `uploadImage` usa a extensao original do arquivo (`fileExt`). Trocar para `.webp` fixo e adicionar `contentType: 'image/webp'`.
-
-3. **TeamManager.tsx** (linha 95) — Upload direto sem conversao. Adicionar `convertToWebP()` antes do upload.
-
-4. **EventTemplates.tsx** (linha 93) — Usa `ImageUploadWithCrop` que ja converte, mas `uploadImage` usa extensao original. Trocar para `.webp`.
-
-5. **MultiEventArticleModal.tsx** (linha 162) — Upload direto. Adicionar `convertToWebP()`.
-
-6. **CustomLinkForm.tsx** (linha 190) — Upload com extensao original. Ja tem logica de conversao server-side, mas adicionar `convertToWebP()` no cliente para consistencia.
-
----
-
-### Parte 4: Edge Functions — Converter imagens AI para WebP
-
-**Functions que geram imagens e NAO salvam como WebP**:
-
-1. **regenerate-blog-image/index.ts** (linha 207) — Salva como `.jpg` com `contentType: 'image/jpeg'`. A imagem vem como base64 PNG do Gemini. Converter para WebP usando canvas no Deno ou salvar como `.webp` com o buffer direto (o Supabase aceita qualquer contentType).
-
-2. **generate-multi-event-article/index.ts** (linha 398) — Salva como `.png`. Mesma correcao: mudar para `.webp` e `contentType: 'image/webp'`.
-
-**Function que JA salva como WebP**:
-- `generate-blog-post-v2/index.ts` (linha 607) — Ja usa `contentType: 'image/webp'`. OK.
-
-**Nota sobre Edge Functions**: No Deno nao temos `canvas` nativo. A solucao mais simples e salvar o buffer PNG/JPEG do Gemini diretamente com `contentType: 'image/webp'` e extensao `.webp`. Isso funciona porque o Supabase Storage aceita qualquer contentType declarado — MAS o browser pode nao renderizar corretamente se o binario nao for realmente WebP.
-
-**Alternativa robusta**: Usar uma lib Deno como `jsr:@nicolo-ribaudo/sharp` ou converter via canvas na Edge Function. Ou aceitar que imagens AI ficam em PNG/JPEG (ja otimizadas pelo Gemini) e focar a conversao WebP apenas nos uploads do frontend onde temos `canvas`.
-
----
-
-### Resumo de arquivos alterados
-
-```text
-FRONTEND (conversao WebP no cliente)
-├── src/lib/webpConverter.ts ..................... NOVO — utilitario central
-├── src/components/events/EventForm.tsx .......... converter antes do upload
-├── src/components/blog/BlogForm.tsx ............. usar extensao .webp
-├── src/pages/admin/TeamManager.tsx .............. converter antes do upload
-├── src/pages/admin/EventTemplates.tsx ........... usar extensao .webp
-├── src/components/admin/MultiEventArticleModal.tsx  converter antes do upload
-├── src/components/links/CustomLinkForm.tsx ....... converter antes do upload
-
-IMAGENS /LINKS (correcao de corte)
-├── src/components/links/SimpleLinkCard.tsx ....... remover overflow-hidden + max-h
-├── src/components/links/SortableLinkCard.tsx ..... idem
-
-EDGE FUNCTIONS (imagens AI)
-├── supabase/functions/regenerate-blog-image/index.ts ... mudar .jpg → .webp
-├── supabase/functions/generate-multi-event-article/index.ts ... mudar .png → .webp
-```
+**2. Remover meta tags de no-cache** (linhas 22-25)
+Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
 
