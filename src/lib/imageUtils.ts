@@ -3,14 +3,15 @@
  * Faz reescrita de domínio Supabase → Bunny CDN para cache de borda.
  *
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║  REGRA DE OURO: NUNCA cortar imagens.                          ║
- * ║  Todas as transformações devem apenas:                         ║
+ * ║  Este utilitário cuida APENAS de URL rewriting e otimização.   ║
+ * ║  Transformações:                                               ║
  * ║    1. Redimensionar proporcionalmente (width param no CDN)     ║
  * ║    2. Converter formato (WebP/AVIF via Bunny Optimizer)        ║
  * ║    3. Ajustar qualidade (quality param)                        ║
- * ║  No CSS: usar sempre object-contain. NUNCA object-cover        ║
- * ║  em thumbnails ou cards. Containers devem adaptar-se à         ║
- * ║  proporção natural da imagem (sem altura fixa forçada).        ║
+ * ║                                                                ║
+ * ║  A política de object-fit (cover vs contain) é definida        ║
+ * ║  pelos componentes de UI, não por este utilitário.             ║
+ * ║  Para /links: ver LinkCardImage.tsx (object-cover).            ║
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 
