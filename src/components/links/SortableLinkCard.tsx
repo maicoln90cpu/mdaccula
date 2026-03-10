@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { CopyPlus, Edit } from "lucide-react";
 import { StaticIcon } from "./StaticIcon";
 
@@ -86,7 +86,7 @@ export const SortableLinkCard = ({
   const rawImage = imgError ?
   link.events?.image_url || null :
   link.thumbnail_url || link.events?.image_url || null;
-  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage) : null;
+  const resolvedImage = rawImage ? getThumbnailUrl(rawImage) : null;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -134,6 +134,7 @@ export const SortableLinkCard = ({
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
+        width={96} height={96}
         className="w-full h-full object-contain" />
     </div>
     }
@@ -169,6 +170,7 @@ export const SortableLinkCard = ({
         loading="lazy"
         decoding="async"
         onError={() => setImgError(true)}
+        width={64} height={64}
         className="w-full h-full object-contain" />
     </div> :
 

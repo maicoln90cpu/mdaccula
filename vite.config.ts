@@ -56,6 +56,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
     chunkSizeWarningLimit: 800, // Reduced limit to catch large chunks early
-    target: 'esnext', // Modern browsers only for smaller output
+    target: 'es2020', // Sweet spot: broad compat + small output
   },
 }));

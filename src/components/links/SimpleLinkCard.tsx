@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { StaticIcon } from "./StaticIcon";
 
 interface LinkEvent {
@@ -71,7 +71,7 @@ export const SimpleLinkCard = ({
   const rawImage = imgError
     ? link.events?.image_url || null
     : link.thumbnail_url || link.events?.image_url || null;
-  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage) : null;
+  const resolvedImage = rawImage ? getThumbnailUrl(rawImage) : null;
 
   const style = {
     maxWidth: link.card_width ? `${Math.min(Math.max(link.card_width, 200), 650)}px` : '650px',
@@ -97,7 +97,7 @@ export const SimpleLinkCard = ({
     <div className="flex items-center gap-4 p-4 w-full h-full">
       {resolvedImage && (
         <div className="w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted/20 flex items-center justify-center">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-full object-contain" />
+          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" width={96} height={96} onError={() => setImgError(true)} className="w-full h-full object-contain" />
         </div>
       )}
       <div className="flex-1 min-w-0 text-left space-y-1">
@@ -121,7 +121,7 @@ export const SimpleLinkCard = ({
     <div className="flex items-center gap-3 flex-1 min-w-0 p-3">
       {resolvedImage ? (
         <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-md overflow-hidden bg-muted/20 flex items-center justify-center">
-          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" onError={() => setImgError(true)} className="w-full h-full object-contain" />
+          <img src={resolvedImage} alt={link.title} loading="lazy" decoding="async" width={64} height={64} onError={() => setImgError(true)} className="w-full h-full object-contain" />
         </div>
       ) : link.icon ? (
         <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-white/10 flex items-center justify-center">
