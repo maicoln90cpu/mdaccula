@@ -71,7 +71,7 @@ export const SimpleLinkCard = ({
   const rawImage = imgError
     ? link.events?.image_url || null
     : link.thumbnail_url || link.events?.image_url || null;
-  const resolvedImage = rawImage ? getOptimizedImageUrl(rawImage) : null;
+  const resolvedImage = rawImage ? getThumbnailUrl(rawImage) : null;
 
   const style = {
     maxWidth: link.card_width ? `${Math.min(Math.max(link.card_width, 200), 650)}px` : '650px',
