@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn, parseLocalDate } from "@/lib/utils";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { CopyPlus, Edit } from "lucide-react";
 import { StaticIcon } from "./StaticIcon";
 
