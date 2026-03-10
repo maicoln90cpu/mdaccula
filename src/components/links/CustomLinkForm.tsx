@@ -504,20 +504,16 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
         <p className="text-sm font-medium mb-2">Preview:</p>
         <div 
           className={`relative flex items-center gap-4 rounded-xl p-4 bg-gradient-to-r ${colorGradient && colorGradient !== 'default' ? colorGradient : 'from-blue-500 to-cyan-500'} text-white shadow-lg transition-all duration-300`}
-          style={{ height: isFeatured ? '200px' : '100px' }}
+          style={{ minHeight: isFeatured ? '120px' : '80px', height: 'auto' }}
         >
-          {thumbnailUrl && (
-            <img 
-              src={thumbnailUrl} 
-              alt="Preview" 
-              className="rounded-lg object-cover flex-shrink-0"
-              style={{ 
-                width: isFeatured ? '160px' : '64px', 
-                height: isFeatured ? '160px' : '64px' 
-              }}
-            />
-          )}
-          <div className="flex-1 min-w-0 text-center">
+          <LinkCardImage
+            thumbnailUrl={thumbnailUrl}
+            alt={title || "Preview"}
+            iconName={icon || 'ExternalLink'}
+            featured={isFeatured}
+            skipOptimization
+          />
+          <div className="flex-1 min-w-0 text-left">
             <h3 className="font-semibold text-sm truncate">
               {title || "Título do Link"}
             </h3>
@@ -529,7 +525,7 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
           </div>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
-          {isFeatured ? "Card destacado (200px de altura)" : "Card normal (altura controlada em Ajustar Tamanhos)"}
+          {isFeatured ? "Card destacado" : "Card normal (altura controlada em Ajustar Tamanhos)"}
         </p>
       </div>
 
