@@ -79,7 +79,7 @@ export function getOptimizedImageUrl(
 
   // Handle existing querystring
   const separator = imagePath.includes('?') ? '&' : '?';
-  return `${cdnUrl}${separator}quality=75`;
+  return `${cdnUrl}${separator}quality=85`;
 }
 
 /**
