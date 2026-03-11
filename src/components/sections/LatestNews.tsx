@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const LatestNews = () => {
@@ -102,7 +103,7 @@ const LatestNews = () => {
                     <Card key={item.id} className="card-hover flex flex-col h-full min-h-[450px] sm:min-h-[500px]">
                       <div className="relative aspect-video overflow-hidden bg-muted/20">
                         <OptimizedImage
-                          src={item.image_url || '/placeholder.svg'}
+                          src={getThumbnailUrl(item.image_url, 400) || '/placeholder.svg'}
                           alt={item.title}
                           className="w-full h-full"
                           objectFit="contain"

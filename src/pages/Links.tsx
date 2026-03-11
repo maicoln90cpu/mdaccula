@@ -24,7 +24,7 @@ export default function Links() {
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
   const { isAdmin } = useAuth();
-  const { groups, loading, refetchLinks, duplicateLink, updateLinkOrder } = useLinks({
+  const { groups, loading, fetchError, refetchLinks, duplicateLink, updateLinkOrder } = useLinks({
     graceHours: settings.event_grace_hours ? parseInt(settings.event_grace_hours, 10) : 6,
     timezoneOffset: settings.timezone_offset ? parseInt(settings.timezone_offset, 10) : -3,
   });
@@ -191,9 +191,16 @@ export default function Links() {
             </Suspense>
           ) : (
             <div className="space-y-8">
+              {fetchError && groups.length > 0 && (
+                <div className="text-center py-3 px-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-4">
+                  <p className={cn("text-sm", theme.textSecondary)}>⚠️ Modo offline — exibindo última versão salva</p>
+                </div>
+              )}
               {displayGroups.length === 0 ? (
                 <div className="text-center py-12">
-                  <p className={cn("text-lg", theme.textSecondary)}>Nenhum link disponível no momento</p>
+                  <p className={cn("text-lg", theme.textSecondary)}>
+                    {fetchError ? "Serviço temporariamente indisponível. Tente novamente em instantes." : "Nenhum link disponível no momento"}
+                  </p>
                 </div>
               ) : (
                 displayGroups.map((group) => (
