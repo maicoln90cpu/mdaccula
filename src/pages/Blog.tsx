@@ -19,7 +19,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar, User, Search, ArrowRight, Eye, Heart, Rss } from "lucide-react";
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
@@ -50,7 +58,7 @@ const PAGE_SIZE = 9;
 const fetchBlogPostsWithFeatured = async (
   page: number,
   category: string,
-  searchTerm: string
+  searchTerm: string,
 ): Promise<PaginatedResult> => {
   // Build base query
   let query = supabase
@@ -85,12 +93,10 @@ const fetchBlogPostsWithFeatured = async (
 
   // Extract featured post (first post on page 1)
   const featuredPost = isFirstPage && allPosts.length > 0 ? allPosts[0] : null;
-  
+
   // For page 1, exclude the featured post from the grid
   // For other pages, show all posts
-  const posts = isFirstPage && featuredPost 
-    ? allPosts.slice(1) 
-    : allPosts;
+  const posts = isFirstPage && featuredPost ? allPosts.slice(1) : allPosts;
 
   return {
     posts,
@@ -109,26 +115,26 @@ const Blog = () => {
 
   // Buscar categorias dinâmicas do banco de dados
   const { data: dynamicCategories } = useQuery({
-    queryKey: ['blog-categories'],
+    queryKey: ["blog-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('category')
-        .eq('published', true);
-      
+      const { data, error } = await supabase.from("blog_posts").select("category").eq("published", true);
+
       if (error) throw error;
-      
+
       // Contar posts por categoria e ordenar por quantidade
-      const categoryCount = (data || []).reduce((acc, post) => {
-        acc[post.category] = (acc[post.category] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
+      const categoryCount = (data || []).reduce(
+        (acc, post) => {
+          acc[post.category] = (acc[post.category] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+
       // Ordenar categorias por quantidade de posts (desc)
       const sortedCategories = Object.entries(categoryCount)
         .sort((a, b) => b[1] - a[1])
         .map(([category]) => category);
-      
+
       return ["Todos", ...sortedCategories];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache
@@ -151,7 +157,7 @@ const Blog = () => {
 
   // Single consolidated query for both featured and paginated posts
   const { data: blogData, isLoading } = useQuery({
-    queryKey: ['blog-posts', currentPage, selectedCategory, debouncedSearch],
+    queryKey: ["blog-posts", currentPage, selectedCategory, debouncedSearch],
     queryFn: () => fetchBlogPostsWithFeatured(currentPage, selectedCategory, debouncedSearch),
     staleTime: 2 * 60 * 1000, // 2 minutes cache
   });
@@ -383,72 +389,76 @@ const Blog = () => {
                 </div>
               </div>
             </section>
-          ) : featuredPost && (
-            <section className="py-8 bg-background">
-              <div className="container mx-auto px-4">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 hero-text">Destaque</h2>
+          ) : (
+            featuredPost && (
+              <section className="py-8 bg-background">
+                <div className="container mx-auto px-4">
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 hero-text">Destaque</h2>
 
-                <Card className="card-hover overflow-hidden">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
-                    <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20">
-                      <img
-                        src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
-                        alt={featuredPost.title}
-                        className="w-full h-full object-contain"
-                        loading="lazy"
-                        onError={(e) => { e.currentTarget.src = djImage; }}
-                      />
-                      <div className="absolute top-4 left-4">
-                        <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
-                          {featuredPost.category}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="p-4 sm:p-5 md:p-6 flex flex-col justify-center">
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3 text-primary break-words leading-tight">
-                        {featuredPost.title}
-                      </h3>
-
-                      <p className="text-sm sm:text-base text-muted-foreground mb-4 leading-relaxed line-clamp-3">
-                        {featuredPost.excerpt}
-                      </p>
-
-                      <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
-                        <div className="flex items-center">
-                          <User className="w-4 h-4 mr-1" />
-                          MDAccula
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-1" />
-                          {new Date(featuredPost.created_at).toLocaleDateString("pt-BR")}
+                  <Card className="card-hover overflow-hidden">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+                      <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20">
+                        <img
+                          src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
+                          alt={featuredPost.title}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                          onError={(e) => {
+                            e.currentTarget.src = djImage;
+                          }}
+                        />
+                        <div className="absolute top-4 left-4">
+                          <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
+                            {featuredPost.category}
+                          </Badge>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                      <div className="p-4 sm:p-5 md:p-6 flex flex-col justify-center">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 sm:mb-3 text-primary break-words leading-tight">
+                          {featuredPost.title}
+                        </h3>
+
+                        <p className="text-sm sm:text-base text-muted-foreground mb-4 leading-relaxed line-clamp-3">
+                          {featuredPost.excerpt}
+                        </p>
+
+                        <div className="flex items-center space-x-6 text-sm text-muted-foreground mb-4">
                           <div className="flex items-center">
-                            <Eye className="w-4 h-4 mr-1" />
-                            {featuredPost.views}
+                            <User className="w-4 h-4 mr-1" />
+                            MDAccula
                           </div>
                           <div className="flex items-center">
-                            <Heart className="w-4 h-4 mr-1" />
-                            {featuredPost.likes}
+                            <Calendar className="w-4 h-4 mr-1" />
+                            {new Date(featuredPost.created_at).toLocaleDateString("pt-BR")}
                           </div>
                         </div>
 
-                        <Button asChild size="sm">
-                          <Link to={`/blog/${featuredPost.slug}`}>
-                            Ler artigo
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                          </Link>
-                        </Button>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                            <div className="flex items-center">
+                              <Eye className="w-4 h-4 mr-1" />
+                              {featuredPost.views}
+                            </div>
+                            <div className="flex items-center">
+                              <Heart className="w-4 h-4 mr-1" />
+                              {featuredPost.likes}
+                            </div>
+                          </div>
+
+                          <Button asChild size="sm">
+                            <Link to={`/blog/${featuredPost.slug}`}>
+                              Ler artigo
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </Link>
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </Card>
-              </div>
-            </section>
+                  </Card>
+                </div>
+              </section>
+            )
           )}
 
           {/* Posts Grid */}
@@ -462,7 +472,7 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="space-y-6">
+                  <div className="space-y-12">
                     {posts.map((post, index) => {
                       const isReversed = index % 2 === 1;
                       return (
@@ -471,7 +481,7 @@ const Blog = () => {
                             className="card-hover group cursor-pointer overflow-hidden"
                             style={{ animationDelay: `${index * 0.05}s` }}
                           >
-                            <div className={`flex flex-row ${isReversed ? 'flex-row-reverse' : ''}`}>
+                            <div className={`flex flex-row ${isReversed ? "flex-row-reverse" : ""}`}>
                               {/* Image lateral */}
                               <div className="relative flex-shrink-0 w-28 sm:w-36 md:w-44 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
@@ -480,10 +490,14 @@ const Blog = () => {
                                   className="w-full h-full object-contain"
                                   loading="lazy"
                                   decoding="async"
-                                  onError={(e) => { e.currentTarget.src = djImage; }}
+                                  onError={(e) => {
+                                    e.currentTarget.src = djImage;
+                                  }}
                                 />
-                                <div className={`absolute top-2 ${isReversed ? 'right-2' : 'left-2'}`}>
-                                  <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>{post.category}</Badge>
+                                <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
+                                  <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>
+                                    {post.category}
+                                  </Badge>
                                 </div>
                               </div>
 
@@ -530,26 +544,26 @@ const Blog = () => {
                         <PaginationContent className="flex-wrap gap-1">
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                               className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
                             />
                           </PaginationItem>
-                          
+
                           {(() => {
-                            const pages: (number | 'ellipsis')[] = [];
+                            const pages: (number | "ellipsis")[] = [];
                             if (totalPages <= 5) {
                               for (let i = 1; i <= totalPages; i++) pages.push(i);
                             } else {
                               pages.push(1);
                               const start = Math.max(2, currentPage - 1);
                               const end = Math.min(totalPages - 1, currentPage + 1);
-                              if (start > 2) pages.push('ellipsis');
+                              if (start > 2) pages.push("ellipsis");
                               for (let i = start; i <= end; i++) pages.push(i);
-                              if (end < totalPages - 1) pages.push('ellipsis');
+                              if (end < totalPages - 1) pages.push("ellipsis");
                               pages.push(totalPages);
                             }
                             return pages.map((p, idx) =>
-                              p === 'ellipsis' ? (
+                              p === "ellipsis" ? (
                                 <PaginationItem key={`e-${idx}`}>
                                   <PaginationEllipsis />
                                 </PaginationItem>
@@ -563,14 +577,16 @@ const Blog = () => {
                                     {p}
                                   </PaginationLink>
                                 </PaginationItem>
-                              )
+                              ),
                             );
                           })()}
-                          
+
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                              className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                              className={
+                                currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                              }
                             />
                           </PaginationItem>
                         </PaginationContent>
