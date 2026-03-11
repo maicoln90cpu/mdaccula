@@ -507,7 +507,7 @@ const Blog = () => {
                                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                                     {post.title}
                                   </h3>
-                                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 hidden sm:block">
+                                  <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mt-2 hidden sm:block">
                                     {post.excerpt || "Clique para ler mais..."}
                                   </p>
                                 </div>
