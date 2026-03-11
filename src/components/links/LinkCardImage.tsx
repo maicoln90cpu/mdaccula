@@ -39,7 +39,7 @@ export const LinkCardImage = ({
 
   const rawImage = imgError ? fallbackUrl || null : thumbnailUrl || fallbackUrl || null;
 
-  const resolvedImage = rawImage ? (skipOptimization ? rawImage : getOptimizedImageUrl(rawImage)) : null;
+  const resolvedImage = rawImage ? (skipOptimization ? rawImage : getThumbnailUrl(rawImage, 256)) : null;
 
   const containerClass = featured ? "w-20 h-20 sm:w-24 sm:h-24" : "w-16 h-16";
 
