@@ -24,7 +24,7 @@ export default function Links() {
   const navigate = useNavigate();
   const { settings } = useSiteSettings();
   const { isAdmin } = useAuth();
-  const { groups, loading, refetchLinks, duplicateLink, updateLinkOrder } = useLinks({
+  const { groups, loading, fetchError, refetchLinks, duplicateLink, updateLinkOrder } = useLinks({
     graceHours: settings.event_grace_hours ? parseInt(settings.event_grace_hours, 10) : 6,
     timezoneOffset: settings.timezone_offset ? parseInt(settings.timezone_offset, 10) : -3,
   });
