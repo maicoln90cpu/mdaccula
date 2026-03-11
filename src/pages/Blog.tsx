@@ -462,62 +462,65 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="space-y-4">
-                    {posts.map((post, index) => (
-                      <Link to={`/blog/${post.slug}`} key={post.id}>
-                        <Card
-                          className="card-hover group cursor-pointer overflow-hidden"
-                          style={{ animationDelay: `${index * 0.05}s` }}
-                        >
-                          <div className="flex flex-row">
-                            {/* Image lateral */}
-                            <div className="relative flex-shrink-0 w-28 sm:w-36 md:w-44 min-h-[100px] bg-muted/20 overflow-hidden">
-                              <img
-                                src={getOptimizedImageUrl(post.image_url) || djImage}
-                                alt={post.title}
-                                className="w-full h-full object-contain"
-                                loading="lazy"
-                                decoding="async"
-                                onError={(e) => { e.currentTarget.src = djImage; }}
-                              />
-                              <div className="absolute top-2 left-2">
-                                <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>{post.category}</Badge>
-                              </div>
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
-                              <div>
-                                <h3 className="text-sm sm:text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                                  {post.title}
-                                </h3>
-                                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 hidden sm:block">
-                                  {post.excerpt || "Clique para ler mais..."}
-                                </p>
-                              </div>
-
-                              <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-3">
-                                  <span className="flex items-center">
-                                    <Calendar className="w-3 h-3 mr-1" />
-                                    {new Date(post.created_at).toLocaleDateString("pt-BR")}
-                                  </span>
-                                  <span className="flex items-center">
-                                    <Eye className="w-3 h-3 mr-1" />
-                                    {post.views}
-                                  </span>
-                                  <span className="flex items-center">
-                                    <Heart className="w-3 h-3 mr-1" />
-                                    {post.likes}
-                                  </span>
+                  <div className="space-y-6">
+                    {posts.map((post, index) => {
+                      const isReversed = index % 2 === 1;
+                      return (
+                        <Link to={`/blog/${post.slug}`} key={post.id}>
+                          <Card
+                            className="card-hover group cursor-pointer overflow-hidden"
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                          >
+                            <div className={`flex flex-row ${isReversed ? 'flex-row-reverse' : ''}`}>
+                              {/* Image lateral */}
+                              <div className="relative flex-shrink-0 w-28 sm:w-36 md:w-44 min-h-[100px] bg-muted/20 overflow-hidden">
+                                <img
+                                  src={getOptimizedImageUrl(post.image_url) || djImage}
+                                  alt={post.title}
+                                  className="w-full h-full object-contain"
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(e) => { e.currentTarget.src = djImage; }}
+                                />
+                                <div className={`absolute top-2 ${isReversed ? 'right-2' : 'left-2'}`}>
+                                  <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>{post.category}</Badge>
                                 </div>
-                                <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors hidden sm:block" />
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
+                                <div>
+                                  <h3 className="text-sm sm:text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                                    {post.title}
+                                  </h3>
+                                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 hidden sm:block">
+                                    {post.excerpt || "Clique para ler mais..."}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
+                                  <div className="flex items-center gap-3">
+                                    <span className="flex items-center">
+                                      <Calendar className="w-3 h-3 mr-1" />
+                                      {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                                    </span>
+                                    <span className="flex items-center">
+                                      <Eye className="w-3 h-3 mr-1" />
+                                      {post.views}
+                                    </span>
+                                    <span className="flex items-center">
+                                      <Heart className="w-3 h-3 mr-1" />
+                                      {post.likes}
+                                    </span>
+                                  </div>
+                                  <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors hidden sm:block" />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        </Card>
-                      </Link>
-                    ))}
+                          </Card>
+                        </Link>
+                      );
+                    })}
                   </div>
 
                   {/* Smart Pagination */}
