@@ -31,7 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 
 interface BlogPost {
   id: string;
@@ -485,7 +485,7 @@ const Blog = () => {
                               {/* Image lateral */}
                               <div className="relative flex-shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
-                                  src={getThumbnailUrl(post.image_url, 400) || djImage}
+                                  src={getOptimizedImageUrl(post.image_url) || djImage}
                                   alt={post.title}
                                   className="w-full h-full object-contain"
                                   loading="lazy"
