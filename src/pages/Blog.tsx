@@ -472,7 +472,7 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="space-y-12">
+                  <div className="space-y-20 py-2">
                     {posts.map((post, index) => {
                       const isReversed = index % 2 === 1;
                       return (
@@ -483,7 +483,7 @@ const Blog = () => {
                           >
                             <div className={`flex flex-row ${isReversed ? "flex-row-reverse" : ""}`}>
                               {/* Image lateral */}
-                              <div className="relative flex-shrink-0 w-28 sm:w-36 md:w-44 min-h-[100px] bg-muted/20 overflow-hidden">
+                              <div className="relative flex-shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
                                   src={getOptimizedImageUrl(post.image_url) || djImage}
                                   alt={post.title}
@@ -504,10 +504,10 @@ const Blog = () => {
                               {/* Content */}
                               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
                                 <div>
-                                  <h3 className="text-sm sm:text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                                     {post.title}
                                   </h3>
-                                  <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 hidden sm:block">
+                                  <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mt-2 hidden sm:block">
                                     {post.excerpt || "Clique para ler mais..."}
                                   </p>
                                 </div>
