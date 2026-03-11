@@ -472,7 +472,7 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="space-y-12">
+                  <div className="space-y-20 py-2">
                     {posts.map((post, index) => {
                       const isReversed = index % 2 === 1;
                       return (
