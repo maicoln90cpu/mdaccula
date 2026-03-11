@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
+import { getThumbnailUrl } from "@/lib/imageUtils";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const LatestNews = () => {
