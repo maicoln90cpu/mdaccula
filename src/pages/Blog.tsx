@@ -504,7 +504,7 @@ const Blog = () => {
                               {/* Content */}
                               <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
                                 <div>
-                                  <h3 className="text-sm sm:text-base md:text-lg font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                                     {post.title}
                                   </h3>
                                   <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1 hidden sm:block">
