@@ -1,74 +1,57 @@
 
+Objetivo: descobrir por que “sumiu tudo” mesmo com Bunny CDN e definir correção completa.
 
-## Analise item a item das recomendacoes
+1) O que foi descoberto (raiz do problema)
+- O conteúdo não foi apagado do banco: existem dados (ex.: 22 grupos de links, 199 links, 126 posts, 159 eventos).
+- O projeto Supabase está bloqueado por quota (`exceed_cached_egress_quota`), então:
+  - REST (`/rest/v1/...`) retorna 402
+  - Edge Functions retornam 402
+  - Parte das imagens via CDN também retorna 402 quando não está em cache quente.
+- Bunny CDN cacheia arquivos de imagem, mas a UI depende primeiro dos dados do banco (links, posts, eventos). Sem JSON da API, não há “o que renderizar”.
+- Há um problema adicional “por baixo”: o Service Worker foi configurado para cachear `link_groups/site_settings`, mas o `shouldBypassCache()` bloqueia todos requests externos antes dessa regra. Na prática, esse cache de API nunca entra em ação.
 
-### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
-Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
+2) Plano de correção (ordem recomendada)
+Fase A — Recuperação imediata (incidente)
+- Abrir chamado no Supabase para desbloquear o projeto (sem isso, nenhum endpoint público volta).
+- Validar retorno 200 em:
+  - `/rest/v1/site_settings`
+  - `/rest/v1/link_groups`
+  - `/functions/v1/blog-rss`
+  - imagens no `cdn.mdaccula.com`.
 
-### 2. Cloudflare -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+Fase B — Reduzir egress novamente (hotfix)
+- Reverter parâmetros de imagem para reaproveitar cache antigo e reduzir misses:
+  - `src/lib/imageUtils.ts`: voltar qualidade padrão para 75.
+  - `src/components/links/LinkCardImage.tsx`: usar `getThumbnailUrl(..., 256)` para cards pequenos.
+  - `src/pages/Blog.tsx` e `src/components/sections/LatestNews.tsx`: usar thumbnail com largura limitada (ex.: 400) em listagens.
 
-### 3. Bunny -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+Fase C — Resiliência quando Supabase cair/bloquear
+- Implementar fallback persistente de dados (stale cache local) para páginas públicas:
+  - `useLinks`, `useEvents`, `Blog` (query function) e `SiteSettingsContext`.
+  - Salvar último payload válido em localStorage (com timestamp/TTL).
+  - Em erro 402/offline: renderizar snapshot + banner “modo contingência”.
+- Trocar empty-state enganoso:
+  - Em `/links`, se erro de backend, mostrar “serviço temporariamente indisponível” em vez de “Nenhum link disponível”.
 
-### 4. HTML/HEAD -- PARCIALMENTE CORRETO
+Fase D — Corrigir Service Worker (bug estrutural)
+- `public/service-worker.js`:
+  - Mover regra de cache dos endpoints Supabase para antes do bypass global, ou criar allowlist explícita para `site_settings`, `link_groups`, `blog_posts`, `events`.
+  - Continuar sem cache para auth/sensível.
+  - Garantir cache apenas de respostas 200.
+- Resultado esperado: em nova indisponibilidade, visitantes ainda veem último estado conhecido.
 
-**4a. Remover preconnect do Supabase?**
-- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
-- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
-- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
+3) Arquivos que serão alterados
+- `src/lib/imageUtils.ts`
+- `src/components/links/LinkCardImage.tsx`
+- `src/pages/Blog.tsx`
+- `src/components/sections/LatestNews.tsx`
+- `src/hooks/useLinks.ts`
+- `src/hooks/useEvents.ts`
+- `src/contexts/SiteSettingsContext.tsx`
+- `public/service-worker.js`
+- `src/pages/Links.tsx` (tratamento de erro/estado de contingência)
 
-**4b. Remover meta tags de no-cache?**
-- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
-
-**4c. Manter preconnect cdn.mdaccula.com?**
-- **CONCORDO**. Ja esta correto no codigo.
-
-### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
-
-O `index.html` usa `storage.googleapis.com` em 3 lugares:
-- Linha 19: favicon
-- Linha 44: og:image (imagem social da home)
-- Linha 45: twitter:image
-
-Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
-- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
-- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
-- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
-
-### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
-
-A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
-
-O `?quality=75` no seu caso e apenas um parametro na URL que:
-- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
-- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
-
-**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
-
-**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
-
-### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
-
-O texto do blog (JSON) gera egress sim, mas:
-- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
-- Ja removemos o prefetch de 110 posts na navigation
-- Ja aumentamos staleTime do site_settings para 15 min
-- Ja filtramos eventos inativos no servidor
-
-O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
-
-As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
-
----
-
-## Plano de implementacao
-
-Apenas 2 mudancas simples no `index.html`:
-
-**1. Remover preconnect para Supabase errado** (linhas 7-8)
-O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
-
-**2. Remover meta tags de no-cache** (linhas 22-25)
-Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
-
+4) Critérios de aceite
+- Com Supabase normal: conteúdo carrega e imagens servem via CDN sem explosão de egress.
+- Com Supabase forçando 402: `/links`, `/blog`, home continuam exibindo snapshot local + aviso de contingência.
+- Empty state não confunde mais indisponibilidade com ausência real de conteúdo.
