@@ -49,26 +49,39 @@ export interface UseLinksOptions {
   timezoneOffset?: number;
 }
 
+const LINKS_CACHE_KEY = 'mdaccula-links-cache';
+
+const getCachedLinks = (): LinkGroup[] | null => {
+  try {
+    const cached = localStorage.getItem(LINKS_CACHE_KEY);
+    if (!cached) return null;
+    const { data } = JSON.parse(cached);
+    return data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedLinks = (data: LinkGroup[]) => {
+  try {
+    localStorage.setItem(LINKS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch {}
+};
+
 const processLinks = (
   links: RawLinkData[], 
   settings: Partial<TimezoneSettings> = {}
 ): CustomLink[] => {
   return links
     .map((link) => {
-      // Check visibility for links with events or override dates
       const eventDate = link.events?.date || link.override_date;
       const eventTime = link.events?.time || link.override_time || "22:00";
       
       if (eventDate) {
         const isVisible = isEventVisible(
-          { 
-            date: eventDate, 
-            time: eventTime,
-            end_time: null // links don't have end_time
-          },
+          { date: eventDate, time: eventTime, end_time: null },
           settings
         );
-        
         if (!isVisible) {
           return { ...link, enabled: false };
         }
@@ -80,19 +93,20 @@ const processLinks = (
 };
 
 export const useLinks = (options: UseLinksOptions = {}) => {
-  const [groups, setGroups] = useState<LinkGroup[]>([]);
+  const [groups, setGroups] = useState<LinkGroup[]>(() => getCachedLinks() || []);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
 
   const { graceHours = 6, timezoneOffset = -3 } = options;
 
   const fetchLinks = useCallback(async () => {
     try {
+      setFetchError(null);
       const visibilitySettings: Partial<TimezoneSettings> = {
         graceHours,
         timezoneOffset,
       };
 
-      // Optimized query: select only required fields to reduce payload size
       const { data, error } = await supabase
         .from("link_groups")
         .select(`
@@ -103,12 +117,7 @@ export const useLinks = (options: UseLinksOptions = {}) => {
             group_id, event_id, override_date, override_time, manual_order_override,
             is_internal, clicks,
             events:event_id (
-              venue,
-              location_city,
-              location_state,
-              date,
-              time,
-              image_url
+              venue, location_city, location_state, date, time, image_url
             )
           )
         `)
@@ -122,29 +131,29 @@ export const useLinks = (options: UseLinksOptions = {}) => {
         custom_links: processLinks(group.custom_links || [], visibilitySettings),
       }));
 
-      setGroups(groupsWithLinks || []);
+      const result = groupsWithLinks || [];
+      setGroups(result);
+      setCachedLinks(result);
     } catch (error) {
       logger.error("Error fetching links", error, { component: 'useLinks' });
+      setFetchError(error as Error);
+      // If we have no data yet, try localStorage fallback
+      if (groups.length === 0) {
+        const cached = getCachedLinks();
+        if (cached && cached.length > 0) {
+          setGroups(cached);
+        }
+      }
     } finally {
       setLoading(false);
     }
   }, [graceHours, timezoneOffset]);
 
-  // Initial fetch with cleanup
   useEffect(() => {
     let isMounted = true;
-    
-    const load = async () => {
-      await fetchLinks();
-    };
-    
-    if (isMounted) {
-      load();
-    }
-    
-    return () => {
-      isMounted = false;
-    };
+    const load = async () => { await fetchLinks(); };
+    if (isMounted) { load(); }
+    return () => { isMounted = false; };
   }, [fetchLinks]);
 
   const duplicateLink = async (link: CustomLink) => {
@@ -175,7 +184,6 @@ export const useLinks = (options: UseLinksOptions = {}) => {
         .single();
 
       if (error) throw error;
-
       toast.success("Link duplicado com sucesso!");
       await fetchLinks();
     } catch (error) {
@@ -192,45 +200,31 @@ export const useLinks = (options: UseLinksOptions = {}) => {
   ) => {
     const activeGroup = groups.find(g => g.id === activeGroupId);
     const overGroup = groups.find(g => g.id === overGroupId);
-
     if (!activeGroup || !overGroup) return;
 
     const activeLink = activeGroup.custom_links.find(l => l.id === activeId);
     const overLink = overGroup.custom_links.find(l => l.id === overId);
-
     if (!activeLink || !overLink) return;
 
     const newGroups = [...groups];
 
-    // Moving between different groups
     if (activeGroupId !== overGroupId) {
       const activeGroupIndex = newGroups.findIndex(g => g.id === activeGroupId);
-      newGroups[activeGroupIndex].custom_links = newGroups[activeGroupIndex].custom_links.filter(
-        l => l.id !== activeId
-      );
-
+      newGroups[activeGroupIndex].custom_links = newGroups[activeGroupIndex].custom_links.filter(l => l.id !== activeId);
       const overGroupIndex = newGroups.findIndex(g => g.id === overGroupId);
       const overLinkIndex = newGroups[overGroupIndex].custom_links.findIndex(l => l.id === overId);
       newGroups[overGroupIndex].custom_links.splice(overLinkIndex, 0, { ...activeLink, group_id: overGroupId, manual_order_override: true });
-
-      await supabase
-        .from("custom_links")
-        .update({ group_id: overGroupId, manual_order_override: true })
-        .eq("id", activeId);
+      await supabase.from("custom_links").update({ group_id: overGroupId, manual_order_override: true }).eq("id", activeId);
     } else {
-      // Moving within the same group
       const groupIndex = newGroups.findIndex(g => g.id === activeGroupId);
       const oldIndex = newGroups[groupIndex].custom_links.findIndex(l => l.id === activeId);
       const newIndex = newGroups[groupIndex].custom_links.findIndex(l => l.id === overId);
-
       const [removed] = newGroups[groupIndex].custom_links.splice(oldIndex, 1);
       newGroups[groupIndex].custom_links.splice(newIndex, 0, { ...removed, manual_order_override: true });
     }
 
-    // Batch update display_order for all affected links (avoid N+1)
     const affectedGroupIds = new Set([activeGroupId, overGroupId]);
     const allUpdates: { id: string; display_order: number; manual_order_override: boolean }[] = [];
-    
     for (const group of newGroups) {
       if (affectedGroupIds.has(group.id)) {
         group.custom_links.forEach((link, index) => {
@@ -243,8 +237,6 @@ export const useLinks = (options: UseLinksOptions = {}) => {
       }
     }
 
-    // Single batch update using Promise.all with chunked requests
-    // Group updates by 10 to avoid overwhelming the database
     const BATCH_SIZE = 10;
     const batches = [];
     for (let i = 0; i < allUpdates.length; i += BATCH_SIZE) {
@@ -255,13 +247,7 @@ export const useLinks = (options: UseLinksOptions = {}) => {
       batches.map(batch =>
         Promise.all(
           batch.map(update =>
-            supabase
-              .from("custom_links")
-              .update({ 
-                display_order: update.display_order,
-                manual_order_override: update.manual_order_override 
-              })
-              .eq("id", update.id)
+            supabase.from("custom_links").update({ display_order: update.display_order, manual_order_override: update.manual_order_override }).eq("id", update.id)
           )
         )
       )
@@ -273,6 +259,7 @@ export const useLinks = (options: UseLinksOptions = {}) => {
   return {
     groups,
     loading,
+    fetchError,
     refetchLinks: fetchLinks,
     duplicateLink,
     updateLinkOrder,

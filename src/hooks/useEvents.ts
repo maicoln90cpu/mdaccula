@@ -4,6 +4,24 @@ import { isEventVisible } from "@/lib/eventDateHelper";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import type { Event } from "@/types";
 
+const EVENTS_CACHE_KEY = 'mdaccula-events-cache';
+
+const getCachedEvents = (): Event[] | null => {
+  try {
+    const cached = localStorage.getItem(EVENTS_CACHE_KEY);
+    if (!cached) return null;
+    return JSON.parse(cached).data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedEvents = (data: Event[]) => {
+  try {
+    localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch {}
+};
+
 export function useEvents() {
   const { settings, isLoading: settingsLoading } = useSiteSettings();
   const queryClient = useQueryClient();
@@ -14,7 +32,6 @@ export function useEvents() {
   const query = useQuery({
     queryKey: ["events", graceHours, timezoneOffset],
     queryFn: async (): Promise<Event[]> => {
-      // Server-side filter: only events from recent days (grace period)
       const graceDate = new Date();
       graceDate.setDate(graceDate.getDate() - Math.ceil(graceHours / 24) - 1);
       const dateFilter = graceDate.toISOString().split('T')[0];
@@ -28,7 +45,6 @@ export function useEvents() {
 
       if (error) throw error;
 
-      // Filter visible events based on grace hours and timezone
       const visibleEvents = (data || []).filter((event) =>
         isEventVisible(
           { date: event.date, time: event.time, end_time: event.end_time },
@@ -36,11 +52,15 @@ export function useEvents() {
         )
       );
 
+      // Save to localStorage for offline fallback
+      setCachedEvents(visibleEvents);
       return visibleEvents;
     },
     enabled: !settingsLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    // Use localStorage cache as placeholder
+    placeholderData: () => getCachedEvents() ?? undefined,
   });
 
   const refetch = () => {
@@ -48,7 +68,7 @@ export function useEvents() {
   };
 
   return {
-    events: query.data || [],
+    events: query.data || getCachedEvents() || [],
     isLoading: query.isLoading || settingsLoading,
     isError: query.isError,
     error: query.error,
