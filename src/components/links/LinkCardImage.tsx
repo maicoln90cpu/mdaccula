@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getOriginalSupabaseUrl } from "@/lib/imageUtils";
 import { StaticIcon } from "./StaticIcon";
 
 interface LinkCardImageProps {
@@ -36,7 +36,7 @@ export const LinkCardImage = ({
   skipOptimization = false,
 }: LinkCardImageProps) => {
   const [imgError, setImgError] = useState(false);
-
+  const [triedSupabase, setTriedSupabase] = useState(false);
   const rawImage = imgError ? fallbackUrl || null : thumbnailUrl || fallbackUrl || null;
 
   const resolvedImage = rawImage ? (skipOptimization ? rawImage : getOptimizedImageUrl(rawImage)) : null;
@@ -58,7 +58,17 @@ export const LinkCardImage = ({
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setImgError(true)}
+        onError={(e) => {
+          if (!triedSupabase && !skipOptimization) {
+            const supabaseUrl = getOriginalSupabaseUrl(e.currentTarget.src);
+            if (supabaseUrl && supabaseUrl !== e.currentTarget.src) {
+              setTriedSupabase(true);
+              e.currentTarget.src = supabaseUrl;
+              return;
+            }
+          }
+          setImgError(true);
+        }}
         className="w-full h-full object-contain rounded-md"
       />
     </div>

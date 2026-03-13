@@ -31,7 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getOriginalSupabaseUrl } from "@/lib/imageUtils";
 
 interface BlogPost {
   id: string;
@@ -404,7 +404,13 @@ const Blog = () => {
                           className="w-full h-full object-contain"
                           loading="lazy"
                           onError={(e) => {
-                            e.currentTarget.src = djImage;
+                            const target = e.currentTarget;
+                            const supabaseUrl = getOriginalSupabaseUrl(target.src);
+                            if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
+                              target.src = supabaseUrl;
+                            } else if (target.src !== djImage) {
+                              target.src = djImage;
+                            }
                           }}
                         />
                         <div className="absolute top-4 left-4">
@@ -491,7 +497,13 @@ const Blog = () => {
                                   loading="lazy"
                                   decoding="async"
                                   onError={(e) => {
-                                    e.currentTarget.src = djImage;
+                                    const target = e.currentTarget;
+                                    const supabaseUrl = getOriginalSupabaseUrl(target.src);
+                                    if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
+                                      target.src = supabaseUrl;
+                                    } else if (target.src !== djImage) {
+                                      target.src = djImage;
+                                    }
                                   }}
                                 />
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>

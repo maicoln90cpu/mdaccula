@@ -24,10 +24,17 @@ const SUPABASE_STORAGE_PATTERN = /\/storage\/v1\/object\/public\//;
  */
 const BUNNY_CDN_HOST = 'https://cdn.mdaccula.com';
 
+const SUPABASE_ORIGIN = 'https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public';
+
 /**
  * Regex para extrair o path após /storage/v1/object/public/
  */
 const SUPABASE_PATH_REGEX = /\/storage\/v1\/object\/public\/(.+)$/;
+
+/**
+ * Regex para extrair o path após o Bunny CDN host
+ */
+const BUNNY_PATH_REGEX = /^https:\/\/cdn\.mdaccula\.com\/(.+)$/;
 
 /**
  * Transforma uma URL de imagem do Supabase Storage em uma URL
@@ -71,5 +78,23 @@ export function getOptimizedImageUrl(
   }
 
   return `${BUNNY_CDN_HOST}/${imagePath}`;
+}
+
+/**
+ * Reverte uma URL do Bunny CDN para a URL original do Supabase Storage.
+ * Usado como fallback quando o CDN falha (cache corrompido, purge pendente).
+ * 
+ * cdn.mdaccula.com/event-images/img.webp → supabase.co/.../event-images/img.webp
+ */
+export function getOriginalSupabaseUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  
+  const match = url.match(BUNNY_PATH_REGEX);
+  if (match) {
+    return `${SUPABASE_ORIGIN}/${match[1]}`;
+  }
+  
+  // If it's already a Supabase URL or other URL, return as-is
+  return url;
 }
 
