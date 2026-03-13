@@ -80,3 +80,21 @@ export function getOptimizedImageUrl(
   return `${BUNNY_CDN_HOST}/${imagePath}`;
 }
 
+/**
+ * Reverte uma URL do Bunny CDN para a URL original do Supabase Storage.
+ * Usado como fallback quando o CDN falha (cache corrompido, purge pendente).
+ * 
+ * cdn.mdaccula.com/event-images/img.webp → supabase.co/.../event-images/img.webp
+ */
+export function getOriginalSupabaseUrl(url: string | null | undefined): string {
+  if (!url) return '';
+  
+  const match = url.match(BUNNY_PATH_REGEX);
+  if (match) {
+    return `${SUPABASE_ORIGIN}/${match[1]}`;
+  }
+  
+  // If it's already a Supabase URL or other URL, return as-is
+  return url;
+}
+
