@@ -24,10 +24,17 @@ const SUPABASE_STORAGE_PATTERN = /\/storage\/v1\/object\/public\//;
  */
 const BUNNY_CDN_HOST = 'https://cdn.mdaccula.com';
 
+const SUPABASE_ORIGIN = 'https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public';
+
 /**
  * Regex para extrair o path após /storage/v1/object/public/
  */
 const SUPABASE_PATH_REGEX = /\/storage\/v1\/object\/public\/(.+)$/;
+
+/**
+ * Regex para extrair o path após o Bunny CDN host
+ */
+const BUNNY_PATH_REGEX = /^https:\/\/cdn\.mdaccula\.com\/(.+)$/;
 
 /**
  * Transforma uma URL de imagem do Supabase Storage em uma URL
