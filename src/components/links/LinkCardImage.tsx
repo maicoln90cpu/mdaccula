@@ -58,7 +58,17 @@ export const LinkCardImage = ({
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setImgError(true)}
+        onError={(e) => {
+          if (!triedSupabase && !skipOptimization) {
+            const supabaseUrl = getOriginalSupabaseUrl(e.currentTarget.src);
+            if (supabaseUrl && supabaseUrl !== e.currentTarget.src) {
+              setTriedSupabase(true);
+              e.currentTarget.src = supabaseUrl;
+              return;
+            }
+          }
+          setImgError(true);
+        }}
         className="w-full h-full object-contain rounded-md"
       />
     </div>

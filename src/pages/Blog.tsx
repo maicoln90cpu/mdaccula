@@ -497,7 +497,13 @@ const Blog = () => {
                                   loading="lazy"
                                   decoding="async"
                                   onError={(e) => {
-                                    e.currentTarget.src = djImage;
+                                    const target = e.currentTarget;
+                                    const supabaseUrl = getOriginalSupabaseUrl(target.src);
+                                    if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
+                                      target.src = supabaseUrl;
+                                    } else if (target.src !== djImage) {
+                                      target.src = djImage;
+                                    }
                                   }}
                                 />
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>

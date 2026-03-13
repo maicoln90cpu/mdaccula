@@ -102,7 +102,7 @@ const LatestNews = () => {
                     <Card key={item.id} className="card-hover flex flex-col h-full min-h-[450px] sm:min-h-[500px]">
                       <div className="relative aspect-video overflow-hidden bg-muted/20">
                         <OptimizedImage
-                          src={getOptimizedImageUrl(item.image_url) || '/placeholder.svg'}
+                          src={item.image_url || '/placeholder.svg'}
                           alt={item.title}
                           className="w-full h-full"
                           objectFit="contain"

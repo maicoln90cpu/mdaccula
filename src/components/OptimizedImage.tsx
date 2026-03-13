@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
-import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { getOptimizedImageUrl, getOriginalSupabaseUrl } from '@/lib/imageUtils';
 
 interface OptimizedImageProps {
   src: string;
@@ -20,11 +20,26 @@ export const OptimizedImage = ({
 }: OptimizedImageProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [triedFallback, setTriedFallback] = useState(false);
 
   const optimizedSrc = useMemo(() => {
     if (!src) return src;
     return getOptimizedImageUrl(src);
   }, [src]);
+
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    if (!triedFallback) {
+      // Try original Supabase URL as fallback
+      const supabaseUrl = getOriginalSupabaseUrl(e.currentTarget.src);
+      if (supabaseUrl && supabaseUrl !== e.currentTarget.src) {
+        setTriedFallback(true);
+        e.currentTarget.src = supabaseUrl;
+        return;
+      }
+    }
+    setIsLoading(false);
+    setHasError(true);
+  };
 
   return (
     <div className={`relative ${className}`}>
@@ -46,7 +61,7 @@ export const OptimizedImage = ({
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
           onLoad={() => setIsLoading(false)}
-          onError={() => { setIsLoading(false); setHasError(true); }}
+          onError={handleError}
         />
       )}
     </div>

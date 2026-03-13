@@ -571,7 +571,11 @@ const Eventos = () => {
                         className="w-full h-full object-contain"
                         onError={(e) => {
                           const target = e.currentTarget;
-                          if (target.src !== djImage) {
+                          // Try Supabase direct URL before falling back to djImage
+                          const supabaseUrl = getOriginalSupabaseUrl(target.src);
+                          if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
+                            target.src = supabaseUrl;
+                          } else if (target.src !== djImage) {
                             target.src = djImage;
                           }
                         }}
