@@ -573,9 +573,9 @@ ${hasRealTicketLink
         const imageTitle = eventData.title || formFields.title;
         const imageSummary = eventData.excerpt || formFields.summary || '';
         const imageCategory = eventData.category || formFields.category || 'Música Eletrônica';
-        const imageKeywords = formFields.keywords || '';
-        const imageMood = formFields.mood || '';
-        const imageVisualElements = formFields.visualElements || '';
+        const imageKeywords = extractKeywords(eventData.content || '');
+        const imageMood = inferMood(eventData.content || '', imageTitle);
+        const imageVisualElements = `${imageTitle}, ${imageCategory}, ${imageSummary}`.substring(0, 200);
         
         console.log(`[${Date.now()}] 🎨 Gerando imagem para: ${imageTitle}`);
         console.log(`[${Date.now()}] 📝 Variáveis de imagem: keywords="${imageKeywords}", mood="${imageMood}", visualElements="${imageVisualElements}"`);
