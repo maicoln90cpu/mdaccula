@@ -1,74 +1,55 @@
 
 
-## Analise item a item das recomendacoes
+## Problema: Imagens genéricas no gerador de artigos
 
-### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
-Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
+### Causa raiz
 
-### 2. Cloudflare -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+No `generate-blog-post-v2/index.ts`, linhas 540-542, as variáveis do prompt de imagem vêm dos **campos do formulário**:
 
-### 3. Bunny -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+```
+const imageKeywords = formFields.keywords || '';    // ← VAZIO
+const imageMood = formFields.mood || '';             // ← VAZIO  
+const imageVisualElements = formFields.visualElements || ''; // ← VAZIO
+```
 
-### 4. HTML/HEAD -- PARCIALMENTE CORRETO
+O formulário (`GenerateForm.tsx`) não tem campos para `keywords`, `mood` ou `visualElements`. Resultado: o prompt de imagem vai para a IA com essas variáveis **vazias**, gerando imagens genéricas de "música eletrônica" sem contexto.
 
-**4a. Remover preconnect do Supabase?**
-- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
-- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
-- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
+Enquanto isso, o `regenerate-blog-image` funciona melhor porque ele **extrai keywords do conteúdo** e **infere o mood** a partir do texto — mas mesmo esse usa o mesmo modelo que também pode produzir genéricos.
 
-**4b. Remover meta tags de no-cache?**
-- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
+### Solução
 
-**4c. Manter preconnect cdn.mdaccula.com?**
-- **CONCORDO**. Ja esta correto no codigo.
+Reutilizar a lógica do `regenerate-blog-image` dentro do `generate-blog-post-v2`: após gerar o texto do artigo (quando já temos `eventData.content`, `eventData.title`, `eventData.excerpt`), **extrair keywords e inferir mood do conteúdo gerado** antes de montar o prompt de imagem.
 
-### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
+### Alterações
 
-O `index.html` usa `storage.googleapis.com` em 3 lugares:
-- Linha 19: favicon
-- Linha 44: og:image (imagem social da home)
-- Linha 45: twitter:image
+**Arquivo: `supabase/functions/generate-blog-post-v2/index.ts`**
 
-Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
-- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
-- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
-- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
+1. Adicionar as funções `extractKeywords` e `inferMood` (copiar do `regenerate-blog-image`) antes do `Deno.serve`
+2. Nas linhas 540-542, substituir:
+   - `imageKeywords = formFields.keywords || ''` → `extractKeywords(eventData.content || '')`
+   - `imageMood = formFields.mood || ''` → `inferMood(eventData.content || '', imageTitle)`
+   - `imageVisualElements` → construir a partir do título + categoria + excerpt
 
-### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
+**Arquivo: `supabase/functions/regenerate-blog-image/index.ts`**
 
-A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
+3. Atualizar o modelo de `google/gemini-2.5-flash-image-preview` para `google/gemini-2.5-flash-image` (nome correto do modelo disponível)
 
-O `?quality=75` no seu caso e apenas um parametro na URL que:
-- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
-- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
+**Ambas as edge functions** precisam ser re-deployed após as alterações.
 
-**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
+### Resultado esperado
 
-**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
+O prompt de imagem passa de algo como:
+```
+Palavras-chave: (vazio)
+Atmosfera desejada: (vazio)
+Elementos visuais: (vazio)
+```
+Para:
+```
+Palavras-chave: promotoras, queer, coletivos, eletrônica, curadorias
+Atmosfera desejada: celebratório
+Elementos visuais: cultura, movimento, expressão artística
+```
 
-### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
-
-O texto do blog (JSON) gera egress sim, mas:
-- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
-- Ja removemos o prefetch de 110 posts na navigation
-- Ja aumentamos staleTime do site_settings para 15 min
-- Ja filtramos eventos inativos no servidor
-
-O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
-
-As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
-
----
-
-## Plano de implementacao
-
-Apenas 2 mudancas simples no `index.html`:
-
-**1. Remover preconnect para Supabase errado** (linhas 7-8)
-O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
-
-**2. Remover meta tags de no-cache** (linhas 22-25)
-Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
+Isso dá contexto suficiente para a IA gerar imagens específicas ao tema do artigo.
 
