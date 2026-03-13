@@ -70,15 +70,6 @@ export function getOptimizedImageUrl(
     // If URL parsing fails, continue with original path
   }
 
-  const cdnUrl = `${BUNNY_CDN_HOST}/${imagePath}`;
-
-  // Avoid duplicating quality param if already present
-  if (imagePath.includes('quality=')) {
-    return cdnUrl;
-  }
-
-  // Handle existing querystring
-  const separator = imagePath.includes('?') ? '&' : '?';
-  return `${cdnUrl}${separator}quality=75`;
+  return `${BUNNY_CDN_HOST}/${imagePath}`;
 }
 
