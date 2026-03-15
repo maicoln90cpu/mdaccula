@@ -2,7 +2,7 @@
 
 > Registro de alterações, bugs, melhorias e histórico do projeto
 
-**Última atualização:** 18/02/2026
+**Última atualização:** 15/03/2026
 
 ---
 
