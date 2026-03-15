@@ -4,9 +4,9 @@
 
 > Planejamento de fases, prioridades e cronograma para evolução da plataforma.
 
-**Versão:** 1.2  
-**Data:** 23/01/2026  
-**Status Atual:** Fase 2 - Consolidação em andamento
+**Versão:** 1.3  
+**Data:** 15/03/2026  
+**Status Atual:** Fase 2 Concluída, Fase 3 Iniciando
 
 ---
 
@@ -29,11 +29,11 @@
 │  Fase 1: MVP             │  Status: ✅ CONCLUÍDO               │
 │  Dez/2025 - Jan/2026     │  Website + Admin + IA + Analytics   │
 ├─────────────────────────────────────────────────────────────────┤
-│  Fase 2: Consolidação    │  Status: 🔄 EM ANDAMENTO            │
-│  Jan-Fev/2026            │  Segurança + Automação + Docs       │
+│  Fase 2: Consolidação    │  Status: ✅ CONCLUÍDO               │
+│  Jan-Fev/2026            │  Segurança + Automação + CDN + Docs │
 ├─────────────────────────────────────────────────────────────────┤
-│  Fase 3: Expansão        │  Status: ⏳ PLANEJADO               │
-│  Mar-Abr/2026            │  PWA + Integrações + Analytics 2.0  │
+│  Fase 3: Expansão        │  Status: 🔄 INICIANDO               │
+│  Mar-Abr/2026            │  Engajamento + WhatsApp + PWA       │
 ├─────────────────────────────────────────────────────────────────┤
 │  Fase 4: Escala          │  Status: 💭 FUTURO                  │
 │  Mai-Jun/2026            │  Mobile App + Multi-tenant + APIs   │
@@ -45,138 +45,127 @@
 ## Fase 1 - MVP
 
 **Período:** Dezembro 2025 - Janeiro 2026  
-**Status:** ✅ CONCLUÍDO  
-**Objetivo:** Lançar plataforma funcional com todas as features core
+**Status:** ✅ CONCLUÍDO
 
 ### Features Entregues
 
-#### Website Público ✅
-| Feature | Status | Data |
-|---------|--------|------|
-| Homepage com hero e seções | ✅ Concluído | Dez/2025 |
-| Lista de eventos com filtros | ✅ Concluído | Dez/2025 |
-| Página de detalhe de evento | ✅ Concluído | Dez/2025 |
-| Blog com busca full-text | ✅ Concluído | Dez/2025 |
-| Página de artigo | ✅ Concluído | Dez/2025 |
-| Página de links (Linktree-style) | ✅ Concluído | Dez/2025 |
-| Página Quem Somos | ✅ Concluído | Dez/2025 |
-| Formulário de contato | ✅ Concluído | Dez/2025 |
-| SEO (meta tags, sitemap, RSS) | ✅ Concluído | Dez/2025 |
-
-#### Painel Administrativo ✅
-| Feature | Status | Data |
-|---------|--------|------|
-| Autenticação com roles | ✅ Concluído | Dez/2025 |
-| CRUD de eventos | ✅ Concluído | Dez/2025 |
-| Templates de eventos | ✅ Concluído | Dez/2025 |
-| CRUD de posts do blog | ✅ Concluído | Dez/2025 |
-| CRUD de links e grupos | ✅ Concluído | Dez/2025 |
-| Gestão de equipe | ✅ Concluído | Dez/2025 |
-| Configurações do sistema | ✅ Concluído | Dez/2025 |
-
-#### Sistema de IA ✅
-| Feature | Status | Data |
-|---------|--------|------|
-| Geração de sugestões | ✅ Concluído | Dez/2025 |
-| Geração de artigos | ✅ Concluído | Dez/2025 |
-| Geração de imagens | ✅ Concluído | Dez/2025 |
-| Múltiplos modelos (Gemini/GPT) | ✅ Concluído | Dez/2025 |
-| Agendamento automático (cron) | ✅ Concluído | Jan/2026 |
-| Templates de prompts | ✅ Concluído | Dez/2025 |
-
-#### Newsletter ✅
-| Feature | Status | Data |
-|---------|--------|------|
-| Popup de inscrição | ✅ Concluído | Dez/2025 |
-| Testes A/B | ✅ Concluído | Dez/2025 |
-| Gestão de inscritos | ✅ Concluído | Dez/2025 |
-| Envio em massa | ✅ Concluído | Dez/2025 |
-
-#### Analytics ✅
-| Feature | Status | Data |
-|---------|--------|------|
-| Views de posts/eventos | ✅ Concluído | Dez/2025 |
-| Cliques em links | ✅ Concluído | Dez/2025 |
-| Compartilhamentos | ✅ Concluído | Dez/2025 |
-| Custos de geração IA | ✅ Concluído | Dez/2025 |
+- ✅ Homepage com hero e seções dinâmicas
+- ✅ Lista de eventos com filtros (cidade, gênero, estado)
+- ✅ Página de detalhe de evento
+- ✅ Blog com busca full-text (tsvector)
+- ✅ Página de links (Linktree-style)
+- ✅ Quem Somos, Contato, SEO
+- ✅ Autenticação com roles (RBAC)
+- ✅ CRUD completo (eventos, posts, links, equipe)
+- ✅ Sistema de IA (sugestões, geração, imagens, cron)
+- ✅ Newsletter com A/B testing
+- ✅ Analytics (views, cliques, shares, custos IA)
 
 ---
 
 ## Fase 2 - Consolidação
 
-**Período:** Janeiro - Fevereiro 2026  
-**Status:** 🔄 EM ANDAMENTO  
-**Objetivo:** Fortalecer segurança, automação e documentação
+**Período:** Janeiro - Março 2026  
+**Status:** ✅ CONCLUÍDO
 
 ### Automação 🤖
 
-| Feature | Status | Prioridade | Data |
-|---------|--------|------------|------|
-| Cron job eventos recorrentes D.EDGE | ✅ Concluído | Alta | 09/01/2026 |
-| Página admin eventos recorrentes | ✅ Concluído | Alta | 09/01/2026 |
-| Carousel mobile de eventos | ✅ Concluído | Média | 09/01/2026 |
-| Prompt de imagem aprimorado | ✅ Concluído | Alta | 07/01/2026 |
+| Feature | Status | Data |
+|---------|--------|------|
+| Eventos recorrentes D.EDGE (pg_cron) | ✅ | 09/01/2026 |
+| Carousel mobile de eventos | ✅ | 09/01/2026 |
+| Prompt de imagem aprimorado (6 vars) | ✅ | 07/01/2026 |
+| Cron semanal de limpeza (storage + logs) | ✅ | 11/02/2026 |
+| Geração automática a cada 6h (otimizado) | ✅ | 18/02/2026 |
 
-### Programa de Podcast 🎙️ *(novo)*
+### Novas Features 🚀
 
-| Feature | Status | Prioridade | Data |
-|---------|--------|------------|------|
-| Tabela podcast_submissions | ✅ Concluído | Alta | 23/01/2026 |
-| Edge Function notificações | ✅ Concluído | Alta | 23/01/2026 |
-| Tipos TypeScript | ✅ Concluído | Alta | 23/01/2026 |
-| Página pública /MDAcculaRadio | ✅ Concluído | Alta | 23/01/2026 |
-| Dashboard admin | ✅ Concluído | Alta | 23/01/2026 |
-| Exportação CSV | ✅ Concluído | Média | 23/01/2026 |
+| Feature | Status | Data |
+|---------|--------|------|
+| Programa de Podcast (MDAccula Radio) | ✅ | 23/01/2026 |
+| Redirecionador de links com UTM (/r/:slug) | ✅ | 15/02/2026 |
+| Importação de dados via CSV | ✅ | Fev/2026 |
+| Artigo multi-datas para séries de eventos | ✅ | 15/01/2026 |
+| Roteamento dual IA (OpenAI + Gemini) | ✅ | 14/02/2026 |
+| Filtro de links fake na geração IA | ✅ | 04/02/2026 |
+| Condicional Lista VIP/Social nos cards | ✅ | 14/02/2026 |
 
-### Segurança 🔐
+### Infraestrutura e CDN 🌐
 
-| Feature | Status | Prioridade | Responsável |
-|---------|--------|------------|-------------|
-| Leaked Password Protection | 🔴 Pendente | Alta | Admin |
-| CAPTCHA no contato | 🔴 Pendente | Média | Dev |
-| Rate limiting (edge functions) | ✅ Concluído | Alta | Sistema |
-| Auditoria RLS completa | ✅ Concluído | Alta | Sistema |
-| Documentação de segurança | ✅ Concluído | Média | Sistema |
-
-### Qualidade de Código 🧪
-
-| Feature | Status | Prioridade | Responsável |
-|---------|--------|------------|-------------|
-| Testes unitários | ✅ Concluído | Alta | Sistema |
-| Testes de integração | ✅ Concluído | Alta | Sistema |
-| CI/CD GitHub Actions | ✅ Concluído | Alta | Sistema |
-| Linting + Prettier | ✅ Concluído | Média | Sistema |
-| Error Boundaries | ✅ Concluído | Alta | Sistema |
-| Logging centralizado | ✅ Concluído | Média | Sistema |
-
-### Documentação 📚
-
-| Feature | Status | Prioridade | Data |
-|---------|--------|------------|------|
-| README atualizado | ✅ Concluído | Alta | 23/01/2026 |
-| PRD.md atualizado | ✅ Concluído | Alta | 23/01/2026 |
-| ROADMAP.md atualizado | ✅ Concluído | Alta | 23/01/2026 |
-| PENDENCIAS.md atualizado | ✅ Concluído | Alta | 23/01/2026 |
-| CODE_STYLE.md | ✅ Concluído | Média | 06/01/2026 |
-| SECURITY-AUDIT.md | ✅ Concluído | Alta | 06/01/2026 |
-| SYSTEM-DESIGN.md | ✅ Concluído | Alta | 23/01/2026 |
+| Feature | Status | Data |
+|---------|--------|------|
+| Bunny CDN para imagens (cdn.mdaccula.com) | ✅ | Fev/2026 |
+| Fallback inteligente CDN → Supabase → placeholder | ✅ | Mar/2026 |
+| Conversão WebP (client + server + batch) | ✅ | 02/02/2026 |
+| Otimização de custos Cloud ($19 → $5-7/mês) | ✅ | 18/02/2026 |
 
 ### Performance 🚀
 
-| Feature | Status | Prioridade | Responsável |
-|---------|--------|------------|-------------|
-| Otimização de queries N+1 | ✅ Concluído | Alta | Sistema |
-| Lazy loading de imagens | ✅ Concluído | Média | Sistema |
-| Service Worker otimizado | ✅ Concluído | Média | Sistema |
-| Bundle optimization | 🟡 Pendente | Média | Dev |
+| Feature | Status | Data |
+|---------|--------|------|
+| Skeleton loading (Blog + Links) | ✅ | 13/01/2026 |
+| StaticIcon (elimina waterfall de ícones) | ✅ | 02/02/2026 |
+| Lazy DnD (DnD Kit só para admins) | ✅ | 02/02/2026 |
+| Service Worker v5 (SWR para imagens) | ✅ | 13/01/2026 |
+| React Query (eventos + links) | ✅ | 12/01/2026 |
+| SiteSettingsContext global com cache | ✅ | 11/01/2026 |
+| VirtualizedLinkList (>20 itens) | ✅ | 15/01/2026 |
+| Debounce nos filtros de eventos | ✅ | 14/01/2026 |
+| Query otimizada (select específico) | ✅ | 02/02/2026 |
+
+### Segurança 🔐
+
+| Feature | Status |
+|---------|--------|
+| Auditoria RLS completa | ✅ |
+| Rate limiting (DB triggers + Edge Functions) | ✅ |
+| Documentação de segurança | ✅ |
+| Leaked Password Protection | ⚠️ Pendente (painel Supabase) |
+| CAPTCHA no contato | ⚠️ Pendente |
+
+### Qualidade de Código 🧪
+
+| Feature | Status |
+|---------|--------|
+| Testes unitários + integração (Vitest) | ✅ |
+| CI/CD GitHub Actions | ✅ |
+| ESLint + Prettier | ✅ |
+| Error Boundaries em todas as páginas | ✅ |
+| Logger centralizado (info/warn/error) | ✅ |
+| Barrel exports (hooks, lib, types) | ✅ |
+
+### Documentação 📚
+
+| Feature | Status | Data |
+|---------|--------|------|
+| README.md completo | ✅ | 15/03/2026 |
+| PRD.md atualizado | ✅ | 15/03/2026 |
+| ROADMAP.md atualizado | ✅ | 15/03/2026 |
+| PENDENCIAS.md atualizado | ✅ | 15/03/2026 |
+| SYSTEM-DESIGN.md | ✅ | 15/03/2026 |
+| CODE_STYLE.md | ✅ | 06/01/2026 |
+| SECURITY-AUDIT.md | ✅ | 15/03/2026 |
 
 ---
 
 ## Fase 3 - Expansão
 
 **Período:** Março - Abril 2026  
-**Status:** ⏳ PLANEJADO  
-**Objetivo:** Novas funcionalidades e integrações
+**Status:** 🔄 INICIANDO  
+**Objetivo:** Engajamento de audiência, conversão de leads e novas integrações
+
+### Engajamento e Leads 📱
+
+| Feature | Status | Prioridade |
+|---------|--------|------------|
+| Botão flutuante WhatsApp global | ⏳ Planejado | Alta |
+| Deep links WhatsApp contextuais por página | ⏳ Planejado | Alta |
+| Newsletter inline (Hero + fim de posts) | ⏳ Planejado | Alta |
+| Botão "Adicionar ao Calendário" | ⏳ Planejado | Média |
+| Compartilhar evento (WhatsApp, copiar link) | ⏳ Planejado | Média |
+| CTA de WhatsApp na página /links | ⏳ Planejado | Média |
+| Tempo de leitura nos posts do blog | ⏳ Planejado | Baixa |
+| Stagger animation nos links | ⏳ Planejado | Baixa |
 
 ### PWA e Mobile 📱
 
@@ -184,35 +173,24 @@
 |---------|--------|------------|
 | Push notifications | ⏳ Planejado | Alta |
 | Instalação como app | ⏳ Planejado | Alta |
-| Modo offline robusto | ⏳ Planejado | Média |
 | Add to home screen prompt | ⏳ Planejado | Média |
 
 ### Integrações 🔗
 
 | Feature | Status | Prioridade |
 |---------|--------|------------|
-| Instagram Stories feed | ⏳ Planejado | Média |
-| Spotify embed dinâmico | ⏳ Planejado | Baixa |
 | WhatsApp Business API | ⏳ Planejado | Média |
-| Calendário Google/Apple | ⏳ Planejado | Baixa |
+| Calendário Google/Apple (.ics) | ⏳ Planejado | Média |
+| Instagram Stories feed | ⏳ Planejado | Baixa |
+| Spotify embed dinâmico | ⏳ Planejado | Baixa |
 
 ### Analytics 2.0 📊
 
 | Feature | Status | Prioridade |
 |---------|--------|------------|
-| Dashboard interativo | ⏳ Planejado | Alta |
+| Dashboard interativo avançado | ⏳ Planejado | Alta |
 | Exportação de relatórios | ⏳ Planejado | Média |
-| Heatmaps integrados | ⏳ Planejado | Baixa |
 | Funil de conversão | ⏳ Planejado | Média |
-
-### UX Improvements 🎨
-
-| Feature | Status | Prioridade |
-|---------|--------|------------|
-| Guia de onboarding | ⏳ Planejado | Baixa |
-| Tema claro (light mode) | ⏳ Planejado | Baixa |
-| Acessibilidade WCAG 2.1 AAA | ⏳ Planejado | Média |
-| Animações aprimoradas | ⏳ Planejado | Baixa |
 
 ---
 
@@ -224,42 +202,43 @@
 
 ### Mobile Nativo 📲
 
-| Feature | Status | Prioridade |
-|---------|--------|------------|
-| App React Native | 💭 Futuro | Alta |
-| Push notifications nativo | 💭 Futuro | Alta |
-| Deep linking | 💭 Futuro | Média |
+| Feature | Status |
+|---------|--------|
+| App React Native | 💭 Futuro |
+| Push notifications nativo | 💭 Futuro |
+| Deep linking | 💭 Futuro |
 
 ### Escala 📈
 
-| Feature | Status | Prioridade |
-|---------|--------|------------|
-| Multi-tenant (múltiplas agências) | 💭 Futuro | Alta |
-| API pública | 💭 Futuro | Média |
-| Webhooks | 💭 Futuro | Média |
-| White-label | 💭 Futuro | Baixa |
+| Feature | Status |
+|---------|--------|
+| Multi-tenant (múltiplas agências) | 💭 Futuro |
+| API pública | 💭 Futuro |
+| Webhooks | 💭 Futuro |
+| White-label | 💭 Futuro |
 
 ### Monetização 💰
 
-| Feature | Status | Prioridade |
-|---------|--------|------------|
-| Sistema de reservas | 💭 Futuro | Alta |
-| Integração Stripe | 💭 Futuro | Alta |
-| Planos de assinatura | 💭 Futuro | Média |
+| Feature | Status |
+|---------|--------|
+| Sistema de reservas | 💭 Futuro |
+| Integração Stripe | 💭 Futuro |
+| Planos de assinatura | 💭 Futuro |
 
 ---
 
 ## Backlog Futuro
 
-### Features Consideradas (não priorizadas)
-
-| Feature | Complexidade | Valor | Notas |
-|---------|--------------|-------|-------|
-| Suporte multi-idioma (i18n) | Média | Baixo | Foco inicial no Brasil |
-| Gamificação (badges) | Média | Baixo | Engajamento |
-| Chat ao vivo | Alta | Médio | Suporte |
-| Marketplace de ingressos | Alta | Alto | Monetização |
-| AI para recomendação de eventos | Alta | Alto | Personalização |
+| Feature | Complexidade | Valor |
+|---------|--------------|-------|
+| Suporte multi-idioma (i18n) | Média | Baixo |
+| Gamificação (badges) | Média | Baixo |
+| Chat ao vivo | Alta | Médio |
+| Marketplace de ingressos | Alta | Alto |
+| AI para recomendação de eventos | Alta | Alto |
+| Timeline visual no Quem Somos | Média | Médio |
+| Depoimentos de parceiros | Baixa | Médio |
+| QR Code na página de links | Baixa | Médio |
 
 ---
 
@@ -270,10 +249,11 @@
  Dez │ ████████████████████████████ Fase 1 - MVP
 ─────┼────────────────────────────────────────────
 2026 │
- Jan │ ████████████████ Fase 2 (automação + docs)
- Fev │ ████████████████ Fase 2 (segurança + perf)
- Mar │         ████████ Fase 3 início
- Abr │         ████████████████ Fase 3 completa
+ Jan │ ████████████████ Fase 2 (automação + podcast)
+ Fev │ ████████████████ Fase 2 (CDN + redirects + perf)
+ Mar │ ████████████████ Fase 2 (docs + CDN fallback)
+     │         ████████ Fase 3 início (engajamento)
+ Abr │         ████████████████ Fase 3 (PWA + integrações)
  Mai │                  ████████ Fase 4 início
  Jun │                  ████████████████ Fase 4 completa
 ```
@@ -295,12 +275,13 @@
 
 ## Histórico de Revisões
 
-| Versão | Data | Autor | Descrição |
-|--------|------|-------|-----------|
-| 1.0 | 06/01/2026 | Sistema | Documento inicial |
-| 1.1 | 10/01/2026 | Sistema | Atualizado com eventos recorrentes, automação e docs |
-| 1.2 | 23/01/2026 | Sistema | Adicionado Programa de Podcast e System Design |
+| Versão | Data | Descrição |
+|--------|------|-----------|
+| 1.0 | 06/01/2026 | Documento inicial |
+| 1.1 | 10/01/2026 | Eventos recorrentes, automação e docs |
+| 1.2 | 23/01/2026 | Programa de Podcast e System Design |
+| 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, CDN fallback, importação CSV, otimização custos, performance. Fase 3 planejada com foco em engajamento |
 
 ---
 
-*Última atualização: 23/01/2026*
+*Última atualização: 15/03/2026*

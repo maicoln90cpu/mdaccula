@@ -2,8 +2,8 @@
 
 > Arquitetura técnica, fluxos de dados, APIs e interfaces do sistema
 
-**Versão:** 1.0  
-**Data:** 23/01/2026  
+**Versão:** 1.1  
+**Data:** 15/03/2026  
 **Status:** Ativo
 
 ---
@@ -16,10 +16,11 @@
 4. [APIs e Endpoints](#apis-e-endpoints)
 5. [Banco de Dados](#banco-de-dados)
 6. [Edge Functions](#edge-functions)
-7. [Autenticação e Autorização](#autenticação-e-autorização)
-8. [Integrações Externas](#integrações-externas)
-9. [Cache e Performance](#cache-e-performance)
-10. [Segurança](#segurança)
+7. [CDN e Imagens](#cdn-e-imagens)
+8. [Autenticação e Autorização](#autenticação-e-autorização)
+9. [Integrações Externas](#integrações-externas)
+10. [Cache e Performance](#cache-e-performance)
+11. [Segurança](#segurança)
 
 ---
 
@@ -32,23 +33,25 @@
 │                              CLIENTE (Browser)                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  React SPA │ React Router │ TanStack Query │ Tailwind │ Service Worker      │
+│  (lazy loading de todas as páginas via React.lazy + Suspense)               │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            LOVABLE CLOUD (Supabase)                          │
-├───────────────────┬───────────────────┬───────────────────┬─────────────────┤
-│   PostgreSQL      │   Edge Functions  │    Storage        │   Realtime      │
-│   + RLS Policies  │   (Deno Runtime)  │   (event-images)  │   (websocket)   │
-└───────────────────┴───────────────────┴───────────────────┴─────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                          INTEGRAÇÕES EXTERNAS                                │
-├─────────────────┬─────────────────┬─────────────────┬───────────────────────┤
-│  Lovable AI     │   Resend        │   Firecrawl     │   GTM/Hotjar          │
-│  (Gemini/GPT)   │   (Emails)      │   (Scraping)    │   (Analytics)         │
-└─────────────────┴─────────────────┴─────────────────┴───────────────────────┘
+                          │                    │
+                          ▼                    ▼
+┌──────────────────────────────┐  ┌────────────────────────────────────────────┐
+│      BUNNY CDN               │  │          LOVABLE CLOUD (Supabase)           │
+│      cdn.mdaccula.com        │  ├──────────┬──────────┬──────────┬───────────┤
+│  ┌─────────────────────┐     │  │PostgreSQL│ Edge Fn  │ Storage  │  Auth     │
+│  │ Origin: Supabase    │     │  │ 25 tabelas│ 20+ fn  │ 3 buckets│ JWT+RBAC │
+│  │ Storage             │     │  │ + RLS    │ (Deno)  │          │          │
+│  └─────────────────────┘     │  └──────────┴──────────┴──────────┴───────────┘
+│  Cloudflare (DNS + DDoS)     │                    │
+└──────────────────────────────┘          ┌─────────┴─────────┐
+                                          ▼                   ▼
+                                ┌──────────────────┐  ┌──────────────────┐
+                                │  AI APIs         │  │  Email/Scraping  │
+                                │  ├── Lovable AI  │  │  ├── Resend      │
+                                │  └── OpenAI      │  │  └── Firecrawl   │
+                                └──────────────────┘  └──────────────────┘
 ```
 
 ### Princípios de Design
@@ -57,8 +60,10 @@
 |-----------|---------------|
 | **Separation of Concerns** | UI em React, lógica em Edge Functions, dados em PostgreSQL |
 | **Mobile-First** | Tailwind breakpoints, carousel mobile, touch-friendly |
-| **Security by Default** | RLS em todas tabelas, Edge Functions para operações anônimas |
-| **Performance** | React Query cache, lazy loading, Service Worker |
+| **Security by Default** | RLS em todas tabelas, Edge Functions para ops anônimas |
+| **Performance** | React Query cache, lazy loading, Service Worker, CDN |
+| **Resilience** | CDN fallback (3 camadas), Error Boundaries, retry automático |
+| **Cost Efficiency** | Cron otimizado (6h), logs locais, select específico |
 | **Maintainability** | TypeScript strict, ESLint, barrel exports, logger centralizado |
 
 ---
@@ -69,44 +74,62 @@
 
 ```
 src/
-├── pages/                     # Rotas da aplicação
+├── pages/                     # Rotas (todas lazy loaded)
 │   ├── Index.tsx             # Homepage
-│   ├── Eventos.tsx           # Lista de eventos
-│   ├── Blog.tsx              # Lista de posts
+│   ├── Eventos.tsx           # Lista de eventos (useEvents hook)
+│   ├── Blog.tsx              # Lista de posts (React Query inline)
 │   ├── Podcast.tsx           # MDAccula Radio (rota: /MDAcculaRadio)
-│   ├── Links.tsx             # Página de links
-│   └── admin/                # Painel administrativo
+│   ├── Links.tsx             # Página de links (useLinks hook)
+│   ├── Redirect.tsx          # Redirecionador /r/:slug
+│   ├── Search.tsx            # Busca full-text
+│   ├── Privacidade.tsx       # Política de privacidade
+│   └── admin/                # 15 páginas administrativas
 │       ├── EventsManager.tsx
 │       ├── BlogManager.tsx
+│       ├── LinksManager.tsx
 │       ├── PodcastManager.tsx
-│       └── Settings.tsx
+│       ├── RedirectsManager.tsx
+│       ├── DataImport.tsx
+│       ├── Settings.tsx
+│       ├── SystemHealth.tsx
+│       ├── AutoGenerationDashboard.tsx
+│       └── ...
 │
 ├── components/
-│   ├── ui/                   # Componentes Shadcn/UI
-│   │   ├── button.tsx
-│   │   ├── card.tsx          # Com variantes (metric, alert, etc)
-│   │   ├── badge.tsx         # Com variantes (success, warning, etc)
-│   │   └── navigation.tsx    # Header com rotas
-│   ├── sections/             # Seções da homepage
-│   ├── events/               # Componentes de eventos
-│   ├── blog/                 # Componentes do blog
-│   └── links/                # Componentes de links
+│   ├── ui/                   # ~50 componentes Shadcn/UI
+│   │   ├── ImageUploadWithCrop.tsx  # Upload + crop + WebP
+│   │   └── RichTextEditor.tsx       # TipTap editor
+│   ├── sections/             # Hero, FeaturedEvents, LatestNews
+│   ├── events/               # EventForm, EventModal, EventsCarousel
+│   ├── blog/                 # BlogForm, LikeButton
+│   ├── links/                # LinkCard, SortableItem, StaticIcon, DndWrapper
+│   ├── OptimizedImage.tsx    # CDN fallback inteligente
+│   ├── SEOHead.tsx           # Meta tags dinâmicas
+│   ├── ShareButtons.tsx      # Share social
+│   └── NewsletterPopup.tsx   # A/B testing popup
 │
 ├── hooks/
-│   ├── useAuth.tsx           # Context de autenticação
-│   ├── useSiteSettings.tsx   # Configurações globais
-│   ├── useEvents.ts          # React Query para eventos
-│   ├── useLinks.ts           # React Query para links
-│   └── useToast.ts           # Notificações
+│   ├── useAuth.tsx           # Context: user, session, profile, isAdmin
+│   ├── useEvents.ts          # React Query: lista de eventos
+│   ├── useLinks.ts           # React Query: links + grupos
+│   ├── useSiteSettings.tsx   # Re-export do SiteSettingsContext
+│   ├── useDebouncedValue.ts  # Debounce genérico
+│   └── useToast.ts           # Notificações toast
+│
+├── contexts/
+│   └── SiteSettingsContext.tsx  # Provider global (cache localStorage)
 │
 ├── lib/
 │   ├── utils.ts              # cn(), parseLocalDate()
-│   ├── eventDateHelper.ts    # Visibilidade de eventos
-│   ├── linkThemes.ts         # Temas da página links
-│   └── logger.ts             # Logger centralizado
+│   ├── imageUtils.ts         # getOptimizedImageUrl(), getOriginalSupabaseUrl()
+│   ├── eventDateHelper.ts    # isEventVisible(), filterVisibleEvents()
+│   ├── linkThemes.ts         # 13+ temas (neonPurple, etc)
+│   ├── linkSortHelper.ts     # sortByEventDate()
+│   ├── webpConverter.ts      # convertToWebP() client-side
+│   └── logger.ts             # Logger com níveis e scoped logging
 │
-└── contexts/
-    └── SiteSettingsContext.tsx  # Provider global de settings
+└── types/
+    └── index.ts              # Event, RawLinkData, PodcastSubmission, etc
 ```
 
 ### Backend (Edge Functions)
@@ -114,36 +137,48 @@ src/
 ```
 supabase/functions/
 ├── _shared/                       # Módulos compartilhados
-│   ├── cors.ts                   # Headers CORS
-│   ├── rate-limit.ts             # Rate limiting
-│   ├── response.ts               # jsonSuccess, jsonError
-│   └── timeout.ts                # fetchWithTimeout
+│   ├── cors.ts                   # handleCorsPreFlight()
+│   ├── rate-limit.ts             # isRateLimited(), getClientIP()
+│   ├── response.ts               # jsonSuccess(), jsonError(), badRequestResponse()
+│   ├── timeout.ts                # fetchWithTimeout(), withTimeout()
+│   └── index.ts                  # Barrel export
 │
 ├── Geração IA/
-│   ├── generate-blog-suggestions/
-│   ├── generate-blog-post-v2/
-│   ├── generate-multi-event-article/
-│   ├── regenerate-blog-image/
-│   └── auto-article-cron/
+│   ├── generate-blog-suggestions/ # Scrape news_sources + gera sugestões
+│   ├── generate-blog-post-v2/     # Gera artigo + imagem (dual routing)
+│   ├── generate-multi-event-article/ # Artigo multi-datas
+│   ├── regenerate-blog-image/     # Regenera imagem existente
+│   └── auto-article-cron/         # Cron job (sem JWT)
 │
 ├── Automação/
-│   └── create-recurring-events/
+│   ├── create-recurring-events/   # Eventos semanais D.EDGE
+│   ├── cleanup-storage/           # Remove imagens órfãs
+│   └── cleanup-sync-logs/         # Limpa logs antigos
 │
 ├── Email/
-│   ├── send-contact-email/
-│   ├── send-mass-newsletter/
-│   └── send-podcast-notification/
+│   ├── send-contact-email/        # Formulário de contato
+│   ├── send-mass-newsletter/      # Newsletter em batch
+│   └── send-podcast-notification/ # Email artista + agência
 │
 ├── Tracking/
-│   ├── track-link-click/
-│   ├── track-view/
-│   └── track-share/
+│   ├── track-link-click/          # Clique em link
+│   ├── track-redirect-click/      # Clique em redirect
+│   ├── track-view/                # View de post/evento
+│   └── track-share/               # Compartilhamento
+│
+├── Dados/
+│   ├── import-csv-data/           # Processa CSV importado
+│   └── upload-csv/                # Upload de CSV
 │
 └── Utilitários/
-    ├── sitemap/
-    ├── blog-rss/
-    ├── systemhealth/
-    └── convert-to-webp/
+    ├── sitemap/                   # Sitemap XML dinâmico
+    ├── blog-rss/                  # Feed RSS
+    ├── systemhealth/              # Health check
+    ├── convert-to-webp/           # Conversão individual
+    ├── batch-convert-webp/        # Conversão em lote
+    ├── fetch-link-metadata/       # Metadados de URL
+    ├── persist-logs/              # Persistência de logs (desativado)
+    └── request-data-deletion/     # LGPD: exclusão de dados
 ```
 
 ---
@@ -160,8 +195,8 @@ supabase/functions/
                                           │
                                           ▼
                                   ┌──────────────┐
-                                  │  AuthContext │
-                                  │  (isAdmin)   │
+                                  │  AuthContext  │
+                                  │  {isAdmin}    │
                                   └──────────────┘
 ```
 
@@ -170,25 +205,36 @@ supabase/functions/
 ```
 ┌─────────────┐    ┌────────────────────┐    ┌─────────────────┐
 │ Admin UI    │───▶│ generate-blog-     │───▶│ Firecrawl       │
-│ (trigger)   │    │ suggestions        │    │ (scrape news)   │
+│ (trigger)   │    │ suggestions        │    │ (scrape 2 news) │
 └─────────────┘    └────────────────────┘    └─────────────────┘
                             │
                             ▼
-                   ┌────────────────────┐    ┌─────────────────┐
-                   │ Lovable AI Gateway │◀──▶│ Gemini/GPT      │
-                   │ (generate content) │    │ (AI models)     │
-                   └────────────────────┘    └─────────────────┘
+                   ┌────────────────────┐
+                   │ Routing Decision   │
+                   │ (ai_blog_model)    │
+                   ├────────┬───────────┤
+                   │ OpenAI │ Lovable AI│
+                   │ direto │ Gateway   │
+                   │(GPT-5m)│(Gemini2.5)│
+                   └────────┴───────────┘
+                            │
+                            ▼
+                   ┌────────────────────┐
+                   │ Post-processing    │
+                   │ - removeFakeLinks()│
+                   │ - sanitize HTML    │
+                   └────────────────────┘
                             │
                             ▼
                    ┌────────────────────┐    ┌─────────────────┐
                    │ Supabase Storage   │◀───│ Image Generation│
-                   │ (save image)       │    │ (if enabled)    │
+                   │ (save WebP image)  │    │ (Nano Banana)   │
                    └────────────────────┘    └─────────────────┘
                             │
                             ▼
                    ┌────────────────────┐
-                   │ blog_posts table   │
-                   │ (save article)     │
+                   │ blog_posts +       │
+                   │ ai_generated_posts │
                    └────────────────────┘
 ```
 
@@ -199,19 +245,19 @@ supabase/functions/
 │ Formulário      │───▶│ Zod Validation     │───▶│ podcast_        │
 │ /MDAcculaRadio  │    │ (13+ campos)       │    │ submissions     │
 └─────────────────┘    └────────────────────┘    └─────────────────┘
-                                                     │
-                                                     ▼
-                                            ┌─────────────────┐
-                                            │ send-podcast-   │
-                                            │ notification    │
-                                            └─────────────────┘
-                                                     │
-                                    ┌────────────────┴────────────────┐
-                                    ▼                                 ▼
-                           ┌─────────────────┐              ┌─────────────────┐
-                           │ Email Artista   │              │ Email Agência   │
-                           │ (confirmação)   │              │ (lead details)  │
-                           └─────────────────┘              └─────────────────┘
+                                                      │
+                                                      ▼
+                                             ┌─────────────────┐
+                                             │ send-podcast-   │
+                                             │ notification    │
+                                             └─────────────────┘
+                                                      │
+                                     ┌────────────────┴────────────────┐
+                                     ▼                                 ▼
+                            ┌─────────────────┐              ┌─────────────────┐
+                            │ Email Artista   │              │ Email Agência   │
+                            │ (confirmação)   │              │ (lead details)  │
+                            └─────────────────┘              └─────────────────┘
 ```
 
 ### 4. Fluxo de Eventos Recorrentes
@@ -224,15 +270,68 @@ supabase/functions/
                             │
                             ▼
                    ┌────────────────────┐
-                   │ Calcular próxima   │
-                   │ data (weekday)     │
+                   │ Para cada config:  │
+                   │ 1. Calcular data   │
+                   │ 2. Checar duplicata│
+                   │ 3. Insert evento   │
                    └────────────────────┘
                             │
                             ▼
-                   ┌────────────────────┐    ┌─────────────────┐
-                   │ Verificar          │───▶│ events table    │
-                   │ duplicatas         │    │ (insert if new) │
-                   └────────────────────┘    └─────────────────┘
+                   ┌────────────────────┐
+                   │ events table       │
+                   │ (insert if new)    │
+                   └────────────────────┘
+```
+
+### 5. Fluxo de Redirect com UTM
+
+```
+┌─────────┐    ┌─────────────┐    ┌────────────────────┐    ┌──────────────┐
+│ Usuário │───▶│ /r/:slug    │───▶│ Busca redirect_    │───▶│ Monta URL    │
+│ clica   │    │ (Redirect)  │    │ links por slug     │    │ destino+UTM  │
+└─────────┘    └─────────────┘    └────────────────────┘    └──────────────┘
+                                                                   │
+                                          ┌────────────────────────┘
+                                          ▼
+                                 ┌─────────────────┐    ┌─────────────────┐
+                                 │ track-redirect-  │───▶│ redirect_click_ │
+                                 │ click (async)    │    │ events          │
+                                 └─────────────────┘    └─────────────────┘
+                                          │
+                                          ▼
+                                 ┌─────────────────┐
+                                 │ window.location  │
+                                 │ = destination_url│
+                                 └─────────────────┘
+```
+
+### 6. Fluxo de Imagem com CDN Fallback
+
+```
+┌──────────────────┐
+│ OptimizedImage   │
+│ ou EventCard     │
+└────────┬─────────┘
+         │ getOptimizedImageUrl(supabase_url)
+         ▼
+┌──────────────────┐
+│ cdn.mdaccula.com │ ── sucesso ──▶ Exibe imagem
+│ (Bunny CDN)      │
+└────────┬─────────┘
+         │ onError
+         ▼
+┌──────────────────┐
+│ getOriginal      │
+│ SupabaseUrl()    │ ── sucesso ──▶ Exibe imagem
+│ (Supabase direto)│
+└────────┬─────────┘
+         │ onError
+         ▼
+┌──────────────────┐
+│ Placeholder      │
+│ (dj-performance  │
+│  ou gradiente)   │
+└──────────────────┘
 ```
 
 ---
@@ -243,227 +342,126 @@ supabase/functions/
 
 #### `POST /functions/v1/send-podcast-notification`
 
-**Request:**
 ```typescript
-{
-  id: string;
-  full_name: string;
-  city: string;
-  phone: string;
-  project_name: string;
-  project_age: string;
-  genre: string;
-  has_original_track: boolean;
-  original_track_link?: string;
-  instagram?: string;
-  spotify?: string;
-  soundcloud?: string;
-  tiktok?: string;
-  email: string;
-  project_description: string;
-}
-```
+// Request
+{ id, full_name, city, phone, project_name, project_age, genre,
+  has_original_track, original_track_link?, instagram?, spotify?,
+  soundcloud?, tiktok?, email, project_description }
 
-**Response:**
-```typescript
-{
-  success: boolean;
-  results: {
-    artistEmail: { success: boolean; error?: string };
-    agencyEmail: { success: boolean; error?: string };
-    dbUpdate: { success: boolean; error?: string };
-  }
-}
+// Response
+{ success: boolean, results: {
+    artistEmail: { success, error? },
+    agencyEmail: { success, error? },
+    dbUpdate: { success, error? }
+}}
 ```
 
 #### `POST /functions/v1/generate-blog-suggestions`
 
-**Request:**
 ```typescript
-{
-  // No body required - uses news_sources from DB
-}
-```
+// Request: no body (uses news_sources + ai_blog_model from DB)
 
-**Response:**
-```typescript
-{
-  success: boolean;
-  suggestions: Array<{
-    title: string;
-    excerpt: string;
-    keywords: string[];
-    category: string;
-    sourceUrl?: string;
-  }>;
-  tokensUsed: number;
-}
+// Response
+{ success: boolean, suggestions: Array<{
+    title, excerpt, keywords: string[], category, sourceUrl?
+  }>, tokensUsed: number }
 ```
 
 #### `POST /functions/v1/track-link-click`
 
-**Request:**
 ```typescript
-{
-  linkId: string;
-}
+// Request
+{ linkId: string }
+
+// Response
+{ success: boolean, newClickCount: number }
 ```
 
-**Response:**
+#### `POST /functions/v1/track-redirect-click`
+
 ```typescript
-{
-  success: boolean;
-  newClickCount: number;
-}
+// Request
+{ slug: string }
+
+// Response
+{ success: boolean }
+```
+
+#### `POST /functions/v1/import-csv-data`
+
+```typescript
+// Request
+{ table: string, data: Record<string, unknown>[] }
+
+// Response
+{ success: boolean, imported: number, errors?: string[] }
 ```
 
 ---
 
 ## Banco de Dados
 
-### Schema Principal
+### Schema Principal (ver [tabelas.md](/tabelas.md) para SQL completo)
 
-```sql
--- Tabela de Eventos
-CREATE TABLE events (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  slug TEXT UNIQUE NOT NULL,
-  date DATE NOT NULL,
-  time TIME NOT NULL,
-  venue TEXT NOT NULL,
-  location_city TEXT NOT NULL,
-  location_state TEXT NOT NULL,
-  genres TEXT[] DEFAULT '{}',
-  lineup TEXT[],
-  description TEXT,
-  image_url TEXT,
-  ticket_link TEXT,
-  views INTEGER DEFAULT 0,
-  blog_post_id UUID REFERENCES blog_posts(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- Tabela de Inscrições Podcast
-CREATE TABLE podcast_submissions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  full_name TEXT NOT NULL,
-  city TEXT NOT NULL,
-  phone TEXT NOT NULL,
-  project_name TEXT NOT NULL,
-  project_age TEXT NOT NULL,
-  genre TEXT NOT NULL,
-  has_original_track BOOLEAN DEFAULT false,
-  original_track_link TEXT,
-  instagram TEXT,
-  spotify TEXT,
-  soundcloud TEXT,
-  tiktok TEXT,
-  email TEXT NOT NULL,
-  project_description TEXT NOT NULL,
-  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','contacted')),
-  admin_notes TEXT,
-  notification_sent BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
+**25 tabelas** organizadas em:
+- **Conteúdo:** events, blog_posts, custom_links, link_groups, redirect_links
+- **IA:** ai_prompt_templates, ai_generated_posts, news_sources
+- **Usuários:** profiles, user_roles
+- **Analytics:** blog_view_events, event_view_events, link_click_events, redirect_click_events, share_analytics, newsletter_popup_analytics
+- **Newsletter:** newsletter_subscribers, newsletter_popup_variants
+- **Automação:** recurring_event_configs, event_templates, sync_logs
+- **Sistema:** site_settings, application_logs, performance_metrics
+- **Leads:** podcast_submissions, team_members
 
 ### Índices de Performance
 
 ```sql
--- Eventos por data e localização
 CREATE INDEX idx_events_date_location ON events(date, location_state, location_city);
-
--- Blog posts por status e data
-CREATE INDEX idx_blog_status_date ON blog_posts(status, created_at DESC);
-
--- Links por grupo e ordem
+CREATE INDEX idx_blog_status_date ON blog_posts(published, published_at DESC);
 CREATE INDEX idx_links_group_order ON custom_links(group_id, display_order);
-
--- Podcast por status
 CREATE INDEX idx_podcast_status ON podcast_submissions(status, created_at DESC);
+CREATE INDEX idx_blog_search ON blog_posts USING GIN(search_vector);
 ```
 
-### RLS Policies Pattern
+### RLS Pattern
 
 ```sql
--- Padrão para tabelas públicas (leitura anônima, escrita admin)
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-
+-- Padrão público (leitura anônima, escrita admin)
 CREATE POLICY "Public read" ON events FOR SELECT USING (true);
-CREATE POLICY "Admin insert" ON events FOR INSERT WITH CHECK (
+CREATE POLICY "Admin write" ON events FOR ALL USING (
   EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
 );
-CREATE POLICY "Admin update" ON events FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
-);
-CREATE POLICY "Admin delete" ON events FOR DELETE USING (
-  EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
-);
+
+-- Padrão tracking (insert anônimo via Edge Function com service_role)
+CREATE POLICY "Service insert" ON link_click_events FOR INSERT WITH CHECK (true);
 ```
 
 ---
 
-## Edge Functions
+## CDN e Imagens
 
-### Estrutura Padrão
+### Arquitetura
 
-```typescript
-// supabase/functions/example-function/index.ts
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { handleCorsPreFlight, jsonSuccess, jsonError } from "../_shared/index.ts";
+| Componente | Função |
+|------------|--------|
+| **Supabase Storage** | Origin: armazena imagens originais (event-images, link-thumbnails, team-images) |
+| **Bunny CDN** | Pull Zone com origin no Supabase Storage. Cache de borda global |
+| **Cloudflare** | DNS de cdn.mdaccula.com + proteção DDoS |
 
-Deno.serve(async (req) => {
-  // 1. Handle CORS preflight
-  const corsResponse = handleCorsPreFlight(req);
-  if (corsResponse) return corsResponse;
+### `src/lib/imageUtils.ts`
 
-  try {
-    // 2. Parse request
-    const { param1, param2 } = await req.json();
+| Função | Input | Output |
+|--------|-------|--------|
+| `getOptimizedImageUrl(url)` | URL Supabase Storage | URL CDN (cdn.mdaccula.com) |
+| `getOriginalSupabaseUrl(url)` | URL CDN | URL Supabase original |
 
-    // 3. Validate input
-    if (!param1) {
-      return jsonError("param1 is required", 400);
-    }
+### Conversão WebP
 
-    // 4. Initialize Supabase client
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // 5. Business logic
-    const { data, error } = await supabase
-      .from("table")
-      .select("*")
-      .eq("id", param1);
-
-    if (error) throw error;
-
-    // 6. Return success
-    return jsonSuccess({ data });
-
-  } catch (error) {
-    console.error("Error:", error);
-    return jsonError(error.message, 500);
-  }
-});
-```
-
-### Timeout Pattern
-
-```typescript
-import { fetchWithTimeout } from "../_shared/timeout.ts";
-
-// Para chamadas externas com timeout
-const response = await fetchWithTimeout(
-  "https://api.external.com/endpoint",
-  { method: "POST", body: JSON.stringify(data) },
-  30000 // 30 segundos
-);
-```
+| Contexto | Método |
+|----------|--------|
+| Upload no admin | `webpConverter.ts` client-side (browser Canvas API) |
+| Imagem existente | Edge Function `convert-to-webp` |
+| Migração em lote | Edge Function `batch-convert-webp` |
 
 ---
 
@@ -477,43 +475,45 @@ const response = await fetchWithTimeout(
 | `moderator` | CRUD em eventos e blog_posts |
 | `user` | Leitura pública apenas |
 
-### Verificação de Admin
+### Verificação
 
 ```typescript
-// Frontend
+// Frontend (React Context)
 const { isAdmin } = useAuth();
 
-// Backend (Edge Function)
-const { data: roles } = await supabase
-  .from("user_roles")
-  .select("role")
-  .eq("user_id", userId)
-  .single();
-
-const isAdmin = roles?.role === "admin";
-
-// SQL (RLS Policy)
+// SQL (RLS Policy) - usa SECURITY DEFINER para evitar recursão
 EXISTS (SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin')
+
+// Atalho SQL
+SELECT is_admin(); -- retorna boolean
 ```
+
+**⚠️ CRÍTICO:** Admin status NUNCA é verificado via localStorage ou hardcoded. Sempre via `user_roles` no banco.
 
 ---
 
 ## Integrações Externas
 
-### Lovable AI Gateway
+### Lovable AI Gateway (Gemini)
 
 ```typescript
 const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-  method: "POST",
-  headers: {
-    "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-    "Content-Type": "application/json",
-  },
+  headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}` },
   body: JSON.stringify({
-    model: "google/gemini-2.5-flash", // ou openai/gpt-5-mini
-    messages: [{ role: "user", content: prompt }],
-    temperature: 0.9,
-    max_tokens: 4000,
+    model: "google/gemini-2.5-flash",
+    messages: [...], temperature: 0.9, max_tokens: 4000,
+  }),
+});
+```
+
+### OpenAI (direto)
+
+```typescript
+const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  headers: { "Authorization": `Bearer ${OPENAI_API_KEY}` },
+  body: JSON.stringify({
+    model: "gpt-4.1-mini", // ou gpt-5-mini
+    messages: [...], temperature: 0.7,
   }),
 });
 ```
@@ -522,14 +522,10 @@ const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions
 
 ```typescript
 import { Resend } from "npm:resend@2.0.0";
-
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 await resend.emails.send({
   from: "MDAccula <no-reply@mdaccula.com>",
-  to: email,
-  subject: "Assunto",
-  html: htmlTemplate,
+  to: email, subject: "...", html: htmlTemplate,
 });
 ```
 
@@ -537,67 +533,59 @@ await resend.emails.send({
 
 ## Cache e Performance
 
-### React Query Config
+### React Query
 
 ```typescript
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,    // 5 minutos
-      gcTime: 10 * 60 * 1000,      // 10 minutos
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
+  defaultOptions: { queries: {
+    staleTime: 5 * 60 * 1000,    // 5 minutos
+    retry: 1,
+    refetchOnWindowFocus: false,
+  }},
 });
 ```
 
-### Service Worker Strategy
+### Service Worker (v5)
 
-```javascript
-// Network-First para HTML
-// Cache-First para assets estáticos
-// Stale-While-Revalidate para imagens
+| Recurso | Estratégia | Cache |
+|---------|-----------|-------|
+| HTML | Network-First | Fallback offline |
+| JS/CSS/Fontes | Cache-First | 30 dias |
+| Imagens | Stale-While-Revalidate | Background update |
+| API /links | Stale-While-Revalidate | Background update |
 
-const CACHE_VERSION = 'v5';
-const CACHES = {
-  static: `static-${CACHE_VERSION}`,
-  dynamic: `dynamic-${CACHE_VERSION}`,
-  images: `images-${CACHE_VERSION}`,
-};
-```
+### SiteSettings
+
+Provider global com cache em localStorage. Carrega uma vez, revalida em background a cada 15 min.
+
+### Otimizações de Bundle
+
+- Todas as páginas: `React.lazy()` + `Suspense`
+- DnD Kit: lazy import apenas para admins
+- StaticIcon: mapa estático vs import dinâmico por ícone
+- VirtualizedLinkList: virtualização para >20 links
+- LightningCSS: minificação de CSS
+- Terser: minificação de JS com múltiplos passes
 
 ---
 
 ## Segurança
 
-### Checklist de Segurança
+> Detalhes completos em [SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md)
 
-- [x] RLS em todas as tabelas
-- [x] Edge Functions para operações anônimas
+### Checklist
+
+- [x] RLS em todas as 25 tabelas
+- [x] Edge Functions para operações anônimas (bypass RLS seguro)
 - [x] Validação Zod no frontend
-- [x] Rate limiting em Edge Functions
-- [x] CORS configurado corretamente
-- [x] Secrets em variáveis de ambiente
+- [x] Rate limiting em Edge Functions + DB triggers
+- [x] CORS configurado
+- [x] Secrets em variáveis de ambiente (nunca no código)
+- [x] Sanitização HTML (escapeHtml em emails)
+- [x] Roles em tabela separada (NUNCA em profiles/localStorage)
+- [x] `has_role()` com SECURITY DEFINER
 - [ ] CAPTCHA no formulário de contato
 - [ ] Leaked Password Protection
-
-### Padrão de Validação
-
-```typescript
-// Frontend: Zod schema
-const podcastSchema = z.object({
-  full_name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  email: z.string().email("Email inválido"),
-  phone: z.string().min(10, "Telefone inválido"),
-  // ...
-});
-
-// Backend: Validação manual
-if (!data.email || !data.email.includes("@")) {
-  return jsonError("Email inválido", 400);
-}
-```
 
 ---
 
@@ -611,7 +599,8 @@ if (!data.email || !data.email.includes("@")) {
 | [CODE_STYLE.md](/docs/CODE_STYLE.md) | Guia de estilo |
 | [SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) | Auditoria de segurança |
 | [tabelas.md](/tabelas.md) | Schema SQL completo |
+| [PENDENCIAS.MD](/PENDENCIAS.MD) | Histórico de mudanças |
 
 ---
 
-*Última atualização: 23/01/2026*
+*Última atualização: 15/03/2026*

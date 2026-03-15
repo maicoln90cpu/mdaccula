@@ -1,20 +1,21 @@
 # Auditoria de Segurança - MDAccula
 
-**Data da última auditoria:** 2026-01-06  
+**Data da última auditoria:** 2026-03-15  
 **Responsável:** Sistema automatizado + Revisão manual  
-**Status:** ✅ Fase 1 Concluída
+**Status:** ✅ Fase 2 Concluída
 
 ---
 
 ## 📊 Resumo Executivo
 
-| Categoria | Status | Vulnerabilidades |
-|-----------|--------|------------------|
-| RLS Policies | ✅ Corrigido | 0 críticas |
-| Rate Limiting | ✅ Implementado | DB + Edge Functions |
-| Autenticação | ✅ Seguro | RBAC via `has_role()` |
-| Input Validation | ✅ Implementado | Zod + escapeHtml |
-| CORS | ✅ Configurado | Headers padrão |
+| Categoria | Status | Detalhes |
+|-----------|--------|----------|
+| RLS Policies | ✅ 25/25 tabelas | 0 vulnerabilidades críticas |
+| Rate Limiting | ✅ Implementado | DB triggers + Edge Functions |
+| Autenticação | ✅ Seguro | RBAC via `has_role()` SECURITY DEFINER |
+| Input Validation | ✅ Implementado | Zod (frontend) + escapeHtml (backend) |
+| CORS | ✅ Configurado | Headers padrão em todas Edge Functions |
+| CDN | ✅ Configurado | Bunny CDN com fallback Supabase |
 
 ---
 
@@ -25,51 +26,43 @@
 #### `profiles`
 | Policy | Comando | Condição |
 |--------|---------|----------|
-| Authenticated users can view own profile only | SELECT | `auth.uid() = id` |
-| Authenticated users can update own profile | UPDATE | `auth.uid() = id` |
-| Authenticated users can insert own profile | INSERT | `auth.uid() = id` |
+| Own profile only | SELECT | `auth.uid() = id` |
+| Update own profile | UPDATE | `auth.uid() = id` |
+| Insert own profile | INSERT | `auth.uid() = id` |
 
-**Status:** ✅ Bloqueado para anônimos
+#### `user_roles`
+| Policy | Comando | Condição |
+|--------|---------|----------|
+| View own roles | SELECT | `auth.uid() = user_id` |
+
+**⚠️ Roles NUNCA armazenadas em profiles ou localStorage.**
 
 #### `newsletter_subscribers`
 | Policy | Comando | Condição |
 |--------|---------|----------|
-| Admins can view subscribers | SELECT | `has_role('admin')` |
-| Anyone can subscribe | INSERT | `true` (com rate limiting via trigger) |
-
-**Proteções adicionais:**
-- ✅ Rate limiting: 5 tentativas/IP/hora
-- ✅ Rate limiting: 3 tentativas/email/24h
-- ✅ Hashes de IP e email para privacidade
+| Admins view | SELECT | `has_role('admin')` |
+| Anyone subscribe | INSERT | Rate limited (5/IP/hora, 3/email/24h) |
 
 #### `blog_post_likes`
 | Policy | Comando | Condição |
 |--------|---------|----------|
-| Users can view their own likes | SELECT | `auth.uid() = user_id` |
-| Users can insert their own likes | INSERT | `auth.uid() = user_id` |
-| Users can delete their own likes | DELETE | `auth.uid() = user_id` |
-
-**Proteções adicionais:**
-- ✅ Unique constraint: `(user_id, post_id)`
-- ✅ Rate limiting: 10 likes/minuto/usuário
+| Own likes CRUD | SELECT/INSERT/DELETE | `auth.uid() = user_id` |
+| Rate limit | - | 10 likes/minuto/usuário |
 
 ---
 
 ### Tabelas Administrativas
 
-#### `sync_logs`
-| Policy | Comando | Condição |
-|--------|---------|----------|
-| Only service role can manage sync_logs | ALL | `service_role` |
-| Admins can view sync_logs | SELECT | `has_role('admin')` |
-
-**Status:** ✅ Bloqueado para anônimos e usuários comuns
-
-#### `share_analytics`
-| Policy | Comando | Condição |
-|--------|---------|----------|
-| Only service role can insert share analytics | INSERT | `service_role` |
-| Admins can view share analytics | SELECT | `has_role('admin')` |
+| Tabela | Leitura | Escrita |
+|--------|---------|---------|
+| `sync_logs` | Admin | Service role |
+| `ai_prompt_templates` | Admin | Admin |
+| `ai_generated_posts` | Admin | Admin |
+| `event_templates` | Admin | Admin |
+| `recurring_event_configs` | Admin | Admin |
+| `news_sources` | Admin | Admin |
+| `application_logs` | Admin | Service role |
+| `performance_metrics` | Admin | Service role |
 
 ---
 
@@ -77,14 +70,40 @@
 
 | Tabela | Leitura Pública | Escrita Admin |
 |--------|-----------------|---------------|
-| `blog_posts` | ✅ `published = true` | ✅ `has_role('admin')` |
-| `events` | ✅ Todos | ✅ `has_role('admin')` |
-| `custom_links` | ✅ `enabled = true` | ✅ `has_role('admin')` |
-| `link_groups` | ✅ `enabled = true` | ✅ `has_role('admin')` |
+| `blog_posts` | `published = true` | ✅ `has_role('admin')` |
+| `events` | Todos | ✅ `has_role('admin')` |
+| `custom_links` | `enabled = true` | ✅ `has_role('admin')` |
+| `link_groups` | `enabled = true` | ✅ `has_role('admin')` |
+| `team_members` | `active = true` | ✅ `has_role('admin')` |
+| `site_settings` | Todos | ✅ `has_role('admin')` |
+| `newsletter_popup_variants` | `enabled = true` | ✅ `has_role('admin')` |
+| `redirect_links` | `enabled = true` | ✅ `has_role('admin')` |
 
 ---
 
-## 🚦 Rate Limiting Implementado
+### Tabelas de Tracking (Insert Público via Edge Function)
+
+| Tabela | Insert | Leitura |
+|--------|--------|---------|
+| `blog_view_events` | Service role (Edge Fn) | Admin |
+| `event_view_events` | Service role (Edge Fn) | Admin |
+| `link_click_events` | Service role (Edge Fn) | Admin |
+| `redirect_click_events` | Service role (Edge Fn) | Admin |
+| `share_analytics` | Service role (Edge Fn) | Admin |
+| `newsletter_popup_analytics` | Insert público | Admin |
+
+---
+
+### Tabelas com Insert Público
+
+| Tabela | Condições de Insert |
+|--------|-------------------|
+| `newsletter_subscribers` | Rate limited, email validado |
+| `podcast_submissions` | Público (formulário Zod validado) |
+
+---
+
+## 🚦 Rate Limiting
 
 ### Database Level (Triggers)
 
@@ -98,11 +117,12 @@
 
 | Função | Limite | Janela |
 |--------|--------|--------|
-| `send-contact-email` | 3 requisições | 1 minuto |
-| `track-link-click` | 10 requisições | 1 minuto |
-| `track-view` | 10 requisições | 1 minuto |
-| `track-share` | 10 requisições | 1 minuto |
-| `request-data-deletion` | 3 requisições | 1 hora |
+| `send-contact-email` | 3 req | 1 minuto |
+| `track-link-click` | 10 req | 1 minuto |
+| `track-redirect-click` | 10 req | 1 minuto |
+| `track-view` | 10 req | 1 minuto |
+| `track-share` | 10 req | 1 minuto |
+| `request-data-deletion` | 3 req | 1 hora |
 
 ---
 
@@ -114,31 +134,31 @@
 CREATE TYPE app_role AS ENUM ('admin', 'moderator', 'user');
 
 CREATE TABLE user_roles (
-  id uuid PRIMARY KEY,
-  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   role app_role NOT NULL,
   UNIQUE (user_id, role)
 );
 ```
 
-### Função de Verificação
+### Função de Verificação (SECURITY DEFINER)
 
 ```sql
 CREATE FUNCTION has_role(_user_id uuid, _role app_role)
 RETURNS boolean
-SECURITY DEFINER
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
   SELECT EXISTS (
-    SELECT 1 FROM user_roles
-    WHERE user_id = _user_id AND role = _role
+    SELECT 1 FROM user_roles WHERE user_id = _user_id AND role = _role
   )
 $$;
 ```
 
 **Vantagens:**
 - ✅ Evita recursão infinita em policies
-- ✅ `SECURITY DEFINER` bypassa RLS
+- ✅ `SECURITY DEFINER` bypassa RLS da própria tabela
 - ✅ Roles separadas da tabela `profiles`
+- ✅ Função `is_admin()` como atalho: `has_role(auth.uid(), 'admin')`
 
 ---
 
@@ -156,75 +176,53 @@ const corsHeaders = {
 ### Sanitização de Inputs
 
 ```typescript
-// Usado em send-contact-email
 export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 ```
 
-### Endpoints Públicos
+### Endpoints Públicos (sem JWT)
 
-| Endpoint | JWT | Rate Limit | Validação |
-|----------|-----|------------|-----------|
-| `track-view` | ❌ | ✅ | ✅ postId/eventId |
-| `track-share` | ❌ | ✅ | ✅ url/platform |
-| `track-link-click` | ❌ | ✅ | ✅ linkId |
-| `send-contact-email` | ❌ | ✅ | ✅ email/name/message |
-| `request-data-deletion` | ❌ | ✅ | ✅ email |
-| `blog-rss` | ❌ | ❌ | ❌ (somente leitura) |
-| `sitemap` | ❌ | ❌ | ❌ (somente leitura) |
+| Endpoint | Rate Limit | Validação |
+|----------|------------|-----------|
+| `track-view` | ✅ 10/min | postId ou eventId |
+| `track-share` | ✅ 10/min | url + platform |
+| `track-link-click` | ✅ 10/min | linkId |
+| `track-redirect-click` | ✅ 10/min | slug |
+| `send-contact-email` | ✅ 3/min | email + name + message |
+| `send-podcast-notification` | ❌ | 13+ campos validados |
+| `request-data-deletion` | ✅ 3/hora | email |
+| `blog-rss` | ❌ | Somente leitura |
+| `sitemap` | ❌ | Somente leitura |
 
-### Endpoints Protegidos
+### Endpoints Protegidos (JWT obrigatório)
 
-| Endpoint | JWT | Uso |
-|----------|-----|-----|
-| `generate-blog-post` | ✅ | Geração IA |
-| `generate-blog-post-v2` | ✅ | Geração IA v2 |
-| `generate-blog-suggestions` | ✅ | Sugestões IA |
-| `auto-generate-article` | ✅ | Auto-geração |
-| `sync-to-external` | ✅ | Sincronização |
-| `send-mass-newsletter` | ✅ | Newsletter |
-| `convert-to-webp` | ✅ | Conversão imagens |
-| `batch-convert-webp` | ✅ | Conversão em lote |
-| `cleanup-sync-logs` | ✅ | Limpeza logs |
+| Endpoint | Uso |
+|----------|-----|
+| `generate-blog-post-v2` | Geração IA |
+| `generate-blog-suggestions` | Sugestões IA |
+| `generate-multi-event-article` | Artigo multi-datas |
+| `regenerate-blog-image` | Regenerar imagem |
+| `send-mass-newsletter` | Newsletter em massa |
+| `convert-to-webp` | Conversão de imagem |
+| `batch-convert-webp` | Conversão em lote |
+| `cleanup-storage` | Limpeza de storage |
+| `cleanup-sync-logs` | Limpeza de logs |
+| `import-csv-data` | Importação de dados |
+| `systemhealth` | Health check |
 
 ---
 
-## ⚠️ Alertas Pendentes
+## ⚠️ Pendências
 
 ### Leaked Password Protection
-
 **Status:** ⚠️ Desabilitado  
-**Ação necessária:** Habilitar manualmente no painel Supabase
+**Ação:** Habilitar em Authentication > Providers > Email no painel Supabase
 
-**Como habilitar:**
-1. Acesse Authentication > Providers > Email
-2. Ative "Leaked Password Protection"
-3. Escolha o nível de proteção desejado
-
----
-
-## 🔄 Manutenção
-
-### Limpeza Automática
-
-```sql
--- Executar periodicamente para limpar rate limits antigos
-SELECT cleanup_old_rate_limits();
-```
-
-**Frequência recomendada:** Semanal (via cron ou edge function)
-
-### Monitoramento
-
-- Logs de autenticação: `auth_logs` (Supabase Analytics)
-- Logs de banco: `postgres_logs` (Supabase Analytics)
-- Logs de edge functions: `function_edge_logs` (Supabase Analytics)
+### CAPTCHA no Contato
+**Status:** ⚠️ Não implementado  
+**Risco:** Baixo (rate limiting mitiga spam automatizado)
 
 ---
 
@@ -232,23 +230,27 @@ SELECT cleanup_old_rate_limits();
 
 ### Implementado ✅
 
-- [x] RLS habilitado em todas as tabelas
+- [x] RLS habilitado em todas as 25 tabelas
 - [x] Políticas específicas por operação (SELECT, INSERT, UPDATE, DELETE)
-- [x] Rate limiting em edge functions críticas
+- [x] Rate limiting em Edge Functions críticas
 - [x] Rate limiting via triggers no banco
 - [x] Sanitização de HTML (XSS prevention)
-- [x] CORS configurado
+- [x] CORS configurado em todas Edge Functions
 - [x] Roles em tabela separada (não em profiles)
-- [x] Função `has_role()` com SECURITY DEFINER
+- [x] `has_role()` com SECURITY DEFINER
 - [x] Unique constraints para prevenir duplicatas
-- [x] Hashes para dados sensíveis (IP, email)
+- [x] Hashes para dados sensíveis (IP)
+- [x] Validação Zod em formulários públicos
+- [x] Edge Functions usam `_shared/` (padrão consistente)
+- [x] Secrets em variáveis de ambiente (nunca hardcoded)
+- [x] Filtro de links fake na geração IA
 
 ### Pendente ⚠️
 
 - [ ] Habilitar Leaked Password Protection
-- [ ] Implementar 2FA (opcional)
-- [ ] Adicionar CAPTCHA no formulário de contato (recomendado)
+- [ ] CAPTCHA no formulário de contato
 - [ ] Rate limiting por fingerprint de dispositivo
+- [ ] 2FA (opcional)
 
 ---
 
@@ -261,4 +263,15 @@ SELECT cleanup_old_rate_limits();
 
 ---
 
-*Documento atualizado automaticamente. Última revisão: 2026-01-06*
+## Documentos Relacionados
+
+| Documento | Link |
+|-----------|------|
+| README.md | [/README.md](/README.md) |
+| SYSTEM-DESIGN.md | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |
+| CODE_STYLE.md | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
+| tabelas.md | [/tabelas.md](/tabelas.md) |
+
+---
+
+*Última auditoria: 15/03/2026*

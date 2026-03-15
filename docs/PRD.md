@@ -2,9 +2,9 @@
 
 ## MDAccula - Plataforma de Agência de Música Eletrônica
 
-**Versão:** 1.2  
-**Data:** 23/01/2026  
-**Status:** MVP Concluído + Fase 2 em Andamento
+**Versão:** 1.3  
+**Data:** 15/03/2026  
+**Status:** Fase 2 Concluída, Fase 3 em Andamento
 
 ---
 
@@ -35,17 +35,21 @@ Agências de música eletrônica enfrentam desafios para:
 - Centralizar links e informações para a audiência
 - Acompanhar métricas de engajamento
 - Gerenciar newsletters e comunicação
+- Rastrear a efetividade de links em campanhas
 
 ### Solução Proposta
 
 Uma plataforma all-in-one que oferece:
 - Website público responsivo com eventos e blog
-- Sistema de geração de conteúdo por IA
+- Sistema de geração de conteúdo por IA (dual: OpenAI + Gemini)
 - Página de links personalizável (estilo Linktree)
+- Redirecionador de links com UTM tracking
 - Painel administrativo completo
 - Analytics integrado
 - Newsletter com testes A/B
-- **Eventos recorrentes automatizados**
+- Eventos recorrentes automatizados
+- Programa de Podcast para captação de DJs
+- CDN dedicado para imagens com fallback inteligente
 
 ---
 
@@ -59,6 +63,8 @@ Uma plataforma all-in-one que oferece:
 | Gerar conteúdo consistente | Artigos por mês | 15-30 via IA |
 | Centralizar links | Cliques em links | 5.000+ mensais |
 | Converter audiência | Inscritos newsletter | 1.000+ |
+| Captar DJs | Inscrições podcast | 50+ |
+| Rastrear campanhas | Redirects com UTM | 100% campanhas trackadas |
 
 ### Objetivos Técnicos
 
@@ -67,7 +73,7 @@ Uma plataforma all-in-one que oferece:
 | Performance | Lighthouse Score | 90+ |
 | Disponibilidade | Uptime | 99.9% |
 | Segurança | Vulnerabilidades críticas | 0 |
-| Manutenibilidade | Cobertura de testes | 60%+ |
+| Custo Cloud | Gasto mensal | < $10/mês |
 
 ---
 
@@ -83,9 +89,9 @@ Uma plataforma all-in-one que oferece:
 
 #### 2. Equipe de Marketing
 - **Quem:** Social media e marketing
-- **Necessidades:** Criar e compartilhar conteúdo
+- **Necessidades:** Criar e compartilhar conteúdo, rastrear campanhas
 - **Dores:** Produzir conteúdo original constantemente
-- **Como atendemos:** Blog com IA + página de links
+- **Como atendemos:** Blog com IA + página de links + redirects com UTM
 
 #### 3. Público Final
 - **Quem:** Fãs de música eletrônica
@@ -93,73 +99,59 @@ Uma plataforma all-in-one que oferece:
 - **Dores:** Informações fragmentadas em múltiplas plataformas
 - **Como atendemos:** Site centralizado + newsletter + carousel mobile
 
+#### 4. DJs e Produtores
+- **Quem:** Artistas que querem participar do programa de podcast
+- **Necessidades:** Canal para divulgar trabalho
+- **Como atendemos:** Formulário MDAccula Radio + notificação automática
+
 ---
 
 ## Funcionalidades
 
-### MVP (Concluído ✅)
+### Fase 1 - MVP (Concluído ✅)
 
-#### Website Público
 - [x] Homepage com hero, eventos em destaque e últimas notícias
-- [x] Página de eventos com filtros (cidade, gênero)
-- [x] **Carousel de eventos mobile** *(novo - Jan/2026)*
+- [x] Página de eventos com filtros (cidade, gênero, estado)
+- [x] Carousel de eventos mobile (Embla Carousel)
 - [x] Página de detalhe de evento
-- [x] Blog com busca full-text
-- [x] Página de artigo individual
-- [x] Página de links personalizável
+- [x] Blog com busca full-text (tsvector português)
+- [x] Página de links personalizável (13+ temas)
 - [x] Página institucional (Quem Somos)
 - [x] Formulário de contato com email
-- [x] **Página de Podcast com formulário de inscrição** *(novo - Jan/2026)*
-- [x] SEO otimizado (meta tags, sitemap, RSS)
-
-#### Painel Administrativo
-- [x] Autenticação com roles (admin/user)
+- [x] SEO otimizado (meta tags, sitemap estático + dinâmico, RSS)
+- [x] Autenticação com roles (admin/moderator/user)
 - [x] CRUD de eventos com templates
-- [x] **Eventos recorrentes automatizados (D.EDGE)** *(novo - Jan/2026)*
-- [x] CRUD de posts do blog
-- [x] CRUD de links e grupos
-- [x] Gestão de equipe
-- [x] Configurações do sistema
-- [x] Dashboard de analytics
-- [x] Dashboard de saúde do sistema
-- [x] **Gerenciador de inscrições do Podcast** *(novo - Jan/2026)*
+- [x] Sistema de IA: sugestões + geração + imagens + cron
+- [x] Newsletter com popup A/B testing
+- [x] Analytics (views, cliques, shares, custos IA)
 
-#### Sistema de IA
-- [x] Geração de sugestões de artigos
-- [x] Geração automática de artigos
-- [x] Geração de imagens (Nano Banana)
-- [x] **Prompt de imagem aprimorado com 6 variáveis** *(novo - Jan/2026)*
-- [x] Múltiplos modelos (Gemini, GPT)
-- [x] Agendamento via cron
-- [x] Templates de prompts configuráveis
+### Fase 2 - Consolidação (Concluído ✅)
 
-#### Newsletter
-- [x] Popup de inscrição com A/B testing
-- [x] Gestão de inscritos
-- [x] Envio em massa
+- [x] Eventos recorrentes automatizados (D.EDGE) via pg_cron
+- [x] Programa de Podcast (MDAccula Radio) completo
+- [x] Redirecionador de links com UTM tracking (/r/:slug)
+- [x] Importação de dados via CSV
+- [x] Roteamento dual IA (OpenAI direto / Gemini via Lovable)
+- [x] Filtro de links fake na geração IA
+- [x] CDN com fallback inteligente (Bunny → Supabase → placeholder)
+- [x] Otimização de custos Cloud ($19 → $5-7/mês)
+- [x] Conversão WebP automática (client-side + server-side)
+- [x] Performance /links (skeleton, StaticIcon, lazy DnD, cache SW)
+- [x] Virtualização de listas (VirtualizedLinkList)
+- [x] Logger centralizado + cleanup automático
+- [x] Testes automatizados + CI/CD GitHub Actions
+- [x] Documentação técnica completa
+- [x] Auditoria de segurança (RLS, rate limiting, escapeHtml)
 
-#### Analytics
-- [x] Views de posts e eventos
-- [x] Cliques em links
-- [x] Compartilhamentos
-- [x] Custos de geração IA
+### Fase 3 - Expansão (Em Andamento 🔄)
 
-#### Programa de Podcast *(novo - Jan/2026)*
-- [x] Página pública com hero section e informações do programa
-- [x] Formulário de inscrição validado com Zod (13+ campos)
-- [x] Edge Function para notificações por email (artista + agência)
-- [x] Dashboard admin com filtros por status
-- [x] Cards de métricas (total, pendentes, aprovados, taxa conversão)
-- [x] Gerenciamento de status e notas admin
-- [x] Exportação CSV
-
-### Próximas Fases (Ver ROADMAP.md)
-
-- [ ] PWA completo com push notifications
+- [ ] Botão flutuante de WhatsApp global com deep links
+- [ ] Newsletter inline (Hero + Blog) sem depender de popup
+- [ ] Botão "Adicionar ao Calendário" nos eventos
+- [ ] Compartilhamento social em eventos e blog
+- [ ] PWA com push notifications
+- [ ] Integrações Instagram/Spotify
 - [ ] Dashboard de analytics avançado
-- [ ] Integração com Instagram/Spotify
-- [ ] App mobile nativo
-- [ ] Sistema de reservas/ingressos
 
 ---
 
@@ -170,10 +162,11 @@ Uma plataforma all-in-one que oferece:
 | Componente | Tecnologia | Justificativa |
 |------------|------------|---------------|
 | Frontend | React + TypeScript | Lovable Platform |
-| Estilização | Tailwind CSS | Design System |
+| Estilização | Tailwind CSS + Shadcn/UI | Design System |
 | Backend | Supabase (PostgreSQL) | Lovable Cloud |
 | Serverless | Edge Functions (Deno) | Lógica de negócio |
-| AI | Lovable AI Gateway | Custo-benefício |
+| AI | Lovable AI Gateway + OpenAI | Dual routing |
+| CDN | Bunny CDN | Cache de imagens |
 
 ### Requisitos Não-Funcionais
 
@@ -185,47 +178,36 @@ Uma plataforma all-in-one que oferece:
 | SEO | Core Web Vitals verde |
 | Mobile | Mobile-first responsive |
 
-### Integrações Externas
-
-| Serviço | Uso | Obrigatório |
-|---------|-----|-------------|
-| Lovable AI | Geração de conteúdo | ✅ |
-| OpenAI | Modelos alternativos | ❌ |
-| Firecrawl | Scraping de fontes | ❌ |
-| Resend | Envio de emails | ✅ |
-| GTM/Hotjar | Analytics | ❌ |
-
 ---
 
 ## Backlog do Produto
 
 ### Prioridade Alta 🔴
 
-| ID | Feature | Status | Sprint |
-|----|---------|--------|--------|
-| P01 | Habilitar Leaked Password Protection | Pendente | Next |
-| P02 | CAPTCHA no formulário de contato | Pendente | Next |
-| P03 | Dashboard de saúde do sistema | ✅ Concluído | - |
-| P04 | Testes automatizados | ✅ Concluído | - |
-| P05 | Eventos recorrentes D.EDGE | ✅ Concluído | - |
+| ID | Feature | Status |
+|----|---------|--------|
+| P01 | Botão flutuante WhatsApp global | ⏳ Planejado |
+| P02 | Newsletter inline (Hero + fim de posts) | ⏳ Planejado |
+| P03 | CAPTCHA no formulário de contato | ⏳ Pendente |
+| P04 | Leaked Password Protection | ⏳ Pendente (painel Supabase) |
 
 ### Prioridade Média 🟡
 
-| ID | Feature | Status | Sprint |
-|----|---------|--------|--------|
-| M01 | Push notifications (PWA) | Pendente | Fase 3 |
-| M02 | Integração Instagram Stories | Pendente | Fase 3 |
-| M03 | Relatórios de analytics exportáveis | Pendente | Fase 3 |
-| M04 | Sistema de agendamento de posts | Pendente | Fase 3 |
+| ID | Feature | Status |
+|----|---------|--------|
+| M01 | Botão "Adicionar ao Calendário" (Google/.ics) | ⏳ Planejado |
+| M02 | Compartilhar evento via WhatsApp/copiar link | ⏳ Planejado |
+| M03 | Push notifications (PWA) | ⏳ Planejado |
+| M04 | Relatórios de analytics exportáveis | ⏳ Planejado |
 
 ### Prioridade Baixa 🟢
 
-| ID | Feature | Status | Sprint |
-|----|---------|--------|--------|
-| L01 | Guia de onboarding interativo | Pendente | Fase 4 |
-| L02 | Tema claro/modo light | Pendente | Fase 4 |
-| L03 | Suporte multi-idioma (i18n) | Pendente | Fase 4 |
-| L04 | App mobile nativo | Pendente | Fase 4 |
+| ID | Feature | Status |
+|----|---------|--------|
+| L01 | Guia de onboarding interativo | ⏳ Planejado |
+| L02 | Tema claro/modo light | ⏳ Planejado |
+| L03 | Suporte multi-idioma (i18n) | ⏳ Futuro |
+| L04 | App mobile nativo | ⏳ Futuro |
 
 ---
 
@@ -233,23 +215,23 @@ Uma plataforma all-in-one que oferece:
 
 ### KPIs Técnicos
 
-| Métrica | Baseline | Meta | Atual |
-|---------|----------|------|-------|
-| Lighthouse Performance | - | 90+ | TBD |
-| Lighthouse SEO | - | 100 | TBD |
-| Uptime | - | 99.9% | TBD |
-| Tempo de build | - | < 60s | TBD |
-| Bundle size | - | < 500KB gzip | TBD |
+| Métrica | Meta | Status |
+|---------|------|--------|
+| Lighthouse Performance | 90+ | TBD |
+| Lighthouse SEO | 100 | TBD |
+| Uptime | 99.9% | ✅ |
+| Custo Cloud mensal | < $10 | ✅ (~$5-7) |
+| Bundle size | < 500KB gzip | TBD |
 
 ### KPIs de Produto
 
-| Métrica | Baseline | Meta 3 meses |
-|---------|----------|--------------|
-| Pageviews mensais | 0 | 10.000 |
-| Usuários únicos | 0 | 2.000 |
-| Artigos gerados/mês | 0 | 15 |
-| Cliques em links | 0 | 5.000 |
-| Inscritos newsletter | 0 | 500 |
+| Métrica | Meta 3 meses |
+|---------|--------------|
+| Pageviews mensais | 10.000 |
+| Usuários únicos | 2.000 |
+| Artigos gerados/mês | 15 |
+| Cliques em links | 5.000 |
+| Inscritos newsletter | 500 |
 
 ---
 
@@ -262,18 +244,20 @@ Uma plataforma all-in-one que oferece:
 | PENDENCIAS.MD | Tarefas e histórico | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
 | CODE_STYLE.md | Guia de estilo de código | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
 | SECURITY-AUDIT.md | Auditoria de segurança | [/docs/SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) |
+| SYSTEM-DESIGN.md | Arquitetura técnica | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |
 | tabelas.md | Documentação do banco | [/tabelas.md](/tabelas.md) |
 
 ---
 
 ## Histórico de Revisões
 
-| Versão | Data | Autor | Descrição |
-|--------|------|-------|-----------|
-| 1.0 | 06/01/2026 | Sistema | Documento inicial |
-| 1.1 | 10/01/2026 | Sistema | Atualizado com eventos recorrentes, carousel mobile e melhorias IA |
-| 1.2 | 23/01/2026 | Sistema | Adicionado Programa de Podcast completo |
+| Versão | Data | Descrição |
+|--------|------|-----------|
+| 1.0 | 06/01/2026 | Documento inicial |
+| 1.1 | 10/01/2026 | Eventos recorrentes, carousel mobile, melhorias IA |
+| 1.2 | 23/01/2026 | Programa de Podcast completo |
+| 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, importação CSV, CDN fallback, otimização custos, dual IA routing. Backlog atualizado para Fase 3 |
 
 ---
 
-*Última atualização: 23/01/2026*
+*Última atualização: 15/03/2026*
