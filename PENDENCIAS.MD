@@ -2,11 +2,53 @@
 
 > Registro de alterações, bugs, melhorias e histórico do projeto
 
-**Última atualização:** 18/02/2026
+**Última atualização:** 15/03/2026
 
 ---
 
 ## ✅ Concluído Recentemente
+
+### Fallback Inteligente de Imagens CDN
+**Status:** concluído  
+**Descrição:** Sistema de fallback em 3 camadas para imagens: Bunny CDN → Supabase Storage direto → placeholder genérico. Resolve problema de cache corrompido no CDN sem depender de purge manual.  
+**Data:** 15/03/2026  
+**Responsável:** IA  
+**Impacto:** alto  
+
+**Alterações:**
+1. **imageUtils.ts** - Nova função `getOriginalSupabaseUrl()` reverte URL CDN para Supabase
+2. **OptimizedImage.tsx** - `onError` tenta Supabase antes do gradiente
+3. **Eventos.tsx** - `onError` tenta Supabase antes de `djImage`
+4. **Blog.tsx** - `onError` tenta Supabase antes de `djImage`
+5. **LatestNews.tsx** - Corrigida dupla chamada de `getOptimizedImageUrl`
+6. **LinkCardImage.tsx** - Fallback CDN → Supabase → placeholder
+
+**Arquivos alterados:**
+- `src/lib/imageUtils.ts`
+- `src/components/OptimizedImage.tsx`
+- `src/pages/Eventos.tsx`
+- `src/pages/Blog.tsx`
+- `src/components/sections/LatestNews.tsx`
+- `src/components/links/LinkCardImage.tsx`
+
+---
+
+### Atualização Completa da Documentação (v1.3)
+**Status:** concluído  
+**Descrição:** Auditoria e atualização de todos os 7 documentos técnicos. Versão 1.3.0, datas atualizadas para 15/03/2026, todas as features de Fase 2 documentadas, cross-references entre documentos corrigidas.  
+**Data:** 15/03/2026  
+**Responsável:** IA  
+**Impacto:** médio  
+
+**Documentos atualizados:**
+- `README.md` - v1.3.0, 25 tabelas, 20+ edge functions, CDN section, rotas completas
+- `docs/PRD.md` - Fase 2 concluída, backlog Fase 3, persona DJs
+- `docs/ROADMAP.md` - Fase 2 ✅, Fase 3 iniciando com itens de engajamento
+- `docs/SYSTEM-DESIGN.md` - Fluxos redirect/CDN, dual IA routing, arquitetura CDN
+- `docs/SECURITY-AUDIT.md` - 25 tabelas RLS, redirect/tracking policies
+- `PENDENCIAS.MD` - Entradas recentes adicionadas
+
+---
 
 ### Otimização de Custos Cloud ($19 → estimativa $5-7/mês)
 **Status:** concluído  
