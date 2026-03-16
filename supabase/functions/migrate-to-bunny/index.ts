@@ -210,9 +210,17 @@ Deno.serve(async (req) => {
           sizeMB: (totalBytes / (1024 * 1024)).toFixed(2),
         };
 
-        if (currentOk) {
+      if (currentOk) {
           const bunnyFiles = await listBunnyFiles(bunnyApiKey, bucket);
           diag.bunny_buckets[bucket] = bunnyFiles.length;
+
+          // Calculate Bunny storage size
+          const bunnyTotalBytes = bunnyFiles.reduce((sum: number, f: any) => sum + (f.Length || 0), 0);
+          if (!diag.bunny_bucket_sizes) diag.bunny_bucket_sizes = {};
+          diag.bunny_bucket_sizes[bucket] = {
+            count: bunnyFiles.length,
+            sizeMB: (bunnyTotalBytes / (1024 * 1024)).toFixed(2),
+          };
         }
       }
 
