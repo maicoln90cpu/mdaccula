@@ -195,14 +195,50 @@ const MediaSettings = () => {
               <div className={`flex items-start gap-2 p-3 rounded-md ${credOk ? "bg-green-500/10 border border-green-500/30" : "bg-destructive/10 border border-destructive/30"}`}>
                 {credOk ? <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />}
                 <div>
-                  <p className="text-sm font-medium">{credOk ? "Credencial Bunny válida" : "Credencial Bunny inválida"}</p>
+                  <p className="text-sm font-medium">{credOk ? "Credencial Bunny válida" : "Problema na configuração Bunny"}</p>
                   <p className="text-xs text-muted-foreground">{diagResult.bunny_config?.hint}</p>
                   <p className="text-xs text-muted-foreground mt-1">Host: {diagResult.bunny_config?.storage_host} · Zone: {diagResult.bunny_config?.storage_zone}</p>
-                  {diagResult.bunny_config?.failure_reason && (
-                    <p className="text-xs text-destructive mt-1">Motivo: {diagResult.bunny_config.failure_reason}</p>
+                  {diagResult.bunny_config?.hostname_secret_configured === false && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">⚠️ Secret BUNNY_STORAGE_HOSTNAME não configurado (usando fallback)</p>
                   )}
                 </div>
               </div>
+
+              {/* Region detection */}
+              {diagResult.region_detection && (
+                <div className={`p-3 rounded-md border ${diagResult.region_detection.detected ? "bg-blue-500/10 border-blue-500/30" : "bg-muted/50"}`}>
+                  <p className="text-sm font-medium mb-1">🌍 Detecção de Região</p>
+                  {diagResult.region_detection.detected ? (
+                    <>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        ✅ Região detectada: <strong>{diagResult.region_detection.correct_region}</strong>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Host correto: <code className="bg-muted px-1 rounded">{diagResult.region_detection.correct_host}</code>
+                      </p>
+                      {!credOk && (
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                          👉 {diagResult.region_detection.action_needed}
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-destructive">Nenhuma região respondeu. Verifique a password no painel Bunny.</p>
+                  )}
+                  {diagResult.region_detection.all_results && (
+                    <details className="mt-2">
+                      <summary className="text-xs cursor-pointer text-muted-foreground">Ver todas as regiões testadas</summary>
+                      <div className="mt-1 space-y-0.5">
+                        {diagResult.region_detection.all_results.map((r: any, i: number) => (
+                          <div key={i} className={`text-[10px] font-mono ${r.status === 200 ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                            {r.status === 200 ? "✅" : "❌"} {r.host} ({r.region}) → {r.status}
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
+              )}
 
               {/* Bucket comparison */}
               <div>
