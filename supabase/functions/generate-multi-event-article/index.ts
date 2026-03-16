@@ -397,7 +397,7 @@ NÃO inclua texto na imagem.`;
             
             const fileName = `multi-event-${Date.now()}.webp`;
             
-            const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY');
+            const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim();
             if (BUNNY_STORAGE_API_KEY) {
               const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
               const bunnyUploadUrl = `https://${bunnyHostname}/mdacula/event-images/${fileName}`;

@@ -94,7 +94,7 @@ async function listBunnyFiles(apiKey: string, path: string): Promise<any[]> {
   const url = bunnyStorageUrl(path + "/");
   const resp = await fetch(url, {
     method: "GET",
-    headers: { AccessKey: apiKey, Accept: "application/json" },
+    headers: { AccessKey: apiKey },
   });
   if (!resp.ok) return [];
   return await resp.json();
