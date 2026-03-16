@@ -524,6 +524,30 @@ export type Database = {
           },
         ]
       }
+      image_hashes: {
+        Row: {
+          bucket: string
+          created_at: string
+          file_size: number | null
+          hash: string
+          url: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          file_size?: number | null
+          hash: string
+          url: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          file_size?: number | null
+          hash?: string
+          url?: string
+        }
+        Relationships: []
+      }
       link_click_events: {
         Row: {
           clicked_at: string
