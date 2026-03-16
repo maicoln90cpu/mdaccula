@@ -163,7 +163,7 @@ const MediaSettings = () => {
     }
   };
 
-  const credOk = diagResult?.bunny_config?.credential_ok;
+  const credOk = diagResult?.bunny_config?.auth_ok;
 
   return (
     <div className="space-y-4 sm:space-y-6">
