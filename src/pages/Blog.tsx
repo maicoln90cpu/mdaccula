@@ -495,6 +495,7 @@ const Blog = () => {
                                   decoding="async"
                                    onError={(e) => {
                                      if (e.currentTarget.src !== djImage) {
+                                       console.warn(`[IMG_ERROR] Blog "${post.title}" — falha ao carregar: ${e.currentTarget.src}`);
                                        e.currentTarget.src = djImage;
                                      }
                                    }}

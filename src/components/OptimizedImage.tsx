@@ -50,7 +50,11 @@ export const OptimizedImage = ({
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
           onLoad={() => setIsLoading(false)}
-          onError={() => { setIsLoading(false); setHasError(true); }}
+          onError={() => { 
+            console.warn(`[IMG_ERROR] OptimizedImage falha: ${optimizedSrc || src}`);
+            setIsLoading(false); 
+            setHasError(true); 
+          }}
         />
       )}
     </div>

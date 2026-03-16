@@ -618,7 +618,9 @@ ${hasRealTicketLink
             const base64Data = base64Image.split(',')[1];
             const pngBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
             
-            let webpBuffer: Uint8Array;
+            let finalBuffer: Uint8Array;
+            let fileExt = 'png';
+            let contentType = 'image/png';
             try {
               const image = await Image.decode(pngBuffer);
               const maxDimension = 1024;
@@ -629,14 +631,18 @@ ${hasRealTicketLink
                 image.resize(newWidth, newHeight);
                 console.log(`Imagem redimensionada para ${newWidth}x${newHeight}`);
               }
-              webpBuffer = await image.encodeWEBP(85);
-              console.log(`Conversão WebP: ${pngBuffer.length} -> ${webpBuffer.length} bytes (${((1 - webpBuffer.length / pngBuffer.length) * 100).toFixed(1)}% menor)`);
+              finalBuffer = await image.encodeWEBP(85);
+              fileExt = 'webp';
+              contentType = 'image/webp';
+              console.log(`Conversão WebP: ${pngBuffer.length} -> ${finalBuffer.length} bytes (${((1 - finalBuffer.length / pngBuffer.length) * 100).toFixed(1)}% menor)`);
             } catch (conversionError) {
-              console.error('Erro na conversão WebP, usando PNG:', conversionError);
-              webpBuffer = pngBuffer;
+              console.error('Erro na conversão WebP, usando PNG original:', conversionError);
+              finalBuffer = pngBuffer;
+              fileExt = 'png';
+              contentType = 'image/png';
             }
             
-            const fileName = `ai-generated-${Date.now()}.webp`;
+            const fileName = `ai-generated-${Date.now()}.${fileExt}`;
             
             const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
             if (BUNNY_STORAGE_API_KEY) {
@@ -646,9 +652,9 @@ ${hasRealTicketLink
                 method: 'PUT',
                 headers: {
                   AccessKey: BUNNY_STORAGE_API_KEY,
-                  'Content-Type': 'image/webp',
+                  'Content-Type': contentType,
                 },
-                body: webpBuffer,
+                body: finalBuffer,
               });
 
               if (uploadResp.ok) {

@@ -200,13 +200,25 @@ Deno.serve(async (req) => {
 
     console.log('✅ Imagem base64 extraída com sucesso');
 
-    // Converter base64 para WebP e fazer upload
+    // Converter base64 para buffer e detectar formato real
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     
-    const fileName = `blog-${postId}-${Date.now()}.webp`;
+    // Detect actual format from magic bytes
+    let fileExt = 'png';
+    let contentType = 'image/png';
+    if (imageBytes.length > 12) {
+      if (imageBytes[0] === 0x52 && imageBytes[1] === 0x49 && imageBytes[2] === 0x46 && imageBytes[3] === 0x46 &&
+          imageBytes[8] === 0x57 && imageBytes[9] === 0x45 && imageBytes[10] === 0x42 && imageBytes[11] === 0x50) {
+        fileExt = 'webp'; contentType = 'image/webp';
+      } else if (imageBytes[0] === 0xFF && imageBytes[1] === 0xD8) {
+        fileExt = 'jpg'; contentType = 'image/jpeg';
+      }
+    }
     
-    console.log(`📤 Fazendo upload da imagem para Bunny: ${fileName}`);
+    const fileName = `blog-${postId}-${Date.now()}.${fileExt}`;
+    
+    console.log(`📤 Fazendo upload da imagem para Bunny: ${fileName} (${contentType})`);
     
     const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
     if (!BUNNY_STORAGE_API_KEY) {
@@ -222,7 +234,7 @@ Deno.serve(async (req) => {
       method: 'PUT',
       headers: {
         AccessKey: BUNNY_STORAGE_API_KEY,
-        'Content-Type': 'image/webp',
+        'Content-Type': contentType,
       },
       body: imageBytes,
     });
