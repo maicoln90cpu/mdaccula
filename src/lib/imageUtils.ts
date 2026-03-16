@@ -49,42 +49,35 @@ export function getOptimizedImageUrl(
 ): string {
   if (!url) return '';
 
-  // ⚠️ CDN REWRITE DESATIVADO TEMPORARIAMENTE
-  // O fallback CDN→Supabase estava duplicando requests e causando ~12GB/dia de egress.
-  // Servindo direto do Supabase até confirmar que Bunny+Cloudflare estão configurados corretamente.
-  // Para reativar: remover este return e descomentar o bloco abaixo.
-  return url;
+  // URLs do Bunny CDN já estão otimizadas
+  if (url.startsWith(BUNNY_CDN_HOST)) return url;
 
-  /*
-  // Only rewrite Supabase storage URLs
-  if (!SUPABASE_STORAGE_PATTERN.test(url)) {
-    return url;
-  }
+  // Reescrever URLs do Supabase Storage → Bunny CDN
+  if (SUPABASE_STORAGE_PATTERN.test(url)) {
+    const match = url.match(SUPABASE_PATH_REGEX);
+    if (!match) return url;
 
-  // Extract the path after /storage/v1/object/public/
-  const match = url.match(SUPABASE_PATH_REGEX);
-  if (!match) return url;
+    let imagePath = match[1];
 
-  let imagePath = match[1];
-
-  // Strip legacy resize/dimension params that cause cropping
-  try {
-    const hasQuery = imagePath.includes('?');
-    if (hasQuery) {
-      const [basePath, queryString] = imagePath.split('?');
-      const params = new URLSearchParams(queryString);
-      params.delete('width');
-      params.delete('height');
-      params.delete('resize');
-      const remaining = params.toString();
-      imagePath = remaining ? `${basePath}?${remaining}` : basePath;
+    // Strip legacy resize/dimension params
+    try {
+      if (imagePath.includes('?')) {
+        const [basePath, queryString] = imagePath.split('?');
+        const params = new URLSearchParams(queryString);
+        params.delete('width');
+        params.delete('height');
+        params.delete('resize');
+        const remaining = params.toString();
+        imagePath = remaining ? `${basePath}?${remaining}` : basePath;
+      }
+    } catch {
+      // If URL parsing fails, continue with original path
     }
-  } catch {
-    // If URL parsing fails, continue with original path
+
+    return `${BUNNY_CDN_HOST}/${imagePath}`;
   }
 
-  return `${BUNNY_CDN_HOST}/${imagePath}`;
-  */
+  return url;
 }
 
 /**
