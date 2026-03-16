@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 import imageCompression from "browser-image-compression";
-import { Upload, Loader2 } from "lucide-react";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 import { ThemeSelector } from "./ThemeSelector";
 import {
   Select,
