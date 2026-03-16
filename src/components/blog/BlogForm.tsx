@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { convertToWebP } from '@/lib/webpConverter';
+import { uploadImageToBunny } from '@/lib/bunnyUploader';
 
 interface BlogFormData {
   title: string;
@@ -76,19 +77,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
     setUploading(true);
     try {
       const webpFile = await convertToWebP(imageFile);
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
-      
-      const { data, error } = await supabase.storage
-        .from('event-images')
-        .upload(fileName, webpFile, { contentType: 'image/webp' });
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('event-images')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
+      return await uploadImageToBunny(webpFile, 'event-images');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({

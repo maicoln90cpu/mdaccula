@@ -14,6 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 import { convertToWebP } from "@/lib/webpConverter";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 import { Search, Calendar, MapPin, Music, Loader2, FileText, X, ImageIcon, Upload, Link } from "lucide-react";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -162,24 +163,7 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
   // Upload image to storage if needed
   const uploadImageToStorage = async (file: File): Promise<string> => {
     const webpFile = await convertToWebP(file);
-    const fileName = `multi-event-${Date.now()}.webp`;
-    const filePath = `blog-images/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('event-images')
-      .upload(filePath, webpFile, {
-        contentType: 'image/webp',
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = supabase.storage
-      .from('event-images')
-      .getPublicUrl(filePath);
-
-    return publicUrlData.publicUrl;
+    return await uploadImageToBunny(webpFile, 'event-images');
   };
 
   const handleGenerate = async () => {

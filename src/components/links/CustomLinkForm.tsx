@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { convertToWebP } from "@/lib/webpConverter";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 import { LinkCardImage } from "./LinkCardImage";
 
 const linkSchema = z.object({
@@ -192,19 +193,7 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
   const uploadThumbnail = async (file: File): Promise<string | null> => {
     try {
       const webpFile = await convertToWebP(file);
-      const fileName = `${crypto.randomUUID()}.webp`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('link-thumbnails')
-        .upload(fileName, webpFile, { contentType: 'image/webp' });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('link-thumbnails')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
+      return await uploadImageToBunny(webpFile, 'link-thumbnails');
     } catch (error) {
       logger.error('Error uploading thumbnail', error, { component: 'CustomLinkForm' });
       toast({
