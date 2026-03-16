@@ -419,6 +419,7 @@ const MediaSettings = () => {
                 >
                   <div className="font-medium">{PRESET_LABELS[key].label}</div>
                   <div className="text-[10px] text-muted-foreground">{PRESET_LABELS[key].desc}</div>
+                  <div className="text-[9px] text-muted-foreground/70 mt-0.5">{PRESET_LABELS[key].details}</div>
                 </button>
               ))}
             </div>
