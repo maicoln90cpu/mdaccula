@@ -9,11 +9,10 @@ const corsHeaders = {
 const BUNNY_STORAGE_ZONE = "mdacula";
 const BUNNY_REGION = "br";
 const BUNNY_CDN_HOST = "https://mdacula.b-cdn.net";
-const SUPABASE_STORAGE_BASE = "https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public";
+const BUNNY_STORAGE_HOST = `https://${BUNNY_REGION}.storage.bunnycdn.com`;
 
 const BUCKETS = ["event-images", "link-thumbnails", "team-images"];
 
-// Tables and columns that contain image URLs
 const URL_COLUMNS = [
   { table: "events", column: "image_url" },
   { table: "blog_posts", column: "image_url" },
@@ -23,20 +22,53 @@ const URL_COLUMNS = [
   { table: "recurring_event_configs", column: "image_url" },
 ];
 
-Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+function json(data: unknown, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+/** Test if the Bunny Storage API key is valid by listing files */
+async function testBunnyCredential(apiKey: string): Promise<{ ok: boolean; hint: string; status?: number }> {
+  try {
+    const url = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/`;
+    const resp = await fetch(url, {
+      method: "GET",
+      headers: { AccessKey: apiKey, Accept: "application/json" },
+    });
+    if (resp.ok) return { ok: true, hint: "Storage Zone password válida" };
+    if (resp.status === 401) {
+      return {
+        ok: false,
+        status: 401,
+        hint: "BUNNY_STORAGE_API_KEY inválida. Certifique-se de usar a PASSWORD da Storage Zone 'mdacula', não a API key geral da conta Bunny.",
+      };
+    }
+    return { ok: false, status: resp.status, hint: `Bunny retornou status ${resp.status}` };
+  } catch (e) {
+    return { ok: false, hint: `Erro de rede: ${(e as Error).message}` };
   }
+}
+
+/** List files on Bunny Storage for a given path */
+async function listBunnyFiles(apiKey: string, path: string): Promise<any[]> {
+  const url = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${path}/`;
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: { AccessKey: apiKey, Accept: "application/json" },
+  });
+  if (!resp.ok) return [];
+  return await resp.json();
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Auth check - admin only
+    // Auth
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
 
     const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -46,52 +78,47 @@ Deno.serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(token);
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (userError || !user) return json({ error: "Unauthorized" }, 401);
 
-    const userId = user.id;
-    const { data: isAdmin } = await supabaseAnon.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { data: isAdmin } = await supabaseAnon.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
     const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
-    console.log("BUNNY_STORAGE_API_KEY present:", !!bunnyApiKey, "length:", bunnyApiKey?.length);
-    if (!bunnyApiKey) {
-      return new Response(JSON.stringify({ error: "BUNNY_STORAGE_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!bunnyApiKey) return json({ error: "BUNNY_STORAGE_API_KEY não configurada" }, 500);
 
-    // Service role client for storage listing
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const body = await req.json().catch(() => ({}));
-    const action = body.action || "migrate_files"; // "migrate_files" | "update_urls" | "status"
+    const action = body.action || "migrate_files";
     const batchSize = body.batch_size || 20;
-    const targetBucket = body.bucket; // optional: limit to specific bucket
+    const targetBucket = body.bucket;
 
-    if (action === "status") {
-      // Return counts of files per bucket and unmigrated URLs
-      const status: Record<string, any> = { buckets: {}, urls: {} };
+    // ── ACTION: diagnose ──
+    if (action === "diagnose") {
+      const credTest = await testBunnyCredential(bunnyApiKey);
+      const diag: Record<string, any> = {
+        bunny_config: {
+          storage_zone: BUNNY_STORAGE_ZONE,
+          region: BUNNY_REGION,
+          cdn_host: BUNNY_CDN_HOST,
+          storage_host: BUNNY_STORAGE_HOST,
+          credential_ok: credTest.ok,
+          credential_hint: credTest.hint,
+          key_length: bunnyApiKey.length,
+          key_prefix: bunnyApiKey.substring(0, 4) + "...",
+        },
+        supabase_buckets: {} as Record<string, number>,
+        bunny_buckets: {} as Record<string, number>,
+        unmigrated_urls: {} as Record<string, number>,
+      };
 
       for (const bucket of BUCKETS) {
         const { data: files } = await supabase.storage.from(bucket).list("", { limit: 1000 });
-        status.buckets[bucket] = files?.length || 0;
+        diag.supabase_buckets[bucket] = files?.filter(f => f.id && !f.name.startsWith(".")).length || 0;
+
+        if (credTest.ok) {
+          const bunnyFiles = await listBunnyFiles(bunnyApiKey, bucket);
+          diag.bunny_buckets[bucket] = bunnyFiles.length;
+        }
       }
 
       for (const { table, column } of URL_COLUMNS) {
@@ -99,66 +126,79 @@ Deno.serve(async (req) => {
           .from(table)
           .select("id", { count: "exact", head: true })
           .like(column, `%supabase.co%`);
-        status.urls[`${table}.${column}`] = count || 0;
+        diag.unmigrated_urls[`${table}.${column}`] = count || 0;
       }
 
-      return new Response(JSON.stringify({ status }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json(diag);
     }
 
+    // ── ACTION: status (legacy compat) ──
+    if (action === "status") {
+      const status: Record<string, any> = { buckets: {}, urls: {} };
+      for (const bucket of BUCKETS) {
+        const { data: files } = await supabase.storage.from(bucket).list("", { limit: 1000 });
+        status.buckets[bucket] = files?.length || 0;
+      }
+      for (const { table, column } of URL_COLUMNS) {
+        const { count } = await supabase
+          .from(table).select("id", { count: "exact", head: true })
+          .like(column, `%supabase.co%`);
+        status.urls[`${table}.${column}`] = count || 0;
+      }
+      return json({ status });
+    }
+
+    // ── ACTION: migrate_files ──
     if (action === "migrate_files") {
+      // Pre-check credential
+      const credTest = await testBunnyCredential(bunnyApiKey);
+      if (!credTest.ok) {
+        return json({
+          error: "Bunny credential failed",
+          credential_hint: credTest.hint,
+          credential_status: credTest.status,
+        }, 400);
+      }
+
       const bucketsToProcess = targetBucket ? [targetBucket] : BUCKETS;
-      const results: Record<string, { migrated: number; skipped: number; errors: string[] }> = {};
+      const results: Record<string, any> = {};
       let totalMigrated = 0;
 
       for (const bucket of bucketsToProcess) {
-        results[bucket] = { migrated: 0, skipped: 0, errors: [] };
+        results[bucket] = { migrated: 0, skipped: 0, errors: [] as string[] };
 
-        // List files in bucket (supports subfolder structure)
         const { data: files, error: listError } = await supabase.storage
-          .from(bucket)
-          .list("", { limit: 1000, sortBy: { column: "name", order: "asc" } });
+          .from(bucket).list("", { limit: 1000, sortBy: { column: "name", order: "asc" } });
 
-        if (listError) {
-          results[bucket].errors.push(`List error: ${listError.message}`);
-          continue;
-        }
+        if (listError) { results[bucket].errors.push(`List: ${listError.message}`); continue; }
+        if (!files?.length) continue;
 
-        if (!files || files.length === 0) continue;
-
-        // Filter to actual files (not folders), take batch
-        const imageFiles = files.filter(f => f.id && !f.id.endsWith("/"));
+        const imageFiles = files.filter(f => f.id && !f.name.startsWith("."));
         const batch = imageFiles.slice(body.offset || 0, (body.offset || 0) + batchSize);
+
+        // Get existing Bunny files for this bucket to avoid re-uploading
+        const existingBunny = await listBunnyFiles(bunnyApiKey, bucket);
+        const existingNames = new Set(existingBunny.map((f: any) => f.ObjectName));
 
         for (const file of batch) {
           const filePath = file.name;
-          const bunnyPath = `${bucket}/${filePath}`;
-          const bunnyUploadUrl = `https://${BUNNY_REGION}.storage.bunnycdn.com/${BUNNY_STORAGE_ZONE}/${bunnyPath}`;
+
+          if (existingNames.has(filePath)) {
+            results[bucket].skipped++;
+            continue;
+          }
 
           try {
-            // Check if file already exists on Bunny (HEAD request)
-            const headResp = await fetch(`${BUNNY_CDN_HOST}/${bunnyPath}`, { method: "HEAD" });
-            if (headResp.ok) {
-              results[bucket].skipped++;
-              continue;
-            }
-
-            // Download from Supabase
-            const { data: fileData, error: dlError } = await supabase.storage
-              .from(bucket)
-              .download(filePath);
-
+            const { data: fileData, error: dlError } = await supabase.storage.from(bucket).download(filePath);
             if (dlError || !fileData) {
-              results[bucket].errors.push(`Download ${filePath}: ${dlError?.message || "no data"}`);
+              results[bucket].errors.push(`DL ${filePath}: ${dlError?.message || "no data"}`);
               continue;
             }
 
             const arrayBuffer = await fileData.arrayBuffer();
+            const bunnyUrl = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${bucket}/${filePath}`;
 
-            // Upload to Bunny
-            console.log(`Uploading to Bunny: ${bunnyUploadUrl}, key length: ${bunnyApiKey.length}, key prefix: ${bunnyApiKey.substring(0, 4)}...`);
-            const uploadResp = await fetch(bunnyUploadUrl, {
+            const uploadResp = await fetch(bunnyUrl, {
               method: "PUT",
               headers: {
                 AccessKey: bunnyApiKey,
@@ -169,7 +209,7 @@ Deno.serve(async (req) => {
 
             if (!uploadResp.ok) {
               const errText = await uploadResp.text();
-              results[bucket].errors.push(`Upload ${filePath}: ${uploadResp.status} ${errText}`);
+              results[bucket].errors.push(`UP ${filePath}: ${uploadResp.status} ${errText}`);
               continue;
             }
 
@@ -180,76 +220,45 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Check if there are more files
-        (results[bucket] as any).total = imageFiles.length;
-        (results[bucket] as any).hasMore = (body.offset || 0) + batchSize < imageFiles.length;
+        results[bucket].total = imageFiles.length;
+        results[bucket].hasMore = (body.offset || 0) + batchSize < imageFiles.length;
       }
 
-      return new Response(
-        JSON.stringify({
-          action: "migrate_files",
-          totalMigrated,
-          results,
-          nextOffset: (body.offset || 0) + batchSize,
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ action: "migrate_files", totalMigrated, results, nextOffset: (body.offset || 0) + batchSize });
     }
 
+    // ── ACTION: update_urls ──
     if (action === "update_urls") {
-      // Replace Supabase Storage URLs with Bunny CDN URLs in all tables
       const urlResults: Record<string, number> = {};
 
       for (const { table, column } of URL_COLUMNS) {
-        // Find rows with Supabase storage URLs
         const { data: rows, error: selectError } = await supabase
-          .from(table)
-          .select(`id, ${column}`)
+          .from(table).select(`id, ${column}`)
           .like(column, `%supabase.co/storage/v1/object/public/%`)
           .limit(500);
 
-        if (selectError || !rows) {
-          urlResults[`${table}.${column}`] = -1;
-          continue;
-        }
+        if (selectError || !rows) { urlResults[`${table}.${column}`] = -1; continue; }
 
         let updated = 0;
         for (const row of rows) {
           const oldUrl = (row as any)[column] as string;
           if (!oldUrl) continue;
-
-          // Extract path after /storage/v1/object/public/
           const match = oldUrl.match(/\/storage\/v1\/object\/public\/(.+)$/);
           if (!match) continue;
 
           const newUrl = `${BUNNY_CDN_HOST}/${match[1]}`;
-
-          const { error: updateError } = await supabase
-            .from(table)
-            .update({ [column]: newUrl })
-            .eq("id", row.id);
-
+          const { error: updateError } = await supabase.from(table).update({ [column]: newUrl }).eq("id", row.id);
           if (!updateError) updated++;
         }
-
         urlResults[`${table}.${column}`] = updated;
       }
 
-      return new Response(
-        JSON.stringify({ action: "update_urls", updated: urlResults }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return json({ action: "update_urls", updated: urlResults });
     }
 
-    return new Response(
-      JSON.stringify({ error: "Invalid action. Use: status, migrate_files, update_urls" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: "Ação inválida. Use: diagnose, status, migrate_files, update_urls" }, 400);
   } catch (error) {
     console.error("migrate-to-bunny error:", error);
-    return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json({ error: (error as Error).message }, 500);
   }
 });

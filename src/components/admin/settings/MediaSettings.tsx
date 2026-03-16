@@ -1,106 +1,63 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 
+type CompressionPreset = "sutil" | "media" | "severa";
+
+const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string }> = {
+  sutil: { label: "Sutil", desc: "Qualidade alta, resize leve" },
+  media: { label: "Média", desc: "Equilíbrio qualidade/tamanho" },
+  severa: { label: "Severa", desc: "Máxima compressão" },
+};
+
 const MediaSettings = () => {
-  const [converting, setConverting] = useState(false);
-  const [conversionResult, setConversionResult] = useState<{
-    converted: number;
-    skipped: number;
-    largeFilesSkipped: number;
-    errors: number;
-    totalSavedMB: string;
-  } | null>(null);
+  // Bunny diagnosis
+  const [diagLoading, setDiagLoading] = useState(false);
+  const [diagResult, setDiagResult] = useState<Record<string, any> | null>(null);
 
-  const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{
-    totalFiles: number;
-    imported: number;
-    skipped: number;
-    errors: number;
-    complete: boolean;
-    message: string;
-    errorDetails?: string[];
-  } | null>(null);
-
-  // Bunny migration state
-  const [bunnyStatus, setBunnyStatus] = useState<Record<string, any> | null>(null);
-  const [loadingStatus, setLoadingStatus] = useState(false);
+  // Bunny migration
   const [migratingFiles, setMigratingFiles] = useState(false);
   const [migrateResult, setMigrateResult] = useState<Record<string, any> | null>(null);
   const [migrateOffset, setMigrateOffset] = useState(0);
   const [updatingUrls, setUpdatingUrls] = useState(false);
   const [urlResult, setUrlResult] = useState<Record<string, number> | null>(null);
 
+  // Image check
+  const [checkLoading, setCheckLoading] = useState(false);
+  const [checkResult, setCheckResult] = useState<Record<string, any> | null>(null);
+
+  // Conversion
+  const [converting, setConverting] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<CompressionPreset>("media");
+  const [conversionResult, setConversionResult] = useState<Record<string, any> | null>(null);
+
+  // Import
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<Record<string, any> | null>(null);
+
   const { toast } = useToast();
 
-  const handleBatchConvert = async () => {
-    setConverting(true);
-    setConversionResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
-        body: { bucket: "event-images", quality: 80 },
-      });
-      if (error) throw error;
-      if (data.success) {
-        setConversionResult(data.summary);
-        toast({
-          title: "Conversão concluída",
-          description: `${data.summary.converted} imagens convertidas. ${data.summary.totalSavedMB} MB economizados.`,
-        });
-      } else {
-        throw new Error(data.error || "Conversion failed");
-      }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na conversão", description: error.message });
-    } finally {
-      setConverting(false);
-    }
-  };
-
-  const handleImportStorage = async () => {
-    setImporting(true);
-    setImportResult(null);
-    try {
-      const { data, error } = await supabase.functions.invoke("import-storage");
-      if (error) throw error;
-      if (data.success) {
-        setImportResult(data);
-        toast({
-          title: data.complete ? "Importação completa!" : "Lote processado",
-          description: data.message,
-        });
-      } else {
-        throw new Error(data.error || "Import failed");
-      }
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na importação", description: error.message });
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  // Bunny migration handlers
-  const handleBunnyStatus = async () => {
-    setLoadingStatus(true);
-    setBunnyStatus(null);
+  // ── Bunny Diagnose ──
+  const handleDiagnose = async () => {
+    setDiagLoading(true);
+    setDiagResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
-        body: { action: "status" },
+        body: { action: "diagnose" },
       });
       if (error) throw error;
-      setBunnyStatus(data.status);
+      setDiagResult(data);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao verificar status", description: error.message });
+      toast({ variant: "destructive", title: "Erro no diagnóstico", description: error.message });
     } finally {
-      setLoadingStatus(false);
+      setDiagLoading(false);
     }
   };
 
+  // ── Migrate Files ──
   const handleMigrateFiles = async () => {
     setMigratingFiles(true);
     setMigrateResult(null);
@@ -109,13 +66,19 @@ const MediaSettings = () => {
         body: { action: "migrate_files", batch_size: 20, offset: migrateOffset },
       });
       if (error) throw error;
+
+      if (data.error) {
+        setMigrateResult(data);
+        toast({ variant: "destructive", title: "Erro na migração", description: data.credential_hint || data.error });
+        return;
+      }
+
       setMigrateResult(data);
       setMigrateOffset(data.nextOffset || 0);
-
       const hasMore = Object.values(data.results || {}).some((r: any) => r.hasMore);
       toast({
         title: hasMore ? "Lote processado" : "Migração concluída",
-        description: `${data.totalMigrated} arquivos migrados neste lote.${hasMore ? " Clique novamente para continuar." : ""}`,
+        description: `${data.totalMigrated} arquivos migrados.${hasMore ? " Clique novamente." : ""}`,
       });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro na migração", description: error.message });
@@ -124,6 +87,7 @@ const MediaSettings = () => {
     }
   };
 
+  // ── Update URLs ──
   const handleUpdateUrls = async () => {
     setUpdatingUrls(true);
     setUrlResult(null);
@@ -133,12 +97,8 @@ const MediaSettings = () => {
       });
       if (error) throw error;
       setUrlResult(data.updated);
-
       const total = Object.values(data.updated as Record<string, number>).reduce((a, b) => a + b, 0);
-      toast({
-        title: "URLs atualizadas",
-        description: `${total} URLs reescritas para Bunny CDN.`,
-      });
+      toast({ title: "URLs atualizadas", description: `${total} URLs reescritas.` });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao atualizar URLs", description: error.message });
     } finally {
@@ -146,159 +106,192 @@ const MediaSettings = () => {
     }
   };
 
+  // ── Image Check ──
+  const handleCheck = async () => {
+    setCheckLoading(true);
+    setCheckResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
+        body: { action: "check", bucket: "event-images" },
+      });
+      if (error) throw error;
+      setCheckResult(data);
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na análise", description: error.message });
+    } finally {
+      setCheckLoading(false);
+    }
+  };
+
+  // ── Convert ──
+  const handleConvert = async () => {
+    setConverting(true);
+    setConversionResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
+        body: { action: "convert", bucket: "event-images", preset: selectedPreset, maxFiles: 10 },
+      });
+      if (error) throw error;
+      setConversionResult(data);
+      toast({
+        title: "Conversão concluída",
+        description: `${data.summary.processed} imagens. ${data.summary.totalSavedMB} MB economizados.`,
+      });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na conversão", description: error.message });
+    } finally {
+      setConverting(false);
+    }
+  };
+
+  // ── Import Storage ──
+  const handleImportStorage = async () => {
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("import-storage");
+      if (error) throw error;
+      setImportResult(data);
+      toast({
+        title: data.complete ? "Importação completa!" : "Lote processado",
+        description: data.message,
+      });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na importação", description: error.message });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const credOk = diagResult?.bunny_config?.credential_ok;
+
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Bunny CDN Migration */}
+      {/* ═══ Bunny CDN Diagnostics & Migration ═══ */}
       <Card className="border-orange-500/20">
         <CardHeader className="px-4 sm:px-6">
           <div className="flex items-center gap-2">
             <Cloud className="w-5 h-5 text-orange-500" />
-            <CardTitle className="text-lg sm:text-xl">Migração Bunny CDN</CardTitle>
+            <CardTitle className="text-lg sm:text-xl">Bunny CDN — Diagnóstico & Migração</CardTitle>
           </div>
           <CardDescription className="text-sm">
-            Migre imagens do Supabase Storage para o Bunny CDN e atualize as URLs no banco
+            Verifique a configuração, migre arquivos e atualize URLs
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
-          {/* Step 1: Status */}
-          <div className="space-y-2">
-            <Button onClick={handleBunnyStatus} disabled={loadingStatus} variant="outline" className="w-full">
-              {loadingStatus ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verificando...</>
-              ) : (
-                <><RefreshCw className="w-4 h-4 mr-2" />Ver Status da Migração</>
-              )}
-            </Button>
 
-            {bunnyStatus && (
-              <div className="p-4 rounded-lg bg-muted/30 border space-y-3">
-                <p className="text-sm font-medium">📦 Arquivos por bucket:</p>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  {Object.entries(bunnyStatus.buckets || {}).map(([bucket, count]) => (
-                    <div key={bucket}>{bucket}: <strong>{count as number}</strong></div>
+          {/* Diagnose */}
+          <Button onClick={handleDiagnose} disabled={diagLoading} variant="outline" className="w-full">
+            {diagLoading ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Diagnosticando...</>
+            ) : (
+              <><Search className="w-4 h-4 mr-2" />Diagnóstico Completo</>
+            )}
+          </Button>
+
+          {diagResult && (
+            <div className="p-4 rounded-lg bg-muted/30 border space-y-3">
+              {/* Credential status */}
+              <div className={`flex items-start gap-2 p-3 rounded-md ${credOk ? "bg-green-500/10 border border-green-500/30" : "bg-destructive/10 border border-destructive/30"}`}>
+                {credOk ? <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />}
+                <div>
+                  <p className="text-sm font-medium">{credOk ? "Credencial Bunny válida" : "Credencial Bunny inválida"}</p>
+                  <p className="text-xs text-muted-foreground">{diagResult.bunny_config?.credential_hint}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Key: {diagResult.bunny_config?.key_prefix} (length: {diagResult.bunny_config?.key_length})</p>
+                </div>
+              </div>
+
+              {/* Bucket comparison */}
+              <div>
+                <p className="text-sm font-medium mb-2">📦 Arquivos por bucket:</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="font-medium text-muted-foreground">Bucket</div>
+                  <div className="font-medium text-muted-foreground">Supabase</div>
+                  <div className="font-medium text-muted-foreground">Bunny</div>
+                  {Object.keys(diagResult.supabase_buckets || {}).map(bucket => (
+                    <>
+                      <div key={`n-${bucket}`} className="font-mono">{bucket}</div>
+                      <div key={`s-${bucket}`}>{diagResult.supabase_buckets[bucket]}</div>
+                      <div key={`b-${bucket}`}>{credOk ? diagResult.bunny_buckets[bucket] : "—"}</div>
+                    </>
                   ))}
                 </div>
-                <p className="text-sm font-medium mt-2">🔗 URLs ainda no Supabase:</p>
+              </div>
+
+              {/* Unmigrated URLs */}
+              <div>
+                <p className="text-sm font-medium mb-1">🔗 URLs ainda no Supabase:</p>
                 <div className="grid grid-cols-1 gap-1 text-xs">
-                  {Object.entries(bunnyStatus.urls || {}).map(([key, count]) => (
-                    <div key={key} className={`${(count as number) > 0 ? 'text-amber-600 dark:text-amber-400 font-medium' : 'text-muted-foreground'}`}>
+                  {Object.entries(diagResult.unmigrated_urls || {}).map(([key, count]) => (
+                    <div key={key} className={`${(count as number) > 0 ? "text-amber-600 dark:text-amber-400 font-medium" : "text-muted-foreground"}`}>
                       {key}: <strong>{count as number}</strong>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Step 2: Migrate files */}
-          <div className="space-y-2">
-            <Button onClick={handleMigrateFiles} disabled={migratingFiles} variant="outline" className="w-full">
+          {/* Migrate files */}
+          <div className="flex gap-2">
+            <Button onClick={handleMigrateFiles} disabled={migratingFiles} variant="outline" className="flex-1">
               {migratingFiles ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Migrando arquivos (offset: {migrateOffset})...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Migrando (offset: {migrateOffset})...</>
               ) : (
-                <><Cloud className="w-4 h-4 mr-2" />Migrar Arquivos para Bunny (lote de 20)</>
+                <><Cloud className="w-4 h-4 mr-2" />Migrar Arquivos (lote 20)</>
               )}
             </Button>
+            {migrateOffset > 0 && (
+              <Button variant="ghost" size="sm" onClick={() => setMigrateOffset(0)} title="Reset offset">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
 
-            {migrateResult && (
-              <div className="p-4 rounded-lg bg-muted/30 border space-y-2">
+          {migrateResult && (
+            <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
+              {migrateResult.credential_hint && (
+                <p className="text-destructive font-medium">{migrateResult.credential_hint}</p>
+              )}
+              {migrateResult.totalMigrated !== undefined && (
                 <p className="text-sm font-medium">Migrados neste lote: <strong>{migrateResult.totalMigrated}</strong></p>
-                {Object.entries(migrateResult.results || {}).map(([bucket, info]: [string, any]) => (
-                  <div key={bucket} className="text-xs space-y-1">
-                    <p className="font-medium">{bucket}:</p>
-                    <div className="grid grid-cols-3 gap-1 pl-2">
-                      <div>Migrados: {info.migrated}</div>
-                      <div>Já existentes: {info.skipped}</div>
-                      <div>Total: {info.total}</div>
-                    </div>
-                    {info.hasMore && (
-                      <p className="text-amber-600 dark:text-amber-400 text-xs">⏳ Há mais arquivos — clique novamente</p>
-                    )}
-                    {info.errors?.length > 0 && (
-                      <details className="text-xs">
-                        <summary className="cursor-pointer text-destructive">{info.errors.length} erros</summary>
-                        <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-24 text-[10px]">{info.errors.join('\n')}</pre>
-                      </details>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Step 3: Update URLs */}
-          <div className="space-y-2">
-            <Button onClick={handleUpdateUrls} disabled={updatingUrls} variant="outline" className="w-full">
-              {updatingUrls ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Atualizando URLs no banco...</>
-              ) : (
-                <><Database className="w-4 h-4 mr-2" />Atualizar URLs no Banco → Bunny CDN</>
               )}
-            </Button>
-
-            {urlResult && (
-              <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-2">
-                <p className="text-sm font-medium text-green-600 dark:text-green-400">✅ URLs atualizadas!</p>
-                <div className="grid grid-cols-1 gap-1 text-xs">
-                  {Object.entries(urlResult).map(([key, count]) => (
-                    <div key={key}>{key}: <strong>{count}</strong> URLs reescritas</div>
-                  ))}
+              {Object.entries(migrateResult.results || {}).map(([bucket, info]: [string, any]) => (
+                <div key={bucket} className="space-y-1">
+                  <p className="font-medium">{bucket}: {info.migrated} migrados, {info.skipped} existentes, {info.total} total</p>
+                  {info.hasMore && <p className="text-amber-600 dark:text-amber-400">⏳ Há mais — clique novamente</p>}
+                  {info.errors?.length > 0 && (
+                    <details>
+                      <summary className="cursor-pointer text-destructive">{info.errors.length} erros</summary>
+                      <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-24 text-[10px]">{info.errors.join("\n")}</pre>
+                    </details>
+                  )}
                 </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ))}
+            </div>
+          )}
 
-      {/* Import from old project */}
-      <Card className="border-blue-500/20">
-        <CardHeader className="px-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <Download className="w-5 h-5 text-blue-500" />
-            <CardTitle className="text-lg sm:text-xl">Importar do Projeto Antigo</CardTitle>
-          </div>
-          <CardDescription className="text-sm">
-            Importa imagens do storage do projeto Supabase anterior (220 arquivos em 3 buckets)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 px-4 sm:px-6">
-          <div className="p-4 rounded-lg bg-muted/30 border space-y-2">
-            <p className="text-xs text-muted-foreground">
-              Processa até 30 arquivos por execução (limite de timeout). Clique várias vezes até completar. Arquivos existentes são ignorados.
-            </p>
-          </div>
-
-          <Button onClick={handleImportStorage} disabled={importing} className="w-full" variant="outline">
-            {importing ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importando arquivos...</>
+          {/* Update URLs */}
+          <Button onClick={handleUpdateUrls} disabled={updatingUrls} variant="outline" className="w-full">
+            {updatingUrls ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Atualizando URLs...</>
             ) : (
-              <><Download className="w-4 h-4 mr-2" />Importar Arquivos do Projeto Antigo</>
+              <><Database className="w-4 h-4 mr-2" />Atualizar URLs no Banco → Bunny CDN</>
             )}
           </Button>
 
-          {importResult && (
-            <div className={`p-4 rounded-lg border space-y-2 ${importResult.complete ? 'bg-green-500/10 border-green-500/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
-              <p className={`text-sm font-medium ${importResult.complete ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'}`}>
-                {importResult.complete ? '✅ Importação completa!' : '⏳ Lote processado — execute novamente'}
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>Total: <strong>{importResult.totalFiles}</strong></div>
-                <div>Importados: <strong>{importResult.imported}</strong></div>
-                <div>Já existentes: <strong>{importResult.skipped}</strong></div>
-                <div>Erros: <strong>{importResult.errors}</strong></div>
-              </div>
-              {importResult.errorDetails && (
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-destructive">Ver erros</summary>
-                  <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-32">{importResult.errorDetails.join('\n')}</pre>
-                </details>
-              )}
+          {urlResult && (
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-1 text-xs">
+              <p className="text-sm font-medium text-green-600 dark:text-green-400">✅ URLs atualizadas!</p>
+              {Object.entries(urlResult).map(([key, count]) => (
+                <div key={key}>{key}: <strong>{count}</strong> reescritas</div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* WebP conversion */}
+      {/* ═══ Image Optimization ═══ */}
       <Card className="border-green-500/20">
         <CardHeader className="px-4 sm:px-6">
           <div className="flex items-center gap-2">
@@ -306,38 +299,127 @@ const MediaSettings = () => {
             <CardTitle className="text-lg sm:text-xl">Otimização de Imagens</CardTitle>
           </div>
           <CardDescription className="text-sm">
-            Converta imagens PNG/JPG existentes para WebP (economiza ~70% de espaço)
+            Analise o acervo e converta imagens com diferentes níveis de compressão
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
-          <div className="p-4 rounded-lg bg-muted/30 border space-y-3">
-            <p className="text-sm">Esta ferramenta irá:</p>
-            <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Listar todas as imagens PNG/JPG no bucket <code className="bg-muted px-1 rounded">event-images</code></li>
-              <li>Converter cada imagem para WebP com qualidade 80%</li>
-              <li>Redimensionar imagens maiores que 1024px</li>
-              <li>Pular imagens que já possuem versão WebP</li>
-            </ul>
-            <p className="text-xs text-amber-600 dark:text-amber-400">
-              ⚠️ As imagens originais não serão deletadas.
-            </p>
-          </div>
-          <Button onClick={handleBatchConvert} disabled={converting} className="w-full" variant="outline">
-            {converting ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Convertendo imagens...</>
+
+          {/* Check */}
+          <Button onClick={handleCheck} disabled={checkLoading} variant="outline" className="w-full">
+            {checkLoading ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analisando acervo...</>
             ) : (
-              <><ImageDown className="w-4 h-4 mr-2" />Converter Todas as Imagens para WebP</>
+              <><Search className="w-4 h-4 mr-2" />Analisar Acervo de Imagens</>
             )}
           </Button>
-          {conversionResult && (
-            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-2">
-              <p className="text-sm font-medium text-green-600 dark:text-green-400">✅ Conversão concluída!</p>
+
+          {checkResult && (
+            <div className="p-4 rounded-lg bg-muted/30 border space-y-3">
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>Convertidas: <strong>{conversionResult.converted}</strong></div>
-                <div>Ignoradas: <strong>{conversionResult.skipped}</strong></div>
-                <div>Grandes (&gt;2MB): <strong>{conversionResult.largeFilesSkipped}</strong></div>
-                <div>Erros: <strong>{conversionResult.errors}</strong></div>
-                <div className="col-span-2">Economizado: <strong>{conversionResult.totalSavedMB} MB</strong></div>
+                <div>Total arquivos: <strong>{checkResult.totalFiles}</strong></div>
+                <div>Imagens: <strong>{checkResult.totalImages}</strong></div>
+                <div>No Bunny: <strong>{checkResult.bunnyImages >= 0 ? checkResult.bunnyImages : "N/A"}</strong></div>
+                <div>Tamanho total: <strong>{checkResult.totalMB} MB</strong></div>
+                <div className="col-span-2">Média por imagem: <strong>{checkResult.avgMB} MB</strong></div>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs font-medium">Distribuição por tamanho:</p>
+                {Object.entries(checkResult.breakdown || {}).map(([key, info]: [string, any]) => (
+                  <div key={key} className="flex items-center gap-2 text-xs">
+                    <span className={`w-2 h-2 rounded-full ${key === "small" ? "bg-green-500" : key === "medium" ? "bg-amber-500" : "bg-red-500"}`} />
+                    <span className="text-muted-foreground">{info.label}:</span>
+                    <strong>{info.count}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Preset selector */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Nível de compressão:</p>
+            <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(PRESET_LABELS) as CompressionPreset[]).map(key => (
+                <button
+                  key={key}
+                  onClick={() => setSelectedPreset(key)}
+                  className={`p-2 rounded-md border text-xs text-center transition-colors ${
+                    selectedPreset === key
+                      ? "border-primary bg-primary/10 text-primary font-medium"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <div className="font-medium">{PRESET_LABELS[key].label}</div>
+                  <div className="text-[10px] text-muted-foreground">{PRESET_LABELS[key].desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Convert */}
+          <Button onClick={handleConvert} disabled={converting} variant="outline" className="w-full">
+            {converting ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Convertendo ({PRESET_LABELS[selectedPreset].label})...</>
+            ) : (
+              <><ImageDown className="w-4 h-4 mr-2" />Converter Imagens ({PRESET_LABELS[selectedPreset].label})</>
+            )}
+          </Button>
+
+          {conversionResult && (
+            <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-2 text-xs">
+              <p className="text-sm font-medium text-green-600 dark:text-green-400">✅ Conversão concluída!</p>
+              <p className="text-muted-foreground">Preset: {conversionResult.preset?.label}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>Convertidas: <strong>{conversionResult.summary?.processed}</strong></div>
+                <div>Sem ganho: <strong>{conversionResult.summary?.skipped}</strong></div>
+                <div>Erros: <strong>{conversionResult.summary?.errors}</strong></div>
+                <div>Restantes: <strong>{conversionResult.summary?.remaining}</strong></div>
+                <div className="col-span-2">Economizado: <strong>{conversionResult.summary?.totalSavedMB} MB</strong></div>
+              </div>
+              {conversionResult.details?.errors?.length > 0 && (
+                <details>
+                  <summary className="cursor-pointer text-destructive">Ver erros</summary>
+                  <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-24 text-[10px]">{conversionResult.details.errors.join("\n")}</pre>
+                </details>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ Import from old project ═══ */}
+      <Card className="border-blue-500/20">
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <Download className="w-5 h-5 text-blue-500" />
+            <CardTitle className="text-lg sm:text-xl">Importar do Projeto Antigo</CardTitle>
+          </div>
+          <CardDescription className="text-sm">
+            Importa imagens do storage do projeto Supabase anterior
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 sm:px-6">
+          <p className="text-xs text-muted-foreground">
+            Processa até 30 arquivos por execução. Clique várias vezes até completar.
+          </p>
+          <Button onClick={handleImportStorage} disabled={importing} className="w-full" variant="outline">
+            {importing ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Importando...</>
+            ) : (
+              <><Download className="w-4 h-4 mr-2" />Importar Arquivos</>
+            )}
+          </Button>
+
+          {importResult && (
+            <div className={`p-4 rounded-lg border space-y-2 text-xs ${importResult.complete ? "bg-green-500/10 border-green-500/30" : "bg-blue-500/10 border-blue-500/30"}`}>
+              <p className={`text-sm font-medium ${importResult.complete ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}>
+                {importResult.complete ? "✅ Completo!" : "⏳ Execute novamente"}
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>Total: <strong>{importResult.totalFiles}</strong></div>
+                <div>Importados: <strong>{importResult.imported}</strong></div>
+                <div>Existentes: <strong>{importResult.skipped}</strong></div>
+                <div>Erros: <strong>{importResult.errors}</strong></div>
               </div>
             </div>
           )}

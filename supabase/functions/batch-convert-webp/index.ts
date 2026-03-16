@@ -1,204 +1,180 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-function handleCorsPreFlight(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-  return null;
-}
-
-function jsonSuccess(data: Record<string, unknown> = { success: true }, status: number = 200): Response {
+function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
-function jsonError(message: string, status: number = 500): Response {
-  return new Response(JSON.stringify({ error: message, success: false }), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
+// Compression presets
+const PRESETS: Record<string, { quality: number; maxDim: number; label: string }> = {
+  sutil:  { quality: 85, maxDim: 1920, label: "Sutil (alta qualidade)" },
+  media:  { quality: 70, maxDim: 1280, label: "Média (equilíbrio)" },
+  severa: { quality: 50, maxDim: 1024, label: "Severa (máxima compressão)" },
+};
 
-function handleError(error: unknown, functionName: string): Response {
-  console.error(`Error in ${functionName}:`, error);
-  const message = error instanceof Error ? error.message : 'Unknown error';
-  return jsonError(message, 500);
-}
-
-interface BatchResults {
-  processed: string[];
-  skipped: string[];
-  errors: string[];
-  totalOriginalBytes: number;
-  totalNewBytes: number;
+interface FileInfo {
+  name: string;
+  size: number;
 }
 
 Deno.serve(async (req) => {
-  const preflightResponse = handleCorsPreFlight(req);
-  if (preflightResponse) return preflightResponse;
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { bucket = "event-images", quality = 80, maxFiles = 10 } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || "convert"; // "check" | "convert"
+    const bucket = body.bucket || "event-images";
+    const preset = body.preset || "media"; // "sutil" | "media" | "severa"
+    const maxFiles = body.maxFiles || 10;
 
-    console.log(`Starting batch optimization for bucket: ${bucket} (max ${maxFiles} files)`);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    // List all files in the bucket
+    // List all files
     const { data: files, error: listError } = await supabase.storage
-      .from(bucket)
-      .list("", { limit: 1000 });
+      .from(bucket).list("", { limit: 1000 });
 
-    if (listError) {
-      return jsonError(`Failed to list files: ${listError.message}`, 500);
+    if (listError) return json({ error: `List failed: ${listError.message}` }, 500);
+
+    const allFiles: FileInfo[] = (files || [])
+      .filter(f => f.id && !f.name.startsWith("."))
+      .map(f => ({ name: f.name, size: (f.metadata as any)?.size || 0 }));
+
+    const imageFiles = allFiles.filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f.name));
+
+    // ── ACTION: check ──
+    if (action === "check") {
+      const small = imageFiles.filter(f => f.size < 500 * 1024);
+      const medium = imageFiles.filter(f => f.size >= 500 * 1024 && f.size <= 2 * 1024 * 1024);
+      const large = imageFiles.filter(f => f.size > 2 * 1024 * 1024);
+
+      const totalBytes = imageFiles.reduce((sum, f) => sum + f.size, 0);
+      const avgMB = imageFiles.length > 0 ? (totalBytes / imageFiles.length / 1024 / 1024) : 0;
+
+      // Check Bunny files count if key is available
+      let bunnyCount = -1;
+      const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+      if (bunnyKey) {
+        try {
+          const resp = await fetch(`https://br.storage.bunnycdn.com/mdacula/${bucket}/`, {
+            headers: { AccessKey: bunnyKey, Accept: "application/json" },
+          });
+          if (resp.ok) {
+            const bunnyFiles = await resp.json();
+            bunnyCount = bunnyFiles.length;
+          }
+        } catch { /* ignore */ }
+      }
+
+      return json({
+        action: "check",
+        bucket,
+        totalFiles: allFiles.length,
+        totalImages: imageFiles.length,
+        bunnyImages: bunnyCount,
+        breakdown: {
+          small: { count: small.length, label: "< 500 KB" },
+          medium: { count: medium.length, label: "500 KB – 2 MB" },
+          large: { count: large.length, label: "> 2 MB" },
+        },
+        totalMB: (totalBytes / 1024 / 1024).toFixed(2),
+        avgMB: avgMB.toFixed(2),
+        presets: Object.entries(PRESETS).map(([k, v]) => ({ key: k, ...v })),
+      });
     }
 
-    // Filter large PNG and JPG files (> 500KB) that could benefit from optimization
-    const MIN_SIZE_FOR_OPTIMIZATION = 500 * 1024; // 500KB
-    const MAX_FILE_SIZE = 3 * 1024 * 1024; // 3MB limit for processing
-    
-    const imageFiles = files?.filter(file => {
-      const isImage = /\.(png|jpg|jpeg)$/i.test(file.name);
-      const size = file.metadata?.size || 0;
-      return isImage && size >= MIN_SIZE_FOR_OPTIMIZATION && size <= MAX_FILE_SIZE;
-    }) || [];
+    // ── ACTION: convert ──
+    const config = PRESETS[preset] || PRESETS.media;
+    console.log(`Converting bucket=${bucket}, preset=${preset} (q=${config.quality}, max=${config.maxDim}), max=${maxFiles}`);
 
-    // Take only first N files to avoid timeout
-    const filesToProcess = imageFiles.slice(0, maxFiles);
+    // Filter to optimizable files (PNG/JPG > 100KB)
+    const candidates = imageFiles.filter(f =>
+      /\.(png|jpg|jpeg)$/i.test(f.name) && f.size > 100 * 1024
+    );
+    const filesToProcess = candidates.slice(0, maxFiles);
 
-    const skippedTooSmall = files?.filter(file => {
-      const isImage = /\.(png|jpg|jpeg)$/i.test(file.name);
-      const size = file.metadata?.size || 0;
-      return isImage && size < MIN_SIZE_FOR_OPTIMIZATION;
-    }).length || 0;
-
-    const skippedTooLarge = files?.filter(file => {
-      const isImage = /\.(png|jpg|jpeg)$/i.test(file.name);
-      const size = file.metadata?.size || 0;
-      return isImage && size > MAX_FILE_SIZE;
-    }).length || 0;
-
-    console.log(`Found ${imageFiles.length} optimizable images, processing ${filesToProcess.length}`);
-    console.log(`Skipped: ${skippedTooSmall} too small, ${skippedTooLarge} too large`);
-
-    const results: BatchResults = {
-      processed: [],
-      skipped: [],
-      errors: [],
+    const results = {
+      processed: [] as string[],
+      skipped: [] as string[],
+      errors: [] as string[],
       totalOriginalBytes: 0,
       totalNewBytes: 0,
     };
 
     for (const file of filesToProcess) {
       try {
-        console.log(`Processing ${file.name}...`);
-
-        // Download original
-        const { data: fileData, error: downloadError } = await supabase.storage
-          .from(bucket)
-          .download(file.name);
-
-        if (downloadError) {
-          console.error(`Download failed: ${downloadError.message}`);
-          results.errors.push(`${file.name}: download failed`);
-          continue;
-        }
+        const { data: fileData, error: dlError } = await supabase.storage.from(bucket).download(file.name);
+        if (dlError) { results.errors.push(`${file.name}: download failed`); continue; }
 
         const arrayBuffer = await fileData.arrayBuffer();
         const originalSize = arrayBuffer.byteLength;
         results.totalOriginalBytes += originalSize;
 
-        console.log(`${file.name}: ${(originalSize / 1024).toFixed(1)} KB`);
-
-        // Re-encode as optimized JPEG using canvas API
         const blob = new Blob([arrayBuffer], { type: fileData.type });
         const imageBitmap = await createImageBitmap(blob);
-        
-        // Calculate new dimensions (max 1024px on longest side)
-        const maxDim = 1024;
+
         let newWidth = imageBitmap.width;
         let newHeight = imageBitmap.height;
-        
-        if (newWidth > maxDim || newHeight > maxDim) {
-          const scale = maxDim / Math.max(newWidth, newHeight);
+        if (newWidth > config.maxDim || newHeight > config.maxDim) {
+          const scale = config.maxDim / Math.max(newWidth, newHeight);
           newWidth = Math.round(newWidth * scale);
           newHeight = Math.round(newHeight * scale);
-          console.log(`Resizing to ${newWidth}x${newHeight}`);
         }
 
-        // Create canvas and draw resized image
         const canvas = new OffscreenCanvas(newWidth, newHeight);
         const ctx = canvas.getContext("2d");
-        if (!ctx) {
-          results.errors.push(`${file.name}: canvas context failed`);
-          continue;
-        }
+        if (!ctx) { results.errors.push(`${file.name}: canvas failed`); continue; }
         ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
 
-        // Encode as optimized JPEG
-        const optimizedBlob = await canvas.convertToBlob({
-          type: "image/jpeg",
-          quality: quality / 100,
-        });
+        // Try WebP first, fallback to JPEG
+        let optimizedBlob: Blob;
+        let outputExt = "webp";
+        try {
+          optimizedBlob = await canvas.convertToBlob({ type: "image/webp", quality: config.quality / 100 });
+        } catch {
+          optimizedBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: config.quality / 100 });
+          outputExt = "jpg";
+        }
 
         const newSize = optimizedBlob.size;
         results.totalNewBytes += newSize;
 
-        // Only upload if we actually saved space
         if (newSize < originalSize * 0.9) {
-          const newName = file.name.replace(/\.(png|jpg|jpeg)$/i, "-opt.jpg");
-          
+          const newName = file.name.replace(/\.(png|jpg|jpeg)$/i, `-opt.${outputExt}`);
           const { error: uploadError } = await supabase.storage
-            .from(bucket)
-            .upload(newName, optimizedBlob, {
-              contentType: "image/jpeg",
-              upsert: true,
-            });
+            .from(bucket).upload(newName, optimizedBlob, { contentType: `image/${outputExt}`, upsert: true });
 
-          if (uploadError) {
-            console.error(`Upload failed: ${uploadError.message}`);
-            results.errors.push(`${file.name}: upload failed`);
-            continue;
-          }
-
-          const savedKB = ((originalSize - newSize) / 1024).toFixed(1);
-          console.log(`✅ ${file.name} -> ${newName} (saved ${savedKB} KB)`);
+          if (uploadError) { results.errors.push(`${file.name}: upload failed`); continue; }
           results.processed.push(file.name);
         } else {
-          console.log(`⏭️ ${file.name}: no significant savings, skipping`);
           results.skipped.push(file.name);
         }
-
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        console.error(`Error processing ${file.name}:`, err);
-        results.errors.push(`${file.name}: ${errorMsg}`);
+        results.errors.push(`${file.name}: ${(err as Error).message}`);
       }
     }
 
     const totalSaved = results.totalOriginalBytes - results.totalNewBytes;
-    console.log(`Batch complete. Processed: ${results.processed.length}, Skipped: ${results.skipped.length}, Errors: ${results.errors.length}`);
-    console.log(`Space saved: ${(totalSaved / 1024 / 1024).toFixed(2)} MB`);
 
-    return jsonSuccess({
+    return json({
       success: true,
+      preset: { key: preset, ...config },
       summary: {
-        totalFound: imageFiles.length,
+        totalCandidates: candidates.length,
         processed: results.processed.length,
-        skipped: results.skipped.length + skippedTooSmall,
-        tooLarge: skippedTooLarge,
+        skipped: results.skipped.length,
         errors: results.errors.length,
         totalSavedMB: (totalSaved / 1024 / 1024).toFixed(2),
-        remaining: imageFiles.length - filesToProcess.length,
+        remaining: candidates.length - filesToProcess.length,
       },
       details: {
         processed: results.processed,
@@ -207,6 +183,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (error) {
-    return handleError(error, 'batch-convert-webp');
+    console.error("batch-convert-webp error:", error);
+    return json({ error: (error as Error).message }, 500);
   }
 });
