@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     }
 
     const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
-    const bunnyUploadUrl = `https://${bunnyHostname}/mdacula/event-images/${fileName}`;
+    const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
     const uploadResp = await fetch(bunnyUploadUrl, {
       method: 'PUT',
       headers: {
@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const publicUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+    const publicUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
     console.log(`✅ URL pública: ${publicUrl}`);
 
     // Atualizar o post com a nova imagem

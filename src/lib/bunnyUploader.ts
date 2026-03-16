@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
  * 
  * @param file - Arquivo de imagem (preferencialmente já convertido para WebP)
  * @param bucket - "Pasta" dentro da storage zone (ex: 'event-images', 'link-thumbnails', 'team-images')
- * @returns URL pública no CDN do Bunny (mdacula.b-cdn.net)
+ * @returns URL pública no CDN do Bunny (mdaccula.b-cdn.net)
  */
 export async function uploadImageToBunny(
   file: File,

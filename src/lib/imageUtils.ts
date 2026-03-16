@@ -22,7 +22,7 @@ const SUPABASE_STORAGE_PATTERN = /\/storage\/v1\/object\/public\//;
  * Origin: https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public
  * O Bunny cacheia as imagens na borda, eliminando egress repetido do Supabase.
  */
-const BUNNY_CDN_HOST = 'https://mdacula.b-cdn.net';
+const BUNNY_CDN_HOST = 'https://mdaccula.b-cdn.net';
 
 const SUPABASE_ORIGIN = 'https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public';
 
@@ -34,7 +34,7 @@ const SUPABASE_PATH_REGEX = /\/storage\/v1\/object\/public\/(.+)$/;
 /**
  * Regex para extrair o path após o Bunny CDN host
  */
-const BUNNY_PATH_REGEX = /^https:\/\/mdacula\.b-cdn\.net\/(.+)$/;
+const BUNNY_PATH_REGEX = /^https:\/\/mdaccula\.b-cdn\.net\/(.+)$/;
 
 /**
  * Transforma uma URL de imagem do Supabase Storage em uma URL

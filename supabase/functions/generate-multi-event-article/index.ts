@@ -400,7 +400,7 @@ NÃO inclua texto na imagem.`;
             const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
             if (BUNNY_STORAGE_API_KEY) {
               const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
-              const bunnyUploadUrl = `https://${bunnyHostname}/mdacula/event-images/${fileName}`;
+              const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
               const uploadResp = await fetch(bunnyUploadUrl, {
                 method: 'PUT',
                 headers: {
@@ -411,7 +411,7 @@ NÃO inclua texto na imagem.`;
               });
 
               if (uploadResp.ok) {
-                finalImageUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+                finalImageUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
                 console.log('[generate-multi-event-article] Imagem Bunny:', finalImageUrl);
               } else {
                 console.error('[generate-multi-event-article] Erro upload Bunny:', await uploadResp.text());
