@@ -136,6 +136,20 @@ Deno.serve(async (req) => {
       const storageHost = getBunnyStorageHost();
       const hasHostnameSecret = !!Deno.env.get("BUNNY_STORAGE_HOSTNAME");
 
+      // Key diagnostics (without exposing the value)
+      const keyDiagnostics = {
+        hasValue: !!rawBunnyKey,
+        rawLength: rawBunnyKey?.length ?? 0,
+        lengthAfterTrim: rawBunnyKey?.trim()?.length ?? 0,
+        lengthAfterSanitize: bunnyApiKey.length,
+        startsWithQuote: rawBunnyKey?.trim()?.startsWith('"') || rawBunnyKey?.trim()?.startsWith("'") || false,
+        endsWithQuote: rawBunnyKey?.trim()?.endsWith('"') || rawBunnyKey?.trim()?.endsWith("'") || false,
+        containsNonPrintable: /[^\x20-\x7E]/.test(rawBunnyKey?.trim() ?? ''),
+        firstCharCode: rawBunnyKey?.trim() ? rawBunnyKey.trim().charCodeAt(0) : null,
+        lastCharCode: rawBunnyKey?.trim() ? rawBunnyKey.trim().charCodeAt(rawBunnyKey.trim().length - 1) : null,
+      };
+      console.log("[diagnose] Key diagnostics:", JSON.stringify(keyDiagnostics));
+
       // Test current configured endpoint
       let currentOk = false;
       let currentHint = "";
