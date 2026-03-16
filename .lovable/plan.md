@@ -1,55 +1,74 @@
 
 
-## Plan: Fix Bunny 401 — Wrong Region Hostname
+## Analise item a item das recomendacoes
 
-### Root Cause
-From Bunny's official docs: HTTP 401 means "Invalid AccessKey, **region hostname**, or non-binary file format." The password is correct, but the code hardcodes `br.storage.bunnycdn.com`. If the storage zone `mdacula` was created in the default region (Falkenstein), the correct hostname is `storage.bunnycdn.com` — NOT `br.storage.bunnycdn.com`. Using the wrong region returns 401.
+### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
+Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
 
-### Fix
+### 2. Cloudflare -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
 
-#### 1. Add auto-detection in `migrate-to-bunny` diagnose action
-Instead of testing only one endpoint, the `diagnose` action will try ALL Bunny region endpoints in sequence:
-- `storage.bunnycdn.com` (Falkenstein — default)
-- `br.storage.bunnycdn.com` (São Paulo)
-- `ny.storage.bunnycdn.com`, `la.storage.bunnycdn.com`, `uk.storage.bunnycdn.com`, `sg.storage.bunnycdn.com`, `se.storage.bunnycdn.com`, `jh.storage.bunnycdn.com`, `syd.storage.bunnycdn.com`
+### 3. Bunny -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
 
-The first one that returns 200 is the correct region. The UI will show which region was detected.
+### 4. HTML/HEAD -- PARCIALMENTE CORRETO
 
-#### 2. Add `BUNNY_STORAGE_HOSTNAME` secret
-Once detected, save the correct hostname as a new Supabase secret `BUNNY_STORAGE_HOSTNAME`. All edge functions will read this secret at runtime instead of hardcoding `br.storage.bunnycdn.com`.
+**4a. Remover preconnect do Supabase?**
+- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
+- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
+- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
 
-#### 3. Update all 6 edge functions to use the secret
-Replace the hardcoded constant in:
-- `migrate-to-bunny/index.ts`
-- `upload-to-bunny/index.ts`
-- `batch-convert-webp/index.ts`
-- `generate-blog-post-v2/index.ts`
-- `regenerate-blog-image/index.ts`
-- `generate-multi-event-article/index.ts`
+**4b. Remover meta tags de no-cache?**
+- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
 
-Pattern:
-```typescript
-// BEFORE
-const BUNNY_STORAGE_HOST = `https://br.storage.bunnycdn.com`;
+**4c. Manter preconnect cdn.mdaccula.com?**
+- **CONCORDO**. Ja esta correto no codigo.
 
-// AFTER
-const BUNNY_STORAGE_HOST = Deno.env.get("BUNNY_STORAGE_HOSTNAME") 
-  ? `https://${Deno.env.get("BUNNY_STORAGE_HOSTNAME")}` 
-  : "https://storage.bunnycdn.com"; // fallback to default region
-```
+### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
 
-#### 4. Update MediaSettings UI
-Show the detected region in the diagnostics card so the user can confirm.
+O `index.html` usa `storage.googleapis.com` em 3 lugares:
+- Linha 19: favicon
+- Linha 44: og:image (imagem social da home)
+- Linha 45: twitter:image
 
-### Files changed
-- `supabase/functions/migrate-to-bunny/index.ts` — add region auto-detection + use secret
-- `supabase/functions/upload-to-bunny/index.ts` — use secret
-- `supabase/functions/batch-convert-webp/index.ts` — use secret
-- `supabase/functions/generate-blog-post-v2/index.ts` — use secret
-- `supabase/functions/regenerate-blog-image/index.ts` — use secret
-- `supabase/functions/generate-multi-event-article/index.ts` — use secret
-- `src/components/admin/settings/MediaSettings.tsx` — show detected region
+Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
+- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
+- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
+- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
 
-### External step
-After running Diagnóstico Completo and seeing the detected region, you'll need to add the `BUNNY_STORAGE_HOSTNAME` secret in Supabase with the correct value (e.g. `storage.bunnycdn.com`).
+### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
+
+A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
+
+O `?quality=75` no seu caso e apenas um parametro na URL que:
+- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
+- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
+
+**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
+
+**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
+
+### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
+
+O texto do blog (JSON) gera egress sim, mas:
+- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
+- Ja removemos o prefetch de 110 posts na navigation
+- Ja aumentamos staleTime do site_settings para 15 min
+- Ja filtramos eventos inativos no servidor
+
+O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
+
+As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
+
+---
+
+## Plano de implementacao
+
+Apenas 2 mudancas simples no `index.html`:
+
+**1. Remover preconnect para Supabase errado** (linhas 7-8)
+O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
+
+**2. Remover meta tags de no-cache** (linhas 22-25)
+Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
 
