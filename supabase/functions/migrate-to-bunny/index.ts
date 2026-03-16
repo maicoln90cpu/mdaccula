@@ -196,9 +196,19 @@ Deno.serve(async (req) => {
 
       const effectiveOk = currentOk || regionDetection.detected;
 
+      diag.supabase_bucket_sizes = {} as Record<string, { count: number; sizeMB: string }>;
+
       for (const bucket of BUCKETS) {
         const { data: files } = await supabase.storage.from(bucket).list("", { limit: 1000 });
-        diag.supabase_buckets[bucket] = files?.filter(f => f.id && !f.name.startsWith(".")).length || 0;
+        const imageFiles = files?.filter(f => f.id && !f.name.startsWith(".")) || [];
+        diag.supabase_buckets[bucket] = imageFiles.length;
+
+        // Calculate total size
+        const totalBytes = imageFiles.reduce((sum, f) => sum + ((f.metadata as any)?.size || 0), 0);
+        diag.supabase_bucket_sizes[bucket] = {
+          count: imageFiles.length,
+          sizeMB: (totalBytes / (1024 * 1024)).toFixed(2),
+        };
 
         if (currentOk) {
           const bunnyFiles = await listBunnyFiles(bunnyApiKey, bucket);
