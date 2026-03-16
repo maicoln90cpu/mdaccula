@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
           const bytes = new Uint8Array(arrayBuf);
           const detected = detectFormat(bytes);
           
-          const mismatch = extensionInUrl !== "none" && detected.ext !== "unknown" && extensionInUrl !== detected.ext;
+          // Normalize jpeg/jpg for comparison
+          const normalizedExt = extensionInUrl === "jpeg" ? "jpg" : extensionInUrl;
+          const normalizedDetected = detected.ext === "jpeg" ? "jpg" : detected.ext;
+          const mismatch = normalizedExt !== "none" && normalizedDetected !== "unknown" && normalizedExt !== normalizedDetected;
           
           results.push({
             url: entry.url,
