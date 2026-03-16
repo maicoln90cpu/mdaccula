@@ -253,8 +253,8 @@ const MediaSettings = () => {
 
           {migrateResult && (
             <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
-              {migrateResult.credential_hint && (
-                <p className="text-destructive font-medium">{migrateResult.credential_hint}</p>
+              {migrateResult.hint && (
+                <p className="text-destructive font-medium">{migrateResult.hint}</p>
               )}
               {migrateResult.totalMigrated !== undefined && (
                 <p className="text-sm font-medium">Migrados neste lote: <strong>{migrateResult.totalMigrated}</strong></p>

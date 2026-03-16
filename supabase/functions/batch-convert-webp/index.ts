@@ -5,6 +5,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ── Bunny Config (single source of truth) ──
+const BUNNY_STORAGE_ZONE = "mdacula";
+const BUNNY_REGION = "br";
+const BUNNY_STORAGE_HOST = `https://${BUNNY_REGION}.storage.bunnycdn.com`;
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -12,7 +17,6 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Compression presets
 const PRESETS: Record<string, { quality: number; maxDim: number; label: string }> = {
   sutil:  { quality: 85, maxDim: 1920, label: "Sutil (alta qualidade)" },
   media:  { quality: 70, maxDim: 1280, label: "Média (equilíbrio)" },
@@ -29,9 +33,9 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json().catch(() => ({}));
-    const action = body.action || "convert"; // "check" | "convert"
+    const action = body.action || "convert";
     const bucket = body.bucket || "event-images";
-    const preset = body.preset || "media"; // "sutil" | "media" | "severa"
+    const preset = body.preset || "media";
     const maxFiles = body.maxFiles || 10;
 
     const supabase = createClient(
@@ -39,7 +43,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // List all files
     const { data: files, error: listError } = await supabase.storage
       .from(bucket).list("", { limit: 1000 });
 
@@ -60,12 +63,11 @@ Deno.serve(async (req) => {
       const totalBytes = imageFiles.reduce((sum, f) => sum + f.size, 0);
       const avgMB = imageFiles.length > 0 ? (totalBytes / imageFiles.length / 1024 / 1024) : 0;
 
-      // Check Bunny files count if key is available
       let bunnyCount = -1;
       const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
       if (bunnyKey) {
         try {
-          const resp = await fetch(`https://br.storage.bunnycdn.com/mdacula/${bucket}/`, {
+          const resp = await fetch(`${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${bucket}/`, {
             headers: { AccessKey: bunnyKey, Accept: "application/json" },
           });
           if (resp.ok) {
@@ -96,7 +98,6 @@ Deno.serve(async (req) => {
     const config = PRESETS[preset] || PRESETS.media;
     console.log(`Converting bucket=${bucket}, preset=${preset} (q=${config.quality}, max=${config.maxDim}), max=${maxFiles}`);
 
-    // Filter to optimizable files (PNG/JPG > 100KB)
     const candidates = imageFiles.filter(f =>
       /\.(png|jpg|jpeg)$/i.test(f.name) && f.size > 100 * 1024
     );
@@ -120,7 +121,20 @@ Deno.serve(async (req) => {
         results.totalOriginalBytes += originalSize;
 
         const blob = new Blob([arrayBuffer], { type: fileData.type });
-        const imageBitmap = await createImageBitmap(blob);
+
+        let imageBitmap: ImageBitmap;
+        try {
+          imageBitmap = await createImageBitmap(blob);
+        } catch (bmpErr) {
+          // Deno may not support all formats via createImageBitmap; try with explicit type
+          const retryBlob = new Blob([arrayBuffer], { type: "image/png" });
+          try {
+            imageBitmap = await createImageBitmap(retryBlob);
+          } catch {
+            results.errors.push(`${file.name}: formato não suportado pelo runtime`);
+            continue;
+          }
+        }
 
         let newWidth = imageBitmap.width;
         let newHeight = imageBitmap.height;
@@ -135,14 +149,18 @@ Deno.serve(async (req) => {
         if (!ctx) { results.errors.push(`${file.name}: canvas failed`); continue; }
         ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
 
-        // Try WebP first, fallback to JPEG
         let optimizedBlob: Blob;
         let outputExt = "webp";
         try {
           optimizedBlob = await canvas.convertToBlob({ type: "image/webp", quality: config.quality / 100 });
         } catch {
-          optimizedBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: config.quality / 100 });
-          outputExt = "jpg";
+          try {
+            optimizedBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: config.quality / 100 });
+            outputExt = "jpg";
+          } catch {
+            results.errors.push(`${file.name}: conversão falhou (webp e jpeg)`);
+            continue;
+          }
         }
 
         const newSize = optimizedBlob.size;

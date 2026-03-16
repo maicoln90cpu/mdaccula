@@ -6,10 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// ── Bunny Config (single source of truth) ──
 const BUNNY_STORAGE_ZONE = "mdacula";
 const BUNNY_REGION = "br";
-const BUNNY_CDN_HOST = "https://mdacula.b-cdn.net";
 const BUNNY_STORAGE_HOST = `https://${BUNNY_REGION}.storage.bunnycdn.com`;
+const BUNNY_CDN_HOST = "https://mdacula.b-cdn.net";
 
 const BUCKETS = ["event-images", "link-thumbnails", "team-images"];
 
@@ -29,31 +30,77 @@ function json(data: unknown, status = 200) {
   });
 }
 
-/** Test if the Bunny Storage API key is valid by listing files */
-async function testBunnyCredential(apiKey: string): Promise<{ ok: boolean; hint: string; status?: number }> {
+// ── Bunny helpers ──
+function bunnyStorageUrl(path: string): string {
+  return `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${path}`;
+}
+
+function bunnyCdnUrl(path: string): string {
+  return `${BUNNY_CDN_HOST}/${path}`;
+}
+
+/** Test Bunny credential with detailed error classification */
+async function testBunnyCredential(apiKey: string): Promise<{
+  ok: boolean;
+  failure_reason?: string;
+  hint: string;
+  http_status?: number;
+}> {
   try {
-    const url = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/`;
+    const url = bunnyStorageUrl("");
     const resp = await fetch(url, {
       method: "GET",
       headers: { AccessKey: apiKey, Accept: "application/json" },
     });
-    if (resp.ok) return { ok: true, hint: "Storage Zone password válida" };
+
+    if (resp.ok) {
+      return { ok: true, hint: "Autenticação na Storage Zone OK" };
+    }
+
     if (resp.status === 401) {
       return {
         ok: false,
-        status: 401,
-        hint: "BUNNY_STORAGE_API_KEY inválida. Certifique-se de usar a PASSWORD da Storage Zone 'mdacula', não a API key geral da conta Bunny.",
+        failure_reason: "authentication_failed",
+        http_status: 401,
+        hint: "A password da Storage Zone foi rejeitada. Verifique se está usando a Password (não Read-only) da zone correta no painel Bunny.",
       };
     }
-    return { ok: false, status: resp.status, hint: `Bunny retornou status ${resp.status}` };
+
+    if (resp.status === 404) {
+      return {
+        ok: false,
+        failure_reason: "zone_not_found",
+        http_status: 404,
+        hint: `Storage Zone '${BUNNY_STORAGE_ZONE}' não encontrada no endpoint ${BUNNY_STORAGE_HOST}. Verifique se a zona existe e a região está correta.`,
+      };
+    }
+
+    return {
+      ok: false,
+      failure_reason: "unexpected_status",
+      http_status: resp.status,
+      hint: `Bunny retornou status ${resp.status}. Verifique a configuração da Storage Zone.`,
+    };
   } catch (e) {
-    return { ok: false, hint: `Erro de rede: ${(e as Error).message}` };
+    const msg = (e as Error).message;
+    if (msg.includes("dns") || msg.includes("resolve")) {
+      return {
+        ok: false,
+        failure_reason: "dns_error",
+        hint: `Não foi possível resolver o hostname ${BUNNY_STORAGE_HOST}. Verifique a região configurada.`,
+      };
+    }
+    return {
+      ok: false,
+      failure_reason: "network_error",
+      hint: `Erro de rede ao conectar em ${BUNNY_STORAGE_HOST}: ${msg}`,
+    };
   }
 }
 
 /** List files on Bunny Storage for a given path */
 async function listBunnyFiles(apiKey: string, path: string): Promise<any[]> {
-  const url = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${path}/`;
+  const url = bunnyStorageUrl(path + "/");
   const resp = await fetch(url, {
     method: "GET",
     headers: { AccessKey: apiKey, Accept: "application/json" },
@@ -101,10 +148,9 @@ Deno.serve(async (req) => {
           region: BUNNY_REGION,
           cdn_host: BUNNY_CDN_HOST,
           storage_host: BUNNY_STORAGE_HOST,
-          credential_ok: credTest.ok,
-          credential_hint: credTest.hint,
-          key_length: bunnyApiKey.length,
-          key_prefix: bunnyApiKey.substring(0, 4) + "...",
+          auth_ok: credTest.ok,
+          hint: credTest.hint,
+          failure_reason: credTest.failure_reason || null,
         },
         supabase_buckets: {} as Record<string, number>,
         bunny_buckets: {} as Record<string, number>,
@@ -132,7 +178,7 @@ Deno.serve(async (req) => {
       return json(diag);
     }
 
-    // ── ACTION: status (legacy compat) ──
+    // ── ACTION: status ──
     if (action === "status") {
       const status: Record<string, any> = { buckets: {}, urls: {} };
       for (const bucket of BUCKETS) {
@@ -150,13 +196,12 @@ Deno.serve(async (req) => {
 
     // ── ACTION: migrate_files ──
     if (action === "migrate_files") {
-      // Pre-check credential
       const credTest = await testBunnyCredential(bunnyApiKey);
       if (!credTest.ok) {
         return json({
-          error: "Bunny credential failed",
-          credential_hint: credTest.hint,
-          credential_status: credTest.status,
+          error: "Falha na autenticação Bunny",
+          failure_reason: credTest.failure_reason,
+          hint: credTest.hint,
         }, 400);
       }
 
@@ -176,7 +221,6 @@ Deno.serve(async (req) => {
         const imageFiles = files.filter(f => f.id && !f.name.startsWith("."));
         const batch = imageFiles.slice(body.offset || 0, (body.offset || 0) + batchSize);
 
-        // Get existing Bunny files for this bucket to avoid re-uploading
         const existingBunny = await listBunnyFiles(bunnyApiKey, bucket);
         const existingNames = new Set(existingBunny.map((f: any) => f.ObjectName));
 
@@ -196,9 +240,9 @@ Deno.serve(async (req) => {
             }
 
             const arrayBuffer = await fileData.arrayBuffer();
-            const bunnyUrl = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${bucket}/${filePath}`;
+            const uploadUrl = bunnyStorageUrl(`${bucket}/${filePath}`);
 
-            const uploadResp = await fetch(bunnyUrl, {
+            const uploadResp = await fetch(uploadUrl, {
               method: "PUT",
               headers: {
                 AccessKey: bunnyApiKey,
@@ -246,7 +290,7 @@ Deno.serve(async (req) => {
           const match = oldUrl.match(/\/storage\/v1\/object\/public\/(.+)$/);
           if (!match) continue;
 
-          const newUrl = `${BUNNY_CDN_HOST}/${match[1]}`;
+          const newUrl = bunnyCdnUrl(match[1]);
           const { error: updateError } = await supabase.from(table).update({ [column]: newUrl }).eq("id", row.id);
           if (!updateError) updated++;
         }
