@@ -411,7 +411,7 @@ NÃO inclua texto na imagem.`;
               });
 
               if (uploadResp.ok) {
-                finalImageUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+                finalImageUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
                 console.log('[generate-multi-event-article] Imagem Bunny:', finalImageUrl);
               } else {
                 console.error('[generate-multi-event-article] Erro upload Bunny:', await uploadResp.text());

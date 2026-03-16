@@ -236,7 +236,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const publicUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+    const publicUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
     console.log(`✅ URL pública: ${publicUrl}`);
 
     // Atualizar o post com a nova imagem

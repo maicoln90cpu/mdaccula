@@ -652,7 +652,7 @@ ${hasRealTicketLink
               });
 
               if (uploadResp.ok) {
-                generatedImageUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+                generatedImageUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
                 console.log(`[${Date.now()}] ✅ Upload Bunny concluído: ${generatedImageUrl}`);
               } else {
                 console.error(`[${Date.now()}] ❌ Erro no upload Bunny:`, await uploadResp.text());

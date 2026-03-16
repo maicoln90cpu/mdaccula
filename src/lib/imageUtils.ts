@@ -34,7 +34,7 @@ const SUPABASE_PATH_REGEX = /\/storage\/v1\/object\/public\/(.+)$/;
 /**
  * Regex para extrair o path após o Bunny CDN host
  */
-const BUNNY_PATH_REGEX = /^https:\/\/mdacula\.b-cdn\.net\/(.+)$/;
+const BUNNY_PATH_REGEX = /^https:\/\/mdaccula\.b-cdn\.net\/(.+)$/;
 
 /**
  * Transforma uma URL de imagem do Supabase Storage em uma URL

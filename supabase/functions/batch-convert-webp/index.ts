@@ -6,7 +6,7 @@ const corsHeaders = {
 };
 
 // ── Bunny Config ──
-const BUNNY_STORAGE_ZONE = "mdacula";
+const BUNNY_STORAGE_ZONE = "mdaccula";
 
 function getBunnyStorageHost(): string {
   const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");

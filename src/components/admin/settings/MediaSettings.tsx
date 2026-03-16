@@ -223,7 +223,7 @@ const MediaSettings = () => {
                     <details className="mt-2">
                       <summary className="text-xs cursor-pointer text-muted-foreground">Teste manual via curl</summary>
                       <code className="block mt-1 p-2 bg-muted rounded text-[10px] break-all">{diagResult.curl_test}</code>
-                      <p className="text-[10px] text-muted-foreground mt-1">Substitua SUA_STORAGE_ZONE_PASSWORD pela password da aba "FTP & API Access" da zone mdacula.</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">Substitua SUA_STORAGE_ZONE_PASSWORD pela password da aba "FTP & API Access" da zone mdaccula.</p>
                     </details>
                   )}
                 </div>
