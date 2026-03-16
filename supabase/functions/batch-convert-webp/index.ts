@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
       const avgMB = imageFiles.length > 0 ? (totalBytes / imageFiles.length / 1024 / 1024) : 0;
 
       let bunnyCount = -1;
-      const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+      const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
       if (bunnyKey) {
         try {
           const resp = await fetch(`${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${bucket}/`, {

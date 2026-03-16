@@ -121,7 +121,8 @@ Deno.serve(async (req) => {
     const { data: isAdmin } = await supabaseAnon.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
-    const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim();
+    const rawBunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+    const bunnyApiKey = rawBunnyKey?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
     if (!bunnyApiKey) return json({ error: "BUNNY_STORAGE_API_KEY não configurada" }, 500);
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -134,6 +135,20 @@ Deno.serve(async (req) => {
     if (action === "diagnose") {
       const storageHost = getBunnyStorageHost();
       const hasHostnameSecret = !!Deno.env.get("BUNNY_STORAGE_HOSTNAME");
+
+      // Key diagnostics (without exposing the value)
+      const keyDiagnostics = {
+        hasValue: !!rawBunnyKey,
+        rawLength: rawBunnyKey?.length ?? 0,
+        lengthAfterTrim: rawBunnyKey?.trim()?.length ?? 0,
+        lengthAfterSanitize: bunnyApiKey.length,
+        startsWithQuote: rawBunnyKey?.trim()?.startsWith('"') || rawBunnyKey?.trim()?.startsWith("'") || false,
+        endsWithQuote: rawBunnyKey?.trim()?.endsWith('"') || rawBunnyKey?.trim()?.endsWith("'") || false,
+        containsNonPrintable: /[^\x20-\x7E]/.test(rawBunnyKey?.trim() ?? ''),
+        firstCharCode: rawBunnyKey?.trim() ? rawBunnyKey.trim().charCodeAt(0) : null,
+        lastCharCode: rawBunnyKey?.trim() ? rawBunnyKey.trim().charCodeAt(rawBunnyKey.trim().length - 1) : null,
+      };
+      console.log("[diagnose] Key diagnostics:", JSON.stringify(keyDiagnostics));
 
       // Test current configured endpoint
       let currentOk = false;
@@ -204,6 +219,9 @@ Deno.serve(async (req) => {
         diag.bunny_config.auth_ok = false;
         diag.bunny_config.credentials_valid = true;
       }
+
+      diag.key_diagnostics = keyDiagnostics;
+      diag.curl_test = `curl -s -o /dev/null -w "%{http_code}" -H "AccessKey: SUA_STORAGE_ZONE_PASSWORD" https://storage.bunnycdn.com/${BUNNY_STORAGE_ZONE}/`;
 
       return json(diag);
     }
