@@ -17,7 +17,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, FileText, Upload } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import imageCompression from "browser-image-compression";
+import { convertToWebP } from "@/lib/webpConverter";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 
 interface RecurringConfig {
   id: string;
