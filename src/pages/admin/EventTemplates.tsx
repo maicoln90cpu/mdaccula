@@ -16,6 +16,7 @@ import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 import { convertToWebP } from "@/lib/webpConverter";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 
 interface EventTemplate {
   id: string;
