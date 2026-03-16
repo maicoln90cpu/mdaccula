@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { convertToWebP } from '@/lib/webpConverter';
+import { uploadImageToBunny } from '@/lib/bunnyUploader';
 
 interface BlogFormData {
   title: string;
