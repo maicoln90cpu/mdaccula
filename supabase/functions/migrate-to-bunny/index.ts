@@ -224,13 +224,38 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Collect all unmigrated URLs and count unique filenames
+      const allUnmigratedUrls: string[] = [];
       for (const { table, column } of URL_COLUMNS) {
-        const { count } = await supabase
+        const { data: rows, count } = await supabase
           .from(table)
-          .select("id", { count: "exact", head: true })
-          .like(column, `%supabase.co%`);
+          .select(`id, ${column}`, { count: "exact" })
+          .like(column, `%supabase.co%`)
+          .limit(1000);
         diag.unmigrated_urls[`${table}.${column}`] = count || 0;
+        
+        // Extract filenames for dedup counting
+        if (rows) {
+          for (const row of rows) {
+            const url = (row as any)[column] as string;
+            if (url) allUnmigratedUrls.push(url);
+          }
+        }
       }
+
+      // Calculate unique files vs total URLs
+      const uniqueFiles = new Set(
+        allUnmigratedUrls.map(url => {
+          const match = url.match(/\/storage\/v1\/object\/public\/(.+)$/);
+          return match ? match[1] : url;
+        })
+      );
+      const totalUrls = allUnmigratedUrls.length;
+      diag.url_dedup = {
+        total_urls: totalUrls,
+        unique_files: uniqueFiles.size,
+        duplicate_references: totalUrls - uniqueFiles.size,
+      };
 
       // Override auth_ok if region was detected (means credentials are valid, just wrong host)
       if (!currentOk && regionDetection.detected) {
