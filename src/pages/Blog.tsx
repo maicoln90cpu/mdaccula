@@ -405,6 +405,7 @@ const Blog = () => {
                           loading="lazy"
                           onError={(e) => {
                             if (e.currentTarget.src !== djImage) {
+                              console.warn(`[IMG_ERROR] Blog featured "${featuredPost.title}" — falha ao carregar: ${e.currentTarget.src}`);
                               e.currentTarget.src = djImage;
                             }
                           }}
