@@ -4,7 +4,7 @@
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
@@ -162,9 +162,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Images - Stale While Revalidate
+  // Images - Cache First (prevents re-fetching cached images on every visit)
   if (matchesPatterns(url, IMAGE_PATTERNS)) {
-    event.respondWith(staleWhileRevalidate(event.request, IMAGE_CACHE));
+    event.respondWith(cacheFirst(event.request, IMAGE_CACHE));
     return;
   }
 

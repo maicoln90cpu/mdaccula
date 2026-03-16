@@ -28,7 +28,7 @@ import EventsCarousel from "@/components/events/EventsCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, getOriginalSupabaseUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { parseLocalDate } from "@/lib/utils";
 import { useEvents } from "@/hooks/useEvents";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -570,13 +570,8 @@ const Eventos = () => {
                         alt={event.title}
                         className="w-full h-full object-contain"
                         onError={(e) => {
-                          const target = e.currentTarget;
-                          // Try Supabase direct URL before falling back to djImage
-                          const supabaseUrl = getOriginalSupabaseUrl(target.src);
-                          if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
-                            target.src = supabaseUrl;
-                          } else if (target.src !== djImage) {
-                            target.src = djImage;
+                          if (e.currentTarget.src !== djImage) {
+                            e.currentTarget.src = djImage;
                           }
                         }}
                       />
