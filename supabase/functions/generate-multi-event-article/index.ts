@@ -397,20 +397,24 @@ NÃO inclua texto na imagem.`;
             
             const fileName = `multi-event-${Date.now()}.webp`;
             
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('event-images')
-              .upload(fileName, pngBuffer, { 
-                contentType: 'image/webp',
-                upsert: false
+            const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY');
+            if (BUNNY_STORAGE_API_KEY) {
+              const bunnyUploadUrl = `https://br.storage.bunnycdn.com/mdacula/event-images/${fileName}`;
+              const uploadResp = await fetch(bunnyUploadUrl, {
+                method: 'PUT',
+                headers: {
+                  AccessKey: BUNNY_STORAGE_API_KEY,
+                  'Content-Type': 'image/webp',
+                },
+                body: pngBuffer,
               });
 
-            if (!uploadError && uploadData) {
-              const { data: publicUrlData } = supabase.storage
-                .from('event-images')
-                .getPublicUrl(fileName);
-              
-              finalImageUrl = publicUrlData.publicUrl;
-              console.log('[generate-multi-event-article] Imagem gerada:', finalImageUrl);
+              if (uploadResp.ok) {
+                finalImageUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+                console.log('[generate-multi-event-article] Imagem Bunny:', finalImageUrl);
+              } else {
+                console.error('[generate-multi-event-article] Erro upload Bunny:', await uploadResp.text());
+              }
             }
           }
         }

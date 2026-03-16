@@ -206,29 +206,36 @@ Deno.serve(async (req) => {
     
     const fileName = `blog-${postId}-${Date.now()}.webp`;
     
-    console.log(`📤 Fazendo upload da imagem: ${fileName}`);
+    console.log(`📤 Fazendo upload da imagem para Bunny: ${fileName}`);
     
-    const { error: uploadError } = await supabase.storage
-      .from('event-images')
-      .upload(fileName, imageBytes, {
-        contentType: 'image/webp',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error('Erro no upload:', uploadError);
+    const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY');
+    if (!BUNNY_STORAGE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: 'Erro ao fazer upload da imagem', details: uploadError.message }),
+        JSON.stringify({ error: 'BUNNY_STORAGE_API_KEY não configurada' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Obter URL pública
-    const { data: publicUrlData } = supabase.storage
-      .from('event-images')
-      .getPublicUrl(fileName);
+    const bunnyUploadUrl = `https://br.storage.bunnycdn.com/mdacula/event-images/${fileName}`;
+    const uploadResp = await fetch(bunnyUploadUrl, {
+      method: 'PUT',
+      headers: {
+        AccessKey: BUNNY_STORAGE_API_KEY,
+        'Content-Type': 'image/webp',
+      },
+      body: imageBytes,
+    });
 
-    const publicUrl = publicUrlData.publicUrl;
+    if (!uploadResp.ok) {
+      const errText = await uploadResp.text();
+      console.error('Erro no upload Bunny:', errText);
+      return new Response(
+        JSON.stringify({ error: 'Erro ao fazer upload da imagem', details: errText }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const publicUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
     console.log(`✅ URL pública: ${publicUrl}`);
 
     // Atualizar o post com a nova imagem
