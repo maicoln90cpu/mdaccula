@@ -121,7 +121,8 @@ Deno.serve(async (req) => {
     const { data: isAdmin } = await supabaseAnon.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
-    const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim();
+    const rawBunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+    const bunnyApiKey = rawBunnyKey?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
     if (!bunnyApiKey) return json({ error: "BUNNY_STORAGE_API_KEY não configurada" }, 500);
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
