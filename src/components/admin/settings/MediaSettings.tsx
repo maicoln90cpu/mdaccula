@@ -110,7 +110,29 @@ const MediaSettings = () => {
     }
   };
 
-  // ── Image Check ──
+  // ── Cleanup Supabase (safe delete after Bunny verification) ──
+  const handleCleanupSupabase = async () => {
+    setCleaningUp(true);
+    setCleanupResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
+        body: { action: "cleanup_supabase" },
+      });
+      if (error) throw error;
+      setCleanupResult(data);
+      const total = Object.values(data.results || {}).reduce((a: number, r: any) => a + (r.deleted || 0), 0);
+      toast({
+        title: "Limpeza concluída",
+        description: `${total} arquivos removidos do Supabase após verificação no Bunny.`,
+      });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na limpeza", description: error.message });
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
+
   const handleCheck = async () => {
     setCheckLoading(true);
     setCheckResult(null);
