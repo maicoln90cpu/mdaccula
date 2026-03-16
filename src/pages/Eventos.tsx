@@ -571,6 +571,7 @@ const Eventos = () => {
                         className="w-full h-full object-contain"
                         onError={(e) => {
                           if (e.currentTarget.src !== djImage) {
+                            console.warn(`[IMG_ERROR] Evento "${event.title}" — falha ao carregar: ${e.currentTarget.src}`);
                             e.currentTarget.src = djImage;
                           }
                         }}

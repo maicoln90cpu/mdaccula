@@ -395,7 +395,21 @@ NÃO inclua texto na imagem.`;
             const base64Data = base64Image.split(',')[1];
             const pngBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
             
-            const fileName = `multi-event-${Date.now()}.webp`;
+            // Detect actual format from magic bytes
+            let fileExt = 'png';
+            let contentType = 'image/png';
+            if (pngBuffer.length > 12) {
+              // RIFF....WEBP = WebP
+              if (pngBuffer[0] === 0x52 && pngBuffer[1] === 0x49 && pngBuffer[2] === 0x46 && pngBuffer[3] === 0x46 &&
+                  pngBuffer[8] === 0x57 && pngBuffer[9] === 0x45 && pngBuffer[10] === 0x42 && pngBuffer[11] === 0x50) {
+                fileExt = 'webp'; contentType = 'image/webp';
+              } else if (pngBuffer[0] === 0xFF && pngBuffer[1] === 0xD8) {
+                fileExt = 'jpg'; contentType = 'image/jpeg';
+              }
+              // else stays png (default for AI-generated base64)
+            }
+            
+            const fileName = `multi-event-${Date.now()}.${fileExt}`;
             
             const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
             if (BUNNY_STORAGE_API_KEY) {
@@ -405,7 +419,7 @@ NÃO inclua texto na imagem.`;
                 method: 'PUT',
                 headers: {
                   AccessKey: BUNNY_STORAGE_API_KEY,
-                  'Content-Type': 'image/webp',
+                  'Content-Type': contentType,
                 },
                 body: pngBuffer,
               });
