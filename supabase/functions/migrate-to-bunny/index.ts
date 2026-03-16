@@ -66,6 +66,7 @@ Deno.serve(async (req) => {
     }
 
     const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+    console.log("BUNNY_STORAGE_API_KEY present:", !!bunnyApiKey, "length:", bunnyApiKey?.length);
     if (!bunnyApiKey) {
       return new Response(JSON.stringify({ error: "BUNNY_STORAGE_API_KEY not configured" }), {
         status: 500,
