@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
             const arrayBuffer = await fileData.arrayBuffer();
 
             // Upload to Bunny
+            console.log(`Uploading to Bunny: ${bunnyUploadUrl}, key length: ${bunnyApiKey.length}, key prefix: ${bunnyApiKey.substring(0, 4)}...`);
             const uploadResp = await fetch(bunnyUploadUrl, {
               method: "PUT",
               headers: {
