@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 
