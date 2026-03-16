@@ -641,7 +641,7 @@ ${hasRealTicketLink
             const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
             if (BUNNY_STORAGE_API_KEY) {
               const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
-              const bunnyUploadUrl = `https://${bunnyHostname}/mdacula/event-images/${fileName}`;
+              const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
               const uploadResp = await fetch(bunnyUploadUrl, {
                 method: 'PUT',
                 headers: {
