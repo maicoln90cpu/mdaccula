@@ -15,6 +15,13 @@ function getBunnyStorageHost(): string {
   return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
 }
 
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,14 +36,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: userError } = await supabaseAnon.auth.getUser(token);
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -44,7 +51,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: isAdmin } = await supabase.rpc("has_role", {
+    const { data: isAdmin } = await supabaseAnon.rpc("has_role", {
       _user_id: user.id,
       _role: "admin",
     });
@@ -89,11 +96,37 @@ Deno.serve(async (req) => {
       });
     }
 
+    const fileBuffer = await file.arrayBuffer();
+
+    // ── SHA256 Deduplication ──
+    const hash = await sha256Hex(fileBuffer);
+    const supabaseService = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: existing } = await supabaseService
+      .from("image_hashes")
+      .select("url")
+      .eq("hash", hash)
+      .maybeSingle();
+
+    if (existing?.url) {
+      console.log(`Duplicate detected (hash=${hash.slice(0, 12)}…), returning existing: ${existing.url}`);
+      return new Response(
+        JSON.stringify({ url: existing.url, path: "", size: file.size, deduplicated: true }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // ── Upload to Bunny ──
     const ext = file.name?.split(".").pop() || "webp";
     const fileName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
     const storagePath = `${bucket}/${fileName}`;
 
-    const fileBuffer = await file.arrayBuffer();
     const bunnyUrl = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${storagePath}`;
 
     const uploadResponse = await fetch(bunnyUrl, {
@@ -119,8 +152,18 @@ Deno.serve(async (req) => {
 
     const publicUrl = `${BUNNY_CDN_HOST}/${storagePath}`;
 
+    // Save hash for future deduplication
+    await supabaseService.from("image_hashes").insert({
+      hash,
+      url: publicUrl,
+      bucket,
+      file_size: file.size,
+    }).then(({ error }) => {
+      if (error) console.warn("Failed to save image hash:", error.message);
+    });
+
     return new Response(
-      JSON.stringify({ url: publicUrl, path: storagePath, size: file.size }),
+      JSON.stringify({ url: publicUrl, path: storagePath, size: file.size, deduplicated: false }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,6 +8,8 @@ const corsHeaders = {
 
 // ── Bunny Config ──
 const BUNNY_STORAGE_ZONE = "mdaccula";
+const BUNNY_CDN_HOST = "https://mdaccula.b-cdn.net";
+const ALL_BUCKETS = ["event-images", "link-thumbnails", "team-images"];
 
 function getBunnyStorageHost(): string {
   const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");
@@ -31,13 +34,53 @@ interface FileInfo {
   size: number;
 }
 
+async function listBucketImages(supabase: any, bucket: string): Promise<FileInfo[]> {
+  const { data: files, error } = await supabase.storage.from(bucket).list("", { limit: 1000 });
+  if (error || !files) return [];
+  return files
+    .filter((f: any) => f.id && !f.name.startsWith("."))
+    .filter((f: any) => /\.(png|jpg|jpeg|webp)$/i.test(f.name))
+    .map((f: any) => ({ name: f.name, size: (f.metadata as any)?.size || 0 }));
+}
+
+// ── URL update helpers ──
+const URL_COLUMNS = [
+  { table: "events", column: "image_url" },
+  { table: "blog_posts", column: "image_url" },
+  { table: "custom_links", column: "thumbnail_url" },
+  { table: "team_members", column: "image_url" },
+  { table: "event_templates", column: "image_url" },
+  { table: "recurring_event_configs", column: "image_url" },
+];
+
+async function updateDbUrls(supabase: any, bucket: string, oldName: string, newCdnUrl: string) {
+  // Find rows that reference the old file name and update them
+  for (const { table, column } of URL_COLUMNS) {
+    const { data: rows } = await supabase
+      .from(table)
+      .select(`id, ${column}`)
+      .or(`${column}.like.%${bucket}/${oldName}%,${column}.like.%${bucket}/${oldName.replace(/\.(png|jpg|jpeg)$/i, '')}%`)
+      .limit(50);
+
+    if (!rows?.length) continue;
+    for (const row of rows) {
+      const url = (row as any)[column] as string;
+      if (!url) continue;
+      // Only update if URL contains the old filename (Supabase or Bunny CDN path)
+      if (url.includes(`${bucket}/${oldName}`)) {
+        await supabase.from(table).update({ [column]: newCdnUrl }).eq("id", row.id);
+      }
+    }
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
     const action = body.action || "convert";
-    const bucket = body.bucket || "event-images";
+    const bucketParam = body.bucket || "all";
     const preset = body.preset || "media";
     const maxFiles = body.maxFiles || 10;
 
@@ -46,65 +89,81 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: files, error: listError } = await supabase.storage
-      .from(bucket).list("", { limit: 1000 });
-
-    if (listError) return json({ error: `List failed: ${listError.message}` }, 500);
-
-    const allFiles: FileInfo[] = (files || [])
-      .filter(f => f.id && !f.name.startsWith("."))
-      .map(f => ({ name: f.name, size: (f.metadata as any)?.size || 0 }));
-
-    const imageFiles = allFiles.filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f.name));
+    const bucketsToProcess = bucketParam === "all" ? ALL_BUCKETS : [bucketParam];
 
     // ── ACTION: check ──
     if (action === "check") {
-      const small = imageFiles.filter(f => f.size < 500 * 1024);
-      const medium = imageFiles.filter(f => f.size >= 500 * 1024 && f.size <= 2 * 1024 * 1024);
-      const large = imageFiles.filter(f => f.size > 2 * 1024 * 1024);
+      const aggregated = {
+        totalFiles: 0,
+        totalImages: 0,
+        bunnyImages: 0,
+        breakdown: { small: { count: 0, label: "< 500 KB" }, medium: { count: 0, label: "500 KB – 2 MB" }, large: { count: 0, label: "> 2 MB" } },
+        totalMB: "0",
+        avgMB: "0",
+        bucketDetails: {} as Record<string, any>,
+      };
 
-      const totalBytes = imageFiles.reduce((sum, f) => sum + f.size, 0);
-      const avgMB = imageFiles.length > 0 ? (totalBytes / imageFiles.length / 1024 / 1024) : 0;
-
-      let bunnyCount = -1;
       const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
-      if (bunnyKey) {
-        try {
-          const resp = await fetch(`${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${bucket}/`, {
-            headers: { AccessKey: bunnyKey, Accept: "application/json" },
-          });
-          if (resp.ok) {
-            const bunnyFiles = await resp.json();
-            bunnyCount = bunnyFiles.length;
-          }
-        } catch { /* ignore */ }
+      let totalBytes = 0;
+
+      for (const bucket of bucketsToProcess) {
+        const { data: allFiles } = await supabase.storage.from(bucket).list("", { limit: 1000 });
+        const validFiles = (allFiles || []).filter((f: any) => f.id && !f.name.startsWith("."));
+        const imageFiles = validFiles.filter((f: any) => /\.(png|jpg|jpeg|webp)$/i.test(f.name))
+          .map((f: any) => ({ name: f.name, size: (f.metadata as any)?.size || 0 }));
+
+        aggregated.totalFiles += validFiles.length;
+        aggregated.totalImages += imageFiles.length;
+
+        const bucketBytes = imageFiles.reduce((sum: number, f: any) => sum + f.size, 0);
+        totalBytes += bucketBytes;
+
+        const small = imageFiles.filter((f: any) => f.size < 500 * 1024);
+        const medium = imageFiles.filter((f: any) => f.size >= 500 * 1024 && f.size <= 2 * 1024 * 1024);
+        const large = imageFiles.filter((f: any) => f.size > 2 * 1024 * 1024);
+        aggregated.breakdown.small.count += small.length;
+        aggregated.breakdown.medium.count += medium.length;
+        aggregated.breakdown.large.count += large.length;
+
+        let bunnyCount = -1;
+        if (bunnyKey) {
+          try {
+            const resp = await fetch(`${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${bucket}/`, {
+              headers: { AccessKey: bunnyKey, Accept: "application/json" },
+            });
+            if (resp.ok) {
+              const bunnyFiles = await resp.json();
+              bunnyCount = bunnyFiles.length;
+            }
+          } catch { /* ignore */ }
+        }
+        if (bunnyCount >= 0) aggregated.bunnyImages += bunnyCount;
+
+        aggregated.bucketDetails[bucket] = {
+          images: imageFiles.length,
+          sizeMB: (bucketBytes / 1024 / 1024).toFixed(2),
+          bunnyCount: bunnyCount >= 0 ? bunnyCount : "N/A",
+          breakdown: { small: small.length, medium: medium.length, large: large.length },
+        };
       }
+
+      aggregated.totalMB = (totalBytes / 1024 / 1024).toFixed(2);
+      aggregated.avgMB = aggregated.totalImages > 0 ? (totalBytes / aggregated.totalImages / 1024 / 1024).toFixed(2) : "0";
 
       return json({
         action: "check",
-        bucket,
-        totalFiles: allFiles.length,
-        totalImages: imageFiles.length,
-        bunnyImages: bunnyCount,
-        breakdown: {
-          small: { count: small.length, label: "< 500 KB" },
-          medium: { count: medium.length, label: "500 KB – 2 MB" },
-          large: { count: large.length, label: "> 2 MB" },
-        },
-        totalMB: (totalBytes / 1024 / 1024).toFixed(2),
-        avgMB: avgMB.toFixed(2),
+        buckets: bucketsToProcess,
+        ...aggregated,
         presets: Object.entries(PRESETS).map(([k, v]) => ({ key: k, ...v })),
       });
     }
 
     // ── ACTION: convert ──
     const config = PRESETS[preset] || PRESETS.media;
-    console.log(`Converting bucket=${bucket}, preset=${preset} (q=${config.quality}, max=${config.maxDim}), max=${maxFiles}`);
+    console.log(`Converting buckets=${bucketsToProcess.join(",")}, preset=${preset} (q=${config.quality}, max=${config.maxDim}), max=${maxFiles}`);
 
-    const candidates = imageFiles.filter(f =>
-      /\.(png|jpg|jpeg)$/i.test(f.name) && f.size > 100 * 1024
-    );
-    const filesToProcess = candidates.slice(0, maxFiles);
+    const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
+    if (!bunnyKey) return json({ error: "BUNNY_STORAGE_API_KEY não configurada" }, 500);
 
     const results = {
       processed: [] as string[],
@@ -114,72 +173,84 @@ Deno.serve(async (req) => {
       totalNewBytes: 0,
     };
 
-    for (const file of filesToProcess) {
-      try {
-        const { data: fileData, error: dlError } = await supabase.storage.from(bucket).download(file.name);
-        if (dlError) { results.errors.push(`${file.name}: download failed`); continue; }
+    let filesProcessed = 0;
 
-        const arrayBuffer = await fileData.arrayBuffer();
-        const originalSize = arrayBuffer.byteLength;
-        results.totalOriginalBytes += originalSize;
+    for (const bucket of bucketsToProcess) {
+      if (filesProcessed >= maxFiles) break;
 
-        const blob = new Blob([arrayBuffer], { type: fileData.type });
+      const imageFiles = await listBucketImages(supabase, bucket);
+      const candidates = imageFiles.filter(f =>
+        /\.(png|jpg|jpeg)$/i.test(f.name) && f.size > 100 * 1024
+      );
 
-        let imageBitmap: ImageBitmap;
+      const remaining = maxFiles - filesProcessed;
+      const filesToProcess = candidates.slice(0, remaining);
+
+      for (const file of filesToProcess) {
         try {
-          imageBitmap = await createImageBitmap(blob);
-        } catch (bmpErr) {
-          const retryBlob = new Blob([arrayBuffer], { type: "image/png" });
+          const { data: fileData, error: dlError } = await supabase.storage.from(bucket).download(file.name);
+          if (dlError) { results.errors.push(`${bucket}/${file.name}: download failed`); continue; }
+
+          const arrayBuffer = await fileData.arrayBuffer();
+          const originalSize = arrayBuffer.byteLength;
+          results.totalOriginalBytes += originalSize;
+
+          // Decode with ImageScript
+          let image: Image;
           try {
-            imageBitmap = await createImageBitmap(retryBlob);
-          } catch {
-            results.errors.push(`${file.name}: formato não suportado pelo runtime`);
+            image = await Image.decode(new Uint8Array(arrayBuffer));
+          } catch (decodeErr) {
+            results.errors.push(`${bucket}/${file.name}: decode failed - ${(decodeErr as Error).message}`);
             continue;
           }
-        }
 
-        let newWidth = imageBitmap.width;
-        let newHeight = imageBitmap.height;
-        if (newWidth > config.maxDim || newHeight > config.maxDim) {
-          const scale = config.maxDim / Math.max(newWidth, newHeight);
-          newWidth = Math.round(newWidth * scale);
-          newHeight = Math.round(newHeight * scale);
-        }
-
-        const canvas = new OffscreenCanvas(newWidth, newHeight);
-        const ctx = canvas.getContext("2d");
-        if (!ctx) { results.errors.push(`${file.name}: canvas failed`); continue; }
-        ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
-
-        let optimizedBlob: Blob;
-        let outputExt = "webp";
-        try {
-          optimizedBlob = await canvas.convertToBlob({ type: "image/webp", quality: config.quality / 100 });
-        } catch {
-          try {
-            optimizedBlob = await canvas.convertToBlob({ type: "image/jpeg", quality: config.quality / 100 });
-            outputExt = "jpg";
-          } catch {
-            results.errors.push(`${file.name}: conversão falhou (webp e jpeg)`);
-            continue;
+          // Resize if needed
+          let newWidth = image.width;
+          let newHeight = image.height;
+          if (newWidth > config.maxDim || newHeight > config.maxDim) {
+            const scale = config.maxDim / Math.max(newWidth, newHeight);
+            newWidth = Math.round(newWidth * scale);
+            newHeight = Math.round(newHeight * scale);
+            image.resize(newWidth, newHeight);
           }
+
+          // Encode to WebP
+          const webpData = await image.encodeWEBP(config.quality);
+          const newSize = webpData.length;
+          results.totalNewBytes += newSize;
+
+          // Only upload if meaningful savings (>10%)
+          if (newSize < originalSize * 0.9) {
+            const newName = file.name.replace(/\.(png|jpg|jpeg)$/i, `-opt.webp`);
+            const uploadUrl = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${bucket}/${newName}`;
+
+            const uploadResp = await fetch(uploadUrl, {
+              method: "PUT",
+              headers: {
+                AccessKey: bunnyKey,
+                "Content-Type": "image/webp",
+              },
+              body: webpData,
+            });
+
+            if (!uploadResp.ok) {
+              const errText = await uploadResp.text();
+              results.errors.push(`${bucket}/${file.name}: bunny upload failed ${uploadResp.status} ${errText}`);
+              continue;
+            }
+
+            // Update DB URLs to point to new Bunny CDN file
+            const newCdnUrl = `${BUNNY_CDN_HOST}/${bucket}/${newName}`;
+            await updateDbUrls(supabase, bucket, file.name, newCdnUrl);
+
+            results.processed.push(`${bucket}/${file.name} → ${newName} (${(originalSize/1024).toFixed(0)}KB → ${(newSize/1024).toFixed(0)}KB)`);
+            filesProcessed++;
+          } else {
+            results.skipped.push(`${bucket}/${file.name} (sem ganho)`);
+          }
+        } catch (err) {
+          results.errors.push(`${bucket}/${file.name}: ${(err as Error).message}`);
         }
-
-        const newSize = optimizedBlob.size;
-        results.totalNewBytes += newSize;
-
-        if (newSize < originalSize * 0.9) {
-          const newName = file.name.replace(/\.(png|jpg|jpeg)$/i, `-opt.${outputExt}`);
-          const { error: uploadError } = await supabase.storage
-            .from(bucket).upload(newName, optimizedBlob, { contentType: `image/${outputExt}`, upsert: true });
-
-          if (uploadError) { results.errors.push(`${file.name}: upload failed`); continue; }
-          results.processed.push(file.name);
-        } else {
-          results.skipped.push(file.name);
-        }
-      } catch (err) {
-        results.errors.push(`${file.name}: ${(err as Error).message}`);
       }
     }
 
@@ -188,13 +259,12 @@ Deno.serve(async (req) => {
     return json({
       success: true,
       preset: { key: preset, ...config },
+      buckets: bucketsToProcess,
       summary: {
-        totalCandidates: candidates.length,
         processed: results.processed.length,
         skipped: results.skipped.length,
         errors: results.errors.length,
         totalSavedMB: (totalSaved / 1024 / 1024).toFixed(2),
-        remaining: candidates.length - filesToProcess.length,
       },
       details: {
         processed: results.processed,

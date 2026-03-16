@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
+import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 
@@ -132,13 +132,13 @@ const MediaSettings = () => {
     }
   };
 
-
+  // ── Check (multi-bucket) ──
   const handleCheck = async () => {
     setCheckLoading(true);
     setCheckResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
-        body: { action: "check", bucket: "event-images" },
+        body: { action: "check", bucket: "all" },
       });
       if (error) throw error;
       setCheckResult(data);
@@ -149,13 +149,13 @@ const MediaSettings = () => {
     }
   };
 
-  // ── Convert ──
+  // ── Convert (multi-bucket) ──
   const handleConvert = async () => {
     setConverting(true);
     setConversionResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
-        body: { action: "convert", bucket: "event-images", preset: selectedPreset, maxFiles: 10 },
+        body: { action: "convert", bucket: "all", preset: selectedPreset, maxFiles: 10 },
       });
       if (error) throw error;
       setConversionResult(data);
@@ -191,8 +191,55 @@ const MediaSettings = () => {
 
   const credOk = diagResult?.bunny_config?.auth_ok;
 
+  // Calculate economy dashboard from diagnosis data
+  const supabaseTotalMB = diagResult?.supabase_bucket_sizes
+    ? Object.values(diagResult.supabase_bucket_sizes).reduce((sum: number, b: any) => sum + parseFloat(b.sizeMB || "0"), 0)
+    : 0;
+  const bunnyTotalMB = diagResult?.bunny_bucket_sizes
+    ? Object.values(diagResult.bunny_bucket_sizes).reduce((sum: number, b: any) => sum + parseFloat(b.sizeMB || "0"), 0)
+    : 0;
+  const bunnyTotalFiles = diagResult?.bunny_bucket_sizes
+    ? Object.values(diagResult.bunny_bucket_sizes).reduce((sum: number, b: any) => sum + (b.count || 0), 0)
+    : 0;
+
   return (
     <div className="space-y-4 sm:space-y-6">
+
+      {/* ═══ Economy Dashboard ═══ */}
+      {diagResult && (credOk || diagResult.bunny_bucket_sizes) && (
+        <Card className="border-emerald-500/20 bg-emerald-500/5">
+          <CardHeader className="px-4 sm:px-6 pb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-emerald-500" />
+              <CardTitle className="text-lg sm:text-xl">Dashboard de Economia</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-3 rounded-lg bg-background border text-center">
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{bunnyTotalFiles as number}</div>
+                <div className="text-[10px] text-muted-foreground">Imagens no Bunny</div>
+              </div>
+              <div className="p-3 rounded-lg bg-background border text-center">
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{(bunnyTotalMB as number).toFixed(1)} MB</div>
+                <div className="text-[10px] text-muted-foreground">Armazenado no Bunny</div>
+              </div>
+              <div className="p-3 rounded-lg bg-background border text-center">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{(supabaseTotalMB as number).toFixed(1)} MB</div>
+                <div className="text-[10px] text-muted-foreground">Restante no Supabase</div>
+              </div>
+              <div className="p-3 rounded-lg bg-background border text-center">
+                <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">~${((bunnyTotalMB as number) * 0.01 / 1024).toFixed(3)}</div>
+                <div className="text-[10px] text-muted-foreground">Custo Bunny/mês (est.)</div>
+              </div>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-2 text-center">
+              Economia vs Supabase egress: ~${(((bunnyTotalMB as number) / 1024) * 0.09).toFixed(2)}/GB servido vs ~${(((bunnyTotalMB as number) / 1024) * 0.01).toFixed(3)}/GB no Bunny
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ═══ Bunny CDN Diagnostics & Migration ═══ */}
       <Card className="border-orange-500/20">
         <CardHeader className="px-4 sm:px-6">
@@ -291,18 +338,22 @@ const MediaSettings = () => {
                 </div>
               )}
 
-              {/* Bucket comparison */}
+              {/* Bucket comparison with sizes */}
               <div>
                 <p className="text-sm font-medium mb-2">📦 Arquivos por bucket:</p>
-                <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="grid grid-cols-5 gap-2 text-xs">
                   <div className="font-medium text-muted-foreground">Bucket</div>
                   <div className="font-medium text-muted-foreground">Supabase</div>
+                  <div className="font-medium text-muted-foreground">Tamanho</div>
                   <div className="font-medium text-muted-foreground">Bunny</div>
+                  <div className="font-medium text-muted-foreground">Tamanho</div>
                   {Object.keys(diagResult.supabase_buckets || {}).map(bucket => (
                     <>
-                      <div key={`n-${bucket}`} className="font-mono">{bucket}</div>
+                      <div key={`n-${bucket}`} className="font-mono truncate">{bucket}</div>
                       <div key={`s-${bucket}`}>{diagResult.supabase_buckets[bucket]}</div>
+                      <div key={`ss-${bucket}`}>{diagResult.supabase_bucket_sizes?.[bucket]?.sizeMB || "—"} MB</div>
                       <div key={`b-${bucket}`}>{credOk ? diagResult.bunny_buckets[bucket] : "—"}</div>
+                      <div key={`bs-${bucket}`}>{diagResult.bunny_bucket_sizes?.[bucket]?.sizeMB || "—"} MB</div>
                     </>
                   ))}
                 </div>
@@ -404,25 +455,6 @@ const MediaSettings = () => {
               ))}
             </div>
           )}
-
-          {/* Storage size in diagnosis */}
-          {diagResult?.supabase_bucket_sizes && (
-            <div className="p-3 rounded-md border bg-muted/50">
-              <p className="text-sm font-medium mb-1">💾 Tamanho total por bucket</p>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="font-medium text-muted-foreground">Bucket</div>
-                <div className="font-medium text-muted-foreground">Arquivos</div>
-                <div className="font-medium text-muted-foreground">Tamanho</div>
-                {Object.entries(diagResult.supabase_bucket_sizes).map(([bucket, info]: [string, any]) => (
-                  <>
-                    <div key={`n-${bucket}`} className="font-mono">{bucket}</div>
-                    <div key={`c-${bucket}`}>{info.count}</div>
-                    <div key={`s-${bucket}`}><strong>{info.sizeMB} MB</strong></div>
-                  </>
-                ))}
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -434,7 +466,7 @@ const MediaSettings = () => {
             <CardTitle className="text-lg sm:text-xl">Otimização de Imagens</CardTitle>
           </div>
           <CardDescription className="text-sm">
-            Analise o acervo e converta imagens com diferentes níveis de compressão
+            Analise o acervo de todos os buckets e converta imagens com upload direto para o Bunny
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
@@ -442,9 +474,9 @@ const MediaSettings = () => {
           {/* Check */}
           <Button onClick={handleCheck} disabled={checkLoading} variant="outline" className="w-full">
             {checkLoading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analisando acervo...</>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Analisando todos os buckets...</>
             ) : (
-              <><Search className="w-4 h-4 mr-2" />Analisar Acervo de Imagens</>
+              <><Search className="w-4 h-4 mr-2" />Analisar Acervo (todos os buckets)</>
             )}
           </Button>
 
@@ -457,6 +489,21 @@ const MediaSettings = () => {
                 <div>Tamanho total: <strong>{checkResult.totalMB} MB</strong></div>
                 <div className="col-span-2">Média por imagem: <strong>{checkResult.avgMB} MB</strong></div>
               </div>
+
+              {/* Per-bucket details */}
+              {checkResult.bucketDetails && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium">Por bucket:</p>
+                  {Object.entries(checkResult.bucketDetails).map(([bucket, info]: [string, any]) => (
+                    <div key={bucket} className="flex items-center gap-2 text-xs">
+                      <span className="font-mono text-muted-foreground">{bucket}:</span>
+                      <span>{info.images} imagens · {info.sizeMB} MB</span>
+                      <span className="text-muted-foreground">· Bunny: {info.bunnyCount}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="space-y-1">
                 <p className="text-xs font-medium">Distribuição por tamanho:</p>
                 {Object.entries(checkResult.breakdown || {}).map(([key, info]: [string, any]) => (
@@ -497,21 +544,26 @@ const MediaSettings = () => {
             {converting ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Convertendo ({PRESET_LABELS[selectedPreset].label})...</>
             ) : (
-              <><ImageDown className="w-4 h-4 mr-2" />Converter Imagens ({PRESET_LABELS[selectedPreset].label})</>
+              <><ImageDown className="w-4 h-4 mr-2" />Converter Imagens → Bunny ({PRESET_LABELS[selectedPreset].label})</>
             )}
           </Button>
 
           {conversionResult && (
             <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-2 text-xs">
               <p className="text-sm font-medium text-green-600 dark:text-green-400">✅ Conversão concluída!</p>
-              <p className="text-muted-foreground">Preset: {conversionResult.preset?.label}</p>
+              <p className="text-muted-foreground">Preset: {conversionResult.preset?.label} · Buckets: {conversionResult.buckets?.join(", ")}</p>
               <div className="grid grid-cols-2 gap-2">
                 <div>Convertidas: <strong>{conversionResult.summary?.processed}</strong></div>
                 <div>Sem ganho: <strong>{conversionResult.summary?.skipped}</strong></div>
                 <div>Erros: <strong>{conversionResult.summary?.errors}</strong></div>
-                <div>Restantes: <strong>{conversionResult.summary?.remaining}</strong></div>
                 <div className="col-span-2">Economizado: <strong>{conversionResult.summary?.totalSavedMB} MB</strong></div>
               </div>
+              {conversionResult.details?.processed?.length > 0 && (
+                <details>
+                  <summary className="cursor-pointer text-green-600 dark:text-green-400">Ver convertidas</summary>
+                  <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-24 text-[10px]">{conversionResult.details.processed.join("\n")}</pre>
+                </details>
+              )}
               {conversionResult.details?.errors?.length > 0 && (
                 <details>
                   <summary className="cursor-pointer text-destructive">Ver erros</summary>
