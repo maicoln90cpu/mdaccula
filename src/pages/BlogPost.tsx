@@ -32,7 +32,7 @@ interface BlogPostData {
 const fetchBlogPost = async (slug: string): Promise<BlogPostData | null> => {
   const { data, error } = await supabase
     .from("blog_posts")
-    .select("*")
+    .select("id, title, slug, content, excerpt, category, image_url, views, likes, published, created_at, author_id")
     .eq("slug", slug)
     .eq("published", true)
     .single();
