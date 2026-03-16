@@ -49,6 +49,13 @@ export function getOptimizedImageUrl(
 ): string {
   if (!url) return '';
 
+  // ⚠️ CDN REWRITE DESATIVADO TEMPORARIAMENTE
+  // O fallback CDN→Supabase estava duplicando requests e causando ~12GB/dia de egress.
+  // Servindo direto do Supabase até confirmar que Bunny+Cloudflare estão configurados corretamente.
+  // Para reativar: remover este return e descomentar o bloco abaixo.
+  return url;
+
+  /*
   // Only rewrite Supabase storage URLs
   if (!SUPABASE_STORAGE_PATTERN.test(url)) {
     return url;
@@ -66,7 +73,6 @@ export function getOptimizedImageUrl(
     if (hasQuery) {
       const [basePath, queryString] = imagePath.split('?');
       const params = new URLSearchParams(queryString);
-      // Remove any forced dimension/resize params
       params.delete('width');
       params.delete('height');
       params.delete('resize');
@@ -78,6 +84,7 @@ export function getOptimizedImageUrl(
   }
 
   return `${BUNNY_CDN_HOST}/${imagePath}`;
+  */
 }
 
 /**

@@ -162,9 +162,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Images - Stale While Revalidate
+  // Images - Cache First (prevents re-fetching cached images on every visit)
   if (matchesPatterns(url, IMAGE_PATTERNS)) {
-    event.respondWith(staleWhileRevalidate(event.request, IMAGE_CACHE));
+    event.respondWith(cacheFirst(event.request, IMAGE_CACHE));
     return;
   }
 

@@ -154,10 +154,7 @@ const BlogPost = () => {
         <meta name="twitter:description" content={post.excerpt || post.content?.substring(0, 160)} />
         <meta name="twitter:image" content={getOptimizedImageUrl(post.image_url) || ""} />
         <link rel="canonical" href={currentUrl} />
-        {/* Preload post image for LCP optimization */}
-        {post.image_url && (
-          <link rel="preload" as="image" href={getOptimizedImageUrl(post.image_url)} fetchPriority="high" />
-        )}
+        {/* Preload removed: the <img loading="eager"> already handles LCP */}
       </Helmet>
       <Navigation />
 
