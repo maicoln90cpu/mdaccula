@@ -17,7 +17,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, FileText, Upload } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import imageCompression from "browser-image-compression";
+import { convertToWebP } from "@/lib/webpConverter";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 
 interface RecurringConfig {
   id: string;
@@ -484,19 +485,8 @@ const RecurringEventsManager = () => {
                         if (!file) return;
                         setUploadingImage(true);
                         try {
-                          const compressed = await imageCompression(file, {
-                            maxSizeMB: 0.5,
-                            maxWidthOrHeight: 1200,
-                            useWebWorker: true,
-                          });
-                          const fileName = `recurring-${Date.now()}.webp`;
-                          const { data, error } = await supabase.storage
-                            .from('event-images')
-                            .upload(fileName, compressed, { upsert: true });
-                          if (error) throw error;
-                          const { data: { publicUrl } } = supabase.storage
-                            .from('event-images')
-                            .getPublicUrl(data.path);
+                          const webpFile = await convertToWebP(file, 0.5, 1200);
+                          const publicUrl = await uploadImageToBunny(webpFile, 'event-images');
                           setEditingConfig({ ...editingConfig, image_url: publicUrl });
                           toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });
                         } catch (err: any) {

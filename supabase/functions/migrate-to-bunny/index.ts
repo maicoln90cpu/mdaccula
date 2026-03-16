@@ -196,9 +196,19 @@ Deno.serve(async (req) => {
 
       const effectiveOk = currentOk || regionDetection.detected;
 
+      diag.supabase_bucket_sizes = {} as Record<string, { count: number; sizeMB: string }>;
+
       for (const bucket of BUCKETS) {
         const { data: files } = await supabase.storage.from(bucket).list("", { limit: 1000 });
-        diag.supabase_buckets[bucket] = files?.filter(f => f.id && !f.name.startsWith(".")).length || 0;
+        const imageFiles = files?.filter(f => f.id && !f.name.startsWith(".")) || [];
+        diag.supabase_buckets[bucket] = imageFiles.length;
+
+        // Calculate total size
+        const totalBytes = imageFiles.reduce((sum, f) => sum + ((f.metadata as any)?.size || 0), 0);
+        diag.supabase_bucket_sizes[bucket] = {
+          count: imageFiles.length,
+          sizeMB: (totalBytes / (1024 * 1024)).toFixed(2),
+        };
 
         if (currentOk) {
           const bunnyFiles = await listBunnyFiles(bunnyApiKey, bucket);
@@ -355,7 +365,50 @@ Deno.serve(async (req) => {
       return json({ action: "update_urls", updated: urlResults });
     }
 
-    return json({ error: "Ação inválida. Use: diagnose, status, migrate_files, update_urls" }, 400);
+    // ── ACTION: cleanup_supabase ──
+    if (action === "cleanup_supabase") {
+      const results: Record<string, { deleted: number; kept: number; errors: string[] }> = {};
+
+      for (const bucket of BUCKETS) {
+        results[bucket] = { deleted: 0, kept: 0, errors: [] };
+
+        const { data: files, error: listError } = await supabase.storage
+          .from(bucket).list("", { limit: 1000 });
+
+        if (listError) { results[bucket].errors.push(`List: ${listError.message}`); continue; }
+        if (!files?.length) continue;
+
+        const imageFiles = files.filter(f => f.id && !f.name.startsWith("."));
+
+        for (const file of imageFiles) {
+          const cdnUrl = bunnyCdnUrl(`${bucket}/${file.name}`);
+          try {
+            // Verify file exists on Bunny CDN
+            const headResp = await fetch(cdnUrl, { method: "HEAD" });
+            if (headResp.status !== 200) {
+              results[bucket].kept++;
+              continue;
+            }
+
+            // Safe to delete from Supabase
+            const { error: delError } = await supabase.storage
+              .from(bucket).remove([file.name]);
+            if (delError) {
+              results[bucket].errors.push(`DEL ${file.name}: ${delError.message}`);
+            } else {
+              results[bucket].deleted++;
+            }
+          } catch (err) {
+            results[bucket].errors.push(`${file.name}: ${(err as Error).message}`);
+            results[bucket].kept++;
+          }
+        }
+      }
+
+      return json({ action: "cleanup_supabase", results });
+    }
+
+    return json({ error: "Ação inválida. Use: diagnose, status, migrate_files, update_urls, cleanup_supabase" }, 400);
   } catch (error) {
     console.error("migrate-to-bunny error:", error);
     return json({ error: (error as Error).message }, 500);

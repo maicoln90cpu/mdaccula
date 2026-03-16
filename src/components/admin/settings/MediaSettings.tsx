@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { ImageDown, Loader2, Download, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 
 type CompressionPreset = "sutil" | "media" | "severa";
 
-const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string }> = {
-  sutil: { label: "Sutil", desc: "Qualidade alta, resize leve" },
-  media: { label: "Média", desc: "Equilíbrio qualidade/tamanho" },
-  severa: { label: "Severa", desc: "Máxima compressão" },
+const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string; details: string }> = {
+  sutil: { label: "Sutil", desc: "Qualidade alta, resize leve", details: "WebP 85% · max 1920px · ~60-70% menor que PNG (~300KB → ~100KB)" },
+  media: { label: "Média", desc: "Equilíbrio qualidade/tamanho", details: "WebP 70% · max 1280px · ~75-85% menor (~300KB → ~55KB)" },
+  severa: { label: "Severa", desc: "Máxima compressão", details: "WebP 50% · max 1024px · ~85-92% menor (~300KB → ~30KB)" },
 };
 
 const MediaSettings = () => {
@@ -33,6 +33,10 @@ const MediaSettings = () => {
   const [converting, setConverting] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<CompressionPreset>("media");
   const [conversionResult, setConversionResult] = useState<Record<string, any> | null>(null);
+
+  // Cleanup
+  const [cleaningUp, setCleaningUp] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<Record<string, any> | null>(null);
 
   // Import
   const [importing, setImporting] = useState(false);
@@ -106,7 +110,29 @@ const MediaSettings = () => {
     }
   };
 
-  // ── Image Check ──
+  // ── Cleanup Supabase (safe delete after Bunny verification) ──
+  const handleCleanupSupabase = async () => {
+    setCleaningUp(true);
+    setCleanupResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
+        body: { action: "cleanup_supabase" },
+      });
+      if (error) throw error;
+      setCleanupResult(data);
+      const total = Object.values(data.results || {}).reduce((a: number, r: any) => a + (r.deleted || 0), 0);
+      toast({
+        title: "Limpeza concluída",
+        description: `${total} arquivos removidos do Supabase após verificação no Bunny.`,
+      });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro na limpeza", description: error.message });
+    } finally {
+      setCleaningUp(false);
+    }
+  };
+
+
   const handleCheck = async () => {
     setCheckLoading(true);
     setCheckResult(null);
@@ -352,6 +378,51 @@ const MediaSettings = () => {
               ))}
             </div>
           )}
+
+          {/* Cleanup Supabase (safe delete) */}
+          <Button onClick={handleCleanupSupabase} disabled={cleaningUp} variant="outline" className="w-full border-destructive/30 text-destructive hover:bg-destructive/10">
+            {cleaningUp ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verificando e limpando...</>
+            ) : (
+              <><Trash2 className="w-4 h-4 mr-2" />Limpar Supabase (só após verificação no Bunny)</>
+            )}
+          </Button>
+          <p className="text-[10px] text-muted-foreground -mt-2">
+            Verifica cada arquivo no Bunny CDN (HEAD → 200) antes de deletar do Supabase. Seguro.
+          </p>
+
+          {cleanupResult && (
+            <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
+              <p className="text-sm font-medium">🧹 Resultado da limpeza</p>
+              {Object.entries(cleanupResult.results || {}).map(([bucket, info]: [string, any]) => (
+                <div key={bucket}>
+                  <span className="font-medium">{bucket}:</span> {info.deleted} deletados, {info.kept} mantidos (não verificados no Bunny)
+                  {info.errors?.length > 0 && (
+                    <span className="text-destructive ml-1">· {info.errors.length} erros</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Storage size in diagnosis */}
+          {diagResult?.supabase_bucket_sizes && (
+            <div className="p-3 rounded-md border bg-muted/50">
+              <p className="text-sm font-medium mb-1">💾 Tamanho total por bucket</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="font-medium text-muted-foreground">Bucket</div>
+                <div className="font-medium text-muted-foreground">Arquivos</div>
+                <div className="font-medium text-muted-foreground">Tamanho</div>
+                {Object.entries(diagResult.supabase_bucket_sizes).map(([bucket, info]: [string, any]) => (
+                  <>
+                    <div key={`n-${bucket}`} className="font-mono">{bucket}</div>
+                    <div key={`c-${bucket}`}>{info.count}</div>
+                    <div key={`s-${bucket}`}><strong>{info.sizeMB} MB</strong></div>
+                  </>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -415,6 +486,7 @@ const MediaSettings = () => {
                 >
                   <div className="font-medium">{PRESET_LABELS[key].label}</div>
                   <div className="text-[10px] text-muted-foreground">{PRESET_LABELS[key].desc}</div>
+                  <div className="text-[9px] text-muted-foreground/70 mt-0.5">{PRESET_LABELS[key].details}</div>
                 </button>
               ))}
             </div>
