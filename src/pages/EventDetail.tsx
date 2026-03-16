@@ -20,7 +20,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Helmet } from "react-helmet-async";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 
 interface Event {
   id: string;
@@ -237,7 +237,7 @@ const EventDetail = () => {
             {/* Hero Image */}
             {event.image_url && (
               <div className="w-full h-[40vh] sm:h-[50vh] md:h-[60vh] rounded-xl overflow-hidden mb-6 sm:mb-8 shadow-lg bg-muted/20">
-                <img src={getOptimizedImageUrl(event.image_url)} alt={event.title} className="w-full h-full object-contain" loading="lazy" />
+                <img src={getOptimizedImageUrl(event.image_url)} alt={event.title} className="w-full h-full object-contain" loading="lazy" onError={(e) => handleImageFallback(e)} />
               </div>
             )}
 
@@ -373,6 +373,7 @@ const EventDetail = () => {
                                 src={getOptimizedImageUrl(relatedPost.image_url)}
                                 alt={relatedPost.title}
                                 className="w-full h-full object-contain"
+                                onError={(e) => handleImageFallback(e)}
                               />
                             </div>
                           )}
@@ -451,6 +452,7 @@ const EventDetail = () => {
                                   src={getOptimizedImageUrl(relatedEvent.image_url)}
                                   alt={relatedEvent.title}
                                   className="w-full h-full object-contain"
+                                  onError={(e) => handleImageFallback(e)}
                                 />
                               </div>
                             )}

@@ -28,7 +28,7 @@ import EventsCarousel from "@/components/events/EventsCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { parseLocalDate } from "@/lib/utils";
 import { useEvents } from "@/hooks/useEvents";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
@@ -569,12 +569,7 @@ const Eventos = () => {
                         src={getOptimizedImageUrl(event.image_url) || djImage} 
                         alt={event.title}
                         className="w-full h-full object-contain"
-                        onError={(e) => {
-                          if (e.currentTarget.src !== djImage) {
-                            console.warn(`[IMG_ERROR] Evento "${event.title}" — falha ao carregar: ${e.currentTarget.src}`);
-                            e.currentTarget.src = djImage;
-                          }
-                        }}
+                        onError={(e) => handleImageFallback(e, djImage)}
                       />
                       <div className="absolute top-4 left-4 flex flex-wrap gap-1">
                         {event.genres && event.genres.length > 0 && event.genres.slice(0, 2).map((genre: string, idx: number) => (

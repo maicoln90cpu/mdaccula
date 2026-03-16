@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { StaticIcon } from "./StaticIcon";
 
 interface LinkCardImageProps {
@@ -57,7 +57,15 @@ export const LinkCardImage = ({
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setImgError(true)}
+        onError={(e) => {
+          if (!imgError) {
+            // Try Supabase fallback first via handleImageFallback
+            handleImageFallback(e);
+          } else {
+            // Already on fallbackUrl, give up
+            setImgError(true);
+          }
+        }}
         className="w-full h-full object-contain rounded-md"
       />
     </div>

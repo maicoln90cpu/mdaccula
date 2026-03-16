@@ -31,7 +31,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 
 interface BlogPost {
   id: string;
@@ -403,12 +403,7 @@ const Blog = () => {
                           alt={featuredPost.title}
                           className="w-full h-full object-contain"
                           loading="lazy"
-                          onError={(e) => {
-                            if (e.currentTarget.src !== djImage) {
-                              console.warn(`[IMG_ERROR] Blog featured "${featuredPost.title}" — falha ao carregar: ${e.currentTarget.src}`);
-                              e.currentTarget.src = djImage;
-                            }
-                          }}
+                          onError={(e) => handleImageFallback(e, djImage)}
                         />
                         <div className="absolute top-4 left-4">
                           <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
@@ -493,12 +488,7 @@ const Blog = () => {
                                   className="w-full h-full object-contain"
                                   loading="lazy"
                                   decoding="async"
-                                   onError={(e) => {
-                                     if (e.currentTarget.src !== djImage) {
-                                       console.warn(`[IMG_ERROR] Blog "${post.title}" — falha ao carregar: ${e.currentTarget.src}`);
-                                       e.currentTarget.src = djImage;
-                                     }
-                                   }}
+                                   onError={(e) => handleImageFallback(e, djImage)}
                                 />
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
                                   <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>

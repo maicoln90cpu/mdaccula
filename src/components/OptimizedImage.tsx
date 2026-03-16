@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
-import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { getOptimizedImageUrl, getOriginalSupabaseUrl } from '@/lib/imageUtils';
 
 interface OptimizedImageProps {
   src: string;
@@ -9,11 +9,17 @@ interface OptimizedImageProps {
   priority?: boolean;
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   sizes?: string;
+  /** Local fallback image when both CDN and Supabase fail */
+  fallbackImage?: string;
 }
 
 /**
- * Simplified image component — single request, no fallback chain.
- * Fallback logic was removed because CDN→Supabase retries were doubling egress.
+ * Image component with automatic CDN → Supabase Storage fallback.
+ * 
+ * Flow:
+ * 1. Try Bunny CDN URL (optimized)
+ * 2. On error → try original Supabase Storage URL
+ * 3. On second error → show fallbackImage or gradient placeholder
  */
 export const OptimizedImage = ({ 
   src, 
@@ -21,14 +27,46 @@ export const OptimizedImage = ({
   className = '',
   priority = false,
   objectFit = 'contain',
+  fallbackImage,
 }: OptimizedImageProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [triedSupabase, setTriedSupabase] = useState(false);
 
   const optimizedSrc = useMemo(() => {
     if (!src) return src;
     return getOptimizedImageUrl(src);
   }, [src]);
+
+  const supabaseFallbackSrc = useMemo(() => {
+    if (!optimizedSrc) return null;
+    const supabaseUrl = getOriginalSupabaseUrl(optimizedSrc);
+    // Only use as fallback if it's actually different from optimizedSrc
+    return supabaseUrl !== optimizedSrc ? supabaseUrl : null;
+  }, [optimizedSrc]);
+
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const currentSrc = e.currentTarget.src;
+    console.warn(`[IMG_ERROR] OptimizedImage falha: ${currentSrc}`);
+
+    // If we haven't tried Supabase yet and there's a Supabase fallback URL
+    if (!triedSupabase && supabaseFallbackSrc) {
+      setTriedSupabase(true);
+      e.currentTarget.src = supabaseFallbackSrc;
+      return;
+    }
+
+    // If we have a local fallback image, try that
+    if (fallbackImage && currentSrc !== fallbackImage) {
+      e.currentTarget.src = fallbackImage;
+      setIsLoading(false);
+      return;
+    }
+
+    // All attempts failed
+    setIsLoading(false);
+    setHasError(true);
+  };
 
   return (
     <div className={`relative ${className}`}>
@@ -50,11 +88,7 @@ export const OptimizedImage = ({
           loading={priority ? 'eager' : 'lazy'}
           decoding="async"
           onLoad={() => setIsLoading(false)}
-          onError={() => { 
-            console.warn(`[IMG_ERROR] OptimizedImage falha: ${optimizedSrc || src}`);
-            setIsLoading(false); 
-            setHasError(true); 
-          }}
+          onError={handleError}
         />
       )}
     </div>
