@@ -243,6 +243,19 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Check site_settings for unmigrated URLs
+      const { data: settingsRows, count: settingsCount } = await supabase
+        .from("site_settings")
+        .select("id, key, value", { count: "exact" })
+        .like("value", `%supabase.co/storage/v1/object/public/%`)
+        .limit(100);
+      diag.unmigrated_urls["site_settings.value"] = settingsCount || 0;
+      if (settingsRows) {
+        for (const row of settingsRows) {
+          if (row.value) allUnmigratedUrls.push(row.value);
+        }
+      }
+
       // Calculate unique files vs total URLs
       const uniqueFiles = new Set(
         allUnmigratedUrls.map(url => {
