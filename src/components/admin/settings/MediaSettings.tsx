@@ -378,6 +378,51 @@ const MediaSettings = () => {
               ))}
             </div>
           )}
+
+          {/* Cleanup Supabase (safe delete) */}
+          <Button onClick={handleCleanupSupabase} disabled={cleaningUp} variant="outline" className="w-full border-destructive/30 text-destructive hover:bg-destructive/10">
+            {cleaningUp ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Verificando e limpando...</>
+            ) : (
+              <><Trash2 className="w-4 h-4 mr-2" />Limpar Supabase (só após verificação no Bunny)</>
+            )}
+          </Button>
+          <p className="text-[10px] text-muted-foreground -mt-2">
+            Verifica cada arquivo no Bunny CDN (HEAD → 200) antes de deletar do Supabase. Seguro.
+          </p>
+
+          {cleanupResult && (
+            <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
+              <p className="text-sm font-medium">🧹 Resultado da limpeza</p>
+              {Object.entries(cleanupResult.results || {}).map(([bucket, info]: [string, any]) => (
+                <div key={bucket}>
+                  <span className="font-medium">{bucket}:</span> {info.deleted} deletados, {info.kept} mantidos (não verificados no Bunny)
+                  {info.errors?.length > 0 && (
+                    <span className="text-destructive ml-1">· {info.errors.length} erros</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Storage size in diagnosis */}
+          {diagResult?.supabase_bucket_sizes && (
+            <div className="p-3 rounded-md border bg-muted/50">
+              <p className="text-sm font-medium mb-1">💾 Tamanho total por bucket</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="font-medium text-muted-foreground">Bucket</div>
+                <div className="font-medium text-muted-foreground">Arquivos</div>
+                <div className="font-medium text-muted-foreground">Tamanho</div>
+                {Object.entries(diagResult.supabase_bucket_sizes).map(([bucket, info]: [string, any]) => (
+                  <>
+                    <div key={`n-${bucket}`} className="font-mono">{bucket}</div>
+                    <div key={`c-${bucket}`}>{info.count}</div>
+                    <div key={`s-${bucket}`}><strong>{info.sizeMB} MB</strong></div>
+                  </>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
