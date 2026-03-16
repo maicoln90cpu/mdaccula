@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { StaticIcon } from "./StaticIcon";
 
 interface LinkCardImageProps {
