@@ -57,7 +57,15 @@ export const LinkCardImage = ({
         alt={alt}
         loading="lazy"
         decoding="async"
-        onError={() => setImgError(true)}
+        onError={(e) => {
+          if (!imgError) {
+            // Try Supabase fallback first via handleImageFallback
+            handleImageFallback(e);
+          } else {
+            // Already on fallbackUrl, give up
+            setImgError(true);
+          }
+        }}
         className="w-full h-full object-contain rounded-md"
       />
     </div>

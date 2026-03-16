@@ -316,22 +316,33 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         
         if (error) throw error;
         
-        // 🔗 Sincronizar imagem com links vinculados
+        // 🔗 Sincronizar TODOS os campos com links vinculados
+        console.log('[EventForm] 🔗 Sincronizando campos com links vinculados...');
+        const linkUpdateData: Record<string, any> = {
+          title: data.title,
+          subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Sincronizar imagem se foi alterada
         if (imageFile && imageUrl) {
-          console.log('[EventForm] 🖼️ Sincronizando imagem com links vinculados...');
-          const { error: linkUpdateError } = await supabase
-            .from('custom_links')
-            .update({ 
-              thumbnail_url: imageUrl,
-              updated_at: new Date().toISOString()
-            })
-            .eq('event_id', event.id);
-          
-          if (linkUpdateError) {
-            console.error('[EventForm] ⚠️ Erro ao sincronizar imagem dos links:', linkUpdateError);
-          } else {
-            console.log('[EventForm] ✅ Imagem sincronizada com links vinculados');
-          }
+          linkUpdateData.thumbnail_url = imageUrl;
+        }
+
+        // Sincronizar URL do ticket se existir
+        if (normalizedTicketLink) {
+          linkUpdateData.url = normalizedTicketLink;
+        }
+
+        const { error: linkUpdateError } = await supabase
+          .from('custom_links')
+          .update(linkUpdateData)
+          .eq('event_id', event.id);
+        
+        if (linkUpdateError) {
+          console.error('[EventForm] ⚠️ Erro ao sincronizar links:', linkUpdateError);
+        } else {
+          console.log('[EventForm] ✅ Campos sincronizados com links vinculados');
         }
         
         console.log('[EventForm] ✅ Evento atualizado com sucesso');
