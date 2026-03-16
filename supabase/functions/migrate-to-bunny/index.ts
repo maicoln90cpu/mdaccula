@@ -62,19 +62,26 @@ async function detectBunnyRegion(apiKey: string): Promise<{
 }> {
   const results: Array<{ host: string; region: string; status: number | string }> = [];
 
+  console.log(`[detectBunnyRegion] API key length after trim: ${apiKey.length}`);
+  
   for (const entry of BUNNY_REGION_HOSTS) {
     try {
       const url = `https://${entry.host}/${BUNNY_STORAGE_ZONE}/`;
+      console.log(`[detectBunnyRegion] Testing: ${url}`);
       const resp = await fetch(url, {
         method: "GET",
-        headers: { AccessKey: apiKey, Accept: "application/json" },
+        headers: { AccessKey: apiKey },
       });
+      
+      const bodyPreview = await resp.text().then(t => t.substring(0, 200));
+      console.log(`[detectBunnyRegion] ${entry.host} → ${resp.status} body: ${bodyPreview}`);
       results.push({ host: entry.host, region: entry.region, status: resp.status });
 
-      if (resp.ok) {
+      if (resp.status >= 200 && resp.status < 300) {
         return { detected: true, host: entry.host, region: entry.region, results };
       }
     } catch (e) {
+      console.log(`[detectBunnyRegion] ${entry.host} → error: ${(e as Error).message}`);
       results.push({ host: entry.host, region: entry.region, status: (e as Error).message });
     }
   }
@@ -87,7 +94,7 @@ async function listBunnyFiles(apiKey: string, path: string): Promise<any[]> {
   const url = bunnyStorageUrl(path + "/");
   const resp = await fetch(url, {
     method: "GET",
-    headers: { AccessKey: apiKey, Accept: "application/json" },
+    headers: { AccessKey: apiKey },
   });
   if (!resp.ok) return [];
   return await resp.json();
@@ -114,7 +121,7 @@ Deno.serve(async (req) => {
     const { data: isAdmin } = await supabaseAnon.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) return json({ error: "Forbidden" }, 403);
 
-    const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+    const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim();
     if (!bunnyApiKey) return json({ error: "BUNNY_STORAGE_API_KEY não configurada" }, 500);
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -134,7 +141,7 @@ Deno.serve(async (req) => {
       try {
         const resp = await fetch(`${storageHost}/${BUNNY_STORAGE_ZONE}/`, {
           method: "GET",
-          headers: { AccessKey: bunnyApiKey, Accept: "application/json" },
+          headers: { AccessKey: bunnyApiKey },
         });
         currentOk = resp.ok;
         currentHint = resp.ok ? "Autenticação OK" : `Status ${resp.status}`;

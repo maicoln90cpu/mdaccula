@@ -1,54 +1,74 @@
 
 
-## Root Cause
+## Analise item a item das recomendacoes
 
-The code never calls `.trim()` on the `BUNNY_STORAGE_API_KEY` secret. When secrets are pasted into the Supabase dashboard, it's extremely common for trailing whitespace, newlines, or carriage returns to be included. This causes the `AccessKey` header to contain invisible characters, which Bunny rejects as invalid — returning 401 for every region.
+### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
+Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
 
-Additionally, the `Accept: "application/json"` header is being sent on the detection requests. The Bunny docs example only uses `AccessKey`. While unlikely to cause a 401, removing it aligns the request exactly with Bunny's documented curl example.
+### 2. Cloudflare -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
 
-## Fix
+### 3. Bunny -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
 
-### 1. Trim the API key everywhere it's read from env (`migrate-to-bunny/index.ts`)
+### 4. HTML/HEAD -- PARCIALMENTE CORRETO
 
-```typescript
-// BEFORE
-const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+**4a. Remover preconnect do Supabase?**
+- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
+- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
+- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
 
-// AFTER  
-const bunnyApiKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim();
-```
+**4b. Remover meta tags de no-cache?**
+- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
 
-### 2. Add detailed debug logging to `detectBunnyRegion`
+**4c. Manter preconnect cdn.mdaccula.com?**
+- **CONCORDO**. Ja esta correto no codigo.
 
-Log the response body from the first failed attempt so we can see exactly what Bunny says. Also log the key length after trim to confirm the secret was loaded.
+### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
 
-### 3. Apply `.trim()` in all 6 edge functions
+O `index.html` usa `storage.googleapis.com` em 3 lugares:
+- Linha 19: favicon
+- Linha 44: og:image (imagem social da home)
+- Linha 45: twitter:image
 
-- `migrate-to-bunny/index.ts`
-- `upload-to-bunny/index.ts`
-- `batch-convert-webp/index.ts`
-- `generate-blog-post-v2/index.ts`
-- `regenerate-blog-image/index.ts`
-- `generate-multi-event-article/index.ts`
+Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
+- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
+- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
+- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
 
-### 4. Match Bunny docs request format exactly
+### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
 
-Remove `Accept: "application/json"` header from detection/auth-check requests. Only send `AccessKey`.
+A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
 
-### 5. Add console.log diagnostics
+O `?quality=75` no seu caso e apenas um parametro na URL que:
+- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
+- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
 
-Add logging in the diagnose action to capture:
-- Key length after trim
-- First response status + body text (truncated)
-- URL being tested
+**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
 
-This way if it still fails, the Edge Function logs will show exactly what Bunny returns.
+**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
 
-### Files changed
-- `supabase/functions/migrate-to-bunny/index.ts`
-- `supabase/functions/upload-to-bunny/index.ts`
-- `supabase/functions/batch-convert-webp/index.ts`
-- `supabase/functions/generate-blog-post-v2/index.ts`
-- `supabase/functions/regenerate-blog-image/index.ts`
-- `supabase/functions/generate-multi-event-article/index.ts`
+### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
+
+O texto do blog (JSON) gera egress sim, mas:
+- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
+- Ja removemos o prefetch de 110 posts na navigation
+- Ja aumentamos staleTime do site_settings para 15 min
+- Ja filtramos eventos inativos no servidor
+
+O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
+
+As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
+
+---
+
+## Plano de implementacao
+
+Apenas 2 mudancas simples no `index.html`:
+
+**1. Remover preconnect para Supabase errado** (linhas 7-8)
+O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
+
+**2. Remover meta tags de no-cache** (linhas 22-25)
+Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
 

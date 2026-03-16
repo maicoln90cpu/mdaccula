@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const apiKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
+    const apiKey = Deno.env.get("BUNNY_STORAGE_API_KEY")?.trim();
     if (!apiKey) {
       console.error("BUNNY_STORAGE_API_KEY not configured");
       return new Response(JSON.stringify({ error: "Storage not configured" }), {
