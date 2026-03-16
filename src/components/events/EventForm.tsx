@@ -235,19 +235,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     setUploading(true);
     try {
       const webpFile = await convertToWebP(imageFile);
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
-      
-      const { data, error } = await supabase.storage
-        .from('event-images')
-        .upload(fileName, webpFile, { contentType: 'image/webp' });
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('event-images')
-        .getPublicUrl(fileName);
-
-      return publicUrl;
+      return await uploadImageToBunny(webpFile, 'event-images');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({

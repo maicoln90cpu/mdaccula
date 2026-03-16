@@ -95,23 +95,7 @@ const TeamManager = () => {
       // Upload da imagem se houver arquivo selecionado
       if (uploadedFile) {
         const webpFile = await convertToWebP(uploadedFile);
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('team-images')
-          .upload(fileName, webpFile, {
-            contentType: 'image/webp',
-            cacheControl: '3600',
-            upsert: false
-          });
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('team-images')
-          .getPublicUrl(fileName);
-
-        imageUrl = publicUrl;
+        imageUrl = await uploadImageToBunny(webpFile, 'team-images');
       }
 
       const dataToSave = {

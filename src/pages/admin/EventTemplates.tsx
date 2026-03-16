@@ -97,18 +97,7 @@ const EventTemplates = () => {
     
     try {
       const webpFile = await convertToWebP(imageFile);
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
-      const { error: uploadError } = await supabase.storage
-        .from('event-images')
-        .upload(fileName, webpFile, { contentType: 'image/webp' });
-      
-      if (uploadError) throw uploadError;
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('event-images')
-        .getPublicUrl(fileName);
-      
-      return publicUrl;
+      return await uploadImageToBunny(webpFile, 'event-images');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error("Erro ao fazer upload da imagem");

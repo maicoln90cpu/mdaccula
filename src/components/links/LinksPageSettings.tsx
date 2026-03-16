@@ -85,16 +85,10 @@ export const LinksPageSettings = ({
         maxWidthOrHeight: 400,
         useWebWorker: true,
       });
-      const fileName = `avatar-${Date.now()}.webp`;
-      const { data, error } = await supabase.storage
-        .from('link-thumbnails')
-        .upload(fileName, compressed, { upsert: true });
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage
-        .from('link-thumbnails')
-        .getPublicUrl(data.path);
+      const webpFile = new File([compressed], `avatar-${Date.now()}.webp`, { type: 'image/webp' });
+      const publicUrl = await uploadImageToBunny(webpFile, 'link-thumbnails');
       setAvatarPreview(publicUrl);
-      setAvatarFile(null); // We already uploaded directly
+      setAvatarFile(null);
       return publicUrl;
     } catch (err: any) {
       toast.error("Erro no upload do avatar: " + err.message);

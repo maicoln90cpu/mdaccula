@@ -163,24 +163,7 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
   // Upload image to storage if needed
   const uploadImageToStorage = async (file: File): Promise<string> => {
     const webpFile = await convertToWebP(file);
-    const fileName = `multi-event-${Date.now()}.webp`;
-    const filePath = `blog-images/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('event-images')
-      .upload(filePath, webpFile, {
-        contentType: 'image/webp',
-        cacheControl: '3600',
-        upsert: false,
-      });
-
-    if (uploadError) throw uploadError;
-
-    const { data: publicUrlData } = supabase.storage
-      .from('event-images')
-      .getPublicUrl(filePath);
-
-    return publicUrlData.publicUrl;
+    return await uploadImageToBunny(webpFile, 'event-images');
   };
 
   const handleGenerate = async () => {
