@@ -52,10 +52,7 @@ export function getOptimizedImageUrl(
   // URLs do Bunny CDN já estão otimizadas — retornar direto
   if (url.startsWith(BUNNY_CDN_HOST)) return url;
 
-  // ⚠️ REWRITE SUPABASE→BUNNY DESATIVADO até migração do acervo (Fase 3).
-  // Novas imagens já são salvas no Bunny via upload-to-bunny edge function.
-  // Após migrar o acervo, descomentar o bloco abaixo para reescrever URLs antigas.
-  /*
+  // Rewrite Supabase Storage URLs → Bunny CDN (client-side fallback)
   if (SUPABASE_STORAGE_PATTERN.test(url)) {
     const match = url.match(SUPABASE_PATH_REGEX);
     if (!match) return url;
@@ -76,7 +73,6 @@ export function getOptimizedImageUrl(
     }
     return `${BUNNY_CDN_HOST}/${imagePath}`;
   }
-  */
 
   return url;
 }

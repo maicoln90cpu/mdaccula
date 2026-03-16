@@ -638,22 +638,26 @@ ${hasRealTicketLink
             
             const fileName = `ai-generated-${Date.now()}.webp`;
             
-            const { data: uploadData, error: uploadError } = await supabase.storage
-              .from('event-images')
-              .upload(fileName, webpBuffer, { 
-                contentType: 'image/webp',
-                upsert: false
+            const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY');
+            if (BUNNY_STORAGE_API_KEY) {
+              const bunnyUploadUrl = `https://br.storage.bunnycdn.com/mdacula/event-images/${fileName}`;
+              const uploadResp = await fetch(bunnyUploadUrl, {
+                method: 'PUT',
+                headers: {
+                  AccessKey: BUNNY_STORAGE_API_KEY,
+                  'Content-Type': 'image/webp',
+                },
+                body: webpBuffer,
               });
 
-            if (!uploadError && uploadData) {
-              const { data: publicUrlData } = supabase.storage
-                .from('event-images')
-                .getPublicUrl(fileName);
-              
-              generatedImageUrl = publicUrlData.publicUrl;
-              console.log(`[${Date.now()}] ✅ Upload WebP concluído: ${generatedImageUrl}`);
+              if (uploadResp.ok) {
+                generatedImageUrl = `https://mdacula.b-cdn.net/event-images/${fileName}`;
+                console.log(`[${Date.now()}] ✅ Upload Bunny concluído: ${generatedImageUrl}`);
+              } else {
+                console.error(`[${Date.now()}] ❌ Erro no upload Bunny:`, await uploadResp.text());
+              }
             } else {
-              console.error(`[${Date.now()}] ❌ Erro no upload:`, uploadError);
+              console.error(`[${Date.now()}] ❌ BUNNY_STORAGE_API_KEY não configurada`);
             }
           }
         } else {
