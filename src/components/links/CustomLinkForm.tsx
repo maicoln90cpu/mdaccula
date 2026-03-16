@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/useToast";
 import { X } from "lucide-react";
 import { z } from "zod";
 import { convertToWebP } from "@/lib/webpConverter";
+import { uploadImageToBunny } from "@/lib/bunnyUploader";
 import { LinkCardImage } from "./LinkCardImage";
 
 const linkSchema = z.object({
