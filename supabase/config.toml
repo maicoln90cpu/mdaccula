@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.track-redirect-click]
 verify_jwt = false
+
+[functions.upload-to-bunny]
+verify_jwt = false
