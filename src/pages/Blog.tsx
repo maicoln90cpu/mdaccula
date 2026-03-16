@@ -404,12 +404,8 @@ const Blog = () => {
                           className="w-full h-full object-contain"
                           loading="lazy"
                           onError={(e) => {
-                            const target = e.currentTarget;
-                            const supabaseUrl = getOriginalSupabaseUrl(target.src);
-                            if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
-                              target.src = supabaseUrl;
-                            } else if (target.src !== djImage) {
-                              target.src = djImage;
+                            if (e.currentTarget.src !== djImage) {
+                              e.currentTarget.src = djImage;
                             }
                           }}
                         />
