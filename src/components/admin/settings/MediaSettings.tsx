@@ -34,6 +34,10 @@ const MediaSettings = () => {
   const [selectedPreset, setSelectedPreset] = useState<CompressionPreset>("media");
   const [conversionResult, setConversionResult] = useState<Record<string, any> | null>(null);
 
+  // Cleanup
+  const [cleaningUp, setCleaningUp] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<Record<string, any> | null>(null);
+
   // Import
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<Record<string, any> | null>(null);
