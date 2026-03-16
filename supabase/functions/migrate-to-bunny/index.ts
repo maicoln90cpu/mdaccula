@@ -62,19 +62,26 @@ async function detectBunnyRegion(apiKey: string): Promise<{
 }> {
   const results: Array<{ host: string; region: string; status: number | string }> = [];
 
+  console.log(`[detectBunnyRegion] API key length after trim: ${apiKey.length}`);
+  
   for (const entry of BUNNY_REGION_HOSTS) {
     try {
       const url = `https://${entry.host}/${BUNNY_STORAGE_ZONE}/`;
+      console.log(`[detectBunnyRegion] Testing: ${url}`);
       const resp = await fetch(url, {
         method: "GET",
-        headers: { AccessKey: apiKey, Accept: "application/json" },
+        headers: { AccessKey: apiKey },
       });
+      
+      const bodyPreview = await resp.text().then(t => t.substring(0, 200));
+      console.log(`[detectBunnyRegion] ${entry.host} → ${resp.status} body: ${bodyPreview}`);
       results.push({ host: entry.host, region: entry.region, status: resp.status });
 
-      if (resp.ok) {
+      if (resp.status >= 200 && resp.status < 300) {
         return { detected: true, host: entry.host, region: entry.region, results };
       }
     } catch (e) {
+      console.log(`[detectBunnyRegion] ${entry.host} → error: ${(e as Error).message}`);
       results.push({ host: entry.host, region: entry.region, status: (e as Error).message });
     }
   }
