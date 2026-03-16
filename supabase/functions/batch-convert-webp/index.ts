@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
+// Use lightweight WASM-based encoding instead of ImageScript to avoid memory limits
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
