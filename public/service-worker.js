@@ -4,7 +4,7 @@
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
