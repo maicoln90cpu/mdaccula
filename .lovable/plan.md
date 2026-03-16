@@ -1,116 +1,74 @@
 
-Objetivo: corrigir os 2 problemas reais que você apontou: a falha persistente na migração Bunny e o vazamento de informação sensível no frontend.
 
-O que descobri
-1. O frontend realmente está expondo parte do secret
-- Em `src/components/admin/settings/MediaSettings.tsx`, o card de diagnóstico renderiza:
-  - `key_prefix`
-  - `key_length`
-- Esses dados vêm do backend em `supabase/functions/migrate-to-bunny/index.ts`.
-- Isso é um vazamento desnecessário e precisa ser removido imediatamente.
+## Analise item a item das recomendacoes
 
-2. O diagnóstico atual está concluindo “credencial inválida” cedo demais
-- A função `migrate-to-bunny` usa apenas:
-  - `https://br.storage.bunnycdn.com/mdacula/`
-- Se esse endpoint estiver incorreto para a sua zone, o sistema acusa senha inválida mesmo com a password correta.
-- Como você enviou print do Bunny mostrando:
-  - zone `mdacula`
-  - hostname `br.storage.bunnycdn.com`
-  - password normal da zone
-  então o próximo passo correto é tratar melhor o diagnóstico, não insistir que o secret está errado.
+### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
+Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
 
-3. Há inconsistência arquitetural no projeto
-- `migrate-to-bunny`, `upload-to-bunny`, `batch-convert-webp` e 3 funções de IA repetem host/zone hardcoded.
-- Isso cria risco de um fluxo funcionar e outro quebrar.
-- Hoje a lógica Bunny está espalhada e sem helper compartilhado.
+### 2. Cloudflare -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
 
-O que vou implementar
-1. Corrigir segurança do diagnóstico
-- Remover do backend qualquer retorno de:
-  - `key_prefix`
-  - `key_length`
-- Remover do frontend qualquer exibição de “Key: 235d...”
-- O diagnóstico vai mostrar apenas:
-  - status da configuração
-  - hostname usado
-  - storage zone usada
-  - mensagem segura de erro
-- Sem qualquer dado derivado do secret.
+### 3. Bunny -- JA FEITO ✅
+Voce ja configurou isso. Nada a fazer no codigo.
 
-2. Reescrever a validação Bunny para diagnóstico confiável
-- Ajustar `supabase/functions/migrate-to-bunny/index.ts` para:
-  - centralizar `storage zone`, `region` e `storage host`
-  - testar conectividade e autenticação com respostas mais precisas
-  - diferenciar:
-    - erro de credencial
-    - erro de endpoint/host
-    - erro de rede
-    - erro de listagem
-- O retorno passará a indicar algo como:
-  - `config_ok`
-  - `auth_ok`
-  - `storage_host`
-  - `storage_zone`
-  - `failure_reason`
-- Sem culpar automaticamente a senha.
+### 4. HTML/HEAD -- PARCIALMENTE CORRETO
 
-3. Padronizar a configuração Bunny em todas as edge functions
-Arquivos:
-- `supabase/functions/migrate-to-bunny/index.ts`
-- `supabase/functions/upload-to-bunny/index.ts`
-- `supabase/functions/batch-convert-webp/index.ts`
-- `supabase/functions/generate-blog-post-v2/index.ts`
-- `supabase/functions/regenerate-blog-image/index.ts`
-- `supabase/functions/generate-multi-event-article/index.ts`
+**4a. Remover preconnect do Supabase?**
+- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
+- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
+- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
 
-Plano técnico:
-- criar constantes/helpers internos consistentes para:
-  - montar URL de upload
-  - montar URL de listagem
-  - gerar URL pública CDN
-- eliminar hardcodes soltos para evitar divergência entre funções.
+**4b. Remover meta tags de no-cache?**
+- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
 
-4. Melhorar o painel admin para troubleshooting real
-Em `src/components/admin/settings/MediaSettings.tsx`:
-- trocar a mensagem atual por diagnóstico seguro
-- mostrar claramente:
-  - host usado
-  - zone usada
-  - buckets Supabase
-  - buckets Bunny
-  - URLs ainda não migradas
-- exibir falha amigável:
-  - “Falha ao autenticar na Storage API”
-  - “Falha ao acessar endpoint configurado”
-  - “Configuração Bunny inconsistente”
-- sem mostrar qualquer traço do secret.
+**4c. Manter preconnect cdn.mdaccula.com?**
+- **CONCORDO**. Ja esta correto no codigo.
 
-5. Ajustar a migração para ser mais robusta
-- Antes de migrar, validar acesso ao bucket/path de forma mais confiável.
-- Melhorar mensagens de erro por arquivo/lote.
-- Se necessário, planejo também:
-  - fallback de verificação por bucket
-  - melhor tratamento de nomes/paths
-  - resumo agregado por lote.
+### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
 
-Resultado esperado depois
-- O frontend não vai mais exibir nenhuma informação sensível do secret.
-- O diagnóstico vai parar de acusar “senha errada” de forma simplista.
-- A migração Bunny passará a usar a mesma configuração em todos os fluxos.
-- Ficará muito mais claro se o problema é:
-  - host/região,
-  - path da zone,
-  - autenticação da Storage API,
-  - ou lógica da própria função.
+O `index.html` usa `storage.googleapis.com` em 3 lugares:
+- Linha 19: favicon
+- Linha 44: og:image (imagem social da home)
+- Linha 45: twitter:image
 
-O que ainda pode depender de ajuste externo
-- Se, após o diagnóstico refeito, o host/região retornarem inconsistência real, pode ser necessário confirmar no Bunny se essa Storage Zone está de fato operando em `br.storage.bunnycdn.com`.
-- Mas, pelo seu print, não há nenhum indicativo de Cloudflare ser o problema.
-- O foco correto é Bunny Storage API + código do diagnóstico.
+Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
+- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
+- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
+- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
 
-Resumo do que falta depois desta correção
-- Corrigir diagnóstico e vazamento no frontend
-- Revalidar migração por lote no Admin
-- Executar migração completa
-- Atualizar URLs no banco
-- Fazer teste ponta a ponta nas páginas públicas para confirmar imagens antigas e novas
+### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
+
+A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
+
+O `?quality=75` no seu caso e apenas um parametro na URL que:
+- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
+- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
+
+**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
+
+**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
+
+### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
+
+O texto do blog (JSON) gera egress sim, mas:
+- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
+- Ja removemos o prefetch de 110 posts na navigation
+- Ja aumentamos staleTime do site_settings para 15 min
+- Ja filtramos eventos inativos no servidor
+
+O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
+
+As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
+
+---
+
+## Plano de implementacao
+
+Apenas 2 mudancas simples no `index.html`:
+
+**1. Remover preconnect para Supabase errado** (linhas 7-8)
+O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
+
+**2. Remover meta tags de no-cache** (linhas 22-25)
+Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
+

@@ -163,7 +163,7 @@ const MediaSettings = () => {
     }
   };
 
-  const credOk = diagResult?.bunny_config?.credential_ok;
+  const credOk = diagResult?.bunny_config?.auth_ok;
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -196,8 +196,11 @@ const MediaSettings = () => {
                 {credOk ? <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0 mt-0.5" /> : <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />}
                 <div>
                   <p className="text-sm font-medium">{credOk ? "Credencial Bunny válida" : "Credencial Bunny inválida"}</p>
-                  <p className="text-xs text-muted-foreground">{diagResult.bunny_config?.credential_hint}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Key: {diagResult.bunny_config?.key_prefix} (length: {diagResult.bunny_config?.key_length})</p>
+                  <p className="text-xs text-muted-foreground">{diagResult.bunny_config?.hint}</p>
+                  <p className="text-xs text-muted-foreground mt-1">Host: {diagResult.bunny_config?.storage_host} · Zone: {diagResult.bunny_config?.storage_zone}</p>
+                  {diagResult.bunny_config?.failure_reason && (
+                    <p className="text-xs text-destructive mt-1">Motivo: {diagResult.bunny_config.failure_reason}</p>
+                  )}
                 </div>
               </div>
 
@@ -250,8 +253,8 @@ const MediaSettings = () => {
 
           {migrateResult && (
             <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
-              {migrateResult.credential_hint && (
-                <p className="text-destructive font-medium">{migrateResult.credential_hint}</p>
+              {migrateResult.hint && (
+                <p className="text-destructive font-medium">{migrateResult.hint}</p>
               )}
               {migrateResult.totalMigrated !== undefined && (
                 <p className="text-sm font-medium">Migrados neste lote: <strong>{migrateResult.totalMigrated}</strong></p>
