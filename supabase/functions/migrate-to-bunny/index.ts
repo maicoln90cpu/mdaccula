@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       try {
         const resp = await fetch(`${storageHost}/${BUNNY_STORAGE_ZONE}/`, {
           method: "GET",
-          headers: { AccessKey: bunnyApiKey, Accept: "application/json" },
+          headers: { AccessKey: bunnyApiKey },
         });
         currentOk = resp.ok;
         currentHint = resp.ok ? "Autenticação OK" : `Status ${resp.status}`;
