@@ -227,7 +227,7 @@ const MediaSettings = () => {
                     </details>
                   )}
                 </div>
-              )
+              )}
 
               {/* Region detection */}
               {diagResult.region_detection && (
