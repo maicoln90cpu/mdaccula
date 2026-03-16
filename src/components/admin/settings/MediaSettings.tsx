@@ -155,7 +155,7 @@ const MediaSettings = () => {
     setConversionResult(null);
     try {
       const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
-        body: { action: "convert", bucket: "all", preset: selectedPreset, maxFiles: 10 },
+        body: { action: "convert", bucket: "all", preset: selectedPreset, maxFiles: 2 },
       });
       if (error) throw error;
       setConversionResult(data);
