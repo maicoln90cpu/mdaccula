@@ -369,6 +369,20 @@ const MediaSettings = () => {
                     </div>
                   ))}
                 </div>
+                {diagResult.url_dedup && (
+                  <div className="mt-2 p-2 rounded-md bg-blue-500/10 border border-blue-500/20 text-xs space-y-1">
+                    <p className="font-medium">📊 Análise de duplicatas:</p>
+                    <div className="grid grid-cols-3 gap-1">
+                      <div>Total URLs: <strong>{diagResult.url_dedup.total_urls}</strong></div>
+                      <div>Arquivos únicos: <strong>{diagResult.url_dedup.unique_files}</strong></div>
+                      <div>Referências duplicadas: <strong>{diagResult.url_dedup.duplicate_references}</strong></div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground">
+                      ℹ️ Vários registros (evento + blog post + link) compartilham a mesma imagem. 
+                      O número de arquivos no Bunny corresponde aos arquivos únicos, não ao total de URLs.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
