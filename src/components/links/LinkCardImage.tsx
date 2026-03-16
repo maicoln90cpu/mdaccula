@@ -36,7 +36,6 @@ export const LinkCardImage = ({
   skipOptimization = false,
 }: LinkCardImageProps) => {
   const [imgError, setImgError] = useState(false);
-  const [triedSupabase, setTriedSupabase] = useState(false);
   const rawImage = imgError ? fallbackUrl || null : thumbnailUrl || fallbackUrl || null;
 
   const resolvedImage = rawImage ? (skipOptimization ? rawImage : getOptimizedImageUrl(rawImage)) : null;
