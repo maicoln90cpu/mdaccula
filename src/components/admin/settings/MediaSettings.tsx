@@ -204,6 +204,31 @@ const MediaSettings = () => {
                 </div>
               </div>
 
+              {/* Key diagnostics */}
+              {diagResult.key_diagnostics && (
+                <div className="p-3 rounded-md border bg-muted/50 space-y-1">
+                  <p className="text-sm font-medium mb-1">🔑 Diagnóstico da Chave API</p>
+                  <div className="grid grid-cols-2 gap-1 text-xs">
+                    <div>Comprimento bruto: <strong>{diagResult.key_diagnostics.rawLength}</strong></div>
+                    <div>Após sanitização: <strong>{diagResult.key_diagnostics.lengthAfterSanitize}</strong></div>
+                    <div>Aspas no início: <strong className={diagResult.key_diagnostics.startsWithQuote ? "text-destructive" : "text-green-600"}>{diagResult.key_diagnostics.startsWithQuote ? "⚠️ Sim" : "Não"}</strong></div>
+                    <div>Aspas no final: <strong className={diagResult.key_diagnostics.endsWithQuote ? "text-destructive" : "text-green-600"}>{diagResult.key_diagnostics.endsWithQuote ? "⚠️ Sim" : "Não"}</strong></div>
+                    <div>Chars invisíveis: <strong className={diagResult.key_diagnostics.containsNonPrintable ? "text-destructive" : "text-green-600"}>{diagResult.key_diagnostics.containsNonPrintable ? "⚠️ Sim" : "Não"}</strong></div>
+                    <div>Primeiro charCode: <strong>{diagResult.key_diagnostics.firstCharCode}</strong></div>
+                  </div>
+                  {(diagResult.key_diagnostics.startsWithQuote || diagResult.key_diagnostics.endsWithQuote || diagResult.key_diagnostics.containsNonPrintable) && (
+                    <p className="text-xs text-destructive font-medium mt-1">⚠️ A chave foi automaticamente sanitizada (aspas/chars removidos)</p>
+                  )}
+                  {diagResult.curl_test && (
+                    <details className="mt-2">
+                      <summary className="text-xs cursor-pointer text-muted-foreground">Teste manual via curl</summary>
+                      <code className="block mt-1 p-2 bg-muted rounded text-[10px] break-all">{diagResult.curl_test}</code>
+                      <p className="text-[10px] text-muted-foreground mt-1">Substitua SUA_STORAGE_ZONE_PASSWORD pela password da aba "FTP & API Access" da zone mdacula.</p>
+                    </details>
+                  )}
+                </div>
+              )
+
               {/* Region detection */}
               {diagResult.region_detection && (
                 <div className={`p-3 rounded-md border ${diagResult.region_detection.detected ? "bg-blue-500/10 border-blue-500/30" : "bg-muted/50"}`}>
