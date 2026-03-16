@@ -49,17 +49,18 @@ export function getOptimizedImageUrl(
 ): string {
   if (!url) return '';
 
-  // URLs do Bunny CDN já estão otimizadas
+  // URLs do Bunny CDN já estão otimizadas — retornar direto
   if (url.startsWith(BUNNY_CDN_HOST)) return url;
 
-  // Reescrever URLs do Supabase Storage → Bunny CDN
+  // ⚠️ REWRITE SUPABASE→BUNNY DESATIVADO até migração do acervo (Fase 3).
+  // Novas imagens já são salvas no Bunny via upload-to-bunny edge function.
+  // Após migrar o acervo, descomentar o bloco abaixo para reescrever URLs antigas.
+  /*
   if (SUPABASE_STORAGE_PATTERN.test(url)) {
     const match = url.match(SUPABASE_PATH_REGEX);
     if (!match) return url;
 
     let imagePath = match[1];
-
-    // Strip legacy resize/dimension params
     try {
       if (imagePath.includes('?')) {
         const [basePath, queryString] = imagePath.split('?');
@@ -71,11 +72,11 @@ export function getOptimizedImageUrl(
         imagePath = remaining ? `${basePath}?${remaining}` : basePath;
       }
     } catch {
-      // If URL parsing fails, continue with original path
+      // continue with original path
     }
-
     return `${BUNNY_CDN_HOST}/${imagePath}`;
   }
+  */
 
   return url;
 }
