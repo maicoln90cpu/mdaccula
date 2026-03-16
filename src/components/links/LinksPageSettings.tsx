@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 import imageCompression from "browser-image-compression";
 import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { Upload, Loader2 } from "lucide-react";
 import { ThemeSelector } from "./ThemeSelector";
 import {
   Select,
