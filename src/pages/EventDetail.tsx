@@ -237,7 +237,7 @@ const EventDetail = () => {
             {/* Hero Image */}
             {event.image_url && (
               <div className="w-full h-[40vh] sm:h-[50vh] md:h-[60vh] rounded-xl overflow-hidden mb-6 sm:mb-8 shadow-lg bg-muted/20">
-                <img src={getOptimizedImageUrl(event.image_url)} alt={event.title} className="w-full h-full object-contain" loading="lazy" />
+                <img src={getOptimizedImageUrl(event.image_url)} alt={event.title} className="w-full h-full object-contain" loading="lazy" onError={(e) => handleImageFallback(e)} />
               </div>
             )}
 
