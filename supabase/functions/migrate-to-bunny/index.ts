@@ -243,6 +243,19 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Check site_settings for unmigrated URLs
+      const { data: settingsRows, count: settingsCount } = await supabase
+        .from("site_settings")
+        .select("id, key, value", { count: "exact" })
+        .like("value", `%supabase.co/storage/v1/object/public/%`)
+        .limit(100);
+      diag.unmigrated_urls["site_settings.value"] = settingsCount || 0;
+      if (settingsRows) {
+        for (const row of settingsRows) {
+          if (row.value) allUnmigratedUrls.push(row.value);
+        }
+      }
+
       // Calculate unique files vs total URLs
       const uniqueFiles = new Set(
         allUnmigratedUrls.map(url => {
@@ -394,6 +407,27 @@ Deno.serve(async (req) => {
         }
         urlResults[`${table}.${column}`] = updated;
       }
+
+      // Also update site_settings values containing Supabase URLs
+      const { data: settingsRows, error: settingsErr } = await supabase
+        .from("site_settings")
+        .select("id, key, value")
+        .like("value", `%supabase.co/storage/v1/object/public/%`)
+        .limit(100);
+
+      let settingsUpdated = 0;
+      if (!settingsErr && settingsRows) {
+        for (const row of settingsRows) {
+          const oldVal = row.value as string;
+          if (!oldVal) continue;
+          const match = oldVal.match(/\/storage\/v1\/object\/public\/(.+)$/);
+          if (!match) continue;
+          const newVal = bunnyCdnUrl(match[1]);
+          const { error } = await supabase.from("site_settings").update({ value: newVal }).eq("id", row.id);
+          if (!error) settingsUpdated++;
+        }
+      }
+      urlResults["site_settings.value"] = settingsUpdated;
 
       return json({ action: "update_urls", updated: urlResults });
     }
