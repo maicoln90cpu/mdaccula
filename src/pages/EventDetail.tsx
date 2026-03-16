@@ -20,7 +20,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Helmet } from "react-helmet-async";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 
 interface Event {
   id: string;
