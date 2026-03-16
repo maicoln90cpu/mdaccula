@@ -485,19 +485,8 @@ const RecurringEventsManager = () => {
                         if (!file) return;
                         setUploadingImage(true);
                         try {
-                          const compressed = await imageCompression(file, {
-                            maxSizeMB: 0.5,
-                            maxWidthOrHeight: 1200,
-                            useWebWorker: true,
-                          });
-                          const fileName = `recurring-${Date.now()}.webp`;
-                          const { data, error } = await supabase.storage
-                            .from('event-images')
-                            .upload(fileName, compressed, { upsert: true });
-                          if (error) throw error;
-                          const { data: { publicUrl } } = supabase.storage
-                            .from('event-images')
-                            .getPublicUrl(data.path);
+                          const webpFile = await convertToWebP(file, 0.5, 1200);
+                          const publicUrl = await uploadImageToBunny(webpFile, 'event-images');
                           setEditingConfig({ ...editingConfig, image_url: publicUrl });
                           toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });
                         } catch (err: any) {

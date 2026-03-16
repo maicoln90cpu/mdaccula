@@ -7,10 +7,10 @@ import { useToast } from "@/hooks/useToast";
 
 type CompressionPreset = "sutil" | "media" | "severa";
 
-const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string }> = {
-  sutil: { label: "Sutil", desc: "Qualidade alta, resize leve" },
-  media: { label: "Média", desc: "Equilíbrio qualidade/tamanho" },
-  severa: { label: "Severa", desc: "Máxima compressão" },
+const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string; details: string }> = {
+  sutil: { label: "Sutil", desc: "Qualidade alta, resize leve", details: "WebP 85% · max 1920px · ~60-70% menor que PNG (~300KB → ~100KB)" },
+  media: { label: "Média", desc: "Equilíbrio qualidade/tamanho", details: "WebP 70% · max 1280px · ~75-85% menor (~300KB → ~55KB)" },
+  severa: { label: "Severa", desc: "Máxima compressão", details: "WebP 50% · max 1024px · ~85-92% menor (~300KB → ~30KB)" },
 };
 
 const MediaSettings = () => {
