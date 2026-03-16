@@ -569,12 +569,7 @@ const Eventos = () => {
                         src={getOptimizedImageUrl(event.image_url) || djImage} 
                         alt={event.title}
                         className="w-full h-full object-contain"
-                        onError={(e) => {
-                          if (e.currentTarget.src !== djImage) {
-                            console.warn(`[IMG_ERROR] Evento "${event.title}" — falha ao carregar: ${e.currentTarget.src}`);
-                            e.currentTarget.src = djImage;
-                          }
-                        }}
+                        onError={(e) => handleImageFallback(e, djImage)}
                       />
                       <div className="absolute top-4 left-4 flex flex-wrap gap-1">
                         {event.genres && event.genres.length > 0 && event.genres.slice(0, 2).map((genre: string, idx: number) => (

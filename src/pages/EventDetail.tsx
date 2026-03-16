@@ -452,6 +452,7 @@ const EventDetail = () => {
                                   src={getOptimizedImageUrl(relatedEvent.image_url)}
                                   alt={relatedEvent.title}
                                   className="w-full h-full object-contain"
+                                  onError={(e) => handleImageFallback(e)}
                                 />
                               </div>
                             )}

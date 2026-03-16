@@ -488,12 +488,7 @@ const Blog = () => {
                                   className="w-full h-full object-contain"
                                   loading="lazy"
                                   decoding="async"
-                                   onError={(e) => {
-                                     if (e.currentTarget.src !== djImage) {
-                                       console.warn(`[IMG_ERROR] Blog "${post.title}" — falha ao carregar: ${e.currentTarget.src}`);
-                                       e.currentTarget.src = djImage;
-                                     }
-                                   }}
+                                   onError={(e) => handleImageFallback(e, djImage)}
                                 />
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
                                   <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>
