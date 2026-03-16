@@ -220,6 +220,9 @@ Deno.serve(async (req) => {
         diag.bunny_config.credentials_valid = true;
       }
 
+      diag.key_diagnostics = keyDiagnostics;
+      diag.curl_test = `curl -s -o /dev/null -w "%{http_code}" -H "AccessKey: SUA_STORAGE_ZONE_PASSWORD" https://storage.bunnycdn.com/${BUNNY_STORAGE_ZONE}/`;
+
       return json(diag);
     }
 

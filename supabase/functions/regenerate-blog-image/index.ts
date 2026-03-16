@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
     
     console.log(`📤 Fazendo upload da imagem para Bunny: ${fileName}`);
     
-    const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim();
+    const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
     if (!BUNNY_STORAGE_API_KEY) {
       return new Response(
         JSON.stringify({ error: 'BUNNY_STORAGE_API_KEY não configurada' }),
