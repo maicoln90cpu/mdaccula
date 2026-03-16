@@ -6,11 +6,26 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Bunny Config (single source of truth) ──
+// ── Bunny Config ──
 const BUNNY_STORAGE_ZONE = "mdacula";
-const BUNNY_REGION = "br";
-const BUNNY_STORAGE_HOST = `https://${BUNNY_REGION}.storage.bunnycdn.com`;
 const BUNNY_CDN_HOST = "https://mdacula.b-cdn.net";
+
+function getBunnyStorageHost(): string {
+  const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");
+  return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
+}
+
+const BUNNY_REGION_HOSTS = [
+  { host: "storage.bunnycdn.com", region: "Falkenstein (EU — default)" },
+  { host: "br.storage.bunnycdn.com", region: "São Paulo (BR)" },
+  { host: "ny.storage.bunnycdn.com", region: "New York (US)" },
+  { host: "la.storage.bunnycdn.com", region: "Los Angeles (US)" },
+  { host: "uk.storage.bunnycdn.com", region: "London (UK)" },
+  { host: "sg.storage.bunnycdn.com", region: "Singapore (SG)" },
+  { host: "se.storage.bunnycdn.com", region: "Stockholm (SE)" },
+  { host: "jh.storage.bunnycdn.com", region: "Johannesburg (ZA)" },
+  { host: "syd.storage.bunnycdn.com", region: "Sydney (AU)" },
+];
 
 const BUCKETS = ["event-images", "link-thumbnails", "team-images"];
 
@@ -30,72 +45,41 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// ── Bunny helpers ──
 function bunnyStorageUrl(path: string): string {
-  return `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${path}`;
+  return `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${path}`;
 }
 
 function bunnyCdnUrl(path: string): string {
   return `${BUNNY_CDN_HOST}/${path}`;
 }
 
-/** Test Bunny credential with detailed error classification */
-async function testBunnyCredential(apiKey: string): Promise<{
-  ok: boolean;
-  failure_reason?: string;
-  hint: string;
-  http_status?: number;
+/** Auto-detect correct Bunny region by trying all endpoints */
+async function detectBunnyRegion(apiKey: string): Promise<{
+  detected: boolean;
+  host?: string;
+  region?: string;
+  results: Array<{ host: string; region: string; status: number | string }>;
 }> {
-  try {
-    const url = bunnyStorageUrl("");
-    const resp = await fetch(url, {
-      method: "GET",
-      headers: { AccessKey: apiKey, Accept: "application/json" },
-    });
+  const results: Array<{ host: string; region: string; status: number | string }> = [];
 
-    if (resp.ok) {
-      return { ok: true, hint: "Autenticação na Storage Zone OK" };
-    }
+  for (const entry of BUNNY_REGION_HOSTS) {
+    try {
+      const url = `https://${entry.host}/${BUNNY_STORAGE_ZONE}/`;
+      const resp = await fetch(url, {
+        method: "GET",
+        headers: { AccessKey: apiKey, Accept: "application/json" },
+      });
+      results.push({ host: entry.host, region: entry.region, status: resp.status });
 
-    if (resp.status === 401) {
-      return {
-        ok: false,
-        failure_reason: "authentication_failed",
-        http_status: 401,
-        hint: "A password da Storage Zone foi rejeitada. Verifique se está usando a Password (não Read-only) da zone correta no painel Bunny.",
-      };
+      if (resp.ok) {
+        return { detected: true, host: entry.host, region: entry.region, results };
+      }
+    } catch (e) {
+      results.push({ host: entry.host, region: entry.region, status: (e as Error).message });
     }
-
-    if (resp.status === 404) {
-      return {
-        ok: false,
-        failure_reason: "zone_not_found",
-        http_status: 404,
-        hint: `Storage Zone '${BUNNY_STORAGE_ZONE}' não encontrada no endpoint ${BUNNY_STORAGE_HOST}. Verifique se a zona existe e a região está correta.`,
-      };
-    }
-
-    return {
-      ok: false,
-      failure_reason: "unexpected_status",
-      http_status: resp.status,
-      hint: `Bunny retornou status ${resp.status}. Verifique a configuração da Storage Zone.`,
-    };
-  } catch (e) {
-    const msg = (e as Error).message;
-    if (msg.includes("dns") || msg.includes("resolve")) {
-      return {
-        ok: false,
-        failure_reason: "dns_error",
-        hint: `Não foi possível resolver o hostname ${BUNNY_STORAGE_HOST}. Verifique a região configurada.`,
-      };
-    }
-    return {
-      ok: false,
-      failure_reason: "network_error",
-      hint: `Erro de rede ao conectar em ${BUNNY_STORAGE_HOST}: ${msg}`,
-    };
   }
+
+  return { detected: false, results };
 }
 
 /** List files on Bunny Storage for a given path */
@@ -141,27 +125,60 @@ Deno.serve(async (req) => {
 
     // ── ACTION: diagnose ──
     if (action === "diagnose") {
-      const credTest = await testBunnyCredential(bunnyApiKey);
+      const storageHost = getBunnyStorageHost();
+      const hasHostnameSecret = !!Deno.env.get("BUNNY_STORAGE_HOSTNAME");
+
+      // Test current configured endpoint
+      let currentOk = false;
+      let currentHint = "";
+      try {
+        const resp = await fetch(`${storageHost}/${BUNNY_STORAGE_ZONE}/`, {
+          method: "GET",
+          headers: { AccessKey: bunnyApiKey, Accept: "application/json" },
+        });
+        currentOk = resp.ok;
+        currentHint = resp.ok ? "Autenticação OK" : `Status ${resp.status}`;
+      } catch (e) {
+        currentHint = `Erro de rede: ${(e as Error).message}`;
+      }
+
+      // Auto-detect region
+      const regionDetection = await detectBunnyRegion(bunnyApiKey);
+
       const diag: Record<string, any> = {
         bunny_config: {
           storage_zone: BUNNY_STORAGE_ZONE,
-          region: BUNNY_REGION,
           cdn_host: BUNNY_CDN_HOST,
-          storage_host: BUNNY_STORAGE_HOST,
-          auth_ok: credTest.ok,
-          hint: credTest.hint,
-          failure_reason: credTest.failure_reason || null,
+          storage_host: storageHost,
+          hostname_secret_configured: hasHostnameSecret,
+          auth_ok: currentOk,
+          hint: currentOk
+            ? "Credencial e endpoint OK"
+            : regionDetection.detected
+              ? `Endpoint atual (${storageHost}) falhou, mas a região correta foi detectada: ${regionDetection.region} (${regionDetection.host}). Configure o secret BUNNY_STORAGE_HOSTNAME com o valor: ${regionDetection.host}`
+              : "Nenhuma região respondeu com sucesso. Verifique a password da Storage Zone no painel Bunny.",
+        },
+        region_detection: {
+          detected: regionDetection.detected,
+          correct_host: regionDetection.host || null,
+          correct_region: regionDetection.region || null,
+          action_needed: !currentOk && regionDetection.detected
+            ? `Adicione o secret BUNNY_STORAGE_HOSTNAME = ${regionDetection.host}`
+            : currentOk ? "Nenhuma" : "Verifique credenciais no painel Bunny",
+          all_results: regionDetection.results,
         },
         supabase_buckets: {} as Record<string, number>,
         bunny_buckets: {} as Record<string, number>,
         unmigrated_urls: {} as Record<string, number>,
       };
 
+      const effectiveOk = currentOk || regionDetection.detected;
+
       for (const bucket of BUCKETS) {
         const { data: files } = await supabase.storage.from(bucket).list("", { limit: 1000 });
         diag.supabase_buckets[bucket] = files?.filter(f => f.id && !f.name.startsWith(".")).length || 0;
 
-        if (credTest.ok) {
+        if (currentOk) {
           const bunnyFiles = await listBunnyFiles(bunnyApiKey, bucket);
           diag.bunny_buckets[bucket] = bunnyFiles.length;
         }
@@ -173,6 +190,12 @@ Deno.serve(async (req) => {
           .select("id", { count: "exact", head: true })
           .like(column, `%supabase.co%`);
         diag.unmigrated_urls[`${table}.${column}`] = count || 0;
+      }
+
+      // Override auth_ok if region was detected (means credentials are valid, just wrong host)
+      if (!currentOk && regionDetection.detected) {
+        diag.bunny_config.auth_ok = false;
+        diag.bunny_config.credentials_valid = true;
       }
 
       return json(diag);
@@ -196,13 +219,20 @@ Deno.serve(async (req) => {
 
     // ── ACTION: migrate_files ──
     if (action === "migrate_files") {
-      const credTest = await testBunnyCredential(bunnyApiKey);
-      if (!credTest.ok) {
-        return json({
-          error: "Falha na autenticação Bunny",
-          failure_reason: credTest.failure_reason,
-          hint: credTest.hint,
-        }, 400);
+      // Quick auth check
+      try {
+        const resp = await fetch(bunnyStorageUrl(""), {
+          method: "GET",
+          headers: { AccessKey: bunnyApiKey, Accept: "application/json" },
+        });
+        if (!resp.ok) {
+          return json({
+            error: "Falha na autenticação Bunny",
+            hint: `Endpoint ${getBunnyStorageHost()} retornou ${resp.status}. Execute o Diagnóstico Completo para detectar a região correta.`,
+          }, 400);
+        }
+      } catch (e) {
+        return json({ error: `Erro de rede: ${(e as Error).message}` }, 400);
       }
 
       const bucketsToProcess = targetBucket ? [targetBucket] : BUCKETS;

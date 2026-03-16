@@ -6,11 +6,14 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Bunny Config (single source of truth) ──
+// ── Bunny Config ──
 const BUNNY_STORAGE_ZONE = "mdacula";
-const BUNNY_REGION = "br";
-const BUNNY_STORAGE_HOST = `https://${BUNNY_REGION}.storage.bunnycdn.com`;
 const BUNNY_CDN_HOST = "https://mdacula.b-cdn.net";
+
+function getBunnyStorageHost(): string {
+  const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");
+  return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -91,7 +94,7 @@ Deno.serve(async (req) => {
     const storagePath = `${bucket}/${fileName}`;
 
     const fileBuffer = await file.arrayBuffer();
-    const bunnyUrl = `${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${storagePath}`;
+    const bunnyUrl = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${storagePath}`;
 
     const uploadResponse = await fetch(bunnyUrl, {
       method: "PUT",

@@ -5,10 +5,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ── Bunny Config (single source of truth) ──
+// ── Bunny Config ──
 const BUNNY_STORAGE_ZONE = "mdacula";
-const BUNNY_REGION = "br";
-const BUNNY_STORAGE_HOST = `https://${BUNNY_REGION}.storage.bunnycdn.com`;
+
+function getBunnyStorageHost(): string {
+  const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");
+  return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
+}
 
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -67,7 +70,7 @@ Deno.serve(async (req) => {
       const bunnyKey = Deno.env.get("BUNNY_STORAGE_API_KEY");
       if (bunnyKey) {
         try {
-          const resp = await fetch(`${BUNNY_STORAGE_HOST}/${BUNNY_STORAGE_ZONE}/${bucket}/`, {
+          const resp = await fetch(`${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${bucket}/`, {
             headers: { AccessKey: bunnyKey, Accept: "application/json" },
           });
           if (resp.ok) {
@@ -126,7 +129,6 @@ Deno.serve(async (req) => {
         try {
           imageBitmap = await createImageBitmap(blob);
         } catch (bmpErr) {
-          // Deno may not support all formats via createImageBitmap; try with explicit type
           const retryBlob = new Blob([arrayBuffer], { type: "image/png" });
           try {
             imageBitmap = await createImageBitmap(retryBlob);

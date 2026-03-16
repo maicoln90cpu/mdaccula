@@ -216,7 +216,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const bunnyUploadUrl = `https://br.storage.bunnycdn.com/mdacula/event-images/${fileName}`;
+    const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
+    const bunnyUploadUrl = `https://${bunnyHostname}/mdacula/event-images/${fileName}`;
     const uploadResp = await fetch(bunnyUploadUrl, {
       method: 'PUT',
       headers: {
