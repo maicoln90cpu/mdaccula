@@ -492,15 +492,11 @@ const Blog = () => {
                                   className="w-full h-full object-contain"
                                   loading="lazy"
                                   decoding="async"
-                                  onError={(e) => {
-                                    const target = e.currentTarget;
-                                    const supabaseUrl = getOriginalSupabaseUrl(target.src);
-                                    if (supabaseUrl && supabaseUrl !== target.src && target.src !== djImage) {
-                                      target.src = supabaseUrl;
-                                    } else if (target.src !== djImage) {
-                                      target.src = djImage;
-                                    }
-                                  }}
+                                   onError={(e) => {
+                                     if (e.currentTarget.src !== djImage) {
+                                       e.currentTarget.src = djImage;
+                                     }
+                                   }}
                                 />
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
                                   <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>
