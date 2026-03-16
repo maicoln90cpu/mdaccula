@@ -403,12 +403,7 @@ const Blog = () => {
                           alt={featuredPost.title}
                           className="w-full h-full object-contain"
                           loading="lazy"
-                          onError={(e) => {
-                            if (e.currentTarget.src !== djImage) {
-                              console.warn(`[IMG_ERROR] Blog featured "${featuredPost.title}" — falha ao carregar: ${e.currentTarget.src}`);
-                              e.currentTarget.src = djImage;
-                            }
-                          }}
+                          onError={(e) => handleImageFallback(e, djImage)}
                         />
                         <div className="absolute top-4 left-4">
                           <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
