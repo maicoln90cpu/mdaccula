@@ -321,6 +321,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         const linkUpdateData: Record<string, any> = {
           title: data.title,
           subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
+          override_date: data.date,
+          override_time: data.time,
           updated_at: new Date().toISOString(),
         };
 
