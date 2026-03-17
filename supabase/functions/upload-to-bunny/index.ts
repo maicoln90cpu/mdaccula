@@ -152,8 +152,27 @@ Deno.serve(async (req) => {
 
     const publicUrl = `${BUNNY_CDN_HOST}/${storagePath}`;
 
+    // ── Backup to Supabase Storage (fire-and-forget) ──
+    const backupPromise = (async () => {
+      try {
+        const { error: backupError } = await supabaseService.storage
+          .from(bucket)
+          .upload(fileName, fileBuffer, {
+            contentType: file.type || "application/octet-stream",
+            upsert: false,
+          });
+        if (backupError) {
+          console.warn(`Supabase Storage backup failed for ${fileName}:`, backupError.message);
+        } else {
+          console.log(`Supabase Storage backup OK: ${bucket}/${fileName}`);
+        }
+      } catch (err) {
+        console.warn("Supabase Storage backup error:", err);
+      }
+    })();
+
     // Save hash for future deduplication
-    await supabaseService.from("image_hashes").insert({
+    const hashPromise = supabaseService.from("image_hashes").insert({
       hash,
       url: publicUrl,
       bucket,
@@ -161,6 +180,9 @@ Deno.serve(async (req) => {
     }).then(({ error }) => {
       if (error) console.warn("Failed to save image hash:", error.message);
     });
+
+    // Wait for both in parallel but don't block the response on failure
+    await Promise.allSettled([backupPromise, hashPromise]);
 
     return new Response(
       JSON.stringify({ url: publicUrl, path: storagePath, size: file.size, deduplicated: false }),
