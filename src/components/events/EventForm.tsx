@@ -516,7 +516,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 icon: 'Calendar',
                 color_gradient: null, // Herda cor do template
                 card_height: 80,
-                event_id: createdEventId
+                event_id: createdEventId,
+                override_date: data.date,
+                override_time: data.time,
               }]);
 
             if (linkError) throw linkError;
