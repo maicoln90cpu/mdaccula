@@ -1,19 +1,21 @@
 // ============================================
-// MDAccula Service Worker v6
-// Stale While Revalidate + Cache Strategies
+// MDAccula Service Worker v8
+// Cache First with TTL for APIs + Edge Caching
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
 const API_CACHE = `mdaccula-api-${CACHE_VERSION}`;
 
-const CACHE_DURATIONS = {
-  static: 1000 * 60 * 60 * 24 * 30,
-  images: 1000 * 60 * 60 * 24 * 7,
-  dynamic: 1000 * 60 * 60 * 24,
+// TTL per API path (in milliseconds)
+const API_TTL = {
+  '/rest/v1/site_settings': 15 * 60 * 1000,  // 15 min (rarely changes)
+  '/rest/v1/events': 5 * 60 * 1000,           // 5 min
+  '/rest/v1/blog_posts': 5 * 60 * 1000,       // 5 min
+  '/rest/v1/link_groups': 2 * 60 * 1000,      // 2 min (changes more often)
 };
 
 const PRECACHE_URLS = ['/', '/offline.html'];
@@ -68,9 +70,16 @@ const isCacheableApiRequest = (url) => {
   return CACHEABLE_API_PATHS.some(path => url.pathname.includes(path));
 };
 
+// Get TTL for a given API URL
+const getApiTTL = (url) => {
+  for (const [path, ttl] of Object.entries(API_TTL)) {
+    if (url.pathname.includes(path)) return ttl;
+  }
+  return 2 * 60 * 1000; // default 2 min
+};
+
 // Check if request should bypass cache entirely
 const shouldBypassCache = (url) => {
-  // Allow cacheable API requests through (handled separately)
   if (isCacheableApiRequest(url)) return false;
   
   const isExternal = url.origin !== self.location.origin;
@@ -104,23 +113,61 @@ const cacheFirst = async (request, cacheName) => {
   }
 };
 
-// Strategy: Stale While Revalidate
-const staleWhileRevalidate = async (request, cacheName) => {
+// Strategy: Cache First with TTL
+// Serves from cache if fresh, otherwise fetches from network.
+// If cache is stale but network fails, still serves stale cache.
+const cacheFirstWithTTL = async (request, cacheName, ttl) => {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
   
-  const fetchPromise = fetch(request).then((networkResponse) => {
-    // Only cache successful responses
+  if (cachedResponse) {
+    const cachedDate = cachedResponse.headers.get('sw-cached-at');
+    const age = cachedDate ? Date.now() - parseInt(cachedDate, 10) : Infinity;
+    
+    if (age < ttl) {
+      // Cache is fresh — serve it, no network call
+      return cachedResponse;
+    }
+    
+    // Cache is stale — try network, fall back to stale cache
+    try {
+      const networkResponse = await fetch(request);
+      if (networkResponse && networkResponse.status === 200) {
+        const headers = new Headers(networkResponse.headers);
+        headers.set('sw-cached-at', String(Date.now()));
+        const timedResponse = new Response(await networkResponse.clone().blob(), {
+          status: networkResponse.status,
+          statusText: networkResponse.statusText,
+          headers,
+        });
+        cache.put(request, timedResponse);
+        return networkResponse;
+      }
+      return cachedResponse; // network returned non-200, use stale
+    } catch (error) {
+      console.log('[SW] Network failed, serving stale cache:', request.url);
+      return cachedResponse;
+    }
+  }
+  
+  // No cache at all — must fetch from network
+  try {
+    const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
-      cache.put(request, networkResponse.clone());
+      const headers = new Headers(networkResponse.headers);
+      headers.set('sw-cached-at', String(Date.now()));
+      const timedResponse = new Response(await networkResponse.clone().blob(), {
+        status: networkResponse.status,
+        statusText: networkResponse.statusText,
+        headers,
+      });
+      cache.put(request, timedResponse);
     }
     return networkResponse;
-  }).catch((error) => {
-    console.log('[SW] SWR fetch failed, using cache:', request.url);
-    return cachedResponse;
-  });
-  
-  return cachedResponse || fetchPromise;
+  } catch (error) {
+    console.log('[SW] Cache First with TTL failed:', request.url);
+    throw error;
+  }
 };
 
 // Strategy: Network First with Cache Fallback
@@ -147,10 +194,10 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Cacheable Supabase API requests - Stale While Revalidate
-  // This MUST be checked BEFORE shouldBypassCache
+  // Cacheable Supabase API requests — Cache First with TTL
   if (isCacheableApiRequest(url)) {
-    event.respondWith(staleWhileRevalidate(event.request, API_CACHE));
+    const ttl = getApiTTL(url);
+    event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
     return;
   }
 
@@ -162,7 +209,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Images - Cache First (prevents re-fetching cached images on every visit)
+  // Images - Cache First
   if (matchesPatterns(url, IMAGE_PATTERNS)) {
     event.respondWith(cacheFirst(event.request, IMAGE_CACHE));
     return;

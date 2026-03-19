@@ -1,0 +1,1 @@
+UPDATE site_settings SET value = REPLACE(value, 'https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public', 'https://mdaccula.b-cdn.net') WHERE value LIKE '%supabase.co/storage/v1/object/public%';

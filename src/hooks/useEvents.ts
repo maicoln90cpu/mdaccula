@@ -38,7 +38,7 @@ export function useEvents() {
       
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, subtitle, slug, venue, address, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views, blog_post_id, created_at, updated_at, description")
+        .select("id, title, subtitle, slug, venue, address, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views, blog_post_id, created_at, updated_at")
         .gte("date", dateFilter)
         .order("date", { ascending: true })
         .limit(50);
