@@ -1,74 +1,60 @@
 
 
-## Analise item a item das recomendacoes
+## Auditoria: Por que o Cached Egress do Supabase está alto (8.45 GB)
 
-### 1. CDN (cdn.mdaccula.com) -- JA FEITO ✅
-Correto. O codigo ja usa `cdn.mdaccula.com` em todo lugar. Nenhuma referencia a `b-cdn.net` no codigo.
+### Fontes de Egress Identificadas
 
-### 2. Cloudflare -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+**1. Service Worker faz "Stale While Revalidate" em TODAS as APIs do Supabase**
+O Service Worker (linhas 150-154) cacheia e RE-BUSCA em background todas as chamadas para:
+- `/rest/v1/link_groups` (com joins pesados — eventos, links, thumbnails)
+- `/rest/v1/site_settings` (30+ chaves)
+- `/rest/v1/blog_posts`
+- `/rest/v1/events` (payloads grandes com lineup, links, etc.)
 
-### 3. Bunny -- JA FEITO ✅
-Voce ja configurou isso. Nada a fazer no codigo.
+A estratégia "Stale While Revalidate" serve do cache MAS **sempre refaz a request em background**. Ou seja, cada visita de cada usuário gera uma chamada API ao Supabase mesmo que tenha cache. Com 7.636 requests no Bunny, o site tem tráfego significativo — cada pageview dispara 4+ requests ao Supabase.
 
-### 4. HTML/HEAD -- PARCIALMENTE CORRETO
+**2. Avatar URL ainda aponta para Supabase Storage**
+No `site_settings`, a chave `links_page_avatar_url` está com:
+`https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public/link-thumbnails/avatar-1772043247039.webp`
 
-**4a. Remover preconnect do Supabase?**
-- **NAO CONCORDO**. O preconnect na linha 7-8 aponta para `nzbyyuqvhrwatmydxiag.supabase.co` -- mas esse NAO e o seu Supabase principal (que e `xfvpuzlspvvsmmunznxw`). Esse preconnect e inutil e deve ser removido, mas nao porque "nao carrega imagem de la" -- e porque esse projeto Supabase nem existe mais no seu codigo.
-- O seu Supabase real (`xfvpuzlspvvsmmunznxw`) e chamado para API (blog posts, eventos, settings). Preconnect para ele SERIA util, mas nao esta no HTML. Porem o SDK ja faz a conexao automaticamente, entao nao precisa.
-- **Conclusao**: remover as linhas 7-8 (preconnect para o Supabase errado).
+Apesar do `getOptimizedImageUrl()` reescrever para Bunny CDN no front-end, essa reescrita só funciona no navegador. Bots, crawlers, previews (og:image), e qualquer acesso direto ao campo no banco usam a URL original do Supabase.
 
-**4b. Remover meta tags de no-cache?**
-- **CONCORDO 100%**. As linhas 23-25 (`Cache-Control: no-cache, no-store, must-revalidate`) prejudicam performance. Elas dizem ao browser "nunca guarde nada em cache". Isso forca o browser a baixar tudo de novo a cada visita. Remover.
+**3. Fallback CDN→Supabase durante a instabilidade do Bunny (17 Mar)**
+O pico de 3.327 GB no dia 17/Mar coincide com os problemas do Bunny CDN que você reportou. Quando o Bunny falhava, o `handleImageFallback` e `OptimizedImage` automaticamente carregavam cada imagem do Supabase Storage. Com dezenas de imagens por página e alto tráfego, isso gerou GBs de egress.
 
-**4c. Manter preconnect cdn.mdaccula.com?**
-- **CONCORDO**. Ja esta correto no codigo.
+**4. API responses são pesados**
+O endpoint `/rest/v1/events` retorna campos como `lineup` (arrays grandes com emojis e nomes), `description`, `vip_link` (URLs longas com WhatsApp). Cada response tem ~5-10 KB. Multiplicado por milhares de requests = egress significativo.
 
-### 5. Imagens do storage.googleapis.com -- CONCORDO PARCIALMENTE
+### Distribuição Estimada do Egress
 
-O `index.html` usa `storage.googleapis.com` em 3 lugares:
-- Linha 19: favicon
-- Linha 44: og:image (imagem social da home)
-- Linha 45: twitter:image
+| Fonte | Impacto |
+|-------|---------|
+| Fallback CDN→Supabase em 17/Mar | ~3-4 GB (pico pontual) |
+| API REST (stale-while-revalidate) | ~2-3 GB (contínuo) |
+| Avatar via Supabase Storage | ~0.5-1 GB |
+| Edge Functions (upload backup, etc.) | ~0.1 GB |
 
-Essas imagens sao do Lovable (upload de logo). Elas nao passam pelo seu CDN. Porem:
-- **Favicon**: e um arquivo pequeno (~5 KB), o browser cacheia agressivamente. Impacto zero em egress.
-- **og:image/twitter:image**: sao acessadas por bots sociais. O Google Cloud Storage tem CDN proprio e nao te cobra egress. Entao o custo e zero tambem.
-- **Conclusao**: Seria "mais limpo" mover para o Supabase Storage e servir via CDN, mas o impacto real em egress e ZERO. Nao e prioridade.
+### Plano de Correção
 
-### 6. ?quality=75 vs /image.webp -- NAO FAZ SENTIDO NO SEU CASO
+**A. Migrar avatar para Bunny CDN**
+- Atualizar o valor de `links_page_avatar_url` no banco para apontar para `mdaccula.b-cdn.net`
+- Migração SQL: `UPDATE site_settings SET value = REPLACE(value, 'xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public', 'mdaccula.b-cdn.net') WHERE value LIKE '%supabase.co/storage/v1/object/public%'`
 
-A recomendacao de trocar `?quality=75` por `/image-optimized.webp` assume que voce tem um sistema de pre-processamento que gera versoes otimizadas com nomes diferentes. Voce NAO tem isso.
+**B. Otimizar Service Worker — trocar Stale While Revalidate por Cache First com TTL para APIs**
+- Mudar `site_settings` para Cache First com TTL de 15 min (quase nunca muda)
+- Mudar `events` e `blog_posts` para Cache First com TTL de 5 min
+- Apenas `link_groups` pode ficar com Stale While Revalidate (muda com mais frequência)
 
-O `?quality=75` no seu caso e apenas um parametro na URL que:
-- **Para o Bunny CDN**: se voce tiver o Bunny Optimizer ativo, ele comprime a imagem on-the-fly
-- **Para o cache**: funciona perfeitamente como cache key. O Cloudflare cacheia a URL completa incluindo `?quality=75`
+**C. Remover fallback Supabase enquanto Bunny funciona (opcional)**
+- Manter o fallback no código mas só ativá-lo após verificar se o Bunny está realmente fora
+- Alternativa: adicionar um health-check rápido antes de tentar Supabase
 
-**O que importa para cache**: a URL ser SEMPRE a mesma. Se voce usa `?quality=75` consistentemente, o Cloudflare cacheia uma vez e serve para sempre. Se mudasse para `.webp`, o resultado seria identico em termos de cache.
+**D. Reduzir payload das APIs**
+- Selecionar apenas campos necessários no frontend (ex: remover `description` da listagem de eventos, só buscar quando abrir detalhe)
 
-**Conclusao**: NAO vale a pena mudar. Zero beneficio pratico. So geraria trabalho e quebraria o cache existente.
+### Arquivos a alterar
 
-### 7. Blog/API como fonte de egress -- CONCORDO MAS JA RESOLVEMOS
-
-O texto do blog (JSON) gera egress sim, mas:
-- Ja trocamos `select("*")` por campos especificos (sem `content` e `search_vector` nas listagens)
-- Ja removemos o prefetch de 110 posts na navigation
-- Ja aumentamos staleTime do site_settings para 15 min
-- Ja filtramos eventos inativos no servidor
-
-O impacto restante de API e ~100-200 MB/dia. Isso e inevitavel -- seu site precisa buscar dados do banco.
-
-As opcoes "SSG" e "cachear API" nao sao viaveis no Lovable (nao tem SSR/SSG, e o Supabase free nao tem cache de API no dashboard).
-
----
-
-## Plano de implementacao
-
-Apenas 2 mudancas simples no `index.html`:
-
-**1. Remover preconnect para Supabase errado** (linhas 7-8)
-O dominio `nzbyyuqvhrwatmydxiag.supabase.co` nao e o seu Supabase. E lixo que so atrasa o carregamento.
-
-**2. Remover meta tags de no-cache** (linhas 22-25)
-Essas tags prejudicam a performance do site inteiro, forcando o browser a re-baixar CSS, JS e assets a cada visita.
+1. `public/service-worker.js` — otimizar estratégia de cache das APIs
+2. Migração SQL — migrar URLs restantes do Supabase Storage para Bunny no banco
+3. `src/hooks/useEvents.ts` — remover `description` da query de listagem (campo pesado)
 
