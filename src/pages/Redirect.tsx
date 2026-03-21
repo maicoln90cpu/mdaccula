@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
+// Normalize URLs that may be missing protocol
+const normalizeUrl = (raw: string): string => {
+  let url = raw.trim().replace(/^→\s*/, '');
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+  return url;
+};
+
 const Redirect = () => {
   const { slug } = useParams<{ slug: string }>();
   const [error, setError] = useState<string | null>(null);
@@ -26,18 +35,20 @@ const Redirect = () => {
           return;
         }
 
+        // Normalize destination URL (add https:// if missing)
+        const normalizedUrl = normalizeUrl(data.destination_url);
+
         // Build final URL with UTMs
-        let finalUrl = data.destination_url;
+        let finalUrl = normalizedUrl;
         try {
-          const url = new URL(data.destination_url);
+          const url = new URL(normalizedUrl);
           if (data.utm_source) url.searchParams.set("utm_source", data.utm_source);
           if (data.utm_medium) url.searchParams.set("utm_medium", data.utm_medium);
           if (data.utm_campaign) url.searchParams.set("utm_campaign", data.utm_campaign);
           if (data.utm_content) url.searchParams.set("utm_content", data.utm_content);
           finalUrl = url.toString();
         } catch {
-          // URL doesn't support query params (e.g. WhatsApp links may work anyway)
-          // Just use destination_url as-is
+          // Just use normalized URL as-is
         }
 
         // Fire-and-forget tracking

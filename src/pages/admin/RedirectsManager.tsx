@@ -163,11 +163,20 @@ const RedirectsManager = () => {
     }
   };
 
+  // Normalize URL: ensure protocol prefix
+  const normalizeUrl = (raw: string): string => {
+    let url = raw.trim().replace(/^→\s*/, '');
+    if (url && !/^https?:\/\//i.test(url)) {
+      url = `https://${url}`;
+    }
+    return url;
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const payload = {
         slug: data.slug.replace(/[^a-zA-Z0-9_-]/g, ""),
-        destination_url: data.destination_url,
+        destination_url: normalizeUrl(data.destination_url),
         description: data.description || null,
         utm_source: data.utm_source || null,
         utm_medium: data.utm_medium || null,

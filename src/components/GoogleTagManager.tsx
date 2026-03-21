@@ -1,35 +1,12 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const GoogleTagManager = () => {
-  const [gtmId, setGtmId] = useState<string>("");
+  const { settings } = useSiteSettings();
+  const gtmId = settings?.google_tag_manager_id;
 
   useEffect(() => {
-    // Defer fetching GTM ID until after main content is interactive
-    const initGTM = () => {
-      const fetchGTMId = async () => {
-        const { data } = await supabase
-          .from("site_settings")
-          .select("value")
-          .eq("key", "google_tag_manager_id")
-          .single();
-
-        if (data?.value && data.value.trim() !== "") {
-          setGtmId(data.value);
-        }
-      };
-      fetchGTMId();
-    };
-
-    if ('requestIdleCallback' in window) {
-      (window as any).requestIdleCallback(initGTM, { timeout: 4000 });
-    } else {
-      setTimeout(initGTM, 3000);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!gtmId) return;
+    if (!gtmId || gtmId.trim() === "") return;
 
     const script1 = document.createElement("script");
     script1.innerHTML = `

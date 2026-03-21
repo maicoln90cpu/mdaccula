@@ -59,6 +59,7 @@ export function useEvents() {
     enabled: !settingsLoading,
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
     // Use localStorage cache as placeholder
     placeholderData: () => getCachedEvents() ?? undefined,
   });
