@@ -1,60 +1,111 @@
 
+Objetivo: atacar 2 frentes em paralelo — reduzir o cached egress diário do Supabase e corrigir definitivamente o bug do redirecionamento.
 
-## Auditoria: Por que o Cached Egress do Supabase está alto (8.45 GB)
+Diagnóstico confirmado
 
-### Fontes de Egress Identificadas
+1. O egress alto não vem mais principalmente de imagens
+- O gráfico de cached egress do Supabase inclui API, Storage e Edge Functions.
+- Hoje as imagens principais já estão em Bunny, mas o frontend ainda faz várias chamadas REST ao Supabase por visita.
 
-**1. Service Worker faz "Stale While Revalidate" em TODAS as APIs do Supabase**
-O Service Worker (linhas 150-154) cacheia e RE-BUSCA em background todas as chamadas para:
-- `/rest/v1/link_groups` (com joins pesados — eventos, links, thumbnails)
-- `/rest/v1/site_settings` (30+ chaves)
-- `/rest/v1/blog_posts`
-- `/rest/v1/events` (payloads grandes com lineup, links, etc.)
+2. Há requests redundantes para site_settings
+- O log de rede mostra pelo menos 2 requests para `site_settings` na home:
+  - `select=key,value`
+  - `select=value&key=eq.google_tag_manager_id`
+- Além disso, `src/contexts/SiteSettingsContext.tsx` faz um “background refresh” sempre que existe cache local. Ou seja: mesmo com cache em localStorage, ele ainda bate no Supabase.
+- `src/components/GoogleTagManager.tsx` busca o GTM novamente em vez de reutilizar o contexto já carregado.
 
-A estratégia "Stale While Revalidate" serve do cache MAS **sempre refaz a request em background**. Ou seja, cada visita de cada usuário gera uma chamada API ao Supabase mesmo que tenha cache. Com 7.636 requests no Bunny, o site tem tráfego significativo — cada pageview dispara 4+ requests ao Supabase.
+3. A home ainda tem múltiplas queries independentes por pageview
+- `FeaturedEvents.tsx` faz query própria em `events`
+- `LatestNews.tsx` faz query própria em `blog_posts`
+- `SiteSettingsContext.tsx` faz query em `site_settings`
+- Isso explica por que ainda existe consumo diário, mesmo sem usar Supabase Storage para imagem.
 
-**2. Avatar URL ainda aponta para Supabase Storage**
-No `site_settings`, a chave `links_page_avatar_url` está com:
-`https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public/link-thumbnails/avatar-1772043247039.webp`
+4. O redirecionamento está quebrado por URL sem protocolo
+- No banco, o slug `lista_DEDGE_email` está salvo como:
+  `postcontrol.com.br/mdaccula/lista/dedge`
+- Em `src/pages/Redirect.tsx`, `new URL(data.destination_url)` falha sem `https://`.
+- O catch mantém o valor cru e `window.location.replace("postcontrol.com.br/...")` vira rota relativa:
+  `https://mdaccula.com/r/postcontrol.com.br/...`
+- Portanto o erro não é do navegador nem do router: é dado inválido + ausência de normalização.
 
-Apesar do `getOptimizedImageUrl()` reescrever para Bunny CDN no front-end, essa reescrita só funciona no navegador. Bots, crawlers, previews (og:image), e qualquer acesso direto ao campo no banco usam a URL original do Supabase.
+Plano de implementação
 
-**3. Fallback CDN→Supabase durante a instabilidade do Bunny (17 Mar)**
-O pico de 3.327 GB no dia 17/Mar coincide com os problemas do Bunny CDN que você reportou. Quando o Bunny falhava, o `handleImageFallback` e `OptimizedImage` automaticamente carregavam cada imagem do Supabase Storage. Com dezenas de imagens por página e alto tráfego, isso gerou GBs de egress.
+A. Reduzir mais o cached egress do Supabase
+1. Eliminar refresh redundante de `site_settings`
+- Arquivo: `src/contexts/SiteSettingsContext.tsx`
+- Remover o fetch em background quando já houver cache local válido.
+- Deixar o React Query decidir quando refetchar, sem disparo manual paralelo.
 
-**4. API responses são pesados**
-O endpoint `/rest/v1/events` retorna campos como `lineup` (arrays grandes com emojis e nomes), `description`, `vip_link` (URLs longas com WhatsApp). Cada response tem ~5-10 KB. Multiplicado por milhares de requests = egress significativo.
+2. Parar a segunda chamada de GTM
+- Arquivo: `src/components/GoogleTagManager.tsx`
+- Trocar a query direta ao Supabase por leitura de `useSiteSettings()`.
+- Resultado: 1 request a menos por visita.
 
-### Distribuição Estimada do Egress
+3. Endurecer cache de React Query nas queries públicas da home
+- Arquivos:
+  - `src/components/sections/FeaturedEvents.tsx`
+  - `src/components/sections/LatestNews.tsx`
+  - possivelmente `src/hooks/useEvents.ts`
+- Ajustes:
+  - `staleTime` maior para dados públicos
+  - `refetchOnWindowFocus: false`
+  - `refetchOnReconnect: false` onde fizer sentido
+  - manter atualização manual ou por navegação normal, sem re-fetch agressivo
 
-| Fonte | Impacto |
-|-------|---------|
-| Fallback CDN→Supabase em 17/Mar | ~3-4 GB (pico pontual) |
-| API REST (stale-while-revalidate) | ~2-3 GB (contínuo) |
-| Avatar via Supabase Storage | ~0.5-1 GB |
-| Edge Functions (upload backup, etc.) | ~0.1 GB |
+4. Revisar se o Service Worker está realmente cobrindo o publicado
+- Arquivo: `public/service-worker.js`
+- Subir versão do cache para invalidar SW antigo caso necessário.
+- Garantir que as rotas REST públicas continuem em `cacheFirstWithTTL`.
 
-### Plano de Correção
+Impacto esperado:
+- corta requests duplicados de `site_settings`
+- reduz re-fetch em foco/reconexão
+- diminui o volume diário de respostas cacheadas servidas pelo Supabase
 
-**A. Migrar avatar para Bunny CDN**
-- Atualizar o valor de `links_page_avatar_url` no banco para apontar para `mdaccula.b-cdn.net`
-- Migração SQL: `UPDATE site_settings SET value = REPLACE(value, 'xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public', 'mdaccula.b-cdn.net') WHERE value LIKE '%supabase.co/storage/v1/object/public%'`
+B. Corrigir o bug do redirecionamento
+1. Normalizar URL no redirect runtime
+- Arquivo: `src/pages/Redirect.tsx`
+- Criar lógica:
+  - trim
+  - remover prefixos lixo como `→ `
+  - se não começar com `http://` ou `https://`, prefixar `https://`
+- Só depois aplicar UTM e chamar `window.location.replace()`.
 
-**B. Otimizar Service Worker — trocar Stale While Revalidate por Cache First com TTL para APIs**
-- Mudar `site_settings` para Cache First com TTL de 15 min (quase nunca muda)
-- Mudar `events` e `blog_posts` para Cache First com TTL de 5 min
-- Apenas `link_groups` pode ficar com Stale While Revalidate (muda com mais frequência)
+2. Validar/sanitizar URL no admin
+- Arquivo: `src/pages/admin/RedirectsManager.tsx`
+- Ao salvar:
+  - aplicar a mesma normalização
+  - impedir persistência de URLs sem protocolo bruto
+- Opcional: mostrar preview final da URL normalizada antes de salvar.
 
-**C. Remover fallback Supabase enquanto Bunny funciona (opcional)**
-- Manter o fallback no código mas só ativá-lo após verificar se o Bunny está realmente fora
-- Alternativa: adicionar um health-check rápido antes de tentar Supabase
+3. Corrigir registros já salvos no banco
+- Criar migração SQL para:
+  - prefixar `https://` onde faltar
+  - remover valores iniciando com `→ `
+- Isso corrige `lista_DEDGE_email` e outros slugs antigos.
 
-**D. Reduzir payload das APIs**
-- Selecionar apenas campos necessários no frontend (ex: remover `description` da listagem de eventos, só buscar quando abrir detalhe)
+C. Resultado esperado
+1. Cached egress diário cai porque:
+- sai o background refresh desnecessário
+- sai a query extra de GTM
+- diminuem re-fetches automáticos da home
 
-### Arquivos a alterar
+2. Redirecionamentos passam a abrir o destino correto mesmo para dados antigos
+- Exemplo:
+  `/r/lista_DEDGE_email`
+  deixa de ir para
+  `mdaccula.com/r/postcontrol.com.br/...`
+  e passa a ir para
+  `https://postcontrol.com.br/mdaccula/lista/dedge`
 
-1. `public/service-worker.js` — otimizar estratégia de cache das APIs
-2. Migração SQL — migrar URLs restantes do Supabase Storage para Bunny no banco
-3. `src/hooks/useEvents.ts` — remover `description` da query de listagem (campo pesado)
+Arquivos a alterar
+- `src/contexts/SiteSettingsContext.tsx`
+- `src/components/GoogleTagManager.tsx`
+- `src/components/sections/FeaturedEvents.tsx`
+- `src/components/sections/LatestNews.tsx`
+- `src/pages/Redirect.tsx`
+- `src/pages/admin/RedirectsManager.tsx`
+- nova migração SQL para saneamento de `redirect_links.destination_url`
 
+Observação técnica importante
+- Mesmo com zero imagens no Supabase Storage, o cached egress não vai a “quase zero” se a aplicação continuar consultando APIs públicas do Supabase em toda visita. O que falta reduzir agora é o tráfego REST, não o Storage.
