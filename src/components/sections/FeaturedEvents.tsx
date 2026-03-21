@@ -45,7 +45,10 @@ const FeaturedEvents = () => {
       // Retornar apenas os 3 primeiros após filtrar
       return visibleEvents.slice(0, 3);
     },
-    enabled: !!settings, // Só executa quando settings estiver carregado
+    enabled: !!settings,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   });
 
   if (isLoading) {

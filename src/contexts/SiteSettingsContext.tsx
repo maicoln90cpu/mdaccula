@@ -84,20 +84,6 @@ export const SiteSettingsProvider = ({ children }: { children: ReactNode }) => {
   const { data: settings, isLoading, error } = useQuery({
     queryKey: ["site-settings"],
     queryFn: async () => {
-      // Try localStorage cache first for instant loading
-      const cached = getCachedSettings();
-      if (cached) {
-        // Trigger background refresh
-        supabase
-          .from("site_settings")
-          .select("key, value")
-          .then(({ data }) => {
-            if (data) {
-              setCachedSettings(transformToSettingsObject(data));
-            }
-          });
-        return cached;
-      }
 
       // No cache, fetch from database
       const { data, error } = await supabase
