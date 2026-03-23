@@ -45,7 +45,7 @@ interface BlogFormProps {
   onCancel: () => void;
 }
 
-const CATEGORIES = ['Eventos', 'Cena SP', 'Festivais', 'História', 'Guias', 'Entrevistas'];
+const CATEGORIES = ['Eventos', 'Cena SP', 'Festivais', 'História', 'Guias', 'Entrevistas', 'Lançamentos', 'Produtores', 'Tecnologia', 'Cultura'];
 
 export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
