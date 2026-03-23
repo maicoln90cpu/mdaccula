@@ -11,8 +11,8 @@ import {
   BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+  BreadcrumbSeparator } from
+"@/components/ui/breadcrumb";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,8 +26,8 @@ import {
   PaginationItem,
   PaginationLink,
   PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+  PaginationPrevious } from
+"@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
@@ -56,15 +56,15 @@ const PAGE_SIZE = 9;
 
 // Single consolidated fetch function for both featured post and paginated list
 const fetchBlogPostsWithFeatured = async (
-  page: number,
-  category: string,
-  searchTerm: string,
-): Promise<PaginatedResult> => {
+page: number,
+category: string,
+searchTerm: string)
+: Promise<PaginatedResult> => {
   // Build base query
-  let query = supabase
-    .from("blog_posts")
-    .select("id, title, slug, excerpt, category, image_url, views, likes, created_at, published_at", { count: "exact" })
-    .eq("published", true);
+  let query = supabase.
+  from("blog_posts").
+  select("id, title, slug, excerpt, category, image_url, views, likes, created_at, published_at", { count: "exact" }).
+  eq("published", true);
 
   // Apply category filter
   if (category !== "Todos") {
@@ -82,9 +82,9 @@ const fetchBlogPostsWithFeatured = async (
   const limit = isFirstPage ? PAGE_SIZE + 1 : PAGE_SIZE;
   const offset = isFirstPage ? 0 : (page - 1) * PAGE_SIZE;
 
-  const { data, error, count } = await query
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+  const { data, error, count } = await query.
+  order("created_at", { ascending: false }).
+  range(offset, offset + limit - 1);
 
   if (error) throw error;
 
@@ -101,7 +101,7 @@ const fetchBlogPostsWithFeatured = async (
   return {
     posts,
     featuredPost,
-    total: totalCount,
+    total: totalCount
   };
 };
 
@@ -127,17 +127,17 @@ const Blog = () => {
           acc[post.category] = (acc[post.category] || 0) + 1;
           return acc;
         },
-        {} as Record<string, number>,
+        {} as Record<string, number>
       );
 
       // Ordenar categorias por quantidade de posts (desc)
-      const sortedCategories = Object.entries(categoryCount)
-        .sort((a, b) => b[1] - a[1])
-        .map(([category]) => category);
+      const sortedCategories = Object.entries(categoryCount).
+      sort((a, b) => b[1] - a[1]).
+      map(([category]) => category);
 
       return ["Todos", ...sortedCategories];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    staleTime: 5 * 60 * 1000 // 5 minutes cache
   });
 
   const categories = dynamicCategories || ["Todos"];
@@ -159,7 +159,7 @@ const Blog = () => {
   const { data: blogData, isLoading } = useQuery({
     queryKey: ["blog-posts", currentPage, selectedCategory, debouncedSearch],
     queryFn: () => fetchBlogPostsWithFeatured(currentPage, selectedCategory, debouncedSearch),
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
+    staleTime: 2 * 60 * 1000 // 2 minutes cache
   });
 
   const posts = blogData?.posts || [];
@@ -171,8 +171,8 @@ const Blog = () => {
   const totalPages = Math.ceil(effectiveTotal / PAGE_SIZE);
 
   // Skeleton components for loading state
-  const BlogCardSkeleton = () => (
-    <Card className="overflow-hidden h-full">
+  const BlogCardSkeleton = () =>
+  <Card className="overflow-hidden h-full">
       <Skeleton className="aspect-video w-full" />
       <CardHeader>
         <Skeleton className="h-6 w-3/4" />
@@ -195,16 +195,16 @@ const Blog = () => {
           <Skeleton className="h-8 w-20" />
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 
-  const BlogGridSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <BlogCardSkeleton key={i} />
-      ))}
-    </div>
-  );
+
+  const BlogGridSkeleton = () =>
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {Array.from({ length: 6 }).map((_, i) =>
+    <BlogCardSkeleton key={i} />
+    )}
+    </div>;
+
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -242,7 +242,7 @@ const Blog = () => {
     try {
       const { error } = await supabase.from("newsletter_subscribers").insert({
         email: newsletterEmail,
-        source: "blog_footer",
+        source: "blog_footer"
       });
 
       if (error) {
@@ -269,24 +269,24 @@ const Blog = () => {
         title="Blog de Música Eletrônica - Notícias Techno e House"
         description="Fique por dentro das últimas notícias da cena eletrônica brasileira e mundial. Techno, house, festivais e eventos underground em São Paulo."
         keywords={[
-          "blog música eletrônica",
-          "notícias techno sp",
-          "cena eletrônica brasil",
-          "festivais techno 2025",
-          "house music blog",
-          "eventos underground sp",
-        ]}
-        url="https://mdaccula.com/blog"
-      />
+        "blog música eletrônica",
+        "notícias techno sp",
+        "cena eletrônica brasil",
+        "festivais techno 2025",
+        "house music blog",
+        "eventos underground sp"]
+        }
+        url="https://mdaccula.com/blog" />
+      
       <StructuredData
         type="breadcrumb"
         data={{
           items: [
-            { name: "Home", url: "https://mdaccula.com" },
-            { name: "Blog", url: "https://mdaccula.com/blog" },
-          ],
-        }}
-      />
+          { name: "Home", url: "https://mdaccula.com" },
+          { name: "Blog", url: "https://mdaccula.com/blog" }]
+
+        }} />
+      
 
       <div className="min-h-screen">
         <Navigation />
@@ -318,8 +318,8 @@ const Blog = () => {
                   <a
                     href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-rss`}
                     target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                    rel="noopener noreferrer">
+                    
                     <Rss className="w-4 h-4" />
                     Feed RSS
                   </a>
@@ -338,33 +338,33 @@ const Blog = () => {
                     placeholder="Buscar artigos..."
                     className="pl-10 h-12 w-full"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                    onChange={(e) => setSearchTerm(e.target.value)} />
+                  
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {categories.map((category) => (
-                    <Badge
-                      key={category}
-                      variant="outline"
-                      className={`cursor-pointer transition-colors min-h-[36px] px-4 text-sm ${
-                        category === selectedCategory
-                          ? "bg-primary/20 text-primary border-primary/30"
-                          : "hover:bg-muted/50"
-                      }`}
-                      onClick={() => setSelectedCategory(category)}
-                    >
+                  {categories.map((category) =>
+                  <Badge
+                    key={category}
+                    variant="outline"
+                    className={`cursor-pointer transition-colors min-h-[36px] px-4 text-sm ${
+                    category === selectedCategory ?
+                    "bg-primary/20 text-primary border-primary/30" :
+                    "hover:bg-muted/50"}`
+                    }
+                    onClick={() => setSelectedCategory(category)}>
+                    
                       {category}
                     </Badge>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
           </section>
 
           {/* Featured Post Skeleton or Content */}
-          {isLoading ? (
-            <section className="py-12 bg-background">
+          {isLoading ?
+          <section className="py-12 bg-background">
               <div className="container mx-auto px-4">
                 <Skeleton className="h-8 w-32 mb-6" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-lg overflow-hidden border border-border">
@@ -388,10 +388,10 @@ const Blog = () => {
                   </div>
                 </div>
               </div>
-            </section>
-          ) : (
-            featuredPost && (
-              <section className="py-8 bg-background">
+            </section> :
+
+          featuredPost &&
+          <section className="py-8 bg-background">
                 <div className="container mx-auto px-4">
                   <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 hero-text">Destaque</h2>
 
@@ -399,12 +399,12 @@ const Blog = () => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                       <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20">
                         <img
-                          src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
-                          alt={featuredPost.title}
-                          className="w-full h-full object-contain"
-                          loading="lazy"
-                          onError={(e) => handleImageFallback(e, djImage)}
-                        />
+                      src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
+                      alt={featuredPost.title}
+                      className="w-full h-full object-contain"
+                      loading="lazy"
+                      onError={(e) => handleImageFallback(e, djImage)} />
+                    
                         <div className="absolute top-4 left-4">
                           <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
                             {featuredPost.category}
@@ -456,40 +456,40 @@ const Blog = () => {
                   </Card>
                 </div>
               </section>
-            )
-          )}
+
+          }
 
           {/* Posts Grid */}
           <section className="py-12 bg-darker-surface overflow-x-hidden">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold mb-8 hero-text">Últimos Artigos</h2>
 
-              {isLoading ? (
-                <BlogGridSkeleton />
-              ) : posts.length === 0 && !featuredPost ? (
-                <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
-              ) : (
-                <>
-                  <div className="space-y-10 py-2">
+              {isLoading ?
+              <BlogGridSkeleton /> :
+              posts.length === 0 && !featuredPost ?
+              <p className="text-center text-muted-foreground">Nenhum post encontrado.</p> :
+
+              <>
+                  <div className="space-y-20 py-2">
                     {posts.map((post, index) => {
-                      const isReversed = index % 2 === 1;
-                      return (
-                        <Link to={`/blog/${post.slug}`} key={post.id}>
+                    const isReversed = index % 2 === 1;
+                    return (
+                      <Link to={`/blog/${post.slug}`} key={post.id}>
                           <Card
-                            className="card-hover group cursor-pointer overflow-hidden shadow-md border-border/60"
-                            style={{ animationDelay: `${index * 0.05}s` }}
-                          >
+                          className="card-hover group cursor-pointer overflow-hidden"
+                          style={{ animationDelay: `${index * 0.05}s` }}>
+                          
                             <div className={`flex flex-row ${isReversed ? "flex-row-reverse" : ""}`}>
                               {/* Image lateral */}
                               <div className="relative flex-shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
-                                  src={getOptimizedImageUrl(post.image_url) || djImage}
-                                  alt={post.title}
-                                  className="w-full h-full object-contain"
-                                  loading="lazy"
-                                  decoding="async"
-                                   onError={(e) => handleImageFallback(e, djImage)}
-                                />
+                                src={getOptimizedImageUrl(post.image_url) || djImage}
+                                alt={post.title}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => handleImageFallback(e, djImage)} />
+                              
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
                                   <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>
                                     {post.category}
@@ -498,7 +498,7 @@ const Blog = () => {
                               </div>
 
                               {/* Content */}
-                              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0">
+                              <div className="flex-1 p-3 sm:p-4 flex flex-col justify-between min-w-0 mx-[10px] px-[20px]">
                                 <div>
                                   <h3 className="text-lg sm:text-xl md:text-2xl font-bold group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                                     {post.title}
@@ -528,69 +528,69 @@ const Blog = () => {
                               </div>
                             </div>
                           </Card>
-                        </Link>
-                      );
-                    })}
+                        </Link>);
+
+                  })}
                   </div>
 
                   {/* Smart Pagination */}
-                  {totalPages > 1 && (
-                    <div className="mt-12 flex justify-center">
+                  {totalPages > 1 &&
+                <div className="mt-12 flex justify-center">
                       <Pagination>
                         <PaginationContent className="flex-wrap gap-1">
                           <PaginationItem>
                             <PaginationPrevious
-                              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                              className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                            />
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
+                        
                           </PaginationItem>
 
                           {(() => {
-                            const pages: (number | "ellipsis")[] = [];
-                            if (totalPages <= 5) {
-                              for (let i = 1; i <= totalPages; i++) pages.push(i);
-                            } else {
-                              pages.push(1);
-                              const start = Math.max(2, currentPage - 1);
-                              const end = Math.min(totalPages - 1, currentPage + 1);
-                              if (start > 2) pages.push("ellipsis");
-                              for (let i = start; i <= end; i++) pages.push(i);
-                              if (end < totalPages - 1) pages.push("ellipsis");
-                              pages.push(totalPages);
-                            }
-                            return pages.map((p, idx) =>
-                              p === "ellipsis" ? (
-                                <PaginationItem key={`e-${idx}`}>
+                        const pages: (number | "ellipsis")[] = [];
+                        if (totalPages <= 5) {
+                          for (let i = 1; i <= totalPages; i++) pages.push(i);
+                        } else {
+                          pages.push(1);
+                          const start = Math.max(2, currentPage - 1);
+                          const end = Math.min(totalPages - 1, currentPage + 1);
+                          if (start > 2) pages.push("ellipsis");
+                          for (let i = start; i <= end; i++) pages.push(i);
+                          if (end < totalPages - 1) pages.push("ellipsis");
+                          pages.push(totalPages);
+                        }
+                        return pages.map((p, idx) =>
+                        p === "ellipsis" ?
+                        <PaginationItem key={`e-${idx}`}>
                                   <PaginationEllipsis />
-                                </PaginationItem>
-                              ) : (
-                                <PaginationItem key={p}>
+                                </PaginationItem> :
+
+                        <PaginationItem key={p}>
                                   <PaginationLink
-                                    onClick={() => setCurrentPage(p)}
-                                    isActive={currentPage === p}
-                                    className="cursor-pointer"
-                                  >
+                            onClick={() => setCurrentPage(p)}
+                            isActive={currentPage === p}
+                            className="cursor-pointer">
+                            
                                     {p}
                                   </PaginationLink>
                                 </PaginationItem>
-                              ),
-                            );
-                          })()}
+
+                        );
+                      })()}
 
                           <PaginationItem>
                             <PaginationNext
-                              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                              className={
-                                currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
-                              }
-                            />
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          className={
+                          currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
+                          } />
+                        
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
-                  )}
+                }
                 </>
-              )}
+              }
             </div>
           </section>
 
@@ -607,8 +607,8 @@ const Blog = () => {
                     placeholder="Seu melhor email"
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
-                    className="flex-1"
-                  />
+                    className="flex-1" />
+                  
                   <Button type="submit" disabled={newsletterLoading}>
                     {newsletterLoading ? "Enviando..." : "Inscrever"}
                   </Button>
@@ -620,8 +620,8 @@ const Blog = () => {
 
         <Footer />
       </div>
-    </>
-  );
+    </>);
+
 };
 
 export default Blog;
