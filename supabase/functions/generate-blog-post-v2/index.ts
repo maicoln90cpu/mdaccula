@@ -405,6 +405,13 @@ Deno.serve(async (req) => {
 - Use os valores REAIS que foram fornecidos no prompt.
 - Se algum valor não foi fornecido, omita essa informação ou escreva "a confirmar".
 
+🚨 REGRA CRÍTICA — DADOS DO PROMPT TÊM PRIORIDADE ABSOLUTA:
+- Use EXCLUSIVAMENTE os dados fornecidos no prompt (local, venue, endereço, datas, horários).
+- NÃO use conhecimento prévio ou de treinamento sobre locais, datas ou venues de eventos.
+- Se o local informado no prompt difere do que você conhece sobre o evento, USE O INFORMADO NO PROMPT.
+- Em caso de conflito entre "description" e os campos estruturados (venue, eventLocation, eventDate), PRIORIZE os campos estruturados.
+- Gere um título NOVO baseado nos dados atuais, não reutilize títulos anteriores.
+
 🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS:
 ${hasRealTicketLink 
   ? `- Link de ingressos REAL fornecido: ${formFields.ticketLink}

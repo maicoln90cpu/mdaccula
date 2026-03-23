@@ -470,13 +470,13 @@ const Blog = () => {
                 <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
               ) : (
                 <>
-                  <div className="space-y-20 py-2">
+                  <div className="space-y-10 py-2">
                     {posts.map((post, index) => {
                       const isReversed = index % 2 === 1;
                       return (
                         <Link to={`/blog/${post.slug}`} key={post.id}>
                           <Card
-                            className="card-hover group cursor-pointer overflow-hidden"
+                            className="card-hover group cursor-pointer overflow-hidden shadow-md border-border/60"
                             style={{ animationDelay: `${index * 0.05}s` }}
                           >
                             <div className={`flex flex-row ${isReversed ? "flex-row-reverse" : ""}`}>

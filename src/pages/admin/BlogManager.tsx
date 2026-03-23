@@ -177,7 +177,7 @@ const BlogManager = () => {
         const { data, error } = await supabase.functions.invoke('generate-multi-event-article', {
           body: {
             eventIds: linkedEvents.map(e => e.id),
-            seriesName: postTitle, // usar título atual como base
+            seriesName: linkedEvents[0].title, // usar título do evento (dados frescos), não do post antigo
             existingPostId: postId, // regenerar no mesmo post
             generateImage: false // manter imagem
           }

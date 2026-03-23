@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     // Find first available image or use custom
     const existingImageUrl = customImageUrl || events.find(e => e.image_url)?.image_url || null;
 
-    // Build detailed dates info
+    // Build detailed dates info with venue per event
     const datesInfo = events.map(event => {
       const lineupStr = event.lineup && event.lineup.length > 0 
         ? event.lineup.join(', ') 
@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
       
       return `
 📅 ${formatDatePt(event.date)} - ${event.time}
+📍 Local: ${event.venue}${event.address ? `, ${event.address}` : ''} - ${event.location_city}/${event.location_state}
 🎧 Line-up: ${lineupStr}
 ${event.ticket_link ? `🎟️ Ingressos: ${event.ticket_link}` : ''}
 ${event.vip_link ? `💎 VIP/Camarote: ${event.vip_link}` : ''}
@@ -193,7 +194,14 @@ FORMATAÇÃO HTML:
 IMPORTANTE:
 - Retorne APENAS o JSON, sem markdown ou explicações
 - Inclua TODOS os links de ingressos fornecidos de forma natural
-- Use dados reais fornecidos, nunca invente informações`;
+- Use dados reais fornecidos, nunca invente informações
+
+🚨 REGRA CRÍTICA — DADOS DO PROMPT TÊM PRIORIDADE ABSOLUTA:
+- Use EXCLUSIVAMENTE os dados fornecidos no prompt (local, venue, endereço, datas, horários).
+- NÃO use conhecimento prévio ou de treinamento sobre locais, datas ou venues de eventos.
+- Se o local informado no prompt difere do que você conhece sobre o evento, USE O INFORMADO NO PROMPT.
+- O campo "description" do evento pode conter informações desatualizadas — em caso de conflito entre "description" e os campos estruturados (venue, address, date, time), PRIORIZE os campos estruturados.
+- Gere um título NOVO baseado nos dados atuais, não reutilize títulos anteriores.`;
 
     const defaultUserPromptTemplate = `Escreva um artigo COMPLETO e EXTENSO sobre a série de eventos "{{seriesName}}":
 
