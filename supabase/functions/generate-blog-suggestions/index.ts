@@ -286,6 +286,12 @@ Cada sugestão deve incluir:
 - mood: Atmosfera visual (energético, introspectivo, celebratório, underground, futurista)
 - visualElements: Elementos visuais sugeridos para imagem
 
+REGRAS OBRIGATÓRIAS PARA OS TÍTULOS:
+1. Cada título DEVE usar uma estrutura gramatical DIFERENTE dos demais. NUNCA repita o formato "Tema: como X faz Y" mais de uma vez.
+2. Varie entre estes formatos: pergunta direta ("Por que X está mudando Y?"), lista numerada ("5 razões para..."), afirmação provocativa ("X nunca mais será o mesmo"), metáfora/analogia, título curto e direto sem dois-pontos.
+3. NUNCA use a palavra "como" no início ou após dois-pontos em mais de 1 título.
+4. Evite o padrão "[Substantivo]: [explicação]" — use títulos que despertem curiosidade.
+
 DIVERSIFIQUE as categorias.`;
 
     console.log(`Chamando IA (${modelName} via ${isOpenAIModel ? 'OpenAI direto' : 'Lovable Gateway'})...`);
