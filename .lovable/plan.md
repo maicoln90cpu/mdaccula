@@ -1,28 +1,39 @@
 
 
-## Auditoria: Por que o Cached Egress do Supabase está alto (8.45 GB)
+## Plano de Correção — 3 Itens
 
-### Correções Aplicadas
+### 1. Bug: editar título do blog não salva
 
-**A. Requests redundantes eliminados**
-- `SiteSettingsContext.tsx`: removido background refresh manual — React Query gerencia sozinho
-- `GoogleTagManager.tsx`: agora lê do `useSiteSettings()` em vez de fazer query própria
-- Resultado: **-2 requests por pageview**
+**Causa raiz**: O campo `Categoria` aparece em branco ao editar (visível no screenshot). O componente `Select` usa `defaultValue={post?.category}` mas o react-hook-form não tem `register('category')` — usa apenas `setValue` no `onValueChange`. Quando o post tem uma categoria como "Lançamentos" que NÃO está na lista `CATEGORIES` (`['Eventos', 'Cena SP', 'Festivais', 'História', 'Guias', 'Entrevistas']`), o Select não encontra match e fica em branco. Se o usuário não toca no campo, `data.category` chega como `undefined` ou string vazia, e o update pode falhar ou gravar null.
 
-**B. Cache endurecido nas queries públicas**
-- `FeaturedEvents.tsx`, `LatestNews.tsx`, `useEvents.ts`: `staleTime: 5min`, `refetchOnWindowFocus: false`
-- Service Worker v8: Cache First com TTL para APIs REST
+**Correção** em `src/components/blog/BlogForm.tsx`:
+- Usar `Controller` do react-hook-form para o Select (em vez de `onValueChange` manual)
+- Expandir `CATEGORIES` para incluir todas as categorias que existem no banco: adicionar `'Lançamentos'`, `'Produtores'`, `'Tecnologia'`, `'Cultura'`
+- Garantir que o valor default é passado corretamente via Controller
 
-**C. Redirecionamentos corrigidos**
-- `Redirect.tsx`: normaliza URLs sem protocolo (`https://` automático)
-- `RedirectsManager.tsx`: normaliza ao salvar
-- Migração SQL: corrigiu registros existentes com `→` e sem protocolo
+### 2. Títulos repetitivos nos posts gerados por IA
 
-### Distribuição Estimada do Egress (pós-correção)
+**Causa raiz**: O prompt em `generate-blog-suggestions/index.ts` (linha 282) pede "Título ÚNICO e atraente" mas não instrui sobre **formato/estrutura** do título. A IA converge para o padrão `"X: como Y faz Z"` repetidamente.
 
-| Fonte | Antes | Depois |
-|-------|-------|--------|
-| API REST (stale-while-revalidate) | ~2-3 GB | ~0.3-0.5 GB |
-| GTM query duplicada | ~0.2 GB | 0 |
-| Background refresh settings | ~0.3 GB | 0 |
-| Refetch on focus | ~0.5 GB | 0 |
+**Correção** em `supabase/functions/generate-blog-suggestions/index.ts`:
+- Adicionar ao prompt instrução explícita de **variação de formato**:
+  - Proibir repetir a estrutura "X: como Y" em mais de 1 título
+  - Sugerir formatos alternativos: pergunta, lista ("5 motivos..."), afirmação direta, provocação, metáfora
+  - Adicionar regra: "Cada título DEVE usar uma estrutura gramatical diferente dos demais"
+
+### 3. Analytics mostra 0 views em eventos
+
+**Causa raiz confirmada**: `EventDetail.tsx` (linha 97) chama `supabase.rpc('increment_event_views')` diretamente — isso incrementa o campo `views` na tabela `events`, MAS **não insere registro na tabela `event_view_events`**. O analytics por período usa `event_view_events` para contar views filtrados por data. Como nenhum registro é inserido lá, o resultado é sempre 0.
+
+Para comparação, `BlogPost.tsx` chama `supabase.functions.invoke("track-view", { body: { postId } })` que faz AMBOS: incrementa views E insere em `blog_view_events`.
+
+**Correção** em `src/pages/EventDetail.tsx`:
+- Substituir o `supabase.rpc('increment_event_views')` direto por `supabase.functions.invoke("track-view", { body: { eventId: eventData.id } })`
+- A Edge Function `track-view` já suporta `eventId` — ela incrementa views E insere em `event_view_events`
+
+### Arquivos a alterar
+
+1. `src/components/blog/BlogForm.tsx` — usar Controller para Select, expandir CATEGORIES
+2. `supabase/functions/generate-blog-suggestions/index.ts` — instruções de variação de formato no prompt
+3. `src/pages/EventDetail.tsx` — trocar rpc direto por chamada a `track-view`
+
