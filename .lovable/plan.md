@@ -1,39 +1,44 @@
 
 
-## Plano de Correção — 3 Itens
+## Plano de Correção — 2 Itens
 
-### 1. Bug: editar título do blog não salva
+### 1. Regeneração de artigo ignora dados atualizados do evento
 
-**Causa raiz**: O campo `Categoria` aparece em branco ao editar (visível no screenshot). O componente `Select` usa `defaultValue={post?.category}` mas o react-hook-form não tem `register('category')` — usa apenas `setValue` no `onValueChange`. Quando o post tem uma categoria como "Lançamentos" que NÃO está na lista `CATEGORIES` (`['Eventos', 'Cena SP', 'Festivais', 'História', 'Guias', 'Entrevistas']`), o Select não encontra match e fica em branco. Se o usuário não toca no campo, `data.category` chega como `undefined` ou string vazia, e o update pode falhar ou gravar null.
+**Diagnóstico**: A função `generate-multi-event-article` busca dados frescos do banco (linha 104), então o venue atualizado ("Neo Quimica Arena") está sendo passado no prompt. Porém:
 
-**Correção** em `src/components/blog/BlogForm.tsx`:
-- Usar `Controller` do react-hook-form para o Select (em vez de `onValueChange` manual)
-- Expandir `CATEGORIES` para incluir todas as categorias que existem no banco: adicionar `'Lançamentos'`, `'Produtores'`, `'Tecnologia'`, `'Cultura'`
-- Garantir que o valor default é passado corretamente via Controller
+- **Causa A**: O campo `description` do evento pode conter texto antigo mencionando "Vale do Anhangabaú". A IA lê esse campo e prioriza ele sobre o campo `venue`.
+- **Causa B**: A IA tem conhecimento de treinamento forte sobre "Timewarp São Paulo = Vale do Anhangabaú" e ignora a instrução do prompt.
+- **Causa C**: Na função `generate-blog-post-v2` (evento único), o título antigo do post é passado como `seriesName` (linha 180 do BlogManager), e o título antigo pode conter o local antigo.
 
-### 2. Títulos repetitivos nos posts gerados por IA
+**Correção**:
 
-**Causa raiz**: O prompt em `generate-blog-suggestions/index.ts` (linha 282) pede "Título ÚNICO e atraente" mas não instrui sobre **formato/estrutura** do título. A IA converge para o padrão `"X: como Y faz Z"` repetidamente.
+1. **`supabase/functions/generate-multi-event-article/index.ts`**:
+   - Adicionar instrução explícita no system prompt: "Use EXCLUSIVAMENTE os dados fornecidos. NÃO use conhecimento prévio sobre locais ou datas. Se o local informado difere do que você sabe, USE O INFORMADO."
+   - No `datesInfo`, incluir `venue` e `address` de cada evento individual (hoje só mostra o `commonVenue` do primeiro)
 
-**Correção** em `supabase/functions/generate-blog-suggestions/index.ts`:
-- Adicionar ao prompt instrução explícita de **variação de formato**:
-  - Proibir repetir a estrutura "X: como Y" em mais de 1 título
-  - Sugerir formatos alternativos: pergunta, lista ("5 motivos..."), afirmação direta, provocação, metáfora
-  - Adicionar regra: "Cada título DEVE usar uma estrutura gramatical diferente dos demais"
+2. **`supabase/functions/generate-blog-post-v2/index.ts`**:
+   - Adicionar instrução similar ao system prompt sobre priorizar dados fornecidos sobre conhecimento prévio
 
-### 3. Analytics mostra 0 views em eventos
+3. **`src/pages/admin/BlogManager.tsx`**:
+   - Na regeneração multi-evento, não passar `postTitle` como `seriesName` — usar `event.title` do primeiro evento para evitar título com local antigo
 
-**Causa raiz confirmada**: `EventDetail.tsx` (linha 97) chama `supabase.rpc('increment_event_views')` diretamente — isso incrementa o campo `views` na tabela `events`, MAS **não insere registro na tabela `event_view_events`**. O analytics por período usa `event_view_events` para contar views filtrados por data. Como nenhum registro é inserido lá, o resultado é sempre 0.
+### 2. Espaçamento entre cards do blog
 
-Para comparação, `BlogPost.tsx` chama `supabase.functions.invoke("track-view", { body: { postId } })` que faz AMBOS: incrementa views E insere em `blog_view_events`.
+**Diagnóstico**: A listagem do blog em `Blog.tsx` linha 473 usa `space-y-20` (80px) mas visualmente os cards parecem colados. Olhando o screenshot, o problema é que os cards são `Card` com borda mas sem gap visual forte entre eles. Na página de eventos, cada card tem mais padding e margin natural.
 
-**Correção** em `src/pages/EventDetail.tsx`:
-- Substituir o `supabase.rpc('increment_event_views')` direto por `supabase.functions.invoke("track-view", { body: { eventId: eventData.id } })`
-- A Edge Function `track-view` já suporta `eventId` — ela incrementa views E insere em `event_view_events`
+**Correção** em `src/pages/Blog.tsx`:
+- Trocar `space-y-20` para `space-y-8` (32px) — espaçamento mais equilibrado e visível
+- Adicionar `py-4` ou `p-2` ao wrapper do Link para dar respiro visual
+- Alternativa: usar `gap-8` com `flex flex-col` em vez de `space-y`
+
+Olhando o screenshot novamente: os cards já têm `space-y-20` mas parecem juntos. Provavelmente o `Card` tem bordas finas que se confundem. A solução é:
+- Manter `space-y-12` (48px — bom equilíbrio)
+- Adicionar `border-border/50` e um leve `shadow-md` para destacar cada card individualmente
 
 ### Arquivos a alterar
 
-1. `src/components/blog/BlogForm.tsx` — usar Controller para Select, expandir CATEGORIES
-2. `supabase/functions/generate-blog-suggestions/index.ts` — instruções de variação de formato no prompt
-3. `src/pages/EventDetail.tsx` — trocar rpc direto por chamada a `track-view`
+1. `supabase/functions/generate-multi-event-article/index.ts` — instrução anti-override de dados
+2. `supabase/functions/generate-blog-post-v2/index.ts` — instrução anti-override de dados
+3. `src/pages/admin/BlogManager.tsx` — não reusar título antigo como seriesName
+4. `src/pages/Blog.tsx` — ajustar espaçamento entre cards
 
