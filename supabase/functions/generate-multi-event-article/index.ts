@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
     // Find first available image or use custom
     const existingImageUrl = customImageUrl || events.find(e => e.image_url)?.image_url || null;
 
-    // Build detailed dates info
+    // Build detailed dates info with venue per event
     const datesInfo = events.map(event => {
       const lineupStr = event.lineup && event.lineup.length > 0 
         ? event.lineup.join(', ') 
@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
       
       return `
 📅 ${formatDatePt(event.date)} - ${event.time}
+📍 Local: ${event.venue}${event.address ? `, ${event.address}` : ''} - ${event.location_city}/${event.location_state}
 🎧 Line-up: ${lineupStr}
 ${event.ticket_link ? `🎟️ Ingressos: ${event.ticket_link}` : ''}
 ${event.vip_link ? `💎 VIP/Camarote: ${event.vip_link}` : ''}
