@@ -476,7 +476,7 @@ const Blog = () => {
                     return (
                       <Link to={`/blog/${post.slug}`} key={post.id}>
                           <Card
-                          className="card-hover group cursor-pointer overflow-hidden"
+                          className="card-hover group cursor-pointer overflow-hidden mx-0 py-0 my-[20px]"
                           style={{ animationDelay: `${index * 0.05}s` }}>
                           
                             <div className={`flex flex-row ${isReversed ? "flex-row-reverse" : ""}`}>
