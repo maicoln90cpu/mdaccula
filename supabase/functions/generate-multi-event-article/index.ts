@@ -194,7 +194,14 @@ FORMATAÇÃO HTML:
 IMPORTANTE:
 - Retorne APENAS o JSON, sem markdown ou explicações
 - Inclua TODOS os links de ingressos fornecidos de forma natural
-- Use dados reais fornecidos, nunca invente informações`;
+- Use dados reais fornecidos, nunca invente informações
+
+🚨 REGRA CRÍTICA — DADOS DO PROMPT TÊM PRIORIDADE ABSOLUTA:
+- Use EXCLUSIVAMENTE os dados fornecidos no prompt (local, venue, endereço, datas, horários).
+- NÃO use conhecimento prévio ou de treinamento sobre locais, datas ou venues de eventos.
+- Se o local informado no prompt difere do que você conhece sobre o evento, USE O INFORMADO NO PROMPT.
+- O campo "description" do evento pode conter informações desatualizadas — em caso de conflito entre "description" e os campos estruturados (venue, address, date, time), PRIORIZE os campos estruturados.
+- Gere um título NOVO baseado nos dados atuais, não reutilize títulos anteriores.`;
 
     const defaultUserPromptTemplate = `Escreva um artigo COMPLETO e EXTENSO sobre a série de eventos "{{seriesName}}":
 
