@@ -200,16 +200,24 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
 
           <div className="space-y-2">
             <Label htmlFor="category">Categoria *</Label>
-            <Select onValueChange={(value) => setValue('category', value)} defaultValue={post?.category}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="category"
+              control={control}
+              rules={{ required: 'Categoria é obrigatória' }}
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.category && <span className="text-sm text-destructive">{errors.category.message}</span>}
           </div>
 
           <div className="space-y-2">

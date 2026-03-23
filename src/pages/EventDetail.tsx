@@ -93,8 +93,9 @@ const EventDetail = () => {
 
       setEvent(eventData);
 
-      // Incrementar views
-      await supabase.rpc("increment_event_views", { event_id: eventData.id });
+      // Track view via Edge Function (increments views + inserts event_view_events)
+      supabase.functions.invoke("track-view", { body: { eventId: eventData.id } })
+        .catch((err) => console.error("Error tracking event view:", err));
 
       // Buscar blog post relacionado se existir
       if (eventData.blog_post_id) {
