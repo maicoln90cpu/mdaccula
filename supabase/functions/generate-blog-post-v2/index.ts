@@ -119,49 +119,122 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<{ succe
   }
 }
 
-const DEFAULT_IMAGE_PROMPT = `Crie uma imagem artística e profissional para um artigo sobre música eletrônica.
+// ============= IMAGE STYLE PROMPTS =============
+const IMAGE_STYLE_PROMPTS = [
+  // Estilo 0: Fotorrealista cinematográfico
+  `Crie uma imagem FOTORREALISTA e CINEMATOGRÁFICA para um artigo sobre música eletrônica.
 
-CONTEXTO DO ARTIGO:
-- Título: "{{title}}"
-- Resumo: {{summary}}
-- Categoria: {{category}}
-- Palavras-chave: {{keywords}}
-- Atmosfera desejada: {{mood}}
-- Elementos visuais sugeridos: {{visualElements}}
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
 
-INSTRUÇÕES DE GERAÇÃO:
-1. PRIORIZE os elementos visuais sugeridos se fornecidos
-2. CAPTURE a atmosfera/mood indicada:
-   - energético = cores vibrantes, movimento, dinamismo
-   - introspectivo = tons suaves, profundidade, minimalismo
-   - celebratório = luzes festivas, alegria, multidão animada
-   - underground = escuro, industrial, raw
-   - futurista = neon, tecnologia, sci-fi
-   - experimental = abstrato, texturas únicas, vanguarda
-   - nostálgico = vintage, analógico, retrô
-3. Use as palavras-chave como referência visual principal
-4. A categoria deve influenciar o estilo:
-   - Eventos = palco, luzes, energia de festa
-   - Produtores = estúdio, equipamentos, processo criativo
-   - Tecnologia = futurista, digital, inovação
-   - Cultura = pessoas, movimento, expressão artística
-   - Lançamentos = discos, vinil, arte de capa
-   - Festivais = grande escala, natureza, multidão
+ESTILO OBRIGATÓRIO: Fotorrealismo cinematográfico
+- Profundidade de campo rasa (bokeh)
+- Iluminação dramática com contraste forte (chiaroscuro)
+- Tons quentes e frios em equilíbrio
+- Composição em regra dos terços
+- Aspecto de fotografia editorial de alta moda ou concert photography
+- Referências visuais: Annie Leibovitz, Tim Walker
 
-ESTILO VISUAL:
-- Fotorrealista com elementos artísticos
-- Alta qualidade, cinematográfico
-- Dramático e contrastante
-- Profundidade de campo
+EVITE: imagens genéricas de boates, DJs de costas, multidões genéricas.
+NÃO inclua texto, palavras ou números na imagem.`,
 
-EVITE SEMPRE:
-- Imagens genéricas de boates com luzes neon roxas
-- DJs de costas com fones de ouvido (clichê)
-- Multidões dançando genéricas sem contexto
-- Padrões abstratos desconectados do tema
-- Repetir o mesmo estilo para artigos diferentes
+  // Estilo 1: Neon/Cyberpunk
+  `Crie uma imagem com estética NEON CYBERPUNK para um artigo sobre música eletrônica.
 
-NÃO inclua texto, palavras ou números na imagem.`;
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Arte digital neon/cyberpunk
+- Cores neon vibrantes: magenta, ciano, roxo elétrico, verde neon
+- Gradientes intensos e brilho luminoso (glow effects)
+- Estética futurista urbana, luzes de LED, reflexos em superfícies molhadas
+- Atmosfera noturna com neblina colorida
+- Referências visuais: Blade Runner, Tron, arte de Beeple
+- Composição dinâmica com linhas de luz
+
+EVITE: imagens flat ou sem profundidade, cenas diurnas.
+NÃO inclua texto, palavras ou números na imagem.`,
+
+  // Estilo 2: Ilustração artística / pintura digital
+  `Crie uma ILUSTRAÇÃO ARTÍSTICA estilo pintura digital para um artigo sobre música eletrônica.
+
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Pintura digital / ilustração artística
+- Texturas pictóricas visíveis (como pintura a óleo ou aquarela digital)
+- Paleta de cores expressiva e ousada
+- Pinceladas visíveis que dão energia e movimento
+- Mistura de realismo com elementos abstratos
+- Referências visuais: concept art, arte de álbum, ilustração editorial
+- Composição expressionista com foco emocional
+
+EVITE: fotorrealismo, renderização 3D limpa, imagens flat.
+NÃO inclua texto, palavras ou números na imagem.`,
+
+  // Estilo 3: Minimalista abstrato
+  `Crie uma imagem MINIMALISTA e ABSTRATA para um artigo sobre música eletrônica.
+
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Minimalismo abstrato
+- Formas geométricas limpas e precisas
+- Paleta de cores reduzida (máximo 3-4 cores)
+- Muito espaço negativo e respiração visual
+- Gradientes suaves e transições elegantes
+- Referências visuais: arte de capa da Kompakt, Raster-Noton, design suíço
+- Composição equilibrada e sofisticada
+
+EVITE: excesso de detalhes, fotorrealismo, poluição visual.
+NÃO inclua texto, palavras ou números na imagem.`,
+
+  // Estilo 4: Colagem editorial / mixed media
+  `Crie uma imagem estilo COLAGEM EDITORIAL / MIXED MEDIA para um artigo sobre música eletrônica.
+
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Colagem editorial e mixed media
+- Sobreposição de camadas e texturas diferentes
+- Mistura de fotografia com elementos gráficos e tipográficos
+- Estética de revista, zine ou poster de evento underground
+- Texturas de papel rasgado, grunge, halftone, risograph
+- Referências visuais: David Carson, Neville Brody, posters de rave dos anos 90
+- Composição desconstruída e energética
+
+EVITE: imagens limpas demais, fotorrealismo puro, simetria perfeita.
+NÃO inclua texto, palavras ou números na imagem.`
+];
+
+// Função para selecionar estilo aleatório sem repetir o último
+async function pickRandomStyle(supabase: ReturnType<typeof createClient>): Promise<{ index: number; prompt: string }> {
+  // Buscar último estilo usado
+  const { data: setting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'last_image_style_index')
+    .maybeSingle();
+
+  const lastIndex = parseInt(setting?.value || '-1', 10);
+  
+  // Filtrar o último índice e sortear entre os restantes
+  const availableIndices = IMAGE_STYLE_PROMPTS.map((_, i) => i).filter(i => i !== lastIndex);
+  const nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+  
+  // Salvar novo índice (upsert)
+  await supabase
+    .from('site_settings')
+    .upsert(
+      { key: 'last_image_style_index', value: String(nextIndex), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  console.log(`🎨 Estilo de imagem selecionado: ${nextIndex} (último: ${lastIndex})`);
+  
+  return { index: nextIndex, prompt: IMAGE_STYLE_PROMPTS[nextIndex] };
+}
+// ============= END IMAGE STYLE PROMPTS =============
 
 // Função para substituir variáveis em texto
 function replaceVariables(text: string, fields: Record<string, unknown>): string {
