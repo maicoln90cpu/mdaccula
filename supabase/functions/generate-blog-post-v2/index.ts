@@ -660,7 +660,18 @@ ${hasRealTicketLink
         console.log(`[${Date.now()}] 🎨 Gerando imagem para: ${imageTitle}`);
         console.log(`[${Date.now()}] 📝 Variáveis de imagem: keywords="${imageKeywords}", mood="${imageMood}", visualElements="${imageVisualElements}"`);
         
-        let imagePrompt = imagePromptTemplate
+        // Usar template customizado do banco OU sistema de estilos variados
+        let selectedPromptTemplate: string;
+        if (customImagePrompt) {
+          selectedPromptTemplate = customImagePrompt;
+          console.log('🎨 Usando template customizado de prompt de imagem');
+        } else {
+          const style = await pickRandomStyle(supabase);
+          selectedPromptTemplate = style.prompt;
+          console.log(`🎨 Usando estilo variado #${style.index}`);
+        }
+        
+        let imagePrompt = selectedPromptTemplate
           .replace(/\{\{title\}\}/g, imageTitle)
           .replace(/\{\{summary\}\}/g, imageSummary)
           .replace(/\{\{category\}\}/g, imageCategory)
