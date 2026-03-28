@@ -1,5 +1,79 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// ============= IMAGE STYLE PROMPTS =============
+const IMAGE_STYLE_PROMPTS = [
+  `Crie uma imagem FOTORREALISTA e CINEMATOGRÁFICA para um artigo sobre música eletrônica.
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+ESTILO: Fotorrealismo cinematográfico — profundidade de campo rasa, iluminação dramática, contraste forte, composição em regra dos terços, aspecto editorial.
+EVITE: imagens genéricas de boates, DJs de costas, multidões genéricas. NÃO inclua texto.`,
+
+  `Crie uma imagem com estética NEON CYBERPUNK para um artigo sobre música eletrônica.
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+ESTILO: Neon cyberpunk — cores neon vibrantes, gradientes intensos, estética futurista urbana, atmosfera noturna com neblina colorida, reflexos em superfícies molhadas.
+EVITE: imagens flat, cenas diurnas. NÃO inclua texto.`,
+
+  `Crie uma ILUSTRAÇÃO ARTÍSTICA estilo pintura digital para um artigo sobre música eletrônica.
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+ESTILO: Pintura digital — texturas pictóricas visíveis, paleta expressiva, pinceladas com energia, mistura de realismo com abstração, composição expressionista.
+EVITE: fotorrealismo, renderização 3D limpa. NÃO inclua texto.`,
+
+  `Crie uma imagem MINIMALISTA e ABSTRATA para um artigo sobre música eletrônica.
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+ESTILO: Minimalismo abstrato — formas geométricas limpas, paleta reduzida (3-4 cores), espaço negativo generoso, gradientes suaves, composição sofisticada.
+EVITE: excesso de detalhes, fotorrealismo. NÃO inclua texto.`,
+
+  `Crie uma imagem estilo COLAGEM EDITORIAL / MIXED MEDIA para um artigo sobre música eletrônica.
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+ESTILO: Colagem editorial — sobreposição de camadas e texturas, mistura de fotografia com gráficos, estética de zine underground, texturas grunge/halftone, composição desconstruída.
+EVITE: imagens limpas demais, simetria perfeita. NÃO inclua texto.`
+];
+
+async function pickRandomStyle(supabase: ReturnType<typeof createClient>): Promise<{ index: number; prompt: string }> {
+  const { data: setting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'last_image_style_index')
+    .maybeSingle();
+
+  const lastIndex = parseInt(setting?.value || '-1', 10);
+  const availableIndices = IMAGE_STYLE_PROMPTS.map((_, i) => i).filter(i => i !== lastIndex);
+  const nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+  
+  await supabase
+    .from('site_settings')
+    .upsert(
+      { key: 'last_image_style_index', value: String(nextIndex), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  console.log(`🎨 Estilo de imagem selecionado: ${nextIndex} (último: ${lastIndex})`);
+  return { index: nextIndex, prompt: IMAGE_STYLE_PROMPTS[nextIndex] };
+}
+// ============= END IMAGE STYLE PROMPTS =============
+
+function extractKeywords(content: string): string {
+  if (!content) return '';
+  const stopwords = new Set(['de','da','do','das','dos','em','na','no','nas','nos','para','com','por','que','uma','um','os','as','se','ou','mais']);
+  const words = content.toLowerCase().replace(/<[^>]*>/g,'').replace(/[^\w\sáéíóúâêîôûàèìòùãõç]/g,' ').split(/\s+/).filter(w => w.length > 4 && !stopwords.has(w));
+  const freq: Record<string,number> = {};
+  words.forEach(w => freq[w] = (freq[w]||0)+1);
+  return Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0,5).map(([w]) => w).join(', ');
+}
+
+function inferMood(content: string, title: string): string {
+  const text = (content + ' ' + title).toLowerCase();
+  if (text.includes('festival') || text.includes('celebra')) return 'celebratório';
+  if (text.includes('underground') || text.includes('techno')) return 'underground';
+  if (text.includes('futuro') || text.includes('tecnologia')) return 'futurista';
+  if (text.includes('experimental') || text.includes('vanguarda')) return 'experimental';
+  return 'energético';
+}
+
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -368,15 +442,19 @@ Retorne APENAS o JSON válido.`;
     
     if (generateImage && !finalImageUrl && !isRegeneration && timeForImage > 35000) {
       try {
-        console.log('[generate-multi-event-article] Gerando imagem...');
+        console.log('[generate-multi-event-article] Gerando imagem com estilo variado...');
         
-        const imagePrompt = `Crie uma imagem artística e profissional para um artigo sobre uma série de eventos de música eletrônica chamada "${seriesName}".
-Local: ${commonVenue}, ${commonCity}
-Gêneros: ${allGenres.join(', ')}
-Atmosfera: festa, energia, multidão animada, luzes
-
-Estilo: fotorrealista, cinematográfico, alta qualidade
-NÃO inclua texto na imagem.`;
+        const imgKeywords = extractKeywords(articleData.content || '');
+        const imgMood = inferMood(articleData.content || '', seriesName);
+        const style = await pickRandomStyle(supabase);
+        
+        const imagePrompt = style.prompt
+          .replace(/\{\{title\}\}/g, seriesName)
+          .replace(/\{\{summary\}\}/g, articleData.excerpt || '')
+          .replace(/\{\{category\}\}/g, 'Eventos')
+          .replace(/\{\{keywords\}\}/g, imgKeywords)
+          .replace(/\{\{mood\}\}/g, imgMood)
+          .replace(/\{\{visualElements\}\}/g, `${commonVenue}, ${commonCity}, ${allGenres.join(', ')}`);
 
         const imageResponse = await fetchWithTimeout('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',

@@ -5,28 +5,152 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const DEFAULT_IMAGE_PROMPT = `Crie uma imagem artística e profissional para um artigo sobre música eletrônica.
+// ============= IMAGE STYLE PROMPTS =============
+const IMAGE_STYLE_PROMPTS = [
+  // Estilo 0: Fotorrealista cinematográfico
+  `Crie uma imagem FOTORREALISTA e CINEMATOGRÁFICA para um artigo sobre música eletrônica.
 
-CONTEXTO DO ARTIGO:
-- Título: "{{title}}"
-- Resumo: {{summary}}
-- Categoria: {{category}}
-- Palavras-chave: {{keywords}}
-- Atmosfera desejada: {{mood}}
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
 
-INSTRUÇÕES DE GERAÇÃO:
-1. Use as palavras-chave como referência visual principal
-2. CAPTURE a atmosfera/mood indicada
-3. A categoria deve influenciar o estilo visual
+ESTILO OBRIGATÓRIO: Fotorrealismo cinematográfico
+- Profundidade de campo rasa (bokeh)
+- Iluminação dramática com contraste forte (chiaroscuro)
+- Tons quentes e frios em equilíbrio
+- Composição em regra dos terços
+- Aspecto de fotografia editorial de alta moda ou concert photography
+- Referências visuais: Annie Leibovitz, Tim Walker
 
-ESTILO: Fotorrealista com elementos artísticos, alta qualidade, cinematográfico.
+EVITE: imagens genéricas de boates, DJs de costas, multidões genéricas.
+NÃO inclua texto, palavras ou números na imagem.`,
 
-EVITE: Imagens genéricas de boates, DJs de costas, multidões genéricas.
+  // Estilo 1: Neon/Cyberpunk
+  `Crie uma imagem com estética NEON CYBERPUNK para um artigo sobre música eletrônica.
 
-NÃO inclua texto, palavras ou números na imagem.`;
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Arte digital neon/cyberpunk
+- Cores neon vibrantes: magenta, ciano, roxo elétrico, verde neon
+- Gradientes intensos e brilho luminoso (glow effects)
+- Estética futurista urbana, luzes de LED, reflexos em superfícies molhadas
+- Atmosfera noturna com neblina colorida
+- Referências visuais: Blade Runner, Tron, arte de Beeple
+- Composição dinâmica com linhas de luz
+
+EVITE: imagens flat ou sem profundidade, cenas diurnas.
+NÃO inclua texto, palavras ou números na imagem.`,
+
+  // Estilo 2: Ilustração artística / pintura digital
+  `Crie uma ILUSTRAÇÃO ARTÍSTICA estilo pintura digital para um artigo sobre música eletrônica.
+
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Pintura digital / ilustração artística
+- Texturas pictóricas visíveis (como pintura a óleo ou aquarela digital)
+- Paleta de cores expressiva e ousada
+- Pinceladas visíveis que dão energia e movimento
+- Mistura de realismo com elementos abstratos
+- Referências visuais: concept art, arte de álbum, ilustração editorial
+- Composição expressionista com foco emocional
+
+EVITE: fotorrealismo, renderização 3D limpa, imagens flat.
+NÃO inclua texto, palavras ou números na imagem.`,
+
+  // Estilo 3: Minimalista abstrato
+  `Crie uma imagem MINIMALISTA e ABSTRATA para um artigo sobre música eletrônica.
+
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Minimalismo abstrato
+- Formas geométricas limpas e precisas
+- Paleta de cores reduzida (máximo 3-4 cores)
+- Muito espaço negativo e respiração visual
+- Gradientes suaves e transições elegantes
+- Referências visuais: arte de capa da Kompakt, Raster-Noton, design suíço
+- Composição equilibrada e sofisticada
+
+EVITE: excesso de detalhes, fotorrealismo, poluição visual.
+NÃO inclua texto, palavras ou números na imagem.`,
+
+  // Estilo 4: Colagem editorial / mixed media
+  `Crie uma imagem estilo COLAGEM EDITORIAL / MIXED MEDIA para um artigo sobre música eletrônica.
+
+CONTEXTO: "{{title}}" — {{summary}}
+Categoria: {{category}} | Keywords: {{keywords}} | Mood: {{mood}}
+
+ESTILO OBRIGATÓRIO: Colagem editorial e mixed media
+- Sobreposição de camadas e texturas diferentes
+- Mistura de fotografia com elementos gráficos e tipográficos
+- Estética de revista, zine ou poster de evento underground
+- Texturas de papel rasgado, grunge, halftone, risograph
+- Referências visuais: David Carson, Neville Brody, posters de rave dos anos 90
+- Composição desconstruída e energética
+
+EVITE: imagens limpas demais, fotorrealismo puro, simetria perfeita.
+NÃO inclua texto, palavras ou números na imagem.`
+];
+
+async function pickRandomStyle(supabase: ReturnType<typeof createClient>): Promise<{ index: number; prompt: string }> {
+  const { data: setting } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'last_image_style_index')
+    .maybeSingle();
+
+  const lastIndex = parseInt(setting?.value || '-1', 10);
+  const availableIndices = IMAGE_STYLE_PROMPTS.map((_, i) => i).filter(i => i !== lastIndex);
+  const nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+  
+  await supabase
+    .from('site_settings')
+    .upsert(
+      { key: 'last_image_style_index', value: String(nextIndex), updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    );
+
+  console.log(`🎨 Estilo de imagem selecionado: ${nextIndex} (último: ${lastIndex})`);
+  return { index: nextIndex, prompt: IMAGE_STYLE_PROMPTS[nextIndex] };
+}
+// ============= END IMAGE STYLE PROMPTS =============
+
+const extractKeywords = (content: string): string => {
+  if (!content) return '';
+  const stopwords = new Set([
+    'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'para', 'com', 'por',
+    'que', 'uma', 'um', 'os', 'as', 'se', 'ou', 'mais', 'isso', 'esse', 'essa', 'este',
+    'esta', 'como', 'sua', 'seu', 'seus', 'suas', 'ele', 'ela', 'eles', 'elas', 'foi',
+    'são', 'tem', 'ter', 'será', 'sobre', 'entre', 'quando', 'muito', 'também', 'onde',
+    'the', 'and', 'for', 'with', 'from', 'this', 'that', 'have', 'has', 'are', 'was'
+  ]);
+  const words = content.toLowerCase()
+    .replace(/<[^>]*>/g, '')
+    .replace(/[^\w\sáéíóúâêîôûàèìòùãõç]/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 4 && !stopwords.has(w));
+  const freq: Record<string, number> = {};
+  words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([w]) => w)
+    .join(', ');
+};
+
+const inferMood = (content: string, title: string): string => {
+  const text = (content + ' ' + title).toLowerCase();
+  if (text.includes('festival') || text.includes('celebra') || text.includes('festa')) return 'celebratório';
+  if (text.includes('underground') || text.includes('techno') || text.includes('warehouse')) return 'underground';
+  if (text.includes('futuro') || text.includes('tecnologia') || text.includes('ia') || text.includes('digital')) return 'futurista';
+  if (text.includes('experimental') || text.includes('vanguarda') || text.includes('inovador')) return 'experimental';
+  if (text.includes('clássico') || text.includes('história') || text.includes('vintage')) return 'nostálgico';
+  if (text.includes('meditativo') || text.includes('ambient') || text.includes('chill')) return 'introspectivo';
+  return 'energético';
+};
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -61,7 +185,7 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Buscar o post COM CONTEÚDO para extrair keywords
+    // Buscar o post
     console.log(`📝 Buscando post ${postId}...`);
     const { data: post, error: postError } = await supabase
       .from('blog_posts')
@@ -79,89 +203,53 @@ Deno.serve(async (req) => {
 
     console.log(`📝 Post encontrado: ${post.title}`);
 
-    // Função para extrair palavras-chave do conteúdo
-    const extractKeywords = (content: string): string => {
-      if (!content) return '';
-      
-      // Lista de stopwords em português
-      const stopwords = new Set([
-        'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos', 'para', 'com', 'por',
-        'que', 'uma', 'um', 'os', 'as', 'se', 'ou', 'mais', 'isso', 'esse', 'essa', 'este',
-        'esta', 'como', 'sua', 'seu', 'seus', 'suas', 'ele', 'ela', 'eles', 'elas', 'foi',
-        'são', 'tem', 'ter', 'será', 'sobre', 'entre', 'quando', 'muito', 'também', 'onde',
-        'the', 'and', 'for', 'with', 'from', 'this', 'that', 'have', 'has', 'are', 'was'
-      ]);
-      
-      const words = content.toLowerCase()
-        .replace(/<[^>]*>/g, '') // Remove HTML
-        .replace(/[^\w\sáéíóúâêîôûàèìòùãõç]/g, ' ') // Remove pontuação
-        .split(/\s+/)
-        .filter(w => w.length > 4 && !stopwords.has(w));
-      
-      const freq: Record<string, number> = {};
-      words.forEach(w => freq[w] = (freq[w] || 0) + 1);
-      
-      return Object.entries(freq)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([w]) => w)
-        .join(', ');
-    };
-    
-    // Inferir mood baseado em palavras-chave do conteúdo
-    const inferMood = (content: string, title: string): string => {
-      const text = (content + ' ' + title).toLowerCase();
-      
-      if (text.includes('festival') || text.includes('celebra') || text.includes('festa')) return 'celebratório';
-      if (text.includes('underground') || text.includes('techno') || text.includes('warehouse')) return 'underground';
-      if (text.includes('futuro') || text.includes('tecnologia') || text.includes('ia') || text.includes('digital')) return 'futurista';
-      if (text.includes('experimental') || text.includes('vanguarda') || text.includes('inovador')) return 'experimental';
-      if (text.includes('clássico') || text.includes('história') || text.includes('vintage')) return 'nostálgico';
-      if (text.includes('meditativo') || text.includes('ambient') || text.includes('chill')) return 'introspectivo';
-      
-      return 'energético'; // default para música eletrônica
-    };
-
     const keywords = extractKeywords(post.content || '');
     const mood = inferMood(post.content || '', post.title);
     
     console.log(`🔑 Keywords extraídas: ${keywords}`);
     console.log(`🎭 Mood inferido: ${mood}`);
 
-    // Buscar template de prompt de imagem do banco
-    let imagePromptTemplate = DEFAULT_IMAGE_PROMPT;
-    
+    // Verificar se há template customizado no banco
     const { data: promptSetting } = await supabase
       .from('site_settings')
       .select('value')
       .eq('key', 'ai_image_prompt_template')
       .single();
 
-    if (promptSetting?.value) {
-      imagePromptTemplate = promptSetting.value;
-      console.log('✅ Usando template personalizado de prompt de imagem');
-    } else {
-      console.log('⚠️ Usando template padrão de prompt de imagem');
-    }
+    let imagePrompt: string;
 
-    // Construir prompt da imagem com todas as variáveis
-    const imagePrompt = imagePromptTemplate
-      .replace(/\{\{title\}\}/g, post.title)
-      .replace(/\{title\}/g, post.title)
-      .replace(/\{\{summary\}\}/g, post.excerpt || '')
-      .replace(/\{summary\}/g, post.excerpt || '')
-      .replace(/\{\{category\}\}/g, post.category || 'Música Eletrônica')
-      .replace(/\{category\}/g, post.category || 'Música Eletrônica')
-      .replace(/\{\{keywords\}\}/g, keywords)
-      .replace(/\{keywords\}/g, keywords)
-      .replace(/\{\{mood\}\}/g, mood)
-      .replace(/\{mood\}/g, mood)
-      .replace(/\{\{visualElements\}\}/g, '')
-      .replace(/\{visualElements\}/g, '');
+    if (promptSetting?.value) {
+      // Usar template customizado
+      console.log('✅ Usando template personalizado de prompt de imagem');
+      imagePrompt = promptSetting.value
+        .replace(/\{\{title\}\}/g, post.title)
+        .replace(/\{title\}/g, post.title)
+        .replace(/\{\{summary\}\}/g, post.excerpt || '')
+        .replace(/\{summary\}/g, post.excerpt || '')
+        .replace(/\{\{category\}\}/g, post.category || 'Música Eletrônica')
+        .replace(/\{category\}/g, post.category || 'Música Eletrônica')
+        .replace(/\{\{keywords\}\}/g, keywords)
+        .replace(/\{keywords\}/g, keywords)
+        .replace(/\{\{mood\}\}/g, mood)
+        .replace(/\{mood\}/g, mood)
+        .replace(/\{\{visualElements\}\}/g, '')
+        .replace(/\{visualElements\}/g, '');
+    } else {
+      // Usar sistema de estilos variados
+      const style = await pickRandomStyle(supabase);
+      console.log(`🎨 Usando estilo variado #${style.index}`);
+      imagePrompt = style.prompt
+        .replace(/\{\{title\}\}/g, post.title)
+        .replace(/\{\{summary\}\}/g, post.excerpt || '')
+        .replace(/\{\{category\}\}/g, post.category || 'Música Eletrônica')
+        .replace(/\{\{keywords\}\}/g, keywords)
+        .replace(/\{\{mood\}\}/g, mood)
+        .replace(/\{\{visualElements\}\}/g, '');
+    }
 
     console.log(`🎨 Gerando imagem com prompt: ${imagePrompt.substring(0, 200)}...`);
 
-    // Gerar imagem usando Nano Banana
+    // Gerar imagem
     const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -187,7 +275,6 @@ Deno.serve(async (req) => {
     const imageData = await imageResponse.json();
     console.log('📸 Resposta da API de imagem recebida');
 
-    // Extrair imagem base64
     const imageBase64 = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     
     if (!imageBase64) {
@@ -204,7 +291,6 @@ Deno.serve(async (req) => {
     const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
     
-    // Detect actual format from magic bytes
     let fileExt = 'png';
     let contentType = 'image/png';
     if (imageBytes.length > 12) {
@@ -251,7 +337,6 @@ Deno.serve(async (req) => {
     const publicUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
     console.log(`✅ URL pública: ${publicUrl}`);
 
-    // Atualizar o post com a nova imagem
     const { error: updateError } = await supabase
       .from('blog_posts')
       .update({ image_url: publicUrl, updated_at: new Date().toISOString() })
