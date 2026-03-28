@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
 
     const selectedModel = settingsMap['ai_blog_model'] || 'google/gemini-2.5-flash';
     const temperature = parseFloat(settingsMap['ai_temperature'] || '0.9');
-    const imagePromptTemplate = settingsMap['ai_image_prompt_template'] || DEFAULT_IMAGE_PROMPT;
+    const customImagePrompt = settingsMap['ai_image_prompt_template'] || '';
     const maxScrapeSources = parseInt(settingsMap['ai_max_scrape_sources'] || '2');
     const maxArticleLength = parseInt(settingsMap['ai_max_article_length'] || '5000');
 
