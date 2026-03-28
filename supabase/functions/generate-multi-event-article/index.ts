@@ -442,15 +442,19 @@ Retorne APENAS o JSON válido.`;
     
     if (generateImage && !finalImageUrl && !isRegeneration && timeForImage > 35000) {
       try {
-        console.log('[generate-multi-event-article] Gerando imagem...');
+        console.log('[generate-multi-event-article] Gerando imagem com estilo variado...');
         
-        const imagePrompt = `Crie uma imagem artística e profissional para um artigo sobre uma série de eventos de música eletrônica chamada "${seriesName}".
-Local: ${commonVenue}, ${commonCity}
-Gêneros: ${allGenres.join(', ')}
-Atmosfera: festa, energia, multidão animada, luzes
-
-Estilo: fotorrealista, cinematográfico, alta qualidade
-NÃO inclua texto na imagem.`;
+        const imgKeywords = extractKeywords(articleData.content || '');
+        const imgMood = inferMood(articleData.content || '', seriesName);
+        const style = await pickRandomStyle(supabase);
+        
+        const imagePrompt = style.prompt
+          .replace(/\{\{title\}\}/g, seriesName)
+          .replace(/\{\{summary\}\}/g, articleData.excerpt || '')
+          .replace(/\{\{category\}\}/g, 'Eventos')
+          .replace(/\{\{keywords\}\}/g, imgKeywords)
+          .replace(/\{\{mood\}\}/g, imgMood)
+          .replace(/\{\{visualElements\}\}/g, `${commonVenue}, ${commonCity}, ${allGenres.join(', ')}`);
 
         const imageResponse = await fetchWithTimeout('https://ai.gateway.lovable.dev/v1/chat/completions', {
           method: 'POST',
