@@ -238,7 +238,9 @@ Deno.serve(async (req) => {
       // Usar sistema de estilos variados
       const style = await pickRandomStyle(supabase);
       console.log(`🎨 Usando estilo variado #${style.index}`);
-      imagePrompt = style.prompt
+      imagePrompt = promptSetting?.value 
+        ? imagePrompt // já foi definido acima
+        : style.prompt
         .replace(/\{\{title\}\}/g, post.title)
         .replace(/\{\{summary\}\}/g, post.excerpt || '')
         .replace(/\{\{category\}\}/g, post.category || 'Música Eletrônica')
@@ -249,63 +251,6 @@ Deno.serve(async (req) => {
 
     console.log(`🎨 Gerando imagem com prompt: ${imagePrompt.substring(0, 200)}...`);
 
-    // Gerar imagem
-    const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image',
-        messages: [{ role: 'user', content: imagePrompt }],
-        modalities: ['image', 'text']
-      })
-    });
-
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error('Erro na API de imagem:', errorText);
-      return new Response(
-        JSON.stringify({ error: 'Erro ao gerar imagem', details: errorText }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const imageData = await imageResponse.json();
-    console.log('📸 Resposta da API de imagem recebida');
-
-    const imageBase64 = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
-    if (!imageBase64) {
-      console.error('Sem imagem na resposta:', JSON.stringify(imageData).substring(0, 500));
-      return new Response(
-        JSON.stringify({ error: 'Nenhuma imagem gerada pela IA' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('✅ Imagem base64 extraída com sucesso');
-
-    // Converter base64 para buffer e detectar formato real
-    const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-    
-    let fileExt = 'png';
-    let contentType = 'image/png';
-    if (imageBytes.length > 12) {
-      if (imageBytes[0] === 0x52 && imageBytes[1] === 0x49 && imageBytes[2] === 0x46 && imageBytes[3] === 0x46 &&
-          imageBytes[8] === 0x57 && imageBytes[9] === 0x45 && imageBytes[10] === 0x42 && imageBytes[11] === 0x50) {
-        fileExt = 'webp'; contentType = 'image/webp';
-      } else if (imageBytes[0] === 0xFF && imageBytes[1] === 0xD8) {
-        fileExt = 'jpg'; contentType = 'image/jpeg';
-      }
-    }
-    
-    const fileName = `blog-${postId}-${Date.now()}.${fileExt}`;
-    
-    console.log(`📤 Fazendo upload da imagem para Bunny: ${fileName} (${contentType})`);
-    
     const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
     if (!BUNNY_STORAGE_API_KEY) {
       return new Response(
@@ -314,28 +259,111 @@ Deno.serve(async (req) => {
       );
     }
 
-    const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
-    const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
-    const uploadResp = await fetch(bunnyUploadUrl, {
-      method: 'PUT',
-      headers: {
-        AccessKey: BUNNY_STORAGE_API_KEY,
-        'Content-Type': contentType,
-      },
-      body: imageBytes,
-    });
+    // Retry loop: até 2 tentativas com estilo diferente
+    const MAX_ATTEMPTS = 2;
+    let publicUrl: string | null = null;
 
-    if (!uploadResp.ok) {
-      const errText = await uploadResp.text();
-      console.error('Erro no upload Bunny:', errText);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      // Na segunda tentativa, trocar o estilo (se não for template customizado)
+      if (attempt > 1 && !promptSetting?.value) {
+        console.log(`🔄 Tentativa ${attempt}: selecionando novo estilo...`);
+        const newStyle = await pickRandomStyle(supabase);
+        imagePrompt = newStyle.prompt
+          .replace(/\{\{title\}\}/g, post.title)
+          .replace(/\{\{summary\}\}/g, post.excerpt || '')
+          .replace(/\{\{category\}\}/g, post.category || 'Música Eletrônica')
+          .replace(/\{\{keywords\}\}/g, keywords)
+          .replace(/\{\{mood\}\}/g, mood)
+          .replace(/\{\{visualElements\}\}/g, '');
+        console.log(`🎨 Novo estilo #${newStyle.index}`);
+      }
+
+      try {
+        const imageResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash-image',
+            messages: [{ role: 'user', content: imagePrompt }],
+            modalities: ['image', 'text']
+          })
+        });
+
+        if (!imageResponse.ok) {
+          console.error(`❌ Tentativa ${attempt}: API retornou status ${imageResponse.status}`);
+          continue;
+        }
+
+        const imageData = await imageResponse.json();
+        const imageBase64 = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+        
+        if (!imageBase64) {
+          console.error(`❌ Tentativa ${attempt}: Sem imagem na resposta`);
+          continue;
+        }
+
+        // Validar tamanho mínimo
+        const base64Data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        if (base64Data.length < 1024) {
+          console.error(`❌ Tentativa ${attempt}: Base64 muito pequeno (${base64Data.length} chars)`);
+          continue;
+        }
+
+        const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
+        if (imageBytes.length < 1024) {
+          console.error(`❌ Tentativa ${attempt}: Buffer muito pequeno (${imageBytes.length} bytes)`);
+          continue;
+        }
+
+        console.log(`✅ Tentativa ${attempt}: Imagem válida (${imageBytes.length} bytes)`);
+
+        let fileExt = 'png';
+        let contentType = 'image/png';
+        if (imageBytes.length > 12) {
+          if (imageBytes[0] === 0x52 && imageBytes[1] === 0x49 && imageBytes[2] === 0x46 && imageBytes[3] === 0x46 &&
+              imageBytes[8] === 0x57 && imageBytes[9] === 0x45 && imageBytes[10] === 0x42 && imageBytes[11] === 0x50) {
+            fileExt = 'webp'; contentType = 'image/webp';
+          } else if (imageBytes[0] === 0xFF && imageBytes[1] === 0xD8) {
+            fileExt = 'jpg'; contentType = 'image/jpeg';
+          }
+        }
+        
+        const fileName = `blog-${postId}-${Date.now()}.${fileExt}`;
+        
+        const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
+        const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
+        const uploadResp = await fetch(bunnyUploadUrl, {
+          method: 'PUT',
+          headers: {
+            AccessKey: BUNNY_STORAGE_API_KEY,
+            'Content-Type': contentType,
+          },
+          body: imageBytes,
+        });
+
+        if (!uploadResp.ok) {
+          console.error(`❌ Tentativa ${attempt}: Erro no upload Bunny:`, await uploadResp.text());
+          continue;
+        }
+
+        publicUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
+        console.log(`✅ Tentativa ${attempt}: Upload concluído — ${publicUrl}`);
+        break; // Sucesso!
+      } catch (attemptError) {
+        console.error(`❌ Tentativa ${attempt}: Erro:`, attemptError);
+      }
+    }
+
+    if (!publicUrl) {
       return new Response(
-        JSON.stringify({ error: 'Erro ao fazer upload da imagem', details: errText }),
+        JSON.stringify({ error: `Falha ao gerar imagem após ${MAX_ATTEMPTS} tentativas` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    const publicUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
-    console.log(`✅ URL pública: ${publicUrl}`);
 
     const { error: updateError } = await supabase
       .from('blog_posts')

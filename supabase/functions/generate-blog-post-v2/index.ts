@@ -649,124 +649,152 @@ ${hasRealTicketLink
     console.log(`📸 Condições detalhadas: generateImage=${generateImage}, hasUrl=${!!generatedImageUrl}, timeOk=${timeForImage > IMAGE_TIME_THRESHOLD}, hasKey=${!!LOVABLE_API_KEY}`);
     
     if (generateImage && !generatedImageUrl && timeForImage > IMAGE_TIME_THRESHOLD && LOVABLE_API_KEY) {
-      try {
-        const imageTitle = eventData.title || formFields.title;
-        const imageSummary = eventData.excerpt || formFields.summary || '';
-        const imageCategory = eventData.category || formFields.category || 'Música Eletrônica';
-        const imageKeywords = extractKeywords(eventData.content || '');
-        const imageMood = inferMood(eventData.content || '', imageTitle);
-        const imageVisualElements = `${imageTitle}, ${imageCategory}, ${imageSummary}`.substring(0, 200);
-        
-        console.log(`[${Date.now()}] 🎨 Gerando imagem para: ${imageTitle}`);
-        console.log(`[${Date.now()}] 📝 Variáveis de imagem: keywords="${imageKeywords}", mood="${imageMood}", visualElements="${imageVisualElements}"`);
-        
-        // Usar template customizado do banco OU sistema de estilos variados
-        let selectedPromptTemplate: string;
-        if (customImagePrompt) {
-          selectedPromptTemplate = customImagePrompt;
-          console.log('🎨 Usando template customizado de prompt de imagem');
-        } else {
-          const style = await pickRandomStyle(supabase);
-          selectedPromptTemplate = style.prompt;
-          console.log(`🎨 Usando estilo variado #${style.index}`);
+      const imageTitle = eventData.title || formFields.title;
+      const imageSummary = eventData.excerpt || formFields.summary || '';
+      const imageCategory = eventData.category || formFields.category || 'Música Eletrônica';
+      const imageKeywords = extractKeywords(eventData.content || '');
+      const imageMood = inferMood(eventData.content || '', imageTitle);
+      const imageVisualElements = `${imageTitle}, ${imageCategory}, ${imageSummary}`.substring(0, 200);
+      
+      const MAX_IMAGE_ATTEMPTS = 2;
+      for (let attempt = 1; attempt <= MAX_IMAGE_ATTEMPTS; attempt++) {
+        // Verificar se ainda há tempo
+        const attemptTimeRemaining = FUNCTION_TIMEOUT_MS - (Date.now() - startTime);
+        if (attemptTimeRemaining < 20000) {
+          console.log(`⏱️ Tempo insuficiente para tentativa ${attempt} de imagem (${attemptTimeRemaining}ms restantes)`);
+          break;
         }
-        
-        let imagePrompt = selectedPromptTemplate
-          .replace(/\{\{title\}\}/g, imageTitle)
-          .replace(/\{\{summary\}\}/g, imageSummary)
-          .replace(/\{\{category\}\}/g, imageCategory)
-          .replace(/\{\{keywords\}\}/g, imageKeywords)
-          .replace(/\{\{mood\}\}/g, imageMood)
-          .replace(/\{\{visualElements\}\}/g, imageVisualElements);
-        
-        console.log('Prompt de imagem:', imagePrompt.substring(0, 500) + '...');
-        
-        const imageResponse = await fetchWithTimeout('https://ai.gateway.lovable.dev/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-image',
-            messages: [{ role: 'user', content: imagePrompt }],
-            modalities: ['image', 'text']
-          })
-        }, Math.min(30000, timeForImage - 5000)); // dynamic timeout, max 30s for image
 
-        if (imageResponse.ok) {
+        try {
+          console.log(`[${Date.now()}] 🎨 Tentativa ${attempt}/${MAX_IMAGE_ATTEMPTS} de geração de imagem para: ${imageTitle}`);
+          
+          // Usar template customizado do banco OU sistema de estilos variados
+          let selectedPromptTemplate: string;
+          if (customImagePrompt) {
+            selectedPromptTemplate = customImagePrompt;
+            console.log('🎨 Usando template customizado de prompt de imagem');
+          } else {
+            const style = await pickRandomStyle(supabase);
+            selectedPromptTemplate = style.prompt;
+            console.log(`🎨 Usando estilo variado #${style.index}`);
+          }
+          
+          let imagePrompt = selectedPromptTemplate
+            .replace(/\{\{title\}\}/g, imageTitle)
+            .replace(/\{\{summary\}\}/g, imageSummary)
+            .replace(/\{\{category\}\}/g, imageCategory)
+            .replace(/\{\{keywords\}\}/g, imageKeywords)
+            .replace(/\{\{mood\}\}/g, imageMood)
+            .replace(/\{\{visualElements\}\}/g, imageVisualElements);
+          
+          console.log('Prompt de imagem:', imagePrompt.substring(0, 300) + '...');
+          
+          const imageTimeout = Math.min(30000, attemptTimeRemaining - 8000);
+          const imageResponse = await fetchWithTimeout('https://ai.gateway.lovable.dev/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'google/gemini-2.5-flash-image',
+              messages: [{ role: 'user', content: imagePrompt }],
+              modalities: ['image', 'text']
+            })
+          }, imageTimeout);
+
+          if (!imageResponse.ok) {
+            console.error(`[${Date.now()}] ❌ Tentativa ${attempt}: API retornou status ${imageResponse.status}`);
+            continue;
+          }
+
           const imageData = await imageResponse.json();
           const base64Image = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
           
           if (imageData.usage) {
             imageTokensUsed = imageData.usage.total_tokens || 0;
-            console.log(`Tokens de imagem usados: ${imageTokensUsed}`);
           }
           
-          if (base64Image) {
-            console.log(`[${Date.now()}] ✅ Imagem gerada com sucesso, convertendo para WebP...`);
-            
-            const base64Data = base64Image.split(',')[1];
-            const pngBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-            
-            let finalBuffer: Uint8Array;
-            let fileExt = 'png';
-            let contentType = 'image/png';
-            try {
-              const image = await Image.decode(pngBuffer);
-              const maxDimension = 1024;
-              if (image.width > maxDimension || image.height > maxDimension) {
-                const scale = maxDimension / Math.max(image.width, image.height);
-                const newWidth = Math.round(image.width * scale);
-                const newHeight = Math.round(image.height * scale);
-                image.resize(newWidth, newHeight);
-                console.log(`Imagem redimensionada para ${newWidth}x${newHeight}`);
-              }
-              finalBuffer = await image.encodeWEBP(85);
-              fileExt = 'webp';
-              contentType = 'image/webp';
-              console.log(`Conversão WebP: ${pngBuffer.length} -> ${finalBuffer.length} bytes (${((1 - finalBuffer.length / pngBuffer.length) * 100).toFixed(1)}% menor)`);
-            } catch (conversionError) {
-              console.error('Erro na conversão WebP, usando PNG original:', conversionError);
-              finalBuffer = pngBuffer;
-              fileExt = 'png';
-              contentType = 'image/png';
-            }
-            
-            const fileName = `ai-generated-${Date.now()}.${fileExt}`;
-            
-            const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
-            if (BUNNY_STORAGE_API_KEY) {
-              const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
-              const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
-              const uploadResp = await fetch(bunnyUploadUrl, {
-                method: 'PUT',
-                headers: {
-                  AccessKey: BUNNY_STORAGE_API_KEY,
-                  'Content-Type': contentType,
-                },
-                body: finalBuffer,
-              });
-
-              if (uploadResp.ok) {
-                generatedImageUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
-                console.log(`[${Date.now()}] ✅ Upload Bunny concluído: ${generatedImageUrl}`);
-              } else {
-                console.error(`[${Date.now()}] ❌ Erro no upload Bunny:`, await uploadResp.text());
-              }
-            } else {
-              console.error(`[${Date.now()}] ❌ BUNNY_STORAGE_API_KEY não configurada`);
-            }
+          if (!base64Image) {
+            console.error(`[${Date.now()}] ❌ Tentativa ${attempt}: Sem base64 na resposta`);
+            continue;
           }
-        } else {
-          console.error(`[${Date.now()}] ❌ Erro ao gerar imagem:`, imageResponse.status);
+
+          // Validar tamanho mínimo do base64 (imagens reais > 1KB)
+          const base64Data = base64Image.split(',')[1];
+          if (!base64Data || base64Data.length < 1024) {
+            console.error(`[${Date.now()}] ❌ Tentativa ${attempt}: Base64 muito pequeno (${base64Data?.length || 0} chars) — imagem provavelmente inválida`);
+            continue;
+          }
+
+          const pngBuffer = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+          
+          if (pngBuffer.length < 1024) {
+            console.error(`[${Date.now()}] ❌ Tentativa ${attempt}: Buffer de imagem muito pequeno (${pngBuffer.length} bytes)`);
+            continue;
+          }
+
+          console.log(`[${Date.now()}] ✅ Tentativa ${attempt}: Imagem válida (${pngBuffer.length} bytes), convertendo para WebP...`);
+          
+          let finalBuffer: Uint8Array;
+          let fileExt = 'png';
+          let contentType = 'image/png';
+          try {
+            const image = await Image.decode(pngBuffer);
+            const maxDimension = 1024;
+            if (image.width > maxDimension || image.height > maxDimension) {
+              const scale = maxDimension / Math.max(image.width, image.height);
+              const newWidth = Math.round(image.width * scale);
+              const newHeight = Math.round(image.height * scale);
+              image.resize(newWidth, newHeight);
+              console.log(`Imagem redimensionada para ${newWidth}x${newHeight}`);
+            }
+            finalBuffer = await image.encodeWEBP(85);
+            fileExt = 'webp';
+            contentType = 'image/webp';
+            console.log(`Conversão WebP: ${pngBuffer.length} -> ${finalBuffer.length} bytes`);
+          } catch (conversionError) {
+            console.error('Erro na conversão WebP, usando PNG original:', conversionError);
+            finalBuffer = pngBuffer;
+          }
+          
+          const fileName = `ai-generated-${Date.now()}.${fileExt}`;
+          
+          const BUNNY_STORAGE_API_KEY = Deno.env.get('BUNNY_STORAGE_API_KEY')?.trim()?.replace(/^["']|["']$/g, '')?.replace(/[^\x20-\x7E]/g, '');
+          if (BUNNY_STORAGE_API_KEY) {
+            const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
+            const bunnyUploadUrl = `https://${bunnyHostname}/mdaccula/event-images/${fileName}`;
+            const uploadResp = await fetch(bunnyUploadUrl, {
+              method: 'PUT',
+              headers: {
+                AccessKey: BUNNY_STORAGE_API_KEY,
+                'Content-Type': contentType,
+              },
+              body: finalBuffer,
+            });
+
+            if (uploadResp.ok) {
+              generatedImageUrl = `https://mdaccula.b-cdn.net/event-images/${fileName}`;
+              console.log(`[${Date.now()}] ✅ Upload Bunny concluído: ${generatedImageUrl}`);
+              break; // Sucesso! Sair do loop
+            } else {
+              console.error(`[${Date.now()}] ❌ Tentativa ${attempt}: Erro no upload Bunny:`, await uploadResp.text());
+            }
+          } else {
+            console.error(`[${Date.now()}] ❌ BUNNY_STORAGE_API_KEY não configurada`);
+            break; // Sem chave, não adianta retry
+          }
+        } catch (imageError) {
+          if (imageError instanceof Error && imageError.name === 'AbortError') {
+            console.log(`⏱️ Tentativa ${attempt}: Timeout na geração de imagem`);
+          } else {
+            console.error(`[${Date.now()}] ❌ Tentativa ${attempt}: Erro:`, imageError);
+          }
         }
-      } catch (imageError) {
-        if (imageError instanceof Error && imageError.name === 'AbortError') {
-          console.log('Image generation timed out, continuing without image');
-        } else {
-          console.error(`[${Date.now()}] ❌ Erro na geração de imagem:`, imageError);
-        }
+      }
+
+      if (!generatedImageUrl) {
+        console.warn(`⚠️ Todas as ${MAX_IMAGE_ATTEMPTS} tentativas de geração de imagem falharam. Post será salvo sem imagem.`);
       }
     }
 
