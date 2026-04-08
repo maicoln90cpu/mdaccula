@@ -159,7 +159,9 @@ const Blog = () => {
   const { data: blogData, isLoading } = useQuery({
     queryKey: ["blog-posts", currentPage, selectedCategory, debouncedSearch],
     queryFn: () => fetchBlogPostsWithFeatured(currentPage, selectedCategory, debouncedSearch),
-    staleTime: 2 * 60 * 1000 // 2 minutes cache
+    staleTime: 10 * 60 * 1000, // 10 min cache
+    gcTime: 20 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const posts = blogData?.posts || [];

@@ -1,21 +1,22 @@
 // ============================================
-// MDAccula Service Worker v8
+// MDAccula Service Worker v9
 // Cache First with TTL for APIs + Edge Caching
+// Optimized TTLs for egress reduction
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v8';
+const CACHE_VERSION = 'v9';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
 const API_CACHE = `mdaccula-api-${CACHE_VERSION}`;
 
-// TTL per API path (in milliseconds)
+// TTL per API path (in milliseconds) — aggressive caching
 const API_TTL = {
-  '/rest/v1/site_settings': 15 * 60 * 1000,  // 15 min (rarely changes)
-  '/rest/v1/events': 5 * 60 * 1000,           // 5 min
-  '/rest/v1/blog_posts': 5 * 60 * 1000,       // 5 min
-  '/rest/v1/link_groups': 2 * 60 * 1000,      // 2 min (changes more often)
+  '/rest/v1/site_settings': 60 * 60 * 1000,   // 60 min (very rarely changes)
+  '/rest/v1/events': 30 * 60 * 1000,           // 30 min
+  '/rest/v1/blog_posts': 30 * 60 * 1000,       // 30 min
+  '/rest/v1/link_groups': 15 * 60 * 1000,      // 15 min
 };
 
 const PRECACHE_URLS = ['/', '/offline.html'];
@@ -75,7 +76,7 @@ const getApiTTL = (url) => {
   for (const [path, ttl] of Object.entries(API_TTL)) {
     if (url.pathname.includes(path)) return ttl;
   }
-  return 2 * 60 * 1000; // default 2 min
+  return 15 * 60 * 1000; // default 15 min
 };
 
 // Check if request should bypass cache entirely
@@ -114,8 +115,6 @@ const cacheFirst = async (request, cacheName) => {
 };
 
 // Strategy: Cache First with TTL
-// Serves from cache if fresh, otherwise fetches from network.
-// If cache is stale but network fails, still serves stale cache.
 const cacheFirstWithTTL = async (request, cacheName, ttl) => {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
@@ -125,7 +124,6 @@ const cacheFirstWithTTL = async (request, cacheName, ttl) => {
     const age = cachedDate ? Date.now() - parseInt(cachedDate, 10) : Infinity;
     
     if (age < ttl) {
-      // Cache is fresh — serve it, no network call
       return cachedResponse;
     }
     
@@ -143,7 +141,7 @@ const cacheFirstWithTTL = async (request, cacheName, ttl) => {
         cache.put(request, timedResponse);
         return networkResponse;
       }
-      return cachedResponse; // network returned non-200, use stale
+      return cachedResponse;
     } catch (error) {
       console.log('[SW] Network failed, serving stale cache:', request.url);
       return cachedResponse;

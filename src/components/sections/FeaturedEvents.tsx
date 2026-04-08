@@ -1,55 +1,18 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Users, Loader2 } from "lucide-react";
+import { Calendar, MapPin, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { parseLocalDate } from "@/lib/utils";
-import { isEventVisible } from "@/lib/eventDateHelper";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useEvents } from "@/hooks/useEvents";
 
 const FeaturedEvents = () => {
-  const { settings } = useSiteSettings();
+  const { events, isLoading, isError } = useEvents();
   
-  const { data: events, isLoading, error } = useQuery({
-    queryKey: ['featured-events', settings?.event_grace_hours, settings?.timezone_offset],
-    queryFn: async () => {
-      const graceHours = parseInt(settings?.event_grace_hours || "6");
-      const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
-      
-      // Filter server-side: only future/active events
-      const today = new Date();
-      today.setDate(today.getDate() - 1); // 1 day grace
-      const dateFilter = today.toISOString().split('T')[0];
-      
-      const { data, error } = await supabase
-        .from('events')
-        .select('id, title, subtitle, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views')
-        .gte('date', dateFilter)
-        .order('date', { ascending: true })
-        .limit(10);
-
-      if (error) throw error;
-      
-      // Filtrar eventos usando a nova lógica de visibilidade
-      const visibleEvents = (data || []).filter(event => 
-        isEventVisible(
-          { date: event.date, time: event.time, end_time: event.end_time },
-          { graceHours, timezoneOffset }
-        )
-      );
-      
-      // Retornar apenas os 3 primeiros após filtrar
-      return visibleEvents.slice(0, 3);
-    },
-    enabled: !!settings,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  });
+  // Pegar apenas os 3 primeiros do hook compartilhado
+  const featuredEvents = events.slice(0, 3);
 
   if (isLoading) {
     return (
@@ -76,7 +39,7 @@ const FeaturedEvents = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <section className="py-12 bg-darker-surface">
         <div className="container mx-auto px-4 text-center">
@@ -84,11 +47,6 @@ const FeaturedEvents = () => {
         </div>
       </section>
     );
-  }
-
-  // Aguarda dados carregarem
-  if (!events) {
-    return null;
   }
 
   return (
@@ -104,7 +62,7 @@ const FeaturedEvents = () => {
             </p>
           </div>
 
-          {events.length === 0 ? (
+          {featuredEvents.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-muted-foreground text-lg">
                 Nenhum evento próximo no momento. Fique ligado para novidades!
@@ -115,7 +73,7 @@ const FeaturedEvents = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {events.map((event, index) => (
+              {featuredEvents.map((event, index) => (
                 <Card key={event.id} className="card-hover overflow-hidden">
                   <div className="relative aspect-video overflow-hidden">
                     <OptimizedImage

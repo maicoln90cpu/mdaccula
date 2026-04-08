@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
@@ -18,7 +19,6 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ShareButtons } from "@/components/ShareButtons";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
 import { Helmet } from "react-helmet-async";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 
@@ -56,94 +56,81 @@ interface BlogPost {
 const EventDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [event, setEvent] = useState<Event | null>(null);
-  const [relatedPost, setRelatedPost] = useState<BlogPost | null>(null);
-  const [relatedEvents, setRelatedEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (slug) {
-      fetchEventData();
-    }
-  }, [slug]);
-
-  const fetchEventData = async () => {
-    try {
-      setLoading(true);
-
-      // Buscar evento pelo slug
-      const { data: eventData, error: eventError } = await supabase
+  // Main event query
+  const { data: event, isLoading, error } = useQuery({
+    queryKey: ["event-detail", slug],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("events")
         .select("*")
         .eq("slug", slug)
         .maybeSingle();
+      if (error) throw error;
+      return data as Event | null;
+    },
+    enabled: !!slug,
+    staleTime: 15 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-      if (eventError) throw eventError;
+  // Related blog post query
+  const { data: relatedPost } = useQuery({
+    queryKey: ["event-related-post", event?.blog_post_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("blog_posts")
+        .select("id, title, slug, excerpt, image_url, category, published_at")
+        .eq("id", event!.blog_post_id!)
+        .eq("published", true)
+        .maybeSingle();
+      return data as BlogPost | null;
+    },
+    enabled: !!event?.blog_post_id,
+    staleTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-      if (!eventData) {
-        toast({
-          title: "Evento não encontrado",
-          description: "O evento que você procura não existe.",
-          variant: "destructive",
-        });
-        navigate("/eventos");
-        return;
-      }
-
-      setEvent(eventData);
-
-      // Track view via Edge Function (increments views + inserts event_view_events)
-      supabase.functions.invoke("track-view", { body: { eventId: eventData.id } })
-        .catch((err) => console.error("Error tracking event view:", err));
-
-      // Buscar blog post relacionado se existir
-      if (eventData.blog_post_id) {
-        const { data: postData } = await supabase
-          .from("blog_posts")
-          .select("id, title, slug, excerpt, image_url, category, published_at")
-          .eq("id", eventData.blog_post_id)
-          .eq("published", true)
-          .maybeSingle();
-
-        if (postData) {
-          setRelatedPost(postData);
-        }
-      }
-
-      // Buscar eventos relacionados (mesmos gêneros, excluindo o atual)
-      const { data: relatedData } = await supabase
+  // Related events query
+  const { data: relatedEvents = [] } = useQuery({
+    queryKey: ["event-related-events", event?.id, event?.genres],
+    queryFn: async () => {
+      const { data } = await supabase
         .from("events")
         .select("id, title, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, description, image_url, ticket_link, vip_link, blog_post_id, views, created_at")
-        .overlaps("genres", eventData.genres)
-        .neq("id", eventData.id)
+        .overlaps("genres", event!.genres)
+        .neq("id", event!.id)
         .gte("date", new Date().toISOString().split("T")[0])
         .order("date", { ascending: true })
         .limit(5);
 
-      if (relatedData) {
-        // Filtrar eventos - só ocultar 24h após o horário de início
-        const now = new Date();
-        const futureRelatedEvents = relatedData.filter(event => {
-          const eventDateTime = parseLocalDateTime(event.date, event.time);
-          const eventEndTime = addHours(eventDateTime, 24);
-          return eventEndTime > now;
-        });
-        
-        setRelatedEvents(futureRelatedEvents.slice(0, 3));
-      }
-    } catch (error) {
-      console.error("Error fetching event:", error);
-      toast({
-        title: "Erro ao carregar evento",
-        description: "Não foi possível carregar os dados do evento.",
-        variant: "destructive",
-      });
-      navigate("/eventos");
-    } finally {
-      setLoading(false);
+      if (!data) return [];
+      const now = new Date();
+      return (data as Event[]).filter(e => {
+        const eventDateTime = parseLocalDateTime(e.date, e.time);
+        return addHours(eventDateTime, 24) > now;
+      }).slice(0, 3);
+    },
+    enabled: !!event?.id && !!event?.genres?.length,
+    staleTime: 15 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Track view
+  useEffect(() => {
+    if (event?.id) {
+      supabase.functions.invoke("track-view", { body: { eventId: event.id } })
+        .catch((err) => console.error("Error tracking event view:", err));
     }
-  };
+  }, [event?.id]);
+
+  // Redirect if not found
+  useEffect(() => {
+    if (!isLoading && !event && !error) {
+      navigate("/eventos");
+    }
+  }, [isLoading, event, error, navigate]);
 
   const formatDate = (dateStr: string) => {
     return parseLocalDate(dateStr).toLocaleDateString("pt-BR", {
@@ -158,7 +145,7 @@ const EventDetail = () => {
     return timeStr.slice(0, 5);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
@@ -261,7 +248,7 @@ const EventDetail = () => {
                   </div>
                 </div>
 
-                {/* Mobile Ticket Card - Only visible on small screens */}
+                {/* Mobile Ticket Card */}
                 {(event.ticket_link || event.vip_link) && (
                   <Card className="lg:hidden">
                     <CardHeader>
@@ -446,21 +433,26 @@ const EventDetail = () => {
                     <CardContent className="space-y-4">
                       {relatedEvents.map((relatedEvent) => (
                         <Link key={relatedEvent.id} to={`/eventos/${relatedEvent.slug}`} className="block group">
-                          <div className="space-y-2">
+                          <div className="flex gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                             {relatedEvent.image_url && (
-                              <div className="w-full h-32 rounded-lg overflow-hidden">
+                              <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                                 <img
                                   src={getOptimizedImageUrl(relatedEvent.image_url)}
                                   alt={relatedEvent.title}
-                                  className="w-full h-full object-contain"
+                                  className="w-full h-full object-cover"
+                                  loading="lazy"
                                   onError={(e) => handleImageFallback(e)}
                                 />
                               </div>
                             )}
-                            <h4 className="font-semibold group-hover:text-primary transition-colors line-clamp-2">
-                              {relatedEvent.title}
-                            </h4>
-                            <p className="text-sm text-muted-foreground">{formatDate(relatedEvent.date)}</p>
+                            <div className="min-w-0">
+                              <h4 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-2">
+                                {relatedEvent.title}
+                              </h4>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {parseLocalDate(relatedEvent.date).toLocaleDateString("pt-BR")} • {relatedEvent.venue}
+                              </p>
+                            </div>
                           </div>
                         </Link>
                       ))}
