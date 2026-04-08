@@ -169,6 +169,13 @@ const Admin = () => {
           href: "/admin/recurring-events",
           color: "text-emerald-500",
         },
+        {
+          title: "Monitor de Egress",
+          description: "Consumo de dados, cache e projeção",
+          icon: Activity,
+          href: "/admin/egress-monitor",
+          color: "text-red-500",
+        },
       ],
     },
     {
