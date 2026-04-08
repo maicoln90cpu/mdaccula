@@ -1,11 +1,10 @@
 // ============================================
-// MDAccula Service Worker v9
-// Cache First with TTL for APIs + Edge Caching
-// Optimized TTLs for egress reduction
+// MDAccula Service Worker v10
+// Cache First with TTL + Egress Tracking
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
@@ -13,18 +12,16 @@ const API_CACHE = `mdaccula-api-${CACHE_VERSION}`;
 
 // TTL per API path (in milliseconds) — aggressive caching
 const API_TTL = {
-  '/rest/v1/site_settings': 60 * 60 * 1000,   // 60 min (very rarely changes)
+  '/rest/v1/site_settings': 60 * 60 * 1000,   // 60 min
   '/rest/v1/events': 30 * 60 * 1000,           // 30 min
   '/rest/v1/blog_posts': 30 * 60 * 1000,       // 30 min
   '/rest/v1/link_groups': 15 * 60 * 1000,      // 15 min
 };
 
 const PRECACHE_URLS = ['/', '/offline.html'];
-
 const STATIC_PATTERNS = [/\.woff2?$/, /\.ttf$/, /\.otf$/, /\/assets\/.*\.(js|css)$/];
 const IMAGE_PATTERNS = [/\.(png|jpg|jpeg|gif|webp|avif|svg|ico)$/];
 
-// Supabase API paths that should be cached for resilience
 const CACHEABLE_API_PATHS = [
   '/rest/v1/link_groups',
   '/rest/v1/site_settings',
@@ -32,7 +29,88 @@ const CACHEABLE_API_PATHS = [
   '/rest/v1/events',
 ];
 
-// Install
+// ============================================
+// EGRESS TRACKING
+// ============================================
+const egressMetrics = {}; // key: "path|hour" → { cache_hits, cache_misses, egress_bytes }
+const EGRESS_FLUSH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+let supabaseProjectUrl = null; // detected dynamically
+
+// Extract table path from full URL (e.g. "/rest/v1/events?select=..." → "/rest/v1/events")
+function extractApiPath(url) {
+  const match = url.pathname.match(/^\/rest\/v1\/([a-z_]+)/);
+  return match ? `/rest/v1/${match[1]}` : url.pathname;
+}
+
+// Get current hour as ISO string (rounded to hour)
+function getCurrentHourISO() {
+  const now = new Date();
+  now.setMinutes(0, 0, 0);
+  return now.toISOString();
+}
+
+// Record an egress metric
+function recordEgress(url, isHit, bytes) {
+  const apiPath = extractApiPath(url);
+  const hour = getCurrentHourISO();
+  const key = `${apiPath}|${hour}`;
+
+  if (!egressMetrics[key]) {
+    egressMetrics[key] = { api_path: apiPath, period_start: hour, cache_hits: 0, cache_misses: 0, egress_bytes: 0 };
+  }
+
+  if (isHit) {
+    egressMetrics[key].cache_hits++;
+  } else {
+    egressMetrics[key].cache_misses++;
+    egressMetrics[key].egress_bytes += bytes;
+  }
+}
+
+// Detect Supabase URL from intercepted requests
+function detectSupabaseUrl(url) {
+  if (!supabaseProjectUrl && url.hostname.includes('supabase.co')) {
+    supabaseProjectUrl = `${url.protocol}//${url.hostname}`;
+  }
+}
+
+// Flush metrics to the track-egress edge function
+async function flushEgressMetrics() {
+  const keys = Object.keys(egressMetrics);
+  if (keys.length === 0 || !supabaseProjectUrl) return;
+
+  const metrics = keys.map(k => ({ ...egressMetrics[k], source: 'sw' }));
+
+  // Clear immediately to avoid double-sending
+  keys.forEach(k => delete egressMetrics[k]);
+
+  try {
+    await fetch(`${supabaseProjectUrl}/functions/v1/track-egress`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(metrics),
+    });
+  } catch (err) {
+    // On failure, put metrics back so they're retried next flush
+    for (const m of metrics) {
+      const key = `${m.api_path}|${m.period_start}`;
+      if (!egressMetrics[key]) {
+        egressMetrics[key] = { api_path: m.api_path, period_start: m.period_start, cache_hits: 0, cache_misses: 0, egress_bytes: 0 };
+      }
+      egressMetrics[key].cache_hits += m.cache_hits;
+      egressMetrics[key].cache_misses += m.cache_misses;
+      egressMetrics[key].egress_bytes += m.egress_bytes;
+    }
+    console.warn('[SW] Failed to flush egress metrics, will retry');
+  }
+}
+
+// Periodic flush timer
+setInterval(flushEgressMetrics, EGRESS_FLUSH_INTERVAL);
+
+// ============================================
+// INSTALL / ACTIVATE
+// ============================================
 self.addEventListener('install', (event) => {
   console.log(`[SW] Installing v${CACHE_VERSION}`);
   event.waitUntil(
@@ -44,7 +122,6 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate - clean old caches
 self.addEventListener('activate', (event) => {
   console.log(`[SW] Activating v${CACHE_VERSION}`);
   const currentCaches = [STATIC_CACHE, DYNAMIC_CACHE, IMAGE_CACHE, API_CACHE];
@@ -63,44 +140,43 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// ============================================
+// HELPERS
+// ============================================
 const matchesPatterns = (url, patterns) => patterns.some(p => p.test(url.pathname));
 
-// Check if this is a cacheable Supabase API request (public data only)
 const isCacheableApiRequest = (url) => {
   if (!url.hostname.includes('supabase.co')) return false;
   return CACHEABLE_API_PATHS.some(path => url.pathname.includes(path));
 };
 
-// Get TTL for a given API URL
 const getApiTTL = (url) => {
   for (const [path, ttl] of Object.entries(API_TTL)) {
     if (url.pathname.includes(path)) return ttl;
   }
-  return 15 * 60 * 1000; // default 15 min
+  return 15 * 60 * 1000;
 };
 
-// Check if request should bypass cache entirely
 const shouldBypassCache = (url) => {
   if (isCacheableApiRequest(url)) return false;
-  
   const isExternal = url.origin !== self.location.origin;
   const isSupabaseAPI = url.hostname.includes('supabase.co');
-  const isAnalytics = url.hostname.includes('googletagmanager.com') || 
+  const isAnalytics = url.hostname.includes('googletagmanager.com') ||
                       url.hostname.includes('google-analytics.com') ||
                       url.hostname.includes('hotjar.com') ||
                       url.hostname.includes('facebook.net');
-  const isHotReload = url.pathname.includes('/@vite') || 
+  const isHotReload = url.pathname.includes('/@vite') ||
                       url.pathname.includes('/__vite') ||
                       url.pathname.includes('/node_modules/');
-  
   return isExternal || isSupabaseAPI || isAnalytics || isHotReload;
 };
 
-// Strategy: Cache First
+// ============================================
+// CACHE STRATEGIES (with egress tracking)
+// ============================================
 const cacheFirst = async (request, cacheName) => {
   const cachedResponse = await caches.match(request);
   if (cachedResponse) return cachedResponse;
-  
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
@@ -114,52 +190,80 @@ const cacheFirst = async (request, cacheName) => {
   }
 };
 
-// Strategy: Cache First with TTL
 const cacheFirstWithTTL = async (request, cacheName, ttl) => {
+  const url = new URL(request.url);
+  detectSupabaseUrl(url);
+
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request);
-  
+
   if (cachedResponse) {
     const cachedDate = cachedResponse.headers.get('sw-cached-at');
     const age = cachedDate ? Date.now() - parseInt(cachedDate, 10) : Infinity;
-    
+
     if (age < ttl) {
+      // Cache HIT — no egress
+      recordEgress(url, true, 0);
       return cachedResponse;
     }
-    
-    // Cache is stale — try network, fall back to stale cache
+
+    // Stale — try network
     try {
       const networkResponse = await fetch(request);
       if (networkResponse && networkResponse.status === 200) {
+        // Measure bytes
+        const cloned = networkResponse.clone();
+        const buffer = await cloned.arrayBuffer();
+        const bytes = buffer.byteLength;
+        recordEgress(url, false, bytes);
+
         const headers = new Headers(networkResponse.headers);
         headers.set('sw-cached-at', String(Date.now()));
-        const timedResponse = new Response(await networkResponse.clone().blob(), {
+        const timedResponse = new Response(buffer, {
           status: networkResponse.status,
           statusText: networkResponse.statusText,
           headers,
         });
         cache.put(request, timedResponse);
-        return networkResponse;
+
+        // Return a fresh response from the same buffer
+        return new Response(buffer, {
+          status: networkResponse.status,
+          statusText: networkResponse.statusText,
+          headers: networkResponse.headers,
+        });
       }
       return cachedResponse;
     } catch (error) {
       console.log('[SW] Network failed, serving stale cache:', request.url);
+      recordEgress(url, true, 0); // served from stale cache = no egress
       return cachedResponse;
     }
   }
-  
-  // No cache at all — must fetch from network
+
+  // No cache — must fetch
   try {
     const networkResponse = await fetch(request);
     if (networkResponse && networkResponse.status === 200) {
+      const cloned = networkResponse.clone();
+      const buffer = await cloned.arrayBuffer();
+      const bytes = buffer.byteLength;
+      recordEgress(url, false, bytes);
+
       const headers = new Headers(networkResponse.headers);
       headers.set('sw-cached-at', String(Date.now()));
-      const timedResponse = new Response(await networkResponse.clone().blob(), {
+      const timedResponse = new Response(buffer, {
         status: networkResponse.status,
         statusText: networkResponse.statusText,
         headers,
       });
       cache.put(request, timedResponse);
+
+      return new Response(buffer, {
+        status: networkResponse.status,
+        statusText: networkResponse.statusText,
+        headers: networkResponse.headers,
+      });
     }
     return networkResponse;
   } catch (error) {
@@ -168,7 +272,6 @@ const cacheFirstWithTTL = async (request, cacheName, ttl) => {
   }
 };
 
-// Strategy: Network First with Cache Fallback
 const networkFirst = async (request, cacheName) => {
   try {
     const networkResponse = await fetch(request);
@@ -186,11 +289,33 @@ const networkFirst = async (request, cacheName) => {
   }
 };
 
-// Fetch handler
+// ============================================
+// FETCH HANDLER
+// ============================================
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Track non-cached Supabase requests too (auth, rpc, functions, etc.)
+  if (url.hostname.includes('supabase.co') && !isCacheableApiRequest(url)) {
+    detectSupabaseUrl(url);
+    // Don't track the track-egress function itself
+    if (!url.pathname.includes('track-egress')) {
+      event.respondWith(
+        fetch(event.request).then(async (response) => {
+          try {
+            const cloned = response.clone();
+            const buffer = await cloned.arrayBuffer();
+            recordEgress(url, false, buffer.byteLength);
+          } catch (e) { /* ignore measurement errors */ }
+          return response;
+        }).catch((err) => { throw err; })
+      );
+      return;
+    }
+    return;
+  }
 
   // Cacheable Supabase API requests — Cache First with TTL
   if (isCacheableApiRequest(url)) {
@@ -201,23 +326,22 @@ self.addEventListener('fetch', (event) => {
 
   if (shouldBypassCache(url)) return;
 
-  // Static assets - Cache First
   if (matchesPatterns(url, STATIC_PATTERNS)) {
     event.respondWith(cacheFirst(event.request, STATIC_CACHE));
     return;
   }
 
-  // Images - Cache First
   if (matchesPatterns(url, IMAGE_PATTERNS)) {
     event.respondWith(cacheFirst(event.request, IMAGE_CACHE));
     return;
   }
 
-  // HTML and other dynamic content - Network First
   event.respondWith(networkFirst(event.request, DYNAMIC_CACHE));
 });
 
-// Message handler
+// ============================================
+// MESSAGE HANDLER
+// ============================================
 self.addEventListener('message', (event) => {
   if (event.data?.type === 'SKIP_WAITING') {
     self.skipWaiting();
@@ -235,12 +359,38 @@ self.addEventListener('message', (event) => {
         .then(() => event.ports[0].postMessage({ success: true }))
     );
   }
+  if (event.data?.type === 'FLUSH_EGRESS') {
+    event.waitUntil(flushEgressMetrics());
+  }
+  if (event.data?.type === 'GET_EGRESS_STATS') {
+    const stats = { ...egressMetrics };
+    event.ports[0]?.postMessage({ stats });
+  }
 });
 
-// Periodic sync
+// ============================================
+// VISIBILITY CHANGE — flush on tab close
+// ============================================
+self.addEventListener('visibilitychange', () => {
+  if (self.document?.visibilityState === 'hidden') {
+    flushEgressMetrics();
+  }
+});
+
+// Also flush when clients disconnect (best effort)
+self.addEventListener('clientdisconnect', () => {
+  flushEgressMetrics();
+});
+
+// ============================================
+// PERIODIC SYNC
+// ============================================
 self.addEventListener('periodicsync', (event) => {
   if (event.tag === 'cache-cleanup') {
     event.waitUntil(cleanupExpiredCaches());
+  }
+  if (event.tag === 'egress-flush') {
+    event.waitUntil(flushEgressMetrics());
   }
 });
 
