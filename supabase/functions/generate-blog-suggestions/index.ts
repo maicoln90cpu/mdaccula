@@ -1,5 +1,22 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+// ============= EGRESS TRACKING HELPER =============
+function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
+  try {
+    const bytes = data ? new TextEncoder().encode(JSON.stringify(data)).length : 0;
+    const now = new Date();
+    now.setMinutes(0, 0, 0);
+    supabase.from('egress_metrics').upsert({
+      period_start: now.toISOString(),
+      api_path: `/rest/v1/${apiPath}`,
+      source: 'edge',
+      cache_hits: 0,
+      cache_misses: 1,
+      egress_bytes: bytes,
+    }, { onConflict: 'period_start,api_path,source' }).then(() => {}).catch(() => {});
+  } catch (_) { /* fire and forget */ }
+}
+
 // ============= CONSTANTS =============
 const SCRAPE_TIMEOUT_MS = 10000; // 10 segundos por fonte (reduzido)
 const AI_TIMEOUT_MS = 90000; // 90 segundos para IA responder (AUMENTADO)
@@ -190,6 +207,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Fontes encontradas: ${sources?.length || 0}`);
+    logEgress(supabase, 'news_sources', sources);
 
     // Buscar últimos N artigos publicados para evitar repetição
     const { data: recentPosts } = await supabase
@@ -197,6 +215,7 @@ Deno.serve(async (req) => {
       .select('title, category')
       .order('created_at', { ascending: false })
       .limit(historyLimit);
+    logEgress(supabase, 'blog_posts', recentPosts);
 
     const recentTitlesAndTopics = recentPosts?.map(p => `- "${p.title}" (${p.category})`).join('\n') || 'Nenhum artigo recente';
     console.log(`Artigos recentes: ${recentPosts?.length || 0}`);

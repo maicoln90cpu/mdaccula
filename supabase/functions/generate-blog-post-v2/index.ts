@@ -1,6 +1,23 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 
+// ============= EGRESS TRACKING HELPER =============
+function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
+  try {
+    const bytes = data ? new TextEncoder().encode(JSON.stringify(data)).length : 0;
+    const now = new Date();
+    now.setMinutes(0, 0, 0);
+    supabase.from('egress_metrics').upsert({
+      period_start: now.toISOString(),
+      api_path: `/rest/v1/${apiPath}`,
+      source: 'edge',
+      cache_hits: 0,
+      cache_misses: 1,
+      egress_bytes: bytes,
+    }, { onConflict: 'period_start,api_path,source' }).then(() => {}).catch(() => {});
+  } catch (_) { /* fire and forget */ }
+}
+
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -355,6 +372,7 @@ Deno.serve(async (req) => {
 
     const settingsMap: Record<string, string> = {};
     settings?.forEach(s => { settingsMap[s.key] = s.value || ''; });
+    logEgress(supabase, 'site_settings', settings);
 
     const selectedModel = settingsMap['ai_blog_model'] || 'google/gemini-2.5-flash';
     const temperature = parseFloat(settingsMap['ai_temperature'] || '0.9');
@@ -379,6 +397,7 @@ Deno.serve(async (req) => {
           .limit(maxScrapeSources);
         
         if (sources && sources.length > 0) {
+          logEgress(supabase, 'news_sources', sources);
           console.log('Scraping fontes para contexto adicional...');
           for (const source of sources) {
             // Check if we still have time
