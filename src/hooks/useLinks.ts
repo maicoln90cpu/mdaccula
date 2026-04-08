@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sortByEventDate, logger } from "@/lib";
 import { isEventVisible, type TimezoneSettings } from "@/lib/eventDateHelper";
@@ -92,71 +93,57 @@ const processLinks = (
     .sort(sortByEventDate);
 };
 
+const fetchLinksData = async (visibilitySettings: Partial<TimezoneSettings>): Promise<LinkGroup[]> => {
+  const { data, error } = await supabase
+    .from("link_groups")
+    .select(`
+      id, name, slug, display_order, enabled,
+      custom_links (
+        id, title, subtitle, url, thumbnail_url, icon, color_gradient,
+        enabled, is_featured, display_order, card_height, card_width,
+        group_id, event_id, override_date, override_time, manual_order_override,
+        is_internal, clicks,
+        events:event_id (
+          venue, location_city, location_state, date, time, image_url
+        )
+      )
+    `)
+    .eq("enabled", true)
+    .order("display_order", { ascending: true });
+
+  if (error) throw error;
+
+  const result = data?.map((group) => ({
+    ...group,
+    custom_links: processLinks(group.custom_links || [], visibilitySettings),
+  })) || [];
+
+  setCachedLinks(result);
+  return result;
+};
+
 export const useLinks = (options: UseLinksOptions = {}) => {
-  const [groups, setGroups] = useState<LinkGroup[]>(() => getCachedLinks() || []);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<Error | null>(null);
-
   const { graceHours = 6, timezoneOffset = -3 } = options;
+  const queryClient = useQueryClient();
 
-  const fetchLinks = useCallback(async () => {
-    try {
-      setFetchError(null);
-      const visibilitySettings: Partial<TimezoneSettings> = {
-        graceHours,
-        timezoneOffset,
-      };
+  const visibilitySettings: Partial<TimezoneSettings> = { graceHours, timezoneOffset };
 
-      const { data, error } = await supabase
-        .from("link_groups")
-        .select(`
-          id, name, slug, display_order, enabled,
-          custom_links (
-            id, title, subtitle, url, thumbnail_url, icon, color_gradient,
-            enabled, is_featured, display_order, card_height, card_width,
-            group_id, event_id, override_date, override_time, manual_order_override,
-            is_internal, clicks,
-            events:event_id (
-              venue, location_city, location_state, date, time, image_url
-            )
-          )
-        `)
-        .eq("enabled", true)
-        .order("display_order", { ascending: true });
+  const query = useQuery({
+    queryKey: ["link-groups", graceHours, timezoneOffset],
+    queryFn: () => fetchLinksData(visibilitySettings),
+    staleTime: 15 * 60 * 1000, // 15 min
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: () => getCachedLinks() ?? undefined,
+  });
 
-      if (error) throw error;
+  const groups = query.data || getCachedLinks() || [];
 
-      const groupsWithLinks = data?.map((group) => ({
-        ...group,
-        custom_links: processLinks(group.custom_links || [], visibilitySettings),
-      }));
+  const refetchLinks = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["link-groups"] });
+  }, [queryClient]);
 
-      const result = groupsWithLinks || [];
-      setGroups(result);
-      setCachedLinks(result);
-    } catch (error) {
-      logger.error("Error fetching links", error, { component: 'useLinks' });
-      setFetchError(error as Error);
-      // If we have no data yet, try localStorage fallback
-      if (groups.length === 0) {
-        const cached = getCachedLinks();
-        if (cached && cached.length > 0) {
-          setGroups(cached);
-        }
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [graceHours, timezoneOffset]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const load = async () => { await fetchLinks(); };
-    if (isMounted) { load(); }
-    return () => { isMounted = false; };
-  }, [fetchLinks]);
-
-  const duplicateLink = async (link: CustomLink) => {
+  const duplicateLink = useCallback(async (link: CustomLink) => {
     try {
       const maxOrder = groups
         .find(g => g.id === link.group_id)
@@ -185,14 +172,14 @@ export const useLinks = (options: UseLinksOptions = {}) => {
 
       if (error) throw error;
       toast.success("Link duplicado com sucesso!");
-      await fetchLinks();
+      refetchLinks();
     } catch (error) {
       logger.error("Erro ao duplicar link", error, { component: 'useLinks' });
       toast.error("Erro ao duplicar link");
     }
-  };
+  }, [groups, refetchLinks]);
 
-  const updateLinkOrder = async (
+  const updateLinkOrder = useCallback(async (
     activeId: string,
     overId: string,
     activeGroupId: string,
@@ -253,16 +240,19 @@ export const useLinks = (options: UseLinksOptions = {}) => {
       )
     );
 
-    setGroups(newGroups);
-  };
+    // Optimistic update via query cache
+    queryClient.setQueryData(["link-groups", graceHours, timezoneOffset], newGroups);
+  }, [groups, queryClient, graceHours, timezoneOffset]);
 
   return {
     groups,
-    loading,
-    fetchError,
-    refetchLinks: fetchLinks,
+    loading: query.isLoading,
+    fetchError: query.error as Error | null,
+    refetchLinks,
     duplicateLink,
     updateLinkOrder,
-    setGroups,
+    setGroups: (newGroups: LinkGroup[]) => {
+      queryClient.setQueryData(["link-groups", graceHours, timezoneOffset], newGroups);
+    },
   };
 };
