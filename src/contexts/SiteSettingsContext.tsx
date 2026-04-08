@@ -97,8 +97,8 @@ export const SiteSettingsProvider = ({ children }: { children: ReactNode }) => {
       
       return settingsObject;
     },
-    staleTime: 15 * 60 * 1000, // Cache for 15 minutes (settings rarely change)
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
+    staleTime: 60 * 60 * 1000, // 60 min - settings change very rarely
+    gcTime: 120 * 60 * 1000, // 2h in memory
     // Use localStorage cache as placeholder for instant render
     placeholderData: getCachedSettings,
   });

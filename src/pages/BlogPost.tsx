@@ -51,8 +51,9 @@ const BlogPost = () => {
     queryKey: ["blog-post", slug],
     queryFn: () => fetchBlogPost(slug!),
     enabled: !!slug,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    staleTime: 30 * 60 * 1000, // 30 min - post content rarely changes
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   // Track view on page load (only once per post)
