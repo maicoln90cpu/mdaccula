@@ -348,6 +348,39 @@ export type Database = {
           },
         ]
       }
+      egress_metrics: {
+        Row: {
+          api_path: string
+          cache_hits: number
+          cache_misses: number
+          created_at: string
+          egress_bytes: number
+          id: string
+          period_start: string
+          source: string
+        }
+        Insert: {
+          api_path: string
+          cache_hits?: number
+          cache_misses?: number
+          created_at?: string
+          egress_bytes?: number
+          id?: string
+          period_start: string
+          source?: string
+        }
+        Update: {
+          api_path?: string
+          cache_hits?: number
+          cache_misses?: number
+          created_at?: string
+          egress_bytes?: number
+          id?: string
+          period_start?: string
+          source?: string
+        }
+        Relationships: []
+      }
       event_templates: {
         Row: {
           address: string | null
@@ -1176,6 +1209,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_egress: { Args: never; Returns: undefined }
       cleanup_old_logs: { Args: never; Returns: undefined }
       generate_slug: { Args: { text_input: string }; Returns: string }
       has_role: {
