@@ -121,7 +121,6 @@ const Blog = () => {
 
       if (error) throw error;
 
-      // Contar posts por categoria e ordenar por quantidade
       const categoryCount = (data || []).reduce(
         (acc, post) => {
           acc[post.category] = (acc[post.category] || 0) + 1;
@@ -130,14 +129,15 @@ const Blog = () => {
         {} as Record<string, number>
       );
 
-      // Ordenar categorias por quantidade de posts (desc)
       const sortedCategories = Object.entries(categoryCount).
       sort((a, b) => b[1] - a[1]).
       map(([category]) => category);
 
       return ["Todos", ...sortedCategories];
     },
-    staleTime: 5 * 60 * 1000 // 5 minutes cache
+    staleTime: 30 * 60 * 1000, // 30 min - categories rarely change
+    gcTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   const categories = dynamicCategories || ["Todos"];
