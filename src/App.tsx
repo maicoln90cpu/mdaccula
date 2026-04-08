@@ -53,6 +53,7 @@ const AutoGenerationDashboard = lazy(() => import("./pages/admin/AutoGenerationD
 const PodcastManager = lazy(() => import("./pages/admin/PodcastManager"));
 const RedirectsManager = lazy(() => import("./pages/admin/RedirectsManager"));
 const DataImport = lazy(() => import("./pages/admin/DataImport"));
+const EgressMonitor = lazy(() => import("./pages/admin/EgressMonitor"));
 const Redirect = lazy(() => import("./pages/Redirect"));
 
 const queryClient = new QueryClient({
@@ -142,6 +143,7 @@ const App = () => (
                       <Route path="/admin/podcast" element={<Navigate to="/admin/mdaccula-radio" replace />} />
                       <Route path="/admin/redirects" element={<PageWithError name="Redirecionador de Links"><RedirectsManager /></PageWithError>} />
                       <Route path="/admin/data-import" element={<PageWithError name="Importação de Dados"><DataImport /></PageWithError>} />
+                      <Route path="/admin/egress-monitor" element={<PageWithError name="Monitor de Egress"><EgressMonitor /></PageWithError>} />
                       
                       {/* Redirect shortener */}
                       <Route path="/r/:slug" element={<Redirect />} />
