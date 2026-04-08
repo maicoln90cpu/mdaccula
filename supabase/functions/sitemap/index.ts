@@ -53,12 +53,14 @@ Deno.serve(async (req) => {
       .select('slug, updated_at')
       .eq('published', true)
       .order('updated_at', { ascending: false });
+    logEgress(supabase, 'blog_posts', posts);
 
     const { data: events } = await supabase
       .from('events')
       .select('slug, updated_at')
       .gte('date', new Date().toISOString().split('T')[0])
       .order('updated_at', { ascending: false });
+    logEgress(supabase, 'events', events);
 
     const baseUrl = 'https://mdaccula.com';
     

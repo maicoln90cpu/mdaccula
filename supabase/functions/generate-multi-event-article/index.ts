@@ -207,6 +207,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[generate-multi-event-article] ${events.length} eventos encontrados`);
+    logEgress(supabase, 'events', events);
 
     // Extract common information
     const firstEvent = events[0];

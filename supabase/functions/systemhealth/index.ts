@@ -258,6 +258,7 @@ Deno.serve(async (req: Request) => {
     };
 
     console.log(`Health check completed in ${Date.now() - startTime}ms. Status: ${overallStatus}`);
+    logEgress(supabase, 'systemhealth', response);
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

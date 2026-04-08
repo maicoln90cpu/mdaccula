@@ -64,6 +64,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Posts encontrados: ${posts?.length || 0}`);
+    logEgress(supabase, 'blog_posts', posts);
 
     const siteUrl = 'https://mdaccula.com';
     const buildDate = new Date().toUTCString();

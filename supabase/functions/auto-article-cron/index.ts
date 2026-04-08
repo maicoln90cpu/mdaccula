@@ -141,6 +141,7 @@ async function runAutoGeneration() {
 
     const settingsMap: Record<string, string> = {};
     settings?.forEach(s => { settingsMap[s.key] = s.value || ''; });
+    logEgress(supabase, 'site_settings', settings);
 
     const autoGenerateEnabled = settingsMap['ai_auto_generate_enabled'] === 'true';
     const intervalHours = parseInt(settingsMap['ai_auto_generate_interval_hours'] || '24');

@@ -105,6 +105,7 @@ Deno.serve(async (req) => {
     }
     
     console.log(`[create-recurring-events] Found ${configs.length} enabled configs`);
+    logEgress(supabase, 'recurring_event_configs', configs);
     
     const today = new Date();
     const results: { config: string; date: string; action: string; linkCreated?: boolean }[] = [];

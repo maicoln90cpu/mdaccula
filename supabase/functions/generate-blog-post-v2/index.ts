@@ -397,6 +397,7 @@ Deno.serve(async (req) => {
           .limit(maxScrapeSources);
         
         if (sources && sources.length > 0) {
+          logEgress(supabase, 'news_sources', sources);
           console.log('Scraping fontes para contexto adicional...');
           for (const source of sources) {
             // Check if we still have time

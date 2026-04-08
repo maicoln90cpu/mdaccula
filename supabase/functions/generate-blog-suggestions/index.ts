@@ -207,6 +207,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Fontes encontradas: ${sources?.length || 0}`);
+    logEgress(supabase, 'news_sources', sources);
 
     // Buscar últimos N artigos publicados para evitar repetição
     const { data: recentPosts } = await supabase
@@ -214,6 +215,7 @@ Deno.serve(async (req) => {
       .select('title, category')
       .order('created_at', { ascending: false })
       .limit(historyLimit);
+    logEgress(supabase, 'blog_posts', recentPosts);
 
     const recentTitlesAndTopics = recentPosts?.map(p => `- "${p.title}" (${p.category})`).join('\n') || 'Nenhum artigo recente';
     console.log(`Artigos recentes: ${recentPosts?.length || 0}`);
