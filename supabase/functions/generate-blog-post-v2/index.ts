@@ -372,6 +372,7 @@ Deno.serve(async (req) => {
 
     const settingsMap: Record<string, string> = {};
     settings?.forEach(s => { settingsMap[s.key] = s.value || ''; });
+    logEgress(supabase, 'site_settings', settings);
 
     const selectedModel = settingsMap['ai_blog_model'] || 'google/gemini-2.5-flash';
     const temperature = parseFloat(settingsMap['ai_temperature'] || '0.9');
