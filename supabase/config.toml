@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.migrate-to-bunny]
 verify_jwt = false
+
+[functions.track-egress]
+verify_jwt = false
