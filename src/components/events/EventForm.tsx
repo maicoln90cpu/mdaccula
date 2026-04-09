@@ -480,14 +480,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             // Generate group name based on event date
             const groupName = generateEventGroupName(data.date);
             
-            // Find "Navegação" group to determine display_order
-            const { data: navegacaoGroup } = await supabase
-              .from('link_groups')
-              .select('display_order')
-              .eq('name', 'Navegação')
-              .single();
-
-            const baseOrder = navegacaoGroup ? navegacaoGroup.display_order + 1 : 1;
+            
             
             // Check if group exists, if not create it
             let { data: existingGroup, error: groupError } = await supabase
