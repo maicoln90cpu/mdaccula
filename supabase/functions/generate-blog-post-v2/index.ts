@@ -489,6 +489,12 @@ Deno.serve(async (req) => {
       formFields.ticketLink.length > 5 &&
       !FAKE_DOMAINS.some(domain => formFields.ticketLink.includes(domain));
 
+    // Construir bloco de contexto do admin (aiContext)
+    const aiContextBlock = formFields.aiContext 
+      ? `\n\n🎯 INSTRUÇÕES ESPECIAIS DO ADMIN (PRIORIDADE MÁXIMA — respeite literalmente):
+${formFields.aiContext}`
+      : '';
+
     // Adicionar instrução de tamanho máximo ao system prompt
     const systemPromptWithLength = template.system_prompt + 
       `\n\nIMPORTANTE: 
@@ -503,6 +509,11 @@ Deno.serve(async (req) => {
 - Se o local informado no prompt difere do que você conhece sobre o evento, USE O INFORMADO NO PROMPT.
 - Em caso de conflito entre "description" e os campos estruturados (venue, eventLocation, eventDate), PRIORIZE os campos estruturados.
 - Gere um título NOVO baseado nos dados atuais, não reutilize títulos anteriores.
+- O campo "subtitle" contém informação promocional importante do evento. LEIA e USE no artigo.
+- O campo "vipLink" é o link para camarotes/VIP. Se existir, mencione no artigo.
+- O campo "endTime" é o horário de término. Se existir, mencione no artigo.
+- O campo "address" é o endereço completo. Se existir, inclua no artigo.
+${aiContextBlock}
 
 🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS:
 ${hasRealTicketLink 

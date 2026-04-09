@@ -19,8 +19,10 @@ import { parseLocalDateTime } from "@/lib/dateUtils";
 interface Event {
   id: string;
   title: string;
+  subtitle?: string;
   slug: string;
   venue: string;
+  address?: string;
   date: string;
   time: string;
   end_time?: string;
@@ -130,10 +132,13 @@ const EventsManager = () => {
       const payload = {
         eventName: event.title,
         title: event.title,
-        eventLocation, // local formatado para o template
+        subtitle: (event as any).subtitle || '',
+        eventLocation,
         venue: event.venue,
+        address: (event as any).address || '',
         eventDate: event.date,
         eventTime: event.time,
+        endTime: event.end_time || '',
         locationCity: event.location_city,
         locationState: event.location_state,
         description: event.description || '',

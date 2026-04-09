@@ -84,6 +84,44 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Parse body to check if manual execution (force=true skips schedule check)
+    let forceExecution = false;
+    try {
+      const body = await req.json();
+      forceExecution = body?.force === true;
+    } catch { /* no body = cron trigger */ }
+
+    // Check if this is the correct day/hour to run (unless forced)
+    if (!forceExecution) {
+      const { data: scheduleSettings } = await supabase
+        .from("site_settings")
+        .select("key, value")
+        .in("key", ["recurring_cron_weekday", "recurring_cron_hour"]);
+      
+      const settingsMap: Record<string, string> = {};
+      scheduleSettings?.forEach(s => { settingsMap[s.key] = s.value || ''; });
+      
+      const scheduledWeekday = parseInt(settingsMap["recurring_cron_weekday"] || "2"); // default Tuesday
+      const scheduledHour = parseInt(settingsMap["recurring_cron_hour"] || "3"); // default 03:00
+      
+      // Use BRT (UTC-3) for the check
+      const now = new Date();
+      const brtHour = (now.getUTCHours() - 3 + 24) % 24;
+      const brtWeekday = new Date(now.getTime() - 3 * 60 * 60 * 1000).getDay();
+      
+      console.log(`[create-recurring-events] Schedule check: configured=${scheduledWeekday}@${scheduledHour}h, current BRT=${brtWeekday}@${brtHour}h`);
+      
+      if (brtWeekday !== scheduledWeekday || brtHour !== scheduledHour) {
+        console.log("[create-recurring-events] Not the scheduled day/hour, skipping.");
+        return new Response(
+          JSON.stringify({ success: true, message: "Skipped: not scheduled day/hour", created: 0 }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      console.log("[create-recurring-events] Forced execution (manual trigger)");
+    }
     
     // Fetch all enabled recurring configs
     const { data: configs, error: configError } = await supabase

@@ -98,6 +98,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [createLink, setCreateLink] = useState(true);
   const [linkUrlType, setLinkUrlType] = useState<'ticket' | 'slug'>('ticket');
   const [generateBlogPost, setGenerateBlogPost] = useState(false);
+  const [aiContext, setAiContext] = useState('');
   const [linkGroups, setLinkGroups] = useState<any[]>([]);
   const [eventTemplates, setEventTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
@@ -348,6 +349,15 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         }
         
         console.log('[EventForm] ✅ Evento atualizado com sucesso');
+        
+        // Invalidar cache de eventos para refletir mudanças imediatamente
+        try {
+          const { QueryClient } = await import('@tanstack/react-query');
+          // Clear localStorage cache
+          localStorage.removeItem('mdaccula-events-cache');
+          console.log('[EventForm] 🗑️ Cache localStorage de eventos limpo');
+        } catch {}
+        
         toast({
           title: "Evento atualizado com sucesso!",
         });
@@ -385,14 +395,21 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           eventName: data.title,
           eventDate: data.date,
           eventTime: data.time,
+          endTime: data.end_time || '',
           eventLocation: `${data.venue} - ${data.location_city}/${data.location_state}`,
           venue: data.venue,
+          address: data.address || '',
+          locationCity: data.location_city,
+          locationState: data.location_state,
           location: `${data.location_city}, ${data.location_state}`,
           genres: selectedGenres.join(', '),
           ticketLink: normalizedTicketLink || '',
+          vipLink: normalizedVipLink || '',
+          subtitle: data.subtitle || '',
           description: data.description || '',
           lineup: lineup.join(', '),
-          eventImageUrl: imageUrl
+          eventImageUrl: imageUrl,
+          aiContext: aiContext || '',
         };
         
         console.log('[EventForm] 📤 Payload para generate-blog-post-v2:', blogPayload);
@@ -463,14 +480,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             // Generate group name based on event date
             const groupName = generateEventGroupName(data.date);
             
-            // Find "Navegação" group to determine display_order
-            const { data: navegacaoGroup } = await supabase
-              .from('link_groups')
-              .select('display_order')
-              .eq('name', 'Navegação')
-              .single();
-
-            const baseOrder = navegacaoGroup ? navegacaoGroup.display_order + 1 : 1;
+            
             
             // Check if group exists, if not create it
             let { data: existingGroup, error: groupError } = await supabase
@@ -482,14 +492,19 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             let groupId = existingGroup?.id;
 
             if (!existingGroup) {
+              // Calculate chronological display_order: YYYY*100+MM
+              const eventDate = new Date(data.date + 'T12:00:00');
+              const chronologicalOrder = eventDate.getFullYear() * 100 + (eventDate.getMonth() + 1);
+              
               const { data: newGroup, error: createGroupError } = await supabase
                 .from('link_groups')
-                .insert([{ name: groupName, enabled: true, display_order: baseOrder }])
+                .insert([{ name: groupName, enabled: true, display_order: chronologicalOrder }])
                 .select()
                 .single();
 
               if (createGroupError) throw createGroupError;
               groupId = newGroup.id;
+              console.log(`[EventForm] 📁 Grupo "${groupName}" criado com display_order=${chronologicalOrder}`);
             }
 
             // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
@@ -976,9 +991,24 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 </div>
                 
                 {generateBlogPost && (
-                  <p className="text-xs text-muted-foreground pl-6">
-                    Um post do blog será criado como rascunho e vinculado a este evento. Você poderá editá-lo após a criação.
-                  </p>
+                  <div className="space-y-3 pl-6">
+                    <p className="text-xs text-muted-foreground">
+                      Um post do blog será criado como rascunho e vinculado a este evento. Você poderá editá-lo após a criação.
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="aiContext">Contexto para IA (opcional)</Label>
+                      <Textarea
+                        id="aiContext"
+                        value={aiContext}
+                        onChange={(e) => setAiContext(e.target.value)}
+                        placeholder="Ex: Ingresso cortesia pelo link, 50% de desconto no primeiro lote, open bar até 01h, evento beneficente..."
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Informações extras que a IA deve considerar ao gerar o artigo. Essas instruções têm prioridade máxima.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
             </>
