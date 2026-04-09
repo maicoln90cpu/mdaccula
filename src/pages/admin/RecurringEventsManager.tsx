@@ -61,11 +61,14 @@ const RecurringEventsManager = () => {
   const [editingConfig, setEditingConfig] = useState<RecurringConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [cronWeekday, setCronWeekday] = useState("2");
+  const [cronHour, setCronHour] = useState("3");
+  const [savingSchedule, setSavingSchedule] = useState(false);
 
   const fetchConfigs = async () => {
     setLoading(true);
     try {
-      const [configsRes, groupsRes] = await Promise.all([
+      const [configsRes, groupsRes, settingsRes] = await Promise.all([
         supabase
           .from("recurring_event_configs")
           .select("*")
@@ -73,7 +76,11 @@ const RecurringEventsManager = () => {
         supabase
           .from("link_groups")
           .select("id, name, enabled")
-          .order("display_order")
+          .order("display_order"),
+        supabase
+          .from("site_settings")
+          .select("key, value")
+          .in("key", ["recurring_cron_weekday", "recurring_cron_hour"])
       ]);
 
       if (configsRes.error) throw configsRes.error;
@@ -81,6 +88,12 @@ const RecurringEventsManager = () => {
       
       setConfigs((configsRes.data as RecurringConfig[]) || []);
       setLinkGroups((groupsRes.data as LinkGroup[]) || []);
+      
+      // Load schedule settings
+      settingsRes.data?.forEach(s => {
+        if (s.key === "recurring_cron_weekday") setCronWeekday(s.value || "2");
+        if (s.key === "recurring_cron_hour") setCronHour(s.value || "3");
+      });
     } catch (error: any) {
       toast({
         title: "Erro ao carregar configurações",
@@ -125,7 +138,9 @@ const RecurringEventsManager = () => {
   const handleExecuteNow = async () => {
     setExecuting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-recurring-events");
+      const { data, error } = await supabase.functions.invoke("create-recurring-events", {
+        body: { force: true }
+      });
 
       if (error) throw error;
 
@@ -136,7 +151,6 @@ const RecurringEventsManager = () => {
         description: `${data.created} evento(s) criado(s)${linksCreated > 0 ? `, ${linksCreated} link(s) criado(s)` : ''}`,
       });
 
-      // Reload to show any new events
       fetchConfigs();
     } catch (error: any) {
       toast({
@@ -146,6 +160,34 @@ const RecurringEventsManager = () => {
       });
     } finally {
       setExecuting(false);
+    }
+  };
+
+  const handleSaveSchedule = async () => {
+    setSavingSchedule(true);
+    try {
+      const updates = [
+        { key: "recurring_cron_weekday", value: cronWeekday },
+        { key: "recurring_cron_hour", value: cronHour },
+      ];
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("site_settings")
+          .upsert({ key: update.key, value: update.value }, { onConflict: "key" });
+        if (error) throw error;
+      }
+      toast({
+        title: "Agendamento salvo",
+        description: `Eventos recorrentes serão criados toda ${WEEKDAYS[parseInt(cronWeekday)]} às ${cronHour.padStart(2, '0')}:00 (BRT)`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar agendamento",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSchedule(false);
     }
   };
 
@@ -240,20 +282,53 @@ const RecurringEventsManager = () => {
               </Button>
             </div>
 
-            {/* Info Card */}
+            {/* Schedule Config Card */}
             <Card className="mb-6">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <RefreshCw className="w-4 h-4" />
-                  Cron Job Semanal
+                  Agendamento do Cron Job
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Toda <strong>terça-feira às 03:00 (BRT)</strong>, o sistema cria automaticamente os eventos
-                  habilitados abaixo para a semana. Os eventos são criados com a data correspondente ao dia da
-                  semana configurado. Se um <strong>grupo de links</strong> estiver configurado, o link do evento
-                  também será criado automaticamente.
+                <p className="text-sm text-muted-foreground mb-4">
+                  O cron roda diariamente. A função só cria eventos no dia e horário configurados abaixo (BRT).
+                </p>
+                <div className="flex flex-wrap gap-4 items-end">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Dia da Semana</Label>
+                    <Select value={cronWeekday} onValueChange={setCronWeekday}>
+                      <SelectTrigger className="w-[160px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {WEEKDAYS.map((day, i) => (
+                          <SelectItem key={i} value={String(i)}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Horário (BRT)</Label>
+                    <Select value={cronHour} onValueChange={setCronHour}>
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <SelectItem key={i} value={String(i)}>{String(i).padStart(2, '0')}:00</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button onClick={handleSaveSchedule} disabled={savingSchedule} size="sm">
+                    {savingSchedule ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                    Salvar Agendamento
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  Atual: <strong>{WEEKDAYS[parseInt(cronWeekday)]} às {cronHour.padStart(2, '0')}:00 (BRT)</strong>. 
+                  Os eventos habilitados abaixo serão criados automaticamente neste horário.
                 </p>
               </CardContent>
             </Card>
