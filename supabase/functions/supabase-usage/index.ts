@@ -61,9 +61,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse query params
+    // Parse query params — valid intervals: 15min, 30min, 1hr, 3hr, 1day, 3day, 7day
     const url = new URL(req.url);
-    const interval = url.searchParams.get("interval") || "daily";
+    const validIntervals = ["15min", "30min", "1hr", "3hr", "1day", "3day", "7day"];
+    const rawInterval = url.searchParams.get("interval") || "1day";
+    const interval = validIntervals.includes(rawInterval) ? rawInterval : "1day";
 
     // Fetch usage from Supabase Management API
     const apiUrl = `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.api-counts?interval=${interval}`;
