@@ -293,36 +293,39 @@ const networkFirst = async (request, cacheName) => {
 // FETCH HANDLER
 // ============================================
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
 
-  // Track non-cached Supabase requests too (auth, rpc, functions, etc.)
-  if (url.hostname.includes('supabase.co') && !isCacheableApiRequest(url)) {
+  // --- Supabase traffic (all methods) ---
+  if (url.hostname.includes('supabase.co')) {
     detectSupabaseUrl(url);
-    // Don't track the track-egress function itself
-    if (!url.pathname.includes('track-egress')) {
-      event.respondWith(
-        fetch(event.request).then(async (response) => {
-          try {
-            const cloned = response.clone();
-            const buffer = await cloned.arrayBuffer();
-            recordEgress(url, false, buffer.byteLength);
-          } catch (e) { /* ignore measurement errors */ }
-          return response;
-        }).catch((err) => { throw err; })
-      );
+
+    // Don't intercept the track-egress function itself
+    if (url.pathname.includes('track-egress')) return;
+
+    // Cacheable GET API requests — Cache First with TTL
+    if (event.request.method === 'GET' && isCacheableApiRequest(url)) {
+      const ttl = getApiTTL(url);
+      event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
       return;
     }
+
+    // All other Supabase requests (POST/PUT/DELETE, auth, functions, rpc, non-cached GET)
+    // Measure response bytes for egress tracking
+    event.respondWith(
+      fetch(event.request).then(async (response) => {
+        try {
+          const cloned = response.clone();
+          const buffer = await cloned.arrayBuffer();
+          recordEgress(url, false, buffer.byteLength);
+        } catch (e) { /* ignore measurement errors */ }
+        return response;
+      }).catch((err) => { throw err; })
+    );
     return;
   }
 
-  // Cacheable Supabase API requests — Cache First with TTL
-  if (isCacheableApiRequest(url)) {
-    const ttl = getApiTTL(url);
-    event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
-    return;
-  }
+  // --- Non-Supabase traffic (GET only for caching) ---
+  if (event.request.method !== 'GET') return;
 
   if (shouldBypassCache(url)) return;
 

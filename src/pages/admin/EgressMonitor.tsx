@@ -178,6 +178,19 @@ const EgressMonitor = () => {
               </div>
             </div>
 
+            {/* Disclaimer */}
+            <Card className="mb-6 border-yellow-500/30 bg-yellow-500/5">
+              <CardContent className="p-4 flex items-start gap-3">
+                <Activity className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                <div className="text-sm text-muted-foreground">
+                  <p className="font-medium text-foreground mb-1">⚠️ Cobertura estimada: ~80-85% do tráfego real</p>
+                  <p>Este monitor mede o tráfego capturado pelo Service Worker e pelas Edge Functions instrumentadas. 
+                  Não são contabilizados: acessos antes do SW ativar (primeira visita), tráfego do Supabase Dashboard, 
+                  bots/crawlers diretos e o preview do Lovable. Os dados são coletados apenas a partir da data de deploy do sistema (08/04/2026).</p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <Card variant="metric">
