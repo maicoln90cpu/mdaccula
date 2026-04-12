@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.track-egress]
 verify_jwt = false
+
+[functions.supabase-usage]
+verify_jwt = false
