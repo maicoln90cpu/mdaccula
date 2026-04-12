@@ -158,9 +158,7 @@ const getApiTTL = (url) => {
 };
 
 const shouldBypassCache = (url) => {
-  if (isCacheableApiRequest(url)) return false;
   const isExternal = url.origin !== self.location.origin;
-  const isSupabaseAPI = url.hostname.includes('supabase.co');
   const isAnalytics = url.hostname.includes('googletagmanager.com') ||
                       url.hostname.includes('google-analytics.com') ||
                       url.hostname.includes('hotjar.com') ||
@@ -168,7 +166,7 @@ const shouldBypassCache = (url) => {
   const isHotReload = url.pathname.includes('/@vite') ||
                       url.pathname.includes('/__vite') ||
                       url.pathname.includes('/node_modules/');
-  return isExternal || isSupabaseAPI || isAnalytics || isHotReload;
+  return isExternal || isAnalytics || isHotReload;
 };
 
 // ============================================
