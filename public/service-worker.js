@@ -4,7 +4,7 @@
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
@@ -158,9 +158,7 @@ const getApiTTL = (url) => {
 };
 
 const shouldBypassCache = (url) => {
-  if (isCacheableApiRequest(url)) return false;
   const isExternal = url.origin !== self.location.origin;
-  const isSupabaseAPI = url.hostname.includes('supabase.co');
   const isAnalytics = url.hostname.includes('googletagmanager.com') ||
                       url.hostname.includes('google-analytics.com') ||
                       url.hostname.includes('hotjar.com') ||
@@ -168,7 +166,7 @@ const shouldBypassCache = (url) => {
   const isHotReload = url.pathname.includes('/@vite') ||
                       url.pathname.includes('/__vite') ||
                       url.pathname.includes('/node_modules/');
-  return isExternal || isSupabaseAPI || isAnalytics || isHotReload;
+  return isExternal || isAnalytics || isHotReload;
 };
 
 // ============================================
@@ -293,36 +291,39 @@ const networkFirst = async (request, cacheName) => {
 // FETCH HANDLER
 // ============================================
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-
   const url = new URL(event.request.url);
 
-  // Track non-cached Supabase requests too (auth, rpc, functions, etc.)
-  if (url.hostname.includes('supabase.co') && !isCacheableApiRequest(url)) {
+  // --- Supabase traffic (all methods) ---
+  if (url.hostname.includes('supabase.co')) {
     detectSupabaseUrl(url);
-    // Don't track the track-egress function itself
-    if (!url.pathname.includes('track-egress')) {
-      event.respondWith(
-        fetch(event.request).then(async (response) => {
-          try {
-            const cloned = response.clone();
-            const buffer = await cloned.arrayBuffer();
-            recordEgress(url, false, buffer.byteLength);
-          } catch (e) { /* ignore measurement errors */ }
-          return response;
-        }).catch((err) => { throw err; })
-      );
+
+    // Don't intercept the track-egress function itself
+    if (url.pathname.includes('track-egress')) return;
+
+    // Cacheable GET API requests — Cache First with TTL
+    if (event.request.method === 'GET' && isCacheableApiRequest(url)) {
+      const ttl = getApiTTL(url);
+      event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
       return;
     }
+
+    // All other Supabase requests (POST/PUT/DELETE, auth, functions, rpc, non-cached GET)
+    // Measure response bytes for egress tracking
+    event.respondWith(
+      fetch(event.request).then(async (response) => {
+        try {
+          const cloned = response.clone();
+          const buffer = await cloned.arrayBuffer();
+          recordEgress(url, false, buffer.byteLength);
+        } catch (e) { /* ignore measurement errors */ }
+        return response;
+      }).catch((err) => { throw err; })
+    );
     return;
   }
 
-  // Cacheable Supabase API requests — Cache First with TTL
-  if (isCacheableApiRequest(url)) {
-    const ttl = getApiTTL(url);
-    event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
-    return;
-  }
+  // --- Non-Supabase traffic (GET only for caching) ---
+  if (event.request.method !== 'GET') return;
 
   if (shouldBypassCache(url)) return;
 
