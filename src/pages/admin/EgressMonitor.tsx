@@ -179,9 +179,9 @@ const EgressMonitor = () => {
             </div>
 
             {/* Disclaimer */}
-            <Card className="mb-6 border-yellow-500/30 bg-yellow-500/5">
+            <Card className="mb-6 border-border/50 bg-muted/30">
               <CardContent className="p-4 flex items-start gap-3">
-                <Activity className="h-5 w-5 text-yellow-500 shrink-0 mt-0.5" />
+                <Activity className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">⚠️ Cobertura estimada: ~80-85% do tráfego real</p>
                   <p>Este monitor mede o tráfego capturado pelo Service Worker e pelas Edge Functions instrumentadas. 
