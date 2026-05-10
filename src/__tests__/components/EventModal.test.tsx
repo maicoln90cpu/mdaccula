@@ -194,14 +194,14 @@ describe('EventModal', () => {
 
   it('should render VIP link when available', () => {
     const Wrapper = createWrapper();
-    const { container } = render(
+    render(
       <Wrapper>
         <EventModal event={mockEvent} isOpen={true} onClose={vi.fn()} />
       </Wrapper>
     );
 
-    // VIP link is rendered as an anchor (icon button) with the href
-    const vipAnchor = container.querySelector(`a[href="${mockEvent.vip_link}"]`);
+    // Dialog renders into a portal (document.body), so query globally
+    const vipAnchor = document.querySelector(`a[href="${mockEvent.vip_link}"]`);
     expect(vipAnchor).toBeTruthy();
   });
 });
