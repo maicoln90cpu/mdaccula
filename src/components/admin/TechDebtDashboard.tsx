@@ -51,6 +51,7 @@ const TrendIcon = ({ trend }: { trend?: string }) => {
 
 export const TechDebtDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const QUALITY_METRICS = useMemo(() => getQualityMetrics(), []);
 
   const overallScore = Math.round(
     QUALITY_METRICS.reduce((acc, m) => acc + (m.score / m.maxScore) * 100, 0) / QUALITY_METRICS.length
