@@ -1,119 +1,86 @@
-## Resposta às 4 perguntas + plano de execução
 
-### 4) Por que parece que "nada é salvo no Bunny automaticamente"?
-**Está sendo salvo — você só olhou na pasta errada.** Verifiquei o banco (`image_hashes`):
+# Plano — Corrigir métricas do Egress Monitor
 
-```
-último upload Bunny: 2026-05-10 16:23  → event-images/1778430190595-dac89dcd.webp
-2026-05-05 16:04 → event-images/1777997097210-3825d4f2.webp
-2026-05-04 23:36 → event-images/1777937804860-8c3dd9b3.webp
-... (vários em abril/maio)
-```
+## Problemas identificados (comparando seus prints com a realidade do Bunny/Supabase)
 
-O que aconteceu:
-- **`link-thumbnails/`** (a pasta que você abriu no print) recebeu o **bulk da migração em 16/03** e não teve uploads novos depois — porque você não criou/editou custom links com thumbnail nova nesse período. Faz sentido todos terem a mesma data.
-- **`event-images/`** está recebendo upload novo a cada evento criado, post de blog gerado por IA, ou imagem regenerada. Se abrir essa pasta no Bunny e ordenar por "Date Modified" desc, vai ver os arquivos recentes.
-- **`team-images/`** mesma lógica — só recebe quando você edita/adiciona membro.
+| # | Aba | Card | Valor mostrado | Esperado | Causa raiz suspeita |
+|---|-----|------|----------------|----------|---------------------|
+| 1 | Bunny | Bandwidth (Lifetime) | **3.13 GB** | ~60 GB | A função quebra o range em chunks de 40 dias e somando, mas chunks anteriores à criação da pull zone falham silenciosamente (Bunny retorna 400). Resultado: só sobra o chunk mais recente. |
+| 2 | Bunny | Custo estimado | $0.13 | ~$2.61 | Mesma causa do #1 (depende do bandwidth). |
+| 3 | Bunny | "Bandwidth Diário" chart | só 05‑09 e 05‑10 | série completa | Mesma causa — só o último chunk traz `BandwidthUsedChart` populado. |
+| 4 | Banner topo | "Bunny CDN (**7d**)" | "lifetime" | "(7d)" | `payload.window.days` cai no default `7` quando vem `mode=lifetime` (sem `days`). |
+| 5 | Supabase | DB Size | **0 B** | ~50–80 MB | O endpoint `usage.api-requests-count` foi usado por engano para DB size. Esse endpoint não devolve `db_size_bytes`. |
+| 6 | Supabase | Edge Funcs | **0** | >0 | O endpoint `usage.func-invocations` retorna formato diferente do que o código tenta ler (`row.count / total / total_invocations` não existe). |
+| 7 | Supabase | "Total Requests (7d)" hardcoded | "(7d)" | reflete intervalo real | Texto fixo no JSX. |
 
-Fluxo confirmado no código (todos passam pelo Bunny):
-```text
-EventForm / BlogForm / TeamManager / CustomLinkForm / LinksPageSettings
-   → uploadImageToBunny() → edge upload-to-bunny → PUT storage.bunnycdn.com/mdaccula/<bucket>/<file>
-                                                 → backup paralelo no Supabase Storage
-generate-blog-post-v2 / generate-multi-event-article / regenerate-blog-image
-   → PUT direto no Bunny mdaccula/event-images/
-```
+## Correções planejadas
 
-Não tem upload "perdido" indo direto pro Supabase fora do Bunny. **Nada para corrigir aqui.**
+### A. Edge function `bunny-stats` — pegar lifetime corretamente
 
-### 3) Bunny não tem filtro de data → ajuste UI
-A aba Bunny no `/admin/egress-monitor` hoje pede `?days=7`. A API `/statistics` aceita `dateFrom/dateTo`, mas você quer "desde sempre". Vou:
-- Trocar o seletor de "7/14/30 dias" por "Total acumulado (lifetime)" + opcional "Últimos N dias".
-- Para "lifetime" mando `dateFrom=` bem antigo (ex.: 2020-01-01). Bunny devolve agregados desde a criação da pull zone.
-- Storage continua sendo snapshot atual (não é série temporal).
+Trocar a estratégia atual (chunks de 40 dias varrendo desde 2020) por uma das duas abordagens, na ordem:
 
-### 2) Comparação com seus prints (validação)
-Comparando o que a edge devolve hoje vs prints:
+1. **Preferida — endpoint `/billing` da Bunny**: `GET https://api.bunny.net/billing` retorna `MonthlyChargesBandwidth`, `MonthlyChargesStorage` e `BillingRecords[]` com totais consumidos por período. É um único request, sem limite de 40 dias. Usar para `lifetime`.
+2. **Fallback — descobrir a data de criação da pull zone**: `GET https://api.bunny.net/pullzone/{id}` retorna `DateModified`/`DateCreated`. Iniciar os chunks a partir dessa data (evita chunks vazios/erros pré-existência).
+3. Logar cada chunk com `status` e tamanho do response (atualmente falhas viram `null` silenciosamente). Se `okChunks.length < chunks.length`, devolver no payload `chunkErrors: N` para debug futuro.
+4. Limpar o cache em memória ao receber `?bust=1` (para forçar refresh sem esperar 5min).
 
-| Métrica | Print Supabase | Vai mostrar (Supabase tab) | Status |
-|---|---|---|---|
-| Database Size | 0,043 / 0,5 GB | via `tableCounts` (não em GB) | ⚠️ não mostra GB do DB — vou adicionar |
-| Egress total | 0,22 GB (período) | hoje só temos requests por serviço | ⚠️ Free não expõe egress real — fica só no Bunny |
-| Cached Egress | 0,26 GB | n/a | idem |
-| Storage Size | <1 GB | sim, em bytes por bucket | ✅ |
-| Auth users | 0 / 50k MAU | sim (`totalUsers`) | ✅ |
-| Edge Func Invocations | 4.734 / 500k | hoje só rest/auth/storage/realtime | ⚠️ falta série de edge functions |
+### B. Edge function `bunny-stats` — campo `window.days` para lifetime
 
-| Métrica | Print Bunny | Vai mostrar (Bunny tab) | Status |
-|---|---|---|---|
-| Pull zone traffic | 60.82 GB lifetime | `bandwidthBytes` com `dateFrom=2020` | ✅ depois do ajuste do item 3 |
-| Cost | $2.61 lifetime | calcular no client (bytes × $/GB) | adicionar |
-| Storage size | 169.95 MB / 321 files | `storageInfo.StorageUsed/FilesStored` | ✅ já existe |
+Calcular `days` real baseado em `(now - from) / 86400000` em vez de cair no default `7`. Assim o banner mostra "lifetime" ou o número correto.
 
-**Validação manual** depois do deploy: abrir `/admin/egress-monitor`, conferir bandwidth Bunny ≈ 60.82 GB e storage ≈ 169.95 MB / 321 arquivos. Se bater até ±5% está ótimo.
+### C. Edge function `supabase-usage` — DB size real
 
-### 1) Cron diário de snapshots
-Para ter histórico além de 7d (limite Management API):
+Usar **um destes** caminhos:
+1. **Preferido**: criar uma RPC SQL `get_db_size()` que executa `SELECT pg_database_size(current_database())` (security definer) e chamá-la pelo service-role client. Sem depender do Management API.
+2. Alternativa: endpoint Management API `GET /v1/projects/{ref}/database/usage` (se disponível no plano Free).
+
+### D. Edge function `supabase-usage` — Edge Functions invocations reais
+
+Trocar o parser. O endpoint `usage.func-invocations` devolve `result: [{ timestamp, count }]`. O código atual procura múltiplos nomes de campo errados. Corrigir para somar `Number(row.count ?? 0)`.
+
+Como reforço, também passar a usar `analytics_query` indireta: `select count(*) from function_edge_logs where timestamp > now() - interval '7 days'` (mais confiável no plano Free).
+
+### E. Frontend `EgressMonitor.tsx`
+
+1. **Banner global**: trocar o texto fixo `"Bunny CDN ({window.days || days}d)"` por: se `bunnyMode==="lifetime"` mostrar `"Bunny CDN (lifetime)"`, senão `"Bunny CDN ({days}d)"`.
+2. **Card "Total Requests (7d)"**: trocar `(7d)` para refletir o intervalo real (pode usar `sbData?.window.interval`).
+3. **Card "DB Size"**: depois do fix backend, validar leitura `sbData?.db?.sizeBytes`.
+4. **Card "Edge Funcs"**: idem.
+5. Acrescentar um pequeno indicador "atualizado há X" baseado em `bunny.fetchedAt` para deixar claro quando o cache de 5min está sendo servido.
+
+## Detalhes técnicos (resumo para devs)
 
 ```text
-[ pg_cron 06:00 UTC diário ]
-        ↓
-[ edge metrics-snapshot (verify_jwt=false, x-cron-secret) ]
-        ↓
-   - chama supabase-usage internamente (interval=1day)
-   - chama bunny-stats internamente (days=1)
-        ↓
-[ tabela metrics_snapshots ]
-   day date PK, supabase jsonb, bunny jsonb, captured_at timestamptz
-        ↓
-[ UI: nova aba "Histórico" com AreaChart 30/90/365d ]
+edge: bunny-stats
+  - new: GET /pullzone/{id} → use DateCreated as floor for chunks
+  - new: GET /billing → primary source for lifetime totals
+  - fix: window.days computed (now-from)/86400000, not default 7
+  - new: log {url, status, ok} per chunk; expose chunkErrors in payload
+
+edge: supabase-usage
+  - new RPC: public.get_db_size() returns bigint security definer
+  - fix: edge funcs total uses Number(row.count ?? 0)
+
+frontend: EgressMonitor.tsx
+  - banner: lifetime vs Nd label
+  - "Total Requests (Xd)" dynamic
+  - "Atualizado há X" baseado em fetchedAt
 ```
 
----
+## Itens fora do escopo (não vou mexer)
 
-## Plano técnico
+- Estimativa Interna (SW) — você não reportou problema.
+- Aba Histórico — o gráfico só populará após snapshots existirem; é esperado.
+- Cores / layout das cards.
 
-### Migration
-```sql
-CREATE TABLE public.metrics_snapshots (
-  day date PRIMARY KEY,
-  supabase jsonb NOT NULL DEFAULT '{}'::jsonb,
-  bunny jsonb NOT NULL DEFAULT '{}'::jsonb,
-  captured_at timestamptz NOT NULL DEFAULT now()
-);
-ALTER TABLE public.metrics_snapshots ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "admin select" ON public.metrics_snapshots
-  FOR SELECT TO authenticated USING (public.has_role(auth.uid(),'admin'));
--- service_role bypassa RLS
+## Checklist manual após o deploy
 
--- pg_cron job (06:00 UTC = 03:00 BRT)
-SELECT cron.schedule(
-  'daily-metrics-snapshot','0 6 * * *',
-  $$ SELECT net.http_post(
-       url:='https://xfvpuzlspvvsmmunznxw.supabase.co/functions/v1/metrics-snapshot',
-       headers:=jsonb_build_object('content-type','application/json','x-cron-secret', current_setting('app.cron_secret', true)),
-       body:='{}'::jsonb) $$);
-```
-Secret nova: `CRON_SHARED_SECRET` (gero e adiciono).
+1. Abrir `/admin/egress-monitor` na aba **Bunny → Lifetime** → Bandwidth deve ficar próximo de **60 GB** e Custo ≈ **$2.61**.
+2. Banner topo deve dizer **"Bunny CDN (lifetime)"** quando aba está em Lifetime; trocar para "Últimos Nd" deve mostrar `Nd`.
+3. Na aba **Supabase**: **DB Size** > 0 (provável 30–80 MB) e **Edge Funcs** > 0.
+4. Reabrir após 5 min e checar `Atualizado há...` para confirmar refresh.
 
-### Edge functions
-- **nova `metrics-snapshot/index.ts`** (`verify_jwt=false` em config.toml): valida `x-cron-secret`, busca dados de Supabase + Bunny via service-role/AccessKey, faz `upsert` em `metrics_snapshots` com `day = current_date - 1`.
-- **`supabase-usage`**: adicionar query DB size (`pg_database_size('postgres')`) e contagem de invocations de edge functions (Management API `analytics/endpoints/usage.func-invocations` se disponível, senão deixar n/a).
-- **`bunny-stats`**: aceitar `mode=lifetime` → `dateFrom=2020-01-01`. Adicionar campo `estimatedCostUSD` (bandwidth_GB × tier).
+## Pendências / próximos passos
 
-### UI `/admin/egress-monitor`
-- Aba **Bunny CDN**: substituir slider de dias por toggle `[ Lifetime | 7d | 30d ]`. Card "Custo estimado USD".
-- Aba **Supabase**: novo card "Database Size GB", novo card "Edge Functions invocations".
-- Nova aba **Histórico (snapshots)**: AreaChart com bandwidth Bunny + requests Supabase ao longo dos últimos 30/90/365 dias, lendo `metrics_snapshots` direto via supabase-js (RLS admin).
-
-### Pendências/limitações
-- Edge function `metrics-snapshot` precisa de uma execução manual no primeiro dia (botão "Capturar agora" na aba Histórico) para popular o gráfico antes do cron rodar.
-- Egress real Supabase (0,22 GB do print) **não é exposto na Free** sem Prometheus — só vai aparecer se fizer upgrade pra Pro. Mantemos a coluna vazia com tooltip explicando.
-- Custo Bunny estimado depende do tier (Standard $0.01–0.06/GB conforme região); vou usar média $0.043/GB (alinhado com seu $2.61 / 60.82 GB ≈ $0.043).
-
-### Prevenção de regressão
-- Index único em `metrics_snapshots(day)` evita duplicar snapshot.
-- Edge `metrics-snapshot` retorna 200 mesmo se uma das fontes falhar (grava parcial), pra não quebrar a série.
-- Botão manual + log em `application_logs` cada execução do cron.
-
-Aprove para eu executar: migration → secret → edge `metrics-snapshot` → ajustes em `supabase-usage` e `bunny-stats` → UI.
+- Migrar para plano Pro do Supabase para ter `egress bytes` reais (não disponível no Free, indicado no banner).
+- Adicionar alerta quando `bunny.bandwidth/dia` exceder X GB (futuro).
