@@ -107,31 +107,35 @@ const EgressMonitor = () => {
 
   const fetchInternal = useCallback(async () => {
     setInternalLoading(true);
-    const since = new Date(); since.setDate(since.getDate() - days);
-    const { data: rows } = await supabase.from("egress_metrics").select("*")
-      .gte("period_start", since.toISOString()).order("period_start", { ascending: true });
+    let q = supabase.from("egress_metrics").select("*").order("period_start", { ascending: true }).limit(5000);
+    if (!isLifetime) {
+      const since = new Date(); since.setDate(since.getDate() - days);
+      q = q.gte("period_start", since.toISOString());
+    }
+    const { data: rows } = await q;
     setInternalRows((rows as EgressRow[]) || []);
     setInternalLoading(false);
-  }, [days]);
+  }, [days, isLifetime]);
 
   const fetchSupabase = useCallback(async () => {
     setSbLoading(true); setSbError(null);
-    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval: "7day" } });
+    const interval = isLifetime ? "lifetime" : `${days}day`;
+    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval } });
     if (error) { setSbError(error.message || "Falha ao consultar"); }
     else if ((data as { error?: string })?.error) { setSbError((data as { error: string }).error); }
     else setSbData(data as SupabaseUsageResp);
     setSbLoading(false);
-  }, []);
+  }, [days, isLifetime]);
 
   const fetchBunny = useCallback(async () => {
     setBunnyLoading(true); setBunnyError(null);
-    const body = bunnyMode === "lifetime" ? { mode: "lifetime" } : { mode: "range", days };
+    const body = isLifetime ? { mode: "lifetime" } : { mode: "range", days };
     const { data, error } = await supabase.functions.invoke("bunny-stats", { body });
     if (error) setBunnyError(error.message || "Falha ao consultar Bunny");
     else if ((data as { error?: string })?.error) setBunnyError((data as { error: string }).error);
     else setBunny(data as BunnyResp);
     setBunnyLoading(false);
-  }, [days, bunnyMode]);
+  }, [days, isLifetime]);
 
   const fetchSnapshots = useCallback(async () => {
     setSnapLoading(true);
