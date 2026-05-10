@@ -243,11 +243,21 @@ const EgressMonitor = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="bunny">Bunny CDN (oficial)</TabsTrigger>
                 <TabsTrigger value="supabase">Supabase (oficial)</TabsTrigger>
+                <TabsTrigger value="history">Histórico</TabsTrigger>
                 <TabsTrigger value="internal">Estimativa Interna (SW)</TabsTrigger>
               </TabsList>
 
               {/* ============ BUNNY TAB ============ */}
               <TabsContent value="bunny" className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <Tabs value={bunnyMode} onValueChange={(v) => setBunnyMode(v as "lifetime" | "range")}>
+                    <TabsList>
+                      <TabsTrigger value="lifetime">Lifetime (total)</TabsTrigger>
+                      <TabsTrigger value="range">Últimos {days}d</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
                 {bunnyError ? (
                   <Card className="border-destructive/50 bg-destructive/5">
                     <CardContent className="p-4 text-sm text-destructive flex items-center gap-2">
@@ -255,6 +265,16 @@ const EgressMonitor = () => {
                     </CardContent>
                   </Card>
                 ) : null}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription>Custo estimado (USD)</CardDescription>
+                      <CardTitle className="text-2xl">${(bunny?.estimatedCostUSD || 0).toFixed(2)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">@ ~$0.043/GB · {bunnyEgressGB.toFixed(2)} GB</p></CardContent>
+                  </Card>
+                </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <Card variant="metric">
