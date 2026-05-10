@@ -640,6 +640,27 @@ export type Database = {
         }
         Relationships: []
       }
+      metrics_snapshots: {
+        Row: {
+          bunny: Json
+          captured_at: string
+          day: string
+          supabase: Json
+        }
+        Insert: {
+          bunny?: Json
+          captured_at?: string
+          day: string
+          supabase?: Json
+        }
+        Update: {
+          bunny?: Json
+          captured_at?: string
+          day?: string
+          supabase?: Json
+        }
+        Relationships: []
+      }
       news_sources: {
         Row: {
           created_at: string | null
