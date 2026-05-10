@@ -10,10 +10,16 @@ import { HelmetProvider } from 'react-helmet-async';
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SiteSettingsProvider } from "@/contexts/SiteSettingsContext";
 const Index = lazy(() => import("./pages/Index"));
-import GoogleTagManager from "@/components/GoogleTagManager";
-import { NewsletterPopup } from "@/components/NewsletterPopup";
-import { WebVitals } from "@/components/WebVitals";
-import { HotjarAnalytics } from "@/components/HotjarAnalytics";
+
+// Defer non-critical analytics/popup widgets to reduce initial JS
+const GoogleTagManager = lazy(() => import("@/components/GoogleTagManager"));
+const NewsletterPopup = lazy(() =>
+  import("@/components/NewsletterPopup").then((m) => ({ default: m.NewsletterPopup }))
+);
+const WebVitals = lazy(() =>
+  import("@/components/WebVitals").then((m) => ({ default: m.WebVitals }))
+);
+const HotjarAnalytics = lazy(() => import("@/components/HotjarAnalytics"));
 
 // Lazy load pages for code splitting
 const Eventos = lazy(() => import("./pages/Eventos"));
@@ -94,10 +100,12 @@ const App = () => (
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             <HelmetProvider>
               <TooltipProvider>
-                <GoogleTagManager />
-                <WebVitals />
-                <HotjarAnalytics />
-                <NewsletterPopup />
+                <Suspense fallback={null}>
+                  <GoogleTagManager />
+                  <WebVitals />
+                  <HotjarAnalytics />
+                  <NewsletterPopup />
+                </Suspense>
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
