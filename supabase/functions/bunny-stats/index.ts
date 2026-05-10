@@ -121,34 +121,48 @@ Deno.serve(async (req) => {
       const cTo = cursorEnd.toISOString().slice(0, 19);
       const u = `https://api.bunny.net/statistics?dateFrom=${cFrom}&dateTo=${cTo}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`;
 
-      try {
-        const r = await fetch(u, { headers });
-        if (!r.ok) {
-          chunkErrors++;
-          stopReason = `http_${r.status}_at_chunk_${i}`;
+      // retry up to 3x on transient network errors with 15s timeout each
+      let r: Response | null = null;
+      let lastErr: Error | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), 15000);
+          r = await fetch(u, { headers, signal: ctrl.signal });
+          clearTimeout(timer);
           break;
+        } catch (e) {
+          lastErr = e as Error;
+          await new Promise((res) => setTimeout(res, 500 * (attempt + 1)));
         }
-        const j = await r.json() as Record<string, unknown>;
-        const bw = Number(j.TotalBandwidthUsed || 0);
-
-        // chunk vazio = chegamos antes da existência de tráfego
-        if (bw === 0 && Number(j.TotalRequestsServed || 0) === 0) {
-          stopReason = `empty_at_chunk_${i}`;
-          break;
-        }
-        // bug all-time-fallback: mesmo TotalBandwidthUsed de algum chunk anterior
-        if (seenBandwidths.has(bw) && okChunks.length > 0) {
-          stopReason = `duplicate_total_at_chunk_${i}`;
-          break;
-        }
-        seenBandwidths.add(bw);
-        okChunks.push(j);
-      } catch (e) {
+      }
+      if (!r) {
         chunkErrors++;
-        console.error(`bunny chunk ${cFrom}→${cTo} threw:`, (e as Error).message);
+        console.error(`bunny chunk ${cFrom}→${cTo} threw after retries:`, lastErr?.message);
         stopReason = `exception_at_chunk_${i}`;
+        // não interrompe o loop — tenta próximos chunks; se nenhum funcionar, devolvemos erro no fim
+        cursorEnd = new Date(cursorStart.getTime() - 1000);
+        if (!isLifetime && cursorEnd <= from) break;
+        continue;
+      }
+      if (!r.ok) {
+        chunkErrors++;
+        stopReason = `http_${r.status}_at_chunk_${i}`;
         break;
       }
+      const j = await r.json() as Record<string, unknown>;
+      const bw = Number(j.TotalBandwidthUsed || 0);
+
+      if (bw === 0 && Number(j.TotalRequestsServed || 0) === 0) {
+        stopReason = `empty_at_chunk_${i}`;
+        break;
+      }
+      if (seenBandwidths.has(bw) && okChunks.length > 0) {
+        stopReason = `duplicate_total_at_chunk_${i}`;
+        break;
+      }
+      seenBandwidths.add(bw);
+      okChunks.push(j);
 
       cursorEnd = new Date(cursorStart.getTime() - 1000);
       if (!isLifetime && cursorEnd <= from) break;
