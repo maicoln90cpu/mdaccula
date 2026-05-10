@@ -1,102 +1,74 @@
 
 ## Objetivo
 
-Centralizar TODAS as métricas reais (Supabase + Bunny CDN) dentro do `/admin/egress`, hoje os números mostrados são estimativas via Service Worker e divergem muito da realidade. Vamos passar a usar as APIs oficiais.
+Centralizar TODAS as métricas reais (Supabase + Bunny CDN) dentro do `/admin/egress`. Hoje os números mostrados são estimativas via Service Worker e divergem muito da realidade. Vamos passar a usar as APIs oficiais.
 
 ---
 
-## Diagnóstico atual
+## Status dos secrets (já configurados ✅)
 
-**O que temos hoje:**
-- `EgressMonitor.tsx` lê tabela `egress_metrics` (instrumentação manual via Service Worker + edge functions). Cobertura ~80%, sem GB real.
-- Edge function `supabase-usage` chama `/v1/projects/{ref}/analytics/endpoints/usage.api-counts` — só retorna **contagem de requisições**, não bytes, não DB, não storage.
-- Zero integração com Bunny: todo o tráfego de imagens (que é a maior parte) é invisível na nossa plataforma.
-
-**O que o Supabase agora oferece (Metrics API beta):**
-- Endpoint Prometheus-compatível por projeto: `https://{ref}.supabase.co/customer/v1/privileged/metrics` (auth via service_role).
-- ~200 séries: CPU, RAM, disco, conexões DB, query stats, WAL, IO, egress de DB, storage size, auth requests, realtime connections etc.
-- Formato: texto Prometheus exposition (parse simples).
-
-**O que o Bunny oferece (Statistics API):**
-- `GET https://api.bunny.net/statistics?dateFrom=&dateTo=&pullZone=&serverZoneId=` com header `AccessKey: <api-key>`.
-- Retorna: `TotalBandwidthUsed` (bytes), `TotalRequestsServed`, `CacheHitRate`, `BandwidthUsedChart`, `RequestsServedChart`, `CacheHitRateChart`, `GeoTrafficDistribution`, `Error3xx/4xx/5xxChart`, `OriginTrafficChart`.
-- Também temos `/storagezone/{id}/statistics` para uso da storage zone.
+- `METRICS_API_KEY` — Secret API key do Supabase (`sb_secret_...`).
+- `BUNNY_ACCOUNT_API_KEY`, `BUNNY_PULL_ZONE_ID`, `BUNNY_STORAGE_ZONE_ID`.
 
 ---
 
-## Plano em 3 fases
+## Fase 1 — Reescrever `supabase-usage` para Prometheus Metrics API
 
-### Fase 1 — Substituir `supabase-usage` por Prometheus Metrics API
+Endpoint oficial:
+```
+GET https://xfvpuzlspvvsmmunznxw.supabase.co/customer/v1/privileged/metrics
+Auth: Basic (username = "service_role", password = METRICS_API_KEY)
+```
 
-1. Reescrever a edge function `supabase-usage` para:
-   - Fazer `fetch` no endpoint Prometheus do projeto com `Authorization: Bearer <service_role>` (já temos `SUPABASE_SERVICE_ROLE_KEY`). Fallback: continuar usando o `MANAGEMENT_API_PAT` se o Prometheus exigir.
-   - Implementar parser Prometheus simples (regex linha-a-linha) — sem dependência externa.
-   - Extrair e devolver JSON estruturado com as séries que importam:
-     - `db_size_bytes`, `db_connections_active/max`
-     - `cpu_usage_percent`, `memory_used_bytes/total`
-     - `disk_used_bytes/total`, `disk_io_read/write_bytes`
-     - `network_egress_bytes_total` (por serviço: rest, auth, storage, realtime)
-     - `pgrest_request_count`, `auth_request_count`, `storage_request_count`
-   - Aceitar query param `?raw=1` para devolver o texto Prometheus cru (debug).
+A edge function `supabase-usage` passa a:
+1. Validar admin (mesmo padrão que já usa hoje).
+2. Fazer fetch no endpoint Prometheus com `Authorization: Basic base64("service_role:METRICS_API_KEY")`.
+3. Parser Prometheus exposition simples (regex linha-a-linha, ~30 linhas Deno, sem dependência).
+4. Extrair as séries que importam:
+   - DB: `pg_stat_database_size`, `pg_stat_database_numbackends`, `pg_settings_max_connections`
+   - Sistema: `node_cpu_seconds_total`, `node_memory_MemAvailable_bytes` / `MemTotal_bytes`, `node_filesystem_avail_bytes` / `size_bytes`
+   - Egress: `pgbouncer_stats_bytes_sent_total`, `realtime_*`, `auth_*`, `storage_*`, `pgrest_*`
+   - Requests por serviço (auth, rest, storage, realtime)
+5. Retornar JSON normalizado: `{ db: {...}, system: {...}, services: [...], requests_total: N }`.
+6. Aceitar `?raw=1` para devolver o texto Prometheus cru (debug).
+7. Cache de 60s na nova tabela `metrics_cache`.
 
-2. Cachear resposta por 60s em uma tabela `metrics_cache` (key, payload jsonb, fetched_at) para evitar chamar a API a cada refresh — o Prometheus do Supabase tem rate limit.
+## Fase 2 — Edge function nova `bunny-stats`
 
-### Fase 2 — Edge function `bunny-stats`
+Cria `supabase/functions/bunny-stats/index.ts`:
+- Auth admin.
+- Aceita `?dateFrom=&dateTo=&hourly=true|false`.
+- Em paralelo chama:
+  - `GET https://api.bunny.net/statistics?pullZone=${BUNNY_PULL_ZONE_ID}&dateFrom=...&dateTo=...&hourly=...`
+  - `GET https://api.bunny.net/storagezone/${BUNNY_STORAGE_ZONE_ID}/statistics?dateFrom=...&dateTo=...`
+  - Header: `AccessKey: ${BUNNY_ACCOUNT_API_KEY}`
+- Devolve `{ bandwidth, requests, cacheHitRate, charts, geo, errors:{3xx,4xx,5xx}, storage:{used, files} }`.
+- Cache de 5 min na `metrics_cache`.
 
-1. Criar `supabase/functions/bunny-stats/index.ts`:
-   - Auth: exige admin (`has_role`).
-   - Aceita `?dateFrom=&dateTo=&hourly=true|false`.
-   - Faz duas chamadas em paralelo:
-     - `GET /statistics` (pull zone — bandwidth/requests/cache/geo).
-     - `GET /storagezone/{id}/statistics` (uso da storage zone).
-   - Devolve payload normalizado: `{ bandwidth, requests, cacheHitRate, charts: {...}, geo: [...], errors: {3xx,4xx,5xx}, storage: {...} }`.
-   - Cache de 5 minutos na mesma `metrics_cache`.
-
-2. Secrets necessários:
-   - `BUNNY_ACCOUNT_API_KEY` (diferente de `BUNNY_STORAGE_API_KEY` — é a Account-level API Key obtida em https://dash.bunny.net/account/settings).
-   - `BUNNY_PULL_ZONE_ID` (ID numérico do pull zone).
-   - `BUNNY_STORAGE_ZONE_ID` (ID numérico da storage zone).
-
-### Fase 3 — Refatorar a UI `/admin/egress`
-
-Reorganizar com 3 abas no topo:
+## Fase 3 — UI `/admin/egress` com 3 abas
 
 ```text
 [ Estimativa Interna (SW) ] [ Supabase (oficial) ] [ Bunny CDN (oficial) ]
 ```
 
-- **Estimativa Interna**: o conteúdo atual (mantém para comparar tendência).
-- **Supabase**: novos KPIs + gráficos vindos do Prometheus:
-  - DB size, conexões ativas, CPU/RAM, egress por serviço (auth/rest/storage/realtime), requisições por endpoint top 10.
-- **Bunny CDN**: KPIs principais (Bandwidth total, Requests, Cache hit rate, Storage used, Erros 4xx/5xx), gráfico de banda diária, mapa/lista de geo distribution, separação cache hit vs miss.
-- KPI "Egress Total Real" no header soma `Supabase egress + Bunny bandwidth` — esse é o número que importa.
+- **Estimativa Interna**: conteúdo atual mantido para tendência.
+- **Supabase**: KPIs (DB size, conexões, CPU, RAM, Disk) + AreaChart de requests por serviço + tabela top endpoints.
+- **Bunny CDN**: KPIs (Bandwidth GB, Requests, Cache Hit %, Storage GB, erros 4xx/5xx), AreaChart banda diária, BarChart geo distribution, donut Hit vs Miss.
+- Header global: KPI "Egress Real Total" = Bunny bandwidth + Supabase egress (fonte: ambas APIs).
 
 ---
 
 ## Detalhes técnicos
 
-- Banco: nova tabela `metrics_cache (key text PK, payload jsonb, fetched_at timestamptz default now())` com RLS apenas admin SELECT.
-- Service role key já existe; só precisamos confirmar acesso ao endpoint Prometheus (testar via `supabase--curl_edge_functions` antes).
-- Parser Prometheus: ~30 linhas em Deno, regex `^(\w+)(\{[^}]*\})?\s+([0-9.eE+-]+)$`.
-- Recharts já está no projeto, reutilizar `AreaChart`, `BarChart`, `PieChart` (geo).
+- Migration: tabela `metrics_cache (key text PK, payload jsonb, fetched_at timestamptz default now())` + RLS admin SELECT, service_role ALL.
+- `supabase/config.toml`: adicionar `[functions.bunny-stats] verify_jwt = false`.
+- Recharts já presente; reuso `AreaChart`, `BarChart`, `PieChart`.
 
 ---
 
-## O que vou precisar de você
+## Pendências (fora do escopo, sugestões)
 
-Para a Fase 2 funcionar, vou pedir 3 secrets (com instruções claras de onde pegar) **somente depois que você aprovar este plano**:
+- Alerta por e-mail quando `Bunny bandwidth + Supabase egress` projetado mensal > 80% do limite.
+- Export CSV mensal Bunny.
 
-1. `BUNNY_ACCOUNT_API_KEY` — em https://dash.bunny.net/account/settings (aba "API").
-2. `BUNNY_PULL_ZONE_ID` — número que aparece na URL quando você abre a pull zone no painel.
-3. `BUNNY_STORAGE_ZONE_ID` — idem, na storage zone "mdaccula".
-
-**Não preciso de prints** — basta colar os 3 valores quando eu pedir.
-
----
-
-## Pendências fora deste plano (sugestões)
-
-- Alertas: enviar e-mail quando egress projetado passar de 80% do free tier.
-- Export CSV das métricas Bunny mensais.
-
-Aprove para eu começar pela Fase 1 (substituição do `supabase-usage`) e na sequência pedir os secrets do Bunny para a Fase 2.
+Aprove para eu executar Fase 1 → Fase 2 → Fase 3 em sequência.
