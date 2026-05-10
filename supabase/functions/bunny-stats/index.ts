@@ -61,16 +61,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ---- params ----
+    // ---- params (suporta body POST e query) ----
+    let bodyParams: Record<string, unknown> = {};
+    if (req.method === "POST") { try { bodyParams = await req.json(); } catch { /* noop */ } }
     const url = new URL(req.url);
-    const days = Math.max(1, Math.min(90, Number(url.searchParams.get("days") || 7)));
-    const hourly = url.searchParams.get("hourly") === "true";
+    const mode = String(bodyParams.mode || url.searchParams.get("mode") || "range");
+    const isLifetime = mode === "lifetime";
+    const days = Math.max(1, Math.min(90, Number(bodyParams.days || url.searchParams.get("days") || 7)));
+    const hourly = (bodyParams.hourly === true) || url.searchParams.get("hourly") === "true";
     const now = new Date();
-    const from = new Date(now.getTime() - days * 24 * 3600 * 1000);
+    const from = isLifetime
+      ? new Date("2020-01-01T00:00:00Z")
+      : new Date(now.getTime() - days * 24 * 3600 * 1000);
     const dateFrom = from.toISOString().slice(0, 19);
     const dateTo = now.toISOString().slice(0, 19);
 
-    const cacheKey = `${days}-${hourly}`;
+    const cacheKey = `${mode}-${days}-${hourly}`;
     const hit = cache.get(cacheKey);
     if (hit && Date.now() - hit.at < TTL_MS) {
       return new Response(JSON.stringify({ ...(hit.data as object), cached: true }), {
@@ -100,8 +106,14 @@ Deno.serve(async (req) => {
     const storageStats = storageStatsRes.ok ? await storageStatsRes.json() : {};
     const storageInfo = storageInfoRes.ok ? await storageInfoRes.json() : {};
 
+    const bandwidthBytes = Number(stats.TotalBandwidthUsed || 0);
+    const bandwidthGB = bandwidthBytes / (1024 ** 3);
+    const COST_PER_GB = 0.043; // média Standard tier (alinhada com $2.61 / 60.82 GB)
+    const estimatedCostUSD = bandwidthGB * COST_PER_GB;
+
     const payload = {
-      window: { dateFrom, dateTo, days, hourly },
+      window: { dateFrom, dateTo, days, hourly, mode },
+      estimatedCostUSD,
       pullZone: {
         bandwidthBytes: Number(stats.TotalBandwidthUsed || 0),
         originBytes: Number(stats.TotalOriginTraffic || 0),

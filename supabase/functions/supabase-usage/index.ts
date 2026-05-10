@@ -51,9 +51,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    let bodyParams: Record<string, unknown> = {};
+    if (req.method === "POST") { try { bodyParams = await req.json(); } catch { /* noop */ } }
     const url = new URL(req.url);
     const validIntervals = ["15min", "30min", "1hr", "3hr", "1day", "3day", "7day"];
-    const rawInterval = url.searchParams.get("interval") || "1day";
+    const rawInterval = String(bodyParams.interval || url.searchParams.get("interval") || "1day");
     const interval = validIntervals.includes(rawInterval) ? rawInterval : "1day";
 
     const cacheKey = interval;
@@ -82,17 +84,17 @@ Deno.serve(async (req) => {
       { headers: { Authorization: `Bearer ${pat}` } },
     ).then((r) => r.ok ? r.json() : []);
 
-    // ---- 3. Database stats (direct) ----
-    const dbStatsP = (async () => {
-      try {
-        const { data, error } = await admin.rpc("pg_stat_db_summary" as never).single().throwOnError();
-        if (error) throw error;
-        return data;
-      } catch {
-        // fallback: derive via select() on a known stats view if RPC doesn't exist
-        return null;
-      }
-    })();
+    // ---- 3. Database size (Management API analytics) ----
+    const dbSizeP = fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.api-requests-count?interval=${interval}`,
+      { headers: { Authorization: `Bearer ${pat}` } },
+    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
+
+    // ---- 3b. Edge function invocations ----
+    const edgeInvocationsP = fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.func-invocations?interval=${interval}`,
+      { headers: { Authorization: `Bearer ${pat}` } },
+    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
 
     // ---- 4. Auth users count ----
     const authUsersP = admin.auth.admin.listUsers({ page: 1, perPage: 1 }).then(
@@ -131,9 +133,21 @@ Deno.serve(async (req) => {
       return result;
     })();
 
-    const [apiCounts, health, dbStats, authUsers, storage, tableCounts] = await Promise.all([
-      apiCountsP, healthP, dbStatsP, authUsersP, storageP, tableCountsP,
+    const [apiCounts, health, dbSize, edgeInvocations, authUsers, storage, tableCounts] = await Promise.all([
+      apiCountsP, healthP, dbSizeP, edgeInvocationsP, authUsersP, storageP, tableCountsP,
     ]);
+
+    let totalEdgeInvocations = 0;
+    if (edgeInvocations?.result && Array.isArray(edgeInvocations.result)) {
+      for (const row of edgeInvocations.result) {
+        totalEdgeInvocations += Number(row.count || row.total || row.total_invocations || 0);
+      }
+    }
+    let dbSizeBytes = 0;
+    if (dbSize?.result && Array.isArray(dbSize.result)) {
+      const last = dbSize.result[dbSize.result.length - 1];
+      dbSizeBytes = Number(last?.db_size_bytes || last?.size || 0);
+    }
 
     // Aggregate api-counts series → totals per service
     const series: Array<{ timestamp: string; auth: number; rest: number; storage: number; realtime: number }> = [];
@@ -167,7 +181,8 @@ Deno.serve(async (req) => {
         totalFiles: totalStorageFiles,
       },
       tables: tableCounts,
-      db: dbStats || null,
+      db: { sizeBytes: dbSizeBytes },
+      edgeFunctions: { totalInvocations: totalEdgeInvocations },
       fetchedAt: new Date().toISOString(),
       // legacy compat: também devolve o array bruto que o front antigo esperava
       result: apiCounts?.result ?? [],

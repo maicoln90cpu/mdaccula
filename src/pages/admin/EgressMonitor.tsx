@@ -22,10 +22,13 @@ interface SupabaseUsageResp {
   auth: { totalUsers: number };
   storage: { buckets: Array<{ bucket: string; bytes: number; files: number }>; totalBytes: number; totalFiles: number };
   tables: Record<string, number>;
+  db?: { sizeBytes: number };
+  edgeFunctions?: { totalInvocations: number };
   fetchedAt: string;
 }
 interface BunnyResp {
-  window: { dateFrom: string; dateTo: string; days: number };
+  window: { dateFrom: string; dateTo: string; days: number; mode?: string };
+  estimatedCostUSD?: number;
   pullZone: {
     bandwidthBytes: number; originBytes: number; requests: number; cacheHitRate: number; avgOriginResponseMs: number;
     errors: { err3xx: number; err4xx: number; err5xx: number };
@@ -34,6 +37,12 @@ interface BunnyResp {
   };
   storage: { bytesUsed: number; files: number; region: string; charts: { storageUsed: Array<{ t: string; v: number }>; fileCount: Array<{ t: string; v: number }> } };
   fetchedAt: string;
+}
+interface SnapshotRow {
+  day: string;
+  supabase: { requests?: { total: number }; storage?: { totalBytes: number; totalFiles: number }; users?: number };
+  bunny: { lifetime?: { bandwidthBytes: number; requests: number; cacheHitRate: number }; storage?: { bytesUsed: number; files: number } };
+  captured_at: string;
 }
 
 // ---------------- Helpers ----------------
@@ -86,6 +95,13 @@ const EgressMonitor = () => {
   const [bunny, setBunny] = useState<BunnyResp | null>(null);
   const [bunnyLoading, setBunnyLoading] = useState(false);
   const [bunnyError, setBunnyError] = useState<string | null>(null);
+  const [bunnyMode, setBunnyMode] = useState<"lifetime" | "range">("lifetime");
+
+  // Tab 4 — snapshots history
+  const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
+  const [snapLoading, setSnapLoading] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [captureMsg, setCaptureMsg] = useState<string | null>(null);
 
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
 
@@ -100,24 +116,41 @@ const EgressMonitor = () => {
 
   const fetchSupabase = useCallback(async () => {
     setSbLoading(true); setSbError(null);
-    const intv = days === 7 ? "7day" : days === 30 ? "7day" : "7day"; // api supports max 7day
-    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval: intv } });
+    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval: "7day" } });
     if (error) { setSbError(error.message || "Falha ao consultar"); }
     else if ((data as { error?: string })?.error) { setSbError((data as { error: string }).error); }
     else setSbData(data as SupabaseUsageResp);
     setSbLoading(false);
-  }, [days]);
+  }, []);
 
   const fetchBunny = useCallback(async () => {
     setBunnyLoading(true); setBunnyError(null);
-    const { data, error } = await supabase.functions.invoke("bunny-stats", { body: { days } });
+    const body = bunnyMode === "lifetime" ? { mode: "lifetime" } : { mode: "range", days };
+    const { data, error } = await supabase.functions.invoke("bunny-stats", { body });
     if (error) setBunnyError(error.message || "Falha ao consultar Bunny");
     else if ((data as { error?: string })?.error) setBunnyError((data as { error: string }).error);
     else setBunny(data as BunnyResp);
     setBunnyLoading(false);
-  }, [days]);
+  }, [days, bunnyMode]);
 
-  useEffect(() => { fetchInternal(); fetchSupabase(); fetchBunny(); }, [fetchInternal, fetchSupabase, fetchBunny]);
+  const fetchSnapshots = useCallback(async () => {
+    setSnapLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any).from("metrics_snapshots").select("*").order("day", { ascending: true }).limit(365);
+    setSnapshots((data as SnapshotRow[]) || []);
+    setSnapLoading(false);
+  }, []);
+
+  const captureNow = useCallback(async () => {
+    setCapturing(true); setCaptureMsg(null);
+    const { data, error } = await supabase.functions.invoke("metrics-snapshot", { body: {} });
+    if (error) setCaptureMsg("Erro: " + error.message);
+    else if ((data as { error?: string })?.error) setCaptureMsg("Erro: " + (data as { error: string }).error);
+    else { setCaptureMsg("Snapshot capturado: " + (data as { day: string }).day); await fetchSnapshots(); }
+    setCapturing(false);
+  }, [fetchSnapshots]);
+
+  useEffect(() => { fetchInternal(); fetchSupabase(); fetchBunny(); fetchSnapshots(); }, [fetchInternal, fetchSupabase, fetchBunny, fetchSnapshots]);
 
   // ---- Computed: internal ----
   const totalInternalBytes = internalRows.reduce((s, r) => s + r.egress_bytes, 0);
@@ -210,11 +243,21 @@ const EgressMonitor = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="bunny">Bunny CDN (oficial)</TabsTrigger>
                 <TabsTrigger value="supabase">Supabase (oficial)</TabsTrigger>
+                <TabsTrigger value="history">Histórico</TabsTrigger>
                 <TabsTrigger value="internal">Estimativa Interna (SW)</TabsTrigger>
               </TabsList>
 
               {/* ============ BUNNY TAB ============ */}
               <TabsContent value="bunny" className="space-y-6">
+                <div className="flex items-center gap-2">
+                  <Tabs value={bunnyMode} onValueChange={(v) => setBunnyMode(v as "lifetime" | "range")}>
+                    <TabsList>
+                      <TabsTrigger value="lifetime">Lifetime (total)</TabsTrigger>
+                      <TabsTrigger value="range">Últimos {days}d</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+
                 {bunnyError ? (
                   <Card className="border-destructive/50 bg-destructive/5">
                     <CardContent className="p-4 text-sm text-destructive flex items-center gap-2">
@@ -223,13 +266,23 @@ const EgressMonitor = () => {
                   </Card>
                 ) : null}
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription>Custo estimado (USD)</CardDescription>
+                      <CardTitle className="text-2xl">${(bunny?.estimatedCostUSD || 0).toFixed(2)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">@ ~$0.043/GB · {bunnyEgressGB.toFixed(2)} GB</p></CardContent>
+                  </Card>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
                       <CardDescription>Bandwidth</CardDescription>
                       <CardTitle className="text-2xl">{bunnyLoading ? "..." : formatBytes(bunny?.pullZone.bandwidthBytes || 0)}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{bunnyEgressGB.toFixed(2)} GB · {days}d</p></CardContent>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{bunnyEgressGB.toFixed(2)} GB · {bunnyMode === "lifetime" ? "lifetime" : `${days}d`}</p></CardContent>
                   </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
@@ -372,7 +425,21 @@ const EgressMonitor = () => {
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5" /> DB Size</CardDescription>
+                      <CardTitle className="text-2xl">{sbLoading ? "..." : formatBytes(sbData?.db?.sizeBytes || 0)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">de 0,5 GB Free</p></CardContent>
+                  </Card>
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Edge Funcs</CardDescription>
+                      <CardTitle className="text-2xl">{sbLoading ? "..." : formatNumber(sbData?.edgeFunctions?.totalInvocations || 0)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">Invocations · de 500k Free</p></CardContent>
+                  </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
                       <CardDescription className="flex items-center gap-1.5"><Server className="h-3.5 w-3.5" /> Total Requests (7d)</CardDescription>
@@ -472,6 +539,114 @@ const EgressMonitor = () => {
                       <ExternalLink className="h-3.5 w-3.5" /> Abrir Supabase Billing
                     </a>
                   </Button>
+                </div>
+              </TabsContent>
+
+              {/* ============ HISTORY TAB ============ */}
+              <TabsContent value="history" className="space-y-6">
+                <Card className="border-border/50 bg-muted/30">
+                  <CardContent className="p-4 text-sm text-muted-foreground flex items-center justify-between gap-3 flex-wrap">
+                    <div>
+                      <strong className="text-foreground">Snapshots diários</strong> capturados às 06:00 UTC (03:00 BRT) via cron.
+                      Use o botão para forçar uma captura agora (popula o gráfico antes do primeiro cron rodar).
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {captureMsg && <span className="text-xs">{captureMsg}</span>}
+                      <Button size="sm" onClick={captureNow} disabled={capturing}>
+                        <RefreshCw className={`h-4 w-4 mr-1.5 ${capturing ? "animate-spin" : ""}`} />
+                        Capturar agora
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription>Snapshots</CardDescription>
+                      <CardTitle className="text-2xl">{snapshots.length}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{snapLoading ? "..." : `${snapshots.length} dias gravados`}</p></CardContent>
+                  </Card>
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription>Primeiro</CardDescription>
+                      <CardTitle className="text-lg">{snapshots[0]?.day || "—"}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">início da série</p></CardContent>
+                  </Card>
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription>Último</CardDescription>
+                      <CardTitle className="text-lg">{snapshots[snapshots.length - 1]?.day || "—"}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">captura mais recente</p></CardContent>
+                  </Card>
+                </div>
+
+                <Card>
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-base">Bunny Bandwidth (lifetime acumulado)</CardTitle>
+                    <CardDescription>Bytes totais entregues pela CDN ao longo do tempo</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    {snapshots.length > 0 ? (
+                      <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                        <AreaChart data={snapshots.map(s => ({ date: s.day.substring(5), v: s.bunny?.lifetime?.bandwidthBytes || 0 }))}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+                          <XAxis dataKey="date" className="text-xs" />
+                          <YAxis tickFormatter={(v) => formatBytesShort(v)} className="text-xs" width={60} />
+                          <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatBytes(v as number)} />} />
+                          <Area type="monotone" dataKey="v" fill="hsl(var(--primary) / 0.2)" stroke="hsl(var(--primary))" strokeWidth={2} />
+                        </AreaChart>
+                      </ChartContainer>
+                    ) : (
+                      <div className="h-[300px] flex items-center justify-center text-muted-foreground text-sm">
+                        Sem snapshots ainda. Clique em "Capturar agora" para gerar o primeiro.
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-base">Bunny Storage</CardTitle>
+                      <CardDescription>Crescimento de arquivos armazenados</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      {snapshots.length > 0 ? (
+                        <ChartContainer config={chartConfig} className="h-[260px] w-full">
+                          <AreaChart data={snapshots.map(s => ({ date: s.day.substring(5), v: s.bunny?.storage?.bytesUsed || 0 }))}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+                            <XAxis dataKey="date" className="text-xs" />
+                            <YAxis tickFormatter={(v) => formatBytesShort(v)} className="text-xs" width={60} />
+                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatBytes(v as number)} />} />
+                            <Area type="monotone" dataKey="v" fill="hsl(150, 60%, 45% / 0.2)" stroke="hsl(150, 60%, 45%)" strokeWidth={2} />
+                          </AreaChart>
+                        </ChartContainer>
+                      ) : (<div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">Sem dados</div>)}
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-base">Supabase Requests (acumulado)</CardTitle>
+                      <CardDescription>Total agregado por dia</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      {snapshots.length > 0 ? (
+                        <ChartContainer config={chartConfig} className="h-[260px] w-full">
+                          <LineChart data={snapshots.map(s => ({ date: s.day.substring(5), v: s.supabase?.requests?.total || 0 }))}>
+                            <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
+                            <XAxis dataKey="date" className="text-xs" />
+                            <YAxis tickFormatter={(v) => formatNumber(v)} className="text-xs" width={50} />
+                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatNumber(v as number)} />} />
+                            <Line type="monotone" dataKey="v" stroke="hsl(var(--accent))" strokeWidth={2} dot={false} />
+                          </LineChart>
+                        </ChartContainer>
+                      ) : (<div className="h-[260px] flex items-center justify-center text-muted-foreground text-sm">Sem dados</div>)}
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
 

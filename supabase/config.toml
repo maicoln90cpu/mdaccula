@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.supabase-usage]
 verify_jwt = false
+
+[functions.bunny-stats]
+verify_jwt = false
+
+[functions.metrics-snapshot]
+verify_jwt = false
