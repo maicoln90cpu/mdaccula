@@ -223,22 +223,7 @@ const EgressMonitor = () => {
               </div>
             </div>
 
-            {/* Global KPI: Egress Total Real */}
-            <Card variant="metric" className="mb-6">
-              <CardHeader className="p-4 pb-2">
-                <CardDescription className="flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5" /> Egress Total Real (oficial)
-                </CardDescription>
-                <CardTitle className="text-3xl">
-                  {bunnyLoading ? "..." : formatBytes(bunny?.pullZone.bandwidthBytes || 0)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p className="text-xs text-muted-foreground">
-                  Bunny CDN ({bunnyMode === "lifetime" ? "lifetime" : `${bunny?.window.days || days}d`}) — todo tráfego de imagens. Supabase api-egress não disponível no plano Free.
-                </p>
-              </CardContent>
-            </Card>
+            {/* (banner global removido — métricas Bunny ficam apenas dentro da aba Bunny CDN) */}
 
             <Tabs defaultValue="bunny" className="w-full">
               <TabsList className="mb-4">
