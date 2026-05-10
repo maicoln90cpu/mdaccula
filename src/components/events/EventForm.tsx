@@ -296,7 +296,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         slug: eventSlug,
         blog_post_id: blogPostId,
         end_time: data.end_time || null,
-        subtitle: data.subtitle || null
+        subtitle: data.subtitle || null,
+        ai_context: aiContext.trim() || null,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
