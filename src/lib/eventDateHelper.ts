@@ -1,111 +1,94 @@
 /**
- * Helper para gerenciar visibilidade de eventos baseado em timezone e horários
+ * Helper único de visibilidade/atividade de eventos.
+ *
+ * Regra:
+ *  - Evento COM horário definido (`time`): inativo após `time + hoursAfterStart`.
+ *  - Evento SEM horário definido: inativo após `date 00:00 + hoursWithoutTime`.
+ *  - `end_time` deixa de afetar visibilidade (ainda existe no schema, só não é mais usado).
+ *  - Comparação em UTC respeitando `timezoneOffset` (ex.: -3 = BRT).
  */
 
 export interface EventVisibilityParams {
-  date: string;       // YYYY-MM-DD
-  time: string;       // HH:MM:SS ou HH:MM
-  end_time?: string | null;  // HH:MM:SS ou HH:MM (opcional)
+  date: string;            // YYYY-MM-DD
+  time?: string | null;    // HH:MM[:SS] opcional
+  end_time?: string | null; // mantido por compatibilidade — ignorado no cálculo
 }
 
-export interface TimezoneSettings {
-  timezoneOffset: number;  // Ex: -3 para Brasil
-  graceHours: number;      // Horas de tolerância após fim do evento
+export interface EventVisibilitySettings {
+  timezoneOffset: number;   // ex.: -3
+  hoursAfterStart: number;  // default 12
+  hoursWithoutTime: number; // default 24
 }
 
-const DEFAULT_SETTINGS: TimezoneSettings = {
-  timezoneOffset: -3,  // Default: Brasil (UTC-3)
-  graceHours: 6        // Default: 6 horas de tolerância
+const DEFAULTS: EventVisibilitySettings = {
+  timezoneOffset: -3,
+  hoursAfterStart: 12,
+  hoursWithoutTime: 24,
 };
 
 /**
- * Parsea uma string de hora (HH:MM ou HH:MM:SS) para minutos totais
+ * Compatibilidade: aceita também a antiga chave `graceHours` (ignorada),
+ * para não quebrar imports legados durante migração de chamadas.
  */
-function parseTimeToMinutes(timeStr: string): number {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return hours * 60 + (minutes || 0);
+export type TimezoneSettings = Partial<EventVisibilitySettings> & {
+  graceHours?: number;
+};
+
+/**
+ * Converte data+hora local (no offset informado) para epoch ms (UTC).
+ */
+function localToUtcMs(
+  dateStr: string,
+  hours: number,
+  minutes: number,
+  timezoneOffset: number
+): number {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  // Date.UTC trata os args como UTC. Para representar "hora local no offset X",
+  // subtraímos o offset (ex.: 22:00 BRT = 22:00 - (-3h) = 01:00 UTC).
+  return Date.UTC(year, month - 1, day, hours, minutes, 0) - timezoneOffset * 3_600_000;
+}
+
+function parseHHMM(timeStr: string): { h: number; m: number } {
+  const [h, m] = timeStr.split(":").map(Number);
+  return { h: h || 0, m: m || 0 };
 }
 
 /**
- * Cria uma data no timezone local a partir de data e hora strings
- */
-function createLocalDateTime(dateStr: string, timeStr: string): Date {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return new Date(year, month - 1, day, hours, minutes || 0, 0);
-}
-
-/**
- * Verifica se um evento deve estar visível baseado nas regras:
- * 1. Evento começa em `date` às `time`
- * 2. Se `end_time` existe e é menor que `time`, o evento termina no dia seguinte (date + 1)
- * 3. Evento fica visível até `end_time + graceHours` (ou `time + graceHours` se sem end_time)
- * 4. Comparação considera o timezone configurado
- */
-export function isEventVisible(
-  event: EventVisibilityParams,
-  settings: Partial<TimezoneSettings> = {}
-): boolean {
-  const { timezoneOffset, graceHours } = { ...DEFAULT_SETTINGS, ...settings };
-  
-  if (!event.date || !event.time) {
-    return true; // Se dados incompletos, mostrar evento
-  }
-
-  // Data/hora de início do evento (interpretado como hora local)
-  const eventStart = createLocalDateTime(event.date, event.time);
-  
-  // Calcular quando o evento termina
-  let eventEnd: Date;
-  
-  if (event.end_time) {
-    const startMinutes = parseTimeToMinutes(event.time);
-    const endMinutes = parseTimeToMinutes(event.end_time);
-    
-    // Se end_time < time, o evento termina no dia seguinte
-    if (endMinutes < startMinutes) {
-      // Criar data do dia seguinte (usando formato local, não UTC)
-      const nextDay = new Date(eventStart);
-      nextDay.setDate(nextDay.getDate() + 1);
-      const nextDayStr = `${nextDay.getFullYear()}-${String(nextDay.getMonth() + 1).padStart(2, '0')}-${String(nextDay.getDate()).padStart(2, '0')}`;
-      eventEnd = createLocalDateTime(nextDayStr, event.end_time);
-    } else {
-      eventEnd = createLocalDateTime(event.date, event.end_time);
-    }
-  } else {
-    // Sem end_time, usar início + 8 horas como estimativa padrão
-    eventEnd = new Date(eventStart);
-    eventEnd.setHours(eventEnd.getHours() + 8);
-  }
-  
-  // Adicionar horas de tolerância
-  const visibilityEnd = new Date(eventEnd);
-  visibilityEnd.setHours(visibilityEnd.getHours() + graceHours);
-  
-  // Obter "agora" ajustado pelo timezone
-  const now = new Date();
-  
-  // Comparar: evento está visível se ainda não passou da visibilityEnd
-  return now < visibilityEnd;
-}
-
-/**
- * Filtra uma lista de eventos mantendo apenas os visíveis
- */
-export function filterVisibleEvents<T extends EventVisibilityParams>(
-  events: T[],
-  settings: Partial<TimezoneSettings> = {}
-): T[] {
-  return events.filter(event => isEventVisible(event, settings));
-}
-
-/**
- * Verifica se um evento está "ativo" (ainda não terminou + tolerância)
- * para uso em filtros de admin
+ * Verifica se o evento ainda deve ser considerado ativo/visível.
  */
 export function isEventActive(
   event: EventVisibilityParams,
-  settings: Partial<TimezoneSettings> = {}
+  settings: TimezoneSettings = {}
 ): boolean {
-  return isEventVisible(event, settings);
+  if (!event.date) return true;
+
+  const cfg: EventVisibilitySettings = {
+    timezoneOffset: settings.timezoneOffset ?? DEFAULTS.timezoneOffset,
+    hoursAfterStart: settings.hoursAfterStart ?? DEFAULTS.hoursAfterStart,
+    hoursWithoutTime: settings.hoursWithoutTime ?? DEFAULTS.hoursWithoutTime,
+  };
+
+  let endMs: number;
+  if (event.time) {
+    const { h, m } = parseHHMM(event.time);
+    const startUtc = localToUtcMs(event.date, h, m, cfg.timezoneOffset);
+    endMs = startUtc + cfg.hoursAfterStart * 3_600_000;
+  } else {
+    const startUtc = localToUtcMs(event.date, 0, 0, cfg.timezoneOffset);
+    endMs = startUtc + cfg.hoursWithoutTime * 3_600_000;
+  }
+
+  return Date.now() < endMs;
+}
+
+/** Alias mantido por compatibilidade. */
+export const isEventVisible = isEventActive;
+
+/** Filtra lista mantendo apenas ativos. */
+export function filterVisibleEvents<T extends EventVisibilityParams>(
+  events: T[],
+  settings: TimezoneSettings = {}
+): T[] {
+  return events.filter((e) => isEventActive(e, settings));
 }
