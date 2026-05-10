@@ -29,7 +29,7 @@ describe("eventArticlePayload helpers", () => {
   });
 
   describe("buildArticlePayload", () => {
-    it("inclui weekday calculado e ai_context cortesia", () => {
+    it("inclui weekday calculado e aiContext cortesia", () => {
       const payload = buildArticlePayload({
         title: "TANTRAROSA",
         date: "2026-05-23",
@@ -40,11 +40,11 @@ describe("eventArticlePayload helpers", () => {
       });
       expect(payload).toMatchObject({
         weekday: "sábado",
-        ai_context: expect.stringContaining("cortesia"),
+        aiContext: expect.stringContaining("cortesia"),
       });
     });
 
-    it("propaga lineup, genres e ticket_link", () => {
+    it("propaga lineup, genres e ticketLink (joined)", () => {
       const payload = buildArticlePayload({
         title: "X",
         date: "2026-06-01",
@@ -55,8 +55,8 @@ describe("eventArticlePayload helpers", () => {
         genres: ["techno"],
         ticket_link: "https://ex.com/t",
       });
-      expect(payload.lineup).toEqual(["Artista A", "Artista B"]);
-      expect(payload.genres).toEqual(["techno"]);
+      expect(payload.lineup).toBe("Artista A, Artista B");
+      expect(payload.genres).toBe("techno");
       expect(payload.ticketLink).toBe("https://ex.com/t");
     });
   });
