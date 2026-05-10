@@ -42,14 +42,16 @@ export default defineConfig(({ mode }) => ({
           'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-tooltip', '@radix-ui/react-popover'],
           'ui-forms': ['@radix-ui/react-checkbox', '@radix-ui/react-select', '@radix-ui/react-switch', '@radix-ui/react-label'],
           'ui-extras': ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar', '@radix-ui/react-collapsible'],
-          
+          'supabase': ['@supabase/supabase-js'],
+          'icons': ['lucide-react'],
+          'charts': ['recharts'],
+          'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'date-utils': ['date-fns'],
           'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-placeholder'],
           'query': ['@tanstack/react-query'],
           'dnd': ['@dnd-kit/core', '@dnd-kit/sortable'],
           'virtual': ['@tanstack/react-virtual'],
         },
-        // Consistent chunk naming for better caching
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
