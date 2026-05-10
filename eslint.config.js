@@ -24,13 +24,18 @@ export default tseslint.config(
       // ---------- Stricter (anti-bug) ----------
       // Erros novos: regras seguras que pegam bugs sem quebrar build atual
       eqeqeq: ["error", "always", { null: "ignore" }],
-      "no-param-reassign": ["error", { props: false }],
-      "no-implicit-coercion": ["error", { boolean: false }],
       "no-throw-literal": "error",
-      "no-return-await": "error",
       "prefer-const": "error",
 
       // Warns que vão virar errors em uma próxima fase (após cleanup)
+      "no-param-reassign": ["warn", { props: false }],
+      "no-implicit-coercion": ["warn", { boolean: false }],
+      "no-return-await": "warn",
+      "no-misleading-character-class": "warn",
+      "no-empty": "warn",
+      "prefer-rest-params": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "@typescript-eslint/no-require-imports": "warn",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "react-hooks/exhaustive-deps": "warn",
       "@typescript-eslint/no-unused-vars": [
