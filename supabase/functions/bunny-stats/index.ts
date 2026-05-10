@@ -201,7 +201,8 @@ Deno.serve(async (req) => {
     const estimatedCostUSD = bandwidthGB * COST_PER_GB;
 
     const payload = {
-      window: { dateFrom, dateTo, days, hourly, mode },
+      window: { dateFrom, dateTo, days: realDays, hourly, mode },
+      chunks: { total: chunks.length, ok: okChunks.length, errors: chunkErrors },
       estimatedCostUSD,
       pullZone: {
         bandwidthBytes: Number(stats.TotalBandwidthUsed || 0),
