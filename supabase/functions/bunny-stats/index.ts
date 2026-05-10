@@ -74,29 +74,12 @@ Deno.serve(async (req) => {
 
     const headers = { AccessKey: ACCOUNT_KEY, Accept: "application/json" };
 
-    // Para lifetime, descobrir DateCreated da pull zone para evitar chunks
-    // pré-existência (que causam Bunny 400 e zeram o agregado).
-    let lifetimeFrom = new Date("2020-01-01T00:00:00Z");
-    if (isLifetime) {
-      try {
-        const pzRes = await fetch(`https://api.bunny.net/pullzone/${PULL_ZONE_ID}`, { headers });
-        if (pzRes.ok) {
-          const pz = await pzRes.json();
-          const dc = pz.DateCreated || pz.dateCreated;
-          if (dc) {
-            const parsed = new Date(dc);
-            if (!isNaN(parsed.getTime())) lifetimeFrom = parsed;
-          }
-        } else {
-          await pzRes.text().catch(() => "");
-        }
-      } catch (e) {
-        console.error("pullzone meta fetch failed:", (e as Error).message);
-      }
-    }
-
+    // Para lifetime, varremos chunks de trás pra frente e paramos quando
+    // o Bunny começa a devolver "all-time fallback" (chunks duplicados) ou vazio.
+    // Isto evita o bug onde dateFrom anterior à criação da zone faz a API
+    // retornar o total agregado em CADA chunk (causando soma inflada).
     const from = isLifetime
-      ? lifetimeFrom
+      ? new Date(now.getTime() - 365 * 24 * 3600 * 1000) // máx 1 ano olhando pra trás como teto inicial; será expandido se necessário
       : new Date(now.getTime() - days * 24 * 3600 * 1000);
     const dateFrom = from.toISOString().slice(0, 19);
     const dateTo = now.toISOString().slice(0, 19);
