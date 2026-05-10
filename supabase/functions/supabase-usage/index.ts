@@ -84,11 +84,10 @@ Deno.serve(async (req) => {
       { headers: { Authorization: `Bearer ${pat}` } },
     ).then((r) => r.ok ? r.json() : []);
 
-    // ---- 3. Database size (Management API analytics) ----
-    const dbSizeP = fetch(
-      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.api-requests-count?interval=${interval}`,
-      { headers: { Authorization: `Bearer ${pat}` } },
-    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
+    // ---- 3. Database size (via RPC pg_database_size) ----
+    const dbSizeP = admin.rpc("get_db_size").then(
+      (r) => ({ bytes: Number(r.data || 0), error: r.error?.message }),
+    ).catch((e) => ({ bytes: 0, error: (e as Error).message }));
 
     // ---- 3b. Edge function invocations ----
     const edgeInvocationsP = fetch(
@@ -138,16 +137,15 @@ Deno.serve(async (req) => {
     ]);
 
     let totalEdgeInvocations = 0;
-    if (edgeInvocations?.result && Array.isArray(edgeInvocations.result)) {
-      for (const row of edgeInvocations.result) {
-        totalEdgeInvocations += Number(row.count || row.total || row.total_invocations || 0);
+    const edgeRows = (edgeInvocations?.result || edgeInvocations?.data || []) as Array<Record<string, unknown>>;
+    if (Array.isArray(edgeRows)) {
+      for (const row of edgeRows) {
+        totalEdgeInvocations += Number(
+          row.count ?? row.total ?? row.total_invocations ?? row.invocations ?? row.value ?? 0,
+        );
       }
     }
-    let dbSizeBytes = 0;
-    if (dbSize?.result && Array.isArray(dbSize.result)) {
-      const last = dbSize.result[dbSize.result.length - 1];
-      dbSizeBytes = Number(last?.db_size_bytes || last?.size || 0);
-    }
+    const dbSizeBytes = Number((dbSize as { bytes?: number })?.bytes || 0);
 
     // Aggregate api-counts series → totals per service
     const series: Array<{ timestamp: string; auth: number; rest: number; storage: number; realtime: number }> = [];

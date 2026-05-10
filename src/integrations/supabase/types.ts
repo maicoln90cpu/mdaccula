@@ -1233,6 +1233,7 @@ export type Database = {
       cleanup_old_egress: { Args: never; Returns: undefined }
       cleanup_old_logs: { Args: never; Returns: undefined }
       generate_slug: { Args: { text_input: string }; Returns: string }
+      get_db_size: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

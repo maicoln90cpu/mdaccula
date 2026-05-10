@@ -69,27 +69,54 @@ Deno.serve(async (req) => {
     const isLifetime = mode === "lifetime";
     const days = Math.max(1, Math.min(90, Number(bodyParams.days || url.searchParams.get("days") || 7)));
     const hourly = (bodyParams.hourly === true) || url.searchParams.get("hourly") === "true";
+    const bust = (bodyParams.bust === true) || url.searchParams.get("bust") === "1";
     const now = new Date();
+
+    const headers = { AccessKey: ACCOUNT_KEY, Accept: "application/json" };
+
+    // Para lifetime, descobrir DateCreated da pull zone para evitar chunks
+    // pré-existência (que causam Bunny 400 e zeram o agregado).
+    let lifetimeFrom = new Date("2020-01-01T00:00:00Z");
+    if (isLifetime) {
+      try {
+        const pzRes = await fetch(`https://api.bunny.net/pullzone/${PULL_ZONE_ID}`, { headers });
+        if (pzRes.ok) {
+          const pz = await pzRes.json();
+          const dc = pz.DateCreated || pz.dateCreated;
+          if (dc) {
+            const parsed = new Date(dc);
+            if (!isNaN(parsed.getTime())) lifetimeFrom = parsed;
+          }
+        } else {
+          await pzRes.text().catch(() => "");
+        }
+      } catch (e) {
+        console.error("pullzone meta fetch failed:", (e as Error).message);
+      }
+    }
+
     const from = isLifetime
-      ? new Date("2020-01-01T00:00:00Z")
+      ? lifetimeFrom
       : new Date(now.getTime() - days * 24 * 3600 * 1000);
     const dateFrom = from.toISOString().slice(0, 19);
     const dateTo = now.toISOString().slice(0, 19);
+    const realDays = Math.max(1, Math.round((now.getTime() - from.getTime()) / 86400000));
 
     const cacheKey = `${mode}-${days}-${hourly}`;
-    const hit = cache.get(cacheKey);
-    if (hit && Date.now() - hit.at < TTL_MS) {
-      return new Response(JSON.stringify({ ...(hit.data as object), cached: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!bust) {
+      const hit = cache.get(cacheKey);
+      if (hit && Date.now() - hit.at < TTL_MS) {
+        return new Response(JSON.stringify({ ...(hit.data as object), cached: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
     }
 
-    const headers = { AccessKey: ACCOUNT_KEY, Accept: "application/json" };
     const storageStatsUrl = `https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}/statistics?dateFrom=${dateFrom}&dateTo=${dateTo}`;
     const storageInfoUrl = `https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}`;
 
     // Bunny /statistics limita range a 40 dias. Quebra em chunks e agrega.
-    const MAX_DAYS = 40;
+    const MAX_DAYS = 35; // margem segura abaixo dos 40
     const chunks: Array<{ from: string; to: string }> = [];
     {
       let cursor = new Date(from);
@@ -102,14 +129,29 @@ Deno.serve(async (req) => {
       if (chunks.length === 0) chunks.push({ from: dateFrom, to: dateTo });
     }
 
-    const chunkResults = await Promise.all(chunks.map((c) =>
-      fetch(`https://api.bunny.net/statistics?dateFrom=${c.from}&dateTo=${c.to}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`, { headers })
-        .then(async (r) => r.ok ? await r.json() : null)
-    ));
+    let chunkErrors = 0;
+    const chunkResults = await Promise.all(chunks.map(async (c) => {
+      const u = `https://api.bunny.net/statistics?dateFrom=${c.from}&dateTo=${c.to}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`;
+      try {
+        const r = await fetch(u, { headers });
+        if (!r.ok) {
+          const t = await r.text().catch(() => "");
+          console.error(`bunny chunk ${c.from}→${c.to} status=${r.status} body=${t.slice(0, 200)}`);
+          chunkErrors++;
+          return null;
+        }
+        return await r.json();
+      } catch (e) {
+        console.error(`bunny chunk ${c.from}→${c.to} threw:`, (e as Error).message);
+        chunkErrors++;
+        return null;
+      }
+    }));
 
     const okChunks = chunkResults.filter(Boolean) as Record<string, unknown>[];
+    console.log(`bunny-stats: mode=${mode} chunks=${chunks.length} ok=${okChunks.length} err=${chunkErrors} from=${dateFrom}`);
     if (okChunks.length === 0) {
-      return new Response(JSON.stringify({ error: "Bunny /statistics failed for all chunks" }), {
+      return new Response(JSON.stringify({ error: "Bunny /statistics failed for all chunks", chunkErrors }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -159,7 +201,8 @@ Deno.serve(async (req) => {
     const estimatedCostUSD = bandwidthGB * COST_PER_GB;
 
     const payload = {
-      window: { dateFrom, dateTo, days, hourly, mode },
+      window: { dateFrom, dateTo, days: realDays, hourly, mode },
+      chunks: { total: chunks.length, ok: okChunks.length, errors: chunkErrors },
       estimatedCostUSD,
       pullZone: {
         bandwidthBytes: Number(stats.TotalBandwidthUsed || 0),
