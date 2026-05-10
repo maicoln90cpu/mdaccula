@@ -124,33 +124,7 @@ const EventsManager = () => {
     try {
       console.log('[EventsManager] Iniciando geração de artigo para evento:', event.title);
       
-      // Compor eventLocation para o template
-      const eventLocation = [event.venue, event.location_city, event.location_state]
-        .filter(Boolean)
-        .join(' - ');
-
-      const payload = {
-        eventName: event.title,
-        title: event.title,
-        subtitle: (event as any).subtitle || '',
-        eventLocation,
-        venue: event.venue,
-        address: (event as any).address || '',
-        eventDate: event.date,
-        eventTime: event.time,
-        endTime: event.end_time || '',
-        locationCity: event.location_city,
-        locationState: event.location_state,
-        description: event.description || '',
-        genres: event.genres?.join(', ') || '',
-        lineup: event.lineup?.join(', ') || '',
-        ticketLink: event.ticket_link || '',
-        vipLink: event.vip_link || '',
-        eventImageUrl: event.image_url || '',
-        category: 'Eventos',
-        tone: 'engaging',
-        generateImage: !event.image_url,
-      };
+      const payload = buildArticlePayload(event as any, { generateImage: !event.image_url });
       
       console.log('[EventsManager] Payload para generate-blog-post-v2:', payload);
       
