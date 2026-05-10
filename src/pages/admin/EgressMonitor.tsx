@@ -239,14 +239,6 @@ const EgressMonitor = () => {
 
               {/* ============ BUNNY TAB ============ */}
               <TabsContent value="bunny" className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <Tabs value={bunnyMode} onValueChange={(v) => setBunnyMode(v as "lifetime" | "range")}>
-                    <TabsList>
-                      <TabsTrigger value="lifetime">Lifetime (total)</TabsTrigger>
-                      <TabsTrigger value="range">Últimos {days}d</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
 
                 {bunnyError ? (
                   <Card className="border-destructive/50 bg-destructive/5">
