@@ -35,7 +35,14 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <DialogTitle className="text-xl sm:text-2xl break-words pr-8 sm:pr-0">{event.title}</DialogTitle>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-xl sm:text-2xl break-words pr-8 sm:pr-0">{event.title}</DialogTitle>
+              {event.subtitle && (
+                <p className="text-sm sm:text-base text-muted-foreground italic mt-1 break-words">
+                  {event.subtitle}
+                </p>
+              )}
+            </div>
             {isAdmin && onEdit && (
               <Button variant="outline" size="sm" onClick={onEdit} className="min-h-[44px] w-full sm:w-auto">
                 <Edit className="w-4 h-4 mr-2" />
