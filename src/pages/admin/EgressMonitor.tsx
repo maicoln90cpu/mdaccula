@@ -218,9 +218,10 @@ const EgressMonitor = () => {
                     <TabsTrigger value="7d">7 dias</TabsTrigger>
                     <TabsTrigger value="30d">30 dias</TabsTrigger>
                     <TabsTrigger value="90d">90 dias</TabsTrigger>
+                    <TabsTrigger value="lifetime">Lifetime</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Button variant="outline" size="icon" onClick={() => { fetchInternal(); fetchSupabase(); fetchBunny(); }}>
+                <Button variant="outline" size="icon" onClick={() => { fetchInternal(); fetchSupabase(); fetchBunny(); fetchSnapshots(); }}>
                   <RefreshCw className={`h-4 w-4 ${(internalLoading || sbLoading || bunnyLoading) ? "animate-spin" : ""}`} />
                 </Button>
               </div>
