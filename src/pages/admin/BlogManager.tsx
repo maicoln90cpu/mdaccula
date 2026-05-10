@@ -236,7 +236,7 @@ const BlogManager = () => {
   return (
     <>
       <div className="w-full">
-        <main className="pt-16 min-h-screen bg-background">
+        <main className="w-full">
           <div className="w-full px-4 md:px-6 py-6">
             <div className="mb-4">
               <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary">

@@ -333,7 +333,7 @@ export default function AutoGenerationDashboard() {
   if (isLoading) {
     return (
       <>
-        <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-full flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </>
