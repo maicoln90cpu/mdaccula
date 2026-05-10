@@ -57,7 +57,7 @@ describe("eventArticlePayload helpers", () => {
       });
       expect(payload.lineup).toEqual(["Artista A", "Artista B"]);
       expect(payload.genres).toEqual(["techno"]);
-      expect(payload.ticket_link).toBe("https://ex.com/t");
+      expect(payload.ticketLink).toBe("https://ex.com/t");
     });
   });
 });
