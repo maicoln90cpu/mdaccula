@@ -9,8 +9,10 @@ interface TimezoneSettingsProps {
   setTimezoneOffset: (value: string) => void;
   timezoneName: string;
   setTimezoneName: (value: string) => void;
-  eventGraceHours: number;
-  setEventGraceHours: (value: number) => void;
+  eventHoursAfterStart: number;
+  setEventHoursAfterStart: (value: number) => void;
+  eventHoursWithoutTime: number;
+  setEventHoursWithoutTime: (value: number) => void;
   linksShowEventDate: boolean;
   setLinksShowEventDate: (value: boolean) => void;
 }
@@ -34,8 +36,10 @@ const TimezoneSettings = ({
   setTimezoneOffset,
   timezoneName,
   setTimezoneName,
-  eventGraceHours,
-  setEventGraceHours,
+  eventHoursAfterStart,
+  setEventHoursAfterStart,
+  eventHoursWithoutTime,
+  setEventHoursWithoutTime,
   linksShowEventDate,
   setLinksShowEventDate,
 }: TimezoneSettingsProps) => {
@@ -130,31 +134,48 @@ const TimezoneSettings = ({
           </div>
 
           <div className="space-y-3">
-            <Label className="text-sm font-medium">Horas de Tolerância Após Término</Label>
+            <Label className="text-sm font-medium">Horas até inativar (com horário definido)</Label>
             <div className="flex items-center gap-4">
               <Input
                 type="number"
-                min={0}
-                max={48}
-                value={eventGraceHours}
-                onChange={(e) => setEventGraceHours(parseInt(e.target.value) || 6)}
+                min={1}
+                max={72}
+                value={eventHoursAfterStart}
+                onChange={(e) => setEventHoursAfterStart(parseInt(e.target.value) || 12)}
                 className="w-24 h-12"
               />
-              <span className="text-sm text-muted-foreground">horas</span>
+              <span className="text-sm text-muted-foreground">horas após o início</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Quantas horas após o término do evento ele continuará visível no site (0-48 horas).
-              Ex: evento termina às 06:00, com tolerância de 6h ficará visível até 12:00.
+              Quanto tempo após o horário de início o evento continua ativo (1-72h, padrão 12h).
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Horas até inativar (sem horário definido)</Label>
+            <div className="flex items-center gap-4">
+              <Input
+                type="number"
+                min={1}
+                max={72}
+                value={eventHoursWithoutTime}
+                onChange={(e) => setEventHoursWithoutTime(parseInt(e.target.value) || 24)}
+                className="w-24 h-12"
+              />
+              <span className="text-sm text-muted-foreground">horas após 00:00 do dia</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quando não houver horário definido, conta a partir da meia-noite do dia do evento (1-72h, padrão 24h).
             </p>
           </div>
 
           <div className="p-4 rounded-lg bg-muted/30 border space-y-2">
             <p className="text-sm font-medium">Como funciona a regra de visibilidade:</p>
             <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-              <li>Evento usa horário de <strong>início</strong> e <strong>término</strong> (opcional)</li>
-              <li>Se término for menor que início (ex: 22:00 → 06:00), assume dia seguinte</li>
-              <li>Evento fica visível até: <strong>término + tolerância</strong></li>
-              <li>Sem horário de término: visível até <strong>início + 8h + tolerância</strong></li>
+              <li>Evento usa apenas <strong>data</strong> e <strong>horário de início</strong></li>
+              <li>Com horário: visível até <strong>início + horas configuradas</strong></li>
+              <li>Sem horário: visível até <strong>meia-noite do dia + horas configuradas</strong></li>
+              <li>Comparação respeita o <strong>timezone</strong> selecionado acima</li>
             </ul>
           </div>
           
