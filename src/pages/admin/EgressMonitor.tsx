@@ -282,7 +282,7 @@ const EgressMonitor = () => {
                       <CardDescription>Bandwidth</CardDescription>
                       <CardTitle className="text-2xl">{bunnyLoading ? "..." : formatBytes(bunny?.pullZone.bandwidthBytes || 0)}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{bunnyEgressGB.toFixed(2)} GB · {days}d</p></CardContent>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{bunnyEgressGB.toFixed(2)} GB · {bunnyMode === "lifetime" ? "lifetime" : `${days}d`}</p></CardContent>
                   </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
