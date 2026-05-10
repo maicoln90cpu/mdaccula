@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getQualityMetrics, TECH_DEBT_ITEMS, type QualityMetric } from '@/lib/qualityMetrics';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -15,141 +16,8 @@ import {
   TrendingDown,
 } from 'lucide-react';
 
-interface QualityMetric {
-  name: string;
-  score: number;
-  maxScore: number;
-  status: 'good' | 'warning' | 'critical';
-  description: string;
-  trend?: 'up' | 'down' | 'stable';
-}
+// Tipos e dados agora vêm de @/lib/qualityMetrics (dinâmicos)
 
-interface TechDebtItem {
-  id: string;
-  title: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  category: string;
-  effort: string;
-  description: string;
-}
-
-const QUALITY_METRICS: QualityMetric[] = [
-  {
-    name: 'Cobertura de Testes',
-    score: 45,
-    maxScore: 100,
-    status: 'warning',
-    description: 'Testes unitários e de integração implementados',
-    trend: 'up',
-  },
-  {
-    name: 'Segurança (RLS)',
-    score: 90,
-    maxScore: 100,
-    status: 'good',
-    description: 'Políticas RLS e rate limiting configurados',
-    trend: 'up',
-  },
-  {
-    name: 'Performance Score',
-    score: 75,
-    maxScore: 100,
-    status: 'good',
-    description: 'Baseado em Web Vitals e carregamento',
-    trend: 'stable',
-  },
-  {
-    name: 'Qualidade de Código',
-    score: 85,
-    maxScore: 100,
-    status: 'good',
-    description: 'ESLint, Prettier e TypeScript configurados',
-    trend: 'up',
-  },
-  {
-    name: 'Documentação',
-    score: 60,
-    maxScore: 100,
-    status: 'warning',
-    description: 'README, docs e comentários em código',
-    trend: 'up',
-  },
-  {
-    name: 'CI/CD Pipeline',
-    score: 80,
-    maxScore: 100,
-    status: 'good',
-    description: 'GitHub Actions configurado com build e testes',
-    trend: 'up',
-  },
-];
-
-const TECH_DEBT_ITEMS: TechDebtItem[] = [
-  {
-    id: '1',
-    title: 'Aumentar cobertura de testes para 80%',
-    severity: 'medium',
-    category: 'Testes',
-    effort: '8h',
-    description: 'Adicionar testes para componentes de admin e hooks restantes',
-  },
-  {
-    id: '2',
-    title: 'Implementar E2E tests com Playwright',
-    severity: 'low',
-    category: 'Testes',
-    effort: '16h',
-    description: 'Testes end-to-end para fluxos críticos de usuário',
-  },
-  {
-    id: '3',
-    title: 'Otimizar bundle size',
-    severity: 'medium',
-    category: 'Performance',
-    effort: '4h',
-    description: 'Code splitting adicional e lazy loading de componentes pesados',
-  },
-  {
-    id: '4',
-    title: 'Adicionar error boundaries em todas as páginas',
-    severity: 'high',
-    category: 'Resiliência',
-    effort: '2h',
-    description: 'Garantir que erros não quebrem toda a aplicação',
-  },
-  {
-    id: '5',
-    title: 'Documentar todas as Edge Functions',
-    severity: 'low',
-    category: 'Documentação',
-    effort: '4h',
-    description: 'Adicionar JSDoc e README para cada função',
-  },
-  {
-    id: '6',
-    title: 'Implementar logging centralizado',
-    severity: 'medium',
-    category: 'Observabilidade',
-    effort: '6h',
-    description: 'Sistema de logs estruturados para debugging',
-  },
-  {
-    id: '7',
-    title: 'Revisar e otimizar queries N+1',
-    severity: 'medium',
-    category: 'Performance',
-    effort: '4h',
-    description: 'Identificar e corrigir queries ineficientes no Supabase',
-  },
-  {
-    id: '8',
-    title: 'Implementar cache de API com React Query',
-    severity: 'low',
-    category: 'Performance',
-    effort: '3h',
-    description: 'Melhorar staleTime e cacheTime para dados estáticos',
-  },
-];
 
 const SeverityBadge = ({ severity }: { severity: string }) => {
   const config: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
@@ -183,6 +51,7 @@ const TrendIcon = ({ trend }: { trend?: string }) => {
 
 export const TechDebtDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const QUALITY_METRICS = useMemo(() => getQualityMetrics(), []);
 
   const overallScore = Math.round(
     QUALITY_METRICS.reduce((acc, m) => acc + (m.score / m.maxScore) * 100, 0) / QUALITY_METRICS.length
@@ -318,7 +187,7 @@ export const TechDebtDashboard = () => {
               {filteredDebt.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  className={`flex items-start justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors ${item.resolved ? 'opacity-60' : ''}`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -326,8 +195,13 @@ export const TechDebtDashboard = () => {
                       <Badge variant="outline" className="text-xs">
                         {item.category}
                       </Badge>
+                      {item.resolved && (
+                        <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
+                          ✓ Resolvido
+                        </Badge>
+                      )}
                     </div>
-                    <h4 className="font-medium">{item.title}</h4>
+                    <h4 className={`font-medium ${item.resolved ? 'line-through' : ''}`}>{item.title}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                   </div>
                   <div className="text-right ml-4">
