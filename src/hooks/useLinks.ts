@@ -46,7 +46,8 @@ export interface LinkGroup {
 }
 
 export interface UseLinksOptions {
-  graceHours?: number;
+  hoursAfterStart?: number;
+  hoursWithoutTime?: number;
   timezoneOffset?: number;
 }
 
@@ -70,17 +71,17 @@ const setCachedLinks = (data: LinkGroup[]) => {
 };
 
 const processLinks = (
-  links: RawLinkData[], 
-  settings: Partial<TimezoneSettings> = {}
+  links: RawLinkData[],
+  settings: TimezoneSettings = {}
 ): CustomLink[] => {
   return links
     .map((link) => {
       const eventDate = link.events?.date || link.override_date;
-      const eventTime = link.events?.time || link.override_time || "22:00";
-      
+      const eventTime = link.events?.time || link.override_time || null;
+
       if (eventDate) {
         const isVisible = isEventVisible(
-          { date: eventDate, time: eventTime, end_time: null },
+          { date: eventDate, time: eventTime },
           settings
         );
         if (!isVisible) {
@@ -93,7 +94,7 @@ const processLinks = (
     .sort(sortByEventDate);
 };
 
-const fetchLinksData = async (visibilitySettings: Partial<TimezoneSettings>): Promise<LinkGroup[]> => {
+const fetchLinksData = async (visibilitySettings: TimezoneSettings): Promise<LinkGroup[]> => {
   const { data, error } = await supabase
     .from("link_groups")
     .select(`
@@ -123,13 +124,17 @@ const fetchLinksData = async (visibilitySettings: Partial<TimezoneSettings>): Pr
 };
 
 export const useLinks = (options: UseLinksOptions = {}) => {
-  const { graceHours = 6, timezoneOffset = -3 } = options;
+  const {
+    hoursAfterStart = 12,
+    hoursWithoutTime = 24,
+    timezoneOffset = -3,
+  } = options;
   const queryClient = useQueryClient();
 
-  const visibilitySettings: Partial<TimezoneSettings> = { graceHours, timezoneOffset };
+  const visibilitySettings: TimezoneSettings = { hoursAfterStart, hoursWithoutTime, timezoneOffset };
 
   const query = useQuery({
-    queryKey: ["link-groups", graceHours, timezoneOffset],
+    queryKey: ["link-groups", hoursAfterStart, hoursWithoutTime, timezoneOffset],
     queryFn: () => fetchLinksData(visibilitySettings),
     staleTime: 15 * 60 * 1000, // 15 min
     gcTime: 30 * 60 * 1000,
