@@ -98,7 +98,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [createLink, setCreateLink] = useState(true);
   const [linkUrlType, setLinkUrlType] = useState<'ticket' | 'slug'>('ticket');
   const [generateBlogPost, setGenerateBlogPost] = useState(false);
-  const [aiContext, setAiContext] = useState('');
+  const [aiContext, setAiContext] = useState<string>(event?.ai_context || '');
   const [linkGroups, setLinkGroups] = useState<any[]>([]);
   const [eventTemplates, setEventTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
