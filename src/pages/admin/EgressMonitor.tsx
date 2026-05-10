@@ -23,11 +23,12 @@ interface SupabaseUsageResp {
   storage: { buckets: Array<{ bucket: string; bytes: number; files: number }>; totalBytes: number; totalFiles: number };
   tables: Record<string, number>;
   db?: { sizeBytes: number };
-  edgeFunctions?: { totalInvocations: number };
+  edgeFunctions?: { totalInvocations: number; source?: string; windowDays?: number | null };
   fetchedAt: string;
 }
 interface BunnyResp {
   window: { dateFrom: string; dateTo: string; days: number; mode?: string };
+  chunks?: { ok: number; errors: number; stopReason?: string };
   estimatedCostUSD?: number;
   pullZone: {
     bandwidthBytes: number; originBytes: number; requests: number; cacheHitRate: number; avgOriginResponseMs: number;
