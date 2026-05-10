@@ -3,9 +3,6 @@ import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -241,10 +238,9 @@ const RecurringEventsManager = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-4xl mx-auto">
             {/* Breadcrumb */}
             <Breadcrumb className="mb-6">
@@ -405,8 +401,6 @@ const RecurringEventsManager = () => {
             )}
           </div>
         </main>
-        <Footer />
-
         {/* Edit Dialog */}
         <Dialog open={!!editingConfig} onOpenChange={() => setEditingConfig(null)}>
           <DialogContent>
@@ -595,7 +589,7 @@ const RecurringEventsManager = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

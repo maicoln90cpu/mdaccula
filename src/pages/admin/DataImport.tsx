@@ -193,7 +193,7 @@ export default function DataImport() {
   };
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-3xl">
+    <div className="w-full px-4 md:px-6 py-6">
       <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Voltar ao Painel

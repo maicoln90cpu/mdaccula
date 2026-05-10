@@ -1,9 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -269,10 +266,9 @@ const RedirectsManager = () => {
   const siteUrl = window.location.origin;
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-5xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -747,9 +743,8 @@ const RedirectsManager = () => {
             </Dialog>
           </div>
         </main>
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

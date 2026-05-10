@@ -1,9 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -196,10 +193,9 @@ const EgressMonitor = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
@@ -727,9 +723,8 @@ const EgressMonitor = () => {
             </p>
           </div>
         </main>
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

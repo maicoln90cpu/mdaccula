@@ -32,6 +32,7 @@ const Privacidade = lazy(() => import("./pages/Privacidade"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Admin pages - lazy loaded
+const AdminLayout = lazy(() => import("./components/admin/AdminLayout"));
 const Admin = lazy(() => import("./pages/Admin"));
 const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
 const EventsDashboard = lazy(() => import("./pages/admin/EventsDashboard"));
@@ -120,30 +121,31 @@ const App = () => (
                       <Route path="/links" element={<PageWithError name="Links"><Links /></PageWithError>} />
                       <Route path="/links/:slug" element={<PageWithError name="Links"><Links /></PageWithError>} />
                       
-                      {/* Admin Pages */}
-                      <Route path="/admin" element={<PageWithError name="Painel Admin"><Admin /></PageWithError>} />
-                      <Route path="/admin/events" element={<PageWithError name="Gerenciar Eventos"><EventsManager /></PageWithError>} />
-                      <Route path="/admin/events-dashboard" element={<PageWithError name="Dashboard de Eventos"><EventsDashboard /></PageWithError>} />
-                      <Route path="/admin/event-templates" element={<PageWithError name="Templates de Eventos"><EventTemplates /></PageWithError>} />
-                      <Route path="/admin/blog" element={<PageWithError name="Gerenciar Blog"><BlogManager /></PageWithError>} />
-                      <Route path="/admin/news-sources" element={<PageWithError name="Fontes de Notícias"><NewsSourcesManager /></PageWithError>} />
-                      <Route path="/admin/ai-content2" element={<PageWithError name="Gerador de Conteúdo IA"><AIContent2 /></PageWithError>} />
-                      <Route path="/admin/ai-prompt-templates" element={<PageWithError name="Templates de Prompts"><PromptTemplatesManager /></PageWithError>} />
-                      <Route path="/admin/team" element={<PageWithError name="Gerenciar Equipe"><TeamManager /></PageWithError>} />
-                      <Route path="/admin/settings" element={<PageWithError name="Configurações"><Settings /></PageWithError>} />
-                      <Route path="/admin/links-manager" element={<PageWithError name="Gerenciar Links"><LinksManager /></PageWithError>} />
-                      <Route path="/admin/links-analytics" element={<PageWithError name="Analytics de Links"><LinksAnalytics /></PageWithError>} />
-                      <Route path="/admin/newsletter-ab-results" element={<PageWithError name="Resultados A/B Newsletter"><NewsletterABResults /></PageWithError>} />
-                      <Route path="/admin/newsletter" element={<PageWithError name="Gerenciar Newsletter"><NewsletterManager /></PageWithError>} />
-                      
-                      <Route path="/admin/system-health" element={<PageWithError name="Status do Sistema"><SystemHealth /></PageWithError>} />
-                      <Route path="/admin/recurring-events" element={<PageWithError name="Eventos Recorrentes"><RecurringEventsManager /></PageWithError>} />
-                      <Route path="/admin/auto-generation" element={<PageWithError name="Geração Automática"><AutoGenerationDashboard /></PageWithError>} />
-                      <Route path="/admin/mdaccula-radio" element={<PageWithError name="Inscrições MDAccula Radio"><PodcastManager /></PageWithError>} />
-                      <Route path="/admin/podcast" element={<Navigate to="/admin/mdaccula-radio" replace />} />
-                      <Route path="/admin/redirects" element={<PageWithError name="Redirecionador de Links"><RedirectsManager /></PageWithError>} />
-                      <Route path="/admin/data-import" element={<PageWithError name="Importação de Dados"><DataImport /></PageWithError>} />
-                      <Route path="/admin/egress-monitor" element={<PageWithError name="Monitor de Egress"><EgressMonitor /></PageWithError>} />
+                      {/* Admin Pages — wrapped in AdminLayout (sidebar + protected) */}
+                      <Route path="/admin" element={<AdminLayout />}>
+                        <Route index element={<PageWithError name="Painel Admin"><Admin /></PageWithError>} />
+                        <Route path="events" element={<PageWithError name="Gerenciar Eventos"><EventsManager /></PageWithError>} />
+                        <Route path="events-dashboard" element={<PageWithError name="Dashboard de Eventos"><EventsDashboard /></PageWithError>} />
+                        <Route path="event-templates" element={<PageWithError name="Templates de Eventos"><EventTemplates /></PageWithError>} />
+                        <Route path="blog" element={<PageWithError name="Gerenciar Blog"><BlogManager /></PageWithError>} />
+                        <Route path="news-sources" element={<PageWithError name="Fontes de Notícias"><NewsSourcesManager /></PageWithError>} />
+                        <Route path="ai-content2" element={<PageWithError name="Gerador de Conteúdo IA"><AIContent2 /></PageWithError>} />
+                        <Route path="ai-prompt-templates" element={<PageWithError name="Templates de Prompts"><PromptTemplatesManager /></PageWithError>} />
+                        <Route path="team" element={<PageWithError name="Gerenciar Equipe"><TeamManager /></PageWithError>} />
+                        <Route path="settings" element={<PageWithError name="Configurações"><Settings /></PageWithError>} />
+                        <Route path="links-manager" element={<PageWithError name="Gerenciar Links"><LinksManager /></PageWithError>} />
+                        <Route path="links-analytics" element={<PageWithError name="Analytics de Links"><LinksAnalytics /></PageWithError>} />
+                        <Route path="newsletter-ab-results" element={<PageWithError name="Resultados A/B Newsletter"><NewsletterABResults /></PageWithError>} />
+                        <Route path="newsletter" element={<PageWithError name="Gerenciar Newsletter"><NewsletterManager /></PageWithError>} />
+                        <Route path="system-health" element={<PageWithError name="Status do Sistema"><SystemHealth /></PageWithError>} />
+                        <Route path="recurring-events" element={<PageWithError name="Eventos Recorrentes"><RecurringEventsManager /></PageWithError>} />
+                        <Route path="auto-generation" element={<PageWithError name="Geração Automática"><AutoGenerationDashboard /></PageWithError>} />
+                        <Route path="mdaccula-radio" element={<PageWithError name="Inscrições MDAccula Radio"><PodcastManager /></PageWithError>} />
+                        <Route path="podcast" element={<Navigate to="/admin/mdaccula-radio" replace />} />
+                        <Route path="redirects" element={<PageWithError name="Redirecionador de Links"><RedirectsManager /></PageWithError>} />
+                        <Route path="data-import" element={<PageWithError name="Importação de Dados"><DataImport /></PageWithError>} />
+                        <Route path="egress-monitor" element={<PageWithError name="Monitor de Egress"><EgressMonitor /></PageWithError>} />
+                      </Route>
                       
                       {/* Redirect shortener */}
                       <Route path="/r/:slug" element={<Redirect />} />

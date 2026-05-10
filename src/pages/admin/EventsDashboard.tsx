@@ -3,9 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MapPin, Music, TrendingUp } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { format, isFuture, parseISO } from "date-fns";
 import { NavLink } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -29,10 +26,9 @@ const EventsDashboard = () => {
 
   if (isLoading) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-background">
-          <Navigation />
-          <main className="container mx-auto px-4 pt-24 pb-16">
+      <>
+        <div className="w-full">
+          <main className="w-full px-4 md:px-6 py-6">
             <div className="flex items-center justify-center min-h-[400px]">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
@@ -40,9 +36,8 @@ const EventsDashboard = () => {
               </div>
             </div>
           </main>
-          <Footer />
         </div>
-      </ProtectedRoute>
+      </>
     );
   }
 
@@ -88,10 +83,9 @@ const EventsDashboard = () => {
     .slice(0, 6);
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="mb-8">
               <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
@@ -238,9 +232,8 @@ const EventsDashboard = () => {
             </Card>
           </div>
         </main>
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

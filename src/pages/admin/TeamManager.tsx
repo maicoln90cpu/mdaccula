@@ -2,9 +2,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -178,18 +175,17 @@ const TeamManager = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="w-full flex items-center justify-center py-20">
         <Loader2 className="w-8 h-8 animate-spin" />
       </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-20 md:pt-24 pb-12 md:pb-16">
-          <div className="max-w-6xl mx-auto">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
+          <div className="w-full">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
               <div className="w-full sm:w-auto">
                 <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
@@ -276,8 +272,6 @@ const TeamManager = () => {
             )}
           </div>
         </main>
-        <Footer />
-
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -383,7 +377,7 @@ const TeamManager = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

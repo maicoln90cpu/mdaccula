@@ -10,10 +10,6 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Globe, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
-
 interface NewsSource {
   id: string;
   name: string;
@@ -149,11 +145,10 @@ const NewsSourcesManager = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
-          <div className="max-w-6xl mx-auto">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
@@ -298,9 +293,8 @@ const NewsSourcesManager = () => {
             )}
           </div>
         </main>
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

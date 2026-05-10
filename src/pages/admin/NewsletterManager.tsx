@@ -8,9 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib";
@@ -143,18 +140,16 @@ export default function NewsletterManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="w-full flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        
-        <main className="container mx-auto py-8 px-4 mt-20">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="flex items-center gap-4 mb-8">
             <Button
               variant="ghost"
@@ -326,9 +321,7 @@ export default function NewsletterManager() {
             </CardContent>
           </Card>
         </main>
-
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 }

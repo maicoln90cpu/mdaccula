@@ -8,9 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -260,12 +257,10 @@ const EventTemplates = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navigation />
-        
-        <main className="flex-1 container mx-auto px-4 py-8 pt-24">
-          <div className="max-w-6xl mx-auto">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
+          <div className="w-full">
             <div className="flex justify-between items-center mb-8">
               <div>
                 <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
@@ -518,10 +513,8 @@ const EventTemplates = () => {
             </div>
           </div>
         </main>
-
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

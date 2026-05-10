@@ -29,10 +29,6 @@ import { NavLink } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 import type { PodcastSubmission, PodcastSubmissionStatus } from "@/types";
-
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -239,10 +235,9 @@ const PodcastManager = () => {
 
   // ============= RENDER =============
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
@@ -429,8 +424,6 @@ const PodcastManager = () => {
             </Card>
           </div>
         </main>
-        <Footer />
-
         {/* Details Dialog */}
         <Dialog open={!!selectedSubmission} onOpenChange={() => setSelectedSubmission(null)}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -602,7 +595,7 @@ const PodcastManager = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

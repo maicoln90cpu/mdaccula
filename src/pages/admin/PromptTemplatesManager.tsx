@@ -1,9 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -314,25 +311,22 @@ const PromptTemplatesManager = () => {
 
   if (loading) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-background">
-          <Navigation />
-          <main className="container mx-auto px-4 pt-24 pb-16">
+      <>
+        <div className="w-full">
+          <main className="w-full px-4 md:px-6 py-6">
             <div className="flex items-center justify-center h-64">
               <p className="text-muted-foreground">Carregando templates...</p>
             </div>
           </main>
-          <Footer />
         </div>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
@@ -469,7 +463,6 @@ const PromptTemplatesManager = () => {
             </Card>
           </div>
         </main>
-        <Footer />
       </div>
 
       {/* Create/Edit Dialog */}
@@ -736,7 +729,7 @@ const PromptTemplatesManager = () => {
           </ScrollArea>
         </DialogContent>
       </Dialog>
-    </ProtectedRoute>
+    </>
   );
 };
 

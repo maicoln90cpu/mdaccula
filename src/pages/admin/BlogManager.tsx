@@ -1,8 +1,5 @@
 import { useEffect, useState } from "react";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -237,11 +234,10 @@ const BlogManager = () => {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen">
-        <Navigation />
-        <main className="pt-16 min-h-screen bg-background">
-          <div className="container mx-auto px-4 py-8">
+    <>
+      <div className="w-full">
+        <main className="w-full">
+          <div className="w-full px-4 md:px-6 py-6">
             <div className="mb-4">
               <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary">
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -399,8 +395,6 @@ const BlogManager = () => {
             )}
           </div>
         </main>
-        <Footer />
-
         <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -421,7 +415,7 @@ const BlogManager = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

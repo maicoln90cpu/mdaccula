@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -333,18 +332,18 @@ export default function AutoGenerationDashboard() {
 
   if (isLoading) {
     return (
-      <ProtectedRoute>
-        <div className="min-h-screen bg-background flex items-center justify-center">
+      <>
+        <div className="w-full flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      </ProtectedRoute>
+      </>
     );
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+    <>
+      <div className="w-full">
+        <div className="w-full px-4 md:px-6 py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
@@ -576,6 +575,6 @@ export default function AutoGenerationDashboard() {
           </div>
         </div>
       </div>
-    </ProtectedRoute>
+    </>
   );
 }
