@@ -130,10 +130,10 @@ const LinksAnalytics = () => {
       if (redirectsError) throw redirectsError;
 
       // Se há filtro de período, buscar contagens das tabelas de tracking
-      let linkClicksByPeriod: Record<string, number> = {};
-      let blogViewsByPeriod: Record<string, number> = {};
-      let eventViewsByPeriod: Record<string, number> = {};
-      let redirectClicksByPeriod: Record<string, number> = {};
+      const linkClicksByPeriod: Record<string, number> = {};
+      const blogViewsByPeriod: Record<string, number> = {};
+      const eventViewsByPeriod: Record<string, number> = {};
+      const redirectClicksByPeriod: Record<string, number> = {};
 
       if (dateFilter) {
         // Buscar cliques de links por período

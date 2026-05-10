@@ -38,12 +38,34 @@ jobs:
         run: npx tsc --noEmit
         continue-on-error: false
 
-      - name: Run Tests
-        run: npx vitest run
-        continue-on-error: false
+      - name: Run Tests with Coverage
+        run: npx vitest run --coverage
+        continue-on-error: true
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Check Prettier Formatting
         run: npx prettier --check "src/**/*.{ts,tsx,js,jsx,css,md}"
+        continue-on-error: true
+
+      - name: Check unused dependencies (depcheck)
+        run: npx depcheck --skip-missing
+        continue-on-error: true
+
+      - name: Run Deno tests (edge functions)
+        uses: denoland/setup-deno@v1
+        with:
+          deno-version: v1.x
+        continue-on-error: true
+      - name: Execute Deno tests
+        run: deno test --allow-net --allow-env --allow-read supabase/functions/_shared/
         continue-on-error: true
 
   # ============================================

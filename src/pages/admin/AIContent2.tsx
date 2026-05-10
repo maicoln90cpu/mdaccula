@@ -7,7 +7,8 @@ import { ArrowLeft, Sparkles, Lightbulb, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { GenerateForm } from "@/components/admin/ai-content/GenerateForm";
-import { SuggestionsList, GenerationProgress } from "@/components/admin/ai-content/SuggestionsList";
+import type { GenerationProgress } from "@/components/admin/ai-content/SuggestionsList";
+import { SuggestionsList } from "@/components/admin/ai-content/SuggestionsList";
 import { PostsHistory } from "@/components/admin/ai-content/PostsHistory";
 
 interface Suggestion {

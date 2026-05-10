@@ -1,7 +1,8 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import type { ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
+import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { Tables } from '@/integrations/supabase/types';
+import type { Tables } from '@/integrations/supabase/types';
 
 // Profile type from database
 type Profile = Tables<'profiles'>;

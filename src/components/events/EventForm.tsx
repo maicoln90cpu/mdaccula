@@ -281,7 +281,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       const timestamp = Date.now().toString().slice(-6);
       const eventSlug = manualSlug || event?.slug || `${baseSlug}-${timestamp}`;
       
-      let blogPostId = data.blog_post_id === 'none' ? null : data.blog_post_id || null;
+      const blogPostId = data.blog_post_id === 'none' ? null : data.blog_post_id || null;
 
       // Normalize URLs
       const normalizedTicketLink = normalizeUrl(data.ticket_link);
@@ -486,7 +486,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             
             
             // Check if group exists, if not create it
-            let { data: existingGroup, error: groupError } = await supabase
+            const { data: existingGroup, error: groupError } = await supabase
               .from('link_groups')
               .select('id')
               .eq('name', groupName)
