@@ -222,20 +222,30 @@ Deno.serve(async (req) => {
     // Find first available image or use custom
     const existingImageUrl = customImageUrl || events.find(e => e.image_url)?.image_url || null;
 
-    // Build detailed dates info with venue per event
+    // Build detailed dates info with venue per event (DADOS OFICIAIS por noite)
     const datesInfo = events.map(event => {
-      const lineupStr = event.lineup && event.lineup.length > 0 
-        ? event.lineup.join(', ') 
+      const lineupStr = event.lineup && event.lineup.length > 0
+        ? event.lineup.join(', ')
         : 'A confirmar';
-      
+
       return `
-📅 ${formatDatePt(event.date)} - ${event.time}
+📅 ${formatDatePt(event.date)} - início ${event.time}${event.end_time ? ` até ${event.end_time}` : ''}
 📍 Local: ${event.venue}${event.address ? `, ${event.address}` : ''} - ${event.location_city}/${event.location_state}
+${event.subtitle ? `🏷️ Subtítulo/Promoção: ${event.subtitle}` : ''}
 🎧 Line-up: ${lineupStr}
+🎵 Gêneros: ${(event.genres || []).join(', ') || 'Música Eletrônica'}
 ${event.ticket_link ? `🎟️ Ingressos: ${event.ticket_link}` : ''}
 ${event.vip_link ? `💎 VIP/Camarote: ${event.vip_link}` : ''}
-${event.description ? `📝 ${event.description}` : ''}`.trim();
+${event.description ? `📝 Descrição: ${event.description}` : ''}
+${event.ai_context ? `🎯 Contexto admin: ${event.ai_context}` : ''}`.trim();
     }).join('\n\n');
+
+    // Detectar cortesia agregada (qualquer evento com aiContext de cortesia)
+    const aggregatedAiCtx = events.map(e => e.ai_context || '').join(' ').toLowerCase();
+    const isCourtesy = /\b(cortesia|free|gratuito|gratuita|sem venda|sem ingresso|guest list|lista de convidados|open list)\b/.test(aggregatedAiCtx);
+    const anyLineup = events.some(e => e.lineup && e.lineup.length > 0);
+    const anyEndTime = events.some(e => e.end_time);
+    const anyAddress = events.some(e => e.address);
 
     // Fetch AI settings
     const { data: settings } = await supabase
