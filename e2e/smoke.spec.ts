@@ -10,16 +10,27 @@ test.describe('Smoke', () => {
   test('/links renders at least one link card', async ({ page }) => {
     const response = await page.goto('/links', { waitUntil: 'domcontentloaded' });
     expect(response?.status() ?? 0).toBeLessThan(400);
-    // Links page renders anchor tags for each link card.
     await page.waitForSelector('a[href]', { timeout: 10_000 });
-    const count = await page.locator('a[href]').count();
-    expect(count).toBeGreaterThan(0);
+    expect(await page.locator('a[href]').count()).toBeGreaterThan(0);
+  });
+
+  test('/eventos lists event cards', async ({ page }) => {
+    const response = await page.goto('/eventos', { waitUntil: 'domcontentloaded' });
+    expect(response?.status() ?? 0).toBeLessThan(400);
+    // EventDetail links use /eventos/:slug pattern
+    await page.waitForSelector('a[href^="/eventos/"]', { timeout: 15_000 });
+    expect(await page.locator('a[href^="/eventos/"]').count()).toBeGreaterThan(0);
+  });
+
+  test('/blog renders post links', async ({ page }) => {
+    const response = await page.goto('/blog', { waitUntil: 'domcontentloaded' });
+    expect(response?.status() ?? 0).toBeLessThan(400);
+    await page.waitForSelector('a[href^="/blog/"]', { timeout: 15_000 });
+    expect(await page.locator('a[href^="/blog/"]').count()).toBeGreaterThan(0);
   });
 
   test('/admin redirects unauthenticated user to /auth', async ({ page }) => {
     await page.goto('/admin', { waitUntil: 'domcontentloaded' });
-    // ProtectedRoute either shows loading then navigates to /auth, or renders
-    // "Acesso Negado". For an anonymous user we expect redirect to /auth.
     await page.waitForURL(/\/auth/, { timeout: 10_000 });
     expect(page.url()).toMatch(/\/auth/);
   });
