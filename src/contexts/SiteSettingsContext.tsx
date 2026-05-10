@@ -26,7 +26,10 @@ export interface SiteSettings {
   // Configurações de Timezone
   timezone_offset?: string;
   timezone_name?: string;
+  /** @deprecated substituído por event_hours_after_start / event_hours_without_time */
   event_grace_hours?: string;
+  event_hours_after_start?: string;
+  event_hours_without_time?: string;
   // Newsletter
   newsletter_popup_enabled?: string;
 }

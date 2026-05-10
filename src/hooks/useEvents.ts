@@ -26,16 +26,18 @@ export function useEvents() {
   const { settings, isLoading: settingsLoading } = useSiteSettings();
   const queryClient = useQueryClient();
 
-  const graceHours = parseInt(settings?.event_grace_hours || "6");
+  const hoursAfterStart = parseInt(settings?.event_hours_after_start || "12");
+  const hoursWithoutTime = parseInt(settings?.event_hours_without_time || "24");
   const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
 
   const query = useQuery({
-    queryKey: ["events", graceHours, timezoneOffset],
+    queryKey: ["events", hoursAfterStart, hoursWithoutTime, timezoneOffset],
     queryFn: async (): Promise<Event[]> => {
+      const maxWindowHours = Math.max(hoursAfterStart, hoursWithoutTime);
       const graceDate = new Date();
-      graceDate.setDate(graceDate.getDate() - Math.ceil(graceHours / 24) - 1);
+      graceDate.setDate(graceDate.getDate() - Math.ceil(maxWindowHours / 24) - 1);
       const dateFilter = graceDate.toISOString().split('T')[0];
-      
+
       const { data, error } = await supabase
         .from("events")
         .select("id, title, subtitle, slug, venue, address, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views, blog_post_id, created_at, updated_at")
@@ -47,8 +49,8 @@ export function useEvents() {
 
       const visibleEvents = (data || []).filter((event) =>
         isEventVisible(
-          { date: event.date, time: event.time, end_time: event.end_time },
-          { graceHours, timezoneOffset }
+          { date: event.date, time: event.time },
+          { hoursAfterStart, hoursWithoutTime, timezoneOffset }
         )
       );
 
