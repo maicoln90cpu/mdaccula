@@ -6,9 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Save, Settings2, Users, ImageIcon, Clock, Bot, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import AIAnalyticsDashboard from "@/components/admin/AIAnalyticsDashboard";
 import GeneralSettings from "@/components/admin/settings/GeneralSettings";
 import SocialSettings from "@/components/admin/settings/SocialSettings";
@@ -195,10 +192,9 @@ const Settings = () => {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-16 sm:pt-20 md:pt-24 pb-12 sm:pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-4xl mx-auto">
             <div className="mb-6 sm:mb-8">
               <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
@@ -323,9 +319,8 @@ const Settings = () => {
             </div>
           </div>
         </main>
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -156,10 +153,9 @@ const NewsletterABResults = () => {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen">
-        <Navigation />
-        <main className="container mx-auto px-4 py-16 sm:py-20 md:py-24">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="mb-6 sm:mb-8">
             <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4 min-h-[44px]">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -359,8 +355,6 @@ const NewsletterABResults = () => {
             </Card>
           )}
         </main>
-        <Footer />
-
         {/* Edit Variant Dialog */}
         <Dialog open={!!editingVariant} onOpenChange={(open) => {
           if (!open) setEditingVariant(null);
@@ -400,7 +394,7 @@ const NewsletterABResults = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

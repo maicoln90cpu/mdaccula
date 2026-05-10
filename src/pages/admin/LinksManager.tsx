@@ -6,9 +6,6 @@ import { ArrowLeft, Plus, GripVertical, Edit, Trash2, Eye, EyeOff, Settings, Cop
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -480,10 +477,9 @@ const LinksManager = () => {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="max-w-4xl mx-auto">
             <div className="mb-8">
               <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2">
@@ -705,7 +701,6 @@ const LinksManager = () => {
             </DndContext>
           </div>
         </main>
-        <Footer />
       </div>
 
       <Dialog open={showGroupForm} onOpenChange={setShowGroupForm}>
@@ -884,7 +879,7 @@ const LinksManager = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </ProtectedRoute>
+    </>
   );
 };
 

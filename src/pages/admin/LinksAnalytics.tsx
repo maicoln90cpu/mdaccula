@@ -4,9 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { ArrowLeft, ExternalLink, TrendingUp, MousePointerClick, BarChart3, Eye, Heart, FileText, Link as LinkIcon, ChevronDown, ChevronRight, Calendar, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -287,11 +284,9 @@ const LinksAnalytics = () => {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        
-        <main className="container mx-auto px-4 py-8 mt-20">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
           <div className="flex items-center gap-4 mb-8">
             <Button
               variant="ghost"
@@ -795,10 +790,8 @@ const LinksAnalytics = () => {
             </Card>
           </Collapsible>
         </main>
-
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

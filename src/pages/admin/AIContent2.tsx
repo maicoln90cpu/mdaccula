@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -474,9 +473,9 @@ export default function AIContent2() {
   };
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8">
+    <>
+      <div className="w-full">
+        <div className="w-full px-4 md:px-6 py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
@@ -554,6 +553,6 @@ export default function AIContent2() {
           </Tabs>
         </div>
       </div>
-    </ProtectedRoute>
+    </>
   );
 }

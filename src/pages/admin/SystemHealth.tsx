@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import Navigation from '@/components/ui/navigation';
-import Footer from '@/components/ui/footer';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -209,11 +206,10 @@ const SystemHealth = () => {
     : 0;
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-24 pb-16">
-          <div className="max-w-6xl mx-auto space-y-8">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
+          <div className="w-full space-y-8">
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
@@ -546,9 +542,8 @@ const SystemHealth = () => {
             <TechDebtDashboard />
           </div>
         </main>
-        <Footer />
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 

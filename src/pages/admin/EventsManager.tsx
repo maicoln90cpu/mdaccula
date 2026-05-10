@@ -6,9 +6,6 @@ import { Calendar, MapPin, Pencil, Trash2, Plus, ArrowLeft, Copy, FileText, Load
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import ProtectedRoute from "@/components/ProtectedRoute";
 import { EventForm } from "@/components/events/EventForm";
 import { MultiEventArticleModal } from "@/components/admin/MultiEventArticleModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -214,11 +211,10 @@ const EventsManager = () => {
   }
 
   return (
-    <ProtectedRoute>
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 pt-20 md:pt-24 pb-12 md:pb-16">
-          <div className="max-w-6xl mx-auto">
+    <>
+      <div className="w-full">
+        <main className="w-full px-4 md:px-6 py-6">
+          <div className="w-full">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
               <div className="w-full sm:w-auto">
                 <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
@@ -392,8 +388,6 @@ const EventsManager = () => {
             )}
           </div>
         </main>
-        <Footer />
-
         <Dialog open={showForm} onOpenChange={(open) => !open && handleFormClose()}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <EventForm
@@ -430,7 +424,7 @@ const EventsManager = () => {
           </AlertDialogContent>
         </AlertDialog>
       </div>
-    </ProtectedRoute>
+    </>
   );
 };
 
