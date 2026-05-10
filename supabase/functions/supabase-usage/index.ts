@@ -84,11 +84,10 @@ Deno.serve(async (req) => {
       { headers: { Authorization: `Bearer ${pat}` } },
     ).then((r) => r.ok ? r.json() : []);
 
-    // ---- 3. Database size (Management API analytics) ----
-    const dbSizeP = fetch(
-      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.api-requests-count?interval=${interval}`,
-      { headers: { Authorization: `Bearer ${pat}` } },
-    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
+    // ---- 3. Database size (via RPC pg_database_size) ----
+    const dbSizeP = admin.rpc("get_db_size").then(
+      (r) => ({ bytes: Number(r.data || 0), error: r.error?.message }),
+    ).catch((e) => ({ bytes: 0, error: (e as Error).message }));
 
     // ---- 3b. Edge function invocations ----
     const edgeInvocationsP = fetch(
