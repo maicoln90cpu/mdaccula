@@ -581,7 +581,38 @@ ${formFields.weekday ? `- Dia da semana CORRETO é "${formFields.weekday}". NUNC
 🚨 PRIORIDADE DOS CAMPOS ESTRUTURADOS:
 - Em caso de conflito entre "description" e os dados estruturados (venue, eventLocation, eventDate, weekday), PRIORIZE os dados estruturados.
 - Não use seu conhecimento de treinamento sobre locais/datas/lineup do evento — use APENAS os DADOS OFICIAIS.
-- Gere um título NOVO baseado nos dados atuais.
+
+🎬 REGRAS OBRIGATÓRIAS PARA O TÍTULO (campo "title" do JSON):
+O título precisa ser EDITORIAL, envolvente e chamativo — como manchete de revista de música eletrônica. NUNCA é só "Nome do Evento | Data | Local".
+
+PROIBIDO no título:
+- Emojis (☀️, 👁️, 🎵, ⭐ etc.)
+- Separar campos com " | ", " — " ou " - " no estilo "Nome | DD/MM | Cidade"
+- Repetir literalmente o nome do evento + data + local em sequência
+- Datas no formato "DD/MM/AAAA" ou "DD/MM" (use linguagem temporal natural)
+- Começar com "Confira", "Não perca", "Saiba tudo sobre", "Tudo sobre"
+- Inventar adjetivos sobre o evento que não estejam embasados nos DADOS OFICIAIS
+
+OBRIGATÓRIO no título:
+- 50 a 80 caracteres
+- Voz ativa, sugerindo clima/atmosfera
+- Pode usar dia da semana ou expressão temporal natural ("nesta sexta", "no próximo sábado", "em maio") quando fizer sentido${formFields.weekday ? ` — o dia correto é "${formFields.weekday}"` : ''}
+- Pode citar headliner do lineup se houver um nome forte
+- Pode citar o venue ou a cidade se for característico
+- Sempre baseado em fatos reais dos DADOS OFICIAIS — nunca inventar
+
+❌ EXEMPLOS RUINS (NÃO faça):
+- "☀️ Sun | 19/09 | Arena Canindé, São Paulo"
+- "👁️ Dunya — Espaço Taal, Barueri/SP — 09/05/2026"
+- "Industria apresenta Dr. Lektroluv — High Club, São Paulo — 15/05/2026"
+- "TANTRAROSA na Varanda Estaiada (SP) — 23 de maio de 2026"
+
+✅ EXEMPLOS BONS (estilo desejado, NÃO copiar literal):
+- "Sun aterrissa na Arena Canindé com noite de tech house em setembro"
+- "Dr. Lektroluv comanda o High Club numa madrugada de techno belga"
+- "TANTRAROSA toma a Varanda Estaiada num sábado de psytrance em SP"
+- "Dunya transforma o Espaço Taal em pista de melodic house neste sábado"
+
 ${aiContextBlock}
 
 🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
