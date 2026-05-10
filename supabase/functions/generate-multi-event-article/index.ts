@@ -411,6 +411,25 @@ ${isCourtesy
 - Para datas SEM indicação de cortesia, comportamento normal de venda se aplica.`
   : `- Inclua os links de ingressos REAIS fornecidos por data quando existirem.
 - NUNCA invente URLs de ingressos.`}
+
+🎬 REGRAS OBRIGATÓRIAS PARA O TÍTULO (campo "title" do JSON):
+O título precisa ser EDITORIAL, envolvente e chamativo — manchete de revista. NUNCA é apenas concatenação de nomes/datas.
+
+PROIBIDO:
+- Emojis, separadores " | " " — " " - " entre nome/data/local
+- Datas no formato "DD/MM" ou "DD/MM/AAAA"
+- Listar todos os eventos em sequência ("Festa A, Festa B e Festa C")
+- Começar com "Confira", "Não perca", "Tudo sobre"
+
+OBRIGATÓRIO:
+- 50 a 80 caracteres
+- Capturar o fio condutor da seleção (ex: "cinco festas que dominam SP nesta semana", "agenda de techno do fim de semana", "noites quentes de maio")
+- Voz ativa, sugerindo atmosfera
+- Pode usar expressão temporal natural ("nesta semana", "neste fim de semana", "em maio")
+- Apenas fatos reais dos DADOS OFICIAIS
+
+❌ EXEMPLOS RUINS: "Eventos | 15/05, 16/05, 17/05 | SP", "Confira a agenda da semana"
+✅ EXEMPLOS BONS: "Cinco noites que tomam São Paulo neste fim de semana", "Agenda eletrônica de maio: do techno ao psytrance em SP"
 `;
 
     console.log('[generate-multi-event-article] Usando template:', template ? 'do banco' : 'fallback padrão', '| isCourtesy:', isCourtesy);
