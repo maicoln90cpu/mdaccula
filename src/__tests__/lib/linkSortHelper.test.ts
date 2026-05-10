@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   sortByEventDate,
+  sortLinksHybrid,
   isLinkForFutureEvent,
   processLinksForDisplay,
 } from '@/lib/linkSortHelper';
@@ -88,17 +89,50 @@ describe('linkSortHelper', () => {
       expect(sorted.map((l) => l.id)).toEqual(['2', '1']);
     });
 
-    // SKIP: a non-transitive comparator generates an unstable result here.
-    // Fixing requires reworking sortByEventDate (two-pass algorithm), out of scope.
-    it.skip('should respect manual override position among automatic links', () => {
+    it('should respect manual override position among automatic links (via sortLinksHybrid)', () => {
       const links: TestLink[] = [
         { id: '1', display_order: 2, manual_order_override: true, enabled: true },
         { id: '2', display_order: 1, enabled: true, events: { date: '2026-01-10', time: '22:00' } },
         { id: '3', display_order: 3, enabled: true, events: { date: '2026-01-08', time: '22:00' } },
       ];
 
-      const sorted = [...links].sort(sortByEventDate);
-      expect(sorted.map((l) => l.id)).toEqual(['2', '1', '3']);
+      // automatic sorted by date: ['3','2']; insert manual '1' at position 2 (end)
+      const sorted = sortLinksHybrid(links);
+      expect(sorted.map((l) => l.id)).toEqual(['3', '2', '1']);
+    });
+  });
+
+  describe('sortLinksHybrid', () => {
+    it('should interleave multiple manual links between automatic ones', () => {
+      const links: TestLink[] = [
+        { id: 'a', display_order: 0, enabled: true, events: { date: '2026-01-08', time: '22:00' } },
+        { id: 'b', display_order: 0, enabled: true, events: { date: '2026-01-10', time: '22:00' } },
+        { id: 'c', display_order: 0, enabled: true, events: { date: '2026-01-12', time: '22:00' } },
+        { id: 'm1', display_order: 1, manual_order_override: true, enabled: true },
+        { id: 'm2', display_order: 3, manual_order_override: true, enabled: true },
+      ];
+      // automatic: [a,b,c]; insert m1 at 1 -> [a,m1,b,c]; insert m2 at 3 -> [a,m1,b,m2,c]
+      const sorted = sortLinksHybrid(links);
+      expect(sorted.map((l) => l.id)).toEqual(['a', 'm1', 'b', 'm2', 'c']);
+    });
+
+    it('should clamp manual display_order beyond list length to the end', () => {
+      const links: TestLink[] = [
+        { id: 'a', display_order: 0, enabled: true, events: { date: '2026-01-08', time: '22:00' } },
+        { id: 'm', display_order: 99, manual_order_override: true, enabled: true },
+      ];
+      const sorted = sortLinksHybrid(links);
+      expect(sorted.map((l) => l.id)).toEqual(['a', 'm']);
+    });
+
+    it('should sort all-manual links by display_order', () => {
+      const links: TestLink[] = [
+        { id: '1', display_order: 2, manual_order_override: true, enabled: true },
+        { id: '2', display_order: 0, manual_order_override: true, enabled: true },
+        { id: '3', display_order: 1, manual_order_override: true, enabled: true },
+      ];
+      const sorted = sortLinksHybrid(links);
+      expect(sorted.map((l) => l.id)).toEqual(['2', '3', '1']);
     });
   });
 
