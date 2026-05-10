@@ -137,16 +137,15 @@ Deno.serve(async (req) => {
     ]);
 
     let totalEdgeInvocations = 0;
-    if (edgeInvocations?.result && Array.isArray(edgeInvocations.result)) {
-      for (const row of edgeInvocations.result) {
-        totalEdgeInvocations += Number(row.count || row.total || row.total_invocations || 0);
+    const edgeRows = (edgeInvocations?.result || edgeInvocations?.data || []) as Array<Record<string, unknown>>;
+    if (Array.isArray(edgeRows)) {
+      for (const row of edgeRows) {
+        totalEdgeInvocations += Number(
+          row.count ?? row.total ?? row.total_invocations ?? row.invocations ?? row.value ?? 0,
+        );
       }
     }
-    let dbSizeBytes = 0;
-    if (dbSize?.result && Array.isArray(dbSize.result)) {
-      const last = dbSize.result[dbSize.result.length - 1];
-      dbSizeBytes = Number(last?.db_size_bytes || last?.size || 0);
-    }
+    const dbSizeBytes = Number((dbSize as { bytes?: number })?.bytes || 0);
 
     // Aggregate api-counts series → totals per service
     const series: Array<{ timestamp: string; auth: number; rest: number; storage: number; realtime: number }> = [];
