@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
 
     const payload = {
       window: { dateFrom, dateTo, days: realDays, hourly, mode },
-      chunks: { total: chunks.length, ok: okChunks.length, errors: chunkErrors },
+      chunks: { ok: okChunks.length, errors: chunkErrors, stopReason },
       estimatedCostUSD,
       pullZone: {
         bandwidthBytes: Number(stats.TotalBandwidthUsed || 0),
