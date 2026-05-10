@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
+import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -745,6 +746,13 @@ ${isCourtesy
     eventData.title = replaceVariables(eventData.title, formFields);
     eventData.excerpt = replaceVariables(eventData.excerpt || '', formFields);
     eventData.content = replaceVariables(eventData.content, formFields);
+
+    // Sanitização editorial: remove emojis, prefixos hediondos e reporta separadores/datas
+    const titleCheck = validateTitle(eventData.title);
+    if (!titleCheck.valid) {
+      console.warn('[generate-blog-post-v2] Título com issues:', titleCheck.issues, '| original:', eventData.title);
+    }
+    eventData.title = sanitizeTitle(titleCheck.cleaned);
 
     // Substituir placeholders de link de ingresso
     if (formFields.ticketLink && hasRealTicketLink) {

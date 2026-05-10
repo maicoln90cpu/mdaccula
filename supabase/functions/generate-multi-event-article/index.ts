@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -521,6 +522,13 @@ OBRIGATÓRIO:
     if (!articleData.title || !articleData.content) {
       throw new Error('IA não gerou dados completos');
     }
+
+    // Sanitização editorial: bloqueia emojis, prefixos ruins, datas literais
+    const titleCheck = validateTitle(articleData.title);
+    if (!titleCheck.valid) {
+      console.warn('[generate-multi-event-article] Título com issues:', titleCheck.issues, '| original:', articleData.title);
+    }
+    articleData.title = sanitizeTitle(titleCheck.cleaned);
 
     // Generate image if needed (only for new posts or if explicitly requested)
     let finalImageUrl = existingImageUrl;
