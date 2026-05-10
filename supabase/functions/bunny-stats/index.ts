@@ -74,29 +74,12 @@ Deno.serve(async (req) => {
 
     const headers = { AccessKey: ACCOUNT_KEY, Accept: "application/json" };
 
-    // Para lifetime, descobrir DateCreated da pull zone para evitar chunks
-    // pré-existência (que causam Bunny 400 e zeram o agregado).
-    let lifetimeFrom = new Date("2020-01-01T00:00:00Z");
-    if (isLifetime) {
-      try {
-        const pzRes = await fetch(`https://api.bunny.net/pullzone/${PULL_ZONE_ID}`, { headers });
-        if (pzRes.ok) {
-          const pz = await pzRes.json();
-          const dc = pz.DateCreated || pz.dateCreated;
-          if (dc) {
-            const parsed = new Date(dc);
-            if (!isNaN(parsed.getTime())) lifetimeFrom = parsed;
-          }
-        } else {
-          await pzRes.text().catch(() => "");
-        }
-      } catch (e) {
-        console.error("pullzone meta fetch failed:", (e as Error).message);
-      }
-    }
-
+    // Para lifetime, varremos chunks de trás pra frente e paramos quando
+    // o Bunny começa a devolver "all-time fallback" (chunks duplicados) ou vazio.
+    // Isto evita o bug onde dateFrom anterior à criação da zone faz a API
+    // retornar o total agregado em CADA chunk (causando soma inflada).
     const from = isLifetime
-      ? lifetimeFrom
+      ? new Date(now.getTime() - 365 * 24 * 3600 * 1000) // máx 1 ano olhando pra trás como teto inicial; será expandido se necessário
       : new Date(now.getTime() - days * 24 * 3600 * 1000);
     const dateFrom = from.toISOString().slice(0, 19);
     const dateTo = now.toISOString().slice(0, 19);
@@ -115,43 +98,66 @@ Deno.serve(async (req) => {
     const storageStatsUrl = `https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}/statistics?dateFrom=${dateFrom}&dateTo=${dateTo}`;
     const storageInfoUrl = `https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}`;
 
-    // Bunny /statistics limita range a 40 dias. Quebra em chunks e agrega.
-    const MAX_DAYS = 35; // margem segura abaixo dos 40
-    const chunks: Array<{ from: string; to: string }> = [];
-    {
-      let cursor = new Date(from);
-      const end = new Date(now);
-      while (cursor < end) {
-        const next = new Date(Math.min(cursor.getTime() + MAX_DAYS * 24 * 3600 * 1000, end.getTime()));
-        chunks.push({ from: cursor.toISOString().slice(0, 19), to: next.toISOString().slice(0, 19) });
-        cursor = new Date(next.getTime() + 1000);
-      }
-      if (chunks.length === 0) chunks.push({ from: dateFrom, to: dateTo });
-    }
-
+    // Bunny /statistics limita range a 40 dias. Varremos do MAIS RECENTE pro
+    // mais antigo, em chunks sequenciais. Paramos quando:
+    //   - chunk falha (4xx/5xx)
+    //   - chunk vem 100% zerado (sem tráfego naquela janela)
+    //   - chunk repete EXATAMENTE o TotalBandwidthUsed de algum anterior
+    //     (sintoma do bug Bunny "all-time fallback" para datas pré-zone)
+    const MAX_DAYS = 35;
+    const MAX_CHUNKS = isLifetime ? 24 : Math.ceil(realDays / MAX_DAYS); // teto 24 chunks ≈ 2 anos
+    const okChunks: Record<string, unknown>[] = [];
+    const seenBandwidths = new Set<number>();
     let chunkErrors = 0;
-    const chunkResults = await Promise.all(chunks.map(async (c) => {
-      const u = `https://api.bunny.net/statistics?dateFrom=${c.from}&dateTo=${c.to}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`;
+    let stopReason = "completed";
+
+    let cursorEnd = new Date(now);
+    for (let i = 0; i < MAX_CHUNKS; i++) {
+      const cursorStart = new Date(cursorEnd.getTime() - MAX_DAYS * 24 * 3600 * 1000);
+      // não ultrapassar o limite inferior (apenas para modo range)
+      if (!isLifetime && cursorStart < from) cursorStart.setTime(from.getTime());
+
+      const cFrom = cursorStart.toISOString().slice(0, 19);
+      const cTo = cursorEnd.toISOString().slice(0, 19);
+      const u = `https://api.bunny.net/statistics?dateFrom=${cFrom}&dateTo=${cTo}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`;
+
       try {
         const r = await fetch(u, { headers });
         if (!r.ok) {
-          const t = await r.text().catch(() => "");
-          console.error(`bunny chunk ${c.from}→${c.to} status=${r.status} body=${t.slice(0, 200)}`);
           chunkErrors++;
-          return null;
+          stopReason = `http_${r.status}_at_chunk_${i}`;
+          break;
         }
-        return await r.json();
-      } catch (e) {
-        console.error(`bunny chunk ${c.from}→${c.to} threw:`, (e as Error).message);
-        chunkErrors++;
-        return null;
-      }
-    }));
+        const j = await r.json() as Record<string, unknown>;
+        const bw = Number(j.TotalBandwidthUsed || 0);
 
-    const okChunks = chunkResults.filter(Boolean) as Record<string, unknown>[];
-    console.log(`bunny-stats: mode=${mode} chunks=${chunks.length} ok=${okChunks.length} err=${chunkErrors} from=${dateFrom}`);
+        // chunk vazio = chegamos antes da existência de tráfego
+        if (bw === 0 && Number(j.TotalRequestsServed || 0) === 0) {
+          stopReason = `empty_at_chunk_${i}`;
+          break;
+        }
+        // bug all-time-fallback: mesmo TotalBandwidthUsed de algum chunk anterior
+        if (seenBandwidths.has(bw) && okChunks.length > 0) {
+          stopReason = `duplicate_total_at_chunk_${i}`;
+          break;
+        }
+        seenBandwidths.add(bw);
+        okChunks.push(j);
+      } catch (e) {
+        chunkErrors++;
+        console.error(`bunny chunk ${cFrom}→${cTo} threw:`, (e as Error).message);
+        stopReason = `exception_at_chunk_${i}`;
+        break;
+      }
+
+      cursorEnd = new Date(cursorStart.getTime() - 1000);
+      if (!isLifetime && cursorEnd <= from) break;
+    }
+
+    console.log(`bunny-stats: mode=${mode} okChunks=${okChunks.length} errors=${chunkErrors} stop=${stopReason}`);
+
     if (okChunks.length === 0) {
-      return new Response(JSON.stringify({ error: "Bunny /statistics failed for all chunks", chunkErrors }), {
+      return new Response(JSON.stringify({ error: "Bunny /statistics: no usable chunks", chunkErrors, stopReason }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -166,6 +172,13 @@ Deno.serve(async (req) => {
       return out;
     };
     const avgKey = (k: string) => okChunks.length ? okChunks.reduce((s, c) => s + Number((c as Record<string, number>)[k] || 0), 0) / okChunks.length : 0;
+
+    // Agrega geo de TODOS os chunks (antes pegava só o último)
+    const mergedGeo: Record<string, number> = {};
+    for (const c of okChunks) {
+      const g = (c as Record<string, Record<string, number> | undefined>).GeoTrafficDistribution;
+      if (g) for (const [k, v] of Object.entries(g)) mergedGeo[k] = (mergedGeo[k] || 0) + Number(v || 0);
+    }
 
     const stats = {
       TotalBandwidthUsed: sumKey("TotalBandwidthUsed"),
@@ -185,7 +198,7 @@ Deno.serve(async (req) => {
       Error3xxChart: mergeChart("Error3xxChart"),
       Error4xxChart: mergeChart("Error4xxChart"),
       Error5xxChart: mergeChart("Error5xxChart"),
-      GeoTrafficDistribution: (okChunks[okChunks.length - 1] as Record<string, unknown>).GeoTrafficDistribution || {},
+      GeoTrafficDistribution: mergedGeo,
     };
 
     const [storageStatsRes, storageInfoRes] = await Promise.all([
@@ -202,7 +215,7 @@ Deno.serve(async (req) => {
 
     const payload = {
       window: { dateFrom, dateTo, days: realDays, hourly, mode },
-      chunks: { total: chunks.length, ok: okChunks.length, errors: chunkErrors },
+      chunks: { ok: okChunks.length, errors: chunkErrors, stopReason },
       estimatedCostUSD,
       pullZone: {
         bandwidthBytes: Number(stats.TotalBandwidthUsed || 0),

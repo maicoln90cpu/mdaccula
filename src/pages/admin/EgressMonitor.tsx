@@ -23,11 +23,12 @@ interface SupabaseUsageResp {
   storage: { buckets: Array<{ bucket: string; bytes: number; files: number }>; totalBytes: number; totalFiles: number };
   tables: Record<string, number>;
   db?: { sizeBytes: number };
-  edgeFunctions?: { totalInvocations: number };
+  edgeFunctions?: { totalInvocations: number; source?: string; windowDays?: number | null };
   fetchedAt: string;
 }
 interface BunnyResp {
   window: { dateFrom: string; dateTo: string; days: number; mode?: string };
+  chunks?: { ok: number; errors: number; stopReason?: string };
   estimatedCostUSD?: number;
   pullZone: {
     bandwidthBytes: number; originBytes: number; requests: number; cacheHitRate: number; avgOriginResponseMs: number;
@@ -222,22 +223,7 @@ const EgressMonitor = () => {
               </div>
             </div>
 
-            {/* Global KPI: Egress Total Real */}
-            <Card variant="metric" className="mb-6">
-              <CardHeader className="p-4 pb-2">
-                <CardDescription className="flex items-center gap-1.5">
-                  <Globe className="h-3.5 w-3.5" /> Egress Total Real (oficial)
-                </CardDescription>
-                <CardTitle className="text-3xl">
-                  {bunnyLoading ? "..." : formatBytes(bunny?.pullZone.bandwidthBytes || 0)}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p className="text-xs text-muted-foreground">
-                  Bunny CDN ({bunnyMode === "lifetime" ? "lifetime" : `${bunny?.window.days || days}d`}) — todo tráfego de imagens. Supabase api-egress não disponível no plano Free.
-                </p>
-              </CardContent>
-            </Card>
+            {/* (banner global removido — métricas Bunny ficam apenas dentro da aba Bunny CDN) */}
 
             <Tabs defaultValue="bunny" className="w-full">
               <TabsList className="mb-4">
@@ -262,6 +248,15 @@ const EgressMonitor = () => {
                   <Card className="border-destructive/50 bg-destructive/5">
                     <CardContent className="p-4 text-sm text-destructive flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" /> {bunnyError}
+                    </CardContent>
+                  </Card>
+                ) : null}
+
+                {bunny?.chunks && bunny.chunks.errors > 0 ? (
+                  <Card className="border-yellow-500/40 bg-yellow-500/5">
+                    <CardContent className="p-3 text-xs text-muted-foreground flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Dados parciais: {bunny.chunks.ok} janelas válidas, {bunny.chunks.errors} ignoradas ({bunny.chunks.stopReason || "—"}). Período real coberto: {bunny.window.days}d.
                     </CardContent>
                   </Card>
                 ) : null}
@@ -365,12 +360,12 @@ const EgressMonitor = () => {
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       {geoTop.length ? (
-                        <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                          <BarChart data={geoTop} layout="vertical" margin={{ left: 10 }}>
+                        <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(300, geoTop.length * 36) }}>
+                          <BarChart data={geoTop.map((g) => ({ ...g, label: g.country.length > 22 ? g.country.slice(0, 20) + "…" : g.country }))} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                             <XAxis type="number" tickFormatter={(v) => formatBytesShort(v)} className="text-xs" />
-                            <YAxis type="category" dataKey="country" width={50} className="text-xs" />
-                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatBytes(v as number)} />} />
+                            <YAxis type="category" dataKey="label" width={150} className="text-xs" tick={{ fontSize: 11 }} interval={0} />
+                            <ChartTooltip content={<ChartTooltipContent formatter={(v, _n, item) => `${(item?.payload as { country?: string })?.country || ""}: ${formatBytes(v as number)}`} />} />
                             <Bar dataKey="v" radius={[0, 4, 4, 0]}>
                               {geoTop.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                             </Bar>
@@ -438,7 +433,7 @@ const EgressMonitor = () => {
                       <CardDescription className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Edge Funcs</CardDescription>
                       <CardTitle className="text-2xl">{sbLoading ? "..." : formatNumber(sbData?.edgeFunctions?.totalInvocations || 0)}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">Invocations · de 500k Free</p></CardContent>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{sbData?.edgeFunctions?.source === "logs-explorer" ? `Logs (${sbData?.edgeFunctions?.windowDays ?? 7}d)` : sbData?.edgeFunctions?.source === "management-api" ? "Mgmt API" : "Invocations"} · de 500k Free</p></CardContent>
                   </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">

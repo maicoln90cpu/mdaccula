@@ -89,10 +89,22 @@ Deno.serve(async (req) => {
       (r) => ({ bytes: Number(r.data || 0), error: r.error?.message }),
     ).catch((e) => ({ bytes: 0, error: (e as Error).message }));
 
-    // ---- 3b. Edge function invocations ----
+    // ---- 3b. Edge function invocations (Management API + fallback Logs Explorer) ----
     const edgeInvocationsP = fetch(
       `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.func-invocations?interval=${interval}`,
       { headers: { Authorization: `Bearer ${pat}` } },
+    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
+
+    // Fallback: contar via Logs Explorer (function_edge_logs) últimos 7 dias
+    const edgeLogsCountP = fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs.all`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sql: `select count(*) as total from function_edge_logs where timestamp >= timestamp_sub(current_timestamp(), interval 7 day)`,
+        }),
+      },
     ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
 
     // ---- 4. Auth users count ----
@@ -132,17 +144,26 @@ Deno.serve(async (req) => {
       return result;
     })();
 
-    const [apiCounts, health, dbSize, edgeInvocations, authUsers, storage, tableCounts] = await Promise.all([
-      apiCountsP, healthP, dbSizeP, edgeInvocationsP, authUsersP, storageP, tableCountsP,
+    const [apiCounts, health, dbSize, edgeInvocations, edgeLogsCount, authUsers, storage, tableCounts] = await Promise.all([
+      apiCountsP, healthP, dbSizeP, edgeInvocationsP, edgeLogsCountP, authUsersP, storageP, tableCountsP,
     ]);
 
     let totalEdgeInvocations = 0;
+    let edgeSource: "management-api" | "logs-explorer" | "none" = "none";
     const edgeRows = (edgeInvocations?.result || edgeInvocations?.data || []) as Array<Record<string, unknown>>;
-    if (Array.isArray(edgeRows)) {
+    if (Array.isArray(edgeRows) && edgeRows.length) {
       for (const row of edgeRows) {
         totalEdgeInvocations += Number(
           row.count ?? row.total ?? row.total_invocations ?? row.invocations ?? row.value ?? 0,
         );
+      }
+      if (totalEdgeInvocations > 0) edgeSource = "management-api";
+    }
+    if (totalEdgeInvocations === 0) {
+      const logsRows = (edgeLogsCount?.result || edgeLogsCount?.data || []) as Array<Record<string, unknown>>;
+      if (Array.isArray(logsRows) && logsRows.length) {
+        totalEdgeInvocations = Number(logsRows[0]?.total ?? logsRows[0]?.count ?? 0);
+        if (totalEdgeInvocations > 0) edgeSource = "logs-explorer";
       }
     }
     const dbSizeBytes = Number((dbSize as { bytes?: number })?.bytes || 0);
@@ -180,7 +201,7 @@ Deno.serve(async (req) => {
       },
       tables: tableCounts,
       db: { sizeBytes: dbSizeBytes },
-      edgeFunctions: { totalInvocations: totalEdgeInvocations },
+      edgeFunctions: { totalInvocations: totalEdgeInvocations, source: edgeSource, windowDays: edgeSource === "logs-explorer" ? 7 : null },
       fetchedAt: new Date().toISOString(),
       // legacy compat: também devolve o array bruto que o front antigo esperava
       result: apiCounts?.result ?? [],
