@@ -26,6 +26,7 @@ interface Event {
   id: string;
   title: string;
   slug: string;
+  subtitle?: string | null;
   date: string;
   time: string;
   end_time?: string;
@@ -234,7 +235,15 @@ const EventDetail = () => {
               <div className="lg:col-span-2 space-y-6 sm:space-y-8">
                 {/* Title & Genre */}
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-4 leading-tight break-words">{event.title}</h1>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 leading-tight break-words">{event.title}</h1>
+                  {event.subtitle && (
+                    <p
+                      data-testid="event-subtitle"
+                      className="text-base sm:text-lg md:text-xl text-muted-foreground italic mb-4 break-words"
+                    >
+                      {event.subtitle}
+                    </p>
+                  )}
                   <div className="flex flex-wrap gap-2">
                     {event.genres && event.genres.length > 0 ? (
                       event.genres.map((genre, index) => (
