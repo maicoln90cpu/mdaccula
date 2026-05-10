@@ -470,6 +470,7 @@ export type Database = {
       events: {
         Row: {
           address: string | null
+          ai_context: string | null
           blog_post_id: string | null
           created_at: string
           created_by: string | null
@@ -494,6 +495,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ai_context?: string | null
           blog_post_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -518,6 +520,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ai_context?: string | null
           blog_post_id?: string | null
           created_at?: string
           created_by?: string | null

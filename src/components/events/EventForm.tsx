@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { parseLocalDateTime } from '@/lib/dateUtils';
 import { convertToWebP } from '@/lib/webpConverter';
 import { uploadImageToBunny } from '@/lib/bunnyUploader';
+import { buildArticlePayload } from '@/lib/eventArticlePayload';
 
 interface EventFormData {
   title: string;
@@ -98,7 +99,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [createLink, setCreateLink] = useState(true);
   const [linkUrlType, setLinkUrlType] = useState<'ticket' | 'slug'>('ticket');
   const [generateBlogPost, setGenerateBlogPost] = useState(false);
-  const [aiContext, setAiContext] = useState('');
+  const [aiContext, setAiContext] = useState<string>(event?.ai_context || '');
   const [linkGroups, setLinkGroups] = useState<any[]>([]);
   const [eventTemplates, setEventTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
@@ -296,7 +297,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         slug: eventSlug,
         blog_post_id: blogPostId,
         end_time: data.end_time || null,
-        subtitle: data.subtitle || null
+        subtitle: data.subtitle || null,
+        ai_context: aiContext.trim() || null,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
@@ -390,27 +392,28 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       if (generateBlogPost && !isEditing && createdEventId) {
         console.log('[EventForm] 🤖 Iniciando geração de blog post via IA...');
         
-        const blogPayload = {
-          eventId: createdEventId,
-          eventName: data.title,
-          eventDate: data.date,
-          eventTime: data.time,
-          endTime: data.end_time || '',
-          eventLocation: `${data.venue} - ${data.location_city}/${data.location_state}`,
-          venue: data.venue,
-          address: data.address || '',
-          locationCity: data.location_city,
-          locationState: data.location_state,
-          location: `${data.location_city}, ${data.location_state}`,
-          genres: selectedGenres.join(', '),
-          ticketLink: normalizedTicketLink || '',
-          vipLink: normalizedVipLink || '',
-          subtitle: data.subtitle || '',
-          description: data.description || '',
-          lineup: lineup.join(', '),
-          eventImageUrl: imageUrl,
-          aiContext: aiContext || '',
-        };
+        const blogPayload = buildArticlePayload(
+          {
+            id: createdEventId,
+            title: data.title,
+            subtitle: data.subtitle,
+            date: data.date,
+            time: data.time,
+            end_time: data.end_time,
+            venue: data.venue,
+            address: data.address,
+            location_city: data.location_city,
+            location_state: data.location_state,
+            description: data.description,
+            genres: selectedGenres,
+            lineup,
+            ticket_link: normalizedTicketLink,
+            vip_link: normalizedVipLink,
+            image_url: imageUrl,
+            ai_context: aiContext,
+          },
+          { generateImage: !imageUrl, aiContextOverride: aiContext },
+        );
         
         console.log('[EventForm] 📤 Payload para generate-blog-post-v2:', blogPayload);
         
@@ -940,6 +943,21 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             />
             <p className="text-xs text-muted-foreground">
               Vincule este evento a um post do blog para exibir informações adicionais.
+            </p>
+          </div>
+
+          {/* Contexto para IA — sempre visível, persiste em events.ai_context */}
+          <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+            <Label htmlFor="aiContextAlways">Contexto para IA (opcional)</Label>
+            <Textarea
+              id="aiContextAlways"
+              value={aiContext}
+              onChange={(e) => setAiContext(e.target.value)}
+              placeholder="Ex: Ingresso cortesia pelo link, 5% de desconto com cupom MDACCULA, open bar até 01h, evento beneficente..."
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Salvo no evento e respeitado em toda geração/regeneração de artigo. Tem prioridade máxima sobre o template.
             </p>
           </div>
 

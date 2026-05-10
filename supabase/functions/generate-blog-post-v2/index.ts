@@ -462,6 +462,31 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ===== Helper: weekday em PT-BR a partir de YYYY-MM-DD (defesa em profundidade) =====
+    const WEEKDAYS_PT = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    const MONTHS_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+    function computeWeekday(dateStr: string): string {
+      if (!dateStr || typeof dateStr !== 'string') return '';
+      const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return '';
+      const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+      return WEEKDAYS_PT[dt.getDay()] || '';
+    }
+    function computeDateFormatted(dateStr: string): string {
+      const m = dateStr?.match?.(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return dateStr || '';
+      const wd = computeWeekday(dateStr);
+      return `${Number(m[3])} de ${MONTHS_PT[Number(m[2]) - 1]} de ${m[1]}${wd ? ` (${wd})` : ''}`;
+    }
+
+    // Garantir weekday/dateFormatted mesmo quando o caller não envia
+    if (formFields.eventDate && !formFields.weekday) {
+      formFields.weekday = computeWeekday(String(formFields.eventDate));
+    }
+    if (formFields.eventDate && !formFields.dateFormatted) {
+      formFields.dateFormatted = computeDateFormatted(String(formFields.eventDate));
+    }
+
     // Substituir variáveis no user_prompt_template
     let userPrompt = template.user_prompt_template;
     for (const [key, value] of Object.entries(formFields)) {
@@ -480,8 +505,39 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ===== BLOCO "DADOS OFICIAIS" — sempre injetado no início do user prompt =====
+    // Garante que TODOS os campos relevantes cheguem à IA, independente do template usar ou não.
+    const officialDataLines: string[] = [];
+    const pushIf = (label: string, val: unknown) => {
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        officialDataLines.push(`- ${label}: ${val}`);
+      }
+    };
+    pushIf('Nome do evento', formFields.eventName || formFields.title);
+    pushIf('Subtítulo/Promoção', formFields.subtitle);
+    pushIf('Data', formFields.dateFormatted || formFields.eventDate);
+    pushIf('Dia da semana', formFields.weekday);
+    pushIf('Horário de início', formFields.eventTime);
+    pushIf('Horário de término', formFields.endTime);
+    pushIf('Local', formFields.eventLocation);
+    pushIf('Casa/Venue', formFields.venue);
+    pushIf('Endereço', formFields.address);
+    pushIf('Cidade', formFields.locationCity);
+    pushIf('Estado', formFields.locationState);
+    pushIf('Gêneros musicais', formFields.genres);
+    pushIf('Lineup confirmado', formFields.lineup);
+    pushIf('Link de ingressos', formFields.ticketLink);
+    pushIf('Link VIP/camarote', formFields.vipLink);
+    pushIf('Descrição oficial', formFields.description);
+
+    const officialDataBlock = officialDataLines.length > 0
+      ? `\n\n📋 DADOS OFICIAIS DO EVENTO (use literalmente, NUNCA invente, NUNCA contradiga):\n${officialDataLines.join('\n')}\n\n⚠️ Se algum dado acima estiver presente, ele DEVE aparecer no artigo. Não escreva "a confirmar" para informações que constam aqui.\n`
+      : '';
+
+    userPrompt = officialDataBlock + userPrompt;
+
     // Log do prompt após substituições
-    console.log('[generate-blog-post-v2] User prompt após substituições (preview):', userPrompt.substring(0, 800));
+    console.log('[generate-blog-post-v2] User prompt após substituições (preview):', userPrompt.substring(0, 1200));
 
     // Determinar se há link de ingresso real
     const hasRealTicketLink = formFields.ticketLink && 
@@ -489,37 +545,56 @@ Deno.serve(async (req) => {
       formFields.ticketLink.length > 5 &&
       !FAKE_DOMAINS.some(domain => formFields.ticketLink.includes(domain));
 
+    // Detectar se o aiContext indica cortesia/free → desativa regra de cupom MDACCULA
+    const aiCtxLower = String(formFields.aiContext || '').toLowerCase();
+    const isCourtesy = /\b(cortesia|free|gratuito|gratuita|sem venda|sem ingresso|guest list|lista de convidados|open list)\b/.test(aiCtxLower);
+
     // Construir bloco de contexto do admin (aiContext)
     const aiContextBlock = formFields.aiContext 
-      ? `\n\n🎯 INSTRUÇÕES ESPECIAIS DO ADMIN (PRIORIDADE MÁXIMA — respeite literalmente):
+      ? `\n\n🎯 INSTRUÇÕES ESPECIAIS DO ADMIN (PRIORIDADE MÁXIMA — respeite literalmente, sobrepõe template e conhecimento prévio):
 ${formFields.aiContext}`
       : '';
 
     // Adicionar instrução de tamanho máximo ao system prompt
     const systemPromptWithLength = template.system_prompt + 
-      `\n\nIMPORTANTE: 
+      `\n\n🚨 HIERARQUIA DE PRIORIDADE (ordem absoluta):
+1. INSTRUÇÕES ESPECIAIS DO ADMIN (aiContext)
+2. DADOS OFICIAIS DO EVENTO (bloco no user prompt)
+3. Template
+4. Conhecimento prévio (use APENAS para complementar, nunca para contradizer)
+
+IMPORTANTE: 
 - O artigo deve ter no máximo ${maxArticleLength} caracteres.
 - NUNCA use placeholders como {{eventName}}, {{eventDate}}, {{lineup}}, etc. no texto gerado.
-- Use os valores REAIS que foram fornecidos no prompt.
-- Se algum valor não foi fornecido, omita essa informação ou escreva "a confirmar".
+- Use os valores REAIS fornecidos no bloco "DADOS OFICIAIS".
+- Se um campo NÃO consta nos DADOS OFICIAIS, omita ou escreva "a confirmar" — NUNCA invente.
 
-🚨 REGRA CRÍTICA — DADOS DO PROMPT TÊM PRIORIDADE ABSOLUTA:
-- Use EXCLUSIVAMENTE os dados fornecidos no prompt (local, venue, endereço, datas, horários).
-- NÃO use conhecimento prévio ou de treinamento sobre locais, datas ou venues de eventos.
-- Se o local informado no prompt difere do que você conhece sobre o evento, USE O INFORMADO NO PROMPT.
-- Em caso de conflito entre "description" e os campos estruturados (venue, eventLocation, eventDate), PRIORIZE os campos estruturados.
-- Gere um título NOVO baseado nos dados atuais, não reutilize títulos anteriores.
-- O campo "subtitle" contém informação promocional importante do evento. LEIA e USE no artigo.
-- O campo "vipLink" é o link para camarotes/VIP. Se existir, mencione no artigo.
-- O campo "endTime" é o horário de término. Se existir, mencione no artigo.
-- O campo "address" é o endereço completo. Se existir, inclua no artigo.
+🚨 ANTI-HEDGING (proibido falar "a confirmar" quando o dado existe):
+${formFields.lineup ? '- Lineup foi fornecido: NÃO escreva "lineup a confirmar" ou "line-up completo ainda não oficializado". Liste os artistas exatos.' : ''}
+${formFields.endTime ? '- Horário de término foi fornecido: mencione-o ("até XX:XX").' : ''}
+${formFields.eventTime ? '- Horário de início foi fornecido: mencione-o.' : ''}
+${formFields.address ? '- Endereço completo foi fornecido: inclua-o.' : ''}
+${formFields.subtitle ? '- Subtítulo/promoção foi fornecido: incorpore essa informação no artigo.' : ''}
+${formFields.vipLink ? '- Link VIP foi fornecido: mencione área VIP/camarote com link.' : ''}
+${formFields.weekday ? `- Dia da semana CORRETO é "${formFields.weekday}". NUNCA escreva outro dia da semana.` : ''}
+
+🚨 PRIORIDADE DOS CAMPOS ESTRUTURADOS:
+- Em caso de conflito entre "description" e os dados estruturados (venue, eventLocation, eventDate, weekday), PRIORIZE os dados estruturados.
+- Não use seu conhecimento de treinamento sobre locais/datas/lineup do evento — use APENAS os DADOS OFICIAIS.
+- Gere um título NOVO baseado nos dados atuais.
 ${aiContextBlock}
 
-🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS:
-${hasRealTicketLink 
-  ? `- Link de ingressos REAL fornecido: ${formFields.ticketLink}
+🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
+${isCourtesy
+  ? `- ⚠️ ESTE EVENTO É CORTESIA / SEM VENDA DE INGRESSOS (conforme aiContext acima).
+- NÃO mencione cupom de desconto MDACCULA.
+- NÃO escreva "garanta seu ingresso", "compre antecipado", "lotes" ou similares.
+- Se houver link, descreva-o como "link para confirmar presença / lista" e não como compra.
+- Ignore qualquer instrução do template que force menção a cupom de desconto.`
+  : hasRealTicketLink 
+    ? `- Link de ingressos REAL fornecido: ${formFields.ticketLink}
 - Você PODE incluir seção de ingressos com cupom MDACCULA usando este link.`
-  : `- NÃO há link de ingressos fornecido para este artigo.
+    : `- NÃO há link de ingressos fornecido para este artigo.
 - NUNCA INVENTE URLs de ingressos como "ticketlink.com.br", "ingressos.com.br", etc.
 - NÃO inclua seção de "Ingressos", "Onde comprar" ou "Garanta seu lugar".
 - NÃO mencione cupom de desconto MDACCULA se não houver link real.
