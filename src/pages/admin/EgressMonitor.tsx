@@ -360,12 +360,12 @@ const EgressMonitor = () => {
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       {geoTop.length ? (
-                        <ChartContainer config={chartConfig} className="h-[300px] w-full">
-                          <BarChart data={geoTop} layout="vertical" margin={{ left: 10 }}>
+                        <ChartContainer config={chartConfig} className="w-full" style={{ height: Math.max(300, geoTop.length * 36) }}>
+                          <BarChart data={geoTop.map((g) => ({ ...g, label: g.country.length > 22 ? g.country.slice(0, 20) + "…" : g.country }))} layout="vertical" margin={{ left: 8, right: 16, top: 8, bottom: 8 }}>
                             <CartesianGrid strokeDasharray="3 3" className="stroke-border/30" />
                             <XAxis type="number" tickFormatter={(v) => formatBytesShort(v)} className="text-xs" />
-                            <YAxis type="category" dataKey="country" width={50} className="text-xs" />
-                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => formatBytes(v as number)} />} />
+                            <YAxis type="category" dataKey="label" width={150} className="text-xs" tick={{ fontSize: 11 }} interval={0} />
+                            <ChartTooltip content={<ChartTooltipContent formatter={(v, _n, item) => `${(item?.payload as { country?: string })?.country || ""}: ${formatBytes(v as number)}`} />} />
                             <Bar dataKey="v" radius={[0, 4, 4, 0]}>
                               {geoTop.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                             </Bar>
