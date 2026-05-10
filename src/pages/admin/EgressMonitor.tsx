@@ -95,6 +95,13 @@ const EgressMonitor = () => {
   const [bunny, setBunny] = useState<BunnyResp | null>(null);
   const [bunnyLoading, setBunnyLoading] = useState(false);
   const [bunnyError, setBunnyError] = useState<string | null>(null);
+  const [bunnyMode, setBunnyMode] = useState<"lifetime" | "range">("lifetime");
+
+  // Tab 4 — snapshots history
+  const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
+  const [snapLoading, setSnapLoading] = useState(false);
+  const [capturing, setCapturing] = useState(false);
+  const [captureMsg, setCaptureMsg] = useState<string | null>(null);
 
   const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
 
@@ -109,24 +116,41 @@ const EgressMonitor = () => {
 
   const fetchSupabase = useCallback(async () => {
     setSbLoading(true); setSbError(null);
-    const intv = days === 7 ? "7day" : days === 30 ? "7day" : "7day"; // api supports max 7day
-    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval: intv } });
+    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval: "7day" } });
     if (error) { setSbError(error.message || "Falha ao consultar"); }
     else if ((data as { error?: string })?.error) { setSbError((data as { error: string }).error); }
     else setSbData(data as SupabaseUsageResp);
     setSbLoading(false);
-  }, [days]);
+  }, []);
 
   const fetchBunny = useCallback(async () => {
     setBunnyLoading(true); setBunnyError(null);
-    const { data, error } = await supabase.functions.invoke("bunny-stats", { body: { days } });
+    const body = bunnyMode === "lifetime" ? { mode: "lifetime" } : { mode: "range", days };
+    const { data, error } = await supabase.functions.invoke("bunny-stats", { body });
     if (error) setBunnyError(error.message || "Falha ao consultar Bunny");
     else if ((data as { error?: string })?.error) setBunnyError((data as { error: string }).error);
     else setBunny(data as BunnyResp);
     setBunnyLoading(false);
-  }, [days]);
+  }, [days, bunnyMode]);
 
-  useEffect(() => { fetchInternal(); fetchSupabase(); fetchBunny(); }, [fetchInternal, fetchSupabase, fetchBunny]);
+  const fetchSnapshots = useCallback(async () => {
+    setSnapLoading(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data } = await (supabase as any).from("metrics_snapshots").select("*").order("day", { ascending: true }).limit(365);
+    setSnapshots((data as SnapshotRow[]) || []);
+    setSnapLoading(false);
+  }, []);
+
+  const captureNow = useCallback(async () => {
+    setCapturing(true); setCaptureMsg(null);
+    const { data, error } = await supabase.functions.invoke("metrics-snapshot", { body: {} });
+    if (error) setCaptureMsg("Erro: " + error.message);
+    else if ((data as { error?: string })?.error) setCaptureMsg("Erro: " + (data as { error: string }).error);
+    else { setCaptureMsg("Snapshot capturado: " + (data as { day: string }).day); await fetchSnapshots(); }
+    setCapturing(false);
+  }, [fetchSnapshots]);
+
+  useEffect(() => { fetchInternal(); fetchSupabase(); fetchBunny(); fetchSnapshots(); }, [fetchInternal, fetchSupabase, fetchBunny, fetchSnapshots]);
 
   // ---- Computed: internal ----
   const totalInternalBytes = internalRows.reduce((s, r) => s + r.egress_bytes, 0);
