@@ -425,7 +425,21 @@ const EgressMonitor = () => {
                   </CardContent>
                 </Card>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription className="flex items-center gap-1.5"><Database className="h-3.5 w-3.5" /> DB Size</CardDescription>
+                      <CardTitle className="text-2xl">{sbLoading ? "..." : formatBytes(sbData?.db?.sizeBytes || 0)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">de 0,5 GB Free</p></CardContent>
+                  </Card>
+                  <Card variant="metric">
+                    <CardHeader className="p-4 pb-2">
+                      <CardDescription className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Edge Funcs</CardDescription>
+                      <CardTitle className="text-2xl">{sbLoading ? "..." : formatNumber(sbData?.edgeFunctions?.totalInvocations || 0)}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">Invocations · de 500k Free</p></CardContent>
+                  </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
                       <CardDescription className="flex items-center gap-1.5"><Server className="h-3.5 w-3.5" /> Total Requests (7d)</CardDescription>
