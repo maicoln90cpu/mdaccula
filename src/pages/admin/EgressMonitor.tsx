@@ -196,7 +196,7 @@ const EgressMonitor = () => {
     <>
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             {/* Header */}
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
               <div className="flex items-center gap-4">

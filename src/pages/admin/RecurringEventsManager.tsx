@@ -241,7 +241,7 @@ const RecurringEventsManager = () => {
     <>
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
-          <div className="max-w-4xl mx-auto">
+          <div className="w-full">
             {/* Breadcrumb */}
             <Breadcrumb className="mb-6">
               <BreadcrumbList>
