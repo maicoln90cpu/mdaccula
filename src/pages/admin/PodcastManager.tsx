@@ -238,7 +238,7 @@ const PodcastManager = () => {
     <>
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
               <div>

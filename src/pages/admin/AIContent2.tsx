@@ -512,7 +512,7 @@ export default function AIContent2() {
             </TabsList>
 
             <TabsContent value="generate">
-              <div className="max-w-2xl">
+              <div className="w-full">
                 <GenerateForm
                   templates={templates}
                   selectedTemplate={selectedTemplate}
@@ -529,7 +529,7 @@ export default function AIContent2() {
             </TabsContent>
 
             <TabsContent value="suggestions">
-              <div className="max-w-3xl">
+              <div className="w-full">
                 <SuggestionsList
                   suggestions={suggestions}
                   generateWithImage={generateWithImage}
@@ -546,7 +546,7 @@ export default function AIContent2() {
             </TabsContent>
 
             <TabsContent value="history">
-              <div className="max-w-4xl">
+              <div className="w-full">
                 <PostsHistory posts={generatedPosts} isLoading={isLoading} />
               </div>
             </TabsContent>
