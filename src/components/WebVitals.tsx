@@ -12,9 +12,10 @@ export const WebVitals = () => {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           const lastEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number; loadTime?: number };
-          webVitalsLogger.debug('LCP measured', { 
-            value: lastEntry.renderTime || lastEntry.loadTime 
-          });
+          const value = lastEntry.renderTime || lastEntry.loadTime;
+          (window as unknown as { __webVitals?: Record<string, number> }).__webVitals ??= {};
+          (window as unknown as { __webVitals: Record<string, number> }).__webVitals.lcp = value ?? 0;
+          webVitalsLogger.debug('LCP measured', { value });
         });
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
       } catch {
@@ -44,6 +45,8 @@ export const WebVitals = () => {
           entries.forEach((entry: PerformanceEntry & { hadRecentInput?: boolean; value?: number }) => {
             if (!entry.hadRecentInput) {
               clsScore += entry.value ?? 0;
+              (window as unknown as { __webVitals?: Record<string, number> }).__webVitals ??= {};
+              (window as unknown as { __webVitals: Record<string, number> }).__webVitals.cls = clsScore;
               webVitalsLogger.debug('CLS measured', { value: clsScore });
             }
           });
