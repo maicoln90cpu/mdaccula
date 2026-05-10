@@ -22,10 +22,13 @@ interface SupabaseUsageResp {
   auth: { totalUsers: number };
   storage: { buckets: Array<{ bucket: string; bytes: number; files: number }>; totalBytes: number; totalFiles: number };
   tables: Record<string, number>;
+  db?: { sizeBytes: number };
+  edgeFunctions?: { totalInvocations: number };
   fetchedAt: string;
 }
 interface BunnyResp {
-  window: { dateFrom: string; dateTo: string; days: number };
+  window: { dateFrom: string; dateTo: string; days: number; mode?: string };
+  estimatedCostUSD?: number;
   pullZone: {
     bandwidthBytes: number; originBytes: number; requests: number; cacheHitRate: number; avgOriginResponseMs: number;
     errors: { err3xx: number; err4xx: number; err5xx: number };
@@ -34,6 +37,12 @@ interface BunnyResp {
   };
   storage: { bytesUsed: number; files: number; region: string; charts: { storageUsed: Array<{ t: string; v: number }>; fileCount: Array<{ t: string; v: number }> } };
   fetchedAt: string;
+}
+interface SnapshotRow {
+  day: string;
+  supabase: { requests?: { total: number }; storage?: { totalBytes: number; totalFiles: number }; users?: number };
+  bunny: { lifetime?: { bandwidthBytes: number; requests: number; cacheHitRate: number }; storage?: { bytesUsed: number; files: number } };
+  captured_at: string;
 }
 
 // ---------------- Helpers ----------------
