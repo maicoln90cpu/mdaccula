@@ -234,7 +234,7 @@ const EgressMonitor = () => {
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-xs text-muted-foreground">
-                  Bunny CDN ({bunny?.window.days || days}d) — todo tráfego de imagens. Supabase api-egress não disponível no plano Free.
+                  Bunny CDN ({bunnyMode === "lifetime" ? "lifetime" : `${bunny?.window.days || days}d`}) — todo tráfego de imagens. Supabase api-egress não disponível no plano Free.
                 </p>
               </CardContent>
             </Card>
