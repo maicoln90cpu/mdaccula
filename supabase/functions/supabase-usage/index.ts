@@ -84,17 +84,17 @@ Deno.serve(async (req) => {
       { headers: { Authorization: `Bearer ${pat}` } },
     ).then((r) => r.ok ? r.json() : []);
 
-    // ---- 3. Database stats (direct) ----
-    const dbStatsP = (async () => {
-      try {
-        const { data, error } = await admin.rpc("pg_stat_db_summary" as never).single().throwOnError();
-        if (error) throw error;
-        return data;
-      } catch {
-        // fallback: derive via select() on a known stats view if RPC doesn't exist
-        return null;
-      }
-    })();
+    // ---- 3. Database size (Management API analytics) ----
+    const dbSizeP = fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.api-requests-count?interval=${interval}`,
+      { headers: { Authorization: `Bearer ${pat}` } },
+    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
+
+    // ---- 3b. Edge function invocations ----
+    const edgeInvocationsP = fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.func-invocations?interval=${interval}`,
+      { headers: { Authorization: `Bearer ${pat}` } },
+    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
 
     // ---- 4. Auth users count ----
     const authUsersP = admin.auth.admin.listUsers({ page: 1, perPage: 1 }).then(
