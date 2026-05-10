@@ -181,7 +181,8 @@ Deno.serve(async (req) => {
         totalFiles: totalStorageFiles,
       },
       tables: tableCounts,
-      db: dbStats || null,
+      db: { sizeBytes: dbSizeBytes },
+      edgeFunctions: { totalInvocations: totalEdgeInvocations },
       fetchedAt: new Date().toISOString(),
       // legacy compat: também devolve o array bruto que o front antigo esperava
       result: apiCounts?.result ?? [],
