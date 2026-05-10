@@ -102,8 +102,8 @@ const EgressMonitor = () => {
   const [snapLoading, setSnapLoading] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [captureMsg, setCaptureMsg] = useState<string | null>(null);
-
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+  const isLifetime = period === "lifetime";
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
 
   const fetchInternal = useCallback(async () => {
     setInternalLoading(true);
