@@ -51,9 +51,11 @@ Deno.serve(async (req) => {
       });
     }
 
+    let bodyParams: Record<string, unknown> = {};
+    if (req.method === "POST") { try { bodyParams = await req.json(); } catch { /* noop */ } }
     const url = new URL(req.url);
     const validIntervals = ["15min", "30min", "1hr", "3hr", "1day", "3day", "7day"];
-    const rawInterval = url.searchParams.get("interval") || "1day";
+    const rawInterval = String(bodyParams.interval || url.searchParams.get("interval") || "1day");
     const interval = validIntervals.includes(rawInterval) ? rawInterval : "1day";
 
     const cacheKey = interval;

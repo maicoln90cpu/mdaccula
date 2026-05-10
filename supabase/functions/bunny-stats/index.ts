@@ -106,8 +106,14 @@ Deno.serve(async (req) => {
     const storageStats = storageStatsRes.ok ? await storageStatsRes.json() : {};
     const storageInfo = storageInfoRes.ok ? await storageInfoRes.json() : {};
 
+    const bandwidthBytes = Number(stats.TotalBandwidthUsed || 0);
+    const bandwidthGB = bandwidthBytes / (1024 ** 3);
+    const COST_PER_GB = 0.043; // média Standard tier (alinhada com $2.61 / 60.82 GB)
+    const estimatedCostUSD = bandwidthGB * COST_PER_GB;
+
     const payload = {
-      window: { dateFrom, dateTo, days, hourly },
+      window: { dateFrom, dateTo, days, hourly, mode },
+      estimatedCostUSD,
       pullZone: {
         bandwidthBytes: Number(stats.TotalBandwidthUsed || 0),
         originBytes: Number(stats.TotalOriginTraffic || 0),
