@@ -433,7 +433,7 @@ const EgressMonitor = () => {
                       <CardDescription className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5" /> Edge Funcs</CardDescription>
                       <CardTitle className="text-2xl">{sbLoading ? "..." : formatNumber(sbData?.edgeFunctions?.totalInvocations || 0)}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">Invocations · de 500k Free</p></CardContent>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{sbData?.edgeFunctions?.source === "logs-explorer" ? `Logs (${sbData?.edgeFunctions?.windowDays ?? 7}d)` : sbData?.edgeFunctions?.source === "management-api" ? "Mgmt API" : "Invocations"} · de 500k Free</p></CardContent>
                   </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
