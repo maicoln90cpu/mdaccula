@@ -252,6 +252,15 @@ const EgressMonitor = () => {
                   </Card>
                 ) : null}
 
+                {bunny?.chunks && bunny.chunks.errors > 0 ? (
+                  <Card className="border-yellow-500/40 bg-yellow-500/5">
+                    <CardContent className="p-3 text-xs text-muted-foreground flex items-center gap-2">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      Dados parciais: {bunny.chunks.ok} janelas válidas, {bunny.chunks.errors} ignoradas ({bunny.chunks.stopReason || "—"}). Período real coberto: {bunny.window.days}d.
+                    </CardContent>
+                  </Card>
+                ) : null}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
