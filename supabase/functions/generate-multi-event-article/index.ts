@@ -222,20 +222,30 @@ Deno.serve(async (req) => {
     // Find first available image or use custom
     const existingImageUrl = customImageUrl || events.find(e => e.image_url)?.image_url || null;
 
-    // Build detailed dates info with venue per event
+    // Build detailed dates info with venue per event (DADOS OFICIAIS por noite)
     const datesInfo = events.map(event => {
-      const lineupStr = event.lineup && event.lineup.length > 0 
-        ? event.lineup.join(', ') 
+      const lineupStr = event.lineup && event.lineup.length > 0
+        ? event.lineup.join(', ')
         : 'A confirmar';
-      
+
       return `
-📅 ${formatDatePt(event.date)} - ${event.time}
+📅 ${formatDatePt(event.date)} - início ${event.time}${event.end_time ? ` até ${event.end_time}` : ''}
 📍 Local: ${event.venue}${event.address ? `, ${event.address}` : ''} - ${event.location_city}/${event.location_state}
+${event.subtitle ? `🏷️ Subtítulo/Promoção: ${event.subtitle}` : ''}
 🎧 Line-up: ${lineupStr}
+🎵 Gêneros: ${(event.genres || []).join(', ') || 'Música Eletrônica'}
 ${event.ticket_link ? `🎟️ Ingressos: ${event.ticket_link}` : ''}
 ${event.vip_link ? `💎 VIP/Camarote: ${event.vip_link}` : ''}
-${event.description ? `📝 ${event.description}` : ''}`.trim();
+${event.description ? `📝 Descrição: ${event.description}` : ''}
+${event.ai_context ? `🎯 Contexto admin: ${event.ai_context}` : ''}`.trim();
     }).join('\n\n');
+
+    // Detectar cortesia agregada (qualquer evento com aiContext de cortesia)
+    const aggregatedAiCtx = events.map(e => e.ai_context || '').join(' ').toLowerCase();
+    const isCourtesy = /\b(cortesia|free|gratuito|gratuita|sem venda|sem ingresso|guest list|lista de convidados|open list)\b/.test(aggregatedAiCtx);
+    const anyLineup = events.some(e => e.lineup && e.lineup.length > 0);
+    const anyEndTime = events.some(e => e.end_time);
+    const anyAddress = events.some(e => e.address);
 
     // Fetch AI settings
     const { data: settings } = await supabase
@@ -347,11 +357,11 @@ Para artistas mais famosos/headliners, inclua:
 Retorne APENAS o JSON válido.`;
 
     // Use template from DB or fallback
-    const systemPrompt = template?.system_prompt || defaultSystemPrompt;
+    const baseSystemPrompt = template?.system_prompt || defaultSystemPrompt;
     const userPromptTemplate = template?.user_prompt_template || defaultUserPromptTemplate;
 
     // Replace template variables
-    const userPrompt = userPromptTemplate
+    let userPrompt = userPromptTemplate
       .replace(/\{\{seriesName\}\}/g, seriesName)
       .replace(/\{\{venue\}\}/g, commonVenue)
       .replace(/\{\{city\}\}/g, commonCity)
@@ -362,7 +372,48 @@ Retorne APENAS o JSON válido.`;
       .replace(/\{\{dates\}\}/g, datesInfo)
       .replace(/\{\{additionalContext\}\}/g, additionalContext ? `## CONTEXTO ADICIONAL:\n${additionalContext}` : '');
 
-    console.log('[generate-multi-event-article] Usando template:', template ? 'do banco' : 'fallback padrão');
+    // BLOCO DADOS OFICIAIS — sempre injetado no topo do user prompt (mesmo padrão do v2)
+    const officialBlock = `📋 DADOS OFICIAIS DA SÉRIE (use literalmente, NUNCA invente, NUNCA contradiga):
+- Série: ${seriesName}
+- Local comum: ${commonVenue}, ${commonCity}/${commonState}
+- Período: ${formatDatePt(firstEvent.date)} a ${formatDatePt(lastEvent.date)}
+- Gêneros: ${allGenres.join(', ') || 'Música Eletrônica'}
+
+PROGRAMAÇÃO POR DATA:
+${datesInfo}
+
+⚠️ Se algum dado acima estiver presente, ele DEVE aparecer no artigo. Não escreva "a confirmar" para informações que constam aqui.
+
+`;
+    userPrompt = officialBlock + userPrompt;
+
+    // Reforço de hierarquia + anti-hedging + courtesy override no system prompt
+    const systemPrompt = baseSystemPrompt + `
+
+🚨 HIERARQUIA DE PRIORIDADE (ordem absoluta):
+1. Contexto admin de cada evento ("Contexto admin" no bloco oficial)
+2. DADOS OFICIAIS DA SÉRIE / PROGRAMAÇÃO POR DATA
+3. Template
+4. Conhecimento prévio (apenas para complementar, nunca para contradizer)
+
+🚨 ANTI-HEDGING (proibido "a confirmar" quando o dado existe):
+${anyLineup ? '- Lineups foram fornecidos por data: liste exatamente os artistas, NUNCA escreva "lineup a confirmar".' : ''}
+${anyEndTime ? '- Horários de término foram fornecidos: mencione "até XX:XX" nas datas correspondentes.' : ''}
+${anyAddress ? '- Endereços foram fornecidos: inclua-os.' : ''}
+- Use SEMPRE o dia da semana exato que aparece no bloco oficial.
+- NUNCA invente venues, datas, lineup ou horários.
+
+🚨 LINKS / CUPOM:
+${isCourtesy
+  ? `- ⚠️ HÁ INDICAÇÃO DE CORTESIA / SEM VENDA em ao menos uma noite (ver "Contexto admin").
+- NÃO mencione cupom MDACCULA para essas datas.
+- Trate links dessas noites como "confirmação de presença / lista", não compra.
+- Para datas SEM indicação de cortesia, comportamento normal de venda se aplica.`
+  : `- Inclua os links de ingressos REAIS fornecidos por data quando existirem.
+- NUNCA invente URLs de ingressos.`}
+`;
+
+    console.log('[generate-multi-event-article] Usando template:', template ? 'do banco' : 'fallback padrão', '| isCourtesy:', isCourtesy);
 
     // Roteamento dual: OpenAI direto vs Gemini via Lovable
     const isOpenAIModel = selectedModel.startsWith('openai/');
