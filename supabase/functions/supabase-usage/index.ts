@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
       },
       tables: tableCounts,
       db: { sizeBytes: dbSizeBytes },
-      edgeFunctions: { totalInvocations: totalEdgeInvocations },
+      edgeFunctions: { totalInvocations: totalEdgeInvocations, source: edgeSource, windowDays: edgeSource === "logs-explorer" ? 7 : null },
       fetchedAt: new Date().toISOString(),
       // legacy compat: também devolve o array bruto que o front antigo esperava
       result: apiCounts?.result ?? [],
