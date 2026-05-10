@@ -67,24 +67,20 @@ describe('Auth Page', () => {
 
   describe('Tab switching', () => {
     it('should switch to signup form when clicking Cadastrar tab', async () => {
+      const user = userEvent.setup();
       renderAuth();
       const tab = await screen.findByRole('tab', { name: /cadastrar/i });
-      fireEvent.click(tab);
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/seu nome completo/i)).toBeInTheDocument();
-      });
+      await user.click(tab);
+      expect(await screen.findByPlaceholderText(/seu nome completo/i)).toBeInTheDocument();
     });
 
     it('should switch back to signin tab', async () => {
+      const user = userEvent.setup();
       renderAuth();
-      fireEvent.click(await screen.findByRole('tab', { name: /cadastrar/i }));
-      await waitFor(() =>
-        expect(screen.getByPlaceholderText(/seu nome completo/i)).toBeInTheDocument()
-      );
-      fireEvent.click(screen.getByRole('tab', { name: /entrar/i }));
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /^entrar$/i })).toBeInTheDocument();
-      });
+      await user.click(await screen.findByRole('tab', { name: /cadastrar/i }));
+      expect(await screen.findByPlaceholderText(/seu nome completo/i)).toBeInTheDocument();
+      await user.click(screen.getByRole('tab', { name: /entrar/i }));
+      expect(await screen.findByRole('button', { name: /^entrar$/i })).toBeInTheDocument();
     });
   });
 
@@ -107,19 +103,17 @@ describe('Auth Page', () => {
 
   describe('Signup Form', () => {
     it('should render full name input on signup tab', async () => {
+      const user = userEvent.setup();
       renderAuth();
-      fireEvent.click(await screen.findByRole('tab', { name: /cadastrar/i }));
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/seu nome completo/i)).toBeInTheDocument();
-      });
+      await user.click(await screen.findByRole('tab', { name: /cadastrar/i }));
+      expect(await screen.findByPlaceholderText(/seu nome completo/i)).toBeInTheDocument();
     });
 
     it('should render phone input on signup tab', async () => {
+      const user = userEvent.setup();
       renderAuth();
-      fireEvent.click(await screen.findByRole('tab', { name: /cadastrar/i }));
-      await waitFor(() => {
-        expect(screen.getByPlaceholderText(/\(11\) 99999-9999/)).toBeInTheDocument();
-      });
+      await user.click(await screen.findByRole('tab', { name: /cadastrar/i }));
+      expect(await screen.findByPlaceholderText(/\(11\) 99999-9999/)).toBeInTheDocument();
     });
   });
 });
