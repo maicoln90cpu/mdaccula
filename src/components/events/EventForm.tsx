@@ -946,6 +946,21 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </p>
           </div>
 
+          {/* Contexto para IA — sempre visível, persiste em events.ai_context */}
+          <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
+            <Label htmlFor="aiContextAlways">Contexto para IA (opcional)</Label>
+            <Textarea
+              id="aiContextAlways"
+              value={aiContext}
+              onChange={(e) => setAiContext(e.target.value)}
+              placeholder="Ex: Ingresso cortesia pelo link, 5% de desconto com cupom MDACCULA, open bar até 01h, evento beneficente..."
+              rows={3}
+            />
+            <p className="text-xs text-muted-foreground">
+              Salvo no evento e respeitado em toda geração/regeneração de artigo. Tem prioridade máxima sobre o template.
+            </p>
+          </div>
+
           {!event?.id && (
             <>
               {/* Criar Link Automaticamente */}
