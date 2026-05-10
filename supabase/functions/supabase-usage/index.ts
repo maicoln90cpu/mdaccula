@@ -144,17 +144,26 @@ Deno.serve(async (req) => {
       return result;
     })();
 
-    const [apiCounts, health, dbSize, edgeInvocations, authUsers, storage, tableCounts] = await Promise.all([
-      apiCountsP, healthP, dbSizeP, edgeInvocationsP, authUsersP, storageP, tableCountsP,
+    const [apiCounts, health, dbSize, edgeInvocations, edgeLogsCount, authUsers, storage, tableCounts] = await Promise.all([
+      apiCountsP, healthP, dbSizeP, edgeInvocationsP, edgeLogsCountP, authUsersP, storageP, tableCountsP,
     ]);
 
     let totalEdgeInvocations = 0;
+    let edgeSource: "management-api" | "logs-explorer" | "none" = "none";
     const edgeRows = (edgeInvocations?.result || edgeInvocations?.data || []) as Array<Record<string, unknown>>;
-    if (Array.isArray(edgeRows)) {
+    if (Array.isArray(edgeRows) && edgeRows.length) {
       for (const row of edgeRows) {
         totalEdgeInvocations += Number(
           row.count ?? row.total ?? row.total_invocations ?? row.invocations ?? row.value ?? 0,
         );
+      }
+      if (totalEdgeInvocations > 0) edgeSource = "management-api";
+    }
+    if (totalEdgeInvocations === 0) {
+      const logsRows = (edgeLogsCount?.result || edgeLogsCount?.data || []) as Array<Record<string, unknown>>;
+      if (Array.isArray(logsRows) && logsRows.length) {
+        totalEdgeInvocations = Number(logsRows[0]?.total ?? logsRows[0]?.count ?? 0);
+        if (totalEdgeInvocations > 0) edgeSource = "logs-explorer";
       }
     }
     const dbSizeBytes = Number((dbSize as { bytes?: number })?.bytes || 0);
