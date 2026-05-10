@@ -357,11 +357,11 @@ Para artistas mais famosos/headliners, inclua:
 Retorne APENAS o JSON válido.`;
 
     // Use template from DB or fallback
-    const systemPrompt = template?.system_prompt || defaultSystemPrompt;
+    const baseSystemPrompt = template?.system_prompt || defaultSystemPrompt;
     const userPromptTemplate = template?.user_prompt_template || defaultUserPromptTemplate;
 
     // Replace template variables
-    const userPrompt = userPromptTemplate
+    let userPrompt = userPromptTemplate
       .replace(/\{\{seriesName\}\}/g, seriesName)
       .replace(/\{\{venue\}\}/g, commonVenue)
       .replace(/\{\{city\}\}/g, commonCity)
@@ -372,7 +372,48 @@ Retorne APENAS o JSON válido.`;
       .replace(/\{\{dates\}\}/g, datesInfo)
       .replace(/\{\{additionalContext\}\}/g, additionalContext ? `## CONTEXTO ADICIONAL:\n${additionalContext}` : '');
 
-    console.log('[generate-multi-event-article] Usando template:', template ? 'do banco' : 'fallback padrão');
+    // BLOCO DADOS OFICIAIS — sempre injetado no topo do user prompt (mesmo padrão do v2)
+    const officialBlock = `📋 DADOS OFICIAIS DA SÉRIE (use literalmente, NUNCA invente, NUNCA contradiga):
+- Série: ${seriesName}
+- Local comum: ${commonVenue}, ${commonCity}/${commonState}
+- Período: ${formatDatePt(firstEvent.date)} a ${formatDatePt(lastEvent.date)}
+- Gêneros: ${allGenres.join(', ') || 'Música Eletrônica'}
+
+PROGRAMAÇÃO POR DATA:
+${datesInfo}
+
+⚠️ Se algum dado acima estiver presente, ele DEVE aparecer no artigo. Não escreva "a confirmar" para informações que constam aqui.
+
+`;
+    userPrompt = officialBlock + userPrompt;
+
+    // Reforço de hierarquia + anti-hedging + courtesy override no system prompt
+    const systemPrompt = baseSystemPrompt + `
+
+🚨 HIERARQUIA DE PRIORIDADE (ordem absoluta):
+1. Contexto admin de cada evento ("Contexto admin" no bloco oficial)
+2. DADOS OFICIAIS DA SÉRIE / PROGRAMAÇÃO POR DATA
+3. Template
+4. Conhecimento prévio (apenas para complementar, nunca para contradizer)
+
+🚨 ANTI-HEDGING (proibido "a confirmar" quando o dado existe):
+${anyLineup ? '- Lineups foram fornecidos por data: liste exatamente os artistas, NUNCA escreva "lineup a confirmar".' : ''}
+${anyEndTime ? '- Horários de término foram fornecidos: mencione "até XX:XX" nas datas correspondentes.' : ''}
+${anyAddress ? '- Endereços foram fornecidos: inclua-os.' : ''}
+- Use SEMPRE o dia da semana exato que aparece no bloco oficial.
+- NUNCA invente venues, datas, lineup ou horários.
+
+🚨 LINKS / CUPOM:
+${isCourtesy
+  ? `- ⚠️ HÁ INDICAÇÃO DE CORTESIA / SEM VENDA em ao menos uma noite (ver "Contexto admin").
+- NÃO mencione cupom MDACCULA para essas datas.
+- Trate links dessas noites como "confirmação de presença / lista", não compra.
+- Para datas SEM indicação de cortesia, comportamento normal de venda se aplica.`
+  : `- Inclua os links de ingressos REAIS fornecidos por data quando existirem.
+- NUNCA invente URLs de ingressos.`}
+`;
+
+    console.log('[generate-multi-event-article] Usando template:', template ? 'do banco' : 'fallback padrão', '| isCourtesy:', isCourtesy);
 
     // Roteamento dual: OpenAI direto vs Gemini via Lovable
     const isOpenAIModel = selectedModel.startsWith('openai/');
