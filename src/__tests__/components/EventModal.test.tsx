@@ -73,8 +73,7 @@ describe('EventModal', () => {
     expect(screen.getByText('Test Event')).toBeInTheDocument();
   });
 
-  it.skip('should render event subtitle', () => {
-    // EventModal currently does not render the subtitle field
+  it('should render event subtitle', () => {
     const Wrapper = createWrapper();
     render(
       <Wrapper>
