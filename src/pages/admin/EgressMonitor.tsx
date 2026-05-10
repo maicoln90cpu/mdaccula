@@ -96,7 +96,6 @@ const EgressMonitor = () => {
   const [bunny, setBunny] = useState<BunnyResp | null>(null);
   const [bunnyLoading, setBunnyLoading] = useState(false);
   const [bunnyError, setBunnyError] = useState<string | null>(null);
-  const [bunnyMode, setBunnyMode] = useState<"lifetime" | "range">("lifetime");
 
   // Tab 4 — snapshots history
   const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
