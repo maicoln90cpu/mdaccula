@@ -89,10 +89,22 @@ Deno.serve(async (req) => {
       (r) => ({ bytes: Number(r.data || 0), error: r.error?.message }),
     ).catch((e) => ({ bytes: 0, error: (e as Error).message }));
 
-    // ---- 3b. Edge function invocations ----
+    // ---- 3b. Edge function invocations (Management API + fallback Logs Explorer) ----
     const edgeInvocationsP = fetch(
       `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/usage.func-invocations?interval=${interval}`,
       { headers: { Authorization: `Bearer ${pat}` } },
+    ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
+
+    // Fallback: contar via Logs Explorer (function_edge_logs) últimos 7 dias
+    const edgeLogsCountP = fetch(
+      `https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs.all`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${pat}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sql: `select count(*) as total from function_edge_logs where timestamp >= timestamp_sub(current_timestamp(), interval 7 day)`,
+        }),
+      },
     ).then(async (r) => r.ok ? await r.json() : null).catch(() => null);
 
     // ---- 4. Auth users count ----
