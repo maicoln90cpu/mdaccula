@@ -98,33 +98,33 @@ const LinksManager = () => {
 
   // Filtrar grupos e links baseado na visibilidade do evento associado
   const filteredGroups = useMemo(() => {
-    const graceHours = parseInt(settings?.event_grace_hours || "6");
+    const hoursAfterStart = parseInt(settings?.event_hours_after_start || "12");
+    const hoursWithoutTime = parseInt(settings?.event_hours_without_time || "24");
     const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
-    
+
     return groups.map(group => {
       const filteredLinks = group.custom_links?.filter(link => {
         if (statusFilter === "all") return true;
-        
+
         // Se o link não tem evento associado, considerar como "ativo"
         if (!link.event_id || !link.events?.date) {
           return statusFilter === "active";
         }
-        
+
         // Usar helper de visibilidade
         const isActive = isEventVisible(
-          { 
-            date: link.events.date, 
-            time: link.events.time || "00:00", 
-            end_time: link.events.end_time 
+          {
+            date: link.events.date,
+            time: link.events.time,
           },
-          { graceHours, timezoneOffset }
+          { hoursAfterStart, hoursWithoutTime, timezoneOffset }
         );
-        
+
         if (statusFilter === "active") return isActive;
         if (statusFilter === "inactive") return !isActive;
         return true;
       }) || [];
-      
+
       return { ...group, custom_links: filteredLinks };
     }).filter(group => {
       if (statusFilter === "all") return true;

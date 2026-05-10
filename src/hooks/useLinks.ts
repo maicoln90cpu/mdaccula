@@ -246,8 +246,8 @@ export const useLinks = (options: UseLinksOptions = {}) => {
     );
 
     // Optimistic update via query cache
-    queryClient.setQueryData(["link-groups", graceHours, timezoneOffset], newGroups);
-  }, [groups, queryClient, graceHours, timezoneOffset]);
+    queryClient.setQueryData(["link-groups", hoursAfterStart, hoursWithoutTime, timezoneOffset], newGroups);
+  }, [groups, queryClient, hoursAfterStart, hoursWithoutTime, timezoneOffset]);
 
   return {
     groups,
@@ -257,7 +257,7 @@ export const useLinks = (options: UseLinksOptions = {}) => {
     duplicateLink,
     updateLinkOrder,
     setGroups: (newGroups: LinkGroup[]) => {
-      queryClient.setQueryData(["link-groups", graceHours, timezoneOffset], newGroups);
+      queryClient.setQueryData(["link-groups", hoursAfterStart, hoursWithoutTime, timezoneOffset], newGroups);
     },
   };
 };

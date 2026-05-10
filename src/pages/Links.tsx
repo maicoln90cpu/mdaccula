@@ -25,7 +25,8 @@ export default function Links() {
   const { settings } = useSiteSettings();
   const { isAdmin } = useAuth();
   const { groups, loading, fetchError, refetchLinks, duplicateLink, updateLinkOrder } = useLinks({
-    graceHours: settings.event_grace_hours ? parseInt(settings.event_grace_hours, 10) : 6,
+    hoursAfterStart: settings.event_hours_after_start ? parseInt(settings.event_hours_after_start, 10) : 12,
+    hoursWithoutTime: settings.event_hours_without_time ? parseInt(settings.event_hours_without_time, 10) : 24,
     timezoneOffset: settings.timezone_offset ? parseInt(settings.timezone_offset, 10) : -3,
   });
 
