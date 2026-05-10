@@ -81,7 +81,7 @@ const BUNNY_DASHBOARD = "https://dash.bunny.net/cdn";
 // ---------------- Component ----------------
 const EgressMonitor = () => {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "lifetime">("lifetime");
 
   // Tab 1 — internal SW estimate
   const [internalRows, setInternalRows] = useState<EgressRow[]>([]);
@@ -96,43 +96,46 @@ const EgressMonitor = () => {
   const [bunny, setBunny] = useState<BunnyResp | null>(null);
   const [bunnyLoading, setBunnyLoading] = useState(false);
   const [bunnyError, setBunnyError] = useState<string | null>(null);
-  const [bunnyMode, setBunnyMode] = useState<"lifetime" | "range">("lifetime");
 
   // Tab 4 — snapshots history
   const [snapshots, setSnapshots] = useState<SnapshotRow[]>([]);
   const [snapLoading, setSnapLoading] = useState(false);
   const [capturing, setCapturing] = useState(false);
   const [captureMsg, setCaptureMsg] = useState<string | null>(null);
-
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+  const isLifetime = period === "lifetime";
+  const days = period === "7d" ? 7 : period === "30d" ? 30 : period === "90d" ? 90 : 365;
 
   const fetchInternal = useCallback(async () => {
     setInternalLoading(true);
-    const since = new Date(); since.setDate(since.getDate() - days);
-    const { data: rows } = await supabase.from("egress_metrics").select("*")
-      .gte("period_start", since.toISOString()).order("period_start", { ascending: true });
+    let q = supabase.from("egress_metrics").select("*").order("period_start", { ascending: true }).limit(5000);
+    if (!isLifetime) {
+      const since = new Date(); since.setDate(since.getDate() - days);
+      q = q.gte("period_start", since.toISOString());
+    }
+    const { data: rows } = await q;
     setInternalRows((rows as EgressRow[]) || []);
     setInternalLoading(false);
-  }, [days]);
+  }, [days, isLifetime]);
 
   const fetchSupabase = useCallback(async () => {
     setSbLoading(true); setSbError(null);
-    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval: "7day" } });
+    const interval = isLifetime ? "lifetime" : `${days}day`;
+    const { data, error } = await supabase.functions.invoke("supabase-usage", { body: { interval } });
     if (error) { setSbError(error.message || "Falha ao consultar"); }
     else if ((data as { error?: string })?.error) { setSbError((data as { error: string }).error); }
     else setSbData(data as SupabaseUsageResp);
     setSbLoading(false);
-  }, []);
+  }, [days, isLifetime]);
 
   const fetchBunny = useCallback(async () => {
     setBunnyLoading(true); setBunnyError(null);
-    const body = bunnyMode === "lifetime" ? { mode: "lifetime" } : { mode: "range", days };
+    const body = isLifetime ? { mode: "lifetime" } : { mode: "range", days };
     const { data, error } = await supabase.functions.invoke("bunny-stats", { body });
     if (error) setBunnyError(error.message || "Falha ao consultar Bunny");
     else if ((data as { error?: string })?.error) setBunnyError((data as { error: string }).error);
     else setBunny(data as BunnyResp);
     setBunnyLoading(false);
-  }, [days, bunnyMode]);
+  }, [days, isLifetime]);
 
   const fetchSnapshots = useCallback(async () => {
     setSnapLoading(true);
@@ -215,9 +218,10 @@ const EgressMonitor = () => {
                     <TabsTrigger value="7d">7 dias</TabsTrigger>
                     <TabsTrigger value="30d">30 dias</TabsTrigger>
                     <TabsTrigger value="90d">90 dias</TabsTrigger>
+                    <TabsTrigger value="lifetime">Lifetime</TabsTrigger>
                   </TabsList>
                 </Tabs>
-                <Button variant="outline" size="icon" onClick={() => { fetchInternal(); fetchSupabase(); fetchBunny(); }}>
+                <Button variant="outline" size="icon" onClick={() => { fetchInternal(); fetchSupabase(); fetchBunny(); fetchSnapshots(); }}>
                   <RefreshCw className={`h-4 w-4 ${(internalLoading || sbLoading || bunnyLoading) ? "animate-spin" : ""}`} />
                 </Button>
               </div>
@@ -235,14 +239,6 @@ const EgressMonitor = () => {
 
               {/* ============ BUNNY TAB ============ */}
               <TabsContent value="bunny" className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <Tabs value={bunnyMode} onValueChange={(v) => setBunnyMode(v as "lifetime" | "range")}>
-                    <TabsList>
-                      <TabsTrigger value="lifetime">Lifetime (total)</TabsTrigger>
-                      <TabsTrigger value="range">Últimos {days}d</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
 
                 {bunnyError ? (
                   <Card className="border-destructive/50 bg-destructive/5">
@@ -277,7 +273,7 @@ const EgressMonitor = () => {
                       <CardDescription>Bandwidth</CardDescription>
                       <CardTitle className="text-2xl">{bunnyLoading ? "..." : formatBytes(bunny?.pullZone.bandwidthBytes || 0)}</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{bunnyEgressGB.toFixed(2)} GB · {bunnyMode === "lifetime" ? "lifetime" : `${days}d`}</p></CardContent>
+                    <CardContent className="p-4 pt-0"><p className="text-xs text-muted-foreground">{bunnyEgressGB.toFixed(2)} GB · {isLifetime ? "lifetime" : `${days}d`}</p></CardContent>
                   </Card>
                   <Card variant="metric">
                     <CardHeader className="p-4 pb-2">
