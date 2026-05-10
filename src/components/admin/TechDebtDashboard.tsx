@@ -187,7 +187,7 @@ export const TechDebtDashboard = () => {
               {filteredDebt.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-start justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                  className={`flex items-start justify-between p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors ${item.resolved ? 'opacity-60' : ''}`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
@@ -195,8 +195,13 @@ export const TechDebtDashboard = () => {
                       <Badge variant="outline" className="text-xs">
                         {item.category}
                       </Badge>
+                      {item.resolved && (
+                        <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
+                          ✓ Resolvido
+                        </Badge>
+                      )}
                     </div>
-                    <h4 className="font-medium">{item.title}</h4>
+                    <h4 className={`font-medium ${item.resolved ? 'line-through' : ''}`}>{item.title}</h4>
                     <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                   </div>
                   <div className="text-right ml-4">
