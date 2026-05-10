@@ -19,7 +19,9 @@ const NewsletterPopup = lazy(() =>
 const WebVitals = lazy(() =>
   import("@/components/WebVitals").then((m) => ({ default: m.WebVitals }))
 );
-const HotjarAnalytics = lazy(() => import("@/components/HotjarAnalytics"));
+const HotjarAnalytics = lazy(() =>
+  import("@/components/HotjarAnalytics").then((m) => ({ default: m.HotjarAnalytics }))
+);
 
 // Lazy load pages for code splitting
 const Eventos = lazy(() => import("./pages/Eventos"));
