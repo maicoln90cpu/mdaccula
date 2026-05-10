@@ -81,7 +81,7 @@ const BUNNY_DASHBOARD = "https://dash.bunny.net/cdn";
 // ---------------- Component ----------------
 const EgressMonitor = () => {
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<"7d" | "30d" | "90d">("30d");
+  const [period, setPeriod] = useState<"7d" | "30d" | "90d" | "lifetime">("lifetime");
 
   // Tab 1 — internal SW estimate
   const [internalRows, setInternalRows] = useState<EgressRow[]>([]);

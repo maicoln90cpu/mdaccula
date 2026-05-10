@@ -1,66 +1,60 @@
-## Diagnóstico confirmado
+## Objetivo
+Unificar os filtros de período da página `/admin/egress-monitor`. Hoje há um filtro global (7d/30d/90d) no topo + um filtro local na aba Bunny (Lifetime / Últimos Xd), gerando contradição visual. Vamos consolidar tudo em um único seletor global com 4 opções: **7 dias · 30 dias · 90 dias · Lifetime**, aplicado a todas as abas.
 
-- O front não está só “mostrando errado”: o payload atual de `bunny-stats` que chegou na tela já veio com `180290661969 bytes` = `167.91 GB`.
-- A causa mais provável está na Edge Function `bunny-stats`: o modo `lifetime` ainda inicia em `2020-01-01`, porque a busca de `DateCreated` da pull zone não está retornando/parseando o campo esperado. Isso gera `67 chunks`, `56 erros` e soma `11 chunks` válidos, abrindo espaço para agregado inconsistente.
-- A distribuição geográfica está truncada por configuração de gráfico: `YAxis width={50}` é pequeno demais para nomes de países/cidades retornados pela API.
-- O banner superior “Egress Total Real” duplica a informação da aba Bunny e deve sair.
-- Edge Functions do Supabase continua `0` porque o endpoint `usage.func-invocations` não está retornando linhas no formato esperado. Como existem registros reais em `function_edge_logs`, dá para usar os logs do próprio Supabase como fallback confiável.
+## Mudanças
 
-## Plano de correção
+### 1. `src/pages/admin/EgressMonitor.tsx` (frontend, único arquivo afetado)
 
-### 1) Corrigir Bunny lifetime na fonte
-- Ajustar `supabase/functions/bunny-stats/index.ts` para não depender cegamente de `DateCreated`.
-- Usar uma data-base segura e auditável para o início real da série (por exemplo, o primeiro dia útil com tráfego nos charts retornados, ou fallback controlado), evitando somar chunks antigos/estranhos.
-- Adicionar proteção contra `chunkErrors` altos: se muitos chunks falharem, retornar metadados de qualidade e não deixar o front tratar isso como número “oficial” sem aviso.
-- Revisar a agregação de charts para evitar duplicação por timestamp entre chunks.
-- Corrigir `GeoTrafficDistribution` para agregar todos os chunks válidos, não só pegar o último chunk.
+**Estado / tipos**
+- Trocar `useState<"7d" | "30d" | "90d">` por `useState<"7d" | "30d" | "90d" | "lifetime">`, default `"lifetime"` (alinha com a UX que o usuário já estava vendo na aba Bunny).
+- Remover por completo o estado `bunnyMode` e o sub-`Tabs` "Lifetime / Últimos Xd" dentro da aba Bunny.
+- Derivar:
+  - `isLifetime = period === "lifetime"`
+  - `days = period === "7d" ? 7 : period === "30d" ? 30 : 90` (usado só quando não é lifetime)
 
-### 2) Corrigir `metrics-snapshot` para não reintroduzir números errados
-- Aplicar a mesma regra de range seguro e agregação em `supabase/functions/metrics-snapshot/index.ts`.
-- Isso evita que a aba Histórico grave novamente lifetime inflado.
+**Header global**
+- Adicionar quarto `TabsTrigger value="lifetime"` ao lado de 7/30/90 dias.
 
-### 3) Corrigir Supabase Edge Functions
-- Ajustar `supabase/functions/supabase-usage/index.ts` para usar fallback nos logs reais de `function_edge_logs` quando `usage.func-invocations` vier vazio.
-- Retornar também a origem do número, por exemplo `source: "management-api" | "function-edge-logs"`, para o front poder exibir com transparência.
-- Manter `DB Size`, Storage, Health e Requests como já estão, porque no snapshot atual eles estão chegando corretamente.
+**fetchBunny**
+- Body passa a ser: `isLifetime ? { mode: "lifetime" } : { mode: "range", days }` — exatamente o que já era enviado, mas agora dirigido pelo período global.
+- Remover dependência `bunnyMode` do `useCallback`; manter `period`/`days` apenas.
 
-### 4) Corrigir front da página `/admin/egress-monitor`
-- Remover o banner/card superior de “Egress Total Real”.
-- Manter as métricas Bunny somente dentro da aba “Bunny CDN (oficial)”.
-- Ajustar labels para deixar claro quando é `lifetime` vs últimos `N` dias.
-- Corrigir a distribuição geográfica:
-  - aumentar margem esquerda e largura do eixo;
-  - truncar nomes longos de forma controlada;
-  - colocar nome completo no tooltip;
-  - aumentar altura proporcional quando houver muitos itens.
-- Exibir avisos discretos dentro da aba Bunny caso `chunks.errors > 0` ou dados venham parciais.
-- Atualizar o card de Edge Funcs para mostrar a origem do cálculo, quando disponível.
+**fetchSupabase**
+- Hoje envia `interval: "7day"` fixo. Passar a enviar:
+  - `7d` → `"7day"`
+  - `30d` → `"30day"`
+  - `90d` → `"90day"`
+  - `lifetime` → `"lifetime"` (a edge `supabase-usage` recebe e ignora se não suportar; sem mudança backend nesta etapa).
+- Resultado: a aba Supabase deixa de mostrar sempre 7d quando o usuário escolhe outro período.
 
-### 5) Verificação após implementação
-- Chamar a Edge Function `bunny-stats` em `lifetime` e `range 90d` para comparar os bytes retornados.
-- Conferir que o front mostra o mesmo valor do payload, sem duplicação/conversão errada.
-- Conferir Supabase:
-  - DB Size maior que zero;
-  - Edge Funcs maior que zero usando fallback de logs;
-  - Total Requests continua batendo com `apiCounts.totalRequests`.
-- Conferir visualmente que a distribuição geográfica não sobrepõe rótulos.
+**fetchInternal**
+- Quando `lifetime`, remover o filtro `gte("period_start", since)` e buscar todas as linhas (com `.order` e `.limit(5000)` para segurança). Caso contrário, comportamento atual.
 
-## Antes vs depois esperado
+**fetchSnapshots**
+- Já busca 365 dias. Quando `period !== "lifetime"`, filtrar client-side pelos últimos N dias antes de renderizar gráficos/tabelas. Nada a mudar no fetch.
 
-- Antes: Bunny lifetime aparece como `167.91 GB`, com `56` chunks falhos e banner duplicado no topo.
-- Depois: Bunny lifetime fica limitado ao intervalo confiável e aparece só dentro da aba Bunny.
-- Antes: Edge Funcs mostra `0` mesmo existindo chamadas reais.
-- Depois: Edge Funcs usa fallback dos logs reais e mostra contagem não-zero.
-- Antes: geografia sobrepõe texto.
-- Depois: eixo/margem/tooltip corrigidos sem truncamento visual agressivo.
+**Aba Bunny — UI**
+- Remover o bloco `<div className="flex items-center gap-2"><Tabs value={bunnyMode}…></div>` (linhas ~238-245).
+- Substituir nas labels/descrições `bunnyMode === "lifetime" ? "lifetime" : ${days}d` por `isLifetime ? "lifetime" : ${days}d`.
 
-## Pendências/riscos
+**Refresh button**
+- Continua chamando `fetchInternal(); fetchSupabase(); fetchBunny();`. Adicionar `fetchSnapshots()` para consistência.
 
-- Se o Bunny não expuser uma data confiável de criação via API, vou usar fallback determinístico baseado no primeiro ponto real dos charts/estatísticas, e deixar isso explícito no payload.
-- O fallback de Edge Functions por logs depende da retenção disponível no plano atual do Supabase; ainda assim é melhor que mostrar `0` incorreto.
+### 2. Sem mudanças em backend
+- `bunny-stats` já aceita `mode: "lifetime" | "range"` + `days`.
+- `supabase-usage` continua respondendo; ampliar suporte a outros intervalos pode ser feito num passo futuro se necessário (registrado em pendências).
+- `metrics-snapshot` não muda.
+
+## Antes vs Depois
+- **Antes:** filtro global 7/30/90 + filtro local Bunny (Lifetime/7d) → cards mostravam $7.10 / 165 GB (lifetime) enquanto o topo dizia "7 dias", causando contradição.
+- **Depois:** um único seletor no topo (7d / 30d / 90d / Lifetime). Todas as abas (Bunny, Supabase, Histórico, SW) refletem o mesmo período.
+
+## Pendências / próximos passos sugeridos
+- Edge `supabase-usage` ainda tem séries fixas em 7 dias para alguns campos; em iteração futura, propagar `interval` recebido para todas as queries de Logs Explorer.
+- Opcional: persistir o período escolhido em `localStorage` para sobreviver a reloads.
 
 ## Prevenção de regressão
-
-- Centralizar o cálculo de bytes e charts na Edge Function, sem somas paralelas no front.
-- Adicionar metadados (`chunks`, `rangeSource`, `edgeFunctions.source`) para facilitar auditoria na própria UI.
-- Validar sempre payload vs UI antes de concluir a correção.
+- Após implementar, conferir manualmente:
+  1. Trocar para "Lifetime": Bunny deve mostrar ~60–165 GB conforme dados reais; Supabase/SW devem mostrar dados acumulados sem erro.
+  2. Trocar para "7 dias": Bunny cards encolhem para a janela de 7d; nenhum sub-tab visível dentro da aba Bunny.
+  3. Botão refresh recarrega todas as abas.
