@@ -392,27 +392,28 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       if (generateBlogPost && !isEditing && createdEventId) {
         console.log('[EventForm] 🤖 Iniciando geração de blog post via IA...');
         
-        const blogPayload = {
-          eventId: createdEventId,
-          eventName: data.title,
-          eventDate: data.date,
-          eventTime: data.time,
-          endTime: data.end_time || '',
-          eventLocation: `${data.venue} - ${data.location_city}/${data.location_state}`,
-          venue: data.venue,
-          address: data.address || '',
-          locationCity: data.location_city,
-          locationState: data.location_state,
-          location: `${data.location_city}, ${data.location_state}`,
-          genres: selectedGenres.join(', '),
-          ticketLink: normalizedTicketLink || '',
-          vipLink: normalizedVipLink || '',
-          subtitle: data.subtitle || '',
-          description: data.description || '',
-          lineup: lineup.join(', '),
-          eventImageUrl: imageUrl,
-          aiContext: aiContext || '',
-        };
+        const blogPayload = buildArticlePayload(
+          {
+            id: createdEventId,
+            title: data.title,
+            subtitle: data.subtitle,
+            date: data.date,
+            time: data.time,
+            end_time: data.end_time,
+            venue: data.venue,
+            address: data.address,
+            location_city: data.location_city,
+            location_state: data.location_state,
+            description: data.description,
+            genres: selectedGenres,
+            lineup,
+            ticket_link: normalizedTicketLink,
+            vip_link: normalizedVipLink,
+            image_url: imageUrl,
+            ai_context: aiContext,
+          },
+          { generateImage: !imageUrl, aiContextOverride: aiContext },
+        );
         
         console.log('[EventForm] 📤 Payload para generate-blog-post-v2:', blogPayload);
         
