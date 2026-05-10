@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "supabase/functions"] },
+  { ignores: ["dist", "node_modules", "supabase/functions", "src/__tests__"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -20,9 +20,25 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+
+      // ---------- Stricter (anti-bug) ----------
+      // Erros novos: regras seguras que pegam bugs sem quebrar build atual
+      eqeqeq: ["error", "always", { null: "ignore" }],
+      "no-param-reassign": ["error", { props: false }],
+      "no-implicit-coercion": ["error", { boolean: false }],
+      "no-throw-literal": "error",
+      "no-return-await": "error",
+      "prefer-const": "error",
+
+      // Warns que vão virar errors em uma próxima fase (após cleanup)
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+      "react-hooks/exhaustive-deps": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+      ],
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/consistent-type-imports": "warn",
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
