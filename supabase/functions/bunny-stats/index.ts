@@ -85,24 +85,71 @@ Deno.serve(async (req) => {
     }
 
     const headers = { AccessKey: ACCOUNT_KEY, Accept: "application/json" };
-    const statsUrl = `https://api.bunny.net/statistics?dateFrom=${dateFrom}&dateTo=${dateTo}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`;
     const storageStatsUrl = `https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}/statistics?dateFrom=${dateFrom}&dateTo=${dateTo}`;
     const storageInfoUrl = `https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}`;
 
-    const [statsRes, storageStatsRes, storageInfoRes] = await Promise.all([
-      fetch(statsUrl, { headers }),
-      fetch(storageStatsUrl, { headers }),
-      fetch(storageInfoUrl, { headers }),
-    ]);
+    // Bunny /statistics limita range a 40 dias. Quebra em chunks e agrega.
+    const MAX_DAYS = 40;
+    const chunks: Array<{ from: string; to: string }> = [];
+    {
+      let cursor = new Date(from);
+      const end = new Date(now);
+      while (cursor < end) {
+        const next = new Date(Math.min(cursor.getTime() + MAX_DAYS * 24 * 3600 * 1000, end.getTime()));
+        chunks.push({ from: cursor.toISOString().slice(0, 19), to: next.toISOString().slice(0, 19) });
+        cursor = new Date(next.getTime() + 1000);
+      }
+      if (chunks.length === 0) chunks.push({ from: dateFrom, to: dateTo });
+    }
 
-    if (!statsRes.ok) {
-      const t = await statsRes.text();
-      return new Response(JSON.stringify({ error: "Bunny /statistics failed", status: statsRes.status, detail: t }), {
+    const chunkResults = await Promise.all(chunks.map((c) =>
+      fetch(`https://api.bunny.net/statistics?dateFrom=${c.from}&dateTo=${c.to}&pullZone=${PULL_ZONE_ID}&hourly=${hourly}`, { headers })
+        .then(async (r) => r.ok ? await r.json() : null)
+    ));
+
+    const okChunks = chunkResults.filter(Boolean) as Record<string, unknown>[];
+    if (okChunks.length === 0) {
+      return new Response(JSON.stringify({ error: "Bunny /statistics failed for all chunks" }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const stats = await statsRes.json();
+    const sumKey = (k: string) => okChunks.reduce((s, c) => s + Number((c as Record<string, number>)[k] || 0), 0);
+    const mergeChart = (k: string) => {
+      const out: Record<string, number> = {};
+      for (const c of okChunks) {
+        const ch = (c as Record<string, Record<string, number> | undefined>)[k];
+        if (ch) for (const [t, v] of Object.entries(ch)) out[t] = (out[t] || 0) + Number(v || 0);
+      }
+      return out;
+    };
+    const avgKey = (k: string) => okChunks.length ? okChunks.reduce((s, c) => s + Number((c as Record<string, number>)[k] || 0), 0) / okChunks.length : 0;
+
+    const stats = {
+      TotalBandwidthUsed: sumKey("TotalBandwidthUsed"),
+      TotalOriginTraffic: sumKey("TotalOriginTraffic"),
+      TotalRequestsServed: sumKey("TotalRequestsServed"),
+      CacheHitRate: avgKey("CacheHitRate"),
+      AverageOriginResponseTime: avgKey("AverageOriginResponseTime"),
+      Total3xxResponses: sumKey("Total3xxResponses"),
+      Total4xxResponses: sumKey("Total4xxResponses"),
+      Total5xxResponses: sumKey("Total5xxResponses"),
+      BandwidthUsedChart: mergeChart("BandwidthUsedChart"),
+      BandwidthCachedChart: mergeChart("BandwidthCachedChart"),
+      RequestsServedChart: mergeChart("RequestsServedChart"),
+      CacheHitRateChart: mergeChart("CacheHitRateChart"),
+      OriginTrafficChart: mergeChart("OriginTrafficChart"),
+      OriginResponseTimeChart: mergeChart("OriginResponseTimeChart"),
+      Error3xxChart: mergeChart("Error3xxChart"),
+      Error4xxChart: mergeChart("Error4xxChart"),
+      Error5xxChart: mergeChart("Error5xxChart"),
+      GeoTrafficDistribution: (okChunks[okChunks.length - 1] as Record<string, unknown>).GeoTrafficDistribution || {},
+    };
+
+    const [storageStatsRes, storageInfoRes] = await Promise.all([
+      fetch(storageStatsUrl, { headers }),
+      fetch(storageInfoUrl, { headers }),
+    ]);
     const storageStats = storageStatsRes.ok ? await storageStatsRes.json() : {};
     const storageInfo = storageInfoRes.ok ? await storageInfoRes.json() : {};
 

@@ -98,20 +98,29 @@ Deno.serve(async (req) => {
     try {
       if (ACCOUNT_KEY && PULL_ZONE_ID && STORAGE_ZONE_ID) {
         const headers = { AccessKey: ACCOUNT_KEY, Accept: "application/json" };
-        // lifetime stats
-        const dateFrom = "2020-01-01T00:00:00";
-        const dateTo = new Date().toISOString().slice(0, 19);
-        const [statsRes, storageInfoRes] = await Promise.all([
-          fetch(`https://api.bunny.net/statistics?dateFrom=${dateFrom}&dateTo=${dateTo}&pullZone=${PULL_ZONE_ID}`, { headers }),
-          fetch(`https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}`, { headers }),
-        ]);
-        if (statsRes.ok) {
-          const s = await statsRes.json();
+        // lifetime stats — Bunny limita a 40 dias por chamada, então quebra em chunks
+        const startDate = new Date("2020-01-01T00:00:00Z");
+        const endDate = new Date();
+        const MAX_DAYS = 40;
+        const chunks: Array<{ from: string; to: string }> = [];
+        let cursor = new Date(startDate);
+        while (cursor < endDate) {
+          const next = new Date(Math.min(cursor.getTime() + MAX_DAYS * 24 * 3600 * 1000, endDate.getTime()));
+          chunks.push({ from: cursor.toISOString().slice(0, 19), to: next.toISOString().slice(0, 19) });
+          cursor = new Date(next.getTime() + 1000);
+        }
+        const results = await Promise.all(chunks.map((c) =>
+          fetch(`https://api.bunny.net/statistics?dateFrom=${c.from}&dateTo=${c.to}&pullZone=${PULL_ZONE_ID}`, { headers })
+            .then((r) => r.ok ? r.json() : null).catch(() => null)
+        ));
+        const ok = results.filter(Boolean) as Record<string, number>[];
+        const storageInfoRes = await fetch(`https://api.bunny.net/storagezone/${STORAGE_ZONE_ID}`, { headers });
+        if (ok.length) {
           bunnySnapshot.lifetime = {
-            bandwidthBytes: Number(s.TotalBandwidthUsed || 0),
-            originBytes: Number(s.TotalOriginTraffic || 0),
-            requests: Number(s.TotalRequestsServed || 0),
-            cacheHitRate: Number(s.CacheHitRate || 0),
+            bandwidthBytes: ok.reduce((s, r) => s + Number(r.TotalBandwidthUsed || 0), 0),
+            originBytes: ok.reduce((s, r) => s + Number(r.TotalOriginTraffic || 0), 0),
+            requests: ok.reduce((s, r) => s + Number(r.TotalRequestsServed || 0), 0),
+            cacheHitRate: ok.reduce((s, r) => s + Number(r.CacheHitRate || 0), 0) / ok.length,
           };
         }
         if (storageInfoRes.ok) {
