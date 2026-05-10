@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { parseLocalDateTime } from '@/lib/dateUtils';
 import { convertToWebP } from '@/lib/webpConverter';
 import { uploadImageToBunny } from '@/lib/bunnyUploader';
+import { buildArticlePayload } from '@/lib/eventArticlePayload';
 
 interface EventFormData {
   title: string;
