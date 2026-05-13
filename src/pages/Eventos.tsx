@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { parseLocalDate } from "@/lib/utils";
+import { formatEventDateRange } from "@/lib/dateUtils";
 import { useEvents } from "@/hooks/useEvents";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { Event } from "@/types";
@@ -620,7 +621,7 @@ const Eventos = () => {
                       </CardTitle>
                       <div className="flex items-center text-base font-semibold text-white mt-2">
                         <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
-                        {formatDate(event.date)}
+                        {formatEventDateRange(event.date, (event as any).end_date)}
                       </div>
                       {event.subtitle && (
                         <p className="text-sm text-muted-foreground mt-2">

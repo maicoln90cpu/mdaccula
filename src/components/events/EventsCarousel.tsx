@@ -18,6 +18,7 @@ interface Event {
   id: string;
   title: string;
   date: string;
+  end_date?: string | null;
   time: string;
   venue: string;
   location_city: string;
@@ -100,6 +101,8 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
             const dayOfMonth = format(eventDate, "dd", { locale: ptBR });
             const monthShort = format(eventDate, "MMM", { locale: ptBR }).toUpperCase();
             const weekDay = format(eventDate, "EEE", { locale: ptBR });
+            const isFestival = !!event.end_date && event.end_date !== event.date;
+            const dayEnd = isFestival ? format(parseLocalDate(event.end_date!), "dd", { locale: ptBR }) : null;
 
             return (
               <CarouselItem key={event.id} className="pl-2 basis-[85%] sm:basis-1/2 lg:basis-1/3">
@@ -119,7 +122,7 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
                   {/* Date Badge */}
                   <div className="absolute top-3 left-3 bg-primary/90 backdrop-blur-sm rounded-lg px-3 py-1.5 text-center">
                     <div className="text-lg font-bold text-primary-foreground leading-none">
-                      {dayOfMonth}
+                      {isFestival ? `${dayOfMonth}–${dayEnd}` : dayOfMonth}
                     </div>
                     <div className="text-[10px] text-primary-foreground/80 uppercase">
                       {monthShort}
