@@ -225,7 +225,7 @@ const Eventos = () => {
   return (
     <>
       <SEOHead
-        title="Eventos de Música Eletrônica em São Paulo - Festas Techno e House"
+        title="Eventos de Música Eletrônica em São Paulo"
         description="Descubra os melhores eventos de música eletrônica em SP. Festas techno, house e underground 2025 com DJs internacionais. Ingressos e line-ups atualizados."
         keywords={[
           'eventos são paulo',

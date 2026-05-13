@@ -268,7 +268,7 @@ const Blog = () => {
   return (
     <>
       <SEOHead
-        title="Blog de Música Eletrônica - Notícias Techno e House"
+        title="Blog de Música Eletrônica - Techno e House"
         description="Fique por dentro das últimas notícias da cena eletrônica brasileira e mundial. Techno, house, festivais e eventos underground em São Paulo."
         keywords={[
         "blog música eletrônica",

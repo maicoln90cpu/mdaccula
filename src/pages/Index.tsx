@@ -13,7 +13,7 @@ const Index = () => {
   return (
     <>
       <SEOHead
-        title="MDAccula - DJ e Eventos de Música Eletrônica em São Paulo"
+        title="DJ e Eventos de Música Eletrônica em SP"
         description="A maior agência de música eletrônica de São Paulo. Eventos, festas techno, house e underground. Contrate DJ profissional para seus eventos em SP."
         keywords={[
           'dj são paulo',
