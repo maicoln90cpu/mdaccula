@@ -382,8 +382,8 @@ const EventDetail = () => {
                           {schedule.map((day) => {
                             const dayLineup =
                               day.lineup && day.lineup.length > 0
-                                ? day.lineup
-                                : event.lineup || [];
+                                ? normalizeLineup(day.lineup)
+                                : normalizeLineup(event.lineup);
                             const dayLabel = parseLocalDate(day.date).toLocaleDateString('pt-BR', {
                               weekday: 'long',
                               day: '2-digit',
@@ -401,7 +401,11 @@ const EventDetail = () => {
                                 {dayLineup.length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
                                     {dayLineup.map((artist, i) => (
-                                      <Badge key={i} variant="outline" className="text-sm px-2.5 py-0.5">
+                                      <Badge
+                                        key={i}
+                                        variant="outline"
+                                        className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full"
+                                      >
                                         {artist}
                                       </Badge>
                                     ))}
