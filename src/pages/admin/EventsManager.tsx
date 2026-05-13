@@ -337,7 +337,24 @@ const EventsManager = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredEvents.map((event) => (
-                <Card key={event.id} className="overflow-hidden">
+                <Card
+                  key={event.id}
+                  className={`overflow-hidden relative transition ${mergeMode && selectedIds.has(event.id) ? "ring-2 ring-primary" : ""}`}
+                  onClick={mergeMode ? () => {
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(event.id)) next.delete(event.id);
+                      else next.add(event.id);
+                      return next;
+                    });
+                  } : undefined}
+                  style={mergeMode ? { cursor: "pointer" } : undefined}
+                >
+                  {mergeMode && (
+                    <div className="absolute top-2 left-2 z-10 bg-background/90 rounded p-1">
+                      <Checkbox checked={selectedIds.has(event.id)} />
+                    </div>
+                  )}
                   {event.image_url && (
                     <div className="h-48 overflow-hidden">
                       <img
