@@ -99,6 +99,7 @@ const EventsManager = () => {
 
   useEffect(() => {
     fetchEvents();
+    fetchLastMergeLog();
   }, []);
 
   const handleDelete = async (id: string) => {
