@@ -692,14 +692,29 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="date">Data *</Label>
-            <Input
-              id="date"
-              type="date"
-              {...register('date', { required: 'Data é obrigatória' })}
-            />
-            {errors.date && <span className="text-sm text-destructive">{errors.date.message}</span>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Data Inicial *</Label>
+              <Input
+                id="date"
+                type="date"
+                {...register('date', { required: 'Data é obrigatória' })}
+              />
+              {errors.date && <span className="text-sm text-destructive">{errors.date.message}</span>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="end_date">Data Final (festival) — opcional</Label>
+              <Input
+                id="end_date"
+                type="date"
+                {...register('end_date')}
+                min={watch('date') || undefined}
+              />
+              <p className="text-xs text-muted-foreground">
+                Preencha apenas se for festival de múltiplos dias (ex.: So Track Boa 05 e 06/06).
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
