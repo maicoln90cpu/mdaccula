@@ -24,6 +24,7 @@ interface Event {
   venue: string;
   address?: string;
   date: string;
+  end_date?: string | null;
   time: string;
   end_time?: string;
   location_city: string;
@@ -35,6 +36,7 @@ interface Event {
   lineup?: string[];
   ticket_link?: string;
   vip_link?: string;
+  views?: number | null;
 }
 
 const EventsManager = () => {
