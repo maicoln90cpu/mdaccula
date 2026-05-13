@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { parseLocalDate } from "@/lib/utils";
+import { formatEventDateRange } from "@/lib/dateUtils";
 import { useEvents } from "@/hooks/useEvents";
 
 const FeaturedEvents = () => {
