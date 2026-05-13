@@ -204,7 +204,7 @@ const EventDetail = () => {
           name="description"
           content={
             event.description ||
-            `${event.title} acontece em ${formatDate(event.date)} no ${event.venue}, ${event.location_city} - ${event.location_state}`
+            `${event.title} acontece em ${formatEventDateRange(event.date, event.end_date)} no ${event.venue}, ${event.location_city} - ${event.location_state}`
           }
         />
         <meta property="og:title" content={event.title} />
