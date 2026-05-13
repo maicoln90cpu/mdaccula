@@ -64,7 +64,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       const inheritedBlogPostId =
         primary.blog_post_id || duplicates.find((e) => e.blog_post_id)?.blog_post_id || null;
 
-      await supabase.from("application_logs").insert({
+      await supabase.from("application_logs").insert([{
         level: "info",
         message: `Mesclagem de eventos: ${duplicates.length} → 1`,
         context: {
