@@ -50,6 +50,9 @@ const EventsManager = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [generatingArticle, setGeneratingArticle] = useState<string | null>(null);
   const [showMultiEventModal, setShowMultiEventModal] = useState(false);
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const { toast } = useToast();
 
   const fetchEvents = async () => {
