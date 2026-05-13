@@ -24,6 +24,7 @@ interface EventFormData {
   location_state: string;
   location_city: string;
   date: string;
+  end_date?: string;
   time: string;
   end_time?: string;
   ticket_link?: string;
