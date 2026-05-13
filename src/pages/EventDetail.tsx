@@ -29,6 +29,7 @@ interface Event {
   slug: string;
   subtitle?: string | null;
   date: string;
+  end_date?: string | null;
   time: string;
   end_time?: string;
   venue: string;
