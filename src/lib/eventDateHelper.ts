@@ -71,12 +71,15 @@ export function isEventActive(
   };
 
   let endMs: number;
+  // Para festivais multi-dias, a janela de graça é aplicada sobre o ÚLTIMO dia.
+  const referenceDate = event.end_date && event.end_date >= event.date ? event.end_date : event.date;
+
   if (event.time) {
     const { h, m } = parseHHMM(event.time);
-    const startUtc = localToUtcMs(event.date, h, m, cfg.timezoneOffset);
+    const startUtc = localToUtcMs(referenceDate, h, m, cfg.timezoneOffset);
     endMs = startUtc + cfg.hoursAfterStart * 3_600_000;
   } else {
-    const startUtc = localToUtcMs(event.date, 0, 0, cfg.timezoneOffset);
+    const startUtc = localToUtcMs(referenceDate, 0, 0, cfg.timezoneOffset);
     endMs = startUtc + cfg.hoursWithoutTime * 3_600_000;
   }
 
