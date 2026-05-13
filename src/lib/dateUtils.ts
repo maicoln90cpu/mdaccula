@@ -35,6 +35,50 @@ export function formatEventDate(
 }
 
 /**
+ * Formata um intervalo de datas de evento (festivais multi-dias).
+ * - Sem endDate ou endDate igual a startDate: "05 de junho de 2026"
+ * - Mesmo mês/ano: "05–06 de junho de 2026"
+ * - Mesmo ano, meses diferentes: "30 de maio – 02 de junho de 2026"
+ * - Anos diferentes: "30 de dezembro de 2026 – 02 de janeiro de 2027"
+ */
+export function formatEventDateRange(
+  startDate: string,
+  endDate?: string | null
+): string {
+  const start = parseLocalDate(startDate);
+  if (!endDate || endDate === startDate) {
+    return start.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
+  }
+  const end = parseLocalDate(endDate);
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+
+  if (sameMonth) {
+    const dayStart = String(start.getDate()).padStart(2, '0');
+    const dayEnd = String(end.getDate()).padStart(2, '0');
+    const monthYear = end.toLocaleDateString('pt-BR', {
+      month: 'long',
+      year: 'numeric',
+    });
+    return `${dayStart}–${dayEnd} de ${monthYear}`;
+  }
+
+  if (sameYear) {
+    const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+    const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    return `${startFmt} – ${endFmt}`;
+  }
+
+  const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  return `${startFmt} – ${endFmt}`;
+}
+
+/**
  * Formata data de evento com dia da semana
  */
 export function formatEventDateLong(dateStr: string): string {

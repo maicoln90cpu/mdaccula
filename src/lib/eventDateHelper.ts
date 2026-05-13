@@ -9,7 +9,8 @@
  */
 
 export interface EventVisibilityParams {
-  date: string;            // YYYY-MM-DD
+  date: string;            // YYYY-MM-DD (data inicial)
+  end_date?: string | null; // YYYY-MM-DD (data final de festivais multi-dias). Quando ausente, == date.
   time?: string | null;    // HH:MM[:SS] opcional
   end_time?: string | null; // mantido por compatibilidade — ignorado no cálculo
 }
@@ -70,12 +71,15 @@ export function isEventActive(
   };
 
   let endMs: number;
+  // Para festivais multi-dias, a janela de graça é aplicada sobre o ÚLTIMO dia.
+  const referenceDate = event.end_date && event.end_date >= event.date ? event.end_date : event.date;
+
   if (event.time) {
     const { h, m } = parseHHMM(event.time);
-    const startUtc = localToUtcMs(event.date, h, m, cfg.timezoneOffset);
+    const startUtc = localToUtcMs(referenceDate, h, m, cfg.timezoneOffset);
     endMs = startUtc + cfg.hoursAfterStart * 3_600_000;
   } else {
-    const startUtc = localToUtcMs(event.date, 0, 0, cfg.timezoneOffset);
+    const startUtc = localToUtcMs(referenceDate, 0, 0, cfg.timezoneOffset);
     endMs = startUtc + cfg.hoursWithoutTime * 3_600_000;
   }
 

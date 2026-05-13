@@ -476,6 +476,7 @@ export type Database = {
           created_by: string | null
           date: string
           description: string | null
+          end_date: string | null
           end_time: string | null
           genres: string[]
           id: string
@@ -483,6 +484,7 @@ export type Database = {
           lineup: string[] | null
           location_city: string
           location_state: string
+          schedule: Json | null
           slug: string
           subtitle: string | null
           ticket_link: string | null
@@ -501,6 +503,7 @@ export type Database = {
           created_by?: string | null
           date: string
           description?: string | null
+          end_date?: string | null
           end_time?: string | null
           genres?: string[]
           id?: string
@@ -508,6 +511,7 @@ export type Database = {
           lineup?: string[] | null
           location_city: string
           location_state: string
+          schedule?: Json | null
           slug: string
           subtitle?: string | null
           ticket_link?: string | null
@@ -526,6 +530,7 @@ export type Database = {
           created_by?: string | null
           date?: string
           description?: string | null
+          end_date?: string | null
           end_time?: string | null
           genres?: string[]
           id?: string
@@ -533,6 +538,7 @@ export type Database = {
           lineup?: string[] | null
           location_city?: string
           location_state?: string
+          schedule?: Json | null
           slug?: string
           subtitle?: string | null
           ticket_link?: string | null
