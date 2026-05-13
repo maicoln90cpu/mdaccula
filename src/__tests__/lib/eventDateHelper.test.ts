@@ -119,4 +119,39 @@ describe('eventDateHelper', () => {
       expect(filterVisibleEvents(events, TZ)[0].id).toBe('1');
     });
   });
+
+  describe('festivais multi-dias (end_date)', () => {
+    it('continua ativo enquanto end_date está no futuro, mesmo que date já tenha passado', () => {
+      const e: EventVisibilityParams = {
+        date: '2026-01-05',
+        end_date: '2026-01-07',
+        time: '22:00',
+      };
+      expect(isEventActive(e, TZ)).toBe(true);
+    });
+
+    it('fica inativo após end_date + janela de graça (com horário)', () => {
+      // end_date 04/01 22:00 BRT + 12h = 05/01 10:00 BRT (passado em 06/01 15:00)
+      const e: EventVisibilityParams = {
+        date: '2026-01-03',
+        end_date: '2026-01-04',
+        time: '22:00',
+      };
+      expect(isEventActive(e, TZ)).toBe(false);
+    });
+
+    it('end_date NULL/ausente preserva comportamento de evento de 1 dia', () => {
+      const e: EventVisibilityParams = { date: '2026-01-10', time: '22:00', end_date: null };
+      expect(isEventActive(e, TZ)).toBe(true);
+    });
+
+    it('ignora end_date inválido (anterior a date) e usa date como referência', () => {
+      const e: EventVisibilityParams = {
+        date: '2026-01-10',
+        end_date: '2026-01-08',
+        time: '22:00',
+      };
+      expect(isEventActive(e, TZ)).toBe(true);
+    });
+  });
 });
