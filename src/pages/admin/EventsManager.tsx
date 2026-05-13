@@ -387,7 +387,7 @@ const EventsManager = () => {
                         Slug: {event.slug}
                       </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                       <Button
                         variant="outline"
                         size="sm"
