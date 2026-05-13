@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, ExternalLink, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { parseLocalDate } from '@/lib/utils';
+import { formatEventDateRange } from '@/lib/dateUtils';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface EventModalProps {
