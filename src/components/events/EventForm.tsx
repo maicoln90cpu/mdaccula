@@ -881,7 +881,98 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 </div>
               ))}
             </div>
+            {schedule && schedule.length > 1 && (
+              <p className="text-xs text-muted-foreground">
+                Esse line-up serve como padrão. Use a "Programação por dia" abaixo para variar por dia.
+              </p>
+            )}
           </div>
+
+          {/* Programação por dia (festival multi-dias) */}
+          {schedule && schedule.length > 1 && (
+            <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
+              <div>
+                <Label className="text-base">📅 Programação por dia (festival)</Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Festival de {formatEventDateRange(watchedDate, watchedEndDate)}.
+                  Defina horário e line-up de cada dia. Se um dia ficar sem line-up próprio, usa o line-up principal acima.
+                </p>
+              </div>
+              {schedule.map((entry) => (
+                <div key={entry.date} className="border rounded-md p-3 bg-background space-y-3">
+                  <div className="font-semibold text-sm">
+                    {parseLocalDateTime(entry.date, '00:00').toLocaleDateString('pt-BR', {
+                      weekday: 'long',
+                      day: '2-digit',
+                      month: 'long',
+                    })}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Início</Label>
+                      <Input
+                        type="time"
+                        value={entry.time?.slice(0, 5) || ''}
+                        onChange={(e) => updateScheduleEntry(entry.date, { time: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Término</Label>
+                      <Input
+                        type="time"
+                        value={entry.end_time?.slice(0, 5) || ''}
+                        onChange={(e) => updateScheduleEntry(entry.date, { end_time: e.target.value || null })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Line-up deste dia</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={newScheduleArtist[entry.date] || ''}
+                        onChange={(e) =>
+                          setNewScheduleArtist((s) => ({ ...s, [entry.date]: e.target.value }))
+                        }
+                        placeholder="Nome do artista"
+                        onKeyPress={(e) =>
+                          e.key === 'Enter' && (e.preventDefault(), addScheduleArtist(entry.date))
+                        }
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => addScheduleArtist(entry.date)}
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {(entry.lineup || []).map((artist, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                        >
+                          {artist}
+                          <button
+                            type="button"
+                            onClick={() => removeScheduleArtist(entry.date, idx)}
+                            className="ml-0.5 hover:text-destructive"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                      {(!entry.lineup || entry.lineup.length === 0) && (
+                        <span className="text-xs text-muted-foreground italic">
+                          Vazio → usa line-up principal
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="image">Imagem do Evento</Label>
