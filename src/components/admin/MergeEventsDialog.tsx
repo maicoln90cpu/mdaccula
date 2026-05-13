@@ -102,7 +102,25 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         .eq("id", primary.id);
       if (updateErr) throw updateErr;
 
-      // 4. Deletar duplicados
+      // 4. Preservar URLs antigas: criar redirects dos slugs duplicados → principal
+      if (duplicates.length > 0) {
+        const redirectRows = duplicates
+          .filter((e) => e.slug && e.slug !== primary.slug)
+          .map((e) => ({
+            old_slug: e.slug,
+            event_id: primary.id,
+            reason: `merged into festival "${primary.title}"`,
+          }));
+        if (redirectRows.length > 0) {
+          // upsert para tolerar reexecuções
+          const { error: redirErr } = await supabase
+            .from("event_slug_redirects")
+            .upsert(redirectRows, { onConflict: "old_slug" });
+          if (redirErr) throw redirErr;
+        }
+      }
+
+      // 5. Deletar duplicados
       if (duplicateIds.length > 0) {
         const { error: delErr } = await supabase
           .from("events")
