@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { addHours } from "date-fns";
-import { parseLocalDate, parseLocalDateTime } from "@/lib/dateUtils";
+import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
 import {
   Breadcrumb,
   BreadcrumbItem,
