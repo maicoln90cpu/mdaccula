@@ -355,6 +355,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         return;
       }
 
+      // Schedule só é salvo quando há festival válido (end_date > date)
+      const finalSchedule =
+        data.end_date && data.end_date > data.date && schedule && schedule.length > 0
+          ? schedule
+          : null;
+
       const eventData = {
         ...data,
         ticket_link: normalizedTicketLink,
@@ -368,6 +374,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
+        schedule: finalSchedule as any,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
