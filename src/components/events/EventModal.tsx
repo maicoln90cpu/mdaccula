@@ -5,6 +5,7 @@ import { Calendar, Clock, MapPin, ExternalLink, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { parseLocalDate } from '@/lib/utils';
 import { formatEventDateRange } from '@/lib/dateUtils';
+import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface EventModalProps {
