@@ -396,12 +396,28 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
       if (event?.id) {
         console.log('[EventForm] 🔄 Atualizando evento existente:', event.id);
+        const previousSlug = event?.slug;
         const { error } = await supabase
           .from('events')
           .update(eventData)
           .eq('id', event.id);
         
         if (error) throw error;
+
+        // 🔁 Se o slug mudou, registra redirect do antigo → novo (preserva SEO e links externos)
+        if (previousSlug && previousSlug !== eventSlug) {
+          const { error: redirErr } = await supabase
+            .from('event_slug_redirects')
+            .upsert(
+              { old_slug: previousSlug, event_id: event.id, reason: 'slug renamed via admin' },
+              { onConflict: 'old_slug' }
+            );
+          if (redirErr) {
+            console.warn('[EventForm] ⚠️ Falha ao gravar redirect de slug antigo:', redirErr);
+          } else {
+            console.log('[EventForm] 🔁 Redirect criado:', previousSlug, '→', eventSlug);
+          }
+        }
         
         // 🔗 Sincronizar TODOS os campos com links vinculados
         console.log('[EventForm] 🔗 Sincronizando campos com links vinculados...');
