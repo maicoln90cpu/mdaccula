@@ -423,6 +423,7 @@ const EventDetail = () => {
                     );
                   }
                   if (event.lineup && event.lineup.length > 0) {
+                    const cleanLineup = normalizeLineup(event.lineup);
                     return (
                       <Card>
                         <CardHeader>
@@ -432,9 +433,13 @@ const EventDetail = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {event.lineup.map((artist, index) => (
-                              <Badge key={index} variant="outline" className="text-base px-3 py-1">
+                          <div className="flex flex-wrap gap-2.5">
+                            {cleanLineup.map((artist, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-sm md:text-base px-3.5 py-1.5 leading-relaxed whitespace-normal break-words max-w-full"
+                              >
                                 {artist}
                               </Badge>
                             ))}
