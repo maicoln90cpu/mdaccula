@@ -210,6 +210,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
                 <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
                   <li>Atualizar <strong>{primary?.title}</strong> com data {formatEventDateRange(dateRange.start, dateRange.end)}.</li>
                   <li>Repontar links de venda dos {duplicates.length} duplicados para o principal.</li>
+                  <li>Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o festival).</li>
                   <li>Deletar {duplicates.length} evento(s) duplicado(s).</li>
                 </ul>
               </AlertDescription>
