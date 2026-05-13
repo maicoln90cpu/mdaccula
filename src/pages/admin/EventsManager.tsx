@@ -230,19 +230,52 @@ const EventsManager = () => {
                 </NavLink>
                 <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold hero-text">Gerenciar Eventos</h1>
               </div>
-              <div className="flex gap-2 w-full sm:w-auto">
-                <Button 
-                  variant="secondary" 
-                  onClick={() => setShowMultiEventModal(true)} 
-                  className="min-h-[44px] flex-1 sm:flex-none"
-                >
-                  <CalendarDays className="w-4 h-4 mr-2" />
-                  Artigo Multi-Datas
-                </Button>
-                <Button onClick={() => setShowForm(true)} className="min-h-[44px] flex-1 sm:flex-none">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Adicionar Evento
-                </Button>
+              <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+                {mergeMode ? (
+                  <>
+                    <Button
+                      variant="default"
+                      onClick={() => setShowMergeDialog(true)}
+                      disabled={selectedIds.size < 2}
+                      className="min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <GitMerge className="w-4 h-4 mr-2" />
+                      Mesclar ({selectedIds.size})
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => { setMergeMode(false); setSelectedIds(new Set()); }}
+                      className="min-h-[44px]"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Sair do modo mesclar
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => setMergeMode(true)}
+                      className="min-h-[44px] flex-1 sm:flex-none"
+                      title="Selecionar 2+ eventos duplicados (mesmo festival) e fundir em 1"
+                    >
+                      <GitMerge className="w-4 h-4 mr-2" />
+                      Mesclar Eventos
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShowMultiEventModal(true)}
+                      className="min-h-[44px] flex-1 sm:flex-none"
+                    >
+                      <CalendarDays className="w-4 h-4 mr-2" />
+                      Artigo Multi-Datas
+                    </Button>
+                    <Button onClick={() => setShowForm(true)} className="min-h-[44px] flex-1 sm:flex-none">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Adicionar Evento
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
