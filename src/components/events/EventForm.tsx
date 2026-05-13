@@ -88,6 +88,8 @@ const normalizeUrl = (url: string | undefined): string | undefined => {
 export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [lineup, setLineup] = useState<string[]>(event?.lineup || []);
   const [newLineupItem, setNewLineupItem] = useState('');
+  const [schedule, setSchedule] = useState<EventSchedule | null>(parseSchedule(event?.schedule));
+  const [newScheduleArtist, setNewScheduleArtist] = useState<Record<string, string>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
