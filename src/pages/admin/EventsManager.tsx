@@ -99,6 +99,7 @@ const EventsManager = () => {
 
   useEffect(() => {
     fetchEvents();
+    fetchLastMergeLog();
   }, []);
 
   const handleDelete = async (id: string) => {
@@ -284,6 +285,17 @@ const EventsManager = () => {
                       <GitMerge className="w-4 h-4 mr-2" />
                       Mesclar Eventos
                     </Button>
+                    {lastMergeLog && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowUndoDialog(true)}
+                        className="min-h-[44px] flex-1 sm:flex-none border-amber-500/50 text-amber-600 hover:bg-amber-500/10"
+                        title="Desfazer a última mesclagem (snapshot dos últimos 7 dias)"
+                      >
+                        <Undo2 className="w-4 h-4 mr-2" />
+                        Desfazer mesclagem
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       onClick={() => setShowMultiEventModal(true)}
@@ -494,6 +506,18 @@ const EventsManager = () => {
             setSelectedIds(new Set());
             setMergeMode(false);
             fetchEvents();
+            fetchLastMergeLog();
+          }}
+        />
+
+        <UndoMergeDialog
+          open={showUndoDialog}
+          onOpenChange={setShowUndoDialog}
+          log={lastMergeLog}
+          onSuccess={() => {
+            setShowUndoDialog(false);
+            fetchEvents();
+            fetchLastMergeLog();
           }}
         />
 
