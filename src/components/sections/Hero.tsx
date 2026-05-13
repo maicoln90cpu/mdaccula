@@ -6,13 +6,17 @@ import heroImage from "@/assets/hero-club.jpg";
 const Hero = () => {
   return (
     <section className="relative min-h-[90vh] sm:min-h-[75vh] flex items-center justify-center overflow-hidden">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url(${heroImage})` }}
-      >
-        <div className="absolute inset-0 bg-black/60" />
-      </div>
+      {/* Background Image — <img> real para LCP otimizado */}
+      <img
+        src={heroImage}
+        alt=""
+        width={1920}
+        height={1080}
+        fetchPriority="high"
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      <div className="absolute inset-0 bg-black/60" />
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center">
