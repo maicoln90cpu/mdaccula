@@ -54,7 +54,28 @@ const EventsManager = () => {
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [lastMergeLog, setLastMergeLog] = useState<any | null>(null);
+  const [showUndoDialog, setShowUndoDialog] = useState(false);
   const { toast } = useToast();
+
+  // Busca a última mesclagem desfazível (sem undo posterior)
+  const fetchLastMergeLog = async () => {
+    const { data: merges } = await supabase
+      .from("application_logs")
+      .select("id, logged_at, context")
+      .eq("level", "info")
+      .gte("logged_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .order("logged_at", { ascending: false })
+      .limit(50);
+    if (!merges) { setLastMergeLog(null); return; }
+    const lastMerge = merges.find((l: any) => l.context?.action === "merge_events");
+    if (!lastMerge) { setLastMergeLog(null); return; }
+    // Verifica se já foi desfeita
+    const undone = merges.find(
+      (l: any) => l.context?.action === "undo_merge" && l.context?.source_log_id === lastMerge.id,
+    );
+    setLastMergeLog(undone ? null : lastMerge);
+  };
 
   const fetchEvents = async () => {
     try {
