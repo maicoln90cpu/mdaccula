@@ -115,6 +115,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       location_state: event.location_state,
       location_city: event.location_city,
       date: event.date,
+      end_date: event.end_date || '',
       time: event.time,
       end_time: event.end_time,
       ticket_link: event.ticket_link,
