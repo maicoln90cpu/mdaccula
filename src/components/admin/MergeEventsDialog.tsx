@@ -81,12 +81,14 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
 
       // 1. Construir schedule automaticamente: 1 entrada por evento original
       // Inclui o principal + todos os duplicados, ordenados por data.
+      // Normaliza lineup para corrigir entradas vindas de CSV ("A, B, C" como string única).
+      const { normalizeLineup } = await import("@/lib/lineupNormalizer");
       const allForSchedule = [...fullEvents!].sort((a, b) => a.date.localeCompare(b.date));
       const autoSchedule = allForSchedule.map((e) => ({
         date: e.date,
         time: e.time,
         end_time: e.end_time || null,
-        lineup: e.lineup || [],
+        lineup: normalizeLineup(e.lineup),
       }));
 
       // 2. Calcular novos valores
