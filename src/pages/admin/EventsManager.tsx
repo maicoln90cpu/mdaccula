@@ -464,6 +464,17 @@ const EventsManager = () => {
           onSuccess={fetchEvents}
         />
 
+        <MergeEventsDialog
+          open={showMergeDialog}
+          onOpenChange={setShowMergeDialog}
+          events={events.filter((e) => selectedIds.has(e.id))}
+          onSuccess={() => {
+            setSelectedIds(new Set());
+            setMergeMode(false);
+            fetchEvents();
+          }}
+        />
+
         <AlertDialog open={!!deletingEventId} onOpenChange={() => setDeletingEventId(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
