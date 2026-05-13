@@ -203,6 +203,58 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     }
   };
 
+  // ===== Programação por dia (festival) =====
+  const watchedDate = watch('date');
+  const watchedEndDate = watch('end_date');
+  const watchedTime = watch('time');
+  const watchedEndTime = watch('end_time');
+
+  // Reconcilia schedule quando intervalo muda. Preserva line-up das datas que continuam.
+  useEffect(() => {
+    if (!watchedDate || !watchedEndDate || watchedEndDate === watchedDate) {
+      // Sem festival → limpa schedule
+      if (schedule !== null) setSchedule(null);
+      return;
+    }
+    if (!watchedTime) return;
+    const next = reconcileSchedule(schedule, watchedDate, watchedEndDate, watchedTime, watchedEndTime || null);
+    // Só atualiza se mudou (evita loop)
+    if (JSON.stringify(next) !== JSON.stringify(schedule)) {
+      setSchedule(next);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchedDate, watchedEndDate, watchedTime, watchedEndTime]);
+
+  const updateScheduleEntry = (date: string, patch: Partial<EventSchedule[number]>) => {
+    setSchedule((prev) => {
+      if (!prev) return prev;
+      return prev.map((e) => (e.date === date ? { ...e, ...patch } : e));
+    });
+  };
+
+  const addScheduleArtist = (date: string) => {
+    const value = (newScheduleArtist[date] || '').trim();
+    if (!value) return;
+    setSchedule((prev) => {
+      if (!prev) return prev;
+      return prev.map((e) =>
+        e.date === date ? { ...e, lineup: [...(e.lineup || []), value] } : e,
+      );
+    });
+    setNewScheduleArtist((s) => ({ ...s, [date]: '' }));
+  };
+
+  const removeScheduleArtist = (date: string, idx: number) => {
+    setSchedule((prev) => {
+      if (!prev) return prev;
+      return prev.map((e) =>
+        e.date === date
+          ? { ...e, lineup: (e.lineup || []).filter((_, i) => i !== idx) }
+          : e,
+      );
+    });
+  };
+
   const applyTemplate = (templateId: string) => {
     const template = eventTemplates.find(t => t.id === templateId);
     if (!template) return;
