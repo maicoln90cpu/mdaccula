@@ -20,12 +20,12 @@ export const SEOHead = ({
   title, 
   description, 
   keywords = [],
-  image = '/hero-club.jpg',
+  image = 'https://mdaccula.com/hero-club.jpg',
   type = 'website',
   url = 'https://mdaccula.com',
   article 
 }: SEOProps) => {
-  const fullTitle = `${title} | MDAccula - Música Eletrônica`;
+  const fullTitle = `${title} | MDAccula`;
   const defaultKeywords = ['música eletrônica', 'techno', 'house', 'são paulo', 'eventos', 'festas', 'dj'];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   const optimizedImage = useMemo(() => getOptimizedImageUrl(image) || image, [image]);

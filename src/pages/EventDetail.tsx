@@ -184,9 +184,9 @@ const EventDetail = () => {
         />
         <meta property="og:title" content={event.title} />
         <meta property="og:description" content={event.description || `${event.genres.join(", ")} - ${event.venue}`} />
-        <meta property="og:image" content={getOptimizedImageUrl(event.image_url) || "/hero-club.jpg"} />
+        <meta property="og:image" content={getOptimizedImageUrl(event.image_url) || "https://mdaccula.com/hero-club.jpg"} />
         <meta property="og:url" content={currentUrl} />
-        <meta property="og:type" content="event" />
+        <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="canonical" href={currentUrl} />
       </Helmet>

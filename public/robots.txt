@@ -1,5 +1,5 @@
 # MDAccula - Robots.txt
-# https://www.mdaccula.com
+# https://mdaccula.com
 
 User-agent: *
 Allow: /
@@ -78,7 +78,7 @@ User-agent: Slackbot
 Allow: /
 
 # Sitemap estático acessível pelo Google
-Sitemap: https://www.mdaccula.com/sitemap.xml
+Sitemap: https://mdaccula.com/sitemap.xml
 
 # Host canônico
-Host: https://www.mdaccula.com
+Host: https://mdaccula.com

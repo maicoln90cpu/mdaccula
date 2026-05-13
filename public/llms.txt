@@ -1,0 +1,20 @@
+# MDAccula
+
+> A maior agência de divulgação de música eletrônica do Brasil. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica em São Paulo.
+
+MDAccula conecta artistas, promoters e o público da cena eletrônica paulistana, divulgando os principais eventos, lançamentos e notícias do universo techno e house.
+
+## Pages
+
+- [Home](/): Visão geral da agência e destaques.
+- [Eventos](/eventos): Agenda de festas e eventos de música eletrônica em São Paulo.
+- [Blog](/blog): Notícias, entrevistas e cultura techno/house.
+- [MDAccula Radio](/MDAcculaRadio): Podcast e sets exclusivos.
+- [Quem Somos](/quem-somos): Sobre a agência MDAccula.
+- [Contato](/contato): Fale com a equipe.
+- [Links](/links): Links úteis e parceiros.
+- [Busca](/busca): Pesquisar eventos e posts.
+
+## Optional
+
+- [Política de Privacidade](/privacidade): Termos e tratamento de dados.
