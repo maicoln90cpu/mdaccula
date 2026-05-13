@@ -24,6 +24,7 @@ interface EventFormData {
   location_state: string;
   location_city: string;
   date: string;
+  end_date?: string;
   time: string;
   end_time?: string;
   ticket_link?: string;
@@ -114,6 +115,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       location_state: event.location_state,
       location_city: event.location_city,
       date: event.date,
+      end_date: event.end_date || '',
       time: event.time,
       end_time: event.end_time,
       ticket_link: event.ticket_link,
@@ -287,6 +289,17 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       const normalizedTicketLink = normalizeUrl(data.ticket_link);
       const normalizedVipLink = normalizeUrl(data.vip_link);
 
+      // Validação: end_date precisa ser >= date (segurança extra além do CHECK no banco)
+      if (data.end_date && data.end_date < data.date) {
+        toast({
+          title: "Data final inválida",
+          description: "A data final do festival precisa ser igual ou posterior à data inicial.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
+      }
+
       const eventData = {
         ...data,
         ticket_link: normalizedTicketLink,
@@ -296,6 +309,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         image_url: imageUrl,
         slug: eventSlug,
         blog_post_id: blogPostId,
+        end_date: data.end_date || null,
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
@@ -678,14 +692,29 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="date">Data *</Label>
-            <Input
-              id="date"
-              type="date"
-              {...register('date', { required: 'Data é obrigatória' })}
-            />
-            {errors.date && <span className="text-sm text-destructive">{errors.date.message}</span>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="date">Data Inicial *</Label>
+              <Input
+                id="date"
+                type="date"
+                {...register('date', { required: 'Data é obrigatória' })}
+              />
+              {errors.date && <span className="text-sm text-destructive">{errors.date.message}</span>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="end_date">Data Final (festival) — opcional</Label>
+              <Input
+                id="end_date"
+                type="date"
+                {...register('end_date')}
+                min={watch('date') || undefined}
+              />
+              <p className="text-xs text-muted-foreground">
+                Preencha apenas se for festival de múltiplos dias (ex.: So Track Boa 05 e 06/06).
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
