@@ -374,7 +374,10 @@ const EventsManager = () => {
                     <div className="space-y-2 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2" />
-                        {event.date} às {event.time}
+                        {event.date}{event.end_date && event.end_date !== event.date ? ` → ${event.end_date}` : ""} às {event.time}
+                        {event.end_date && event.end_date !== event.date && (
+                          <span className="ml-2 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase font-semibold">festival</span>
+                        )}
                       </div>
                       <div className="flex items-center">
                         <MapPin className="w-4 h-4 mr-2" />
