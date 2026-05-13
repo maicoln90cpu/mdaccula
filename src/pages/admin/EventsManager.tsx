@@ -506,6 +506,18 @@ const EventsManager = () => {
             setSelectedIds(new Set());
             setMergeMode(false);
             fetchEvents();
+            fetchLastMergeLog();
+          }}
+        />
+
+        <UndoMergeDialog
+          open={showUndoDialog}
+          onOpenChange={setShowUndoDialog}
+          log={lastMergeLog}
+          onSuccess={() => {
+            setShowUndoDialog(false);
+            fetchEvents();
+            fetchLastMergeLog();
           }}
         />
 
