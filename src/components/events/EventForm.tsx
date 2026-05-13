@@ -360,17 +360,20 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         return;
       }
 
+      // Normaliza lineup principal (split em vírgulas que o admin tenha colado num único chip)
+      const normalizedLineup = normalizeLineup(lineup);
+
       // Schedule só é salvo quando há festival válido (end_date > date)
       const finalSchedule =
         data.end_date && data.end_date > data.date && schedule && schedule.length > 0
-          ? schedule
+          ? schedule.map((e) => ({ ...e, lineup: normalizeLineup(e.lineup) }))
           : null;
 
       const eventData = {
         ...data,
         ticket_link: normalizedTicketLink,
         vip_link: normalizedVipLink,
-        lineup,
+        lineup: normalizedLineup,
         genres: selectedGenres,
         image_url: imageUrl,
         slug: eventSlug,

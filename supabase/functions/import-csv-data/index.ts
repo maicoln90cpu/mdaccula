@@ -104,7 +104,9 @@ function mapEvent(r: Record<string, unknown>) {
     ticket_link: cleanValue(r.ticket_link as string),
     vip_link: cleanValue(r.vip_link as string),
     description: cleanValue(r.description as string),
-    lineup: cleanArray(r.lineup),
+    lineup: cleanArray(r.lineup).flatMap((s) =>
+      String(s).split(/[,;]/).map((x) => x.trim().replace(/\.$/, "").trim()).filter(Boolean)
+    ),
     image_url: cleanValue(r.image_url as string),
     created_by: cleanValue(r.created_by as string),
     created_at: cleanValue(r.created_at as string),
