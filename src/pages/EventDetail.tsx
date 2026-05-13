@@ -37,6 +37,7 @@ interface Event {
   location_state: string;
   genres: string[];
   lineup: string[];
+  schedule?: unknown;
   description: string;
   image_url: string;
   ticket_link: string;
