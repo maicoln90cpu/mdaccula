@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { parseLocalDate } from "@/lib/utils";
+import { formatEventDateRange } from "@/lib/dateUtils";
 import { useEvents } from "@/hooks/useEvents";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { Event } from "@/types";
