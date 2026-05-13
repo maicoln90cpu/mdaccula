@@ -289,6 +289,17 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       const normalizedTicketLink = normalizeUrl(data.ticket_link);
       const normalizedVipLink = normalizeUrl(data.vip_link);
 
+      // Validação: end_date precisa ser >= date (segurança extra além do CHECK no banco)
+      if (data.end_date && data.end_date < data.date) {
+        toast({
+          title: "Data final inválida",
+          description: "A data final do festival precisa ser igual ou posterior à data inicial.",
+          variant: "destructive",
+        });
+        setSubmitting(false);
+        return;
+      }
+
       const eventData = {
         ...data,
         ticket_link: normalizedTicketLink,
@@ -298,6 +309,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         image_url: imageUrl,
         slug: eventSlug,
         blog_post_id: blogPostId,
+        end_date: data.end_date || null,
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
