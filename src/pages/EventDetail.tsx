@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { addHours } from "date-fns";
 import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
 import { parseSchedule } from "@/lib/eventScheduleHelper";
+import { normalizeLineup } from "@/lib/lineupNormalizer";
 import {
   Breadcrumb,
   BreadcrumbItem,
