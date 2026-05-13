@@ -17,6 +17,7 @@ import { convertToWebP } from '@/lib/webpConverter';
 import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
+import { normalizeLineup } from '@/lib/lineupNormalizer';
 
 interface EventFormData {
   title: string;
