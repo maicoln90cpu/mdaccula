@@ -100,7 +100,7 @@ const FeaturedEvents = () => {
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">
-                          {parseLocalDate(event.date).toLocaleDateString('pt-BR')} - {event.time}
+                          {formatEventDateRange(event.date, (event as any).end_date)} - {event.time}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
