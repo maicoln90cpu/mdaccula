@@ -280,16 +280,16 @@ const EventDetail = () => {
               <div className="lg:col-span-2 space-y-6 sm:space-y-8">
                 {/* Title & Genre */}
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 leading-tight break-words">{event.title}</h1>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 leading-tight break-words text-center sm:text-left">{event.title}</h1>
                   {event.subtitle && (
                     <p
                       data-testid="event-subtitle"
-                      className="text-base sm:text-lg md:text-xl text-muted-foreground italic mb-4 break-words"
+                      className="text-base sm:text-lg md:text-xl text-white font-medium italic mb-4 break-words text-center sm:text-left underline decoration-yellow-400 decoration-2 underline-offset-4"
                     >
                       {event.subtitle}
                     </p>
                   )}
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                     {event.genres && event.genres.length > 0 ? (
                       event.genres.map((genre, index) => (
                         <Badge key={index} className="bg-primary/20 text-primary border-primary/30 text-sm sm:text-base px-3 sm:px-4 py-1">
