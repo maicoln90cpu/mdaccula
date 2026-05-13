@@ -21,6 +21,7 @@ import { ShareButtons } from "@/components/ShareButtons";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
+import { StructuredData } from "@/components/StructuredData";
 
 interface Event {
   id: string;
@@ -190,6 +191,21 @@ const EventDetail = () => {
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="canonical" href={currentUrl} />
       </Helmet>
+      <StructuredData
+        type="event"
+        data={{
+          title: event.title,
+          description: event.description,
+          date: event.date,
+          time: event.time,
+          venue: event.venue,
+          location_city: event.location_city,
+          location_state: event.location_state,
+          image_url: getOptimizedImageUrl(event.image_url) || undefined,
+          ticket_link: event.ticket_link,
+          lineup: event.lineup,
+        }}
+      />
 
       <div className="min-h-screen bg-background">
         <Navigation />

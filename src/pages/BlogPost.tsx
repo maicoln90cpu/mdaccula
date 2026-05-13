@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { ShareButtons } from "@/components/ShareButtons";
 import { LikeButton } from "@/components/blog/LikeButton";
+import { StructuredData } from "@/components/StructuredData";
 
 interface BlogPostData {
   id: string;
@@ -157,6 +158,18 @@ const BlogPost = () => {
         <link rel="canonical" href={currentUrl} />
         {/* Preload removed: the <img loading="eager"> already handles LCP */}
       </Helmet>
+      <StructuredData
+        type="article"
+        data={{
+          title: post.title,
+          slug: post.slug,
+          excerpt: post.excerpt || undefined,
+          image_url: getOptimizedImageUrl(post.image_url) || undefined,
+          published_at: post.created_at,
+          updated_at: post.created_at,
+          category: post.category,
+        }}
+      />
       <Navigation />
 
       <main className="pt-16">
