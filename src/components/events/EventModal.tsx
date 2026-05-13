@@ -5,6 +5,7 @@ import { Calendar, Clock, MapPin, ExternalLink, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { parseLocalDate } from '@/lib/utils';
 import { formatEventDateRange } from '@/lib/dateUtils';
+import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface EventModalProps {
@@ -104,18 +105,21 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
             </div>
           </div>
 
-          {event.lineup && event.lineup.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Line-up</h3>
-              <div className="flex flex-wrap gap-2">
-                {event.lineup.map((artist: string, index: number) => (
-                  <Badge key={index} variant="outline" className="text-sm">
-                    {artist}
-                  </Badge>
-                ))}
+          {event.lineup && event.lineup.length > 0 && (() => {
+            const cleanLineup = normalizeLineup(event.lineup);
+            return (
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Line-up</h3>
+                <div className="flex flex-wrap gap-2">
+                  {cleanLineup.map((artist: string, index: number) => (
+                    <Badge key={index} variant="outline" className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full">
+                      {artist}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {event.description && (
             <div>

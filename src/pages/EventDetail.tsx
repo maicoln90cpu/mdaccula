@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { addHours } from "date-fns";
 import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
 import { parseSchedule } from "@/lib/eventScheduleHelper";
+import { normalizeLineup } from "@/lib/lineupNormalizer";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -381,8 +382,8 @@ const EventDetail = () => {
                           {schedule.map((day) => {
                             const dayLineup =
                               day.lineup && day.lineup.length > 0
-                                ? day.lineup
-                                : event.lineup || [];
+                                ? normalizeLineup(day.lineup)
+                                : normalizeLineup(event.lineup);
                             const dayLabel = parseLocalDate(day.date).toLocaleDateString('pt-BR', {
                               weekday: 'long',
                               day: '2-digit',
@@ -400,7 +401,11 @@ const EventDetail = () => {
                                 {dayLineup.length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
                                     {dayLineup.map((artist, i) => (
-                                      <Badge key={i} variant="outline" className="text-sm px-2.5 py-0.5">
+                                      <Badge
+                                        key={i}
+                                        variant="outline"
+                                        className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full"
+                                      >
                                         {artist}
                                       </Badge>
                                     ))}
@@ -418,6 +423,7 @@ const EventDetail = () => {
                     );
                   }
                   if (event.lineup && event.lineup.length > 0) {
+                    const cleanLineup = normalizeLineup(event.lineup);
                     return (
                       <Card>
                         <CardHeader>
@@ -427,9 +433,13 @@ const EventDetail = () => {
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <div className="flex flex-wrap gap-2">
-                            {event.lineup.map((artist, index) => (
-                              <Badge key={index} variant="outline" className="text-base px-3 py-1">
+                          <div className="flex flex-wrap gap-2.5">
+                            {cleanLineup.map((artist, index) => (
+                              <Badge
+                                key={index}
+                                variant="outline"
+                                className="text-sm md:text-base px-3.5 py-1.5 leading-relaxed whitespace-normal break-words max-w-full"
+                              >
                                 {artist}
                               </Badge>
                             ))}

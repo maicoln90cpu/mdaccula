@@ -17,6 +17,7 @@ import { convertToWebP } from '@/lib/webpConverter';
 import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
+import { normalizeLineup } from '@/lib/lineupNormalizer';
 
 interface EventFormData {
   title: string;
@@ -86,9 +87,13 @@ const normalizeUrl = (url: string | undefined): string | undefined => {
 };
 
 export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
-  const [lineup, setLineup] = useState<string[]>(event?.lineup || []);
+  const [lineup, setLineup] = useState<string[]>(normalizeLineup(event?.lineup));
   const [newLineupItem, setNewLineupItem] = useState('');
-  const [schedule, setSchedule] = useState<EventSchedule | null>(parseSchedule(event?.schedule));
+  const [schedule, setSchedule] = useState<EventSchedule | null>(() => {
+    const parsed = parseSchedule(event?.schedule);
+    if (!parsed) return null;
+    return parsed.map((e) => ({ ...e, lineup: normalizeLineup(e.lineup) }));
+  });
   const [newScheduleArtist, setNewScheduleArtist] = useState<Record<string, string>>({});
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
