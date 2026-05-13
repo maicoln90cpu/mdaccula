@@ -18,6 +18,7 @@ interface Event {
   id: string;
   title: string;
   date: string;
+  end_date?: string | null;
   time: string;
   venue: string;
   location_city: string;
