@@ -12,10 +12,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { generateEventGroupName } from '@/lib/eventGroupHelper';
 import { useNavigate } from 'react-router-dom';
-import { parseLocalDateTime } from '@/lib/dateUtils';
+import { parseLocalDateTime, formatEventDateRange } from '@/lib/dateUtils';
 import { convertToWebP } from '@/lib/webpConverter';
 import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
+import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
 
 interface EventFormData {
   title: string;
