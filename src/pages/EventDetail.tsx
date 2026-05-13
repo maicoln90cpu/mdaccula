@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { addHours } from "date-fns";
 import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
+import { parseSchedule } from "@/lib/eventScheduleHelper";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -37,6 +38,7 @@ interface Event {
   location_state: string;
   genres: string[];
   lineup: string[];
+  schedule?: unknown;
   description: string;
   image_url: string;
   ticket_link: string;
@@ -363,26 +365,81 @@ const EventDetail = () => {
                   </CardContent>
                 </Card>
 
-                {/* Line-up */}
-                {event.lineup && event.lineup.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Users className="w-5 h-5" />
-                        Line-up
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-2">
-                        {event.lineup.map((artist, index) => (
-                          <Badge key={index} variant="outline" className="text-base px-3 py-1">
-                            {artist}
-                          </Badge>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                {/* Programação por dia (festival) ou Line-up único */}
+                {(() => {
+                  const schedule = parseSchedule(event.schedule);
+                  if (schedule && schedule.length > 1) {
+                    return (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="w-5 h-5" />
+                            Programação por dia
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {schedule.map((day) => {
+                            const dayLineup =
+                              day.lineup && day.lineup.length > 0
+                                ? day.lineup
+                                : event.lineup || [];
+                            const dayLabel = parseLocalDate(day.date).toLocaleDateString('pt-BR', {
+                              weekday: 'long',
+                              day: '2-digit',
+                              month: 'long',
+                            });
+                            return (
+                              <div key={day.date} className="border-l-2 border-primary pl-4 space-y-2">
+                                <div className="flex flex-wrap items-baseline gap-2">
+                                  <p className="font-semibold capitalize">{dayLabel}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {day.time?.slice(0, 5)}
+                                    {day.end_time ? ` – ${day.end_time.slice(0, 5)}` : ''}
+                                  </p>
+                                </div>
+                                {dayLineup.length > 0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {dayLineup.map((artist, i) => (
+                                      <Badge key={i} variant="outline" className="text-sm px-2.5 py-0.5">
+                                        {artist}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-muted-foreground italic">
+                                    Line-up a ser anunciado
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  if (event.lineup && event.lineup.length > 0) {
+                    return (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Users className="w-5 h-5" />
+                            Line-up
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-wrap gap-2">
+                            {event.lineup.map((artist, index) => (
+                              <Badge key={index} variant="outline" className="text-base px-3 py-1">
+                                {artist}
+                              </Badge>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+                  return null;
+                })()}
 
                 {/* Description */}
                 {event.description && (

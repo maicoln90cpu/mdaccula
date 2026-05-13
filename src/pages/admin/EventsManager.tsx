@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Pencil, Trash2, Plus, ArrowLeft, Copy, FileText, Loader2, CalendarDays, Search, GitMerge, X } from "lucide-react";
+import { Calendar, MapPin, Pencil, Trash2, Plus, ArrowLeft, Copy, FileText, Loader2, CalendarDays, Search, GitMerge, X, Undo2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/useToast";
@@ -10,6 +10,7 @@ import { NavLink } from "react-router-dom";
 import { EventForm } from "@/components/events/EventForm";
 import { MultiEventArticleModal } from "@/components/admin/MultiEventArticleModal";
 import { MergeEventsDialog } from "@/components/admin/MergeEventsDialog";
+import { UndoMergeDialog } from "@/components/admin/UndoMergeDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { buildArticlePayload } from "@/lib/eventArticlePayload";
@@ -53,7 +54,28 @@ const EventsManager = () => {
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [lastMergeLog, setLastMergeLog] = useState<any | null>(null);
+  const [showUndoDialog, setShowUndoDialog] = useState(false);
   const { toast } = useToast();
+
+  // Busca a última mesclagem desfazível (sem undo posterior)
+  const fetchLastMergeLog = async () => {
+    const { data: merges } = await supabase
+      .from("application_logs")
+      .select("id, logged_at, context")
+      .eq("level", "info")
+      .gte("logged_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .order("logged_at", { ascending: false })
+      .limit(50);
+    if (!merges) { setLastMergeLog(null); return; }
+    const lastMerge = merges.find((l: any) => l.context?.action === "merge_events");
+    if (!lastMerge) { setLastMergeLog(null); return; }
+    // Verifica se já foi desfeita
+    const undone = merges.find(
+      (l: any) => l.context?.action === "undo_merge" && l.context?.source_log_id === lastMerge.id,
+    );
+    setLastMergeLog(undone ? null : lastMerge);
+  };
 
   const fetchEvents = async () => {
     try {
