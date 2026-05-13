@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseLocalDateTime, formatEventDate } from "@/lib/dateUtils";
+import { parseLocalDateTime, formatEventDate, formatEventDateRange } from "@/lib/dateUtils";
 
 describe("dateUtils", () => {
   describe("parseLocalDateTime", () => {
