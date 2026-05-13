@@ -189,12 +189,23 @@ export const StructuredData = ({ type, data }: StructuredDataProps) => {
 
       case 'event': {
         const eventData = data as EventData;
+        const startDate = `${eventData.date}T${eventData.time}`;
+        // endDate: usa end_date + end_time quando festival, senão start+end_time, senão omite
+        const endDateRaw =
+          eventData.end_date
+            ? `${eventData.end_date}T${eventData.end_time || eventData.time}`
+            : eventData.end_time
+              ? `${eventData.date}T${eventData.end_time}`
+              : undefined;
         return {
           "@context": "https://schema.org",
           "@type": "MusicEvent",
           "name": eventData.title,
           "description": eventData.description,
-          "startDate": `${eventData.date}T${eventData.time}`,
+          "startDate": startDate,
+          ...(endDateRaw ? { "endDate": endDateRaw } : {}),
+          "eventStatus": "https://schema.org/EventScheduled",
+          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
           "location": {
             "@type": "Place",
             "name": eventData.venue,
