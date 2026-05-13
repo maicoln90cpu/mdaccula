@@ -60,7 +60,7 @@ const EventDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
-  // Main event query
+  // Main event query (com fallback para slug antigo via event_slug_redirects)
   const { data: event, isLoading, error } = useQuery({
     queryKey: ["event-detail", slug],
     queryFn: async () => {
@@ -70,13 +70,36 @@ const EventDetail = () => {
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
-      return data as Event | null;
+      if (data) return data as Event | null;
+
+      // Fallback: slug antigo (evento mesclado em festival)
+      const { data: redir } = await supabase
+        .from("event_slug_redirects")
+        .select("event_id")
+        .eq("old_slug", slug)
+        .maybeSingle();
+      if (!redir?.event_id) return null;
+
+      const { data: target, error: targetErr } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", redir.event_id)
+        .maybeSingle();
+      if (targetErr) throw targetErr;
+      return target as Event | null;
     },
     enabled: !!slug,
     staleTime: 15 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  // Se chegou via slug antigo, redireciona para a URL nova (preserva SEO)
+  useEffect(() => {
+    if (event && slug && event.slug !== slug) {
+      navigate(`/eventos/${event.slug}`, { replace: true });
+    }
+  }, [event, slug, navigate]);
 
   // Related blog post query
   const { data: relatedPost } = useQuery({
