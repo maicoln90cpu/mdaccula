@@ -72,10 +72,10 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           primary_id: primary.id,
           primary_title: primary.title,
           merged_event_ids: duplicates.map((e) => e.id),
-          merged_snapshot: duplicates,
+          merged_snapshot: JSON.parse(JSON.stringify(duplicates)),
           new_end_date: dateRange.end,
           new_views: totalViews,
-        },
+        } as any,
       }]);
 
       // 2. Repontar custom_links dos duplicados → principal
