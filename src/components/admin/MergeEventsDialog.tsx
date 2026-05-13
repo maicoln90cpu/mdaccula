@@ -12,6 +12,7 @@ import { formatEventDateRange } from "@/lib/dateUtils";
 interface MergeableEvent {
   id: string;
   title: string;
+  slug: string;
   date: string;
   end_date?: string | null;
   venue: string;
