@@ -381,6 +381,35 @@ export type Database = {
         }
         Relationships: []
       }
+      event_slug_redirects: {
+        Row: {
+          created_at: string
+          event_id: string
+          old_slug: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          old_slug: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          old_slug?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_slug_redirects_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_templates: {
         Row: {
           address: string | null
