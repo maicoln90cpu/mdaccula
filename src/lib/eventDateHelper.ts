@@ -9,7 +9,8 @@
  */
 
 export interface EventVisibilityParams {
-  date: string;            // YYYY-MM-DD
+  date: string;            // YYYY-MM-DD (data inicial)
+  end_date?: string | null; // YYYY-MM-DD (data final de festivais multi-dias). Quando ausente, == date.
   time?: string | null;    // HH:MM[:SS] opcional
   end_time?: string | null; // mantido por compatibilidade — ignorado no cálculo
 }
