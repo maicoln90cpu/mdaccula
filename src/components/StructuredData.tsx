@@ -20,7 +20,9 @@ interface EventData {
   title: string;
   description?: string;
   date: string;
+  end_date?: string | null;
   time: string;
+  end_time?: string | null;
   venue: string;
   location_city: string;
   location_state: string;
