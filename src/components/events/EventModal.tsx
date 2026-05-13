@@ -74,7 +74,7 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
             <div className="space-y-3">
               <div className="flex items-center text-sm">
                 <Calendar className="w-4 h-4 mr-2 text-primary" />
-                {formatDate(event.date)}
+                {formatEventDateRange(event.date, event.end_date)}
               </div>
               <div className="flex items-center text-sm">
                 <Clock className="w-4 h-4 mr-2 text-secondary" />
