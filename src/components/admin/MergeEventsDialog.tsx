@@ -59,12 +59,45 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
     if (!primary || !dateRange) return;
     setMerging(true);
     try {
-      // 1. Snapshot para auditoria
-      const totalViews =
-        (primary.views || 0) + duplicates.reduce((sum, e) => sum + (e.views || 0), 0);
-      const inheritedBlogPostId =
-        primary.blog_post_id || duplicates.find((e) => e.blog_post_id)?.blog_post_id || null;
+      const duplicateIds = duplicates.map((e) => e.id);
+      const allIds = [primary.id, ...duplicateIds];
 
+      // 0. Buscar dados COMPLETOS de todos os eventos (necessário p/ schedule e snapshot do principal)
+      const { data: fullEvents, error: fetchErr } = await supabase
+        .from("events")
+        .select("*")
+        .in("id", allIds);
+      if (fetchErr) throw fetchErr;
+
+      const fullPrimary = fullEvents?.find((e) => e.id === primary.id);
+      const fullDuplicates = (fullEvents || []).filter((e) => e.id !== primary.id);
+      if (!fullPrimary) throw new Error("Evento principal não encontrado.");
+
+      // 0b. Buscar links que serão repontados (precisamos pra rollback)
+      const { data: linksToRepoint } = await supabase
+        .from("custom_links")
+        .select("id, event_id")
+        .in("event_id", duplicateIds);
+
+      // 1. Construir schedule automaticamente: 1 entrada por evento original
+      // Inclui o principal + todos os duplicados, ordenados por data.
+      const allForSchedule = [...fullEvents!].sort((a, b) => a.date.localeCompare(b.date));
+      const autoSchedule = allForSchedule.map((e) => ({
+        date: e.date,
+        time: e.time,
+        end_time: e.end_time || null,
+        lineup: e.lineup || [],
+      }));
+
+      // 2. Calcular novos valores
+      const totalViews =
+        (fullPrimary.views || 0) + fullDuplicates.reduce((sum, e) => sum + (e.views || 0), 0);
+      const inheritedBlogPostId =
+        fullPrimary.blog_post_id ||
+        fullDuplicates.find((e) => e.blog_post_id)?.blog_post_id ||
+        null;
+
+      // 3. Snapshot COMPLETO para rollback (inclui estado pré-merge do principal e mapping de links)
       await supabase.from("application_logs").insert([{
         level: "info",
         message: `Mesclagem de eventos: ${duplicates.length} → 1`,
@@ -72,15 +105,29 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           action: "merge_events",
           primary_id: primary.id,
           primary_title: primary.title,
-          merged_event_ids: duplicates.map((e) => e.id),
-          merged_snapshot: JSON.parse(JSON.stringify(duplicates)),
+          merged_event_ids: duplicateIds,
+          merged_snapshot: JSON.parse(JSON.stringify(fullDuplicates)),
+          primary_pre_merge: JSON.parse(JSON.stringify({
+            id: fullPrimary.id,
+            date: fullPrimary.date,
+            end_date: fullPrimary.end_date ?? null,
+            views: fullPrimary.views ?? 0,
+            blog_post_id: fullPrimary.blog_post_id ?? null,
+            schedule: fullPrimary.schedule ?? null,
+            lineup: fullPrimary.lineup ?? [],
+          })),
+          links_repointed: (linksToRepoint || []).map((l) => ({
+            id: l.id,
+            old_event_id: l.event_id,
+          })),
           new_end_date: dateRange.end,
+          new_start_date: dateRange.start,
           new_views: totalViews,
+          new_schedule: autoSchedule,
         } as any,
       }]);
 
-      // 2. Repontar custom_links dos duplicados → principal
-      const duplicateIds = duplicates.map((e) => e.id);
+      // 4. Repontar custom_links dos duplicados → principal
       if (duplicateIds.length > 0) {
         const { error: linkErr } = await supabase
           .from("custom_links")
@@ -89,7 +136,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         if (linkErr) throw linkErr;
       }
 
-      // 3. Atualizar evento principal com end_date + views consolidadas
+      // 5. Atualizar evento principal: end_date + schedule + views consolidadas
       const { error: updateErr } = await supabase
         .from("events")
         .update({
@@ -97,12 +144,13 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           date: dateRange.start,
           views: totalViews,
           blog_post_id: inheritedBlogPostId,
+          schedule: autoSchedule as any,
           updated_at: new Date().toISOString(),
         })
         .eq("id", primary.id);
       if (updateErr) throw updateErr;
 
-      // 4. Preservar URLs antigas: criar redirects dos slugs duplicados → principal
+      // 6. Preservar URLs antigas
       if (duplicates.length > 0) {
         const redirectRows = duplicates
           .filter((e) => e.slug && e.slug !== primary.slug)
@@ -112,7 +160,6 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             reason: `merged into festival "${primary.title}"`,
           }));
         if (redirectRows.length > 0) {
-          // upsert para tolerar reexecuções
           const { error: redirErr } = await supabase
             .from("event_slug_redirects")
             .upsert(redirectRows, { onConflict: "old_slug" });
@@ -120,7 +167,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         }
       }
 
-      // 5. Deletar duplicados
+      // 7. Deletar duplicados
       if (duplicateIds.length > 0) {
         const { error: delErr } = await supabase
           .from("events")
