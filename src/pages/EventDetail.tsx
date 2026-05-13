@@ -336,7 +336,7 @@ const EventDetail = () => {
                       <Calendar className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                       <div>
                         <p className="font-medium">Data</p>
-                        <p className="text-muted-foreground capitalize">{formatDate(event.date)}</p>
+                        <p className="text-muted-foreground capitalize">{formatEventDateRange(event.date, event.end_date)}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
