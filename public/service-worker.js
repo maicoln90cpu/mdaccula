@@ -175,6 +175,31 @@ const shouldBypassCache = (url) => {
   return isExternal || isAnalytics || isHotReload;
 };
 
+// Invalidate all cached GET requests for a given /rest/v1/<table> path.
+// Called after any successful POST/PATCH/PUT/DELETE on that table so the
+// next read fetches fresh data instead of serving the stale TTL cache.
+const invalidateApiCache = async (apiPath) => {
+  try {
+    const cache = await caches.open(API_CACHE);
+    const keys = await cache.keys();
+    let removed = 0;
+    await Promise.all(keys.map(async (req) => {
+      try {
+        const u = new URL(req.url);
+        if (u.pathname.startsWith(apiPath)) {
+          await cache.delete(req);
+          removed++;
+        }
+      } catch (_) { /* ignore */ }
+    }));
+    if (removed > 0) {
+      console.log(`[SW] Invalidated ${removed} cached entries for ${apiPath}`);
+    }
+  } catch (err) {
+    console.warn('[SW] invalidateApiCache failed:', err);
+  }
+};
+
 // ============================================
 // CACHE STRATEGIES (with egress tracking)
 // ============================================
