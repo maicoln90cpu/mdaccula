@@ -339,7 +339,10 @@ self.addEventListener('fetch', (event) => {
     }
 
     // All other Supabase requests (POST/PUT/DELETE, auth, functions, rpc, non-cached GET)
-    // Measure response bytes for egress tracking
+    // Measure response bytes for egress tracking + invalidate stale cache on writes
+    const method = event.request.method;
+    const isWrite = method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE';
+    const isRestWrite = isWrite && url.pathname.startsWith('/rest/v1/');
     event.respondWith(
       fetch(event.request).then(async (response) => {
         try {
@@ -347,6 +350,12 @@ self.addEventListener('fetch', (event) => {
           const buffer = await cloned.arrayBuffer();
           recordEgress(url, false, buffer.byteLength);
         } catch (e) { /* ignore measurement errors */ }
+        // After a successful write to /rest/v1/<table>, drop cached GETs for that table
+        if (isRestWrite && response.ok) {
+          const apiPath = extractApiPath(url);
+          // fire-and-forget; don't block the response
+          invalidateApiCache(apiPath);
+        }
         return response;
       }).catch((err) => { throw err; })
     );
