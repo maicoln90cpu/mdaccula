@@ -612,7 +612,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             }
 
             // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
-            const eventDateTime = parseLocalDateTime(data.date, data.time);
+            // Sem horário definido → usa 00:00 só para ordenar (mantém ordenação por data)
+            const eventDateTime = parseLocalDateTime(data.date, data.time || '00:00');
             const displayOrder = Math.floor(eventDateTime.getTime() / 1000);
 
             // Determine URL based on selection
