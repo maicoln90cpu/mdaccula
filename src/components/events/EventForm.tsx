@@ -638,7 +638,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 card_height: 80,
                 event_id: createdEventId,
                 override_date: data.date,
-                override_time: data.time,
+                override_time: data.time || null,
               }]);
 
             if (linkError) throw linkError;
