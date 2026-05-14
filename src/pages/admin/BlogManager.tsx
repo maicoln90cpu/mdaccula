@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 interface BlogPost {
   id: string;
