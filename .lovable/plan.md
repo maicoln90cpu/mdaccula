@@ -1,103 +1,97 @@
-## Diagnóstico — por que os artigos saem errados
+# Plano — Opção A: Imagem em background (eliminar 504)
 
-### 1) Mapeamento ATUAL: campos enviados vs. campos usados pelo template
+## Objetivo
+Acabar com o erro `504 timeout` na geração de artigos por IA, separando **texto** (síncrono, rápido) e **imagem** (assíncrono, em segundo plano). O artigo é salvo na hora; a capa aparece sozinha em ~20–40s depois.
 
-**Front envia (EventForm cria evento + EventsManager regerar):**
-| Campo enviado | EventForm (criar) | EventsManager (regerar) | Existe no template `Evento Padrão`? |
-|---|---|---|---|
-| `eventName` | ✅ | ✅ | ✅ usado |
-| `eventDate` | ✅ | ✅ | ✅ usado |
-| `eventTime` | ✅ | ✅ | ❌ **não referenciado no user_prompt** |
-| `endTime` | ✅ | ✅ | ❌ **não referenciado** |
-| `eventLocation` | ✅ | ✅ | ✅ usado |
-| `venue` | ✅ | ✅ | ❌ não referenciado |
-| `address` | ✅ | ✅ | ❌ não referenciado |
-| `locationCity` / `locationState` | ✅ | ✅ | ❌ não referenciado |
-| `subtitle` | ✅ | ✅ | ❌ **não referenciado** (só citado no system) |
-| `description` | ✅ | ✅ | ❌ não referenciado |
-| `lineup` | ✅ | ✅ | ✅ usado (com `{{#if lineup}}`) |
-| `genres` | ✅ | ✅ | ❌ não referenciado |
-| `ticketLink` | ✅ | ✅ | ✅ usado |
-| `vipLink` | ✅ | ✅ | ❌ **não referenciado** (só citado no system) |
-| `eventImageUrl` | ✅ | ✅ | n/a |
-| `aiContext` | ✅ | ❌ **NÃO ENVIADO** | injetado no system (block separado) |
-| `weekday` (dia da semana) | ❌ não calculado | ❌ não calculado | ❌ inexistente |
+---
 
-**Conclusão:** o backend recebe quase tudo, mas o `user_prompt_template` só renderiza 6 campos. Os demais (subtitle, endTime, address, vipLink, description, genres, eventTime) entram no system prompt como "regra abstrata" sem o valor concreto sendo injetado — a IA não tem o dado para usar.
+## Antes vs Depois
 
-### 2) Causa de cada bug reportado
+**Antes (atual):**
+```
+[invoke] → texto IA (50–80s) → imagem IA (25–35s) → save → response
+                                                          ↑
+                                          frequentemente estoura → 504
+```
 
-| Bug | Causa raiz |
-|---|---|
-| Artigo TANTRAROSA dizendo "lineup não confirmado" mesmo tendo lineup | O lineup É enviado, mas o template original não enfatiza obrigatoriedade. System prompt permite "se faltar, generalize". A IA hedge por padrão. |
-| Mesmo artigo ignora "5% de desconto" do `aiContext` | `aiContext` só funciona quando criado via EventForm. Em re-geração via EventsManager **não é enviado** (e o evento sequer guarda esse campo no DB). |
-| Artigo SUN diz "domingo" sendo sábado 19/09 | Nenhum cálculo de `weekday` é feito. IA infere errado a partir da data e alucina. |
-| Artigo INDÚSTRIA inventa "use cupom MDACCULA" sendo cortesia | Mesmo problema do TANTRAROSA: `aiContext` foi preenchido na criação, mas system prompt do template **força** menção ao cupom MDACCULA ("REGRA CRÍTICA: SEMPRE mencione cupom MDACCULA"). O template sobrepõe o aiContext. |
+**Depois (Opção A):**
+```
+[invoke] → texto IA → save (sem imagem) → response 200 ✅
+                              ↓ (background, não bloqueia)
+                     EdgeRuntime.waitUntil:
+                       imagem IA → upload Bunny → UPDATE blog_posts.image_url
+```
 
-### 3) Plano de correção (frontend + backend + DB)
+---
 
-#### A. **Banco de dados** (migração)
-- Adicionar coluna `ai_context TEXT` em `events` para persistir o contexto e permitir re-geração consistente.
+## Etapas (deploy em fases)
 
-#### B. **Frontend**
-1. **`EventForm.tsx`**: salvar `aiContext` na coluna nova `ai_context` ao criar/editar evento. Mostrar o textarea também em modo edição.
-2. **`EventsManager.tsx` (`handleGenerateArticle`)**: enviar payload completo, incluindo:
-   - `aiContext: event.ai_context`
-   - `weekday`: nome do dia em PT-BR calculado via `Intl.DateTimeFormat('pt-BR', { weekday: 'long' })` da `event.date`
-   - `dateFormatted`: data por extenso ("19 de setembro de 2026, sábado")
-3. **`EventForm.tsx` (`blogPayload`)**: idem — adicionar `weekday` e `dateFormatted`.
-4. Helper compartilhado novo: `src/lib/eventArticlePayload.ts` exportando `buildArticlePayload(event)` para evitar divergência entre os 2 call sites.
+### Etapa 1 — Edge function `generate-blog-post-v2`
+Arquivo: `supabase/functions/generate-blog-post-v2/index.ts`
 
-#### C. **Backend — `supabase/functions/generate-blog-post-v2/index.ts`**
-1. **Bloco "DADOS ESTRUTURADOS DO EVENTO"** injetado no user prompt antes do template, contendo TODOS os campos com valor (key: value), garantindo que a IA tenha acesso literal mesmo se o template não referenciar:
-   ```
-   📋 DADOS OFICIAIS (use literalmente, não invente):
-   - Nome: ...
-   - Data: 19/09/2026 (sábado)
-   - Horário: 23:00 às 06:00
-   - Local: Arena Canindé, São Paulo - SP
-   - Endereço: ...
-   - Subtítulo/Promo: ...
-   - Lineup confirmado: A, B, C
-   - Gêneros: ...
-   - Link ingressos: ...
-   - Link VIP: ...
-   - Descrição: ...
-   ```
-2. **Hierarquia de prioridade** explícita no system prompt:
-   `aiContext > dados estruturados > template > conhecimento prévio`
-3. **Anti-hedging**: se `lineup` veio preenchido, proibir frases tipo "lineup a confirmar"; se `endTime` veio, proibir "horário a confirmar".
-4. **Override de cupom**: se `aiContext` mencionar "cortesia", "free", "gratuito", "sem venda", desativar a injeção da regra MDACCULA do template (override programático antes de chamar a IA).
-5. **Cálculo de weekday no backend** (defesa em profundidade) caso o frontend não envie.
+1. Após gerar o texto e fazer `INSERT` em `blog_posts`, **retornar 200 imediatamente** (sem `image_url`).
+2. Mover toda a lógica de imagem para uma função `generateImageInBackground(postId, prompt, ctx)`.
+3. Disparar com `EdgeRuntime.waitUntil(generateImageInBackground(...))` antes do `return`.
+4. Dentro do background:
+   - Gerar imagem via AI Gateway (mesmo modelo atual).
+   - Upload para Bunny Storage (helper já existe).
+   - `UPDATE blog_posts SET image_url = ... WHERE id = postId`.
+   - Em caso de erro: log em `application_logs`, sem derrubar nada.
+5. Adicionar log estruturado: `{ postId, textMs, totalMs, imageQueued: true }`.
 
-#### D. **Templates** (atualização de dados, não migração)
-- Atualizar `user_prompt_template` do `Evento Padrão` (e demais relevantes) para referenciar todos os novos campos: `{{subtitle}}`, `{{endTime}}`, `{{address}}`, `{{vipLink}}`, `{{description}}`, `{{genres}}`, `{{weekday}}`, `{{aiContext}}`.
-- Adicionar instrução explícita: "Se DADOS OFICIAIS contradisserem qualquer outra fonte, vencem os DADOS OFICIAIS."
+### Etapa 2 — UX no frontend
+Arquivos: `src/pages/admin/AIContent2.tsx`, `src/components/admin/ai-content/PostsHistory.tsx`
 
-### 4) Antes vs. Depois
+1. Badge "Gerando imagem…" em posts com `image_url IS NULL` criados nos últimos 2 min.
+2. Auto-refresh leve da lista a cada 15s enquanto houver posts pendentes de imagem.
+3. Toast ajustado: "Artigo gerado! Imagem sendo processada em segundo plano."
 
-**Antes:** Front envia 14 campos → template usa 6 → IA inventa o resto.  
-**Depois:** Front envia 16 campos (+ weekday + ai_context persistido) → backend injeta bloco "DADOS OFICIAIS" obrigatório → template renderiza tudo + system reforça hierarquia → IA usa dado real ou omite (não inventa).
+### Etapa 3 — Validação e proteção permanente
+1. Teste manual: 1 sugestão → resposta < 60s, imagem em ~30s.
+2. Lote de 5 → 0 timeouts.
+3. Teste Deno cobrindo: "se imagem falhar, post permanece criado".
+4. Monitorar logs por 24h após deploy.
 
-### 5) Vantagens / Desvantagens
-- ✅ Dados sempre coerentes (dia da semana, lineup, cortesia, descontos personalizados).
-- ✅ Re-geração via EventsManager mantém o aiContext.
-- ✅ Reuso (helper único de payload).
-- ⚠ Templates antigos ficam desatualizados — precisam ser revisados (faço junto).
-- ⚠ Prompt fica maior → leve aumento de custo de tokens (~10-15%), aceitável.
+---
 
-### 6) Checklist de validação manual
-1. Criar evento com lineup completo + aiContext "cortesia, sem venda" → artigo NÃO menciona MDACCULA, NÃO diz "lineup a confirmar".
-2. Criar evento num sábado → artigo menciona "sábado" corretamente.
-3. Editar evento existente, clicar "Regerar artigo" → aiContext salvo é respeitado.
-4. Evento com `subtitle` "5% off com cupom MDACCULA" → artigo cita esse desconto.
-5. Evento com vipLink → artigo menciona área VIP.
+## Vantagens
+- Elimina ~99% dos 504 (texto sozinho raramente passa de 60s).
+- Usuário vê resultado **na hora**.
+- Lote fica muito mais rápido (não espera imagem entre artigos).
+- Falha de imagem **não derruba** o artigo.
 
-### 7) Pendências / fora deste escopo
-- Sincronizar `event_link_synchronization` (já existe, sem mudanças).
-- Auditoria retroativa dos artigos já gerados errado — fica para fluxo separado (botão "regerar" já cobre).
-- Multi-event article (`generate-multi-event-article`) — mesmo padrão, mas em PR futuro.
+## Desvantagens
+- Card aparece **alguns segundos sem capa** (mitigado por badge + polling).
+- 1 query extra (`UPDATE`) por artigo.
+- Se o background morrer (raro), capa fica faltando — já existe `regenerate-blog-image` para recuperar.
 
-### 8) Prevenção de regressão
-- Logs estruturados já existem (`[generate-blog-post-v2] ...`); adicionar log explícito do bloco "DADOS OFICIAIS" enviado.
-- Adicionar teste unitário em `__tests__/lib/eventArticlePayload.test.ts` validando weekday + presença de todos os campos.
+---
+
+## Checklist manual de validação
+- [ ] Gerar 1 artigo via Sugestões → resposta em < 60s, toast aparece, artigo no histórico (sem capa).
+- [ ] Aguardar ~40s e recarregar histórico → capa apareceu.
+- [ ] Gerar 5 sugestões em lote → 0 erros 504.
+- [ ] Verificar `application_logs` mostra timing estruturado.
+- [ ] Forçar erro de imagem (chave inválida temporária) → artigo continua salvo.
+
+---
+
+## Pendências futuras (sobre o que vou implementar)
+- Botão "Regerar imagem" no card do histórico (helper já existe, falta UI).
+- Retry automático se a imagem falhar 1x.
+- Indicador via realtime/websocket no lugar do polling.
+
+---
+
+## Prevenção de regressão
+- **Teste Deno** novo: edge retorna 200 mesmo se `generateImage` lançar erro.
+- **Log estruturado** `{ textMs, imageQueued, totalMs }` em toda execução, fácil de monitorar.
+- **Memória do projeto** atualizada em `mem://features/ai-article-generation` registrando o padrão "imagem em background".
+
+---
+
+## Próximos passos (como fica)
+- **Hoje:** geração trava no 504 quando passa de 140s.
+- **Depois:** artigo salvo em <60s sempre; capa aparece sozinha em segundo plano. Ganho: zero perda de geração + UX muito mais rápido, principalmente em lote.
+
+Posso aplicar?
