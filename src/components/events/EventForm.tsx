@@ -379,6 +379,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         slug: eventSlug,
         blog_post_id: blogPostId,
         end_date: data.end_date || null,
+        time: (data.time && data.time.trim()) ? data.time : null,
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
@@ -425,7 +426,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           title: data.title,
           subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
           override_date: data.date,
-          override_time: data.time,
+          override_time: data.time || null,
           updated_at: new Date().toISOString(),
         };
 
@@ -611,7 +612,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             }
 
             // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
-            const eventDateTime = parseLocalDateTime(data.date, data.time);
+            // Sem horário definido → usa 00:00 só para ordenar (mantém ordenação por data)
+            const eventDateTime = parseLocalDateTime(data.date, data.time || '00:00');
             const displayOrder = Math.floor(eventDateTime.getTime() / 1000);
 
             // Determine URL based on selection
@@ -636,7 +638,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 card_height: 80,
                 event_id: createdEventId,
                 override_date: data.date,
-                override_time: data.time,
+                override_time: data.time || null,
               }]);
 
             if (linkError) throw linkError;
@@ -805,13 +807,15 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="time">Horário de Início *</Label>
+              <Label htmlFor="time">Horário de Início (Opcional)</Label>
               <Input
                 id="time"
                 type="time"
-                {...register('time', { required: 'Horário é obrigatório' })}
+                {...register('time')}
               />
-              {errors.time && <span className="text-sm text-destructive">{errors.time.message}</span>}
+              <p className="text-xs text-muted-foreground">
+                Deixe vazio se a produtora ainda não divulgou o horário
+              </p>
             </div>
 
             <div className="space-y-2">
