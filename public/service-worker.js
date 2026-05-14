@@ -331,8 +331,18 @@ self.addEventListener('fetch', (event) => {
     // Don't intercept the track-egress function itself
     if (url.pathname.includes('track-egress')) return;
 
-    // Cacheable GET API requests — Cache First with TTL
-    if (event.request.method === 'GET' && isCacheableApiRequest(url)) {
+    // Bypass cache when the request originates from an /admin page (admin must always
+    // see fresh data). Visitors of public pages keep using the SW cache (egress saving).
+    const isFromAdmin = (() => {
+      try {
+        const ref = event.request.referrer;
+        if (ref && new URL(ref).pathname.startsWith('/admin')) return true;
+      } catch (_) { /* ignore */ }
+      return false;
+    })();
+
+    // Cacheable GET API requests — Cache First with TTL (skip cache for admin pages)
+    if (event.request.method === 'GET' && isCacheableApiRequest(url) && !isFromAdmin) {
       const ttl = getApiTTL(url);
       event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
       return;
