@@ -17,6 +17,18 @@ describe("dateUtils", () => {
       expect(d.getHours()).toBe(8);
       expect(d.getMinutes()).toBe(0);
     });
+
+    it("aceita timeStr null usando 00:00 como fallback (eventos sem horário)", () => {
+      const d = parseLocalDateTime("2026-05-23", null);
+      expect(d.getHours()).toBe(0);
+      expect(d.getMinutes()).toBe(0);
+      expect(d.getDate()).toBe(23);
+    });
+
+    it("aceita timeStr vazio usando 00:00", () => {
+      const d = parseLocalDateTime("2026-05-23", "");
+      expect(d.getHours()).toBe(0);
+    });
   });
 
   describe("formatEventDate", () => {
