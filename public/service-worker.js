@@ -1,16 +1,18 @@
 // ============================================
-// MDAccula Service Worker v12
+// MDAccula Service Worker v13
 // Cache First with TTL + Egress Tracking
 //
-// REGRA CRÍTICA: toda mutação (POST/PATCH/PUT/DELETE) em /rest/v1/<tabela>
-// DEVE invalidar todas as entradas em cache dessa tabela. Sem isso, a UI
-// continua mostrando a versão antiga até o TTL expirar (ex: 30 min em
-// blog_posts/events). Não adicionar novas tabelas a CACHEABLE_API_PATHS
-// sem garantir esse comportamento (ver invalidateApiCache abaixo).
+// REGRA 1: toda mutação (POST/PATCH/PUT/DELETE) em /rest/v1/<tabela> DEVE
+//          invalidar todas as entradas em cache dessa tabela. Não adicionar
+//          novas tabelas a CACHEABLE_API_PATHS sem garantir esse comportamento
+//          (ver invalidateApiCache).
+// REGRA 2: requisições originadas de páginas /admin/* fazem BYPASS do cache.
+//          Admin sempre vê dados frescos; visitantes públicos continuam com
+//          cache TTL para economizar egress.
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
@@ -331,8 +333,18 @@ self.addEventListener('fetch', (event) => {
     // Don't intercept the track-egress function itself
     if (url.pathname.includes('track-egress')) return;
 
-    // Cacheable GET API requests — Cache First with TTL
-    if (event.request.method === 'GET' && isCacheableApiRequest(url)) {
+    // Bypass cache when the request originates from an /admin page (admin must always
+    // see fresh data). Visitors of public pages keep using the SW cache (egress saving).
+    const isFromAdmin = (() => {
+      try {
+        const ref = event.request.referrer;
+        if (ref && new URL(ref).pathname.startsWith('/admin')) return true;
+      } catch (_) { /* ignore */ }
+      return false;
+    })();
+
+    // Cacheable GET API requests — Cache First with TTL (skip cache for admin pages)
+    if (event.request.method === 'GET' && isCacheableApiRequest(url) && !isFromAdmin) {
       const ttl = getApiTTL(url);
       event.respondWith(cacheFirstWithTTL(event.request, API_CACHE, ttl));
       return;

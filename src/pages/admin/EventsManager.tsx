@@ -16,6 +16,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { buildArticlePayload } from "@/lib/eventArticlePayload";
 import { addHours } from "date-fns";
 import { parseLocalDateTime } from "@/lib/dateUtils";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 interface Event {
   id: string;
@@ -101,6 +102,9 @@ const EventsManager = () => {
     fetchEvents();
     fetchLastMergeLog();
   }, []);
+
+  // Realtime: lista de eventos atualiza automaticamente em qualquer mudança.
+  useRealtimeTable("events", () => fetchEvents());
 
   const handleDelete = async (id: string) => {
     try {

@@ -23,6 +23,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 interface BlogPost {
   id: string;
@@ -68,6 +69,10 @@ const BlogManager = () => {
   useEffect(() => {
     fetchPosts();
   }, []);
+
+  // Realtime: lista atualiza automaticamente em qualquer INSERT/UPDATE/DELETE
+  // (inclui mudanças vindas de outras abas, edge functions e regenerate-image).
+  useRealtimeTable("blog_posts", () => fetchPosts());
 
   const handleEdit = (post: BlogPost) => {
     setEditingPost(post);
