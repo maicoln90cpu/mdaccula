@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon } from "lucide-react";
+import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -32,7 +32,7 @@ interface PostsHistoryProps {
   regeneratingId?: string | null;
 }
 
-export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
+export function PostsHistory({ posts, isLoading, onRegenerateImage, regeneratingId }: PostsHistoryProps) {
   if (isLoading) {
     return (
       <Card>
