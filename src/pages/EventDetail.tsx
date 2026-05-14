@@ -395,7 +395,7 @@ const EventDetail = () => {
                                 <div className="flex flex-wrap items-baseline gap-2">
                                   <p className="font-semibold capitalize">{dayLabel}</p>
                                   <p className="text-sm text-muted-foreground">
-                                    {day.time?.slice(0, 5)}
+                                    {day.time ? day.time.slice(0, 5) : 'Horário a confirmar'}
                                     {day.end_time ? ` – ${day.end_time.slice(0, 5)}` : ''}
                                   </p>
                                 </div>
