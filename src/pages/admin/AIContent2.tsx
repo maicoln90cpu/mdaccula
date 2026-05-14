@@ -165,6 +165,11 @@ export default function AIContent2() {
     }
   };
 
+  // Realtime: substitui o polling de 15s. Qualquer INSERT/UPDATE/DELETE em
+  // blog_posts (incluindo a edge function que escreve image_url no background)
+  // dispara um refresh imediato.
+  useRealtimeTable("blog_posts", () => fetchGeneratedPosts());
+
   const initializeFormData = (fields: string[]) => {
     const initial: Record<string, string> = {};
     fields.forEach((field) => {
