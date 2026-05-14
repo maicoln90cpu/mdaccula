@@ -61,6 +61,7 @@ export default function AIContent2() {
   const [generateWithImage, setGenerateWithImage] = useState(true);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   // Fetch initial data
   useEffect(() => {
