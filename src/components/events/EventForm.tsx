@@ -807,13 +807,15 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="time">Horário de Início *</Label>
+              <Label htmlFor="time">Horário de Início (Opcional)</Label>
               <Input
                 id="time"
                 type="time"
-                {...register('time', { required: 'Horário é obrigatório' })}
+                {...register('time')}
               />
-              {errors.time && <span className="text-sm text-destructive">{errors.time.message}</span>}
+              <p className="text-xs text-muted-foreground">
+                Deixe vazio se a produtora ainda não divulgou o horário
+              </p>
             </div>
 
             <div className="space-y-2">
