@@ -175,6 +175,18 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
                           Abrir
                         </a>
                       </Button>
+                      {onRegenerateImage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRegenerateImage(post.id)}
+                          disabled={regeneratingId === post.id}
+                          title="Gerar nova imagem de capa"
+                        >
+                          <RefreshCw className={`h-3 w-3 mr-1 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
+                          {regeneratingId === post.id ? "Gerando..." : "Regerar imagem"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
