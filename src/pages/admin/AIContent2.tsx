@@ -407,7 +407,8 @@ export default function AIContent2() {
         setGenerationProgress({ ...progress });
         setGeneratingIndex(originalIndex);
 
-        const template = templates.find((t) => t.category === "default") || templates[0];
+        const template = pickTemplateForSuggestion(suggestion);
+        console.log(`[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → template "${template?.name}"`);
 
         if (!template) {
           progress.failed.push(suggestion.title);
