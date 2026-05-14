@@ -70,6 +70,10 @@ const BlogManager = () => {
     fetchPosts();
   }, []);
 
+  // Realtime: lista atualiza automaticamente em qualquer INSERT/UPDATE/DELETE
+  // (inclui mudanças vindas de outras abas, edge functions e regenerate-image).
+  useRealtimeTable("blog_posts", () => fetchPosts());
+
   const handleEdit = (post: BlogPost) => {
     setEditingPost(post);
     setShowForm(true);
