@@ -28,7 +28,8 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
     });
   };
 
-  const formatTime = (timeStr: string) => {
+  const formatTime = (timeStr?: string | null) => {
+    if (!timeStr) return 'Horário a confirmar';
     return timeStr.slice(0, 5);
   };
 
