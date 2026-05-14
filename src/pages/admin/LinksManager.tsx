@@ -135,6 +135,10 @@ const LinksManager = () => {
     fetchGroups();
   }, []);
 
+  // Realtime: qualquer mudança em custom_links ou link_groups atualiza a lista instantaneamente
+  useRealtimeTable("custom_links", () => fetchGroups());
+  useRealtimeTable("link_groups", () => fetchGroups());
+
   const fetchGroups = async () => {
     try {
       const { data, error } = await supabase
