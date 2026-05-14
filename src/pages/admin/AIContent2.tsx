@@ -10,6 +10,7 @@ import { GenerateForm } from "@/components/admin/ai-content/GenerateForm";
 import type { GenerationProgress } from "@/components/admin/ai-content/SuggestionsList";
 import { SuggestionsList } from "@/components/admin/ai-content/SuggestionsList";
 import { PostsHistory } from "@/components/admin/ai-content/PostsHistory";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 interface Suggestion {
   title: string;
