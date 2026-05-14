@@ -319,7 +319,7 @@ export default function AIContent2() {
       return findByCategory("Labels") || findByCategory("Sugestões") || templates[0] || null;
     }
     // Cultura, Tecnologia, Produtores, Cena e qualquer outra → template editorial "Sugestões"
-    return findByCategory("Sugestões") || templates.find((t) => !t.is_default) || templates[0] || null;
+    return findByCategory("Sugestões") || templates.find((t) => t.category?.toLowerCase() !== "eventos") || templates[0] || null;
   };
 
   const handleGenerateFromSuggestion = async (suggestion: Suggestion, index: number) => {
