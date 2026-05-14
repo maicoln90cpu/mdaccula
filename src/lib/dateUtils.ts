@@ -12,10 +12,12 @@ import { parseLocalDate } from "@/lib/utils";
  * Combina data e hora strings em um Date objeto local
  * Evita problemas de timezone ao não usar new Date(string)
  */
-export function parseLocalDateTime(dateStr: string, timeStr: string): Date {
+export function parseLocalDateTime(dateStr: string, timeStr: string | null | undefined): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return new Date(year, month - 1, day, hours, minutes || 0, 0);
+  // Eventos com horário opcional: usa 00:00 quando não houver hora definida.
+  const safeTime = (timeStr && timeStr.trim()) ? timeStr : '00:00';
+  const [hours, minutes] = safeTime.split(':').map(Number);
+  return new Date(year, month - 1, day, hours || 0, minutes || 0, 0);
 }
 
 /**
