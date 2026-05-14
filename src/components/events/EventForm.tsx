@@ -379,6 +379,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         slug: eventSlug,
         blog_post_id: blogPostId,
         end_date: data.end_date || null,
+        time: (data.time && data.time.trim()) ? data.time : null,
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
