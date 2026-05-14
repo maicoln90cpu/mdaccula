@@ -1,10 +1,16 @@
 // ============================================
-// MDAccula Service Worker v10
+// MDAccula Service Worker v12
 // Cache First with TTL + Egress Tracking
+//
+// REGRA CRÍTICA: toda mutação (POST/PATCH/PUT/DELETE) em /rest/v1/<tabela>
+// DEVE invalidar todas as entradas em cache dessa tabela. Sem isso, a UI
+// continua mostrando a versão antiga até o TTL expirar (ex: 30 min em
+// blog_posts/events). Não adicionar novas tabelas a CACHEABLE_API_PATHS
+// sem garantir esse comportamento (ver invalidateApiCache abaixo).
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
@@ -169,6 +175,31 @@ const shouldBypassCache = (url) => {
   return isExternal || isAnalytics || isHotReload;
 };
 
+// Invalidate all cached GET requests for a given /rest/v1/<table> path.
+// Called after any successful POST/PATCH/PUT/DELETE on that table so the
+// next read fetches fresh data instead of serving the stale TTL cache.
+const invalidateApiCache = async (apiPath) => {
+  try {
+    const cache = await caches.open(API_CACHE);
+    const keys = await cache.keys();
+    let removed = 0;
+    await Promise.all(keys.map(async (req) => {
+      try {
+        const u = new URL(req.url);
+        if (u.pathname.startsWith(apiPath)) {
+          await cache.delete(req);
+          removed++;
+        }
+      } catch (_) { /* ignore */ }
+    }));
+    if (removed > 0) {
+      console.log(`[SW] Invalidated ${removed} cached entries for ${apiPath}`);
+    }
+  } catch (err) {
+    console.warn('[SW] invalidateApiCache failed:', err);
+  }
+};
+
 // ============================================
 // CACHE STRATEGIES (with egress tracking)
 // ============================================
@@ -308,7 +339,10 @@ self.addEventListener('fetch', (event) => {
     }
 
     // All other Supabase requests (POST/PUT/DELETE, auth, functions, rpc, non-cached GET)
-    // Measure response bytes for egress tracking
+    // Measure response bytes for egress tracking + invalidate stale cache on writes
+    const method = event.request.method;
+    const isWrite = method === 'POST' || method === 'PATCH' || method === 'PUT' || method === 'DELETE';
+    const isRestWrite = isWrite && url.pathname.startsWith('/rest/v1/');
     event.respondWith(
       fetch(event.request).then(async (response) => {
         try {
@@ -316,6 +350,12 @@ self.addEventListener('fetch', (event) => {
           const buffer = await cloned.arrayBuffer();
           recordEgress(url, false, buffer.byteLength);
         } catch (e) { /* ignore measurement errors */ }
+        // After a successful write to /rest/v1/<table>, drop cached GETs for that table
+        if (isRestWrite && response.ok) {
+          const apiPath = extractApiPath(url);
+          // fire-and-forget; don't block the response
+          invalidateApiCache(apiPath);
+        }
         return response;
       }).catch((err) => { throw err; })
     );
