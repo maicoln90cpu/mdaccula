@@ -1,16 +1,18 @@
 // ============================================
-// MDAccula Service Worker v12
+// MDAccula Service Worker v13
 // Cache First with TTL + Egress Tracking
 //
-// REGRA CRÍTICA: toda mutação (POST/PATCH/PUT/DELETE) em /rest/v1/<tabela>
-// DEVE invalidar todas as entradas em cache dessa tabela. Sem isso, a UI
-// continua mostrando a versão antiga até o TTL expirar (ex: 30 min em
-// blog_posts/events). Não adicionar novas tabelas a CACHEABLE_API_PATHS
-// sem garantir esse comportamento (ver invalidateApiCache abaixo).
+// REGRA 1: toda mutação (POST/PATCH/PUT/DELETE) em /rest/v1/<tabela> DEVE
+//          invalidar todas as entradas em cache dessa tabela. Não adicionar
+//          novas tabelas a CACHEABLE_API_PATHS sem garantir esse comportamento
+//          (ver invalidateApiCache).
+// REGRA 2: requisições originadas de páginas /admin/* fazem BYPASS do cache.
+//          Admin sempre vê dados frescos; visitantes públicos continuam com
+//          cache TTL para economizar egress.
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v12';
+const CACHE_VERSION = 'v13';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
