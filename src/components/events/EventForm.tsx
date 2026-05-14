@@ -426,7 +426,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           title: data.title,
           subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
           override_date: data.date,
-          override_time: data.time,
+          override_time: data.time || null,
           updated_at: new Date().toISOString(),
         };
 
