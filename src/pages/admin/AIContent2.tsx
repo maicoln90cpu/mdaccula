@@ -67,6 +67,21 @@ export default function AIContent2() {
     fetchGeneratedPosts();
   }, []);
 
+  // Auto-refresh: enquanto houver posts recentes (<3min) sem imagem, recarregar a cada 15s
+  // para mostrar a capa assim que o background terminar de gerar.
+  useEffect(() => {
+    const hasPendingImage = generatedPosts.some((p) => {
+      if (p.image_url) return false;
+      const ageMs = Date.now() - new Date(p.created_at).getTime();
+      return ageMs < 3 * 60 * 1000;
+    });
+    if (!hasPendingImage) return;
+    const t = setInterval(() => {
+      fetchGeneratedPosts();
+    }, 15000);
+    return () => clearInterval(t);
+  }, [generatedPosts]);
+
   const fetchTemplates = async () => {
     try {
       const { data, error } = await supabase

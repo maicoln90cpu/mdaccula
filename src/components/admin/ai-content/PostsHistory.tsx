@@ -84,7 +84,7 @@ export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
                   className="flex items-start gap-4 p-4 rounded-lg border hover:border-primary/50 transition-colors"
                 >
                   {/* Thumbnail */}
-                  <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                  <div className="shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-muted relative">
                     {post.image_url ? (
                       <img
                         src={getOptimizedImageUrl(post.image_url)}
@@ -92,8 +92,16 @@ export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
                         className="w-full h-full object-contain"
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      <div className="w-full h-full flex flex-col items-center justify-center gap-1 px-1">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground/50 animate-pulse" />
+                        {(() => {
+                          const ageMin = (Date.now() - new Date(post.created_at).getTime()) / 60000;
+                          return ageMin < 5 ? (
+                            <span className="text-[9px] text-center text-muted-foreground leading-tight">
+                              gerando…
+                            </span>
+                          ) : null;
+                        })()}
                       </div>
                     )}
                   </div>
