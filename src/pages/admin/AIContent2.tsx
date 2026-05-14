@@ -68,20 +68,10 @@ export default function AIContent2() {
     fetchGeneratedPosts();
   }, []);
 
-  // Auto-refresh: enquanto houver posts recentes (<3min) sem imagem, recarregar a cada 15s
-  // para mostrar a capa assim que o background terminar de gerar.
-  useEffect(() => {
-    const hasPendingImage = generatedPosts.some((p) => {
-      if (p.image_url) return false;
-      const ageMs = Date.now() - new Date(p.created_at).getTime();
-      return ageMs < 3 * 60 * 1000;
-    });
-    if (!hasPendingImage) return;
-    const t = setInterval(() => {
-      fetchGeneratedPosts();
-    }, 15000);
-    return () => clearInterval(t);
-  }, [generatedPosts]);
+  // Realtime: substitui o polling de 15s. Qualquer INSERT/UPDATE/DELETE em
+  // blog_posts (incluindo a edge function que escreve image_url no background)
+  // dispara um refresh imediato.
+  useRealtimeTable("blog_posts", fetchGeneratedPosts);
 
   const fetchTemplates = async () => {
     try {
