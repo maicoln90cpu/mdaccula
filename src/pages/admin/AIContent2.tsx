@@ -389,6 +389,35 @@ export default function AIContent2() {
     }
   };
 
+  const handleRegenerateImage = async (postId: string) => {
+    setRegeneratingId(postId);
+    try {
+      const { data, error } = await supabase.functions.invoke("regenerate-blog-image", {
+        body: { postId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Imagem regenerada!",
+        description: "A nova capa foi gerada e salva.",
+      });
+
+      // O realtime já vai atualizar a lista quando o image_url mudar no banco,
+      // mas forçamos um refresh imediato para feedback visual.
+      fetchGeneratedPosts();
+    } catch (error: any) {
+      console.error("Error regenerating image:", error);
+      toast({
+        title: "Erro ao regenerar imagem",
+        description: error.message || "Ocorreu um erro ao gerar a nova capa.",
+        variant: "destructive",
+      });
+    } finally {
+      setRegeneratingId(null);
+    }
+  };
+
   const handleGenerateSelected = async (selected: Suggestion[]) => {
     if (selected.length === 0) return;
 
@@ -585,7 +614,12 @@ export default function AIContent2() {
 
             <TabsContent value="history">
               <div className="w-full">
-                <PostsHistory posts={generatedPosts} isLoading={isLoading} />
+                <PostsHistory
+                  posts={generatedPosts}
+                  isLoading={isLoading}
+                  onRegenerateImage={handleRegenerateImage}
+                  regeneratingId={regeneratingId}
+                />
               </div>
             </TabsContent>
           </Tabs>
