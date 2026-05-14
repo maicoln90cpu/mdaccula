@@ -1080,12 +1080,25 @@ ${aiContextBlock}${ticketsBlock}`;
     }
 
     const totalTime = Date.now() - startTime;
-    console.log(`Post V2 gerado com sucesso: ${post.id} (${totalTime}ms)`);
+    console.log(`Post V2 gerado com sucesso: ${post.id} (${totalTime}ms) imageQueued=${!!imageBgOpts}`);
 
-    return jsonSuccess({ 
-      success: true, 
+    // Disparar geração de imagem em BACKGROUND (não bloqueia a resposta)
+    if (imageBgOpts && post?.id) {
+      try {
+        // @ts-ignore — EdgeRuntime existe no runtime do Supabase
+        EdgeRuntime.waitUntil(generateAndAttachImage(supabase, { postId: post.id, ...imageBgOpts }));
+      } catch (bgErr) {
+        console.error('Falha ao agendar geração de imagem em background:', bgErr);
+      }
+    }
+
+    return jsonSuccess({
+      success: true,
       post: post,
-      message: 'Artigo sobre evento gerado com sucesso!',
+      message: imageBgOpts
+        ? 'Artigo gerado! Imagem sendo processada em segundo plano.'
+        : 'Artigo gerado com sucesso!',
+      imageQueued: !!imageBgOpts,
       processingTimeMs: totalTime
     });
 
