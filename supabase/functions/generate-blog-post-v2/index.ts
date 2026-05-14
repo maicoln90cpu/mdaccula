@@ -676,9 +676,12 @@ ${isCourtesy
     }
     
     // Calculate remaining time for AI text generation
+    // Cap dinâmico: 50s quando vai gerar imagem (precisa reservar 35s p/ imagem),
+    // 110s quando NÃO gera imagem (modelos lentos como gpt-5-mini podem passar de 60s)
     const elapsedBeforeAI = Date.now() - startTime;
-    const aiTextTimeout = Math.min(50000, FUNCTION_TIMEOUT_MS - elapsedBeforeAI - (generateImage ? 35000 : 5000));
-    console.log(`⏱️ AI text timeout: ${aiTextTimeout}ms (elapsed: ${elapsedBeforeAI}ms, reserving ${generateImage ? '35s' : '5s'} for remaining steps)`);
+    const aiTextCap = generateImage ? 50000 : 110000;
+    const aiTextTimeout = Math.min(aiTextCap, FUNCTION_TIMEOUT_MS - elapsedBeforeAI - (generateImage ? 35000 : 5000));
+    console.log(`⏱️ AI text timeout: ${aiTextTimeout}ms (cap=${aiTextCap}ms, elapsed: ${elapsedBeforeAI}ms, reserving ${generateImage ? '35s' : '5s'} for remaining steps)`);
     
     if (aiTextTimeout < 10000) {
       return jsonError('Tempo insuficiente para geração. Tente novamente.', 504);
