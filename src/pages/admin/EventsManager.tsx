@@ -103,6 +103,9 @@ const EventsManager = () => {
     fetchLastMergeLog();
   }, []);
 
+  // Realtime: lista de eventos atualiza automaticamente em qualquer mudança.
+  useRealtimeTable("events", () => fetchEvents());
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase.from("events").delete().eq("id", id);
