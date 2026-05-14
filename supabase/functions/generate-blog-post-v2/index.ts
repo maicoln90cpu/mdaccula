@@ -856,13 +856,12 @@ ${aiContextBlock}${ticketsBlock}`;
       console.log(`Usando temperature ${temperature} para modelo Gemini`);
     }
     
-    // Calculate remaining time for AI text generation
-    // Cap dinâmico: 50s quando vai gerar imagem (precisa reservar 35s p/ imagem),
-    // 110s quando NÃO gera imagem (modelos lentos como gpt-5-mini podem passar de 60s)
+    // Imagem agora é gerada em BACKGROUND (após resposta), então o texto pode usar quase
+    // todo o budget. Cap fixo em 110s independente de generateImage.
     const elapsedBeforeAI = Date.now() - startTime;
-    const aiTextCap = generateImage ? 50000 : 110000;
-    const aiTextTimeout = Math.min(aiTextCap, FUNCTION_TIMEOUT_MS - elapsedBeforeAI - (generateImage ? 35000 : 5000));
-    console.log(`⏱️ AI text timeout: ${aiTextTimeout}ms (cap=${aiTextCap}ms, elapsed: ${elapsedBeforeAI}ms, reserving ${generateImage ? '35s' : '5s'} for remaining steps)`);
+    const aiTextCap = 110000;
+    const aiTextTimeout = Math.min(aiTextCap, FUNCTION_TIMEOUT_MS - elapsedBeforeAI - 5000);
+    console.log(`⏱️ AI text timeout: ${aiTextTimeout}ms (cap=${aiTextCap}ms, elapsed: ${elapsedBeforeAI}ms, imagem será em background)`);
     
     if (aiTextTimeout < 10000) {
       return jsonError('Tempo insuficiente para geração. Tente novamente.', 504);
