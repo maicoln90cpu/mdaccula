@@ -28,6 +28,8 @@ interface BlogPost {
 interface PostsHistoryProps {
   posts: BlogPost[];
   isLoading: boolean;
+  onRegenerateImage?: (postId: string) => void;
+  regeneratingId?: string | null;
 }
 
 export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
