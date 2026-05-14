@@ -19,6 +19,7 @@ import { SortableItem } from "@/components/links/SortableItem";
 import { LinksPageSettings } from "@/components/links/LinksPageSettings";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { isEventVisible } from "@/lib/eventDateHelper";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 
 // Helper para extrair mensagem de erro de forma segura
 const getErrorMessage = (error: unknown): string => {
@@ -133,6 +134,10 @@ const LinksManager = () => {
   useEffect(() => {
     fetchGroups();
   }, []);
+
+  // Realtime: qualquer mudança em custom_links ou link_groups atualiza a lista instantaneamente
+  useRealtimeTable("custom_links", () => fetchGroups());
+  useRealtimeTable("link_groups", () => fetchGroups());
 
   const fetchGroups = async () => {
     try {

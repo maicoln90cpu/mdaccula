@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon } from "lucide-react";
+import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -28,9 +28,11 @@ interface BlogPost {
 interface PostsHistoryProps {
   posts: BlogPost[];
   isLoading: boolean;
+  onRegenerateImage?: (postId: string) => void;
+  regeneratingId?: string | null;
 }
 
-export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
+export function PostsHistory({ posts, isLoading, onRegenerateImage, regeneratingId }: PostsHistoryProps) {
   if (isLoading) {
     return (
       <Card>
@@ -173,6 +175,18 @@ export function PostsHistory({ posts, isLoading }: PostsHistoryProps) {
                           Abrir
                         </a>
                       </Button>
+                      {onRegenerateImage && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onRegenerateImage(post.id)}
+                          disabled={regeneratingId === post.id}
+                          title="Gerar nova imagem de capa"
+                        >
+                          <RefreshCw className={`h-3 w-3 mr-1 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
+                          {regeneratingId === post.id ? "Gerando..." : "Regerar imagem"}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
