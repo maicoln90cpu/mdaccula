@@ -295,17 +295,45 @@ export default function AIContent2() {
     }
   };
 
+  /**
+   * Escolhe o template correto para uma sugestão com base na categoria.
+   * Evita o bug de TODA sugestão usar o template "Evento Padrão" — o que
+   * forçava artigos editoriais a saírem com seção "Lineup" / "Local e horário".
+   */
+  const pickTemplateForSuggestion = (suggestion: Suggestion): PromptTemplate | null => {
+    const cat = (suggestion.category || "").toLowerCase().trim();
+    // Mapa categoria da sugestão → categoria do template no banco
+    const findByCategory = (catName: string) =>
+      templates.find((t) => t.category?.toLowerCase() === catName.toLowerCase());
+
+    if (cat === "eventos") {
+      return findByCategory("Eventos") || templates[0] || null;
+    }
+    if (cat === "festivais") {
+      return findByCategory("Festivais") || findByCategory("Eventos") || templates[0] || null;
+    }
+    if (cat === "entrevistas") {
+      return findByCategory("Entrevistas") || findByCategory("Sugestões") || templates[0] || null;
+    }
+    if (cat === "labels" || cat === "lançamentos" || cat === "lancamentos") {
+      return findByCategory("Labels") || findByCategory("Sugestões") || templates[0] || null;
+    }
+    // Cultura, Tecnologia, Produtores, Cena e qualquer outra → template editorial "Sugestões"
+    return findByCategory("Sugestões") || templates.find((t) => !t.is_default) || templates[0] || null;
+  };
+
   const handleGenerateFromSuggestion = async (suggestion: Suggestion, index: number) => {
     setIsGenerating(true);
     setGeneratingIndex(index);
 
     try {
-      // Find the default template or first available
-      const template = templates.find((t) => t.category === "default") || templates[0];
+      // Escolhe template editorial / evento conforme a categoria da sugestão.
+      const template = pickTemplateForSuggestion(suggestion);
 
       if (!template) {
         throw new Error("Nenhum template disponível");
       }
+      console.log(`[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → template "${template.name}"`);
 
       const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
         body: {
