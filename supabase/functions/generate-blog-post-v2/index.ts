@@ -506,36 +506,50 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ===== BLOCO "DADOS OFICIAIS" — sempre injetado no início do user prompt =====
-    // Garante que TODOS os campos relevantes cheguem à IA, independente do template usar ou não.
-    const officialDataLines: string[] = [];
-    const pushIf = (label: string, val: unknown) => {
-      if (val !== undefined && val !== null && String(val).trim() !== '') {
-        officialDataLines.push(`- ${label}: ${val}`);
+    // ===== DETECTAR MODO: evento real vs artigo editorial/notícia =====
+    // Modo "evento" só liga quando há sinais concretos de evento (data, venue, lineup,
+    // horário, endereço) OU quando o template é da categoria Eventos/Festivais.
+    // Para sugestões editoriais (Cultura, Tecnologia, Produtores, etc.) NÃO injetamos
+    // o bloco "DADOS OFICIAIS" nem as regras anti-hedging de evento — caso contrário
+    // a IA força seções "Lineup" / "Local e horário" / "a confirmar" mesmo sem dados.
+    const hasEventSignals = Boolean(
+      formFields.eventDate || formFields.venue || formFields.lineup ||
+      formFields.eventTime || formFields.address || formFields.locationCity
+    );
+    const templateIsEvent = template.category === 'Eventos' || template.category === 'Festivais';
+    const isEventMode = hasEventSignals || templateIsEvent;
+    console.log(`[generate-blog-post-v2] Modo: ${isEventMode ? 'EVENTO' : 'EDITORIAL'} | template="${template.name}" (${template.category}) | hasEventSignals=${hasEventSignals}`);
+
+    // ===== BLOCO "DADOS OFICIAIS" — só injetado em MODO EVENTO =====
+    if (isEventMode) {
+      const officialDataLines: string[] = [];
+      const pushIf = (label: string, val: unknown) => {
+        if (val !== undefined && val !== null && String(val).trim() !== '') {
+          officialDataLines.push(`- ${label}: ${val}`);
+        }
+      };
+      pushIf('Nome do evento', formFields.eventName || formFields.title);
+      pushIf('Subtítulo/Promoção', formFields.subtitle);
+      pushIf('Data', formFields.dateFormatted || formFields.eventDate);
+      pushIf('Dia da semana', formFields.weekday);
+      pushIf('Horário de início', formFields.eventTime);
+      pushIf('Horário de término', formFields.endTime);
+      pushIf('Local', formFields.eventLocation);
+      pushIf('Casa/Venue', formFields.venue);
+      pushIf('Endereço', formFields.address);
+      pushIf('Cidade', formFields.locationCity);
+      pushIf('Estado', formFields.locationState);
+      pushIf('Gêneros musicais', formFields.genres);
+      pushIf('Lineup confirmado', formFields.lineup);
+      pushIf('Link de ingressos', formFields.ticketLink);
+      pushIf('Link VIP/camarote', formFields.vipLink);
+      pushIf('Descrição oficial', formFields.description);
+
+      if (officialDataLines.length > 0) {
+        const officialDataBlock = `\n\n📋 DADOS OFICIAIS DO EVENTO (use literalmente, NUNCA invente, NUNCA contradiga):\n${officialDataLines.join('\n')}\n\n⚠️ Se algum dado acima estiver presente, ele DEVE aparecer no artigo. Não escreva "a confirmar" para informações que constam aqui.\n`;
+        userPrompt = officialDataBlock + userPrompt;
       }
-    };
-    pushIf('Nome do evento', formFields.eventName || formFields.title);
-    pushIf('Subtítulo/Promoção', formFields.subtitle);
-    pushIf('Data', formFields.dateFormatted || formFields.eventDate);
-    pushIf('Dia da semana', formFields.weekday);
-    pushIf('Horário de início', formFields.eventTime);
-    pushIf('Horário de término', formFields.endTime);
-    pushIf('Local', formFields.eventLocation);
-    pushIf('Casa/Venue', formFields.venue);
-    pushIf('Endereço', formFields.address);
-    pushIf('Cidade', formFields.locationCity);
-    pushIf('Estado', formFields.locationState);
-    pushIf('Gêneros musicais', formFields.genres);
-    pushIf('Lineup confirmado', formFields.lineup);
-    pushIf('Link de ingressos', formFields.ticketLink);
-    pushIf('Link VIP/camarote', formFields.vipLink);
-    pushIf('Descrição oficial', formFields.description);
-
-    const officialDataBlock = officialDataLines.length > 0
-      ? `\n\n📋 DADOS OFICIAIS DO EVENTO (use literalmente, NUNCA invente, NUNCA contradiga):\n${officialDataLines.join('\n')}\n\n⚠️ Se algum dado acima estiver presente, ele DEVE aparecer no artigo. Não escreva "a confirmar" para informações que constam aqui.\n`
-      : '';
-
-    userPrompt = officialDataBlock + userPrompt;
+    }
 
     // Log do prompt após substituições
     console.log('[generate-blog-post-v2] User prompt após substituições (preview):', userPrompt.substring(0, 1200));
@@ -550,25 +564,14 @@ Deno.serve(async (req) => {
     const aiCtxLower = String(formFields.aiContext || '').toLowerCase();
     const isCourtesy = /\b(cortesia|free|gratuito|gratuita|sem venda|sem ingresso|guest list|lista de convidados|open list)\b/.test(aiCtxLower);
 
-    // Construir bloco de contexto do admin (aiContext)
+    // Construir bloco de contexto do admin (aiContext) — vale para qualquer modo
     const aiContextBlock = formFields.aiContext 
       ? `\n\n🎯 INSTRUÇÕES ESPECIAIS DO ADMIN (PRIORIDADE MÁXIMA — respeite literalmente, sobrepõe template e conhecimento prévio):
 ${formFields.aiContext}`
       : '';
 
-    // Adicionar instrução de tamanho máximo ao system prompt
-    const systemPromptWithLength = template.system_prompt + 
-      `\n\n🚨 HIERARQUIA DE PRIORIDADE (ordem absoluta):
-1. INSTRUÇÕES ESPECIAIS DO ADMIN (aiContext)
-2. DADOS OFICIAIS DO EVENTO (bloco no user prompt)
-3. Template
-4. Conhecimento prévio (use APENAS para complementar, nunca para contradizer)
-
-IMPORTANTE: 
-- O artigo deve ter no máximo ${maxArticleLength} caracteres.
-- NUNCA use placeholders como {{eventName}}, {{eventDate}}, {{lineup}}, etc. no texto gerado.
-- Use os valores REAIS fornecidos no bloco "DADOS OFICIAIS".
-- Se um campo NÃO consta nos DADOS OFICIAIS, omita ou escreva "a confirmar" — NUNCA invente.
+    // ===== Blocos condicionais de evento (anti-hedging, ingressos, cupom) =====
+    const eventAntiHedgingBlock = isEventMode ? `
 
 🚨 ANTI-HEDGING (proibido falar "a confirmar" quando o dado existe):
 ${formFields.lineup ? '- Lineup foi fornecido: NÃO escreva "lineup a confirmar" ou "line-up completo ainda não oficializado". Liste os artistas exatos.' : ''}
@@ -581,58 +584,71 @@ ${formFields.weekday ? `- Dia da semana CORRETO é "${formFields.weekday}". NUNC
 
 🚨 PRIORIDADE DOS CAMPOS ESTRUTURADOS:
 - Em caso de conflito entre "description" e os dados estruturados (venue, eventLocation, eventDate, weekday), PRIORIZE os dados estruturados.
-- Não use seu conhecimento de treinamento sobre locais/datas/lineup do evento — use APENAS os DADOS OFICIAIS.
+- Não use seu conhecimento de treinamento sobre locais/datas/lineup do evento — use APENAS os DADOS OFICIAIS.` : '';
 
-🎬 REGRAS OBRIGATÓRIAS PARA O TÍTULO (campo "title" do JSON):
-O título precisa ser EDITORIAL, envolvente e chamativo — como manchete de revista de música eletrônica. NUNCA é só "Nome do Evento | Data | Local".
+    const editorialModeBlock = !isEventMode ? `
 
-PROIBIDO no título:
-- Emojis (☀️, 👁️, 🎵, ⭐ etc.)
-- Separar campos com " | ", " — " ou " - " no estilo "Nome | DD/MM | Cidade"
-- Repetir literalmente o nome do evento + data + local em sequência
-- Datas no formato "DD/MM/AAAA" ou "DD/MM" (use linguagem temporal natural)
-- Começar com "Confira", "Não perca", "Saiba tudo sobre", "Tudo sobre"
-- Inventar adjetivos sobre o evento que não estejam embasados nos DADOS OFICIAIS
+📰 MODO EDITORIAL/NOTÍCIA (NÃO é evento/festa):
+- Este artigo é uma matéria jornalística, opinativa ou de tendências — NÃO é divulgação de festa.
+- PROIBIDO criar seções "Lineup", "Local e horário", "Ingressos", "Como chegar".
+- PROIBIDO escrever "a confirmar", "lineup a confirmar", "venue a confirmar" — não há evento concreto.
+- Estrutura esperada: introdução cativante + 3-4 seções <h3> com análise/contexto + conclusão com perspectiva.
+- Cite artistas, labels, faixas, eventos passados ou tecnologias quando relevante para argumentar.
+- Foque no tema do título e do resumo. Nunca force o texto para um formato de divulgação de evento.` : '';
 
-OBRIGATÓRIO no título:
-- 50 a 80 caracteres
-- Voz ativa, sugerindo clima/atmosfera
-- Pode usar dia da semana ou expressão temporal natural ("nesta sexta", "no próximo sábado", "em maio") quando fizer sentido${formFields.weekday ? ` — o dia correto é "${formFields.weekday}"` : ''}
-- Pode citar headliner do lineup se houver um nome forte
-- Pode citar o venue ou a cidade se for característico
-- Sempre baseado em fatos reais dos DADOS OFICIAIS — nunca inventar
-
-❌ EXEMPLOS RUINS (NÃO faça):
-- "☀️ Sun | 19/09 | Arena Canindé, São Paulo"
-- "👁️ Dunya — Espaço Taal, Barueri/SP — 09/05/2026"
-- "Industria apresenta Dr. Lektroluv — High Club, São Paulo — 15/05/2026"
-- "TANTRAROSA na Varanda Estaiada (SP) — 23 de maio de 2026"
-
-✅ EXEMPLOS BONS (estilo desejado, NÃO copiar literal):
-- "Sun aterrissa na Arena Canindé com noite de tech house em setembro"
-- "Dr. Lektroluv comanda o High Club numa madrugada de techno belga"
-- "TANTRAROSA toma a Varanda Estaiada num sábado de psytrance em SP"
-- "Dunya transforma o Espaço Taal em pista de melodic house neste sábado"
-
-${aiContextBlock}
-
-🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
-${isCourtesy
-  ? `- ⚠️ ESTE EVENTO É CORTESIA / SEM VENDA DE INGRESSOS (conforme aiContext acima).
+    const ticketsBlock = !isEventMode
+      ? `\n\n🚨 LINKS E CTA (modo editorial):
+- NÃO inclua seção de "Ingressos" nem mencione cupom MDACCULA — não é divulgação de evento.
+- NUNCA invente URLs.
+- CTA final sugerido: "Acompanhe a MDAccula para mais novidades da cena eletrônica."`
+      : isCourtesy
+        ? `\n\n🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
+- ⚠️ ESTE EVENTO É CORTESIA / SEM VENDA DE INGRESSOS (conforme aiContext acima).
 - NÃO mencione cupom de desconto MDACCULA.
 - NÃO escreva "garanta seu ingresso", "compre antecipado", "lotes" ou similares.
 - Se houver link, descreva-o como "link para confirmar presença / lista" e não como compra.
 - Ignore qualquer instrução do template que force menção a cupom de desconto.`
-  : hasRealTicketLink 
-    ? `- Link de ingressos REAL fornecido: ${formFields.ticketLink}
+        : hasRealTicketLink
+          ? `\n\n🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
+- Link de ingressos REAL fornecido: ${formFields.ticketLink}
 - Você PODE incluir seção de ingressos com cupom MDACCULA usando este link.`
-    : `- NÃO há link de ingressos fornecido para este artigo.
+          : `\n\n🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
+- NÃO há link de ingressos fornecido para este artigo.
 - NUNCA INVENTE URLs de ingressos como "ticketlink.com.br", "ingressos.com.br", etc.
 - NÃO inclua seção de "Ingressos", "Onde comprar" ou "Garanta seu lugar".
 - NÃO mencione cupom de desconto MDACCULA se não houver link real.
-- Se for artigo noticioso, foque no conteúdo informativo.
-- Use CTA alternativo: "Acompanhe a MDAccula para mais novidades da cena eletrônica."`
-}`;
+- Use CTA alternativo: "Acompanhe a MDAccula para mais novidades da cena eletrônica."`;
+
+    // Adicionar instrução de tamanho máximo + regras de título ao system prompt
+    const systemPromptWithLength = template.system_prompt + 
+      `\n\n🚨 HIERARQUIA DE PRIORIDADE (ordem absoluta):
+1. INSTRUÇÕES ESPECIAIS DO ADMIN (aiContext)
+2. ${isEventMode ? 'DADOS OFICIAIS DO EVENTO (bloco no user prompt)' : 'Tema do título/resumo da sugestão'}
+3. Template
+4. Conhecimento prévio (use APENAS para complementar, nunca para contradizer)
+
+IMPORTANTE: 
+- O artigo deve ter no máximo ${maxArticleLength} caracteres.
+- NUNCA use placeholders como {{eventName}}, {{eventDate}}, {{lineup}}, etc. no texto gerado.
+- ${isEventMode ? 'Use os valores REAIS fornecidos no bloco "DADOS OFICIAIS".' : 'Baseie-se no título e resumo fornecidos.'}
+- Se um campo NÃO existe nos dados fornecidos, omita — NUNCA invente.${eventAntiHedgingBlock}${editorialModeBlock}
+
+🎬 REGRAS OBRIGATÓRIAS PARA O TÍTULO (campo "title" do JSON):
+O título precisa ser EDITORIAL, envolvente e chamativo — como manchete de revista de música eletrônica.
+
+PROIBIDO no título:
+- Emojis (☀️, 👁️, 🎵, ⭐ etc.)
+- Separar campos com " | ", " — " ou " - " no estilo "Nome | DD/MM | Cidade"
+- Datas no formato "DD/MM/AAAA" ou "DD/MM" (use linguagem temporal natural)
+- Começar com "Confira", "Não perca", "Saiba tudo sobre", "Tudo sobre"
+- Inventar adjetivos não embasados nos dados
+
+OBRIGATÓRIO no título:
+- 50 a 80 caracteres
+- Voz ativa, sugerindo clima/atmosfera${formFields.weekday && isEventMode ? ` (dia correto: "${formFields.weekday}")` : ''}
+- Sempre baseado em fatos reais — nunca inventar
+
+${aiContextBlock}${ticketsBlock}`;
     
     // Determinar qual API usar baseado no modelo selecionado
     const isOpenAIModel = selectedModel.startsWith('openai/');
