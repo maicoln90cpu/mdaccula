@@ -1072,6 +1072,29 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
           </div>
 
+          <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
+            <Controller
+              name="pix_button_enabled"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="pix_button_enabled"
+                  checked={!!field.value}
+                  onCheckedChange={(v) => field.onChange(v === true)}
+                  className="mt-0.5"
+                />
+              )}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="pix_button_enabled" className="cursor-pointer">
+                Mostrar botão "Comprar Sem Taxa via Pix"
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa. Requer Link Camarote preenchido.
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Textarea
