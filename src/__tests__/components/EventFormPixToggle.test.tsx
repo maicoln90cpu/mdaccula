@@ -58,7 +58,7 @@ const baseEvent = {
 
 describe('EventForm — toggle Pix persiste estado do banco', () => {
   it('mostra o Switch ON quando pix_button_enabled=true vem do evento', async () => {
-    render(
+    renderForm(
       <EventForm
         event={{ ...baseEvent, pix_button_enabled: true }}
         onSuccess={vi.fn()}
@@ -77,7 +77,7 @@ describe('EventForm — toggle Pix persiste estado do banco', () => {
   });
 
   it('mostra o Switch OFF quando pix_button_enabled=false', async () => {
-    render(
+    renderForm(
       <EventForm
         event={{ ...baseEvent, pix_button_enabled: false }}
         onSuccess={vi.fn()}
@@ -96,7 +96,7 @@ describe('EventForm — toggle Pix persiste estado do banco', () => {
 
   it('mostra OFF quando o campo está ausente (default seguro)', async () => {
     const { pix_button_enabled: _omit, ...evNoField } = { ...baseEvent, pix_button_enabled: undefined } as any;
-    render(
+    renderForm(
       <EventForm event={evNoField} onSuccess={vi.fn()} onCancel={vi.fn()} />,
     );
 
