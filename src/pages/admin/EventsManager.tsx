@@ -129,8 +129,23 @@ const EventsManager = () => {
     }
   };
 
-  const handleEdit = (event: Event) => {
-    setEditingEvent(event);
+  const handleEdit = async (event: Event) => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", event.id)
+      .maybeSingle();
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao abrir editor",
+        description: error.message,
+      });
+      return;
+    }
+
+    setEditingEvent((data as Event | null) || event);
     setShowForm(true);
   };
 
