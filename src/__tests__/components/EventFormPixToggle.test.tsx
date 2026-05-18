@@ -4,6 +4,10 @@ import { MemoryRouter } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { supabase } from '@/integrations/supabase/client';
 
+class ROStub { observe() {} unobserve() {} disconnect() {} }
+(globalThis as any).ResizeObserver = ROStub;
+(window as any).ResizeObserver = ROStub;
+
 const renderForm = (ui: React.ReactElement) =>
   render(<MemoryRouter>{ui}</MemoryRouter>);
 
