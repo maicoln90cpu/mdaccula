@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { supabase } from '@/integrations/supabase/client';
+
+const renderForm = (ui: React.ReactElement) =>
+  render(<MemoryRouter>{ui}</MemoryRouter>);
 
 /**
  * Regressão: ao abrir o modal de edição com pix_button_enabled=true,
