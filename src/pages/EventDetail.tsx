@@ -201,6 +201,23 @@ const EventDetail = () => {
   const ticketButtonText = isListaVIP ? "Enviar Nome para Lista" : "Comprar Ingresso";
   const currentUrl = `https://mdaccula.com/eventos/${event.slug}`;
 
+  // Botão Pix sem taxa: reaproveita o número do WhatsApp do vip_link, trocando a mensagem.
+  const pixWhatsAppLink = (() => {
+    if (!event.pix_button_enabled || !event.vip_link) return null;
+    try {
+      const url = new URL(event.vip_link);
+      const phone = url.searchParams.get("phone");
+      if (!phone) return null;
+      const isGui = phone.includes("5511997819194");
+      const greeting = isGui ? "Olá Gui" : "Olá MD";
+      const message = `${greeting}, quero comprar ingresso sem taxa via Pix para ${event.title}`;
+      url.searchParams.set("text", message);
+      return url.toString();
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <>
       <Helmet>
