@@ -31,6 +31,7 @@ interface EventFormData {
   end_time?: string;
   ticket_link?: string;
   vip_link?: string;
+  pix_button_enabled?: boolean;
   description?: string;
   slug?: string;
   blog_post_id?: string;
