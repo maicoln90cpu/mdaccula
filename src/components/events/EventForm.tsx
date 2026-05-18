@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Plus, X, Upload, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
@@ -386,6 +387,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
         schedule: finalSchedule as any,
+        // Garante envio explícito do toggle Pix (evita perda caso react-hook-form não inclua no spread)
+        pix_button_enabled: data.pix_button_enabled === true,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
@@ -1072,28 +1075,46 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
-            <Controller
-              name="pix_button_enabled"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="pix_button_enabled"
-                  checked={!!field.value}
-                  onCheckedChange={(v) => field.onChange(v === true)}
-                  className="mt-0.5"
+          {(() => {
+            const pixEnabled = watch('pix_button_enabled') === true;
+            const vipLinkVal = (watch('vip_link') || '').trim();
+            const missingVip = pixEnabled && !vipLinkVal;
+            return (
+              <div
+                className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
+                  missingVip
+                    ? 'border-amber-500/60 bg-amber-500/10'
+                    : 'border-input bg-muted/30'
+                }`}
+              >
+                <Controller
+                  name="pix_button_enabled"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="pix_button_enabled"
+                      checked={!!field.value}
+                      onCheckedChange={(v) => field.onChange(v === true)}
+                      className="mt-0.5 data-[state=checked]:bg-[#25D366]"
+                    />
+                  )}
                 />
-              )}
-            />
-            <div className="space-y-1">
-              <Label htmlFor="pix_button_enabled" className="cursor-pointer">
-                Mostrar botão "Comprar Sem Taxa via Pix"
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa. Requer Link Camarote preenchido.
-              </p>
-            </div>
-          </div>
+                <div className="space-y-1">
+                  <Label htmlFor="pix_button_enabled" className="cursor-pointer">
+                    Mostrar botão "Comprar Sem Taxa via Pix"
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa.
+                  </p>
+                  {missingVip && (
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                      ⚠️ O botão NÃO vai aparecer no evento até você preencher um "Link Camarote" acima (Maicoln ou Guilherme).
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
