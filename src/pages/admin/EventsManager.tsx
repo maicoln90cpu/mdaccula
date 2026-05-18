@@ -38,6 +38,7 @@ interface Event {
   lineup?: string[];
   ticket_link?: string;
   vip_link?: string;
+  pix_button_enabled?: boolean;
   views?: number | null;
 }
 
@@ -128,8 +129,23 @@ const EventsManager = () => {
     }
   };
 
-  const handleEdit = (event: Event) => {
-    setEditingEvent(event);
+  const handleEdit = async (event: Event) => {
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .eq("id", event.id)
+      .maybeSingle();
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao abrir editor",
+        description: error.message,
+      });
+      return;
+    }
+
+    setEditingEvent((data as Event | null) || event);
     setShowForm(true);
   };
 
@@ -489,6 +505,7 @@ const EventsManager = () => {
         <Dialog open={showForm} onOpenChange={(open) => !open && handleFormClose()}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <EventForm
+              key={editingEvent?.id || "new-event"}
               event={editingEvent}
               onSuccess={handleFormClose}
               onCancel={handleFormClose}
