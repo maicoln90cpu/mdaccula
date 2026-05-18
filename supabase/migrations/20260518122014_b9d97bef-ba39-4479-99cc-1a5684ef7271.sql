@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS pix_button_enabled boolean NOT NULL DEFAULT false;

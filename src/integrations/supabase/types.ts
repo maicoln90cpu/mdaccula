@@ -513,6 +513,7 @@ export type Database = {
           lineup: string[] | null
           location_city: string
           location_state: string
+          pix_button_enabled: boolean
           schedule: Json | null
           slug: string
           subtitle: string | null
@@ -540,6 +541,7 @@ export type Database = {
           lineup?: string[] | null
           location_city: string
           location_state: string
+          pix_button_enabled?: boolean
           schedule?: Json | null
           slug: string
           subtitle?: string | null
@@ -567,6 +569,7 @@ export type Database = {
           lineup?: string[] | null
           location_city?: string
           location_state?: string
+          pix_button_enabled?: boolean
           schedule?: Json | null
           slug?: string
           subtitle?: string | null

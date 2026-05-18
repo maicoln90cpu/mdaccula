@@ -31,6 +31,7 @@ interface EventFormData {
   end_time?: string;
   ticket_link?: string;
   vip_link?: string;
+  pix_button_enabled?: boolean;
   description?: string;
   slug?: string;
   blog_post_id?: string;
@@ -128,6 +129,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       end_time: event.end_time,
       ticket_link: event.ticket_link,
       vip_link: event.vip_link,
+      pix_button_enabled: event.pix_button_enabled ?? false,
       description: event.description,
       subtitle: event.subtitle,
       blog_post_id: event.blog_post_id,
@@ -1067,6 +1069,29 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                   </Select>
                 )}
               />
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
+            <Controller
+              name="pix_button_enabled"
+              control={control}
+              render={({ field }) => (
+                <Checkbox
+                  id="pix_button_enabled"
+                  checked={!!field.value}
+                  onCheckedChange={(v) => field.onChange(v === true)}
+                  className="mt-0.5"
+                />
+              )}
+            />
+            <div className="space-y-1">
+              <Label htmlFor="pix_button_enabled" className="cursor-pointer">
+                Mostrar botão "Comprar Sem Taxa via Pix"
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa. Requer Link Camarote preenchido.
+              </p>
             </div>
           </div>
 

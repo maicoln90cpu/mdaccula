@@ -44,6 +44,7 @@ interface Event {
   image_url: string;
   ticket_link: string;
   vip_link: string;
+  pix_button_enabled?: boolean;
   blog_post_id: string | null;
   views: number;
   created_at: string;
@@ -200,6 +201,23 @@ const EventDetail = () => {
   const ticketButtonText = isListaVIP ? "Enviar Nome para Lista" : "Comprar Ingresso";
   const currentUrl = `https://mdaccula.com/eventos/${event.slug}`;
 
+  // Botão Pix sem taxa: reaproveita o número do WhatsApp do vip_link, trocando a mensagem.
+  const pixWhatsAppLink = (() => {
+    if (!event.pix_button_enabled || !event.vip_link) return null;
+    try {
+      const url = new URL(event.vip_link);
+      const phone = url.searchParams.get("phone");
+      if (!phone) return null;
+      const isGui = phone.includes("5511997819194");
+      const greeting = isGui ? "Olá Gui" : "Olá MD";
+      const message = `${greeting}, quero comprar ingresso sem taxa via Pix para ${event.title}`;
+      url.searchParams.set("text", message);
+      return url.toString();
+    } catch {
+      return null;
+    }
+  })();
+
   return (
     <>
       <Helmet>
@@ -315,6 +333,18 @@ const EventDetail = () => {
                           <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
+                          </a>
+                        </Button>
+                      )}
+                      {pixWhatsAppLink && (
+                        <Button
+                          asChild
+                          className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white hover:opacity-90"
+                          size="lg"
+                        >
+                          <a href={pixWhatsAppLink} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Comprar Sem Taxa via Pix
                           </a>
                         </Button>
                       )}
@@ -513,6 +543,18 @@ const EventDetail = () => {
                           <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
+                          </a>
+                        </Button>
+                      )}
+                      {pixWhatsAppLink && (
+                        <Button
+                          asChild
+                          className="w-full bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white hover:opacity-90"
+                          size="lg"
+                        >
+                          <a href={pixWhatsAppLink} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Comprar Sem Taxa via Pix
                           </a>
                         </Button>
                       )}
