@@ -1074,28 +1074,46 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
           </div>
 
-          <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
-            <Controller
-              name="pix_button_enabled"
-              control={control}
-              render={({ field }) => (
-                <Checkbox
-                  id="pix_button_enabled"
-                  checked={!!field.value}
-                  onCheckedChange={(v) => field.onChange(v === true)}
-                  className="mt-0.5"
+          {(() => {
+            const pixEnabled = watch('pix_button_enabled') === true;
+            const vipLinkVal = (watch('vip_link') || '').trim();
+            const missingVip = pixEnabled && !vipLinkVal;
+            return (
+              <div
+                className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
+                  missingVip
+                    ? 'border-amber-500/60 bg-amber-500/10'
+                    : 'border-input bg-muted/30'
+                }`}
+              >
+                <Controller
+                  name="pix_button_enabled"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="pix_button_enabled"
+                      checked={!!field.value}
+                      onCheckedChange={(v) => field.onChange(v === true)}
+                      className="mt-0.5 data-[state=checked]:bg-[#25D366]"
+                    />
+                  )}
                 />
-              )}
-            />
-            <div className="space-y-1">
-              <Label htmlFor="pix_button_enabled" className="cursor-pointer">
-                Mostrar botão "Comprar Sem Taxa via Pix"
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa. Requer Link Camarote preenchido.
-              </p>
-            </div>
-          </div>
+                <div className="space-y-1">
+                  <Label htmlFor="pix_button_enabled" className="cursor-pointer">
+                    Mostrar botão "Comprar Sem Taxa via Pix"
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa.
+                  </p>
+                  {missingVip && (
+                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                      ⚠️ O botão NÃO vai aparecer no evento até você preencher um "Link Camarote" acima (Maicoln ou Guilherme).
+                    </p>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
