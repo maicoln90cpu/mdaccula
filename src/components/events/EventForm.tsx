@@ -386,6 +386,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
         schedule: finalSchedule as any,
+        // Garante envio explícito do toggle Pix (evita perda caso react-hook-form não inclua no spread)
+        pix_button_enabled: data.pix_button_enabled === true,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
