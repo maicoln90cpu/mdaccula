@@ -65,10 +65,12 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
     return new Set(links).size > 1;
   }, [events]);
 
-  // Inicializa o toggle automaticamente ao abrir o modal (apenas 1x).
-  if (ticketsPerDay === null && events.length > 0) {
-    setTicketsPerDay(hasDistinctTicketLinks);
-  }
+  // Inicializa o toggle automaticamente ao abrir o modal.
+  useEffect(() => {
+    if (open) {
+      setTicketsPerDay(hasDistinctTicketLinks);
+    }
+  }, [open, hasDistinctTicketLinks]);
   const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
 
   const handleMerge = async () => {
