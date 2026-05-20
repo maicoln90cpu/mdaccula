@@ -204,6 +204,13 @@ const EventDetail = () => {
   const ticketButtonText = isListaVIP ? "Enviar Nome para Lista" : "Comprar Ingresso";
   const currentUrl = `https://mdaccula.com/eventos/${event.slug}`;
 
+  // Fase 5: quando evento é multi-dia e admin marcou "um link por dia",
+  // o botão Comprar Ingresso abre modal de seleção em vez de ir direto ao ticket_link.
+  const useDayPicker =
+    event.tickets_per_day === true &&
+    !!event.end_date &&
+    event.end_date !== event.date;
+
   // Botão Pix sem taxa: reaproveita o número do WhatsApp do vip_link, trocando a mensagem.
   const pixWhatsAppLink = (() => {
     if (!event.pix_button_enabled || !event.vip_link) return null;
