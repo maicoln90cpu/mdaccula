@@ -513,9 +513,12 @@ export type Database = {
           lineup: string[] | null
           location_city: string
           location_state: string
+          merged_at: string | null
+          merged_into_id: string | null
           pix_button_enabled: boolean
           schedule: Json | null
           slug: string
+          status: string
           subtitle: string | null
           ticket_link: string | null
           tickets_per_day: boolean
@@ -542,9 +545,12 @@ export type Database = {
           lineup?: string[] | null
           location_city: string
           location_state: string
+          merged_at?: string | null
+          merged_into_id?: string | null
           pix_button_enabled?: boolean
           schedule?: Json | null
           slug: string
+          status?: string
           subtitle?: string | null
           ticket_link?: string | null
           tickets_per_day?: boolean
@@ -571,9 +577,12 @@ export type Database = {
           lineup?: string[] | null
           location_city?: string
           location_state?: string
+          merged_at?: string | null
+          merged_into_id?: string | null
           pix_button_enabled?: boolean
           schedule?: Json | null
           slug?: string
+          status?: string
           subtitle?: string | null
           ticket_link?: string | null
           tickets_per_day?: boolean
@@ -597,6 +606,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_merged_into_id_fkey"
+            columns: ["merged_into_id"]
+            isOneToOne: false
+            referencedRelation: "events"
             referencedColumns: ["id"]
           },
         ]
