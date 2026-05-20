@@ -55,6 +55,14 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
     return { start, end };
   }, [events]);
 
+  // Fase 5: avisa quando os eventos têm ticket_links distintos.
+  const hasDistinctTicketLinks = useMemo(() => {
+    const links = events
+      .map((e) => (e.ticket_link || "").trim())
+      .filter(Boolean);
+    return new Set(links).size > 1;
+  }, [events]);
+
   const handleMerge = async () => {
     if (!primary || !dateRange) return;
     setMerging(true);
