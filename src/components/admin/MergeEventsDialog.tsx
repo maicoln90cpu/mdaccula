@@ -194,12 +194,18 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         }
       }
 
-      // 7. Deletar duplicados
+      // 7. Soft-delete dos duplicados: marca como merged_inactive em vez de DELETE.
+      // Permite reativar via admin e mantém histórico/FKs intactos.
       if (duplicateIds.length > 0) {
-        console.log("[merge] step 7 · deleting duplicates", { ids: duplicateIds });
+        console.log("[merge] step 7 · soft-deleting duplicates", { ids: duplicateIds });
         const { error: delErr } = await supabase
           .from("events")
-          .delete()
+          .update({
+            status: "merged_inactive",
+            merged_into_id: primary.id,
+            merged_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any)
           .in("id", duplicateIds);
         if (delErr) throw delErr;
       }
@@ -249,7 +255,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           <DialogTitle>Mesclar {events.length} eventos em 1 festival</DialogTitle>
           <DialogDescription>
             Resultado: <strong>{formatEventDateRange(dateRange.start, dateRange.end)}</strong>.
-            Os eventos não escolhidos como principal serão deletados, mas seus links de venda e contagem de views serão preservados no principal.
+            Os eventos não escolhidos como principal serão inativados (ocultos do site, reativáveis pelo admin), e seus links de venda e contagem de views serão preservados no principal.
           </DialogDescription>
         </DialogHeader>
 
@@ -278,7 +284,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Ação destrutiva. {duplicates.length} evento(s) serão deletados. Um snapshot fica salvo em logs por 7 dias para rollback manual.
+                Ação reversível. {duplicates.length} evento(s) serão <strong>inativados</strong> (não deletados) e poderão ser reativados a qualquer momento pelo admin.
               </AlertDescription>
             </Alert>
 
@@ -340,7 +346,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
                     </li>
                   )}
                   <li>Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o festival).</li>
-                  <li>Deletar {duplicates.length} evento(s) duplicado(s) (snapshot fica salvo para desfazer).</li>
+                  <li><strong>Inativar</strong> {duplicates.length} evento(s) duplicado(s) (ficam ocultos do site mas podem ser reativados pelo admin).</li>
                   <li>
                     Definir <strong>"Um link de venda por dia"</strong>:{" "}
                     {effectiveTicketsPerDay ? "LIGADO (modal por dia)" : "DESLIGADO (link único)"}.

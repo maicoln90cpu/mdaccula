@@ -77,6 +77,17 @@ const EventDetail = () => {
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
+
+      // Fase 6.2: se o evento existe mas foi inativado por mesclagem, segue p/ o principal.
+      if (data && (data as any).status === "merged_inactive" && (data as any).merged_into_id) {
+        const { data: target, error: targetErr } = await supabase
+          .from("events")
+          .select("*")
+          .eq("id", (data as any).merged_into_id)
+          .maybeSingle();
+        if (targetErr) throw targetErr;
+        if (target) return target as Event | null;
+      }
       if (data) return data as Event | null;
 
       // Fallback: slug antigo (evento mesclado em festival)
@@ -132,6 +143,7 @@ const EventDetail = () => {
       const { data } = await supabase
         .from("events")
         .select("id, title, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, description, image_url, ticket_link, vip_link, blog_post_id, views, created_at")
+        .eq("status", "active")
         .overlaps("genres", event!.genres)
         .neq("id", event!.id)
         .gte("date", new Date().toISOString().split("T")[0])

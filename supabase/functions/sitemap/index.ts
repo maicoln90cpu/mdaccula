@@ -58,6 +58,7 @@ Deno.serve(async (req) => {
     const { data: events } = await supabase
       .from('events')
       .select('slug, updated_at')
+      .eq('status', 'active')
       .gte('date', new Date().toISOString().split('T')[0])
       .order('updated_at', { ascending: false });
     logEgress(supabase, 'events', events);
