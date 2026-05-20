@@ -17,6 +17,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isAdminLoading: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthResponse>;
   signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<AuthResponse>;
