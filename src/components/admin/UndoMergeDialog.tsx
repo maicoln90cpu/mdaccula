@@ -95,14 +95,33 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
         if (redErr) throw redErr;
       }
 
-      // 2. Reinserir eventos deletados (preserva IDs)
-      // Sanitiza campos virtuais que não devem ir no INSERT
-      const rowsToInsert = snapshot.map((e: any) => {
-        const { ...row } = e;
-        return row;
-      });
-      if (rowsToInsert.length > 0) {
-        const { error: insErr } = await supabase.from("events").insert(rowsToInsert);
+      // 2. Reativar (soft-delete) ou Reinserir (legado) eventos.
+      // Eventos mesclados via Fase 6.2 continuam existindo com status='merged_inactive'.
+      // Mesclagens antigas (pré-6.2) realmente foram DELETE → precisam INSERT.
+      const snapshotIds = snapshot.map((e: any) => e.id);
+      const { data: existingRows } = await supabase
+        .from("events")
+        .select("id")
+        .in("id", snapshotIds);
+      const existingIds = new Set((existingRows || []).map((r: any) => r.id));
+
+      const toReactivate = snapshotIds.filter((id: string) => existingIds.has(id));
+      const toInsert = snapshot.filter((e: any) => !existingIds.has(e.id));
+
+      if (toReactivate.length > 0) {
+        const { error: reactErr } = await supabase
+          .from("events")
+          .update({
+            status: "active",
+            merged_into_id: null,
+            merged_at: null,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .in("id", toReactivate);
+        if (reactErr) throw reactErr;
+      }
+      if (toInsert.length > 0) {
+        const { error: insErr } = await supabase.from("events").insert(toInsert);
         if (insErr) throw insErr;
       }
 
