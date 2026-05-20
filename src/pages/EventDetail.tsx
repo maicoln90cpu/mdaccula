@@ -143,6 +143,7 @@ const EventDetail = () => {
       const { data } = await supabase
         .from("events")
         .select("id, title, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, description, image_url, ticket_link, vip_link, blog_post_id, views, created_at")
+        .eq("status", "active")
         .overlaps("genres", event!.genres)
         .neq("id", event!.id)
         .gte("date", new Date().toISOString().split("T")[0])
