@@ -154,6 +154,35 @@ const EventsManager = () => {
     }
   };
 
+  const handleReactivate = async (event: Event) => {
+    setReactivatingId(event.id);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          status: "active",
+          merged_into_id: null,
+          merged_at: null,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", event.id);
+      if (error) throw error;
+      toast({
+        title: "Evento reativado",
+        description: `"${event.title}" voltou a ficar ativo. O evento principal não foi alterado.`,
+      });
+      fetchEvents();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao reativar evento",
+        description: error.message,
+      });
+    } finally {
+      setReactivatingId(null);
+    }
+  };
+
   const handleEdit = async (event: Event) => {
     const { data, error } = await supabase
       .from("events")
