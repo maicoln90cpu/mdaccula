@@ -92,8 +92,9 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
           <GitMerge className="w-12 h-12 mx-auto mb-3 text-muted-foreground" />
           <h3 className="text-lg font-semibold mb-1">Nenhuma mesclagem ativa</h3>
           <p className="text-sm text-muted-foreground">
-            Mesclagens dos últimos 7 dias que ainda podem ser desfeitas aparecem aqui.
+            Mesclagens cujos eventos ainda não ocorreram aparecem aqui e podem ser desfeitas.
           </p>
+
         </CardContent>
       </Card>
     );
