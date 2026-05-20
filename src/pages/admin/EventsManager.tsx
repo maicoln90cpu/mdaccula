@@ -42,6 +42,9 @@ interface Event {
   vip_link?: string;
   pix_button_enabled?: boolean;
   views?: number | null;
+  status?: string;
+  merged_into_id?: string | null;
+  merged_at?: string | null;
 }
 
 const EventsManager = () => {
