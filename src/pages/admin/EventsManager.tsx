@@ -63,6 +63,9 @@ const EventsManager = () => {
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [lastMergeLog, setLastMergeLog] = useState<any | null>(null);
   const [showUndoDialog, setShowUndoDialog] = useState(false);
+  const [showMerged, setShowMerged] = useState(false);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
+  const [mergedPrimaryTitles, setMergedPrimaryTitles] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   // Busca a última mesclagem desfazível (sem undo posterior)
@@ -86,14 +89,28 @@ const EventsManager = () => {
 
   const fetchEvents = async () => {
     try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("status", "active")
-        .order("date", { ascending: true });
+      let query = supabase.from("events").select("*").order("date", { ascending: true });
+      if (!showMerged) {
+        query = query.eq("status", "active");
+      }
+      const { data, error } = await query;
 
       if (error) throw error;
-      setEvents(data || []);
+      const list = (data || []) as Event[];
+      setEvents(list);
+
+      // Buscar títulos dos eventos principais para os inativos (badge "Mesclado em…")
+      const primaryIds = Array.from(
+        new Set(list.filter((e) => e.status === "merged_inactive" && e.merged_into_id).map((e) => e.merged_into_id as string)),
+      );
+      if (primaryIds.length > 0) {
+        const { data: primaries } = await supabase.from("events").select("id, title").in("id", primaryIds);
+        const map: Record<string, string> = {};
+        (primaries || []).forEach((p: any) => { map[p.id] = p.title; });
+        setMergedPrimaryTitles(map);
+      } else {
+        setMergedPrimaryTitles({});
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -108,7 +125,9 @@ const EventsManager = () => {
   useEffect(() => {
     fetchEvents();
     fetchLastMergeLog();
-  }, []);
+     
+  }, [showMerged]);
+
 
   // Realtime: lista de eventos atualiza automaticamente em qualquer mudança.
   useRealtimeTable("events", () => fetchEvents());
