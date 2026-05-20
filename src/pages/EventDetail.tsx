@@ -77,6 +77,17 @@ const EventDetail = () => {
         .eq("slug", slug)
         .maybeSingle();
       if (error) throw error;
+
+      // Fase 6.2: se o evento existe mas foi inativado por mesclagem, segue p/ o principal.
+      if (data && (data as any).status === "merged_inactive" && (data as any).merged_into_id) {
+        const { data: target, error: targetErr } = await supabase
+          .from("events")
+          .select("*")
+          .eq("id", (data as any).merged_into_id)
+          .maybeSingle();
+        if (targetErr) throw targetErr;
+        if (target) return target as Event | null;
+      }
       if (data) return data as Event | null;
 
       // Fallback: slug antigo (evento mesclado em festival)
