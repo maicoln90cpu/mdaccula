@@ -365,7 +365,7 @@ const LinksManager = () => {
     }
   };
 
-  const handleDeleteGroupOptimistic = handleDeleteGroup;
+  
 
   const handleDuplicateLink = async (link: CustomLink) => {
     try {
