@@ -156,7 +156,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         if (linkErr) throw linkErr;
       }
 
-      // 5. Atualizar evento principal: end_date + schedule + views consolidadas
+      // 5. Atualizar evento principal: end_date + schedule + views consolidadas + tickets_per_day
       const { error: updateErr } = await supabase
         .from("events")
         .update({
@@ -165,6 +165,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           views: totalViews,
           blog_post_id: inheritedBlogPostId,
           schedule: autoSchedule as any,
+          tickets_per_day: effectiveTicketsPerDay,
           updated_at: new Date().toISOString(),
         })
         .eq("id", primary.id);
