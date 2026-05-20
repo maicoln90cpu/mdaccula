@@ -258,14 +258,34 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
               </AlertDescription>
             </Alert>
 
-            {hasDistinctTicketLinks && (
-              <Alert className="border-amber-500/50 bg-amber-500/5">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-sm">
-                  Os eventos selecionados têm <strong>links de venda diferentes</strong>. Após mesclar, edite o evento principal e ative <strong>"Um link de venda por dia"</strong> para que o botão "Comprar Ingresso" abra um modal de seleção de dia em vez de ir direto a um único link.
-                </AlertDescription>
-              </Alert>
-            )}
+            <div
+              className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
+                hasDistinctTicketLinks
+                  ? "border-amber-500/50 bg-amber-500/5"
+                  : "border-input bg-muted/30"
+              }`}
+            >
+              <Switch
+                id="merge-tickets-per-day"
+                checked={effectiveTicketsPerDay}
+                onCheckedChange={(v) => setTicketsPerDay(v === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="merge-tickets-per-day" className="cursor-pointer">
+                  Um link de venda por dia (festival)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Quando ligado, o botão "Comprar Ingresso" na página do festival abre um <strong>modal de seleção do dia</strong> (cada dia abre o seu próprio link). Quando desligado, o botão vai direto para o link único do evento principal.
+                </p>
+                {hasDistinctTicketLinks && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    Detectamos <strong>links de venda diferentes</strong> nos eventos selecionados — recomendamos manter ligado.
+                  </p>
+                )}
+              </div>
+            </div>
+
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
