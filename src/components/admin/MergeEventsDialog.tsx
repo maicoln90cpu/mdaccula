@@ -284,7 +284,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Ação destrutiva. {duplicates.length} evento(s) serão deletados. Um snapshot fica salvo em logs por 7 dias para rollback manual.
+                Ação reversível. {duplicates.length} evento(s) serão <strong>inativados</strong> (não deletados) e poderão ser reativados a qualquer momento pelo admin.
               </AlertDescription>
             </Alert>
 
