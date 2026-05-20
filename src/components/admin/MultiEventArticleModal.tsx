@@ -84,6 +84,7 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
       const { data, error } = await supabase
         .from("events")
         .select("*")
+        .eq("status", "active")
         .order("date", { ascending: true });
 
       if (error) throw error;
