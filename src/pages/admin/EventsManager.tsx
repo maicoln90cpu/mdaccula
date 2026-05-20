@@ -496,8 +496,17 @@ const EventsManager = () => {
                   )}
                   <CardHeader>
                     <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                    {event.status === "merged_inactive" && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 text-[11px] uppercase font-semibold w-fit">
+                        <GitMerge className="w-3 h-3" />
+                        Inativo · mesclado{event.merged_into_id && mergedPrimaryTitles[event.merged_into_id]
+                          ? ` em "${mergedPrimaryTitles[event.merged_into_id]}"`
+                          : ""}
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
+
                     <div className="space-y-2 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2" />
