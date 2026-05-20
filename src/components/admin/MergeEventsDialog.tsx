@@ -57,13 +57,19 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
     return { start, end };
   }, [events]);
 
-  // Fase 5: avisa quando os eventos têm ticket_links distintos.
+  // Fase 5: detecta links de venda distintos para sugerir default do toggle.
   const hasDistinctTicketLinks = useMemo(() => {
     const links = events
       .map((e) => (e.ticket_link || "").trim())
       .filter(Boolean);
     return new Set(links).size > 1;
   }, [events]);
+
+  // Inicializa o toggle automaticamente ao abrir o modal (apenas 1x).
+  if (ticketsPerDay === null && events.length > 0) {
+    setTicketsPerDay(hasDistinctTicketLinks);
+  }
+  const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
 
   const handleMerge = async () => {
     if (!primary || !dateRange) return;
