@@ -51,17 +51,20 @@ describe("ErrorBoundary", () => {
       sessionStorage.clear();
       reloadSpy = vi.fn();
       originalLocation = window.location;
-      // @ts-expect-error stub for test
-      delete window.location;
-      // @ts-expect-error stub for test
-      window.location = { ...originalLocation, reload: reloadSpy };
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: { ...originalLocation, reload: reloadSpy },
+      });
     });
 
     afterEach(() => {
-      // @ts-expect-error restore
-      window.location = originalLocation;
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        value: originalLocation,
+      });
       sessionStorage.clear();
     });
+
 
     it("dispara reload quando erro é de chunk obsoleto", () => {
       const spy = vi.spyOn(console, "error").mockImplementation(() => {});
