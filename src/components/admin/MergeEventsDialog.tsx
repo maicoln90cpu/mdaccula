@@ -81,6 +81,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       const allIds = [primary.id, ...duplicateIds];
 
       // 0. Buscar dados COMPLETOS de todos os eventos (necessário p/ schedule e snapshot do principal)
+      console.log("[merge] step 0 · fetching full events", { allIds });
       const { data: fullEvents, error: fetchErr } = await supabase
         .from("events")
         .select("*")
@@ -92,6 +93,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       if (!fullPrimary) throw new Error("Evento principal não encontrado.");
 
       // 0b. Buscar links que serão repontados (precisamos pra rollback)
+      console.log("[merge] step 0b · fetching links to repoint");
       const { data: linksToRepoint } = await supabase
         .from("custom_links")
         .select("id, event_id")
@@ -118,6 +120,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         null;
 
       // 3. Snapshot COMPLETO para rollback (inclui estado pré-merge do principal e mapping de links)
+      console.log("[merge] step 3 · inserting snapshot log");
       await supabase.from("application_logs").insert([{
         level: "info",
         message: `Mesclagem de eventos: ${duplicates.length} → 1`,
@@ -149,6 +152,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
 
       // 4. Repontar custom_links dos duplicados → principal
       if (duplicateIds.length > 0) {
+        console.log("[merge] step 4 · repointing custom_links", { count: duplicateIds.length });
         const { error: linkErr } = await supabase
           .from("custom_links")
           .update({ event_id: primary.id, updated_at: new Date().toISOString() })
@@ -157,6 +161,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       }
 
       // 5. Atualizar evento principal: end_date + schedule + views consolidadas + tickets_per_day
+      console.log("[merge] step 5 · updating primary event");
       const { error: updateErr } = await supabase
         .from("events")
         .update({
@@ -181,6 +186,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             reason: `merged into festival "${primary.title}"`,
           }));
         if (redirectRows.length > 0) {
+          console.log("[merge] step 6 · upserting slug redirects", { count: redirectRows.length });
           const { error: redirErr } = await supabase
             .from("event_slug_redirects")
             .upsert(redirectRows, { onConflict: "old_slug" });
@@ -190,6 +196,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
 
       // 7. Deletar duplicados
       if (duplicateIds.length > 0) {
+        console.log("[merge] step 7 · deleting duplicates", { ids: duplicateIds });
         const { error: delErr } = await supabase
           .from("events")
           .delete()
@@ -197,13 +204,22 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         if (delErr) throw delErr;
       }
 
+      console.log("[merge] step 7 done · todas as operações concluídas com sucesso");
       toast({
         title: "Eventos mesclados!",
         description: `${duplicates.length + 1} eventos viraram 1 festival de ${formatEventDateRange(dateRange.start, dateRange.end)}.`,
       });
-      onSuccess();
+      // Fase 6.1: garantir que UI atualize ANTES de fechar o modal,
+      // evitando bug de "precisa atualizar a página"
+      try {
+        await Promise.resolve(onSuccess());
+      } catch (cbErr) {
+        console.warn("[merge] onSuccess callback falhou (não bloqueia merge):", cbErr);
+      }
+      setMerging(false);
       onOpenChange(false);
       setConfirming(false);
+      return;
     } catch (err: any) {
       console.error("[MergeEventsDialog] Erro ao mesclar:", err);
       toast({
@@ -211,7 +227,6 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         title: "Erro ao mesclar eventos",
         description: err.message || "Tente novamente. Nenhuma alteração foi salva.",
       });
-    } finally {
       setMerging(false);
     }
   };
@@ -219,7 +234,16 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
   if (!events.length || !dateRange) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) setConfirming(false); onOpenChange(o); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        // Fase 6.1: trava o modal durante a operação — impede que realtime/cliques
+        // acidentais fechem o dialog no meio da mesclagem.
+        if (merging) return;
+        if (!o) setConfirming(false);
+        onOpenChange(o);
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Mesclar {events.length} eventos em 1 festival</DialogTitle>
@@ -305,10 +329,18 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
               <AlertDescription>
                 <strong>Confirmação final.</strong> Vou:
                 <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
-                  <li>Atualizar <strong>{primary?.title}</strong> com data {formatEventDateRange(dateRange.start, dateRange.end)}.</li>
-                  <li>Repontar links de venda dos {duplicates.length} duplicados para o principal.</li>
+                  <li>Atualizar <strong>{primary?.title}</strong> com data {formatEventDateRange(dateRange.start, dateRange.end)} (vira o "guarda-chuva" do festival).</li>
+                  {effectiveTicketsPerDay ? (
+                    <li>
+                      <strong>Preservar</strong> os links de venda originais de cada dia, apenas reassociando-os ao festival. O botão <strong>Comprar Ingresso</strong> abrirá um <strong>modal de seleção do dia</strong>, e cada dia abrirá o seu próprio link.
+                    </li>
+                  ) : (
+                    <li>
+                      Repontar os {duplicates.length} link(s) de venda dos duplicados para o principal — o botão <strong>Comprar Ingresso</strong> usará o <strong>link único</strong> do evento principal.
+                    </li>
+                  )}
                   <li>Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o festival).</li>
-                  <li>Deletar {duplicates.length} evento(s) duplicado(s).</li>
+                  <li>Deletar {duplicates.length} evento(s) duplicado(s) (snapshot fica salvo para desfazer).</li>
                   <li>
                     Definir <strong>"Um link de venda por dia"</strong>:{" "}
                     {effectiveTicketsPerDay ? "LIGADO (modal por dia)" : "DESLIGADO (link único)"}.
