@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
   const [primaryId, setPrimaryId] = useState<string>(events[0]?.id || "");
   const [confirming, setConfirming] = useState(false);
   const [merging, setMerging] = useState(false);
+  const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
   const { toast } = useToast();
 
   const primary = events.find((e) => e.id === primaryId);
@@ -55,13 +57,21 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
     return { start, end };
   }, [events]);
 
-  // Fase 5: avisa quando os eventos têm ticket_links distintos.
+  // Fase 5: detecta links de venda distintos para sugerir default do toggle.
   const hasDistinctTicketLinks = useMemo(() => {
     const links = events
       .map((e) => (e.ticket_link || "").trim())
       .filter(Boolean);
     return new Set(links).size > 1;
   }, [events]);
+
+  // Inicializa o toggle automaticamente ao abrir o modal.
+  useEffect(() => {
+    if (open) {
+      setTicketsPerDay(hasDistinctTicketLinks);
+    }
+  }, [open, hasDistinctTicketLinks]);
+  const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
 
   const handleMerge = async () => {
     if (!primary || !dateRange) return;
@@ -146,7 +156,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         if (linkErr) throw linkErr;
       }
 
-      // 5. Atualizar evento principal: end_date + schedule + views consolidadas
+      // 5. Atualizar evento principal: end_date + schedule + views consolidadas + tickets_per_day
       const { error: updateErr } = await supabase
         .from("events")
         .update({
@@ -155,6 +165,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           views: totalViews,
           blog_post_id: inheritedBlogPostId,
           schedule: autoSchedule as any,
+          tickets_per_day: effectiveTicketsPerDay,
           updated_at: new Date().toISOString(),
         })
         .eq("id", primary.id);
@@ -247,14 +258,34 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
               </AlertDescription>
             </Alert>
 
-            {hasDistinctTicketLinks && (
-              <Alert className="border-amber-500/50 bg-amber-500/5">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription className="text-sm">
-                  Os eventos selecionados têm <strong>links de venda diferentes</strong>. Após mesclar, edite o evento principal e ative <strong>"Um link de venda por dia"</strong> para que o botão "Comprar Ingresso" abra um modal de seleção de dia em vez de ir direto a um único link.
-                </AlertDescription>
-              </Alert>
-            )}
+            <div
+              className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
+                hasDistinctTicketLinks
+                  ? "border-amber-500/50 bg-amber-500/5"
+                  : "border-input bg-muted/30"
+              }`}
+            >
+              <Switch
+                id="merge-tickets-per-day"
+                checked={effectiveTicketsPerDay}
+                onCheckedChange={(v) => setTicketsPerDay(v === true)}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="merge-tickets-per-day" className="cursor-pointer">
+                  Um link de venda por dia (festival)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Quando ligado, o botão "Comprar Ingresso" na página do festival abre um <strong>modal de seleção do dia</strong> (cada dia abre o seu próprio link). Quando desligado, o botão vai direto para o link único do evento principal.
+                </p>
+                {hasDistinctTicketLinks && (
+                  <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                    Detectamos <strong>links de venda diferentes</strong> nos eventos selecionados — recomendamos manter ligado.
+                  </p>
+                )}
+              </div>
+            </div>
+
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -278,6 +309,10 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
                   <li>Repontar links de venda dos {duplicates.length} duplicados para o principal.</li>
                   <li>Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o festival).</li>
                   <li>Deletar {duplicates.length} evento(s) duplicado(s).</li>
+                  <li>
+                    Definir <strong>"Um link de venda por dia"</strong>:{" "}
+                    {effectiveTicketsPerDay ? "LIGADO (modal por dia)" : "DESLIGADO (link único)"}.
+                  </li>
                 </ul>
               </AlertDescription>
             </Alert>
