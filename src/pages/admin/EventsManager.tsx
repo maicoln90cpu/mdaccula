@@ -42,6 +42,9 @@ interface Event {
   vip_link?: string;
   pix_button_enabled?: boolean;
   views?: number | null;
+  status?: string;
+  merged_into_id?: string | null;
+  merged_at?: string | null;
 }
 
 const EventsManager = () => {
@@ -60,6 +63,9 @@ const EventsManager = () => {
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [lastMergeLog, setLastMergeLog] = useState<any | null>(null);
   const [showUndoDialog, setShowUndoDialog] = useState(false);
+  const [showMerged, setShowMerged] = useState(false);
+  const [reactivatingId, setReactivatingId] = useState<string | null>(null);
+  const [mergedPrimaryTitles, setMergedPrimaryTitles] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   // Busca a última mesclagem desfazível (sem undo posterior)
@@ -83,14 +89,28 @@ const EventsManager = () => {
 
   const fetchEvents = async () => {
     try {
-      const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("status", "active")
-        .order("date", { ascending: true });
+      let query = supabase.from("events").select("*").order("date", { ascending: true });
+      if (!showMerged) {
+        query = query.eq("status", "active");
+      }
+      const { data, error } = await query;
 
       if (error) throw error;
-      setEvents(data || []);
+      const list = (data || []) as Event[];
+      setEvents(list);
+
+      // Buscar títulos dos eventos principais para os inativos (badge "Mesclado em…")
+      const primaryIds = Array.from(
+        new Set(list.filter((e) => e.status === "merged_inactive" && e.merged_into_id).map((e) => e.merged_into_id as string)),
+      );
+      if (primaryIds.length > 0) {
+        const { data: primaries } = await supabase.from("events").select("id, title").in("id", primaryIds);
+        const map: Record<string, string> = {};
+        (primaries || []).forEach((p: any) => { map[p.id] = p.title; });
+        setMergedPrimaryTitles(map);
+      } else {
+        setMergedPrimaryTitles({});
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -105,7 +125,9 @@ const EventsManager = () => {
   useEffect(() => {
     fetchEvents();
     fetchLastMergeLog();
-  }, []);
+     
+  }, [showMerged]);
+
 
   // Realtime: lista de eventos atualiza automaticamente em qualquer mudança.
   useRealtimeTable("events", () => fetchEvents());
@@ -129,6 +151,35 @@ const EventsManager = () => {
       });
     } finally {
       setDeletingEventId(null);
+    }
+  };
+
+  const handleReactivate = async (event: Event) => {
+    setReactivatingId(event.id);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({
+          status: "active",
+          merged_into_id: null,
+          merged_at: null,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", event.id);
+      if (error) throw error;
+      toast({
+        title: "Evento reativado",
+        description: `"${event.title}" voltou a ficar ativo. O evento principal não foi alterado.`,
+      });
+      fetchEvents();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao reativar evento",
+        description: error.message,
+      });
+    } finally {
+      setReactivatingId(null);
     }
   };
 
@@ -399,6 +450,18 @@ const EventsManager = () => {
               </Button>
             </div>
 
+            <label className="flex items-center gap-2 mb-4 text-sm text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={showMerged}
+                onCheckedChange={(v) => setShowMerged(Boolean(v))}
+              />
+              Mostrar mesclados (inativos)
+              <span className="text-xs text-muted-foreground/70">
+                — eventos absorvidos em outro principal aparecem com a opção de Reativar
+              </span>
+            </label>
+
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredEvents.map((event) => (
                 <Card
@@ -433,8 +496,17 @@ const EventsManager = () => {
                   )}
                   <CardHeader>
                     <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                    {event.status === "merged_inactive" && (
+                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 text-[11px] uppercase font-semibold w-fit">
+                        <GitMerge className="w-3 h-3" />
+                        Inativo · mesclado{event.merged_into_id && mergedPrimaryTitles[event.merged_into_id]
+                          ? ` em "${mergedPrimaryTitles[event.merged_into_id]}"`
+                          : ""}
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent>
+
                     <div className="space-y-2 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center">
                         <Calendar className="w-4 h-4 mr-2" />
@@ -485,6 +557,25 @@ const EventsManager = () => {
                           )}
                         </Button>
                       )}
+                      {event.status === "merged_inactive" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReactivate(event)}
+                          disabled={reactivatingId === event.id}
+                          title="Reativar evento (não altera o principal)"
+                          className="border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+                        >
+                          {reactivatingId === event.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Undo2 className="w-4 h-4 mr-1" />
+                              Reativar
+                            </>
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="destructive"
                         size="sm"
@@ -493,6 +584,7 @@ const EventsManager = () => {
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
+
                     </div>
                   </CardContent>
                 </Card>
