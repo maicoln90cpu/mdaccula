@@ -29,27 +29,34 @@ const renderWithRouter = () =>
 
 describe("ProtectedRoute", () => {
   it("mostra spinner enquanto loading=true", () => {
-    mockUseAuth.mockReturnValue({ user: null, isAdmin: false, loading: true });
+    mockUseAuth.mockReturnValue({ user: null, isAdmin: false, isAdminLoading: false, loading: true });
     renderWithRouter();
     expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
   });
 
   it("redireciona para /auth quando sem usuário", () => {
-    mockUseAuth.mockReturnValue({ user: null, isAdmin: false, loading: false });
+    mockUseAuth.mockReturnValue({ user: null, isAdmin: false, isAdminLoading: false, loading: false });
     renderWithRouter();
     expect(screen.getByText("tela de login")).toBeInTheDocument();
   });
 
   it("bloqueia user logado sem isAdmin", () => {
-    mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: false, loading: false });
+    mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: false, isAdminLoading: false, loading: false });
     renderWithRouter();
     expect(screen.getByText(/Acesso Negado/i)).toBeInTheDocument();
     expect(screen.queryByText("conteudo admin")).not.toBeInTheDocument();
   });
 
   it("renderiza children quando isAdmin=true", () => {
-    mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: true, loading: false });
+    mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: true, isAdminLoading: false, loading: false });
     renderWithRouter();
     expect(screen.getByText("conteudo admin")).toBeInTheDocument();
+  });
+
+  it("mostra spinner (não Acesso Negado) enquanto isAdminLoading=true mesmo com user logado", () => {
+    mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: false, isAdminLoading: true, loading: false });
+    renderWithRouter();
+    expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Acesso Negado/i)).not.toBeInTheDocument();
   });
 });

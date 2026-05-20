@@ -6,9 +6,11 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, isAdminLoading, loading } = useAuth();
 
-  if (loading) {
+  // Espera tanto a sessão quanto a checagem de admin terminarem
+  // antes de decidir, para não piscar "Acesso Negado".
+  if (loading || (user && isAdminLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
