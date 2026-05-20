@@ -65,6 +65,7 @@ interface BlogPost {
 const EventDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [dayPickerOpen, setDayPickerOpen] = useState(false);
 
   // Main event query (com fallback para slug antigo via event_slug_redirects)
   const { data: event, isLoading, error } = useQuery({
