@@ -1121,6 +1121,38 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             );
           })()}
 
+          {(() => {
+            const startDate = watch('date');
+            const endDate = watch('end_date');
+            const isMultiDay = !!endDate && !!startDate && endDate > startDate;
+            if (!isMultiDay) return null;
+            return (
+              <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
+                <Controller
+                  name="tickets_per_day"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="tickets_per_day"
+                      checked={!!field.value}
+                      onCheckedChange={(v) => field.onChange(v === true)}
+                      className="mt-0.5"
+                    />
+                  )}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="tickets_per_day" className="cursor-pointer">
+                    Um link de venda por dia (festival)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ative quando cada dia do festival tem ingresso vendido separadamente. Na página do evento, o botão "Comprar Ingresso" abrirá um modal para a pessoa escolher o dia. Os links por dia precisam estar cadastrados em <strong>Links</strong> com o evento vinculado e a data de override preenchida.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
+
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Textarea
