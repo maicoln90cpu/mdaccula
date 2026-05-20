@@ -132,6 +132,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       ticket_link: event.ticket_link,
       vip_link: event.vip_link,
       pix_button_enabled: event.pix_button_enabled ?? false,
+      tickets_per_day: event.tickets_per_day ?? false,
       description: event.description,
       subtitle: event.subtitle,
       blog_post_id: event.blog_post_id,
