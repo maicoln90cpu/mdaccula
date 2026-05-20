@@ -391,6 +391,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         schedule: finalSchedule as any,
         // Garante envio explícito do toggle Pix (evita perda caso react-hook-form não inclua no spread)
         pix_button_enabled: data.pix_button_enabled === true,
+        // Fase 5: só faz sentido p/ multi-dia; força false se não houver end_date posterior.
+        tickets_per_day:
+          data.tickets_per_day === true && !!data.end_date && data.end_date > data.date,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
