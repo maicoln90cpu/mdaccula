@@ -651,6 +651,17 @@ const EventDetail = () => {
 
         <Footer />
       </div>
+
+      {useDayPicker && (
+        <TicketDayPickerModal
+          open={dayPickerOpen}
+          onOpenChange={setDayPickerOpen}
+          eventId={event.id}
+          eventTitle={event.title}
+          schedule={event.schedule}
+          fallbackTicketLink={event.ticket_link}
+        />
+      )}
     </>
   );
 };
