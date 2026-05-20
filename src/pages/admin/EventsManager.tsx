@@ -557,6 +557,25 @@ const EventsManager = () => {
                           )}
                         </Button>
                       )}
+                      {event.status === "merged_inactive" && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleReactivate(event)}
+                          disabled={reactivatingId === event.id}
+                          title="Reativar evento (não altera o principal)"
+                          className="border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+                        >
+                          {reactivatingId === event.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Undo2 className="w-4 h-4 mr-1" />
+                              Reativar
+                            </>
+                          )}
+                        </Button>
+                      )}
                       <Button
                         variant="destructive"
                         size="sm"
@@ -565,6 +584,7 @@ const EventsManager = () => {
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
+
                     </div>
                   </CardContent>
                 </Card>
