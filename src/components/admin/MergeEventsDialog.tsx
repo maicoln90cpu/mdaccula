@@ -197,13 +197,22 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         if (delErr) throw delErr;
       }
 
+      console.log("[merge] step 7 done · todas as operações concluídas com sucesso");
       toast({
         title: "Eventos mesclados!",
         description: `${duplicates.length + 1} eventos viraram 1 festival de ${formatEventDateRange(dateRange.start, dateRange.end)}.`,
       });
-      onSuccess();
+      // Fase 6.1: garantir que UI atualize ANTES de fechar o modal,
+      // evitando bug de "precisa atualizar a página"
+      try {
+        await Promise.resolve(onSuccess());
+      } catch (cbErr) {
+        console.warn("[merge] onSuccess callback falhou (não bloqueia merge):", cbErr);
+      }
+      setMerging(false);
       onOpenChange(false);
       setConfirming(false);
+      return;
     } catch (err: any) {
       console.error("[MergeEventsDialog] Erro ao mesclar:", err);
       toast({
@@ -211,7 +220,6 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         title: "Erro ao mesclar eventos",
         description: err.message || "Tente novamente. Nenhuma alteração foi salva.",
       });
-    } finally {
       setMerging(false);
     }
   };
@@ -219,7 +227,16 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
   if (!events.length || !dateRange) return null;
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) setConfirming(false); onOpenChange(o); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        // Fase 6.1: trava o modal durante a operação — impede que realtime/cliques
+        // acidentais fechem o dialog no meio da mesclagem.
+        if (merging) return;
+        if (!o) setConfirming(false);
+        onOpenChange(o);
+      }}
+    >
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Mesclar {events.length} eventos em 1 festival</DialogTitle>
