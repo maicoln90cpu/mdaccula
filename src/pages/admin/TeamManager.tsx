@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
@@ -48,6 +49,9 @@ const TeamManager = () => {
   useEffect(() => {
     fetchMembers();
   }, []);
+
+  // Realtime: qualquer alteração em team_members reflete imediatamente.
+  useRealtimeTable("team_members", () => fetchMembers());
 
   const fetchMembers = async () => {
     try {

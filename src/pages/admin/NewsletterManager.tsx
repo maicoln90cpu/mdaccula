@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,8 @@ export default function NewsletterManager() {
   useEffect(() => {
     fetchSubscribers();
   }, []);
+
+  useRealtimeTable("newsletter_subscribers", () => fetchSubscribers());
 
   const fetchSubscribers = async () => {
     try {
