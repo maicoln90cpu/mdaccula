@@ -518,6 +518,7 @@ export type Database = {
           slug: string
           subtitle: string | null
           ticket_link: string | null
+          tickets_per_day: boolean
           time: string | null
           title: string
           updated_at: string
@@ -546,6 +547,7 @@ export type Database = {
           slug: string
           subtitle?: string | null
           ticket_link?: string | null
+          tickets_per_day?: boolean
           time?: string | null
           title: string
           updated_at?: string
@@ -574,6 +576,7 @@ export type Database = {
           slug?: string
           subtitle?: string | null
           ticket_link?: string | null
+          tickets_per_day?: boolean
           time?: string | null
           title?: string
           updated_at?: string

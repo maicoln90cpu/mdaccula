@@ -1,0 +1,2 @@
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS tickets_per_day boolean NOT NULL DEFAULT false;
+COMMENT ON COLUMN public.events.tickets_per_day IS 'Quando true e evento é multi-dia, o botão Comprar Ingresso abre modal de seleção de dia (Fase 5).';
