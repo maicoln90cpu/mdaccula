@@ -72,7 +72,7 @@ export default function Analytics() {
     queryFn: async () => {
       const [posts, events] = await Promise.all([
         supabase.from("blog_posts").select("views"),
-        supabase.from("events").select("views"),
+        supabase.from("events").select("views").eq("status", "active"),
       ]);
 
       const postViews =
