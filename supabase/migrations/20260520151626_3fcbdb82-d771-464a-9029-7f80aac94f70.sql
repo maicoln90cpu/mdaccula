@@ -1,0 +1,2 @@
+ALTER TABLE public.custom_links REPLICA IDENTITY FULL;
+ALTER TABLE public.link_groups REPLICA IDENTITY FULL;

@@ -34,6 +34,31 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Detecta chunk obsoleto (após novo deploy) e tenta recarregar uma vez
+    const msg = String(error?.message || "");
+    const isChunkError =
+      msg.includes("dynamically imported module") ||
+      msg.includes("Failed to fetch dynamically imported") ||
+      msg.includes("Importing a module script failed") ||
+      msg.includes("error loading dynamically imported module");
+
+    if (isChunkError) {
+      try {
+        const KEY = "__chunk_reload_at";
+        const last = Number(sessionStorage.getItem(KEY) || "0");
+        if (Date.now() - last >= 10_000) {
+          sessionStorage.setItem(KEY, String(Date.now()));
+          // eslint-disable-next-line no-console
+          console.warn("[ErrorBoundary] Chunk obsoleto detectado — recarregando.");
+          window.location.reload();
+          return;
+        }
+      } catch {
+        window.location.reload();
+        return;
+      }
+    }
+
     // Log error with centralized logger
     this.errorLogger.error(
       `Uncaught error in ${this.props.pageName || 'component tree'}`,

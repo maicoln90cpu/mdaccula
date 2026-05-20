@@ -19,7 +19,7 @@ import { SortableItem } from "@/components/links/SortableItem";
 import { LinksPageSettings } from "@/components/links/LinksPageSettings";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { isEventVisible } from "@/lib/eventDateHelper";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { useAdminRealtime } from "@/hooks/useAdminRealtime";
 
 // Helper para extrair mensagem de erro de forma segura
 const getErrorMessage = (error: unknown): string => {
@@ -135,9 +135,8 @@ const LinksManager = () => {
     fetchGroups();
   }, []);
 
-  // Realtime: qualquer mudança em custom_links ou link_groups atualiza a lista instantaneamente
-  useRealtimeTable("custom_links", () => fetchGroups());
-  useRealtimeTable("link_groups", () => fetchGroups());
+  // Realtime unificado: 1 canal cobrindo custom_links + link_groups
+  useAdminRealtime(["custom_links", "link_groups"], () => fetchGroups());
 
   const fetchGroups = async () => {
     try {
@@ -337,23 +336,36 @@ const LinksManager = () => {
 
   const handleDeleteLink = async () => {
     if (!deleteLinkId) return;
+    const idToDelete = deleteLinkId;
+
+    // Atualização otimista: remove da UI imediatamente
+    setGroups((prev) =>
+      prev.map((g) => ({
+        ...g,
+        custom_links: (g.custom_links || []).filter((l) => l.id !== idToDelete),
+      })),
+    );
 
     try {
       const { error } = await supabase
         .from("custom_links")
         .delete()
-        .eq("id", deleteLinkId);
+        .eq("id", idToDelete);
 
       if (error) throw error;
-      
+
       fetchGroups();
       toast({ title: "Link excluído com sucesso" });
     } catch (error: unknown) {
+      // Reverte buscando do banco
+      fetchGroups();
       toast({ variant: "destructive", title: "Erro ao excluir link", description: getErrorMessage(error) });
     } finally {
       setDeleteLinkId(null);
     }
   };
+
+  
 
   const handleDuplicateLink = async (link: CustomLink) => {
     try {

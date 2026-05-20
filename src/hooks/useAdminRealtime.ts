@@ -45,7 +45,12 @@ export function useAdminRealtime(
       );
     }
 
-    channel.subscribe();
+    channel.subscribe((status) => {
+      if (import.meta.env.DEV) {
+        // eslint-disable-next-line no-console
+        console.debug(`[useAdminRealtime] ${tableKey} → ${status}`);
+      }
+    });
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
