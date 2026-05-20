@@ -49,6 +49,9 @@ const TeamManager = () => {
     fetchMembers();
   }, []);
 
+  // Realtime: qualquer alteração em team_members reflete imediatamente.
+  useRealtimeTable("team_members", () => fetchMembers());
+
   const fetchMembers = async () => {
     try {
       const { data, error } = await supabase
