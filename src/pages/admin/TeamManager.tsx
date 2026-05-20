@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";

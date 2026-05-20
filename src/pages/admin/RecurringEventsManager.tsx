@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,6 +106,8 @@ const RecurringEventsManager = () => {
   useEffect(() => {
     fetchConfigs();
   }, []);
+
+  useRealtimeTable("recurring_event_configs", () => fetchConfigs());
 
   const handleToggleEnabled = async (config: RecurringConfig) => {
     try {

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,8 @@ const PromptTemplatesManager = () => {
   useEffect(() => {
     fetchTemplates();
   }, []);
+
+  useRealtimeTable("ai_prompt_templates", () => fetchTemplates());
 
   const fetchTemplates = async () => {
     try {

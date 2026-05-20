@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,8 @@ const NewsSourcesManager = () => {
   useEffect(() => {
     fetchSources();
   }, []);
+
+  useRealtimeTable("news_sources", () => fetchSources());
 
   const fetchSources = async () => {
     try {

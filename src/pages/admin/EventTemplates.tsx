@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,6 +72,8 @@ const EventTemplates = () => {
   useEffect(() => {
     fetchTemplates();
   }, []);
+
+  useRealtimeTable("event_templates", () => fetchTemplates());
 
   const fetchTemplates = async () => {
     try {
