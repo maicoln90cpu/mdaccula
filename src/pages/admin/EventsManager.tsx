@@ -86,6 +86,7 @@ const EventsManager = () => {
       const { data, error } = await supabase
         .from("events")
         .select("*")
+        .eq("status", "active")
         .order("date", { ascending: true });
 
       if (error) throw error;
