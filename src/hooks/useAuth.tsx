@@ -106,14 +106,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminLoading, setIsAdminLoading] = useState(true);
 
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!user) {
         setIsAdmin(false);
+        setIsAdminLoading(false);
         return;
       }
-      
+
+      setIsAdminLoading(true);
       try {
         const { data } = await supabase
           .from('user_roles')
@@ -121,11 +124,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           .eq('user_id', user.id)
           .eq('role', 'admin')
           .maybeSingle();
-        
+
         setIsAdmin(!!data);
       } catch (error) {
         console.error('Error checking admin role:', error);
         setIsAdmin(false);
+      } finally {
+        setIsAdminLoading(false);
       }
     };
 
@@ -138,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       session,
       profile,
       isAdmin,
+      isAdminLoading,
       loading,
       signIn,
       signUp,
