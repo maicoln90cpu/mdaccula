@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,6 +93,11 @@ const RedirectsManager = () => {
       return data as RedirectLink[];
     },
   });
+
+  // Realtime: invalida o cache do react-query a cada mudança em redirect_links.
+  useRealtimeTable("redirect_links", () =>
+    queryClient.invalidateQueries({ queryKey: ["redirect-links"] }),
+  );
 
   // Query period clicks from redirect_click_events
   const { data: periodClicks = {} } = useQuery({

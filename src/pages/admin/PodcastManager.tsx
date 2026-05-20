@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -95,6 +96,11 @@ const PodcastManager = () => {
       return data as PodcastSubmission[];
     },
   });
+
+  // Realtime: novas inscrições e mudanças de status aparecem na hora.
+  useRealtimeTable("podcast_submissions", () =>
+    queryClient.invalidateQueries({ queryKey: ["podcast-submissions"] }),
+  );
 
   // ============= MUTATIONS =============
   const updateStatusMutation = useMutation({
