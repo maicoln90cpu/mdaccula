@@ -33,6 +33,7 @@ interface EventFormData {
   ticket_link?: string;
   vip_link?: string;
   pix_button_enabled?: boolean;
+  tickets_per_day?: boolean;
   description?: string;
   slug?: string;
   blog_post_id?: string;
@@ -131,6 +132,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       ticket_link: event.ticket_link,
       vip_link: event.vip_link,
       pix_button_enabled: event.pix_button_enabled ?? false,
+      tickets_per_day: event.tickets_per_day ?? false,
       description: event.description,
       subtitle: event.subtitle,
       blog_post_id: event.blog_post_id,
@@ -389,6 +391,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         schedule: finalSchedule as any,
         // Garante envio explícito do toggle Pix (evita perda caso react-hook-form não inclua no spread)
         pix_button_enabled: data.pix_button_enabled === true,
+        // Fase 5: só faz sentido p/ multi-dia; força false se não houver end_date posterior.
+        tickets_per_day:
+          data.tickets_per_day === true && !!data.end_date && data.end_date > data.date,
       };
 
       console.log('[EventForm] 📦 Dados do evento preparados:', {
@@ -1115,6 +1120,38 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               </div>
             );
           })()}
+
+          {(() => {
+            const startDate = watch('date');
+            const endDate = watch('end_date');
+            const isMultiDay = !!endDate && !!startDate && endDate > startDate;
+            if (!isMultiDay) return null;
+            return (
+              <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
+                <Controller
+                  name="tickets_per_day"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="tickets_per_day"
+                      checked={!!field.value}
+                      onCheckedChange={(v) => field.onChange(v === true)}
+                      className="mt-0.5"
+                    />
+                  )}
+                />
+                <div className="space-y-1">
+                  <Label htmlFor="tickets_per_day" className="cursor-pointer">
+                    Um link de venda por dia (festival)
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ative quando cada dia do festival tem ingresso vendido separadamente. Na página do evento, o botão "Comprar Ingresso" abrirá um modal para a pessoa escolher o dia. Os links por dia precisam estar cadastrados em <strong>Links</strong> com o evento vinculado e a data de override preenchida.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
+
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>

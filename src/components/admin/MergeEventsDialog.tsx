@@ -55,6 +55,14 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
     return { start, end };
   }, [events]);
 
+  // Fase 5: avisa quando os eventos têm ticket_links distintos.
+  const hasDistinctTicketLinks = useMemo(() => {
+    const links = events
+      .map((e) => (e.ticket_link || "").trim())
+      .filter(Boolean);
+    return new Set(links).size > 1;
+  }, [events]);
+
   const handleMerge = async () => {
     if (!primary || !dateRange) return;
     setMerging(true);
@@ -238,6 +246,15 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
                 Ação destrutiva. {duplicates.length} evento(s) serão deletados. Um snapshot fica salvo em logs por 7 dias para rollback manual.
               </AlertDescription>
             </Alert>
+
+            {hasDistinctTicketLinks && (
+              <Alert className="border-amber-500/50 bg-amber-500/5">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-sm">
+                  Os eventos selecionados têm <strong>links de venda diferentes</strong>. Após mesclar, edite o evento principal e ative <strong>"Um link de venda por dia"</strong> para que o botão "Comprar Ingresso" abra um modal de seleção de dia em vez de ir direto a um único link.
+                </AlertDescription>
+              </Alert>
+            )}
 
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

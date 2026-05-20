@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { TicketDayPickerModal } from "@/components/events/TicketDayPickerModal";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +46,7 @@ interface Event {
   ticket_link: string;
   vip_link: string;
   pix_button_enabled?: boolean;
+  tickets_per_day?: boolean;
   blog_post_id: string | null;
   views: number;
   created_at: string;
@@ -63,6 +65,7 @@ interface BlogPost {
 const EventDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const [dayPickerOpen, setDayPickerOpen] = useState(false);
 
   // Main event query (com fallback para slug antigo via event_slug_redirects)
   const { data: event, isLoading, error } = useQuery({
@@ -201,6 +204,13 @@ const EventDetail = () => {
   const ticketButtonText = isListaVIP ? "Enviar Nome para Lista" : "Comprar Ingresso";
   const currentUrl = `https://mdaccula.com/eventos/${event.slug}`;
 
+  // Fase 5: quando evento é multi-dia e admin marcou "um link por dia",
+  // o botão Comprar Ingresso abre modal de seleção em vez de ir direto ao ticket_link.
+  const useDayPicker =
+    event.tickets_per_day === true &&
+    !!event.end_date &&
+    event.end_date !== event.date;
+
   // Botão Pix sem taxa: reaproveita o número do WhatsApp do vip_link, trocando a mensagem.
   const pixWhatsAppLink = (() => {
     if (!event.pix_button_enabled || !event.vip_link) return null;
@@ -329,12 +339,19 @@ const EventDetail = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {event.ticket_link && (
-                        <Button asChild className="w-full" size="lg">
-                          <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                        useDayPicker ? (
+                          <Button className="w-full" size="lg" onClick={() => setDayPickerOpen(true)}>
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
-                          </a>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button asChild className="w-full" size="lg">
+                            <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              {ticketButtonText}
+                            </a>
+                          </Button>
+                        )
                       )}
                       {pixWhatsAppLink && (
                         <Button
@@ -539,12 +556,19 @@ const EventDetail = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {event.ticket_link && (
-                        <Button asChild className="w-full" size="lg">
-                          <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                        useDayPicker ? (
+                          <Button className="w-full" size="lg" onClick={() => setDayPickerOpen(true)}>
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
-                          </a>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button asChild className="w-full" size="lg">
+                            <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              {ticketButtonText}
+                            </a>
+                          </Button>
+                        )
                       )}
                       {pixWhatsAppLink && (
                         <Button
@@ -627,6 +651,17 @@ const EventDetail = () => {
 
         <Footer />
       </div>
+
+      {useDayPicker && (
+        <TicketDayPickerModal
+          open={dayPickerOpen}
+          onOpenChange={setDayPickerOpen}
+          eventId={event.id}
+          eventTitle={event.title}
+          schedule={event.schedule}
+          fallbackTicketLink={event.ticket_link}
+        />
+      )}
     </>
   );
 };
