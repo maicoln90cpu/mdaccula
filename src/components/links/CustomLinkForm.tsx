@@ -210,9 +210,14 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
     setErrors({});
 
     try {
+      // Normaliza URL (adiciona https:// se não tiver protocolo) ANTES de validar.
+      // Corrige caso onde o link foi criado por copy/sync e ficou sem protocolo.
+      const normalizedUrl = normalizeUrl(url);
+      if (normalizedUrl !== url) setUrl(normalizedUrl);
+
       const parsedData = linkSchema.parse({
         title: title.trim(),
-        url: url.trim(),
+        url: normalizedUrl,
         icon,
         color_gradient: colorGradient,
       });
