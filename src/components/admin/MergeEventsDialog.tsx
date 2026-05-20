@@ -194,12 +194,18 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         }
       }
 
-      // 7. Deletar duplicados
+      // 7. Soft-delete dos duplicados: marca como merged_inactive em vez de DELETE.
+      // Permite reativar via admin e mantém histórico/FKs intactos.
       if (duplicateIds.length > 0) {
-        console.log("[merge] step 7 · deleting duplicates", { ids: duplicateIds });
+        console.log("[merge] step 7 · soft-deleting duplicates", { ids: duplicateIds });
         const { error: delErr } = await supabase
           .from("events")
-          .delete()
+          .update({
+            status: "merged_inactive",
+            merged_into_id: primary.id,
+            merged_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any)
           .in("id", duplicateIds);
         if (delErr) throw delErr;
       }
