@@ -120,6 +120,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         null;
 
       // 3. Snapshot COMPLETO para rollback (inclui estado pré-merge do principal e mapping de links)
+      console.log("[merge] step 3 · inserting snapshot log");
       await supabase.from("application_logs").insert([{
         level: "info",
         message: `Mesclagem de eventos: ${duplicates.length} → 1`,
@@ -151,6 +152,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
 
       // 4. Repontar custom_links dos duplicados → principal
       if (duplicateIds.length > 0) {
+        console.log("[merge] step 4 · repointing custom_links", { count: duplicateIds.length });
         const { error: linkErr } = await supabase
           .from("custom_links")
           .update({ event_id: primary.id, updated_at: new Date().toISOString() })
@@ -159,6 +161,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       }
 
       // 5. Atualizar evento principal: end_date + schedule + views consolidadas + tickets_per_day
+      console.log("[merge] step 5 · updating primary event");
       const { error: updateErr } = await supabase
         .from("events")
         .update({
@@ -183,6 +186,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             reason: `merged into festival "${primary.title}"`,
           }));
         if (redirectRows.length > 0) {
+          console.log("[merge] step 6 · upserting slug redirects", { count: redirectRows.length });
           const { error: redirErr } = await supabase
             .from("event_slug_redirects")
             .upsert(redirectRows, { onConflict: "old_slug" });
@@ -192,6 +196,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
 
       // 7. Deletar duplicados
       if (duplicateIds.length > 0) {
+        console.log("[merge] step 7 · deleting duplicates", { ids: duplicateIds });
         const { error: delErr } = await supabase
           .from("events")
           .delete()
