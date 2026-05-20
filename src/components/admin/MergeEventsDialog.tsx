@@ -255,7 +255,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           <DialogTitle>Mesclar {events.length} eventos em 1 festival</DialogTitle>
           <DialogDescription>
             Resultado: <strong>{formatEventDateRange(dateRange.start, dateRange.end)}</strong>.
-            Os eventos não escolhidos como principal serão deletados, mas seus links de venda e contagem de views serão preservados no principal.
+            Os eventos não escolhidos como principal serão inativados (ocultos do site, reativáveis pelo admin), e seus links de venda e contagem de views serão preservados no principal.
           </DialogDescription>
         </DialogHeader>
 
