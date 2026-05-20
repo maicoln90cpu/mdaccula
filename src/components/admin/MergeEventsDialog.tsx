@@ -322,10 +322,18 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
               <AlertDescription>
                 <strong>Confirmação final.</strong> Vou:
                 <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
-                  <li>Atualizar <strong>{primary?.title}</strong> com data {formatEventDateRange(dateRange.start, dateRange.end)}.</li>
-                  <li>Repontar links de venda dos {duplicates.length} duplicados para o principal.</li>
+                  <li>Atualizar <strong>{primary?.title}</strong> com data {formatEventDateRange(dateRange.start, dateRange.end)} (vira o "guarda-chuva" do festival).</li>
+                  {effectiveTicketsPerDay ? (
+                    <li>
+                      <strong>Preservar</strong> os links de venda originais de cada dia, apenas reassociando-os ao festival. O botão <strong>Comprar Ingresso</strong> abrirá um <strong>modal de seleção do dia</strong>, e cada dia abrirá o seu próprio link.
+                    </li>
+                  ) : (
+                    <li>
+                      Repontar os {duplicates.length} link(s) de venda dos duplicados para o principal — o botão <strong>Comprar Ingresso</strong> usará o <strong>link único</strong> do evento principal.
+                    </li>
+                  )}
                   <li>Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o festival).</li>
-                  <li>Deletar {duplicates.length} evento(s) duplicado(s).</li>
+                  <li>Deletar {duplicates.length} evento(s) duplicado(s) (snapshot fica salvo para desfazer).</li>
                   <li>
                     Definir <strong>"Um link de venda por dia"</strong>:{" "}
                     {effectiveTicketsPerDay ? "LIGADO (modal por dia)" : "DESLIGADO (link único)"}.
