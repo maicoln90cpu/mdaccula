@@ -34,6 +34,7 @@ export default function Analytics() {
       const { data } = await supabase
         .from("events")
         .select("title, slug, views, image_url")
+        .eq("status", "active")
         .order("views", { ascending: false })
         .limit(10);
       return data || [];
