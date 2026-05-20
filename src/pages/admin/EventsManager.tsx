@@ -509,6 +509,12 @@ const EventsManager = () => {
                 </CardContent>
               </Card>
             )}
+              </TabsContent>
+
+              <TabsContent value="mesclados">
+                <MergedEventsTab onChange={() => { fetchEvents(); fetchLastMergeLog(); }} />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
         <Dialog open={showForm} onOpenChange={(open) => !open && handleFormClose()}>
