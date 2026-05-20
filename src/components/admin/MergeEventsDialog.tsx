@@ -81,6 +81,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       const allIds = [primary.id, ...duplicateIds];
 
       // 0. Buscar dados COMPLETOS de todos os eventos (necessário p/ schedule e snapshot do principal)
+      console.log("[merge] step 0 · fetching full events", { allIds });
       const { data: fullEvents, error: fetchErr } = await supabase
         .from("events")
         .select("*")
@@ -92,6 +93,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       if (!fullPrimary) throw new Error("Evento principal não encontrado.");
 
       // 0b. Buscar links que serão repontados (precisamos pra rollback)
+      console.log("[merge] step 0b · fetching links to repoint");
       const { data: linksToRepoint } = await supabase
         .from("custom_links")
         .select("id, event_id")
