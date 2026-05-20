@@ -51,5 +51,10 @@ describe("ProtectedRoute", () => {
     mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: true, isAdminLoading: false, loading: false });
     renderWithRouter();
     expect(screen.getByText("conteudo admin")).toBeInTheDocument();
+  it("mostra spinner (não Acesso Negado) enquanto isAdminLoading=true mesmo com user logado", () => {
+    mockUseAuth.mockReturnValue({ user: { id: "x" }, isAdmin: false, isAdminLoading: true, loading: false });
+    renderWithRouter();
+    expect(screen.getByText(/Carregando/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Acesso Negado/i)).not.toBeInTheDocument();
   });
 });
