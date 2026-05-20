@@ -247,6 +247,15 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
               </AlertDescription>
             </Alert>
 
+            {hasDistinctTicketLinks && (
+              <Alert className="border-amber-500/50 bg-amber-500/5">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-sm">
+                  Os eventos selecionados têm <strong>links de venda diferentes</strong>. Após mesclar, edite o evento principal e ative <strong>"Um link de venda por dia"</strong> para que o botão "Comprar Ingresso" abra um modal de seleção de dia em vez de ir direto a um único link.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <DialogFooter>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
               <Button
