@@ -46,6 +46,7 @@ interface Event {
   ticket_link: string;
   vip_link: string;
   pix_button_enabled?: boolean;
+  tickets_per_day?: boolean;
   blog_post_id: string | null;
   views: number;
   created_at: string;
