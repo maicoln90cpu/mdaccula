@@ -22,14 +22,16 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
 
   const fetchLogs = async () => {
     setLoading(true);
-    const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    // Buscamos um leque amplo (90 dias) e filtramos no cliente por data do evento.
+    // Regra: a mesclagem pode ser desfeita ENQUANTO o evento ainda não passou.
+    const sinceIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data } = await supabase
       .from("application_logs")
       .select("id, logged_at, context")
       .eq("level", "info")
       .gte("logged_at", sinceIso)
       .order("logged_at", { ascending: false })
-      .limit(200);
+      .limit(500);
 
     const all = (data || []) as MergeLog[];
     const undoneIds = new Set(
@@ -38,12 +40,38 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
         .map((l) => l.context?.source_log_id)
         .filter(Boolean),
     );
+
+    // Hoje em YYYY-MM-DD (comparação lexicográfica funciona com ISO date)
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const isStillUpcoming = (ctx: any): boolean => {
+      // Preferimos new_end_date (data final pós-merge). Fallback: maior end_date/date do snapshot.
+      const candidates: string[] = [];
+      if (ctx?.new_end_date) candidates.push(String(ctx.new_end_date));
+      if (ctx?.new_start_date) candidates.push(String(ctx.new_start_date));
+      if (Array.isArray(ctx?.merged_snapshot)) {
+        for (const s of ctx.merged_snapshot) {
+          if (s?.end_date) candidates.push(String(s.end_date));
+          if (s?.date) candidates.push(String(s.date));
+        }
+      }
+      if (ctx?.primary_pre_merge?.end_date) candidates.push(String(ctx.primary_pre_merge.end_date));
+      if (ctx?.primary_pre_merge?.date) candidates.push(String(ctx.primary_pre_merge.date));
+      if (candidates.length === 0) return true; // sem data → mantém visível por segurança
+      const maxDate = candidates.sort().slice(-1)[0];
+      return maxDate >= todayStr;
+    };
+
     const merges = all.filter(
-      (l) => l.context?.action === "merge_events" && !undoneIds.has(l.id),
+      (l) =>
+        l.context?.action === "merge_events" &&
+        !undoneIds.has(l.id) &&
+        isStillUpcoming(l.context),
     );
     setLogs(merges);
     setLoading(false);
   };
+
 
   useEffect(() => {
     fetchLogs();
