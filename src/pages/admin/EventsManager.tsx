@@ -13,6 +13,8 @@ import { MergeEventsDialog } from "@/components/admin/MergeEventsDialog";
 import { UndoMergeDialog } from "@/components/admin/UndoMergeDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MergedEventsTab } from "@/components/admin/MergedEventsTab";
 import { buildArticlePayload } from "@/lib/eventArticlePayload";
 import { addHours } from "date-fns";
 import { parseLocalDateTime } from "@/lib/dateUtils";
