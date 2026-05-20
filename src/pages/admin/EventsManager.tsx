@@ -334,6 +334,13 @@ const EventsManager = () => {
                 )}
               </div>
             </div>
+            <Tabs defaultValue="ativos" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="ativos">Eventos</TabsTrigger>
+                <TabsTrigger value="mesclados">Eventos Mesclados</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="ativos">
 
             {/* Search + Filters */}
             <div className="relative mb-4">
