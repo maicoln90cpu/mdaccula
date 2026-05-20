@@ -556,12 +556,19 @@ const EventDetail = () => {
                     </CardHeader>
                     <CardContent className="space-y-3">
                       {event.ticket_link && (
-                        <Button asChild className="w-full" size="lg">
-                          <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                        useDayPicker ? (
+                          <Button className="w-full" size="lg" onClick={() => setDayPickerOpen(true)}>
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
-                          </a>
-                        </Button>
+                          </Button>
+                        ) : (
+                          <Button asChild className="w-full" size="lg">
+                            <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              {ticketButtonText}
+                            </a>
+                          </Button>
+                        )
                       )}
                       {pixWhatsAppLink && (
                         <Button
