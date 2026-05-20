@@ -346,7 +346,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
                     </li>
                   )}
                   <li>Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o festival).</li>
-                  <li>Deletar {duplicates.length} evento(s) duplicado(s) (snapshot fica salvo para desfazer).</li>
+                  <li><strong>Inativar</strong> {duplicates.length} evento(s) duplicado(s) (ficam ocultos do site mas podem ser reativados pelo admin).</li>
                   <li>
                     Definir <strong>"Um link de venda por dia"</strong>:{" "}
                     {effectiveTicketsPerDay ? "LIGADO (modal por dia)" : "DESLIGADO (link único)"}.
