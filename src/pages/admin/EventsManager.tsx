@@ -450,6 +450,18 @@ const EventsManager = () => {
               </Button>
             </div>
 
+            <label className="flex items-center gap-2 mb-4 text-sm text-muted-foreground cursor-pointer select-none">
+              <Checkbox
+                checked={showMerged}
+                onCheckedChange={(v) => setShowMerged(Boolean(v))}
+              />
+              Mostrar mesclados (inativos)
+              <span className="text-xs text-muted-foreground/70">
+                — eventos absorvidos em outro principal aparecem com a opção de Reativar
+              </span>
+            </label>
+
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredEvents.map((event) => (
                 <Card
