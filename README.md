@@ -29,6 +29,22 @@
 
 ---
 
+## 🚀 Deploy na Hostinger (Node.js)
+
+O projeto inclui um servidor Express mínimo (`server.js`) que serve a build estática (`dist/`) e implementa **SPA fallback** — qualquer rota desconhecida devolve `index.html`, permitindo que links diretos como `/eventos`, `/blog/post-x` ou `/links` funcionem ao serem colados no navegador ou ao dar F5.
+
+**Configuração no hPanel:**
+- **Arquivo de entrada:** `server.js`
+- **Build command:** `npm install && npm run build`
+- **Start command:** `npm start` (executa `node server.js`)
+- **Porta:** lida de `process.env.PORT` (padrão 3000)
+
+**Healthcheck:** `GET /healthz` → `{ ok: true }`
+
+⚠️ Não remova `server.js` nem o script `start` do `package.json` — sem eles, links diretos voltam a dar 404 em produção.
+
+---
+
 ## 📋 Índice
 
 1. [Visão Geral](#visão-geral)
