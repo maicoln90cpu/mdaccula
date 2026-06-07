@@ -39,6 +39,23 @@ function handleError(error: unknown, functionName: string): Response {
   });
 }
 
+// ============= EMAIL-SAFE IMAGE HELPER =============
+/**
+ * NUNCA usar a URL crua do banco no RSS/email — sempre passar por
+ * `toEmailSafeImage()`. Outlook (desktop, .com), Apple Mail antigo e
+ * Yahoo NÃO renderizam WebP, e nossas imagens manuais são salvas em
+ * WebP no Bunny. Aqui forçamos JPEG via Bunny Image Optimizer (cache
+ * na borda, custo zero, sem reprocessar nada no banco).
+ */
+function toEmailSafeImage(url: string | null | undefined): string {
+  if (!url) return '';
+  // Só reescreve URLs Bunny CDN — externas ficam como estão
+  if (!url.includes('mdaccula.b-cdn.net')) return url;
+  // Já tem query? Acrescenta. Caso contrário, cria.
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}format=jpeg&width=1200`;
+}
+
 // ============= MAIN HANDLER =============
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreFlight(req);
