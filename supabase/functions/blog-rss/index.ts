@@ -56,6 +56,20 @@ function toEmailSafeImage(url: string | null | undefined): string {
   return `${url}${sep}format=jpeg&width=1200`;
 }
 
+/**
+ * Escapa caracteres reservados para uso em ATRIBUTO XML (fora de CDATA).
+ * Essencial para `<enclosure url="...">` — sem isso, o `&` da query string
+ * quebra o XML e validadores (Mailchimp, Feedly) rejeitam o feed inteiro
+ * com "endereço do RSS não é válido".
+ */
+function xmlEscapeAttr(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 // ============= MAIN HANDLER =============
 Deno.serve(async (req) => {
   const corsResponse = handleCorsPreFlight(req);
@@ -98,7 +112,7 @@ Deno.serve(async (req) => {
         : '';
 
       const enclosureTag = emailSafeImage 
-        ? `<enclosure url="${emailSafeImage}" type="image/jpeg" />`
+        ? `<enclosure url="${xmlEscapeAttr(emailSafeImage)}" type="image/jpeg" />`
         : '';
       
       const textContent = post.excerpt || post.content.replace(/<[^>]*>/g, '').substring(0, 200) + '...';
