@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
         : '';
 
       const enclosureTag = emailSafeImage 
-        ? `<enclosure url="${emailSafeImage}" type="image/jpeg" />`
+        ? `<enclosure url="${xmlEscapeAttr(emailSafeImage)}" type="image/jpeg" />`
         : '';
       
       const textContent = post.excerpt || post.content.replace(/<[^>]*>/g, '').substring(0, 200) + '...';
