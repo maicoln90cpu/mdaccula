@@ -94,7 +94,7 @@ const FeaturedEvents = () => {
                   </div>
 
                   <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary line-clamp-2">{event.title}</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary line-clamp-2">{event.title ?? 'Evento sem título'}</h3>
 
                     <div className="space-y-2 text-sm sm:text-base text-muted-foreground">
                       <div className="flex items-center gap-2">
