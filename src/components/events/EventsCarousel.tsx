@@ -112,8 +112,8 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
                 >
                   {/* Lazy Loaded Background Image */}
                   <LazyEventImage 
-                    src={event.image_url} 
-                    alt={event.title} 
+                    src={event.image_url || '/placeholder.svg'} 
+                    alt={event.title ?? 'Evento'} 
                   />
                   
                   {/* Gradient Overlay */}
