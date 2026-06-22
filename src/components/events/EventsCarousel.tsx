@@ -112,8 +112,8 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
                 >
                   {/* Lazy Loaded Background Image */}
                   <LazyEventImage 
-                    src={event.image_url} 
-                    alt={event.title} 
+                    src={event.image_url || '/placeholder.svg'} 
+                    alt={event.title ?? 'Evento'} 
                   />
                   
                   {/* Gradient Overlay */}
@@ -141,7 +141,7 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
                   {/* Content */}
                   <div className="absolute bottom-0 left-0 right-0 p-3">
                     <h3 className="text-white font-semibold text-sm line-clamp-2 mb-1.5">
-                      {event.title}
+                      {event.title ?? 'Evento sem título'}
                     </h3>
                     
                     <div className="flex items-center gap-3 text-white/70 text-xs">
@@ -151,7 +151,7 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
-                        <span className="truncate max-w-[100px]">{event.venue}</span>
+                        <span className="truncate max-w-[100px]">{event.venue ?? 'Local a confirmar'}</span>
                       </div>
                     </div>
                   </div>

@@ -79,7 +79,7 @@ const FeaturedEvents = () => {
                   <div className="relative aspect-video overflow-hidden">
                     <OptimizedImage
                       src={event.image_url || '/placeholder.svg'}
-                      alt={event.title}
+                      alt={event.title ?? 'Evento'}
                       className="w-full h-full"
                       objectFit="contain"
                       priority={index === 0}
@@ -94,18 +94,18 @@ const FeaturedEvents = () => {
                   </div>
 
                   <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary line-clamp-2">{event.title}</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary line-clamp-2">{event.title ?? 'Evento sem título'}</h3>
 
                     <div className="space-y-2 text-sm sm:text-base text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">
-                          {formatEventDateRange(event.date, (event as any).end_date)} - {event.time}
+                          {formatEventDateRange(event.date, (event as any).end_date)}{event.time ? ` - ${event.time.slice(0, 5)}` : ''}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{event.venue}</span>
+                        <span className="truncate">{event.venue ?? 'Local a confirmar'}</span>
                       </div>
                       {event.lineup && event.lineup.length > 0 && (
                         <div className="flex items-start gap-2">

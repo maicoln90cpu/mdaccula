@@ -252,7 +252,7 @@ const EventDetail = () => {
           }
         />
         <meta property="og:title" content={event.title} />
-        <meta property="og:description" content={event.description || `${event.genres.join(", ")} - ${event.venue}`} />
+        <meta property="og:description" content={event.description || `${(event.genres ?? []).join(", ") || "Música eletrônica"} - ${event.venue ?? ""}`} />
         <meta property="og:image" content={getOptimizedImageUrl(event.image_url) || "https://mdaccula.com/hero-club.jpg"} />
         <meta property="og:url" content={currentUrl} />
         <meta property="og:type" content="website" />
@@ -615,7 +615,7 @@ const EventDetail = () => {
                     <ShareButtons
                       url={currentUrl}
                       title={event.title}
-                      description={event.description || `${event.genres.join(", ")} - ${event.venue}`}
+                      description={event.description || `${(event.genres ?? []).join(", ") || "Música eletrônica"} - ${event.venue ?? ""}`}
                     />
                   </CardContent>
                 </Card>
@@ -625,7 +625,7 @@ const EventDetail = () => {
                   <Card>
                     <CardHeader>
                       <CardTitle>Eventos Similares</CardTitle>
-                      <CardDescription>Outros eventos de {event.genres.join(", ")}</CardDescription>
+                      <CardDescription>Outros eventos de {(event.genres ?? []).join(", ") || "música eletrônica"}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {relatedEvents.map((relatedEvent) => (
