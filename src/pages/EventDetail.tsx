@@ -625,7 +625,7 @@ const EventDetail = () => {
                   <Card>
                     <CardHeader>
                       <CardTitle>Eventos Similares</CardTitle>
-                      <CardDescription>Outros eventos de {event.genres.join(", ")}</CardDescription>
+                      <CardDescription>Outros eventos de {(event.genres ?? []).join(", ") || "música eletrônica"}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {relatedEvents.map((relatedEvent) => (
