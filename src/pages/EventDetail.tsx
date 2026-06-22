@@ -615,7 +615,7 @@ const EventDetail = () => {
                     <ShareButtons
                       url={currentUrl}
                       title={event.title}
-                      description={event.description || `${event.genres.join(", ")} - ${event.venue}`}
+                      description={event.description || `${(event.genres ?? []).join(", ") || "Música eletrônica"} - ${event.venue ?? ""}`}
                     />
                   </CardContent>
                 </Card>
