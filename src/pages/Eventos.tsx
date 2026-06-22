@@ -93,8 +93,8 @@ const Eventos = () => {
     // Use debounced search term to reduce re-renders during typing
     if (debouncedSearchTerm) {
       filtered = filtered.filter(event =>
-        event.title.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        event.venue.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        (event.title?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ?? false) ||
+        (event.venue?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ?? false)
       );
     }
 
