@@ -79,7 +79,7 @@ const FeaturedEvents = () => {
                   <div className="relative aspect-video overflow-hidden">
                     <OptimizedImage
                       src={event.image_url || '/placeholder.svg'}
-                      alt={event.title}
+                      alt={event.title ?? 'Evento'}
                       className="w-full h-full"
                       objectFit="contain"
                       priority={index === 0}
