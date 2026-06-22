@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { TicketDayPickerModal } from "@/components/events/TicketDayPickerModal";
+import { safeExternalUrl } from "@/lib/safeExternalUrl";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -358,7 +359,7 @@ const EventDetail = () => {
                           </Button>
                         ) : (
                           <Button asChild className="w-full" size="lg">
-                            <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                            <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {ticketButtonText}
                             </a>
@@ -379,7 +380,7 @@ const EventDetail = () => {
                       )}
                       {event.vip_link && (
                         <Button variant="secondary" asChild className="w-full" size="lg">
-                          <a href={event.vip_link} target="_blank" rel="noopener noreferrer">
+                          <a href={safeExternalUrl(event.vip_link)} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Reservas de Camarote
                           </a>
@@ -575,7 +576,7 @@ const EventDetail = () => {
                           </Button>
                         ) : (
                           <Button asChild className="w-full" size="lg">
-                            <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                            <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {ticketButtonText}
                             </a>
@@ -596,7 +597,7 @@ const EventDetail = () => {
                       )}
                       {event.vip_link && (
                         <Button variant="secondary" asChild className="w-full" size="lg">
-                          <a href={event.vip_link} target="_blank" rel="noopener noreferrer">
+                          <a href={safeExternalUrl(event.vip_link)} target="_blank" rel="noopener noreferrer">
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Reservas de Camarote
                           </a>

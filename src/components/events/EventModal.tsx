@@ -7,6 +7,7 @@ import { parseLocalDate } from '@/lib/utils';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { safeExternalUrl } from '@/lib/safeExternalUrl';
 
 interface EventModalProps {
   event: any;
@@ -134,7 +135,7 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
             {event.ticket_link && (
               <Button asChild className="flex-1 min-h-[48px] text-base">
-                <a href={event.ticket_link} target="_blank" rel="noopener noreferrer">
+                <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="w-5 h-5 mr-2" />
                   Comprar Ingresso
                 </a>
@@ -142,7 +143,7 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
             )}
             {event.vip_link && (
               <Button variant="secondary" asChild className="flex-1 min-h-[48px] text-base">
-                <a href={event.vip_link} target="_blank" rel="noopener noreferrer">
+                <a href={safeExternalUrl(event.vip_link)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="w-5 h-5 mr-2" />
                   Camarote
                 </a>

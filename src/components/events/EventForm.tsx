@@ -75,18 +75,26 @@ const STATES = [
   'SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE', 'PA', 'MA', 'PB', 'ES', 'PI', 'AL', 'RN', 'MT', 'MS', 'DF', 'SE', 'RO', 'TO', 'AC', 'AM', 'RR', 'AP'
 ];
 
-// Helper function to normalize URLs
+// Normaliza URLs antes de salvar: garante protocolo https:// para qualquer domínio
+// digitado sem ele (ex: sympla.com.br/x, bit.ly/x). Mantém em sincronia com
+// src/lib/safeExternalUrl.ts (defesa em runtime).
 const normalizeUrl = (url: string | undefined): string | undefined => {
   if (!url) return url;
   const trimmed = url.trim();
   if (!trimmed) return undefined;
-  
-  // Add https:// if URL starts with bit.ly/, linktr.ee/, etc
-  if (trimmed.match(/^(bit\.ly|linktr\.ee|cutt\.ly|tinyurl\.com)\//)) {
-    return `https://${trimmed}`;
+
+  const lower = trimmed.toLowerCase();
+  if (
+    lower.startsWith("http://") ||
+    lower.startsWith("https://") ||
+    lower.startsWith("mailto:") ||
+    lower.startsWith("tel:") ||
+    lower.startsWith("sms:")
+  ) {
+    return trimmed;
   }
-  
-  return trimmed;
+
+  return `https://${trimmed}`;
 };
 
 export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
