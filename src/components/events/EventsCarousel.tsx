@@ -147,7 +147,7 @@ const EventsCarousel = ({ events }: EventsCarouselProps) => {
                     <div className="flex items-center gap-3 text-white/70 text-xs">
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
-                        <span>{weekDay} • {event.time.slice(0, 5)}</span>
+                        <span>{weekDay}{event.time ? ` • ${event.time.slice(0, 5)}` : ''}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <MapPin className="w-3 h-3" />

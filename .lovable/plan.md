@@ -1,60 +1,52 @@
-# Plano — Corrigir "endereço do RSS não é válido" no Mailchimp
+## Causa raiz
 
-## Causa raiz (confirmada)
+O console mostra o erro exato:
 
-Acabei de baixar o feed (`/functions/v1/blog-rss`) e validar. O feed está **respondendo HTTP 200** e tem conteúdo, mas o XML está **mal formado** por causa da correção anterior.
-
-A linha que quebrou:
-```xml
-<enclosure url="https://mdaccula.b-cdn.net/...png?format=jpeg&width=1200" type="image/jpeg" />
+```
+TypeError: can't access property "slice", e.time is null
+  em EventsCarousel.tsx:150
 ```
 
-O `&` entre `format=jpeg` e `width=1200` é **caractere reservado em XML** dentro de atributo. Tem que ser `&amp;`. Mailchimp, Feedly e qualquer validador RSS estrito rejeitam o feed inteiro por causa disso — daí a mensagem "O endereço do RSS não é válido".
+Na linha 150 do `src/components/events/EventsCarousel.tsx` existe:
 
-Antes da minha correção a URL não tinha `?...&...`, então o problema não existia. Eu introduzi o bug ao adicionar `?format=jpeg&width=1200`.
+```tsx
+<span>{weekDay} • {event.time.slice(0, 5)}</span>
+```
 
-**Detalhe:** o `<img src="...&width=1200">` dentro do `<description>` está dentro de `<![CDATA[ ... ]]>`, então **não quebra** o XML. O problema é **só no atributo `url` do `<enclosure>`**, que fica fora do CDATA.
+Quando algum evento tem `time = null` no banco, `null.slice(...)` quebra o React inteiro e o `ErrorBoundary` da página `/eventos` exibe a tela "Algo deu errado". Acontece igual em preview e produção porque o dado é o mesmo.
 
 ## Antes vs depois
 
-| | Antes (hoje, quebrado) | Depois |
+| | Antes | Depois |
 |---|---|---|
-| `<enclosure url="...?format=jpeg&width=1200">` | XML inválido — Mailchimp rejeita | `<enclosure url="...?format=jpeg&amp;width=1200">` — XML válido |
-| `<img src=...>` dentro de CDATA | já funciona | continua funcionando |
-| URL real entregue ao cliente de email | JPEG do Bunny | JPEG do Bunny (idêntico) |
+| Evento sem horário | Página inteira quebra | Mostra só o dia da semana (sem horário) |
+| `event.time = "22:00:00"` | Mostra "22:00" | Mostra "22:00" (igual) |
 
-## Como fazer
+## Correção (1 linha, baixíssimo risco)
 
-Editar **só** `supabase/functions/blog-rss/index.ts`:
+Arquivo: `src/components/events/EventsCarousel.tsx`, linha 150.
 
-1. Criar um pequeno helper `xmlEscapeAttr(url)` que troca `&` por `&amp;`, `"` por `&quot;`, `<` por `&lt;` (defesa em profundidade).
-2. Aplicar **só** no atributo do `<enclosure url="...">`.
-3. Manter o `<img src>` como está (dentro de CDATA, não precisa).
+De:
+```tsx
+<span>{weekDay} • {event.time.slice(0, 5)}</span>
+```
 
-Mudança mínima, ~5 linhas.
+Para:
+```tsx
+<span>{weekDay}{event.time ? ` • ${event.time.slice(0, 5)}` : ''}</span>
+```
 
-## Vantagens
-- Resolve o erro no Mailchimp imediatamente.
-- Não muda a URL real entregue (Bunny continua servindo o mesmo JPEG).
-- Defesa em profundidade contra outros caracteres especiais no futuro.
-
-## Desvantagens / riscos
-- Nenhum. É correção pontual de bug introduzido na alteração anterior.
-
-## Checklist manual de validação
-1. Após deploy, abrir `https://xfvpuzlspvvsmmunznxw.supabase.co/functions/v1/blog-rss`.
-2. Confirmar que aparece `&amp;width=1200` (não mais `&width=1200`) nos `<enclosure>`.
-3. Colar a mesma URL no Mailchimp → deve aceitar sem erro "endereço inválido".
-4. Validar opcionalmente em https://validator.w3.org/feed/ → deve passar.
-5. Enviar campanha teste pro Outlook → imagens devem aparecer (objetivo da correção anterior, mantido).
-
-## Pendências / futuro
-- 🔜 Adicionar teste unitário do `blog-rss` validando que o XML é well-formed (parseável). Evita esse tipo de regressão.
+## Checklist de validação
+- [ ] Abrir `/eventos` em preview → carrossel carrega normalmente
+- [ ] Abrir `/eventos` em produção (mdaccula.com) após deploy
+- [ ] Eventos com horário continuam exibindo "Sex • 22:00"
+- [ ] Eventos sem horário exibem só "Sex"
 
 ## Prevenção de regressão
-- Comentário no topo da função: "URLs com query string DEVEM passar por `xmlEscapeAttr()` quando usadas em atributos XML fora de CDATA".
-- Pendência futura acima cobre via teste automatizado.
+- Sugiro (etapa futura, não agora) varrer outros `.slice(`, `.toLowerCase(`, `.split(` em campos vindos do banco que podem ser `null` (ex.: `subtitle`, `location`) e aplicar guarda parecida. Posso fazer essa varredura depois que confirmar que o fix de agora resolveu.
 
----
+## Pendências futuras (não agora)
+- Criar teste unitário do `EventsCarousel` renderizando um evento com `time: null` para travar regressão.
+- Avaliar tornar `time` NOT NULL no banco com default, se a regra do negócio permitir.
 
-**Resumo:** 1 arquivo, ~5 linhas, sem migração, sem mudar comportamento — só conserta o XML que ficou inválido depois do `?format=jpeg&width=1200`. Posso prosseguir?
+Posso aplicar só essa correção pontual?
