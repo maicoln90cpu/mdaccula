@@ -7,6 +7,7 @@ import { parseLocalDate } from '@/lib/utils';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { safeExternalUrl } from '@/lib/safeExternalUrl';
 
 interface EventModalProps {
   event: any;
