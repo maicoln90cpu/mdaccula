@@ -5,6 +5,7 @@ import { Loader2, ExternalLink, Calendar } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { parseSchedule } from "@/lib/eventScheduleHelper";
+import { safeExternalUrl } from "@/lib/safeExternalUrl";
 
 interface TicketDayPickerModalProps {
   open: boolean;
@@ -113,7 +114,7 @@ export const TicketDayPickerModal = ({
                 className="w-full justify-between h-auto py-3"
               >
                 {d.url ? (
-                  <a href={d.url} target="_blank" rel="noopener noreferrer">
+                  <a href={safeExternalUrl(d.url)} target="_blank" rel="noopener noreferrer">
                     <span className="flex items-center gap-2 capitalize text-left">
                       <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
                       <span>
