@@ -105,7 +105,7 @@ const FeaturedEvents = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{event.venue}</span>
+                        <span className="truncate">{event.venue ?? 'Local a confirmar'}</span>
                       </div>
                       {event.lineup && event.lineup.length > 0 && (
                         <div className="flex items-start gap-2">
