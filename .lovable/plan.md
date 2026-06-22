@@ -1,80 +1,70 @@
-## Resumo
-Varredura nos componentes de eventos: somente 4 pontos reais ainda quebram se o campo vier `null` do banco. Demais usos já têm guarda (`formatTime`, `event.genres && ...`, `event.subtitle &&`).
+## Problema (causa raiz)
 
-## Pontos a corrigir
+O link de ingresso do evento Vintage foi salvo no banco como `www.sympla.com.br/vintage-culture-em-sp__3378076?afid=112122` — **sem o `https://` na frente**.
 
-### 1) `src/pages/Eventos.tsx` (linhas 96-97)
-Busca quebra se algum evento tiver `title` ou `venue` null.
-```ts
-// antes
-event.title.toLowerCase().includes(...) || event.venue.toLowerCase().includes(...)
-// depois
-(event.title?.toLowerCase().includes(...) ?? false) ||
-(event.venue?.toLowerCase().includes(...) ?? false)
-```
+Quando o botão "Comprar Ingresso" renderiza esse valor em `<a href="www.sympla.com.br/...">` dentro da página `/eventos/<slug>`, o navegador trata como caminho relativo e concatena com a URL atual, gerando:
 
-### 2) `src/pages/EventDetail.tsx` (linhas 255, 618, 628)
-`event.genres.join(", ")` quebra se `genres` for null.
-```ts
-// antes
-`${event.genres.join(", ")} - ${event.venue}`
-// depois
-`${(event.genres ?? []).join(", ") || "Música eletrônica"} - ${event.venue ?? ""}`
-```
-E em 628:
-```ts
-Outros eventos de {(event.genres ?? []).join(", ") || "música eletrônica"}
-```
+`https://mdaccula.com/eventos/www.sympla.com.br/vintage-culture-em-sp__3378076?afid=112122`
 
-### 3) `src/components/events/EventsCarousel.tsx` (linha 115)
-`src={event.image_url}` sem fallback → quebra layout se null.
-```tsx
-src={event.image_url || '/placeholder.svg'}
-alt={event.title ?? 'Evento'}
-```
-E na linha 144/154, garantir texto seguro:
-```tsx
-{event.title ?? 'Evento sem título'}
-...
-<span className="truncate max-w-[100px]">{event.venue ?? 'Local a confirmar'}</span>
-```
+### Por que só esse evento?
 
-### 4) `src/components/sections/FeaturedEvents.tsx` (linhas 82, 97, 108)
-```tsx
-alt={event.title ?? 'Evento'}
-{event.title ?? 'Evento sem título'}
-<span className="truncate">{event.venue ?? 'Local a confirmar'}</span>
+O `EventForm` tem um `normalizeUrl` que **só adiciona `https://` automaticamente para domínios encurtadores** (bit.ly, linktr.ee, cutt.ly, tinyurl.com). Qualquer outro domínio digitado sem protocolo (sympla.com.br, ingresse.com, etc.) passa direto e é salvo "cru". Os outros eventos foram salvos com `https://` no início (manual ou copy-paste do navegador), por isso só o Vintage quebrou.
+
+O mesmo bug existe no campo `vip_link` e no `schedule[].url` (links de ingresso por dia em eventos mesclados).
+
+---
+
+## Plano de correção em 3 camadas
+
+### Camada 1 — Corrigir o dado existente (1 evento)
+Atualizar no banco apenas a linha do Vintage:
+```sql
+UPDATE events
+SET ticket_link = 'https://' || ticket_link
+WHERE ticket_link LIKE 'www.%' OR ticket_link LIKE 'sympla.%' OR ...
 ```
+Vou rodar antes um `SELECT` para listar todos os `ticket_link` e `vip_link` sem `http(s)://` e mostrar para você aprovar antes do `UPDATE`.
+
+### Camada 2 — Corrigir o cadastro (impede salvar de novo errado)
+No `src/components/events/EventForm.tsx`, ampliar `normalizeUrl` para o mesmo padrão já usado em `CustomLinkForm.tsx`:
+- Se a URL não começa com `http://` nem `https://` (e não é vazia), adicionar `https://` automaticamente.
+- Aplicar tanto em `ticket_link` quanto em `vip_link` (já é chamado nos dois) e nos campos `schedule[].url` dos eventos mesclados.
+
+### Camada 3 — Proteção em runtime (defesa em profundidade)
+Criar helper `src/lib/safeExternalUrl.ts` que recebe qualquer string e devolve uma URL com protocolo (ou `#` se inválida). Aplicar em **todos** os pontos onde o `ticket_link`/`vip_link`/`schedule.url` viram `<a href>`:
+- `src/pages/EventDetail.tsx` (4 ocorrências: mobile/desktop x ticket/vip)
+- `src/components/events/EventModal.tsx` (1 ocorrência)
+- `src/components/events/TicketDayPickerModal.tsx` (link do dia escolhido)
+
+Assim, mesmo que um dia entre dado ruim no banco por qualquer outra via (importação CSV, edição direta), o link nunca mais vira caminho relativo.
+
+---
 
 ## Antes vs depois
-| Cenário | Antes | Depois |
+
+| | Antes | Depois |
 |---|---|---|
-| Evento com `title` null | Busca/carrossel quebra a página | Mostra "Evento sem título", busca ignora |
-| Evento com `venue` null | Página quebra | Mostra "Local a confirmar" |
-| Evento com `genres` null | `EventDetail` quebra | Usa lista vazia + texto padrão |
-| Evento com `image_url` null no carrossel/home | Imagem quebrada | Usa `/placeholder.svg` |
+| Salvar `www.sympla.com.br/x` no form | salvo como `www.sympla.com.br/x` → quebra | salvo como `https://www.sympla.com.br/x` |
+| Render de `ticket_link` sem protocolo (legado) | vira `/eventos/<slug>/<url>` | helper adiciona `https://` no href |
+| Vintage no ar | botão quebrado | botão funcional |
 
-## Vantagens / desvantagens
-+ Risco baixíssimo: só adiciona guardas, não muda lógica.
-+ Edição em 4 arquivos, alterações pequenas e localizadas.
-+ Resolve crashes silenciosos que hoje dependeriam do `ErrorBoundary`.
-− Mascara dados ruins no banco (evento sem título vai exibir "Evento sem título"). Mitigação: revisar admin futuramente para tornar título e venue obrigatórios no formulário.
+---
 
-## Checklist de validação
-- [ ] Abrir `/eventos` → carrossel e lista carregam normalmente
-- [ ] Buscar texto na barra de pesquisa → não quebra
-- [ ] Abrir página de um evento qualquer → meta tags e "outros eventos" carregam
-- [ ] Abrir home (`/`) → seção de eventos em destaque carrega
-- [ ] Se houver evento com title/venue/genres nulos no banco, ele aparece com texto padrão (não derruba a página)
+## Checklist de validação manual
 
-## Pendências (futuro, não agora)
-- **Teste unitário**: criar fixture de evento "com tudo null" e renderizar `EventsCarousel`, `FeaturedEvents`, `Eventos` e `EventDetail` para travar regressão.
-  - Como ficará: um arquivo de teste roda automaticamente em cada deploy e falha se voltarmos a acessar `.toLowerCase()` direto.
-- **Validação no admin**: tornar título, venue, data obrigatórios no formulário de criação/edição de evento (não no banco para não quebrar histórico).
-  - Como ficará: o agente do site não consegue salvar evento incompleto, evitando que o problema apareça na vitrine.
+- [ ] Editar o evento Vintage no admin e confirmar que o campo já mostra `https://www.sympla.com.br/...`
+- [ ] Abrir `/eventos/vintage-...` no preview e clicar em "Comprar Ingresso" → abre Sympla em nova aba
+- [ ] Cadastrar evento novo digitando `www.sympla.com.br/teste` (sem https) e confirmar que salva com `https://`
+- [ ] Conferir no `EventModal` (carrossel da home) que o link também abre certo
+
+---
 
 ## Prevenção de regressão
-- **Agora**: apenas as guardas inline (`?.`, `??`).
-- **Pendente**: teste unitário com evento "tudo null" (item acima). Recomendo fortemente criar logo após validar este fix, pois é a única proteção permanente contra esse tipo de crash voltar.
 
-Posso aplicar?
+- Teste unitário `src/__tests__/lib/safeExternalUrl.test.ts` cobrindo: URL com http, com https, sem protocolo, `bit.ly/x`, string vazia, `null`, `javascript:` (deve virar `#`).
+- Comentário no `EventForm.normalizeUrl` apontando para o helper compartilhado, evitando divergência futura entre os dois `normalizeUrl` espalhados pelo projeto.
+
+## Pendências/futuro (não nesta entrega)
+
+- Unificar os 4 `normalizeUrl` espalhados (`EventForm`, `CustomLinkForm`, `RedirectsManager`, `Redirect.tsx`) em `src/lib/safeExternalUrl.ts`. Faço só se você aprovar — mexe em fluxos sensíveis (redirects).
+- Validação no schema do banco (`CHECK ticket_link ~ '^https?://'`) — extra-seguro, mas pode quebrar importações antigas; deixo só como sugestão.
