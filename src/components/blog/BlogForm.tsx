@@ -14,6 +14,7 @@ import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { convertToWebP } from '@/lib/webpConverter';
 import { uploadImageToBunny } from '@/lib/bunnyUploader';
+import { notifyBlogChange } from '@/lib/indexnow';
 
 interface BlogFormData {
   title: string;
@@ -154,6 +155,9 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
         toast({
           title: "Post atualizado com sucesso!",
         });
+
+        // IndexNow: avisa Bing/Yandex se o post está publicado
+        if (published && post.slug) notifyBlogChange(post.slug);
       } else {
         const slug = await generateUniqueSlug(data.title);
         
@@ -166,6 +170,9 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
         toast({
           title: "Post criado com sucesso!",
         });
+
+        // IndexNow: avisa Bing/Yandex se já foi publicado na criação
+        if (published) notifyBlogChange(slug);
       }
 
       onSuccess();

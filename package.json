@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "generate-sitemap": "node scripts/generate-sitemap.mjs",
-    "predev": "node scripts/generate-sitemap.mjs",
-    "prebuild": "node scripts/generate-sitemap.mjs",
-    "prebuild:dev": "node scripts/generate-sitemap.mjs",
+    "generate-indexnow-keyfile": "node scripts/generate-indexnow-keyfile.mjs",
+    "predev": "node scripts/generate-sitemap.mjs && node scripts/generate-indexnow-keyfile.mjs",
+    "prebuild": "node scripts/generate-sitemap.mjs && node scripts/generate-indexnow-keyfile.mjs",
+    "prebuild:dev": "node scripts/generate-sitemap.mjs && node scripts/generate-indexnow-keyfile.mjs",
     "dev": "vite",
     "build": "vite build",
     "build:dev": "vite build --mode development",

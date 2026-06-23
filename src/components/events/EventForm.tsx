@@ -19,6 +19,7 @@ import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
+import { notifyEventChange } from '@/lib/indexnow';
 
 interface EventFormData {
   title: string;
@@ -482,6 +483,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         toast({
           title: "Evento atualizado com sucesso!",
         });
+
+        // IndexNow: avisa Bing/Yandex que o evento foi atualizado
+        notifyEventChange(eventSlug);
       } else {
         console.log('[EventForm] ➕ Criando novo evento...');
         const { data: insertedEvent, error } = await supabase
@@ -497,6 +501,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         toast({
           title: "Evento criado com sucesso!",
         });
+
+        // IndexNow: avisa Bing/Yandex sobre o novo evento
+        notifyEventChange(eventSlug);
       }
 
       // Generate blog post AFTER event creation if checkbox is checked and creating new event
