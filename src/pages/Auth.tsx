@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Check, X } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { SEOHead } from '@/components/SEOHead';
 
 // Schema de validação de senha forte
 const passwordSchema = z.string()
