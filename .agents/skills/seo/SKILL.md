@@ -141,8 +141,9 @@ export function useDocumentMeta(opts: DocumentMetaOptions) {
     // Description
     if (opts.description) setMeta('description', opts.description);
 
-    // Robots (noindex por rota)
-    if (opts.robots) setMeta('robots', opts.robots);
+    // Robots (noindex por rota). Prop booleana noindex tem prioridade sobre robots string.
+    if (opts.noindex) setMeta('robots', 'noindex, nofollow');
+    else if (opts.robots) setMeta('robots', opts.robots);
     else setMeta('robots', 'index, follow'); // padrao
 
     // Canonical
