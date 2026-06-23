@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Instagram, Music, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
+import { SEOHead } from "@/components/SEOHead";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,6 +15,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="Entrar"
+        description="Acesse sua conta MDAccula."
+        noindex
+      />
       <Navigation />
 
       <main className="pt-16 min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10">

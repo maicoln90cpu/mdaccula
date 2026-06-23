@@ -9,6 +9,7 @@ interface SEOProps {
   image?: string;
   type?: 'website' | 'article';
   url?: string;
+  noindex?: boolean;
   article?: {
     publishedTime: string;
     author: string;
@@ -23,6 +24,7 @@ export const SEOHead = ({
   image = 'https://mdaccula.com/hero-club.jpg',
   type = 'website',
   url = 'https://mdaccula.com',
+  noindex = false,
   article 
 }: SEOProps) => {
   const fullTitle = `${title} | MDAccula`;
@@ -36,6 +38,7 @@ export const SEOHead = ({
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={allKeywords.join(', ')} />
+      <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
       
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />

@@ -1,70 +1,63 @@
-## Problema (causa raiz)
+# Aplicação da skill SEO no projeto MDAccula
 
-O link de ingresso do evento Vintage foi salvo no banco como `www.sympla.com.br/vintage-culture-em-sp__3378076?afid=112122` — **sem o `https://` na frente**.
+## Diagnóstico (o que já existe e está bom)
 
-Quando o botão "Comprar Ingresso" renderiza esse valor em `<a href="www.sympla.com.br/...">` dentro da página `/eventos/<slug>`, o navegador trata como caminho relativo e concatena com a URL atual, gerando:
+| Item | Estado |
+|---|---|
+| Meta tags por rota (`SEOHead` com react-helmet-async) | ✅ Existe, usado em 13 páginas públicas |
+| JSON-LD (`StructuredData`) | ✅ Existe |
+| `public/sitemap.xml` estático (8 rotas principais) | ✅ Existe |
+| Edge Function `sitemap` (dinâmica, inclui eventos + posts + imagens) | ✅ Existe |
+| `public/robots.txt` (bloqueia admin, bots agressivos, libera redes sociais) | ✅ Robusto |
+| `public/llms.txt` | ✅ Existe |
+| Open Graph + Twitter Card sitewide no `index.html` | ✅ Existe |
+| H1 único na Home | ✅ Hero.tsx |
 
-`https://mdaccula.com/eventos/www.sympla.com.br/vintage-culture-em-sp__3378076?afid=112122`
+## Lacunas encontradas (o que falta)
 
-### Por que só esse evento?
+1. **Páginas privadas sem `noindex`**: `/auth`, `/login`, `/404` (NotFound). Hoje podem aparecer no Google.
+2. **Sem testes que protejam o SEO contra regressão** (skill exige).
+3. **IndexNow não configurado** (avisa Bing/Yandex na hora que tem evento novo).
+4. **Sem verificação** se a Edge Function `sitemap` está realmente servindo `/sitemap.xml` para o Google (suspeito que Cloudflare reescreve, mas preciso confirmar antes de mexer).
 
-O `EventForm` tem um `normalizeUrl` que **só adiciona `https://` automaticamente para domínios encurtadores** (bit.ly, linktr.ee, cutt.ly, tinyurl.com). Qualquer outro domínio digitado sem protocolo (sympla.com.br, ingresse.com, etc.) passa direto e é salvo "cru". Os outros eventos foram salvos com `https://` no início (manual ou copy-paste do navegador), por isso só o Vintage quebrou.
+## Plano em fases (cada fase aprovada separadamente)
 
-O mesmo bug existe no campo `vip_link` e no `schedule[].url` (links de ingresso por dia em eventos mesclados).
+### Fase 1 — `noindex` em páginas privadas (risco zero)
+- Adicionar `<SEOHead noindex />` em `src/pages/Auth.tsx`, `src/pages/Login.tsx`, `src/pages/NotFound.tsx`.
+- Estender `SEOHead.tsx` para aceitar prop `noindex?: boolean` que emite `<meta name="robots" content="noindex, nofollow">`.
+- **Antes vs depois**: hoje Google pode indexar tela de login → depois fica fora do índice.
+- **Validação manual**: abrir `/login`, inspecionar `<head>` no DevTools, confirmar `<meta name="robots" content="noindex,nofollow">`.
 
----
+### Fase 2 — Confirmar qual sitemap o Google vê (investigação, sem mudança)
+- Rodar `curl -I https://mdaccula.com/sitemap.xml` e `curl https://mdaccula.com/sitemap.xml | head -20`.
+- Se vier do estático (8 rotas) → propor reescrita Cloudflare para a Edge Function (que já lista todos os eventos e posts).
+- Se vier da Edge Function → marcar como ok, nada a fazer.
+- **Sem mudanças nesta fase**, só relatório.
 
-## Plano de correção em 3 camadas
+### Fase 3 — Testes de proteção (skill exige)
+- Criar `src/__tests__/seo/seo-contract.test.ts`:
+  - `public/sitemap.xml` existe e **não** contém `/admin`, `/login`, `/auth`.
+  - `public/robots.txt` existe, tem `Sitemap:` apontando para o domínio canônico, **não** tem `Disallow: /` global.
+  - Páginas públicas exportam componente que referencia `SEOHead`.
+- **Previne regressão**: se alguém adicionar `/login` ao sitemap por engano, o CI falha.
 
-### Camada 1 — Corrigir o dado existente (1 evento)
-Atualizar no banco apenas a linha do Vintage:
-```sql
-UPDATE events
-SET ticket_link = 'https://' || ticket_link
-WHERE ticket_link LIKE 'www.%' OR ticket_link LIKE 'sympla.%' OR ...
-```
-Vou rodar antes um `SELECT` para listar todos os `ticket_link` e `vip_link` sem `http(s)://` e mostrar para você aprovar antes do `UPDATE`.
+### Fase 4 — IndexNow (opcional, exige sua aprovação extra)
+- Criar Edge Function `submit-indexnow` + secret `INDEXNOW_KEY` + arquivo `public/<KEY>.txt`.
+- Cron diário às 08:00 envia URLs novas para Bing/Yandex.
+- **Vantagem**: eventos novos aparecem em horas, não dias.
+- **Desvantagem**: mais uma função para manter; só vale se o tráfego do Bing for relevante.
 
-### Camada 2 — Corrigir o cadastro (impede salvar de novo errado)
-No `src/components/events/EventForm.tsx`, ampliar `normalizeUrl` para o mesmo padrão já usado em `CustomLinkForm.tsx`:
-- Se a URL não começa com `http://` nem `https://` (e não é vazia), adicionar `https://` automaticamente.
-- Aplicar tanto em `ticket_link` quanto em `vip_link` (já é chamado nos dois) e nos campos `schedule[].url` dos eventos mesclados.
+## O que **não** vou mexer (por segurança)
 
-### Camada 3 — Proteção em runtime (defesa em profundidade)
-Criar helper `src/lib/safeExternalUrl.ts` que recebe qualquer string e devolve uma URL com protocolo (ou `#` se inválida). Aplicar em **todos** os pontos onde o `ticket_link`/`vip_link`/`schedule.url` viram `<a href>`:
-- `src/pages/EventDetail.tsx` (4 ocorrências: mobile/desktop x ticket/vip)
-- `src/components/events/EventModal.tsx` (1 ocorrência)
-- `src/components/events/TicketDayPickerModal.tsx` (link do dia escolhido)
+- **`react-helmet-async`**: a skill prefere hook próprio (`useDocumentMeta`), mas isso é só para projetos com SSR (TanStack Start). Vite + React puro com helmet funciona perfeitamente e já está em 13 páginas — trocar agora seria refatoração arriscada sem ganho.
+- **Sitemap estático vs Edge Function**: vou apenas investigar (Fase 2) antes de propor qualquer alteração.
+- **`StructuredData`, `index.html`, `robots.txt`**: estão bons.
 
-Assim, mesmo que um dia entre dado ruim no banco por qualquer outra via (importação CSV, edição direta), o link nunca mais vira caminho relativo.
+## Pendências futuras (não agora)
 
----
+- Migrar `react-helmet-async` para hook próprio (só se um dia migrar para SSR).
+- Adicionar OG image individual por evento/post (hoje todos usam a hero padrão).
 
-## Antes vs depois
+## Próximo passo
 
-| | Antes | Depois |
-|---|---|---|
-| Salvar `www.sympla.com.br/x` no form | salvo como `www.sympla.com.br/x` → quebra | salvo como `https://www.sympla.com.br/x` |
-| Render de `ticket_link` sem protocolo (legado) | vira `/eventos/<slug>/<url>` | helper adiciona `https://` no href |
-| Vintage no ar | botão quebrado | botão funcional |
-
----
-
-## Checklist de validação manual
-
-- [ ] Editar o evento Vintage no admin e confirmar que o campo já mostra `https://www.sympla.com.br/...`
-- [ ] Abrir `/eventos/vintage-...` no preview e clicar em "Comprar Ingresso" → abre Sympla em nova aba
-- [ ] Cadastrar evento novo digitando `www.sympla.com.br/teste` (sem https) e confirmar que salva com `https://`
-- [ ] Conferir no `EventModal` (carrossel da home) que o link também abre certo
-
----
-
-## Prevenção de regressão
-
-- Teste unitário `src/__tests__/lib/safeExternalUrl.test.ts` cobrindo: URL com http, com https, sem protocolo, `bit.ly/x`, string vazia, `null`, `javascript:` (deve virar `#`).
-- Comentário no `EventForm.normalizeUrl` apontando para o helper compartilhado, evitando divergência futura entre os dois `normalizeUrl` espalhados pelo projeto.
-
-## Pendências/futuro (não nesta entrega)
-
-- Unificar os 4 `normalizeUrl` espalhados (`EventForm`, `CustomLinkForm`, `RedirectsManager`, `Redirect.tsx`) em `src/lib/safeExternalUrl.ts`. Faço só se você aprovar — mexe em fluxos sensíveis (redirects).
-- Validação no schema do banco (`CHECK ticket_link ~ '^https?://'`) — extra-seguro, mas pode quebrar importações antigas; deixo só como sugestão.
+Aprove a **Fase 1** (a mais segura e de maior impacto imediato) e eu começo só por ela. Posso já investigar a Fase 2 em paralelo (sem mexer em nada, só `curl`).
