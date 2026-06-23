@@ -13,8 +13,12 @@ describe('SEO - robots.txt', () => {
     expect(existsSync(resolve(ROOT, 'public/robots.txt'))).toBe(true);
   });
 
-  it('não bloqueia o site inteiro (sem "Disallow: /" global)', () => {
-    const lines = robots.split('\n').map((l) => l.trim());
+  it('não bloqueia o site inteiro sob User-agent: *', () => {
+    // Encontra o bloco "User-agent: *" e garante que ele não tem "Disallow: /" puro
+    const blocks = robots.split(/\n(?=User-agent:)/);
+    const wildcard = blocks.find((b) => /^User-agent:\s*\*/m.test(b));
+    expect(wildcard, 'esperado um bloco User-agent: *').toBeDefined();
+    const lines = wildcard!.split('\n').map((l) => l.trim());
     expect(lines).not.toContain('Disallow: /');
   });
 
