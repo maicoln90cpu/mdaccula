@@ -19,6 +19,7 @@ import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
+import { notifyEventChange } from '@/lib/indexnow';
 
 interface EventFormData {
   title: string;
