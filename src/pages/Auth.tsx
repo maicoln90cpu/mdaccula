@@ -119,6 +119,11 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
+      <SEOHead
+        title="Autenticação"
+        description="Acesso ao sistema MDAccula."
+        noindex
+      />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Acesso ao Sistema</CardTitle>
