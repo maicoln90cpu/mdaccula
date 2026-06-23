@@ -354,14 +354,46 @@ Disallow: /admin
 Disallow: /login
 Disallow: /api/
 
+# Bots agressivos que consomem egress sem trazer trafego — bloquear completamente
+User-agent: AhrefsBot
+Disallow: /
+User-agent: SemrushBot
+Disallow: /
+User-agent: MJ12bot
+Disallow: /
+User-agent: DotBot
+Disallow: /
+User-agent: BLEXBot
+Disallow: /
+User-agent: PetalBot
+Disallow: /
+User-agent: DataForSeoBot
+Disallow: /
+
+# LLM scrapers (opcional - bloquear se nao quiser que conteudo seja usado em treinamento de IA)
+User-agent: GPTBot
+Disallow: /
+User-agent: CCBot
+Disallow: /
+User-agent: ClaudeBot
+Disallow: /
+User-agent: Bytespider
+Disallow: /
+
 Sitemap: https://[dominio]/sitemap.xml
+
+# Host canonico (Yandex e alguns crawlers respeitam para escolher entre www vs raiz)
+Host: https://[dominio]
 ```
 
 ### Regras de robots.txt
 
 - **Sempre ter** `Sitemap:` apontando para o sitemap canonico
-- **Bloquear cirurgicamente** — nunca `Disallow: /` (bloqueia tudo)
+- **Bloquear cirurgicamente** sob `User-agent: *` — nunca `Disallow: /` no bloco global (bloqueia tudo). `Disallow: /` e legitimo apenas em blocos de bots especificos (Ahrefs, GPTBot, etc.) que voce quer cortar totalmente.
 - **Crawlers de redes sociais** (`Twitterbot`, `facebookexternalhit`) precisam de `Allow: /` para gerar previews
+- **Bots agressivos** (Ahrefs, Semrush, MJ12, DotBot, BLEXBot, PetalBot, DataForSeoBot) consomem egress sem trazer trafego — bloquear reduz custo de hospedagem
+- **LLM scrapers** (GPTBot, CCBot, ClaudeBot, Bytespider) sao opcionais — bloquear se nao quiser conteudo usado em treinamento de IA
+- **Diretiva `Host:`** ajuda Yandex e alguns crawlers a escolherem entre `www` vs raiz como canonico
 - **Nunca bloquear** `/privacy-policy` e `/terms` — Google precisa ler para avaliar confiabilidade
 
 ---
