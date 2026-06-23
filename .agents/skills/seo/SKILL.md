@@ -91,6 +91,7 @@ interface DocumentMetaOptions {
   description?: string;
   canonical?: string;
   robots?: string;
+  noindex?: boolean; // atalho seguro: emite "noindex, nofollow" (evita typo em string aberta)
   og?: {
     title?: string;
     description?: string;
