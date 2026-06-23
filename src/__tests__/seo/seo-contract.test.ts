@@ -1,8 +1,9 @@
-import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+/// <reference types="node" />
+import { readFileSync, existsSync } from 'fs';
+import { resolve } from 'path';
 import { describe, it, expect } from 'vitest';
 
-const ROOT = resolve(__dirname, '../../..');
+const ROOT = process.cwd();
 const PRIVATE_ROUTES = ['/admin', '/login', '/auth', '/reset', '/settings'];
 
 describe('SEO - robots.txt', () => {
@@ -13,7 +14,6 @@ describe('SEO - robots.txt', () => {
   });
 
   it('não bloqueia o site inteiro (sem "Disallow: /" global)', () => {
-    // garantia: nenhuma linha é exatamente "Disallow: /"
     const lines = robots.split('\n').map((l) => l.trim());
     expect(lines).not.toContain('Disallow: /');
   });
