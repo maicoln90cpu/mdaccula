@@ -1,20 +1,29 @@
-/// <reference types="node" />
-import { readFileSync, existsSync } from 'fs';
-import { resolve } from 'path';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 
-const ROOT = process.cwd();
+// Dynamic imports keep Node builtins out of Vite's browser build graph.
+let readFileSync: typeof import('fs').readFileSync;
+let existsSync: typeof import('fs').existsSync;
+let resolve: typeof import('path').resolve;
+let ROOT = '';
+
 const PRIVATE_ROUTES = ['/admin', '/login', '/auth', '/reset', '/settings'];
 
-describe('SEO - robots.txt', () => {
-  const robots = readFileSync(resolve(ROOT, 'public/robots.txt'), 'utf-8');
+beforeAll(async () => {
+  const fs = await import(/* @vite-ignore */ 'fs');
+  const path = await import(/* @vite-ignore */ 'path');
+  readFileSync = fs.readFileSync;
+  existsSync = fs.existsSync;
+  resolve = path.resolve;
+  ROOT = process.cwd();
+});
 
+describe('SEO - robots.txt', () => {
   it('existe', () => {
     expect(existsSync(resolve(ROOT, 'public/robots.txt'))).toBe(true);
   });
 
   it('não bloqueia o site inteiro sob User-agent: *', () => {
-    // Encontra o bloco "User-agent: *" e garante que ele não tem "Disallow: /" puro
+    const robots = readFileSync(resolve(ROOT, 'public/robots.txt'), 'utf-8');
     const blocks = robots.split(/\n(?=User-agent:)/);
     const wildcard = blocks.find((b) => /^User-agent:\s*\*/m.test(b));
     expect(wildcard, 'esperado um bloco User-agent: *').toBeDefined();
@@ -23,22 +32,23 @@ describe('SEO - robots.txt', () => {
   });
 
   it('tem diretiva Sitemap apontando para mdaccula.com', () => {
+    const robots = readFileSync(resolve(ROOT, 'public/robots.txt'), 'utf-8');
     expect(robots).toMatch(/Sitemap:\s*https:\/\/mdaccula\.com\/sitemap\.xml/);
   });
 
   it('bloqueia /admin', () => {
+    const robots = readFileSync(resolve(ROOT, 'public/robots.txt'), 'utf-8');
     expect(robots).toMatch(/Disallow:\s*\/admin/);
   });
 });
 
 describe('SEO - sitemap.xml', () => {
-  const sitemap = readFileSync(resolve(ROOT, 'public/sitemap.xml'), 'utf-8');
-
   it('existe', () => {
     expect(existsSync(resolve(ROOT, 'public/sitemap.xml'))).toBe(true);
   });
 
   it('não contém rotas privadas', () => {
+    const sitemap = readFileSync(resolve(ROOT, 'public/sitemap.xml'), 'utf-8');
     for (const route of PRIVATE_ROUTES) {
       expect(
         sitemap,
@@ -48,6 +58,7 @@ describe('SEO - sitemap.xml', () => {
   });
 
   it('todas as URLs usam https://mdaccula.com', () => {
+    const sitemap = readFileSync(resolve(ROOT, 'public/sitemap.xml'), 'utf-8');
     const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
     expect(locs.length).toBeGreaterThan(0);
     for (const loc of locs) {
