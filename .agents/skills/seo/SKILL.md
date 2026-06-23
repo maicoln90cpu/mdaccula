@@ -685,6 +685,38 @@ describe('SEO - Sitemap', () => {
   it('robots.txt deve existir', () => {
     expect(existsSync('public/robots.txt')).toBe(true);
   });
+
+  // IMPORTANTE: `Disallow: /` e legitimo dentro de blocos de bots agressivos
+  // (AhrefsBot, GPTBot etc.). So eh erro grave quando aparece no bloco User-agent: *.
+  it('robots.txt nao bloqueia o site inteiro sob User-agent: *', () => {
+    const robots = readFileSync('public/robots.txt', 'utf-8');
+    const blocks = robots.split(/\n(?=User-agent:)/);
+    const wildcard = blocks.find((b) => /^User-agent:\s*\*/m.test(b));
+    expect(wildcard, 'esperado um bloco User-agent: *').toBeDefined();
+    const lines = wildcard!.split('\n').map((l) => l.trim());
+    expect(lines).not.toContain('Disallow: /');
+  });
+});
+```
+
+### Dica: imports de Node em testes que rodam sob Vite/Vitest
+
+Se o projeto usa Vite, importar `fs`/`path` no topo do arquivo de teste pode quebrar o `vite build` (Rollup tenta empacotar modulos Node para o browser). Duas saidas:
+
+1. **Excluir testes do `tsconfig.app.json`** (campo `exclude`) — o build do app passa a ignorar `*.test.ts`/`*.spec.ts`.
+2. **Usar `import()` dinamico dentro de `beforeAll`** — Rollup nao consegue resolver estaticamente, entao nao tenta empacotar:
+
+```ts
+import { describe, it, expect, beforeAll } from 'vitest';
+
+let readFileSync: typeof import('fs').readFileSync;
+let resolve: typeof import('path').resolve;
+
+beforeAll(async () => {
+  const fs = await import(/* @vite-ignore */ 'fs');
+  const path = await import(/* @vite-ignore */ 'path');
+  readFileSync = fs.readFileSync;
+  resolve = path.resolve;
 });
 ```
 
