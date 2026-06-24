@@ -21,6 +21,7 @@ src/__tests__/
 ├── architecture/   Guards estáticos (lê código-fonte com regex/AST).
 ├── components/     React Testing Library em componentes.
 ├── contracts/      Contratos HTTP de Edge Functions (skipIf sem env).
+├── database/       Provas vivas de policies RLS contra o Supabase real.
 ├── hooks/          Hooks isolados com renderHook.
 ├── lib/            Funções puras.
 ├── pages/          Páginas montadas com providers.
@@ -43,6 +44,15 @@ Estão em `src/__tests__/contracts/`. Cada arquivo testa **uma** Edge Function c
 - Validam apenas o **contrato** (CORS, status codes, content-type, formato do envelope) — não o conteúdo de negócio.
 
 Hoje cobertos: `indexnow-notify`, `sitemap`. As outras 29 funções herdam o mesmo template quando forem auditadas.
+
+## RLS tests (Database)
+
+Em `src/__tests__/database/`. Cada arquivo prova as políticas de Row-Level Security de UMA tabela contra o Supabase real.
+
+- Pulam automaticamente se `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` faltarem.
+- Não escrevem dados — só tentam e validam que a RLS bloqueia.
+- Hoje cobertos: `events` (4 testes: SELECT permitido, INSERT/UPDATE/DELETE bloqueados pra anônimo).
+- A esteira: replicar para `blog_posts`, `custom_links`, `user_roles`, `profiles`.
 
 ## Regressões cobertas
 
