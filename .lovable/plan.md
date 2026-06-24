@@ -1,63 +1,83 @@
-# Aplicação da skill SEO no projeto MDAccula
+## Diagnóstico (causa raiz)
 
-## Diagnóstico (o que já existe e está bom)
+Verifiquei o banco de dados: as descrições **estão salvas corretamente** (eventos recentes têm 28–117 caracteres no campo `description`). O bug está nas **consultas SELECT do frontend**, que esqueceram de pedir colunas:
 
-| Item | Estado |
-|---|---|
-| Meta tags por rota (`SEOHead` com react-helmet-async) | ✅ Existe, usado em 13 páginas públicas |
-| JSON-LD (`StructuredData`) | ✅ Existe |
-| `public/sitemap.xml` estático (8 rotas principais) | ✅ Existe |
-| Edge Function `sitemap` (dinâmica, inclui eventos + posts + imagens) | ✅ Existe |
-| `public/robots.txt` (bloqueia admin, bots agressivos, libera redes sociais) | ✅ Robusto |
-| `public/llms.txt` | ✅ Existe |
-| Open Graph + Twitter Card sitewide no `index.html` | ✅ Existe |
-| H1 único na Home | ✅ Hero.tsx |
+| Arquivo | Linha | Problema |
+|---|---|---|
+| `src/hooks/useEvents.ts` | 43 | SELECT não pede `description`, `end_date`, `schedule`, `ai_context`, `pix_button_enabled`, `tickets_per_day` |
+| `src/pages/EventDetail.tsx` | 146 | SELECT não pede `subtitle`, `address`, `end_date`, `schedule`, `updated_at` |
 
-## Lacunas encontradas (o que falta)
+Resultado: o EventModal (aberto na página `/eventos`) e a página do slug (`/eventos/:slug`) **recebem o evento sem o campo `description`**, por isso a área fica vazia mesmo o banco tendo o conteúdo. Salvar funciona — o que falha é a leitura.
 
-1. **Páginas privadas sem `noindex`**: `/auth`, `/login`, `/404` (NotFound). Hoje podem aparecer no Google.
-2. **Sem testes que protejam o SEO contra regressão** (skill exige).
-3. **IndexNow não configurado** (avisa Bing/Yandex na hora que tem evento novo).
-4. **Sem verificação** se a Edge Function `sitemap` está realmente servindo `/sitemap.xml` para o Google (suspeito que Cloudflare reescreve, mas preciso confirmar antes de mexer).
+---
 
-## Plano em fases (cada fase aprovada separadamente)
+## Antes vs Depois
 
-### Fase 1 — `noindex` em páginas privadas (risco zero)
-- Adicionar `<SEOHead noindex />` em `src/pages/Auth.tsx`, `src/pages/Login.tsx`, `src/pages/NotFound.tsx`.
-- Estender `SEOHead.tsx` para aceitar prop `noindex?: boolean` que emite `<meta name="robots" content="noindex, nofollow">`.
-- **Antes vs depois**: hoje Google pode indexar tela de login → depois fica fora do índice.
-- **Validação manual**: abrir `/login`, inspecionar `<head>` no DevTools, confirmar `<meta name="robots" content="noindex,nofollow">`.
+| | Antes | Depois |
+|---|---|---|
+| Modal do evento (lista pública) | Sem descrição (campo nem chega do banco) | Mostra descrição corretamente |
+| Página do slug `/eventos/:slug` | Sem subtítulo/endereço/dias | Mostra todas as infos salvas |
+| Banco | Já está correto | Sem alteração |
+| Proteção | Nenhuma — qualquer dev pode esquecer uma coluna | Lista única de campos + teste que reprova SELECT incompleto |
 
-### Fase 2 — Confirmar qual sitemap o Google vê (investigação, sem mudança)
-- Rodar `curl -I https://mdaccula.com/sitemap.xml` e `curl https://mdaccula.com/sitemap.xml | head -20`.
-- Se vier do estático (8 rotas) → propor reescrita Cloudflare para a Edge Function (que já lista todos os eventos e posts).
-- Se vier da Edge Function → marcar como ok, nada a fazer.
-- **Sem mudanças nesta fase**, só relatório.
+---
 
-### Fase 3 — Testes de proteção (skill exige)
-- Criar `src/__tests__/seo/seo-contract.test.ts`:
-  - `public/sitemap.xml` existe e **não** contém `/admin`, `/login`, `/auth`.
-  - `public/robots.txt` existe, tem `Sitemap:` apontando para o domínio canônico, **não** tem `Disallow: /` global.
-  - Páginas públicas exportam componente que referencia `SEOHead`.
-- **Previne regressão**: se alguém adicionar `/login` ao sitemap por engano, o CI falha.
+## Fase 1 — Correção imediata (baixo risco)
 
-### Fase 4 — IndexNow (opcional, exige sua aprovação extra)
-- Criar Edge Function `submit-indexnow` + secret `INDEXNOW_KEY` + arquivo `public/<KEY>.txt`.
-- Cron diário às 08:00 envia URLs novas para Bing/Yandex.
-- **Vantagem**: eventos novos aparecem em horas, não dias.
-- **Desvantagem**: mais uma função para manter; só vale se o tráfego do Bing for relevante.
+**1.1.** Criar `src/lib/eventSelectFields.ts` com **uma única fonte da verdade**:
+```ts
+export const EVENT_PUBLIC_FIELDS = "id, title, subtitle, slug, venue, address, location_city, location_state, date, end_date, time, end_time, genres, lineup, description, schedule, ticket_link, vip_link, pix_button_enabled, tickets_per_day, image_url, views, blog_post_id, status, ai_context, created_at, updated_at";
+```
 
-## O que **não** vou mexer (por segurança)
+**1.2.** Substituir o SELECT em `useEvents.ts` linha 43 por `EVENT_PUBLIC_FIELDS`.
 
-- **`react-helmet-async`**: a skill prefere hook próprio (`useDocumentMeta`), mas isso é só para projetos com SSR (TanStack Start). Vite + React puro com helmet funciona perfeitamente e já está em 13 páginas — trocar agora seria refatoração arriscada sem ganho.
-- **Sitemap estático vs Edge Function**: vou apenas investigar (Fase 2) antes de propor qualquer alteração.
-- **`StructuredData`, `index.html`, `robots.txt`**: estão bons.
+**1.3.** Substituir o SELECT em `EventDetail.tsx` linha 146 por `EVENT_PUBLIC_FIELDS`.
 
-## Pendências futuras (não agora)
+**Vantagem:** uma só lista; trocar coluna em um lugar atualiza todas as telas.
+**Desvantagem:** payload por evento aumenta ~200 bytes (irrelevante — já temos `limit(50)`).
 
-- Migrar `react-helmet-async` para hook próprio (só se um dia migrar para SSR).
-- Adicionar OG image individual por evento/post (hoje todos usam a hero padrão).
+---
 
-## Próximo passo
+## Fase 2 — Teste de regressão (impede o bug de voltar)
 
-Aprove a **Fase 1** (a mais segura e de maior impacto imediato) e eu começo só por ela. Posso já investigar a Fase 2 em paralelo (sem mexer em nada, só `curl`).
+**2.1.** Criar `src/__tests__/lib/eventSelectFields.test.ts`:
+- Garante que `EVENT_PUBLIC_FIELDS` contém: `description`, `subtitle`, `address`, `end_date`, `schedule`, `pix_button_enabled`, `tickets_per_day`.
+- Se alguém remover um destes, o teste quebra no CI.
+
+**2.2.** Criar `src/__tests__/architecture/event-select-fields.test.ts` (guard estático):
+- Lê os arquivos `useEvents.ts` e `EventDetail.tsx`.
+- Falha se encontrar `from("events").select("...string literal...")` em vez de `EVENT_PUBLIC_FIELDS`.
+- Custo: <1s, sem rede, sem flake.
+
+---
+
+## Fase 3 — Validação manual (você executa)
+
+Checklist após o deploy:
+1. Abrir `/admin/events` → editar um evento com descrição → ver a descrição no Textarea ✅
+2. Abrir `/eventos` → clicar num card → modal mostra descrição ✅
+3. Abrir `/eventos/<slug>` → bloco "Sobre o evento" mostra descrição ✅
+4. Criar evento novo com descrição → salvar → reabrir → descrição persiste ✅
+
+---
+
+## Pendências / próximos passos sugeridos (não agora)
+
+- Aplicar o mesmo padrão de "campos centralizados" para `blog_posts` e `custom_links` (mesma classe de bug pode ocorrer lá).
+- Avaliar trocar `select("*")` no admin por `EVENT_PUBLIC_FIELDS` para reduzir egress.
+
+---
+
+## Prevenção de regressão (resposta direta à pergunta "como corrigir de forma definitiva")
+
+Três camadas combinadas:
+
+1. **Fonte única** (`EVENT_PUBLIC_FIELDS`) — impossível esquecer uma coluna em uma tela e lembrar em outra.
+2. **Teste unitário** — quebra se a constante perder campos críticos.
+3. **Guard estático de arquitetura** — quebra se alguém voltar a usar string literal direto no SELECT de `events`.
+
+CI bloqueante = merge impedido se qualquer uma das 3 falhar.
+
+---
+
+Posso seguir para a Fase 1 (correção) + Fase 2 (testes) juntas, ou prefere que eu faça só a correção primeiro e os testes em seguida?
