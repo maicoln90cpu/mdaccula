@@ -26,6 +26,7 @@
 | [🔒 SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) | Auditoria de segurança e políticas RLS |
 | [🏗️ SYSTEM-DESIGN.md](docs/SYSTEM-DESIGN.md) | Arquitetura técnica e fluxos de dados |
 | [🗃️ tabelas.md](tabelas.md) | Documentação SQL do banco de dados |
+| [🧪 TESTING.md](docs/TESTING.md) | Como rodar testes, coverage ratchet e catálogo de regressões |
 
 ---
 
