@@ -40,7 +40,7 @@ export function useEvents() {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, subtitle, slug, venue, address, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views, blog_post_id, created_at, updated_at")
+        .select(EVENT_PUBLIC_FIELDS)
         .eq("status", "active")
         .gte("date", dateFilter)
         .order("date", { ascending: true })
