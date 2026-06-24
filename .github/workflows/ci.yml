@@ -40,7 +40,11 @@ jobs:
 
       - name: Run Tests with Coverage
         run: npx vitest run --coverage
-        continue-on-error: true
+        # BLOQUEANTE: teste quebrado para o merge.
+
+      - name: Coverage ratchet (cobertura não pode cair)
+        run: node scripts/check-coverage-ratchet.mjs
+        # BLOQUEANTE: regressão de cobertura para o merge.
 
       - name: Upload coverage report
         if: always()
@@ -53,6 +57,8 @@ jobs:
 
       - name: Check Prettier Formatting
         run: npx prettier --check "src/**/*.{ts,tsx,js,jsx,css,md}"
+        # NÃO-BLOQUEANTE: 195 arquivos legados fora do padrão.
+        # Plano: rodar "npx prettier --write" num PR dedicado e então tornar bloqueante.
         continue-on-error: true
 
       - name: Check unused dependencies (depcheck)
