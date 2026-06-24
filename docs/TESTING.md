@@ -21,6 +21,7 @@ src/__tests__/
 ├── architecture/   Guards estáticos (lê código-fonte com regex/AST).
 ├── components/     React Testing Library em componentes.
 ├── contracts/      Contratos HTTP de Edge Functions (skipIf sem env).
+├── database/       Provas vivas de policies RLS contra o Supabase real.
 ├── hooks/          Hooks isolados com renderHook.
 ├── lib/            Funções puras.
 ├── pages/          Páginas montadas com providers.
