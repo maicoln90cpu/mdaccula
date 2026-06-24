@@ -13,6 +13,7 @@ import { addHours } from "date-fns";
 import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
 import { parseSchedule } from "@/lib/eventScheduleHelper";
 import { normalizeLineup } from "@/lib/lineupNormalizer";
+import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -143,7 +144,7 @@ const EventDetail = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from("events")
-        .select("id, title, slug, venue, location_city, location_state, date, time, end_time, genres, lineup, description, image_url, ticket_link, vip_link, blog_post_id, views, created_at")
+        .select(EVENT_PUBLIC_FIELDS)
         .eq("status", "active")
         .overlaps("genres", event!.genres)
         .neq("id", event!.id)
@@ -153,7 +154,7 @@ const EventDetail = () => {
 
       if (!data) return [];
       const now = new Date();
-      return (data as Event[]).filter(e => {
+      return (data as unknown as Event[]).filter(e => {
         const eventDateTime = parseLocalDateTime(e.date, e.time);
         return addHours(eventDateTime, 24) > now;
       }).slice(0, 3);

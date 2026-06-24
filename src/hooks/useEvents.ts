@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isEventVisible } from "@/lib/eventDateHelper";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import type { Event } from "@/types";
+import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
 
 const EVENTS_CACHE_KEY = 'mdaccula-events-cache';
 
@@ -40,7 +41,7 @@ export function useEvents() {
 
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, subtitle, slug, venue, address, location_city, location_state, date, time, end_time, genres, lineup, ticket_link, vip_link, image_url, views, blog_post_id, created_at, updated_at")
+        .select(EVENT_PUBLIC_FIELDS)
         .eq("status", "active")
         .gte("date", dateFilter)
         .order("date", { ascending: true })
@@ -48,7 +49,7 @@ export function useEvents() {
 
       if (error) throw error;
 
-      const visibleEvents = (data || []).filter((event) =>
+      const visibleEvents = ((data || []) as unknown as Event[]).filter((event) =>
         isEventVisible(
           { date: event.date, time: event.time },
           { hoursAfterStart, hoursWithoutTime, timezoneOffset }
