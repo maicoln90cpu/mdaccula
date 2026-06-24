@@ -38,6 +38,7 @@ find src -name "*.test.ts" | xargs grep -l "edge\|function\|traceId" 2>/dev/null
 | Sem CI bloqueante | MODULO 5 - CI e qualidade |
 | Bug de producao sem teste | MODULO 6 - Regressao |
 | Regra arquitetural sem guard | Ler `references/static-guards.md` antes de escrever teste runtime |
+| Suite depende de ENV/CDN/regressao nomeada/ratchet/builtin Node em script | Ler `references/robust-patterns.md` para 5 padroes comprovados |
 
 ### Preferir guard estatico quando possivel
 
