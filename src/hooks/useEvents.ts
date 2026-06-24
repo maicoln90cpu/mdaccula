@@ -49,7 +49,7 @@ export function useEvents() {
 
       if (error) throw error;
 
-      const visibleEvents = (data || []).filter((event) =>
+      const visibleEvents = ((data || []) as unknown as Event[]).filter((event) =>
         isEventVisible(
           { date: event.date, time: event.time },
           { hoursAfterStart, hoursWithoutTime, timezoneOffset }
