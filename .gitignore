@@ -28,3 +28,6 @@ playwright-report/
 test-results/
 blob-report/
 .playwright/
+
+# Vitest coverage (gerado; baseline ratchet é versionada)
+coverage/

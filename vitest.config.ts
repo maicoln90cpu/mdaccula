@@ -12,7 +12,7 @@ export default defineConfig({
     exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'json', 'html'],
+      reporter: ['text', 'json', 'json-summary', 'html'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'src/__tests__/**',
@@ -20,6 +20,14 @@ export default defineConfig({
         'src/main.tsx',
         'src/vite-env.d.ts',
       ],
+      // Thresholds = baseline atual (mede 2026-06). Apenas trava regressão;
+      // o ratchet (scripts/check-coverage-ratchet.mjs) sobe o piso com o tempo.
+      thresholds: {
+        lines: 8,
+        functions: 6,
+        branches: 6,
+        statements: 8,
+      },
     },
     testTimeout: 10000,
     hookTimeout: 10000,
