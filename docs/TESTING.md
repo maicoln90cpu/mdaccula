@@ -45,6 +45,15 @@ Estão em `src/__tests__/contracts/`. Cada arquivo testa **uma** Edge Function c
 
 Hoje cobertos: `indexnow-notify`, `sitemap`. As outras 29 funções herdam o mesmo template quando forem auditadas.
 
+## RLS tests (Database)
+
+Em `src/__tests__/database/`. Cada arquivo prova as políticas de Row-Level Security de UMA tabela contra o Supabase real.
+
+- Pulam automaticamente se `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` faltarem.
+- Não escrevem dados — só tentam e validam que a RLS bloqueia.
+- Hoje cobertos: `events` (4 testes: SELECT permitido, INSERT/UPDATE/DELETE bloqueados pra anônimo).
+- A esteira: replicar para `blog_posts`, `custom_links`, `user_roles`, `profiles`.
+
 ## Regressões cobertas
 
 Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente. **Nunca remover daqui sem aprovação.**
