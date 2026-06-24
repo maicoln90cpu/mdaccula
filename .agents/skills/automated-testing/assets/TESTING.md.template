@@ -1,0 +1,61 @@
+# Estratégia de Testes — {NOME_DO_PROJETO}
+
+## Stack
+
+- **Unit/Integration:** Vitest + React Testing Library
+- **E2E:** Playwright
+- **Contratos:** Zod
+- **A11y:** axe-core (`@axe-core/playwright`)
+- **Coverage:** v8
+
+## Comandos
+
+```bash
+bun test                 # unit + integration
+bun test --coverage      # com cobertura
+bunx playwright test     # E2E
+bunx playwright test --ui
+bun run scripts/check-test-health.mjs
+```
+
+## Metas de cobertura (por risco)
+
+| Domínio | Meta linhas | Camadas obrigatórias |
+|---|---|---|
+| Auth | 90% | unit + integration + E2E + RLS |
+| Pagamento | 95% | unit + contract + E2E |
+| CRUD principal | 80% | unit + integration + E2E happy path |
+| UI marketing | smoke | E2E opcional |
+
+## Fluxos E2E críticos
+
+Ver `e2e-flows.md`.
+
+## Matriz de risco
+
+Ver `risk-matrix.md`.
+
+## Regressões cobertas
+
+| Data | Bug | Teste |
+|---|---|---|
+| YYYY-MM-DD | descrição curta | `tests/regression/xxx.test.ts` |
+
+## Como criar teste a partir de bug de produção
+
+1. Reproduzir o bug em teste (vermelho).
+2. Corrigir até passar (verde).
+3. Commitar teste + fix no mesmo PR.
+4. Registrar nesta tabela.
+
+## Política de skip e flaky
+
+- `it.skip` exige comentário `// TODO(#issue): owner, due YYYY-MM-DD`.
+- Flaky vai para tag `@flaky`, issue aberta, prazo máx 7 dias.
+
+## CI
+
+- Bloqueia merge em falha.
+- `tsc --noEmit` obrigatório.
+- Coverage ratchet ativo.
+- Smoke pós-deploy roda em preview e produção.

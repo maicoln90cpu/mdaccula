@@ -1,0 +1,20 @@
+# Matriz de Risco — {NOME_DO_PROJETO}
+
+Para cada domínio, classifique impacto (1–5) e probabilidade (1–5). Prioridade = impacto × probabilidade.
+
+| Domínio | Impacto | Prob. | Prioridade | Camadas de teste mínimas | Dono |
+|---|---|---|---|---|---|
+| Auth (login, sessão) | 5 | 4 | 20 | unit + integration + E2E + RLS | |
+| Pagamento | 5 | 3 | 15 | unit + contract + E2E + smoke prod | |
+| RLS multi-tenant | 5 | 3 | 15 | integration (por perfil) | |
+| CRUD principal | 4 | 4 | 16 | unit + integration + E2E happy | |
+| Upload de arquivo | 3 | 3 | 9 | unit + contract + E2E | |
+| Notificações | 3 | 2 | 6 | unit + integration | |
+| Páginas marketing | 1 | 2 | 2 | smoke E2E opcional | |
+
+## Regras
+
+- Prioridade ≥ 12 → cobertura crítica obrigatória.
+- Prioridade 6–11 → cobertura alta.
+- Prioridade < 6 → cobertura mínima ou smoke.
+- Recalcular a cada release maior.
