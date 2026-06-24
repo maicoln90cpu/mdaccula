@@ -1,6 +1,12 @@
-import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { describe, it, expect, beforeAll } from 'vitest';
+
+// Dynamic imports keep Node builtins out of Vite's browser build graph.
+let readFileSync: typeof import('fs').readFileSync;
+
+beforeAll(async () => {
+  const fs = await import(/* @vite-ignore */ 'fs');
+  readFileSync = fs.readFileSync;
+});
 
 /**
  * Guard estático de arquitetura.
@@ -41,7 +47,7 @@ const GUARDS: Guard[] = [
 describe('Architecture guard — SELECTs de events usam EVENT_PUBLIC_FIELDS', () => {
   for (const guard of GUARDS) {
     it(`${guard.file} usa a constante e não string literal`, () => {
-      const fullPath = resolve(process.cwd(), guard.file);
+      const fullPath = `${process.cwd()}/${guard.file}`;
       const content = readFileSync(fullPath, 'utf-8');
 
       expect(
