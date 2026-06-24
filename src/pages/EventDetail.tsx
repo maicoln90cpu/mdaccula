@@ -154,7 +154,7 @@ const EventDetail = () => {
 
       if (!data) return [];
       const now = new Date();
-      return (data as Event[]).filter(e => {
+      return (data as unknown as Event[]).filter(e => {
         const eventDateTime = parseLocalDateTime(e.date, e.time);
         return addHours(eventDateTime, 24) > now;
       }).slice(0, 3);
