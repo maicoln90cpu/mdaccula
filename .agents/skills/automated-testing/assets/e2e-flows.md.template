@@ -1,0 +1,21 @@
+# Fluxos E2E Críticos — {NOME_DO_PROJETO}
+
+Lista canônica de jornadas cobertas por Playwright. Mantida em sincronia com `tests/e2e/`.
+
+| # | Fluxo | Arquivo | Mobile | Desktop | Smoke pós-deploy |
+|---|---|---|---|---|---|
+| 1 | Login + logout | `tests/e2e/auth.spec.ts` | ✅ | ✅ | ✅ |
+| 2 | Cadastro novo usuário | `tests/e2e/signup.spec.ts` | ✅ | ✅ | |
+| 3 | Recuperar senha | `tests/e2e/password-reset.spec.ts` | | ✅ | |
+| 4 | Criar item principal | `tests/e2e/create-item.spec.ts` | ✅ | ✅ | ✅ |
+| 5 | Editar e excluir item | `tests/e2e/edit-delete-item.spec.ts` | | ✅ | |
+| 6 | Checkout / ação de valor | `tests/e2e/checkout.spec.ts` | ✅ | ✅ | ✅ |
+| 7 | Convidar membro (se multi-tenant) | `tests/e2e/invite.spec.ts` | | ✅ | |
+
+## Regras
+
+- Selectors: `data-testid` apenas.
+- Dados isolados por execução (timestamp/uuid).
+- Login via `storageState` quando possível.
+- Headless em CI, headed local.
+- Sem `waitForTimeout`.
