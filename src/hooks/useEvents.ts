@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isEventVisible } from "@/lib/eventDateHelper";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import type { Event } from "@/types";
+import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
 
 const EVENTS_CACHE_KEY = 'mdaccula-events-cache';
 
