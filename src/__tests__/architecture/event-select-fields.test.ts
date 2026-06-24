@@ -40,7 +40,7 @@ const GUARDS: Guard[] = [
 describe('Architecture guard — SELECTs de events usam EVENT_PUBLIC_FIELDS', () => {
   for (const guard of GUARDS) {
     it(`${guard.file} usa a constante e não string literal`, () => {
-      const fullPath = resolve(process.cwd(), guard.file);
+      const fullPath = `${process.cwd()}/${guard.file}`;
       const content = readFileSync(fullPath, 'utf-8');
 
       expect(
