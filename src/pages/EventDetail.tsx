@@ -13,6 +13,7 @@ import { addHours } from "date-fns";
 import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
 import { parseSchedule } from "@/lib/eventScheduleHelper";
 import { normalizeLineup } from "@/lib/lineupNormalizer";
+import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
 import {
   Breadcrumb,
   BreadcrumbItem,
