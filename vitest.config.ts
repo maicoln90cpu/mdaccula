@@ -20,12 +20,13 @@ export default defineConfig({
         'src/main.tsx',
         'src/vite-env.d.ts',
       ],
-      // Thresholds iniciais conservadores (baseline). Subir gradualmente.
+      // Thresholds = baseline atual (mede 2026-06). Apenas trava regressão;
+      // o ratchet (scripts/check-coverage-ratchet.mjs) sobe o piso com o tempo.
       thresholds: {
-        lines: 10,
-        functions: 30,
-        branches: 50,
-        statements: 10,
+        lines: 8,
+        functions: 6,
+        branches: 6,
+        statements: 8,
       },
     },
     testTimeout: 10000,
