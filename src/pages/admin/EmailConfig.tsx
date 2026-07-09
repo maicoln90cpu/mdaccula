@@ -334,14 +334,81 @@ const EmailConfig = () => {
     }
   };
 
-  // Alcance estimado
+  // Alcance estimado: segmento tem prioridade; senão pega o total da lista (do detalhe ou do cache do select).
   const reachEstimate = useMemo(() => {
     if (cfg.segment_id) {
       const s = segments.find((x) => x.segment_id === cfg.segment_id);
       return s?.total_contacts ?? null;
     }
-    return listTotal;
-  }, [cfg.segment_id, segments, listTotal]);
+    if (listTotal !== null) return listTotal;
+    const l = lists.find((x) => x.list_id === cfg.list_id);
+    return typeof l?.total_contacts === "number" ? l.total_contacts : null;
+  }, [cfg.segment_id, segments, listTotal, lists, cfg.list_id]);
+
+  // Aplica dados de um evento real ao previewData quando seleciona no dropdown.
+  useEffect(() => {
+    const applyEvent = async () => {
+      if (selectedRealEventId === "mock" || !selectedRealEventId) {
+        setPreviewData(MOCK_EVENT_DATA);
+        setPreviewArticle(null);
+        return;
+      }
+      const ev = realEvents.find((e) => e.id === selectedRealEventId);
+      if (!ev) return;
+      const dateObj = new Date(`${ev.date}T${ev.time || "00:00"}`);
+      const dateLabel = dateObj.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+      const timeLabel = (ev.time || "").slice(0, 5);
+      const baseUrl = "https://mdaccula.com";
+      setPreviewData({
+        eventTitle: ev.title,
+        eventSubtitle: ev.subtitle ?? undefined,
+        flyerUrl: ev.image_url || MOCK_EVENT_DATA.flyerUrl,
+        dateLabel,
+        timeLabel: timeLabel ? `${timeLabel}` : "22h",
+        venueName: ev.venue,
+        cityState: `${ev.location_city}-${ev.location_state}`,
+        description: ev.description || "",
+        ticketUrl: ev.ticket_link || `${baseUrl}/eventos/${ev.slug}`,
+        eventUrl: `${baseUrl}/eventos/${ev.slug}`,
+        agendaUrl: `${baseUrl}/eventos`,
+        instagramUrl: MOCK_EVENT_DATA.instagramUrl,
+        youtubeUrl: MOCK_EVENT_DATA.youtubeUrl,
+        tiktokUrl: MOCK_EVENT_DATA.tiktokUrl,
+        unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
+      });
+      // Se o evento tem matéria vinculada, busca o resumo
+      if (ev.blog_post_id) {
+        const { data: post } = await supabase.from("blog_posts")
+          .select("title,excerpt,slug,image_url")
+          .eq("id", ev.blog_post_id).maybeSingle();
+        if (post) {
+          setPreviewArticle({
+            title: post.title,
+            excerpt: post.excerpt || "",
+            url: `${baseUrl}/blog/${post.slug}`,
+            image_url: post.image_url || undefined,
+          });
+        } else setPreviewArticle(null);
+      } else setPreviewArticle(null);
+    };
+    void applyEvent();
+  }, [selectedRealEventId, realEvents]);
+
+  const sendTestEmail = async (html: string, subject: string) => {
+    setSendingTest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-email", {
+        body: { html, subject, to_email: testEmail || undefined },
+      });
+      if (error) throw error;
+      toast({ title: "E-mail de teste enviado", description: `Enviado para ${data?.sent_to || testEmail || "seu e-mail"}` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Falha no envio de teste", description: e.message });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
 
   if (loading) {
     return (
