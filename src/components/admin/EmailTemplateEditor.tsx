@@ -255,7 +255,22 @@ export function EmailTemplateEditor({
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" variant="outline" onClick={createTemplate}><Plus className="w-4 h-4 mr-1" />Novo</Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Novo</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel>Criar a partir de preset</DropdownMenuLabel>
+            {TEMPLATE_PRESETS.map((p) => (
+              <DropdownMenuItem key={p.key} onClick={() => createTemplate(p.key)} className="flex-col items-start gap-0.5">
+                <span className="font-medium">{p.name}</span>
+                <span className="text-[11px] text-muted-foreground whitespace-normal">{p.description}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => createTemplate()}>Em branco</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button size="sm" variant="outline" onClick={duplicateTemplate} disabled={!activeTpl}><Copy className="w-4 h-4 mr-1" />Duplicar</Button>
         <Button size="sm" variant="outline" onClick={deleteTemplate} disabled={!activeTpl || activeTpl.is_default}>
           <Trash2 className="w-4 h-4 mr-1" />Excluir
