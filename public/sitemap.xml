@@ -46,6 +46,12 @@
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ueh89b</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/soul-club</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
@@ -76,8 +82,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/boris-brejcha-reflections-tour-467462</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/isla-ilhabela-apres-warung-tour-359988</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -94,38 +100,50 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-moving-326910</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/m-e-g-a</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-114283</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/isla-ilhabela-apres-warung-tour-359988</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-moving-43e85m</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/m-e-g-a</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-moving-326910</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/toca-apres-kvsh</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/gv-apres-hugel-illusionize-e-161025</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-z4lzhm</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/caos-club-446036</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -142,25 +160,13 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/caos-club-446036</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/isla-ilhabela-apresfavorita</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-nave2911</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/gv-apres-adam-beyer-joris-voorn-e-284434</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/gv-apres-hugel-illusionize-e-161025</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -172,8 +178,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/isla-ilhabela-apresfavorita</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/gv-apres-adam-beyer-joris-voorn-e-284434</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -184,14 +190,32 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-z4lzhm</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/fire060626</loc>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/fire060626</loc>
-    <lastmod>2026-06-22</lastmod>
+    <loc>https://mdaccula.com/eventos/corona-apres-antdot-287106</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/circoloco2025</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/gv-apres-reveillon-xclsv-107892</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-super2911</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -214,26 +238,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/corona-apres-antdot-287106</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/circoloco2025</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-super2911</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/gv-apres-adam-port-e-859995</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/isla-ilhabela-apresreveillon</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -244,26 +256,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/boma2208</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-kiubup</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/musicon0711</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/isla-ilhabela-apresreveillon</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/gv-apres-reveillon-xclsv-107892</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -274,13 +274,25 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/surreal-4-anos-festival-553865</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-041518</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/toca-apres-chemical-surf-781767</loc>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-172reg</loc>
+    <lastmod>2026-06-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/toca-apres-liu</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/surreal-4-anos-festival-553865</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -292,8 +304,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/toca-apres-liu</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-nq6b0n</loc>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -310,20 +322,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-moving-984288</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-041518</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/isla-ilhabela-apresmochakk</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -340,14 +340,38 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-172reg</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-839231</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/parador-apreschemical-surf-e</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/parador-apres-warung-tour-300307</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/parador-apres-maneva</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/helvetia2509</loc>
-    <lastmod>2026-06-22</lastmod>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/gv-apres-hugel-illusionize-e</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -358,31 +382,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/gliese250426</loc>
-    <lastmod>2026-06-03</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-ffuzy1</loc>
+    <lastmod>2026-07-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/parador-apreschemical-surf-e</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/gv-apres-hugel-illusionize-e</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-p6h5ns</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/gv-apres-the-martinez-brothers-anna</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-839231</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -394,38 +406,32 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-p6h5ns</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/parador-apres-warung-tour-300307</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/parador-apres-maneva</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/time020526</loc>
-    <lastmod>2026-06-16</lastmod>
+    <loc>https://mdaccula.com/eventos/boris-brejcha-reflections-tour-467462</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/parador-aprescat-dealers-e</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-863149</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/time020526</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-moving-984288</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-881151</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -442,12 +448,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-881151</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/bomarj2002</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
@@ -455,25 +455,43 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/vintage-culture-guaruja-094600</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-lybplp</loc>
-    <lastmod>2026-04-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/parador-apresbit-ly-mdaccula-311225-parador</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-moving-2zg9q8</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-863149</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-lybplp</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/parador-apresbit-ly-mdaccula-311225-parador</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/solomunsp</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/corona-apres-malive-476938</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -484,8 +502,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/corona-apres-malive-476938</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/dna051226</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -497,13 +515,31 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-799117</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/dna051226</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/toca-apres-chemical-surf-781767</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/boma2208</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/gliese250426</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/surreal-apres-trotamundo-bells-272590</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -520,14 +556,20 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/alf140226</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-0eyw2v</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-0eyw2v</loc>
-    <lastmod>2026-04-10</lastmod>
+    <loc>https://mdaccula.com/eventos/alf140226</loc>
+    <lastmod>2026-07-01</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/johnsummit1109</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -539,7 +581,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/surreal-apres-old-is-cool-1097242</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -550,25 +592,55 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-uq4025</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-j6t51d</loc>
-    <lastmod>2026-06-22</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-hou4i1</loc>
-    <lastmod>2026-06-22</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/mess-061718</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/gv-apres-camelphat-artbat-e-390298</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/surreal-apres-carnaval-425437</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-hou4i1</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-l7zpzn</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-831910</loc>
+    <lastmod>2026-06-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/parador-apres-antdot</loc>
+    <lastmod>2026-06-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/mess-061718</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -580,25 +652,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-831910</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/caos310126</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/surreal-apres-trotamundo-bells-272590</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-pi4sq0</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -610,26 +664,38 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/parador-apres-antdot</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-1vo5qs</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-l7zpzn</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/surreal-apres-carnaval-425437</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-pi4sq0</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-uzhqhx</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/industria0602vip</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-5ar4jq</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/drete150226</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -647,13 +713,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-nbnod9</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-5ar4jq</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -670,14 +730,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/industria0602vip</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/drete150226</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/sirius-21-03-20h-847583</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -688,14 +742,32 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/sirius-21-03-20h-847583</loc>
-    <lastmod>2026-03-20</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-kqtdp1</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/bomarj1702</loc>
     <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/warungday26</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/aurea-lista-vip-unissex-096097</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-bia6mk</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -712,8 +784,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-1jot4g</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/corona-apres-malive-718743</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -730,20 +802,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-bia6mk</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/aurea-lista-vip-unissex-096097</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/corona-apres-malive-718743</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-1jot4g</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -754,8 +814,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/warungday26</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-it9t7j</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -766,14 +826,32 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-fg4ewu</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-a0w3br</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-a0w3br</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-fg4ewu</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-om3a1g</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-0trdlt</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/caos280226</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -784,25 +862,13 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/derepente140226</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/sabado-dre-tarde-567819</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/odisseia1602</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-om3a1g</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -814,14 +880,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-0trdlt</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/caos280226</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/derepente140226</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -844,14 +904,20 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-nht8q6</loc>
-    <lastmod>2026-04-10</lastmod>
+    <loc>https://mdaccula.com/eventos/aliga1010</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/bomarj1402</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
+    <lastmod>2026-06-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -862,14 +928,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-nht8q6</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -892,8 +952,14 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/bomarj1402</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-y0nmfa</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -922,26 +988,50 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/caos250726</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-8kq1iu</loc>
-    <lastmod>2026-06-22</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-u09z4p</loc>
-    <lastmod>2026-06-22</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-do837q</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/novaera2507</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-kp9pbg</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/sasha-john-digweed</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/nora-en-pure-in-the-park</loc>
     <lastmod>2026-03-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/gv-apres-vintage-culture-e-331931</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -958,8 +1048,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/sasha-john-digweed</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/parador-apres-dubdogz</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -976,26 +1066,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/gv-apres-vintage-culture-e-331931</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/a-liga-141775</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/parador-apres-dubdogz</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-kp9pbg</loc>
-    <lastmod>2026-04-17</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-do837q</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1006,8 +1084,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/boris-gv-0205</loc>
-    <lastmod>2026-06-06</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-0degsg</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1018,8 +1096,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-0degsg</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-edz2et</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ahdo67</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1030,26 +1114,26 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/up2026</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ahdo67</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-6ausgk</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/pistinha2103</loc>
-    <lastmod>2026-06-04</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-edz2et</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/boris-gv-0205</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1060,26 +1144,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-6ausgk</loc>
-    <lastmod>2026-04-07</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/lotadao2504</loc>
-    <lastmod>2026-06-08</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-mumo26</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/whoweare0307</loc>
-    <lastmod>2026-06-23</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/mp190926</loc>
-    <lastmod>2026-06-22</lastmod>
+    <lastmod>2026-07-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1097,19 +1169,31 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/piknic1104</loc>
-    <lastmod>2026-06-11</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-mumo26</loc>
-    <lastmod>2026-06-22</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-moving-xtvmfd</loc>
-    <lastmod>2026-06-22</lastmod>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/lotadao2504</loc>
+    <lastmod>2026-06-29</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/up2026</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/mp190926</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1120,14 +1204,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/jardimcopa190626</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://mdaccula.com/eventos/undr0304</loc>
+    <lastmod>2026-04-24</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/undr0304</loc>
-    <lastmod>2026-04-24</lastmod>
+    <loc>https://mdaccula.com/eventos/jardimcopa190626</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1139,7 +1223,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/xsp260926</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1156,38 +1240,26 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-71b72v</loc>
-    <lastmod>2026-03-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-atyac4</loc>
-    <lastmod>2026-03-29</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/corona020426</loc>
-    <lastmod>2026-04-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-u5gr31</loc>
-    <lastmod>2026-03-28</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-pdqyet</loc>
-    <lastmod>2026-03-29</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/jardimcopa240626</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-u5gr31</loc>
+    <lastmod>2026-06-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-71b72v</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1204,68 +1276,80 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/corona020426</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-pdqyet</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/surreal030426</loc>
     <lastmod>2026-06-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-brfnou</loc>
-    <lastmod>2026-06-19</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-l14rf4</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ams5u1</loc>
-    <lastmod>2026-04-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-l14rf4</loc>
-    <lastmod>2026-06-05</lastmod>
+    <lastmod>2026-07-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-fxhpex</loc>
-    <lastmod>2026-04-26</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-i0qtvq</loc>
-    <lastmod>2026-05-02</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-brfnou</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-lldfgf</loc>
-    <lastmod>2026-05-03</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-yryrof</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-i6yqrn</loc>
-    <lastmod>2026-05-01</lastmod>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-i0qtvq</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-yryrof</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-jxswns</loc>
-    <lastmod>2026-05-05</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-moving-76lcy6</loc>
-    <lastmod>2026-06-08</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1276,32 +1360,26 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-aqotw4</loc>
-    <lastmod>2026-05-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/error2606</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-7tj78d</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-aqotw4</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/grid1909</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/hernan1909</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-7tj78d</loc>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1312,14 +1390,20 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/dunya090526</loc>
-    <lastmod>2026-06-07</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-4yuq2d</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-4yuq2d</loc>
-    <lastmod>2026-06-03</lastmod>
+    <loc>https://mdaccula.com/eventos/hernan1909</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/dunya090526</loc>
+    <lastmod>2026-06-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1331,7 +1415,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/wintersjc050626</loc>
-    <lastmod>2026-06-17</lastmod>
+    <lastmod>2026-07-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1349,7 +1433,13 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/parador050926</loc>
-    <lastmod>2026-05-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/sun190926</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1360,8 +1450,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/sun190926</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/Parador-apres-Chemical-Surf-e-359393</loc>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1372,26 +1462,20 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-l0e5rx</loc>
-    <lastmod>2026-03-31</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/Parador-apres-Chemical-Surf-e-359393</loc>
-    <lastmod>2026-06-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/caos160526</loc>
     <lastmod>2026-06-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-l0e5rx</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/so-track-boa-2026</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1402,26 +1486,26 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/heyhoy2108</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-58zrt0</loc>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/goodtime0905</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/heyhoy2108</loc>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/dre200626</loc>
     <lastmod>2026-06-24</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-58zrt0</loc>
-    <lastmod>2026-06-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1438,32 +1522,26 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/industria1505vip</loc>
-    <lastmod>2026-06-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-moving-w59v6f</loc>
     <lastmod>2026-06-12</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/industria1505vip</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/onelife281126</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-hfyshb</loc>
-    <lastmod>2026-06-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/dnabh26</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1474,20 +1552,14 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/dnabh26</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-wul814</loc>
     <lastmod>2026-05-28</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-lmg1vu</loc>
-    <lastmod>2026-06-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/redroom1206</loc>
-    <lastmod>2026-06-21</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1498,38 +1570,44 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/dnasc26</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/redroom1206</loc>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/caos202626</loc>
-    <lastmod>2026-06-19</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/industria0708</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-lmg1vu</loc>
+    <lastmod>2026-07-05</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-vt53sn</loc>
-    <lastmod>2026-06-02</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/allight1906</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://mdaccula.com/eventos/dnasc26</loc>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-pd72zp</loc>
-    <lastmod>2026-05-17</lastmod>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-ajl54k</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-vt53sn</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1540,14 +1618,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-moving-ajl54k</loc>
-    <lastmod>2026-06-05</lastmod>
+    <loc>https://mdaccula.com/eventos/industria0708</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-ywhref</loc>
-    <lastmod>2026-06-13</lastmod>
+    <loc>https://mdaccula.com/eventos/allight1906</loc>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1558,14 +1636,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/cathouse2606</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-ywhref</loc>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-2xjpwz</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/eventos/sirius2908</loc>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1576,20 +1654,20 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/sirius2908</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-2xjpwz</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/cathouse2606</loc>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-9hzxp3</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/krush1707</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1600,8 +1678,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/parador050926p</loc>
-    <lastmod>2026-05-27</lastmod>
+    <loc>https://mdaccula.com/eventos/krush1707</loc>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1613,7 +1691,19 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/parador050926p</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-obqx90</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1624,32 +1714,20 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-festival-02-04-22h-058129</loc>
-    <lastmod>2026-04-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-82cdz7</loc>
-    <lastmod>2026-06-15</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-obqx90</loc>
-    <lastmod>2026-06-15</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-festival-02-04-22h-058129</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/como-prefeituras-redesenham-a-vida-noturna-e-transformam-os-clubes-urbanos</loc>
-    <lastmod>2026-06-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/meiotempo-e-a-diaspora-sonora-brasileiros-que-reinventam-a-pista-em-londres</loc>
-    <lastmod>2026-03-29</lastmod>
+    <loc>https://mdaccula.com/blog/todayland-anuncia-edicao-faraonica-com-solardo-e-illusionize-em-dezembro-mi5dqz3o</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1660,14 +1738,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/one-life-na-arena-pinheiros-sao-paulo-sabado-28-de-novembro</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/blog/meiotempo-e-a-diaspora-sonora-brasileiros-que-reinventam-a-pista-em-londres</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/residencias-de-bairro-como-laboratorios-sonoros-por-dentro-do-experimento-local</loc>
     <lastmod>2026-05-05</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/noites-sensoriais-redefinem-clubes-e-abrem-pistas-inclusivas</loc>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1684,6 +1768,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/manhas-em-alta-como-raves-e-afters-reconfiguram-a-noite</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/piknic-electronik-varanda-estaiada-sao-paulo-11-04-2026</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>monthly</changefreq>
@@ -1691,18 +1781,6 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/no-meio-do-transito-como-raves-itinerantes-requalificam-pracas-pontes-e-areas-industriais</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/r-ar-chus-e-adnan-sharif-comandam-a-pista-em-um-domingo-epico-mi5d43fe</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/nora-en-pure-no-brasil-deep-house-no-parque-mi62xof8</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -1720,158 +1798,152 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/pistinha-summer-espaco-taal-barueri-21-03-2026</loc>
-    <lastmod>2026-03-27</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/pista-em-transicao-como-mulheres-40-estao-redesenhando-a-cena-eletronica-brasileira</loc>
-    <lastmod>2026-04-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/surreal-park-beatport-live-east-end-dubs-na-area-para-quebrar-tudo-em-sp-mi63brkd</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/boma-bsb-no-museu-nacional-da-republica-01-05-2026-brasilia</loc>
-    <lastmod>2026-03-29</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/titulo-do-artigo-baseado-em-title-mip7ujsn</loc>
-    <lastmod>2026-02-19</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/quando-o-dj-vai-ao-oriente-como-djs-brasileiros-recalibram-sets-para-o-japao</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/rooftech-2025-sonzeira-rara-com-bruno-furlan-agita-sonora-garden-em-nov-mi7b8isy</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/a-ascensao-global-e-local-do-minimal-techno-de-berlim-as-pistas-brasileiras-mi7ctorm</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/caos-club-d-nox-graziano-raffa-gui-accula-e-zac-incendeiam-a-pista-em-13-12-2025-miheryo9</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/a-ascensao-do-afro-house-global-ritmos-ancestrais-conquistam-as-pistas-internacionais-mi7drhyo</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/looper-e-o-novo-mercado-como-plataformas-estao-transformando-a-vida-de-djs-e-contratantes-mj1or6dl</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/coletivos-perifericos-redesenham-o-mapa-das-noites-no-brasil</loc>
+    <lastmod>2026-07-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/rooftech-2025-sonzeira-rara-com-bruno-furlan-agita-sonora-garden-em-nov-mi7b8isy</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/zero-gravity-music-como-o-primeiro-selo-100-dolby-atmos-da-america-latina-quer-reescrever-o-som-dos-clubes-miyj7zua</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/quando-o-dj-vai-ao-oriente-como-djs-brasileiros-recalibram-sets-para-o-japao</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/a-quarta-dimensao-como-o-v-a-da-not-therapy-redesenha-a-cena-independente-mj7gorno</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/gliese-apres-gabe-espaco-taal-barueri-25-04-2026</loc>
-    <lastmod>2026-04-25</lastmod>
+    <loc>https://mdaccula.com/blog/surreal-park-beatport-live-east-end-dubs-na-area-para-quebrar-tudo-em-sp-mi63brkd</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/modular-brasileiro-como-os-synths-modulares-estao-redesenhando-o-som-nas-pistas</loc>
-    <lastmod>2026-03-29</lastmod>
+    <loc>https://mdaccula.com/blog/pistinha-summer-espaco-taal-barueri-21-03-2026</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/surreal-apres-old-is-cool-surreal-park-camboriu-09-01-2026</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/boma-bsb-no-museu-nacional-da-republica-01-05-2026-brasilia</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/por-dentro-do-ep-experimental-de-heydoc-tecnicas-que-desafiam-o-house-mj4jne01</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/caos-club-d-nox-graziano-raffa-gui-accula-e-zac-incendeiam-a-pista-em-13-12-2025-miheryo9</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/parador-carnaval-2026-pacote-completo-de-folia-e-e-music-em-14-02-2026-mi8zy4sw</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/zero-gravity-music-como-o-primeiro-selo-100-dolby-atmos-da-america-latina-quer-reescrever-o-som-dos-clubes-miyj7zua</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/boris-brejcha-reflete-em-curitiba-a-noite-de-high-tech-minimal-de-2025-mid41hiv</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/como-prefeituras-redesenham-a-vida-noturna-e-transformam-os-clubes-urbanos</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/toca-apresenta-liu-noite-epica-de-progressive-house-em-12-de-dezembro-de-2025-mid3xojk</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/melody-flip-e-a-nova-curva-criativa-como-assistentes-de-ia-estao-redesenhando-a-producao-eletronica</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/corona-apres-antdot-um-fechamento-de-ano-inesquecivel-em-20-de-dezembro-de-2025-mihjg0j3</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/surreal-apres-trotamundo-bells-surreal-park-camboriu-16-01-2026</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/clubs-2-0-como-som-imersivo-iluminacao-inteligente-e-dados-estao-redesenhando-os-venues-mire6plh</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/gemini-na-pratica-como-produtores-brasileiros-estao-criando-faixas-com-ia-no-estudio-caseiro</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/one-life-na-arena-pinheiros-sao-paulo-sabado-28-de-novembro</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/vintage-culture-sp-no-komplexo-tempo-sao-paulo-sexta-feira</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/surreal-apres-trotamundo-bells-surreal-park-camboriu-16-01-2026</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/toca-apresenta-liu-noite-epica-de-progressive-house-em-12-de-dezembro-de-2025-mid3xojk</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/titulo-do-artigo-baseado-em-title-mip7ujsn</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/clubs-2-0-como-som-imersivo-iluminacao-inteligente-e-dados-estao-redesenhando-os-venues-mire6plh</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/nant-em-goiania-como-a-estreia-autoral-de-anneto-reacende-a-cena-local-mjadqnre</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/gv-apres-vintage-culture-e-green-valley-camboriu-14-02-2026-mk42l466</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/parador-carnaval-2026-pacote-completo-de-folia-e-e-music-em-14-02-2026-mi8zy4sw</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/boris-brejcha-reflete-em-curitiba-a-noite-de-high-tech-minimal-de-2025-mid41hiv</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/surreal-apres-old-is-cool-surreal-park-camboriu-09-01-2026</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1882,8 +1954,8 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/parador-setembro-2026-finais-de-semana-eletronicos-em-maresias</loc>
-    <lastmod>2026-06-17</lastmod>
+    <loc>https://mdaccula.com/blog/dna-art-car-vintage-culture-incendeia-a-pista-em-6-de-dezembro-de-2025-mi7ghj62</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1894,37 +1966,43 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/surreal-park-festival-soul-em-camboriu-03-04-2026</loc>
-    <lastmod>2026-04-04</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/m-e-g-a-nervo-dre-guazzelli-e-mais-incendeiam-a-pista-em-13-de-dezembro-miettgwv</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/new-age-na-pista-como-produtores-transformam-espiritualidade-em-techno</loc>
-    <lastmod>2026-05-14</lastmod>
+    <loc>https://mdaccula.com/blog/parador-setembro-2026-finais-de-semana-eletronicos-em-maresias</loc>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/club-verde-como-casas-noturnas-eletronicas-reinventam-sustentabilidade-sem-perder-a-batida</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/sirius-amine-edge-comanda-a-pista-na-fazenda-moinho-em-21-de-marco</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/por-que-clubes-adotam-energia-renovavel-e-como-isso-muda-a-noite</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/pista-em-transicao-como-mulheres-40-estao-redesenhando-a-cena-eletronica-brasileira</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/do-ski-ao-beat-licoes-do-sound-escape-para-festivais-de-inverno</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/dna-art-car-vintage-culture-incendeia-a-pista-em-6-de-dezembro-de-2025-mi7ghj62</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -1942,19 +2020,7 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/after-oficial-bloco-do-dre-a-ressaca-eletronica-em-16-04-no-side-sp</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/set-hibrido-por-que-produtores-brasileiros-estao-adotando-o-analogico-nas-pistas</loc>
-    <lastmod>2026-04-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/warehouse-no-sonora-garden-17-04-2026-sao-paulo</loc>
     <lastmod>2026-04-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -1966,14 +2032,14 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/caos-apres-adam-sellouk-caos-club-campinas-25-abr-2026</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/palco-sem-fio-como-a-estreia-movida-por-baterias-no-ultra-pode-reinventar-grandes-festivais</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/palco-sem-fio-como-a-estreia-movida-por-baterias-no-ultra-pode-reinventar-grandes-festivais</loc>
-    <lastmod>2026-03-29</lastmod>
+    <loc>https://mdaccula.com/blog/sp-christmas-sao-paulo-local-a-confirmar-24-12-2025-miu8uihq</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1984,56 +2050,50 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/sp-christmas-sao-paulo-local-a-confirmar-24-12-2025-miu8uihq</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/gv-apres-vintage-culture-e-green-valley-camboriu-14-02-2026-mk42l466</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/sasha-john-digweed-o-encontro-epico-no-brasil-05-12-2025-mi63occ1</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/errorr-sao-paulo-2025-techno-melodico-e-imersao-audiovisual-no-komplexo-tempo-15-11</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/red-room-jan-blomqvist-e-equipe-incendeiam-varanda-estaiada-em-novembro-mhtx2o9t</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/toca-apres-kvsh-uma-experiencia-imersiva-em-sao-paulo-19-11-2025-mi6bawzd</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/surreal-4-anos-a-celebracao-epica-com-honey-dijon-e-loco-dice-em-dezembro-mi7brnh9</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/reveillon-surreal-2025-celebre-a-virada-com-traumer-eli-nissan-e-mais-mi7e6v1l</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/d-edge-festival-carl-craig-b2b-moodymann-lideram-noite-epica-no-komplexo-tempo</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/incendio-em-goa-licoes-urgentes-para-seguranca-em-casas-noturnas-e-beach-clubs-miyni1k9</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/gv-apres-camelphat-artbat-no-green-valley-16-02-2026-camboriu</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/reveillon-surreal-2025-celebre-a-virada-com-traumer-eli-nissan-e-mais-mi7e6v1l</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2045,61 +2105,49 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/caos-campinas-apresenta-patrice-baumel-caos-club-24-01-2026</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/psy-techno-a-fusao-hipnotica-que-reconstroi-as-pistas-de-danca-globais</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/industria-festival-uma-jornada-eletronica-inesquecivel-em-23-de-novembro-de-2025-mi8ynpt2</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/d-edge-moving-a-vibe-continua-em-27-de-novembro-de-2025-migt9z4n</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/vintage-culture-em-ribeirao-uma-noite-epica-em-29-de-novembro-de-2025-mi7hjr0j</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/toca-chemical-surf-gui-accula-e-mais-em-28-11-2025-o-futuro-do-house-mi7hrge1</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/abracadabra-em-20-dez-2025-uma-noite-magica-com-blond-ish-e-mais-mifwujpj</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/todayland-sao-paulo-a-forca-da-curadoria-hibrida-entre-talentos-locais-e-headliners-globais-miygza2b</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/punta-del-este-o-verao-que-transformou-o-balneario-em-farol-eletronico-miyldcan</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/vintage-culture-em-ribeirao-uma-noite-epica-em-29-de-novembro-de-2025-mi7hjr0j</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/intimidade-na-pista-44-ardent-e-justy-e-o-storytelling-que-redefine-o-house-em-2025-mirfprku</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/after-oficial-bloco-do-dre-a-ressaca-eletronica-em-16-04-no-side-sp</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/red-room-jan-blomqvist-e-equipe-incendeiam-varanda-estaiada-em-novembro-mhtx2o9t</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/surreal-park-festival-soul-em-camboriu-03-04-2026</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2110,26 +2158,32 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/todayland-anuncia-edicao-faraonica-com-solardo-e-illusionize-em-dezembro-mi5dqz3o</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/d-edge-moving-a-vibe-continua-em-27-de-novembro-de-2025-migt9z4n</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/quando-o-bass-house-cruza-fronteiras-avi-sic-costel-van-dein-e-o-impacto-de-no-tears</loc>
-    <lastmod>2026-03-22</lastmod>
+    <loc>https://mdaccula.com/blog/psy-techno-a-fusao-hipnotica-que-reconstroi-as-pistas-de-danca-globais</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/verao-em-santa-catarina-como-o-por-do-sol-eletronico-vira-motor-economico-miyrrux9</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/superfa-conectado-o-webinar-que-esta-redesenhando-turnes-de-djs-e-monetizando-comunidades-mjdaqmg6</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/odisseia-carnaval-sp-2026-imersao-sonora-na-varanda-estaiada</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/toca-chemical-surf-gui-accula-e-mais-em-28-11-2025-o-futuro-do-house-mi7hrge1</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/corona-apres-malive-pista-2002-campinas-31-jan-2025-mjhd788v</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2140,38 +2194,32 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/gv-apres-boris-brejcha-green-valley-camboriu-02-05-2026</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/corona-apres-ashibah-pista-2002-campinas-02-04-2026</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/gliese-apres-gabe-espaco-taal-barueri-25-04-2026</loc>
+    <lastmod>2026-07-07</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/le-yora-radiohead-releituras-e-a-maestria-dos-produtores-na-cena-eletronica</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/dancar-ate-amanhecer-corpo-prevencao-e-a-cultura-viva-dos-after-parties-mirda7zd</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/corona-apres-malive-pista-2002-campinas-31-jan-2025-mjhd788v</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/sun-19-09-2026-arena-caninde-sao-paulo</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/superfa-conectado-o-webinar-que-esta-redesenhando-turnes-de-djs-e-monetizando-comunidades-mjdaqmg6</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/corona-apres-ashibah-pista-2002-campinas-02-04-2026</loc>
-    <lastmod>2026-04-03</lastmod>
+    <loc>https://mdaccula.com/blog/odisseia-carnaval-sp-2026-imersao-sonora-na-varanda-estaiada</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2182,26 +2230,26 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/le-yora-radiohead-releituras-e-a-maestria-dos-produtores-na-cena-eletronica</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/surreal-apres-carnaval-surreal-park-camboriu-25-fev-2026</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/industria-pres-gabe-victor-lou-e-high-club-sp-06-02-2026-mj20ieth</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/melody-flip-e-a-nova-curva-criativa-como-assistentes-de-ia-estao-redesenhando-a-producao-eletronica</loc>
-    <lastmod>2026-03-29</lastmod>
+    <loc>https://mdaccula.com/blog/verao-em-santa-catarina-como-o-por-do-sol-eletronico-vira-motor-economico-miyrrux9</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/gv-apres-boris-brejcha-green-valley-camboriu-02-05-2026</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/mess-magnolia-pocket-club-sao-paulo-17-01-2026</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2218,8 +2266,20 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/quando-geezer-butler-usa-ia-licoes-praticas-para-djs-e-produtores-de-techno-e-house</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/de-repente-carnaval-casa-aragon-sao-paulo-28-02-2026</loc>
     <lastmod>2026-03-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/modular-brasileiro-como-os-synths-modulares-estao-redesenhando-o-som-nas-pistas</loc>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2230,50 +2290,38 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/parador-maresias-carnaval-2026-viva-uma-experiencia-unica-a-beira-mar</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/dna-art-car-arena-open-camboriu-17-01-2026-mj8s3fhx</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/ultra-buenos-aires-2026-a-fase-2-que-redesenha-o-mapa-dos-festivais-na-latam-mirewdf2</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/quando-geezer-butler-usa-ia-licoes-praticas-para-djs-e-produtores-de-techno-e-house</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/ricck-e-a-ascensao-nacional-beginner-na-indie-beats-e-o-brilho-de-um-primeiro-ano</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/dna-art-car-arena-open-camboriu-17-01-2026-mj8s3fhx</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/d-edge-sao-paulo-4-noites-de-techno-imperdivel-15-18-jan</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/d-edge-em-sao-paulo-24-01-2026-no-d-edge-club</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/mess-magnolia-pocket-club-sao-paulo-17-01-2026</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/quando-o-bass-house-cruza-fronteiras-avi-sic-costel-van-dein-e-o-impacto-de-no-tears</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/ricck-e-a-ascensao-nacional-beginner-na-indie-beats-e-o-brilho-de-um-primeiro-ano</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/parador-maresias-carnaval-2026-viva-uma-experiencia-unica-a-beira-mar</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2284,73 +2332,73 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/do-kurt-cobain-ao-club-como-produtores-brasileiros-reinventam-icones-da-spin-40-nas-pistas</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/industria-apresenta-dr-lektroluv-high-club-sao-paulo-15-05-2026</loc>
     <lastmod>2026-06-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/batidas-do-bem-djs-brasileiros-e-o-ritmo-da-transformacao-social-e-ambiental</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/royalties-sinteticos-como-ia-e-plays-falsos-estao-remodelando-a-economia-da-musica-eletronica</loc>
-    <lastmod>2026-04-01</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/noites-sensoriais-redefinem-clubes-e-abrem-pistas-inclusivas</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/halo-2026-em-campos-do-jordao-house-e-sunsets-no-haras-itapeva</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://mdaccula.com/blog/museu-do-amanha-na-pista-patrimonio-pulse-e-boma-carnaval-no-rio</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/ketzal-em-punta-del-este-o-resgate-da-sofisticacao-na-musica-eletronica</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/do-kurt-cobain-ao-club-como-produtores-brasileiros-reinventam-icones-da-spin-40-nas-pistas</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/museu-do-amanha-na-pista-patrimonio-pulse-e-boma-carnaval-no-rio</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/halo-2026-em-campos-do-jordao-house-e-sunsets-no-haras-itapeva</loc>
+    <lastmod>2026-06-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/ame-laroc-festival-o-rito-eletronico-que-redefine-o-carnaval-em-valinhos</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/x-em-xeque-a-batalha-de-copyright-que-ameaca-mudar-o-jogo-para-musicos</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/djs-brasileiros-adotam-sets-hibridos-som-sintetizadores-e-performance</loc>
+    <lastmod>2026-07-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/solomun-no-alexandra-palace-duas-noites-esgotadas-e-o-poder-do-melodic-house-em-londres</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/batidas-do-bem-djs-brasileiros-e-o-ritmo-da-transformacao-social-e-ambiental</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/punta-del-este-o-verao-que-transformou-o-balneario-em-farol-eletronico-miyldcan</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/royalties-sinteticos-como-ia-e-plays-falsos-estao-remodelando-a-economia-da-musica-eletronica</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/ame-laroc-festival-o-rito-eletronico-que-redefine-o-carnaval-em-valinhos</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -2362,32 +2410,44 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/do-continente-mae-as-pistas-brasileiras-a-explosao-do-afro-house-no-cenario-eletronico-nacional</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/sirius-no-espaco-taal-em-barueri-sabado-29-de-agosto</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/corona-apres-malive-noite-eletrizante-na-pista-2002-em-campinas-31-01</loc>
+    <lastmod>2026-06-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/do-coracao-da-africa-ao-brasil-a-trajetoria-e-o-impacto-do-afro-house-na-cena-eletronica</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/djs-e-ia-dividem-a-pista-como-a-tecnologia-muda-o-protagonismo</loc>
+    <lastmod>2026-07-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/psicodelia-urbana-apres-phaxe-caos-club-campinas-31-01-2026</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/fronteiras-sonoras-por-que-coletivos-transfronteiricos-dominam-o-circuito-festivalero</loc>
-    <lastmod>2026-03-29</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/xxxperience-2026-celebracao-epica-com-gigantes-do-psytrance-em-25-de-abril-mi7hhz4r</loc>
-    <lastmod>2026-05-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/sirius-amine-edge-comanda-a-pista-na-fazenda-moinho-em-21-de-marco</loc>
-    <lastmod>2026-03-30</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/dedge-drete-carnaval-2026-mergulhe-na-vibracao-eletronica-de-sp</loc>
-    <lastmod>2026-04-04</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/ame-laroc-festival-carnaval-2026-a-odisseia-eletronica-que-vai-marcar-epoca</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2405,67 +2465,61 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/carnaval-2026-no-green-valley-mergulhe-na-magia-da-eletronica</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/corona-apres-malive-noite-eletrizante-na-pista-2002-em-campinas-31-01</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/ame-laroc-festival-carnaval-2026-a-odisseia-eletronica-que-vai-marcar-epoca</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/do-continente-mae-as-pistas-brasileiras-a-explosao-do-afro-house-no-cenario-eletronico-nacional</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/xxxperience-2026-celebracao-epica-com-gigantes-do-psytrance-em-25-de-abril-mi7hhz4r</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/do-coracao-da-africa-ao-brasil-a-trajetoria-e-o-impacto-do-afro-house-na-cena-eletronica</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/undr-no-arca-sao-paulo-sp-03-04-2026-illusiozine-cat-dealers-e-mais</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/psicodelia-urbana-apres-phaxe-caos-club-campinas-31-01-2026</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/sabado-dre-tarde-dre-guazzelli-comanda-a-pista-no-clube-esperia-em-07-03</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/club-verde-como-casas-noturnas-eletronicas-reinventam-sustentabilidade-sem-perder-a-batida</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/o-circuito-diy-latino-esta-reescrevendo-a-cena-dos-clubes</loc>
-    <lastmod>2026-06-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/noite-hibrida-teatro-audiovisual-e-a-pista-que-se-dissolve</loc>
-    <lastmod>2026-03-29</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/promotoras-queer-a-nova-vanguarda-que-reconstroi-os-clubes-brasileiros</loc>
-    <lastmod>2026-03-29</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/bonjour-party-campinas-sp-25-04-2026</loc>
-    <lastmod>2026-04-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/produtores-latinos-reinventam-o-techno-ao-vivo-com-hardware-e-acustica</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/d-nox-on-board-a-magia-do-progressive-house-em-floripa-15-fev-2026</loc>
-    <lastmod>2026-03-16</lastmod>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/noite-hibrida-teatro-audiovisual-e-a-pista-que-se-dissolve</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2482,19 +2536,13 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/aurea-em-barueri-louie-cut-e-convidados-agitam-espaco-taal-em-7-de-fevereiro</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/produtores-latinos-reinventam-o-techno-ao-vivo-com-hardware-e-acustica</loc>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/alem-do-padrao-a-autentica-batida-eletronica-da-australia</loc>
-    <lastmod>2026-03-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/sabado-dre-tarde-dre-guazzelli-comanda-a-pista-no-clube-esperia-em-07-03</loc>
     <lastmod>2026-03-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -2506,26 +2554,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/undr-no-arca-sao-paulo-sp-03-04-2026-illusiozine-cat-dealers-e-mais</loc>
-    <lastmod>2026-04-04</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/so-track-boa-2026-autodromo-de-interlagos-sao-paulo-05-06-2026-mj35rg9f</loc>
-    <lastmod>2026-05-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/baile-lotadao-komplexo-tempo-sao-paulo-25-04-2026</loc>
-    <lastmod>2026-05-04</lastmod>
+    <loc>https://mdaccula.com/blog/raves-do-litoral-nordestino-como-festas-clandestinas-viraram-rota-turistica</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/clubes-de-periferia-redesenham-a-noite-com-diversidade-e-resistencia</loc>
-    <lastmod>2026-06-18</lastmod>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/piknic-electronik-em-sao-paulo-varanda-estaiada-11-04-2026</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2536,26 +2578,44 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/good-times-varanda-estaiada-sao-paulo-09-05-2026</loc>
-    <lastmod>2026-05-10</lastmod>
+    <loc>https://mdaccula.com/blog/carnaval-eletronico-no-coracao-do-rio-boma-unifica-cultura-e-batida-eletrizante-no-museu-do-amanha</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/carnaval-eletronico-no-coracao-do-rio-boma-unifica-cultura-e-batida-eletrizante-no-museu-do-amanha</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/blog/so-track-boa-2026-autodromo-de-interlagos-sao-paulo-05-06-2026-mj35rg9f</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/good-times-varanda-estaiada-sao-paulo-09-05-2026</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/caos-apres-adam-sellouk-caos-club-campinas-25-abr-2026</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/hey-hoy-all-black-espaco-taal-barueri-sp-11-abr-2026</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/baile-lotadao-komplexo-tempo-sao-paulo-25-04-2026</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/xtc-selecta-no-edificio-martinelli-sao-paulo-25-04-2026</loc>
-    <lastmod>2026-06-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/raves-do-litoral-nordestino-como-festas-clandestinas-viraram-rota-turistica</loc>
-    <lastmod>2026-04-17</lastmod>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2566,32 +2626,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/hey-hoy-all-black-espaco-taal-barueri-sp-11-abr-2026</loc>
-    <lastmod>2026-04-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/alem-das-pickups-por-que-djs-estao-redesenhando-turnes-horarios-e-o-autocuidado</loc>
     <lastmod>2026-04-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/d-edge-festival-carl-craig-b2b-moodymann-lideram-noite-epica-no-komplexo-tempo</loc>
-    <lastmod>2026-04-11</lastmod>
+    <loc>https://mdaccula.com/blog/timewarp-2026-chega-a-arena-neo-quimica-duas-noites-imperdiveis-em-sp</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/piknic-electronik-em-sao-paulo-varanda-estaiada-11-04-2026</loc>
-    <lastmod>2026-04-11</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/circoloco-sao-paulo-2025-a-lendaria-festa-de-ibiza-desembarca-no-brasil-em-15-de-novembro</loc>
-    <lastmod>2026-04-13</lastmod>
+    <loc>https://mdaccula.com/blog/festas-diurnas-nas-periferias-renovam-cena-eletronica-com-comunidade-ativa</loc>
+    <lastmod>2026-07-06</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2602,14 +2650,8 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/errorr-transforma-o-pavilhao-anhembi-em-techno-na-sexta-feira</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/sunset-strip-no-hangar-campo-de-marte-sao-paulo-19-de-setembro</loc>
-    <lastmod>2026-06-18</lastmod>
+    <loc>https://mdaccula.com/blog/sun-19-09-2026-arena-caninde-sao-paulo</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2620,31 +2662,25 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/promotoras-queer-a-nova-vanguarda-que-reconstroi-os-clubes-brasileiros</loc>
+    <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/por-que-os-extended-sets-conceituais-estao-dominando-as-noites-dos-clubes</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/raves-sustentaveis-ganham-espaco-como-a-cena-eletronica-se-adapta</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/timewarp-2026-chega-a-arena-neo-quimica-duas-noites-imperdiveis-em-sp</loc>
-    <lastmod>2026-05-10</lastmod>
+    <loc>https://mdaccula.com/blog/circoloco-sao-paulo-2025-a-lendaria-festa-de-ibiza-desembarca-no-brasil-em-15-de-novembro</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/tantrarosa-no-varanda-estaiada-sao-paulo-23-05-2026</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro</loc>
     <lastmod>2026-06-24</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -2656,26 +2692,38 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/festas-diurnas-nas-periferias-renovam-cena-eletronica-com-comunidade-ativa</loc>
-    <lastmod>2026-06-20</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/mega-funk-como-o-hibrido-entre-funk-e-club-music-esta-redesenhando-as-pistas-brasileiras</loc>
     <lastmod>2026-06-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/produtores-independentes-adotam-sets-hibridos-por-que-isso-importa</loc>
-    <lastmod>2026-06-12</lastmod>
+    <loc>https://mdaccula.com/blog/raves-sustentaveis-ganham-espaco-como-a-cena-eletronica-se-adapta</loc>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/raves-clandestinas-ressurgem-nas-cidades-medias-criatividade-em-choque-com-a-regulamentacao</loc>
-    <lastmod>2026-06-06</lastmod>
+    <loc>https://mdaccula.com/blog/sunset-strip-no-hangar-campo-de-marte-sao-paulo-19-de-setembro</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/coletivos-em-ascensao-como-redes-independentes-estao-redesenhando-o-mapa-das-pistas</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/produtores-independentes-adotam-sets-hibridos-por-que-isso-importa</loc>
+    <lastmod>2026-06-28</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/dedge-drete-carnaval-2026-mergulhe-na-vibracao-eletronica-de-sp</loc>
+    <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2698,6 +2746,18 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/errorr-transforma-o-pavilhao-anhembi-em-techno-na-sexta-feira</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/a-liga-sonora-garden-sao-paulo-13-02-2026-mk42j8b8</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/como-o-warm-global-dance-radio-chart-pode-redesenhar-a-rota-de-exportacao-dos-djs-brasileiros</loc>
     <lastmod>2026-04-14</lastmod>
     <changefreq>monthly</changefreq>
@@ -2710,32 +2770,26 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/warung-day-festival-magia-na-pedreira-paulo-leminski-em-2-de-maio-de-2026</loc>
-    <lastmod>2026-04-29</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/raves-em-cidades-medias-reinventam-a-cena-eletronica-brasileira</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/coletivos-em-ascensao-como-redes-independentes-estao-redesenhando-o-mapa-das-pistas</loc>
-    <lastmod>2026-06-19</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/como-selos-independentes-latino-americanos-conquistaram-o-mercado-global</loc>
-    <lastmod>2026-06-21</lastmod>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/a-liga-sonora-garden-sao-paulo-13-02-2026-mk42j8b8</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://mdaccula.com/blog/nora-en-pure-no-brasil-deep-house-no-parque-mi62xof8</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/nostalgia-dubdogz-no-novo-varanda-estaiada-sao-paulo-30-05-2026</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2746,20 +2800,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/stb26-em-interlagos-dois-dias-epicos-de-house-techno-e-trance</loc>
-    <lastmod>2026-06-23</lastmod>
+    <loc>https://mdaccula.com/blog/gv-apres-camelphat-artbat-no-green-valley-16-02-2026-camboriu</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/m-e-g-a-no-espaco-usine-sao-paulo-19-04-2026</loc>
-    <lastmod>2026-06-12</lastmod>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/sound-systems-artesanais-redefinem-a-forma-como-brasileiros-dancam</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2770,26 +2824,14 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/djs-brasileiros-adotam-sets-hibridos-som-sintetizadores-e-performance</loc>
-    <lastmod>2026-06-17</lastmod>
+    <loc>https://mdaccula.com/blog/raves-clandestinas-ressurgem-nas-cidades-medias-criatividade-em-choque-com-a-regulamentacao</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/microclubes-impulsionam-turismo-musical-nas-capitais-com-noites-intimas</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/sirius-no-espaco-taal-em-barueri-sabado-29-de-agosto</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/blog/fireup-2026-tres-dias-intensos-de-eletronica-em-campos-do-jordao</loc>
+    <lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2812,26 +2854,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/fireup-2026-tres-dias-intensos-de-eletronica-em-campos-do-jordao</loc>
-    <lastmod>2026-06-21</lastmod>
+    <loc>https://mdaccula.com/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira</loc>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/nostalgia-dubdogz-no-novo-varanda-estaiada-sao-paulo-30-05-2026</loc>
-    <lastmod>2026-06-03</lastmod>
+    <loc>https://mdaccula.com/blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/red-room-na-casa-aragon-em-sao-paulo-na-sexta-feira-12-de-junho</loc>
     <lastmod>2026-06-18</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/como-a-inteligencia-artificial-esta-remodelando-o-set-dos-djs</loc>
-    <lastmod>2026-06-23</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2843,7 +2879,19 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/klandestine-invade-a-fabriketa-com-tiga-e-acraze-em-14-de-marco</loc>
-    <lastmod>2026-06-18</lastmod>
+    <lastmod>2026-07-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/the-grid-apres-klangkuenstler-na-arca-sao-paulo-sabado-19</loc>
+    <lastmod>2026-07-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/bailes-de-periferia-moldam-a-nova-geracao-musical-brasileira</loc>
+    <lastmod>2026-06-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2854,32 +2902,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/bailes-de-periferia-moldam-a-nova-geracao-musical-brasileira</loc>
-    <lastmod>2026-06-16</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/the-grid-apres-klangkuenstler-na-arca-sao-paulo-sabado-19</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/blog/como-a-inteligencia-artificial-esta-remodelando-o-set-dos-djs</loc>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/sabado-dre-tarde-transforma-clube-esperia-em-pista-em-sao-paulo</loc>
-    <lastmod>2026-06-24</lastmod>
+    <lastmod>2026-06-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
-    <lastmod>2026-06-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/industria-apres-cg-agita-high-club-sao-paulo-em-7-de-agosto</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/blog/stb26-em-interlagos-dois-dias-epicos-de-house-techno-e-trance</loc>
+    <lastmod>2026-07-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2890,8 +2926,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/recriar-o-brilho-como-a-ia-esta-redesenhando-a-identidade-visual-das-festas</loc>
-    <lastmod>2026-06-20</lastmod>
+    <loc>https://mdaccula.com/blog/industria-apres-cg-agita-high-club-sao-paulo-em-7-de-agosto</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2902,20 +2950,98 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
-    <lastmod>2026-06-22</lastmod>
+    <loc>https://mdaccula.com/blog/por-dentro-do-ep-experimental-de-heydoc-tecnicas-que-desafiam-o-house-mj4jne01</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/looper-e-o-novo-mercado-como-plataformas-estao-transformando-a-vida-de-djs-e-contratantes-mj1or6dl</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/recriar-o-brilho-como-a-ia-esta-redesenhando-a-identidade-visual-das-festas</loc>
+    <lastmod>2026-06-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/x-em-xeque-a-batalha-de-copyright-que-ameaca-mudar-o-jogo-para-musicos</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/r-ar-chus-e-adnan-sharif-comandam-a-pista-em-um-domingo-epico-mi5d43fe</loc>
+    <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/new-age-na-pista-como-produtores-transformam-espiritualidade-em-techno</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/d-edge-sao-paulo-4-noites-de-techno-imperdivel-15-18-jan</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/aurea-em-barueri-louie-cut-e-convidados-agitam-espaco-taal-em-7-de-fevereiro</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/turnes-hibridas-reinventam-o-circuito-eletronico-latino-com-alcance-digital</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/warehouse-no-sonora-garden-17-04-2026-sao-paulo</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/microclubes-impulsionam-turismo-musical-nas-capitais-com-noites-intimas</loc>
+    <lastmod>2026-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/who-we-are-em-sao-paulo-sexta-feira-3-de-julho-noite-progressive</loc>
-    <lastmod>2026-06-23</lastmod>
+    <lastmod>2026-07-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/vintage-culture-sp-no-komplexo-tempo-sao-paulo-sexta-feira</loc>
-    <lastmod>2026-06-24</lastmod>
+    <loc>https://mdaccula.com/blog/intimidade-na-pista-44-ardent-e-justy-e-o-storytelling-que-redefine-o-house-em-2025-mirfprku</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/surreal-apres-carnaval-surreal-park-camboriu-25-fev-2026</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/techno-organico-como-instrumentos-acusticos-reconfiguram-pistas-do-underground</loc>
+    <lastmod>2026-07-08</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/warung-day-festival-magia-na-pedreira-paulo-leminski-em-2-de-maio-de-2026</loc>
+    <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
