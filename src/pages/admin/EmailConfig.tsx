@@ -181,6 +181,13 @@ const EmailConfig = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // B.9 — métricas E-goi por campaign_id
+  const [campaignStats, setCampaignStats] = useState<Record<string, {
+    sent: number; delivered: number; opens_unique: number; clicks_unique: number;
+    bounces: number; unsubscribes: number; open_rate: number; click_rate: number;
+    fetched_at?: string;
+  }>>({});
+  const [refreshingStatsId, setRefreshingStatsId] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
   const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
   const [tplLoading, setTplLoading] = useState(false);
