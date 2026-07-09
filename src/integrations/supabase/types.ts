@@ -387,6 +387,36 @@ export type Database = {
         }
         Relationships: []
       }
+      egoi_resources_cache: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string
+          lists: Json
+          senders: Json
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          lists?: Json
+          senders?: Json
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string
+          lists?: Json
+          senders?: Json
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       egress_metrics: {
         Row: {
           api_path: string
