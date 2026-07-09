@@ -84,6 +84,7 @@ const EmailConfig = () => {
   const [listTotal, setListTotal] = useState<number | null>(null);
   const [fetchingResources, setFetchingResources] = useState(false);
   const [fetchingSegments, setFetchingSegments] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
@@ -109,7 +110,7 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist, tplRes] = await Promise.all([
+      const [master, config, hist, tplRes, cacheRes] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
         supabase
@@ -118,10 +119,16 @@ const EmailConfig = () => {
           .order("created_at", { ascending: false })
           .limit(200),
         (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
+        (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
       if (tplRes?.data) setTpl(tplRes.data);
+      if (cacheRes?.data) {
+        setLists(Array.isArray(cacheRes.data.lists) ? cacheRes.data.lists : []);
+        setSenders(Array.isArray(cacheRes.data.senders) ? cacheRes.data.senders : []);
+        setLastSyncedAt(cacheRes.data.last_synced_at ?? null);
+      }
       if (config.data) {
         setCfg({
           id: config.data.id,
@@ -148,8 +155,9 @@ const EmailConfig = () => {
       if (error) throw error;
       setLists(Array.isArray(data?.lists) ? data.lists : []);
       setSenders(Array.isArray(data?.senders) ? data.senders : []);
+      setLastSyncedAt(data?.last_synced_at ?? new Date().toISOString());
       toast({
-        title: "Recursos E-goi carregados",
+        title: "Recursos E-goi atualizados",
         description: `${data?.lists?.length ?? 0} listas · ${data?.senders?.length ?? 0} remetentes.`,
       });
     } catch (e: any) {
@@ -399,11 +407,11 @@ const EmailConfig = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" onClick={fetchEgoiResources} disabled={fetchingResources}>
                   <RefreshCw className={`w-4 h-4 mr-2 ${fetchingResources ? "animate-spin" : ""}`} />
-                  Buscar listas e remetentes da E-goi
+                  {lists.length > 0 || senders.length > 0 ? "Atualizar da E-goi" : "Buscar listas e remetentes da E-goi"}
                 </Button>
                 <span className="text-xs text-muted-foreground">
                   {lists.length > 0 || senders.length > 0
-                    ? `${lists.length} listas • ${senders.length} remetentes carregados`
+                    ? `${lists.length} listas • ${senders.length} remetentes${lastSyncedAt ? ` • sincronizado ${new Date(lastSyncedAt).toLocaleString("pt-BR")}` : ""}`
                     : "Clique para popular os selects (usa sua API key)."}
                 </span>
               </div>

@@ -146,16 +146,37 @@ Deno.serve(async (req) => {
         return true;
       });
 
+    // Grava snapshot no cache (upsert singleton). Falha aqui não bloqueia a resposta.
+    const nowIso = new Date().toISOString();
+    try {
+      const { data: existing } = await admin
+        .from('egoi_resources_cache')
+        .select('id')
+        .eq('singleton', true)
+        .maybeSingle();
+      if (existing?.id) {
+        await admin
+          .from('egoi_resources_cache')
+          .update({ lists, senders, last_synced_at: nowIso })
+          .eq('id', existing.id);
+      } else {
+        await admin
+          .from('egoi_resources_cache')
+          .insert({ lists, senders, last_synced_at: nowIso, singleton: true });
+      }
+    } catch (cacheErr) {
+      console.warn('Falha ao gravar cache egoi_resources_cache:', (cacheErr as Error).message);
+    }
+
     return new Response(
       JSON.stringify({
         lists,
         senders,
+        last_synced_at: nowIso,
         _debug: {
           listsStatus: listsRes.status,
           sendersEmailStatus: sendersEmailRes.status,
           sendersLegacyStatus: sendersLegacyRes.status,
-          sendersEmailSample: sendersEmailRes.body,
-          sendersLegacySample: sendersLegacyRes.body,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
