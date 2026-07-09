@@ -295,6 +295,30 @@ const EmailConfig = () => {
     setTemplates((data as Template[]) ?? []);
   };
 
+  // B.9 — Atualiza métricas de uma campanha específica na E-goi
+  const refreshCampaignStats = async (campaignId: string) => {
+    setRefreshingStatsId(campaignId);
+    try {
+      const { data, error } = await supabase.functions.invoke("egoi-campaign-stats", {
+        body: { campaign_id: campaignId },
+      });
+      if (error) throw error;
+      const res = data as { ok?: boolean; stats?: any; error?: string };
+      if (!res?.ok || !res.stats) {
+        throw new Error(res?.error || "Resposta inválida da E-goi");
+      }
+      setCampaignStats((prev) => ({
+        ...prev,
+        [campaignId]: { ...res.stats, fetched_at: new Date().toISOString() },
+      }));
+      toast({ title: "Métricas atualizadas" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao atualizar métricas", description: e.message });
+    } finally {
+      setRefreshingStatsId(null);
+    }
+  };
+
   const fetchEgoiResources = async () => {
     setFetchingResources(true);
     try {
