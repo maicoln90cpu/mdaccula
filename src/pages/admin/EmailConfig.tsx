@@ -1061,6 +1061,46 @@ const EmailConfig = () => {
 
         {/* ================= HISTÓRICO ================= */}
         <TabsContent value="history" className="space-y-4">
+          {/* B.6.1 — Eventos sem campanha (importados via CSV/script) */}
+          {(() => {
+            const dispatchedIds = new Set(campaigns.map((c) => c.event_id));
+            const pending = realEvents.filter((e) => !dispatchedIds.has(e.id));
+            if (pending.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Eventos sem rascunho ({pending.length})</CardTitle>
+                  <CardDescription>
+                    Eventos criados via importação ou script que ainda não tiveram um rascunho de e-mail criado. Clique para criar manualmente.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {pending.map((ev) => (
+                      <div key={ev.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{ev.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(ev.date).toLocaleDateString("pt-BR")} • {ev.venue}, {ev.location_city}-{ev.location_state}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={dispatchingId === ev.id}
+                          onClick={() => dispatchNow(ev.id)}
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {dispatchingId === ev.id ? "Criando..." : "Criar rascunho agora"}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           <Card>
             <CardHeader>
               <CardTitle>Histórico por evento</CardTitle>
