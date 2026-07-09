@@ -84,6 +84,7 @@ const EmailConfig = () => {
   const [listTotal, setListTotal] = useState<number | null>(null);
   const [fetchingResources, setFetchingResources] = useState(false);
   const [fetchingSegments, setFetchingSegments] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
