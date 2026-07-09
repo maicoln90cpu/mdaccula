@@ -155,8 +155,9 @@ const EmailConfig = () => {
       if (error) throw error;
       setLists(Array.isArray(data?.lists) ? data.lists : []);
       setSenders(Array.isArray(data?.senders) ? data.senders : []);
+      setLastSyncedAt(data?.last_synced_at ?? new Date().toISOString());
       toast({
-        title: "Recursos E-goi carregados",
+        title: "Recursos E-goi atualizados",
         description: `${data?.lists?.length ?? 0} listas · ${data?.senders?.length ?? 0} remetentes.`,
       });
     } catch (e: any) {
