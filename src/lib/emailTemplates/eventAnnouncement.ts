@@ -1,45 +1,78 @@
 /**
  * Template de e-mail "Novo evento no MDAccula" — Dark Neon Identity
  *
- * Renderiza HTML table-based com inline styles, compatível com Gmail, Outlook,
- * Apple Mail e clientes móveis. Nenhum CSS moderno (grid/flex), nenhum JS,
- * nenhuma web font custom (fallback web-safe).
+ * HTML table-based com inline styles, compatível com Gmail, Outlook,
+ * Apple Mail e clientes móveis. Sem CSS moderno, sem JS.
  *
- * REGRA DE MARCA: o flyer NUNCA é cortado (usa max-width 100% + height auto).
+ * Aceita `settings` opcional para customização de marca (logo, cores, textos,
+ * toggles de blocos, HTML extra do editor de template).
  */
 
 export interface EventAnnouncementData {
-  /** Nome do evento (título principal). */
   eventTitle: string;
-  /** Subtítulo curto ou tagline (opcional). */
   eventSubtitle?: string;
-  /** URL absoluta do flyer (idealmente Bunny CDN). */
   flyerUrl: string;
-  /** Data formatada em português: "25 de Maio". */
   dateLabel: string;
-  /** Horário formatado: "22h às 06h" ou "23:00". */
   timeLabel: string;
-  /** Nome da casa/local. */
   venueName: string;
-  /** Cidade e estado: "Cuiabá-MT". */
   cityState: string;
-  /** Descrição curta 1-3 linhas. */
   description: string;
-  /** URL absoluta do ingresso (CTA principal). */
   ticketUrl: string;
-  /** URL da página do evento no site MDAccula. */
   eventUrl: string;
-  /** URL da agenda completa (secundário). */
   agendaUrl: string;
-  /** URL do Instagram. */
   instagramUrl: string;
-  /** URL do YouTube. */
   youtubeUrl: string;
-  /** URL do TikTok. */
   tiktokUrl: string;
-  /** URL de descadastro (obrigatório por CAN-SPAM/LGPD). */
   unsubscribeUrl: string;
 }
+
+export interface EmailTemplateSettings {
+  brand_name?: string;
+  logo_url?: string | null;
+  primary_color?: string;
+  accent_color?: string;
+  background_color?: string;
+  footer_text?: string;
+  cta_label?: string;
+  instagram_url?: string | null;
+  youtube_url?: string | null;
+  tiktok_url?: string | null;
+  show_subtitle?: boolean;
+  show_description?: boolean;
+  show_socials?: boolean;
+  show_secondary_link?: boolean;
+  secondary_link_label?: string;
+  custom_html_header?: string | null;
+  custom_html_footer?: string | null;
+}
+
+const DEFAULTS: Required<Omit<EmailTemplateSettings, "logo_url" | "custom_html_header" | "custom_html_footer" | "instagram_url" | "youtube_url" | "tiktok_url">> & {
+  logo_url: string | null;
+  custom_html_header: string | null;
+  custom_html_footer: string | null;
+  instagram_url: string;
+  youtube_url: string;
+  tiktok_url: string;
+} = {
+  brand_name: "MDACCULA",
+  logo_url: null,
+  primary_color: "#a855f7",
+  accent_color: "#ec4899",
+  background_color: "#050505",
+  footer_text:
+    "Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de Cuiabá-MT.",
+  cta_label: "Garantir ingresso",
+  instagram_url: "https://instagram.com/mdaccula",
+  youtube_url: "https://youtube.com/@mdaccula",
+  tiktok_url: "https://tiktok.com/@mdaccula",
+  show_subtitle: true,
+  show_description: true,
+  show_socials: true,
+  show_secondary_link: true,
+  secondary_link_label: "Ver agenda completa no site",
+  custom_html_header: null,
+  custom_html_footer: null,
+};
 
 const escape = (s: string) =>
   s
@@ -49,7 +82,22 @@ const escape = (s: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-export function renderEventAnnouncementEmail(data: EventAnnouncementData): string {
+/** Sanitização leve para HTML customizado do editor. Remove tags e handlers perigosos. */
+const sanitizeCustomHtml = (raw: string) =>
+  raw
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/on\w+\s*=\s*"[^"]*"/gi, "")
+    .replace(/on\w+\s*=\s*'[^']*'/gi, "")
+    .replace(/javascript:/gi, "");
+
+export function renderEventAnnouncementEmail(
+  data: EventAnnouncementData,
+  settingsInput?: EmailTemplateSettings | null,
+): string {
+  const s = { ...DEFAULTS, ...(settingsInput ?? {}) };
+
   const {
     eventTitle,
     eventSubtitle,
@@ -69,6 +117,25 @@ export function renderEventAnnouncementEmail(data: EventAnnouncementData): strin
   } = data;
 
   const preheader = `${escape(eventTitle)} — ${escape(dateLabel)} em ${escape(venueName)}, ${escape(cityState)}`;
+  const bg = escape(s.background_color);
+  const primary = escape(s.primary_color);
+  const accent = escape(s.accent_color);
+  const brand = escape(s.brand_name);
+  const ctaLabel = escape(s.cta_label);
+  const gradient = `linear-gradient(90deg, ${primary} 0%, ${accent} 50%, #2563eb 100%)`;
+
+  const headerBlock = s.logo_url
+    ? `<img src="${escape(s.logo_url)}" alt="${brand}" style="display:block;max-height:64px;width:auto;margin:0 auto;">`
+    : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
+
+  const socialLinks = [
+    s.instagram_url ? { label: "Instagram", url: s.instagram_url, color: primary } : null,
+    s.youtube_url ? { label: "YouTube", url: s.youtube_url, color: accent } : null,
+    s.tiktok_url ? { label: "TikTok", url: s.tiktok_url, color: "#60a5fa" } : null,
+  ].filter(Boolean) as { label: string; url: string; color: string }[];
+
+  const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
+  const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -77,39 +144,32 @@ export function renderEventAnnouncementEmail(data: EventAnnouncementData): strin
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <meta name="supported-color-schemes" content="dark light">
-<title>${escape(eventTitle)} — MDAccula</title>
+<title>${escape(eventTitle)} — ${brand}</title>
 </head>
-<body style="margin:0;padding:0;background:#050505;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e5e5e5;">
-<!-- Preheader (hidden preview text) -->
+<body style="margin:0;padding:0;background:${bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e5e5e5;">
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
 
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#050505;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};">
 <tr><td align="center" style="padding:24px 12px;">
 
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#080808;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
 
-  <!-- Header / Logo -->
-  <tr><td align="center" style="padding:32px 24px 24px 24px;">
-    <div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;">
-      <span style="color:#ffffff;">MD</span><span style="color:#c084fc;">A</span><span style="color:#e879f9;">C</span><span style="color:#f472b6;">C</span><span style="color:#f472b6;">U</span><span style="color:#60a5fa;">L</span><span style="color:#60a5fa;">A</span>
-    </div>
-  </td></tr>
+  ${customHeader ? `<tr><td style="padding:16px 24px 0 24px;">${customHeader}</td></tr>` : ""}
 
-  <!-- Hero Flyer -->
+  <tr><td align="center" style="padding:32px 24px 24px 24px;">${headerBlock}</td></tr>
+
   <tr><td align="center" style="padding:0 24px;">
     <a href="${escape(eventUrl)}" style="text-decoration:none;display:block;">
       <img src="${escape(flyerUrl)}" alt="${escape(eventTitle)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:#111;">
     </a>
   </td></tr>
 
-  <!-- Event Info -->
   <tr><td style="padding:32px 32px 8px 32px;">
-    <p style="margin:0 0 8px 0;color:#c084fc;font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">Novo evento confirmado</p>
+    <p style="margin:0 0 8px 0;color:${primary};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">Novo evento confirmado</p>
     <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.01em;">${escape(eventTitle)}</h1>
-    ${eventSubtitle ? `<p style="margin:0;color:#a1a1aa;font-size:16px;line-height:1.5;">${escape(eventSubtitle)}</p>` : ""}
+    ${s.show_subtitle && eventSubtitle ? `<p style="margin:0;color:#a1a1aa;font-size:16px;line-height:1.5;">${escape(eventSubtitle)}</p>` : ""}
   </td></tr>
 
-  <!-- Metadata -->
   <tr><td style="padding:16px 32px;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
       <tr>
@@ -125,42 +185,29 @@ export function renderEventAnnouncementEmail(data: EventAnnouncementData): strin
     </table>
   </td></tr>
 
-  <!-- Description -->
-  <tr><td style="padding:8px 32px 24px 32px;">
-    <p style="margin:0;color:#a1a1aa;font-size:15px;line-height:1.6;">${escape(description)}</p>
-  </td></tr>
+  ${s.show_description ? `<tr><td style="padding:8px 32px 24px 32px;"><p style="margin:0;color:#a1a1aa;font-size:15px;line-height:1.6;">${escape(description)}</p></td></tr>` : ""}
 
-  <!-- CTA -->
   <tr><td align="center" style="padding:8px 32px 24px 32px;">
-    <!--[if mso]>
-    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(ticketUrl)}" style="height:56px;v-text-anchor:middle;width:536px;" arcsize="14%" strokecolor="#7c3aed" fillcolor="#a855f7">
-      <w:anchorlock/>
-      <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">Garantir ingresso</center>
-    </v:roundrect>
-    <![endif]-->
-    <!--[if !mso]><!-- -->
-    <a href="${escape(ticketUrl)}" style="display:block;width:100%;padding:18px 24px;box-sizing:border-box;background:linear-gradient(90deg,#9333ea 0%,#db2777 50%,#2563eb 100%);color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">Garantir ingresso</a>
-    <!--<![endif]-->
-    <a href="${escape(agendaUrl)}" style="display:block;margin-top:20px;color:#71717a;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">Ver agenda completa no site</a>
+    <a href="${escape(ticketUrl)}" style="display:block;width:100%;padding:18px 24px;box-sizing:border-box;background:${gradient};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">${ctaLabel}</a>
+    ${s.show_secondary_link ? `<a href="${escape(agendaUrl)}" style="display:block;margin-top:20px;color:#71717a;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${escape(s.secondary_link_label)}</a>` : ""}
   </td></tr>
 
-  <!-- Footer -->
   <tr><td align="center" style="padding:32px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);">
-    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 24px auto;">
-      <tr>
-        <td style="padding:0 8px;"><a href="${escape(instagramUrl)}" style="color:#c084fc;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">Instagram</a></td>
-        <td style="padding:0 8px;color:#3f3f46;">·</td>
-        <td style="padding:0 8px;"><a href="${escape(youtubeUrl)}" style="color:#f472b6;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">YouTube</a></td>
-        <td style="padding:0 8px;color:#3f3f46;">·</td>
-        <td style="padding:0 8px;"><a href="${escape(tiktokUrl)}" style="color:#60a5fa;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">TikTok</a></td>
-      </tr>
-    </table>
-    <p style="margin:0 0 12px 0;color:#52525b;font-size:11px;line-height:1.6;max-width:400px;">
-      Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de Cuiabá-MT.
-    </p>
-    <p style="margin:0;font-size:11px;">
-      <a href="${escape(unsubscribeUrl)}" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a>
-    </p>
+    ${
+      s.show_socials && socialLinks.length > 0
+        ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 24px auto;"><tr>${socialLinks
+            .map(
+              (l, i) =>
+                `${i > 0 ? `<td style="padding:0 8px;color:#3f3f46;">·</td>` : ""}<td style="padding:0 8px;"><a href="${escape(
+                  l.url,
+                )}" style="color:${l.color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${l.label}</a></td>`,
+            )
+            .join("")}</tr></table>`
+        : ""
+    }
+    <p style="margin:0 0 12px 0;color:#52525b;font-size:11px;line-height:1.6;max-width:400px;">${escape(s.footer_text)}</p>
+    <p style="margin:0;font-size:11px;"><a href="${escape(unsubscribeUrl)}" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a></p>
+    ${customFooter ? `<div style="margin-top:16px;">${customFooter}</div>` : ""}
   </td></tr>
 
 </table>
@@ -175,8 +222,7 @@ export function renderEventAnnouncementEmail(data: EventAnnouncementData): strin
 export const MOCK_EVENT_DATA: EventAnnouncementData = {
   eventTitle: "NEON GARDEN: MELODIC TECHNO",
   eventSubtitle: "Uma imersão visual e sonora exclusiva no coração de Cuiabá.",
-  flyerUrl:
-    "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+  flyerUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
   dateLabel: "Sábado, 25 de Maio",
   timeLabel: "22h às 06h",
   venueName: "Musiva",
