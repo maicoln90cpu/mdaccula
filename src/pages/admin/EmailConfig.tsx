@@ -265,6 +265,23 @@ const EmailConfig = () => {
         });
       }
       setCampaigns((hist.data as Campaign[]) ?? []);
+
+      // B.9 — carrega estatísticas persistidas
+      const sentIds = ((hist.data as Campaign[]) ?? [])
+        .filter((c) => c.status === "sent")
+        .map((c) => c.id);
+      if (sentIds.length > 0) {
+        const { data: statsRows } = await (supabase.from as any)("event_email_campaign_stats")
+          .select("campaign_id, stats_json, fetched_at")
+          .in("campaign_id", sentIds);
+        if (Array.isArray(statsRows)) {
+          const map: Record<string, any> = {};
+          for (const r of statsRows) {
+            map[r.campaign_id] = { ...(r.stats_json || {}), fetched_at: r.fetched_at };
+          }
+          setCampaignStats(map);
+        }
+      }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao carregar", description: e.message });
     } finally {
