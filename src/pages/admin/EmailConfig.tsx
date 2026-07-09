@@ -407,11 +407,11 @@ const EmailConfig = () => {
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" variant="outline" onClick={fetchEgoiResources} disabled={fetchingResources}>
                   <RefreshCw className={`w-4 h-4 mr-2 ${fetchingResources ? "animate-spin" : ""}`} />
-                  Buscar listas e remetentes da E-goi
+                  {lists.length > 0 || senders.length > 0 ? "Atualizar da E-goi" : "Buscar listas e remetentes da E-goi"}
                 </Button>
                 <span className="text-xs text-muted-foreground">
                   {lists.length > 0 || senders.length > 0
-                    ? `${lists.length} listas • ${senders.length} remetentes carregados`
+                    ? `${lists.length} listas • ${senders.length} remetentes${lastSyncedAt ? ` • sincronizado ${new Date(lastSyncedAt).toLocaleString("pt-BR")}` : ""}`
                     : "Clique para popular os selects (usa sua API key)."}
                 </span>
               </div>
