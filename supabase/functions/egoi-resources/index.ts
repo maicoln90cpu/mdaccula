@@ -19,12 +19,14 @@ async function egoiFetch(path: string, apiKey: string) {
   return { status: res.status, ok: res.ok, body };
 }
 
-/** Normaliza payloads que podem vir como array direto ou { items: [...] } aninhado. */
+/** Normaliza payloads que podem vir como array direto ou aninhado em várias chaves. */
 function normalizeItems(raw: any): any[] {
   if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw?.items)) return raw.items;
-  if (Array.isArray(raw?.data)) return raw.data;
-  if (Array.isArray(raw?.items?.data)) return raw.items.data;
+  for (const k of ["items", "data", "senders", "lists", "segments", "results"]) {
+    if (Array.isArray(raw?.[k])) return raw[k];
+    if (Array.isArray(raw?.[k]?.data)) return raw[k].data;
+    if (Array.isArray(raw?.[k]?.items)) return raw[k].items;
+  }
   return [];
 }
 
