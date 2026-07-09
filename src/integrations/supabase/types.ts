@@ -740,6 +740,7 @@ export type Database = {
           created_by: string | null
           date: string
           description: string | null
+          dispatch_email_on_save: boolean
           email_campaign_dispatched_at: string | null
           end_date: string | null
           end_time: string | null
@@ -773,6 +774,7 @@ export type Database = {
           created_by?: string | null
           date: string
           description?: string | null
+          dispatch_email_on_save?: boolean
           email_campaign_dispatched_at?: string | null
           end_date?: string | null
           end_time?: string | null
@@ -806,6 +808,7 @@ export type Database = {
           created_by?: string | null
           date?: string
           description?: string | null
+          dispatch_email_on_save?: boolean
           email_campaign_dispatched_at?: string | null
           end_date?: string | null
           end_time?: string | null
