@@ -27,6 +27,7 @@ import {
 } from "@/lib/emailTemplates/eventAnnouncement";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
+import { dispatchEventDraftEmail } from "@/lib/emailTemplates/dispatchEventDraft";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
@@ -257,6 +258,49 @@ const EmailConfig = () => {
     }
   };
 
+  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
+  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean } = {}) => {
+    setDispatchingId(eventId);
+    try {
+      const res = await dispatchEventDraftEmail(eventId, opts);
+      if (res.ok) {
+        toast({ title: "Rascunho criado na E-goi", description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined });
+      } else if (res.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+          already_dispatched: "Este evento já teve rascunho criado. Use \"Reenviar\" para forçar um novo.",
+          event_not_active: "O evento não está com status ativo.",
+          no_egoi_config: "Nenhuma configuração da E-goi encontrada.",
+          agency_disabled: "Toggle da agência está OFF.",
+          list_or_sender_missing: "Lista ou remetente ainda não configurados.",
+        };
+        toast({ variant: "destructive", title: "Não disparado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+      } else {
+        toast({ variant: "destructive", title: "Falha ao criar rascunho", description: res.error || "Erro desconhecido" });
+      }
+      void loadAll();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } finally {
+      setDispatchingId(null);
+    }
+  };
+
+  const toggleMaster = async (v: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "egoi_email_enabled", value: v ? "true" : "false" }, { onConflict: "key" });
+      if (error) throw error;
+      setMasterEnabled(v);
+      toast({ title: v ? "Master ligado" : "Master desligado", description: v ? "Automação de e-mail habilitada globalmente." : "Nenhum disparo automático será feito." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao alterar master switch", description: e.message });
+    }
+  };
+
+
   // Agrupamento por evento
   const groups: EventGroup[] = useMemo(() => {
     const map = new Map<string, EventGroup>();
@@ -461,14 +505,15 @@ const EmailConfig = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                 <div>
-                  <div className="font-medium">Master (Lovable)</div>
+                  <div className="font-medium">Master switch</div>
                   <div className="text-xs text-muted-foreground">
-                    Controlado pela agência. Trave global — só a Lovable/agência altera.
+                    Trava global da automação. Deixe OFF enquanto valida; ligue para permitir disparos reais.
                   </div>
                 </div>
-                <Badge variant={masterEnabled ? "default" : "secondary"}>
-                  {masterEnabled ? "ON" : "OFF"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={masterEnabled ? "default" : "secondary"}>{masterEnabled ? "ON" : "OFF"}</Badge>
+                  <Switch checked={masterEnabled} onCheckedChange={toggleMaster} />
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg border">
@@ -1016,6 +1061,46 @@ const EmailConfig = () => {
 
         {/* ================= HISTÓRICO ================= */}
         <TabsContent value="history" className="space-y-4">
+          {/* B.6.1 — Eventos sem campanha (importados via CSV/script) */}
+          {(() => {
+            const dispatchedIds = new Set(campaigns.map((c) => c.event_id));
+            const pending = realEvents.filter((e) => !dispatchedIds.has(e.id));
+            if (pending.length === 0) return null;
+            return (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Eventos sem rascunho ({pending.length})</CardTitle>
+                  <CardDescription>
+                    Eventos criados via importação ou script que ainda não tiveram um rascunho de e-mail criado. Clique para criar manualmente.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {pending.map((ev) => (
+                      <div key={ev.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium truncate">{ev.title}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(ev.date).toLocaleDateString("pt-BR")} • {ev.venue}, {ev.location_city}-{ev.location_state}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={dispatchingId === ev.id}
+                          onClick={() => dispatchNow(ev.id)}
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {dispatchingId === ev.id ? "Criando..." : "Criar rascunho agora"}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           <Card>
             <CardHeader>
               <CardTitle>Histórico por evento</CardTitle>
@@ -1074,11 +1159,20 @@ const EmailConfig = () => {
                                 </div>
                               </div>
                             ))}
-                            <div className="p-3 bg-muted/20 flex justify-end">
+                            <div className="p-3 bg-muted/20 flex flex-wrap justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={dispatchingId === g.event_id}
+                                onClick={() => dispatchNow(g.event_id, { forceResend: true })}
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                {dispatchingId === g.event_id ? "Criando..." : "Criar rascunho agora"}
+                              </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button size="sm" variant="outline">
-                                    <Send className="w-4 h-4 mr-2" /> Reenviar para este evento
+                                    <Send className="w-4 h-4 mr-2" /> Liberar reenvio
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -1099,6 +1193,7 @@ const EmailConfig = () => {
                                 </AlertDialogContent>
                               </AlertDialog>
                             </div>
+
                           </div>
                         )}
                       </div>

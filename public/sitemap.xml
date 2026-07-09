@@ -592,14 +592,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-uq4025</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-j6t51d</loc>
+    <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-j6t51d</loc>
-    <lastmod>2026-06-27</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-uq4025</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1102,6 +1102,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ahdo67</loc>
     <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
@@ -1122,12 +1128,6 @@
   <url>
     <loc>https://mdaccula.com/eventos/pistinha2103</loc>
     <lastmod>2026-06-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
-    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1162,12 +1162,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/heyhoy1104</loc>
-    <lastmod>2026-06-18</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/piknic1104</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
@@ -1186,7 +1180,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/up2026</loc>
+    <loc>https://mdaccula.com/eventos/heyhoy1104</loc>
     <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -1198,8 +1192,20 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/up2026</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/halo050626</loc>
     <lastmod>2026-06-05</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/xsp260926</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1218,12 +1224,6 @@
   <url>
     <loc>https://mdaccula.com/eventos/caos1004</loc>
     <lastmod>2026-06-16</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/xsp260926</loc>
-    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1516,6 +1516,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/onelife281126</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/nostalgia300526</loc>
     <lastmod>2026-06-16</lastmod>
     <changefreq>weekly</changefreq>
@@ -1530,12 +1536,6 @@
   <url>
     <loc>https://mdaccula.com/eventos/industria1505vip</loc>
     <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/onelife281126</loc>
-    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1643,7 +1643,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/sirius2908</loc>
-    <lastmod>2026-07-08</lastmod>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1684,14 +1684,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/jardimcopa130626</loc>
-    <lastmod>2026-06-13</lastmod>
+    <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/jardimcopa130626</loc>
+    <lastmod>2026-06-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -2794,6 +2794,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira</loc>
+    <lastmod>2026-07-09</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/como-a-inteligencia-artificial-esta-remodelando-o-trabalho-dos-djs</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
@@ -2854,12 +2860,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira</loc>
-    <lastmod>2026-07-08</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro</loc>
     <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
@@ -2868,6 +2868,12 @@
   <url>
     <loc>https://mdaccula.com/blog/red-room-na-casa-aragon-em-sao-paulo-na-sexta-feira-12-de-junho</loc>
     <lastmod>2026-06-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
+    <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2933,12 +2939,6 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
-    <lastmod>2026-07-09</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
     <lastmod>2026-07-09</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
