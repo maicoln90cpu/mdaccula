@@ -1270,6 +1270,12 @@ const EmailConfig = () => {
                                 <Send className="w-4 h-4 mr-2" />
                                 {dispatchingId === g.event_id ? "Criando..." : "Criar rascunho agora"}
                               </Button>
+                              <SendNowButton
+                                eventTitle={g.title}
+                                disabled={dispatchingId === g.event_id}
+                                onConfirm={() => dispatchNow(g.event_id, { sendNow: true, forceResend: true })}
+                              />
+
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button size="sm" variant="outline">
