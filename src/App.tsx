@@ -63,6 +63,7 @@ const PodcastManager = lazy(() => import("./pages/admin/PodcastManager"));
 const RedirectsManager = lazy(() => import("./pages/admin/RedirectsManager"));
 const DataImport = lazy(() => import("./pages/admin/DataImport"));
 const EgressMonitor = lazy(() => import("./pages/admin/EgressMonitor"));
+const EmailPreview = lazy(() => import("./pages/admin/EmailPreview"));
 const Redirect = lazy(() => import("./pages/Redirect"));
 
 const queryClient = new QueryClient({
