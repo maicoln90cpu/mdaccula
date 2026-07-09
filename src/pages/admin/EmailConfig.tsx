@@ -258,7 +258,49 @@ const EmailConfig = () => {
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[s]}`}>{s}</span>;
   };
 
-  const previewHtml = useMemo(() => renderEventAnnouncementEmail(previewData), [previewData]);
+  const previewHtml = useMemo(() => renderEventAnnouncementEmail(previewData, tpl), [previewData, tpl]);
+
+  const saveTemplate = async () => {
+    setTplSaving(true);
+    try {
+      const { id, ...payload } = tpl as any;
+      const table = (supabase.from as any)("email_template_settings");
+      const { error } = id
+        ? await table.update(payload).eq("id", id)
+        : await table.insert({ ...payload, singleton: true });
+      if (error) throw error;
+      toast({ title: "Template salvo" });
+      void loadAll();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao salvar template", description: e.message });
+    } finally {
+      setTplSaving(false);
+    }
+  };
+
+  const uploadLogo = async (file: File) => {
+    if (file.size > 500 * 1024) {
+      toast({ variant: "destructive", title: "Arquivo muito grande", description: "Máximo 500KB para logos." });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `email-template/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("link-thumbnails").upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("link-thumbnails").getPublicUrl(path);
+      setTpl({ ...tpl, logo_url: pub.publicUrl });
+      toast({ title: "Logo enviada", description: "Clique em Salvar para aplicar." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro no upload", description: e.message });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   // Alcance estimado
   const reachEstimate = useMemo(() => {
