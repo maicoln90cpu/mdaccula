@@ -258,6 +258,49 @@ const EmailConfig = () => {
     }
   };
 
+  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
+  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean } = {}) => {
+    setDispatchingId(eventId);
+    try {
+      const res = await dispatchEventDraftEmail(eventId, opts);
+      if (res.ok) {
+        toast({ title: "Rascunho criado na E-goi", description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined });
+      } else if (res.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+          already_dispatched: "Este evento já teve rascunho criado. Use \"Reenviar\" para forçar um novo.",
+          event_not_active: "O evento não está com status ativo.",
+          no_egoi_config: "Nenhuma configuração da E-goi encontrada.",
+          agency_disabled: "Toggle da agência está OFF.",
+          list_or_sender_missing: "Lista ou remetente ainda não configurados.",
+        };
+        toast({ variant: "destructive", title: "Não disparado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+      } else {
+        toast({ variant: "destructive", title: "Falha ao criar rascunho", description: res.error || "Erro desconhecido" });
+      }
+      void loadAll();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } finally {
+      setDispatchingId(null);
+    }
+  };
+
+  const toggleMaster = async (v: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "egoi_email_enabled", value: v ? "true" : "false" }, { onConflict: "key" });
+      if (error) throw error;
+      setMasterEnabled(v);
+      toast({ title: v ? "Master ligado" : "Master desligado", description: v ? "Automação de e-mail habilitada globalmente." : "Nenhum disparo automático será feito." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao alterar master switch", description: e.message });
+    }
+  };
+
+
   // Agrupamento por evento
   const groups: EventGroup[] = useMemo(() => {
     const map = new Map<string, EventGroup>();
