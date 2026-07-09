@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { NavLink } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Upload, Palette, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   renderEventAnnouncementEmail,
