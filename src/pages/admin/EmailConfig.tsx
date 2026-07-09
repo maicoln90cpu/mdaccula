@@ -68,6 +68,97 @@ type EventGroup = {
 const formatCount = (n: number | null | undefined) =>
   typeof n === "number" ? n.toLocaleString("pt-BR") : "—";
 
+/**
+ * B.7 — Botão de envio imediato com DUPLA confirmação:
+ *   1) Modal explicativo + checkbox "Eu revisei o conteúdo".
+ *   2) Digitação obrigatória da palavra "ENVIAR" antes do botão liberar.
+ * Só chama onConfirm() depois das duas etapas.
+ */
+const SendNowButton = ({
+  eventTitle,
+  disabled,
+  onConfirm,
+}: {
+  eventTitle: string;
+  disabled?: boolean;
+  onConfirm: () => void | Promise<void>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [reviewed, setReviewed] = useState(false);
+  const [typed, setTyped] = useState("");
+  const reset = () => { setStep(1); setReviewed(false); setTyped(""); };
+  return (
+    <AlertDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="destructive" disabled={disabled}>
+          <Send className="w-4 h-4 mr-2" /> Enviar agora
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        {step === 1 ? (
+          <>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Envio imediato — atenção!</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    Você está prestes a <b>enviar de verdade</b> o e-mail do evento{" "}
+                    <b>{eventTitle}</b> para toda a lista configurada na E-goi.
+                    Isso <b>não pode ser desfeito</b>.
+                  </p>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={reviewed}
+                      onChange={(e) => setReviewed(e.target.checked)}
+                      className="mt-1"
+                    />
+                    <span>Eu revisei o conteúdo, o assunto e o remetente estão corretos.</span>
+                  </label>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button disabled={!reviewed} onClick={() => setStep(2)}>Continuar</Button>
+            </AlertDialogFooter>
+          </>
+        ) : (
+          <>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Última confirmação</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>
+                    Para liberar o envio, digite <b>ENVIAR</b> no campo abaixo.
+                  </p>
+                  <Input
+                    autoFocus
+                    value={typed}
+                    onChange={(e) => setTyped(e.target.value)}
+                    placeholder="Digite ENVIAR"
+                  />
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={typed.trim().toUpperCase() !== "ENVIAR"}
+                onClick={async () => { setOpen(false); reset(); await onConfirm(); }}
+              >
+                Sim, enviar agora
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </>
+        )}
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
+
+
 const EmailConfig = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -259,12 +350,15 @@ const EmailConfig = () => {
   };
 
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
-  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean } = {}) => {
+  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean; sendNow?: boolean } = {}) => {
     setDispatchingId(eventId);
     try {
       const res = await dispatchEventDraftEmail(eventId, opts);
       if (res.ok) {
-        toast({ title: "Rascunho criado na E-goi", description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined });
+        toast({
+          title: res.status === "sent" ? "E-mail enviado!" : "Rascunho criado na E-goi",
+          description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
+        });
       } else if (res.skipped) {
         const reasons: Record<string, string> = {
           master_off: "Master switch está OFF.",
@@ -1084,15 +1178,22 @@ const EmailConfig = () => {
                             {new Date(ev.date).toLocaleDateString("pt-BR")} • {ev.venue}, {ev.location_city}-{ev.location_state}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={dispatchingId === ev.id}
-                          onClick={() => dispatchNow(ev.id)}
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          {dispatchingId === ev.id ? "Criando..." : "Criar rascunho agora"}
-                        </Button>
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={dispatchingId === ev.id}
+                            onClick={() => dispatchNow(ev.id)}
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            {dispatchingId === ev.id ? "Criando..." : "Criar rascunho"}
+                          </Button>
+                          <SendNowButton
+                            eventTitle={ev.title}
+                            disabled={dispatchingId === ev.id}
+                            onConfirm={() => dispatchNow(ev.id, { sendNow: true, forceResend: true })}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1169,6 +1270,12 @@ const EmailConfig = () => {
                                 <Send className="w-4 h-4 mr-2" />
                                 {dispatchingId === g.event_id ? "Criando..." : "Criar rascunho agora"}
                               </Button>
+                              <SendNowButton
+                                eventTitle={g.title}
+                                disabled={dispatchingId === g.event_id}
+                                onConfirm={() => dispatchNow(g.event_id, { sendNow: true, forceResend: true })}
+                              />
+
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button size="sm" variant="outline">

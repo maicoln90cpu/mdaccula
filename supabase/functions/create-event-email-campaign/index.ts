@@ -68,10 +68,12 @@ Deno.serve(async (req) => {
     const subject = (body?.subject as string | undefined) || undefined;
     const preheader = (body?.preheader as string | undefined) || undefined;
     const forceResend = body?.force_resend === true;
+    const sendNow = body?.send_now === true;
 
     if (!eventId || !html) {
       return json({ error: 'event_id e html são obrigatórios' }, 400);
     }
+
 
     // Guard 1: Master switch
     const { data: masterRow } = await admin
@@ -138,45 +140,64 @@ Deno.serve(async (req) => {
 
     const reuseRow = lastCampaign && lastCampaign.status !== 'sent';
 
-    const mode: Mode = (cfg.mode as Mode) || 'draft';
+    const mode: Mode = sendNow ? 'immediate' : ((cfg.mode as Mode) || 'draft');
     const internalName = `MDAccula • ${claimed.title || 'Evento'} • ${now.slice(0, 10)}`;
     const finalSubject = subject || `Novo evento: ${claimed.title}`;
 
-    // E-goi v3: cria campanha e-mail.
-    // Endpoint principal: POST /campaigns  (type=email).
-    // Guardamos a resposta bruta em error_message quando falha para facilitar debug.
-    const createPayload = {
-      type: 'email',
+    // E-goi v3: POST /campaigns/email
+    // Doc: https://developers.e-goi.com/api/v3/#tag/Email/operation/createEmailCampaign
+    // content deve ser { type: 'html', body: '<html>...' } (NÃO "html").
+    const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
       subject: finalSubject,
       sender_id: Number(cfg.sender_id),
-      preheader: preheader || null,
-      segment_id: cfg.segment_id ? Number(cfg.segment_id) : undefined,
       content: {
         type: 'html',
-        html,
+        body: html,
       },
     };
+    if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
 
-    const created = await egoiRequest('/campaigns', apiKey, {
+    const created = await egoiRequest('/campaigns/email', apiKey, {
       method: 'POST',
       body: JSON.stringify(createPayload),
     });
 
     let campaignHash: string | null = null;
-    let campaignStatus: 'draft' | 'failed' = 'failed';
+    let campaignStatus: 'draft' | 'failed' | 'sent' = 'failed';
     let errorMessage: string | null = null;
+    let sentAt: string | null = null;
 
     if (created.ok) {
       campaignHash =
         created.body?.campaign_hash ||
         created.body?.hash ||
         created.body?.data?.campaign_hash ||
-        String(created.body?.campaign_id ?? created.body?.id ?? '') ||
-        null;
+        (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
+        (created.body?.id != null ? String(created.body.id) : null);
       campaignStatus = 'draft';
+
+      // B.7 — Envio imediato (opcional).
+      if (sendNow && campaignHash) {
+        const sendRes = await egoiRequest(
+          `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
+          apiKey,
+          { method: 'POST', body: JSON.stringify({}) },
+        );
+        if (sendRes.ok) {
+          campaignStatus = 'sent';
+          sentAt = new Date().toISOString();
+        } else {
+          // Criou o rascunho mas falhou o envio — mantém como draft e devolve erro.
+          errorMessage = `E-goi send ${sendRes.status}: ${
+            typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body)
+          }`.slice(0, 1000);
+        }
+      }
     } else {
+      // Falha na criação — libera o dispatched_at para nova tentativa não ficar bloqueada.
+      await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
       errorMessage = `E-goi ${created.status}: ${
         typeof created.body === 'string' ? created.body : JSON.stringify(created.body)
       }`.slice(0, 1000);
@@ -189,7 +210,7 @@ Deno.serve(async (req) => {
       status: campaignStatus,
       mode,
       error_message: errorMessage,
-      sent_at: null,
+      sent_at: sentAt,
     };
 
     if (reuseRow && lastCampaign) {
@@ -201,10 +222,8 @@ Deno.serve(async (req) => {
       await admin.from('event_email_campaigns').insert(rowPayload);
     }
 
-    // Se falhou, mantemos dispatched_at marcado propositalmente (evita loop de retry automático).
-    // O admin pode usar o botão "Reenviar" no painel B.4 para limpar e tentar de novo.
     return json({
-      ok: campaignStatus === 'draft',
+      ok: campaignStatus !== 'failed',
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
       error: errorMessage,
@@ -214,3 +233,4 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
+

@@ -80,7 +80,7 @@ async function buildEventData(ev: EventRow): Promise<EventAnnouncementData> {
 
 export async function dispatchEventDraftEmail(
   eventId: string,
-  opts: { forceResend?: boolean } = {},
+  opts: { forceResend?: boolean; sendNow?: boolean } = {},
 ): Promise<DispatchEventDraftResult> {
   // 1. Config + template padrão + settings de marca
   const [cfgRes, tplSettingsRes, evRes] = await Promise.all([
@@ -166,6 +166,7 @@ export async function dispatchEventDraftEmail(
         subject,
         preheader,
         force_resend: opts.forceResend === true,
+        send_now: opts.sendNow === true,
       },
     },
   );
@@ -175,3 +176,4 @@ export async function dispatchEventDraftEmail(
   }
   return (data as DispatchEventDraftResult) ?? { ok: false, error: "Resposta vazia" };
 }
+
