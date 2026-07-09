@@ -125,6 +125,11 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [linkGroups, setLinkGroups] = useState<any[]>([]);
   const [eventTemplates, setEventTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  // B.6 — Toggle para criar rascunho automático de e-mail na E-goi ao salvar.
+  // Default OFF (nunca dispara sem intent explícito do admin).
+  const [dispatchEmail, setDispatchEmail] = useState(false);
+  const [emailAutomationReady, setEmailAutomationReady] = useState(false);
+  const [emailAutomationReason, setEmailAutomationReason] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
