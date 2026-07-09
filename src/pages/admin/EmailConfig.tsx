@@ -355,7 +355,10 @@ const EmailConfig = () => {
     try {
       const res = await dispatchEventDraftEmail(eventId, opts);
       if (res.ok) {
-        toast({ title: "Rascunho criado na E-goi", description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined });
+        toast({
+          title: res.status === "sent" ? "E-mail enviado!" : "Rascunho criado na E-goi",
+          description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
+        });
       } else if (res.skipped) {
         const reasons: Record<string, string> = {
           master_off: "Master switch está OFF.",
