@@ -80,7 +80,16 @@ async function buildEventData(ev: EventRow): Promise<EventAnnouncementData> {
 
 export async function dispatchEventDraftEmail(
   eventId: string,
-  opts: { forceResend?: boolean; sendNow?: boolean } = {},
+  opts: {
+    forceResend?: boolean;
+    sendNow?: boolean;
+    /** B.8 — força usar um template específico (ex.: ticket_batch). */
+    templateIdOverride?: string;
+    /** B.8 — substitui a arte principal (flyer) por uma imagem específica do disparo. */
+    flyerOverrideUrl?: string;
+    /** B.8 — sobrescreve o assunto do e-mail (ex.: "ÚLTIMAS HORAS — {evento}"). */
+    subjectOverride?: string;
+  } = {},
 ): Promise<DispatchEventDraftResult> {
   // 1. Config + template padrão + settings de marca
   const [cfgRes, tplSettingsRes, evRes] = await Promise.all([
@@ -105,9 +114,16 @@ export async function dispatchEventDraftEmail(
   const event = evRes.data as EventRow | null;
   if (!event) return { ok: false, error: "Evento não encontrado" };
 
-  // 2. Template padrão (com fallback para primeiro template disponível)
+  // 2. Template — override tem prioridade; senão default_event_template_id; senão is_default
   let template: Template | null = null;
-  if (cfg.default_event_template_id) {
+  if (opts.templateIdOverride) {
+    const { data } = await (supabase.from as any)("email_templates")
+      .select("*")
+      .eq("id", opts.templateIdOverride)
+      .maybeSingle();
+    template = data as Template | null;
+  }
+  if (!template && cfg.default_event_template_id) {
     const { data } = await (supabase.from as any)("email_templates")
       .select("*")
       .eq("id", cfg.default_event_template_id)
@@ -126,6 +142,9 @@ export async function dispatchEventDraftEmail(
 
   // 3. Dados do evento + resumo da matéria (se houver)
   const eventData = await buildEventData(event);
+  if (opts.flyerOverrideUrl) {
+    eventData.flyerUrl = opts.flyerOverrideUrl;
+  }
   let article: { title: string; excerpt: string; url: string; image_url?: string } | null = null;
   if (event.blog_post_id) {
     const { data: post } = await supabase
@@ -143,10 +162,29 @@ export async function dispatchEventDraftEmail(
     }
   }
 
+  // B.8 — se veio arte específica, preenche blocos image_with_link vazios
+  // (útil no preset "ticket_batch" que já tem esse bloco pronto).
+  const resolvedBlocks: Block[] | null = template && Array.isArray(template.blocks)
+    ? (template.blocks as Block[]).map((b) => {
+        if (
+          opts.flyerOverrideUrl &&
+          b.kind === "image_with_link" &&
+          !(b as any).image_url
+        ) {
+          return {
+            ...b,
+            image_url: opts.flyerOverrideUrl,
+            link_url: (b as any).link_url || eventData.ticketUrl,
+          } as Block;
+        }
+        return b;
+      })
+    : null;
+
   // 4. Render HTML
   const html =
-    template && Array.isArray(template.blocks) && template.blocks.length > 0
-      ? renderBlockedTemplate(template.blocks as Block[], eventData, settings, article)
+    resolvedBlocks && resolvedBlocks.length > 0
+      ? renderBlockedTemplate(resolvedBlocks, eventData, settings, article)
       : renderEventAnnouncementEmail(eventData, settings);
 
   const subject =
