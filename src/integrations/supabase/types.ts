@@ -348,6 +348,42 @@ export type Database = {
           },
         ]
       }
+      egoi_config: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          list_id: number | null
+          mode: string
+          scheduled_days_before: number | null
+          sender_id: number | null
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          list_id?: number | null
+          mode?: string
+          scheduled_days_before?: number | null
+          sender_id?: number | null
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          list_id?: number | null
+          mode?: string
+          scheduled_days_before?: number | null
+          sender_id?: number | null
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       egress_metrics: {
         Row: {
           api_path: string
@@ -380,6 +416,50 @@ export type Database = {
           source?: string
         }
         Relationships: []
+      }
+      event_email_campaigns: {
+        Row: {
+          created_at: string
+          egoi_campaign_id: string | null
+          error_message: string | null
+          event_id: string
+          id: string
+          mode: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          egoi_campaign_id?: string | null
+          error_message?: string | null
+          event_id: string
+          id?: string
+          mode?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          egoi_campaign_id?: string | null
+          error_message?: string | null
+          event_id?: string
+          id?: string
+          mode?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_email_campaigns_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       event_slug_redirects: {
         Row: {
@@ -505,6 +585,7 @@ export type Database = {
           created_by: string | null
           date: string
           description: string | null
+          email_campaign_dispatched_at: string | null
           end_date: string | null
           end_time: string | null
           genres: string[]
@@ -537,6 +618,7 @@ export type Database = {
           created_by?: string | null
           date: string
           description?: string | null
+          email_campaign_dispatched_at?: string | null
           end_date?: string | null
           end_time?: string | null
           genres?: string[]
@@ -569,6 +651,7 @@ export type Database = {
           created_by?: string | null
           date?: string
           description?: string | null
+          email_campaign_dispatched_at?: string | null
           end_date?: string | null
           end_time?: string | null
           genres?: string[]
