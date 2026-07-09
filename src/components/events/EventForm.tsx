@@ -20,6 +20,7 @@ import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
+import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
 
 interface EventFormData {
   title: string;
@@ -124,6 +125,11 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [linkGroups, setLinkGroups] = useState<any[]>([]);
   const [eventTemplates, setEventTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  // B.6 — Toggle para criar rascunho automático de e-mail na E-goi ao salvar.
+  // Default OFF (nunca dispara sem intent explícito do admin).
+  const [dispatchEmail, setDispatchEmail] = useState(false);
+  const [emailAutomationReady, setEmailAutomationReady] = useState(false);
+  const [emailAutomationReason, setEmailAutomationReason] = useState<string>('');
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -189,6 +195,34 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         .order('name');
       
       if (templates) setEventTemplates(templates);
+
+      // B.6 — Descobrir se a automação de e-mail está pronta.
+      // Só habilita o toggle se: master ON + agência ON + list/sender/template preenchidos.
+      try {
+        const [{ data: master }, { data: cfg }] = await Promise.all([
+          supabase.from('site_settings').select('value').eq('key', 'egoi_email_enabled').maybeSingle(),
+          (supabase.from as any)('egoi_config').select('is_enabled,list_id,sender_id,default_event_template_id').maybeSingle(),
+        ]);
+        if (master?.value !== 'true') {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Automação desativada pela Lovable (master switch OFF).');
+        } else if (!cfg || !cfg.is_enabled) {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Automação desligada no painel /admin/email-config.');
+        } else if (!cfg.list_id || !cfg.sender_id) {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Lista ou remetente ainda não configurados.');
+        } else if (!cfg.default_event_template_id) {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Selecione um template padrão em /admin/email-config.');
+        } else {
+          setEmailAutomationReady(true);
+          setEmailAutomationReason('');
+        }
+      } catch {
+        setEmailAutomationReady(false);
+        setEmailAutomationReason('Não foi possível verificar a automação de e-mail.');
+      }
     };
     fetchData();
   }, []);
@@ -680,6 +714,39 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             });
           }
         }
+
+      // B.6 — Se admin marcou o toggle e a automação está pronta, cria rascunho na E-goi.
+      // Falha aqui NÃO reverte o evento — apenas mostra toast. Histórico grava error_message.
+      if (dispatchEmail && emailAutomationReady && createdEventId) {
+        try {
+          const result = await dispatchEventDraftEmail(createdEventId);
+          if (result.skipped) {
+            toast({
+              title: 'Rascunho de e-mail não criado',
+              description: `Motivo: ${result.reason ?? 'desconhecido'}. Verifique o painel /admin/email-config.`,
+              variant: 'destructive',
+            });
+          } else if (result.ok) {
+            toast({
+              title: 'Rascunho criado na E-goi',
+              description: 'Revise e envie manualmente pela sua conta E-goi.',
+            });
+          } else {
+            toast({
+              title: 'Falha ao criar rascunho na E-goi',
+              description: result.error || 'Veja o histórico no painel de e-mails.',
+              variant: 'destructive',
+            });
+          }
+        } catch (dispatchErr: any) {
+          console.error('[EventForm] Falha no disparo de rascunho E-goi:', dispatchErr);
+          toast({
+            title: 'Falha no disparo de e-mail',
+            description: dispatchErr?.message || 'Erro desconhecido',
+            variant: 'destructive',
+          });
+        }
+      }
 
       onSuccess();
     } catch (error) {
@@ -1340,7 +1407,33 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </>
           )}
 
+          {/* B.6 — Toggle rascunho E-goi. Default OFF; só habilita se automação pronta. */}
+          <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="dispatchEmail"
+                checked={dispatchEmail}
+                disabled={!emailAutomationReady}
+                onCheckedChange={(checked) => setDispatchEmail(checked as boolean)}
+              />
+              <div className="flex-1 space-y-1">
+                <Label
+                  htmlFor="dispatchEmail"
+                  className={`cursor-pointer font-medium ${!emailAutomationReady ? 'text-muted-foreground' : ''}`}
+                >
+                  Criar rascunho de e-mail na E-goi ao salvar
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {emailAutomationReady
+                    ? 'Um rascunho será criado na sua conta E-goi usando o template padrão. Você revisa e envia manualmente pela E-goi.'
+                    : emailAutomationReason || 'Automação de e-mail indisponível.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-4 pt-4">
+
             <Button type="submit" disabled={submitting || uploading} className="flex-1">
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {event ? 'Atualizar' : 'Criar'} Evento
