@@ -350,7 +350,7 @@ const EmailConfig = () => {
   };
 
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
-  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean } = {}) => {
+  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean; sendNow?: boolean } = {}) => {
     setDispatchingId(eventId);
     try {
       const res = await dispatchEventDraftEmail(eventId, opts);
