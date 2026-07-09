@@ -188,6 +188,7 @@ export async function dispatchEventDraftEmail(
       : renderEventAnnouncementEmail(eventData, settings);
 
   const subject =
+    opts.subjectOverride ||
     (template as any)?.subject ||
     `Novo evento: ${event.title}`;
   const preheader =
