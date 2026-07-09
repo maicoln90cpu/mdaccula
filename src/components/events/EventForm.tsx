@@ -195,6 +195,34 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         .order('name');
       
       if (templates) setEventTemplates(templates);
+
+      // B.6 — Descobrir se a automação de e-mail está pronta.
+      // Só habilita o toggle se: master ON + agência ON + list/sender/template preenchidos.
+      try {
+        const [{ data: master }, { data: cfg }] = await Promise.all([
+          supabase.from('site_settings').select('value').eq('key', 'egoi_email_enabled').maybeSingle(),
+          (supabase.from as any)('egoi_config').select('is_enabled,list_id,sender_id,default_event_template_id').maybeSingle(),
+        ]);
+        if (master?.value !== 'true') {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Automação desativada pela Lovable (master switch OFF).');
+        } else if (!cfg || !cfg.is_enabled) {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Automação desligada no painel /admin/email-config.');
+        } else if (!cfg.list_id || !cfg.sender_id) {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Lista ou remetente ainda não configurados.');
+        } else if (!cfg.default_event_template_id) {
+          setEmailAutomationReady(false);
+          setEmailAutomationReason('Selecione um template padrão em /admin/email-config.');
+        } else {
+          setEmailAutomationReady(true);
+          setEmailAutomationReason('');
+        }
+      } catch {
+        setEmailAutomationReady(false);
+        setEmailAutomationReason('Não foi possível verificar a automação de e-mail.');
+      }
     };
     fetchData();
   }, []);
