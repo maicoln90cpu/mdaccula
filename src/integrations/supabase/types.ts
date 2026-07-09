@@ -572,6 +572,38 @@ export type Database = {
         }
         Relationships: []
       }
+      event_email_campaign_stats: {
+        Row: {
+          campaign_id: string
+          fetched_at: string
+          id: string
+          stats_json: Json
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          fetched_at?: string
+          id?: string
+          stats_json?: Json
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          fetched_at?: string
+          id?: string
+          stats_json?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_email_campaign_stats_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "event_email_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_email_campaigns: {
         Row: {
           created_at: string
