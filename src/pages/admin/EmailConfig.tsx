@@ -1175,15 +1175,22 @@ const EmailConfig = () => {
                             {new Date(ev.date).toLocaleDateString("pt-BR")} • {ev.venue}, {ev.location_city}-{ev.location_state}
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={dispatchingId === ev.id}
-                          onClick={() => dispatchNow(ev.id)}
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          {dispatchingId === ev.id ? "Criando..." : "Criar rascunho agora"}
-                        </Button>
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={dispatchingId === ev.id}
+                            onClick={() => dispatchNow(ev.id)}
+                          >
+                            <Send className="w-4 h-4 mr-2" />
+                            {dispatchingId === ev.id ? "Criando..." : "Criar rascunho"}
+                          </Button>
+                          <SendNowButton
+                            eventTitle={ev.title}
+                            disabled={dispatchingId === ev.id}
+                            onConfirm={() => dispatchNow(ev.id, { sendNow: true, forceResend: true })}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
