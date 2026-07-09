@@ -1119,11 +1119,20 @@ const EmailConfig = () => {
                                 </div>
                               </div>
                             ))}
-                            <div className="p-3 bg-muted/20 flex justify-end">
+                            <div className="p-3 bg-muted/20 flex flex-wrap justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                disabled={dispatchingId === g.event_id}
+                                onClick={() => dispatchNow(g.event_id, { forceResend: true })}
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                {dispatchingId === g.event_id ? "Criando..." : "Criar rascunho agora"}
+                              </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                   <Button size="sm" variant="outline">
-                                    <Send className="w-4 h-4 mr-2" /> Reenviar para este evento
+                                    <Send className="w-4 h-4 mr-2" /> Liberar reenvio
                                   </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
@@ -1144,6 +1153,7 @@ const EmailConfig = () => {
                                 </AlertDialogContent>
                               </AlertDialog>
                             </div>
+
                           </div>
                         )}
                       </div>
