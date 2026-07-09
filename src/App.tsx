@@ -64,6 +64,7 @@ const RedirectsManager = lazy(() => import("./pages/admin/RedirectsManager"));
 const DataImport = lazy(() => import("./pages/admin/DataImport"));
 const EgressMonitor = lazy(() => import("./pages/admin/EgressMonitor"));
 const EmailPreview = lazy(() => import("./pages/admin/EmailPreview"));
+const EmailConfig = lazy(() => import("./pages/admin/EmailConfig"));
 const Redirect = lazy(() => import("./pages/Redirect"));
 
 const queryClient = new QueryClient({
@@ -157,6 +158,7 @@ const App = () => (
                         <Route path="data-import" element={<PageWithError name="Importação de Dados"><DataImport /></PageWithError>} />
                         <Route path="egress-monitor" element={<PageWithError name="Monitor de Egress"><EgressMonitor /></PageWithError>} />
                         <Route path="email-preview" element={<PageWithError name="Preview de E-mail"><EmailPreview /></PageWithError>} />
+                        <Route path="email-config" element={<PageWithError name="Gestão de E-mails"><EmailConfig /></PageWithError>} />
                       </Route>
                       
                       {/* Redirect shortener */}

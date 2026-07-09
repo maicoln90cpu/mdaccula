@@ -72,6 +72,7 @@ const groups: Group[] = [
       { title: "Linktree", url: "/admin/links-manager", icon: LinkIcon },
       { title: "Redirecionador", url: "/admin/redirects", icon: ExternalLink },
       { title: "Newsletter", url: "/admin/newsletter", icon: Mail },
+      { title: "Gestão de E-mails", url: "/admin/email-config", icon: Mail },
       { title: "A/B Newsletter", url: "/admin/newsletter-ab-results", icon: TestTube2 },
       { title: "MDAccula Radio", url: "/admin/mdaccula-radio", icon: Mic },
     ],
