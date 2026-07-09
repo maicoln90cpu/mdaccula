@@ -119,7 +119,7 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist, tplRes, cacheRes] = await Promise.all([
+      const [master, config, hist, tplRes, cacheRes, tplList, evts] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
         supabase
@@ -129,6 +129,11 @@ const EmailConfig = () => {
           .limit(200),
         (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
+        (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
+        supabase.from("events")
+          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id")
+          .order("date", { ascending: false })
+          .limit(30),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
@@ -138,6 +143,10 @@ const EmailConfig = () => {
         setSenders(Array.isArray(cacheRes.data.senders) ? cacheRes.data.senders : []);
         setLastSyncedAt(cacheRes.data.last_synced_at ?? null);
       }
+      const tplArr = (tplList?.data as Template[]) ?? [];
+      setTemplates(tplArr);
+      setActiveTemplateId((prev) => prev || tplArr.find((t) => t.is_default)?.id || tplArr[0]?.id || null);
+      setRealEvents((evts.data as any) ?? []);
       if (config.data) {
         setCfg({
           id: config.data.id,
@@ -155,6 +164,12 @@ const EmailConfig = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const reloadTemplates = async () => {
+    const { data } = await (supabase.from as any)("email_templates")
+      .select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true });
+    setTemplates((data as Template[]) ?? []);
   };
 
   const fetchEgoiResources = async () => {
