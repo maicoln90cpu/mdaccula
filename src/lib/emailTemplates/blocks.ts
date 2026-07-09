@@ -200,7 +200,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     case "article_summary": {
       if (!article) return "";
       const imgHtml = article.image_url
-        ? `<img src="${escape(article.image_url)}" alt="" width="120" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;">`
+        ? `<img src="${escape(article.image_url)}" alt="" width="120" height="80" border="0" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : "";
       return `<tr><td style="padding:8px 32px 24px 32px;">
         <a href="${escape(article.url)}" style="text-decoration:none;display:block;">
