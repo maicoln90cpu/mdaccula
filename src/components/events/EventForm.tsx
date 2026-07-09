@@ -1407,7 +1407,33 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </>
           )}
 
+          {/* B.6 — Toggle rascunho E-goi. Default OFF; só habilita se automação pronta. */}
+          <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="dispatchEmail"
+                checked={dispatchEmail}
+                disabled={!emailAutomationReady}
+                onCheckedChange={(checked) => setDispatchEmail(checked as boolean)}
+              />
+              <div className="flex-1 space-y-1">
+                <Label
+                  htmlFor="dispatchEmail"
+                  className={`cursor-pointer font-medium ${!emailAutomationReady ? 'text-muted-foreground' : ''}`}
+                >
+                  Criar rascunho de e-mail na E-goi ao salvar
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {emailAutomationReady
+                    ? 'Um rascunho será criado na sua conta E-goi usando o template padrão. Você revisa e envia manualmente pela E-goi.'
+                    : emailAutomationReason || 'Automação de e-mail indisponível.'}
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="flex gap-4 pt-4">
+
             <Button type="submit" disabled={submitting || uploading} className="flex-1">
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {event ? 'Atualizar' : 'Criar'} Evento
