@@ -356,6 +356,7 @@ export type Database = {
           list_id: number | null
           mode: string
           scheduled_days_before: number | null
+          segment_id: number | null
           sender_id: number | null
           singleton: boolean
           updated_at: string
@@ -367,6 +368,7 @@ export type Database = {
           list_id?: number | null
           mode?: string
           scheduled_days_before?: number | null
+          segment_id?: number | null
           sender_id?: number | null
           singleton?: boolean
           updated_at?: string
@@ -378,6 +380,7 @@ export type Database = {
           list_id?: number | null
           mode?: string
           scheduled_days_before?: number | null
+          segment_id?: number | null
           sender_id?: number | null
           singleton?: boolean
           updated_at?: string

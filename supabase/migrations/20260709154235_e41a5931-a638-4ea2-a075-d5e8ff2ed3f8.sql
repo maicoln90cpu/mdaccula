@@ -1,0 +1,1 @@
+ALTER TABLE public.egoi_config ADD COLUMN IF NOT EXISTS segment_id INTEGER NULL;
