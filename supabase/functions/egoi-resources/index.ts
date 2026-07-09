@@ -1,5 +1,5 @@
-// Helper: retorna listas e remetentes da conta E-goi.
-// Requer admin autenticado. Não altera nada — só lê.
+// Helper E-goi: retorna listas, remetentes e (opcionalmente) segmentos de uma lista.
+// Requer admin autenticado. Somente leitura na API E-goi — não altera nada.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
@@ -15,8 +15,17 @@ async function egoiFetch(path: string, apiKey: string) {
   });
   const text = await res.text();
   let body: unknown = text;
-  try { body = JSON.parse(text); } catch { /* keep */ }
+  try { body = JSON.parse(text); } catch { /* keep raw */ }
   return { status: res.status, ok: res.ok, body };
+}
+
+/** Normaliza payloads que podem vir como array direto ou { items: [...] } aninhado. */
+function normalizeItems(raw: any): any[] {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.items)) return raw.items;
+  if (Array.isArray(raw?.data)) return raw.data;
+  if (Array.isArray(raw?.items?.data)) return raw.items.data;
+  return [];
 }
 
 Deno.serve(async (req) => {
@@ -60,14 +69,74 @@ Deno.serve(async (req) => {
       });
     }
 
-    const [lists, senders] = await Promise.all([
+    // Roteamento: se `list_id` vier na query, retorna segmentos daquela lista.
+    // Caso contrário, retorna listas + remetentes.
+    const url = new URL(req.url);
+    const listIdParam = url.searchParams.get('list_id');
+
+    if (listIdParam) {
+      const listId = Number(listIdParam);
+      if (!Number.isFinite(listId)) {
+        return new Response(JSON.stringify({ error: 'list_id inválido' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      // /lists/{listId}/segments — segmentos daquela lista.
+      // /lists/{listId} — detalhes (usado para descobrir total de contatos).
+      const [segmentsRes, listDetailRes] = await Promise.all([
+        egoiFetch(`/lists/${listId}/segments`, apiKey),
+        egoiFetch(`/lists/${listId}`, apiKey),
+      ]);
+      const segments = normalizeItems(segmentsRes.body).map((s: any) => ({
+        segment_id: s.segment_id ?? s.id,
+        name: s.name ?? s.internal_name ?? `Segmento ${s.segment_id ?? s.id}`,
+        // A API pode devolver o total como total_contacts, contacts_count ou contacts.
+        total_contacts:
+          s.total_contacts ?? s.contacts_count ?? s.contacts ?? s.total ?? null,
+      }));
+      const listDetail = listDetailRes.body as any;
+      const listTotal =
+        listDetail?.total_contacts ??
+        listDetail?.contacts_count ??
+        listDetail?.contacts ??
+        listDetail?.total ??
+        null;
+      return new Response(
+        JSON.stringify({
+          segments,
+          list_total_contacts: listTotal,
+          _debug: { segmentsStatus: segmentsRes.status, listDetailStatus: listDetailRes.status },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const [listsRes, sendersRes] = await Promise.all([
       egoiFetch('/lists', apiKey),
       egoiFetch('/senders', apiKey),
     ]);
 
-    return new Response(JSON.stringify({ lists, senders }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    const lists = normalizeItems(listsRes.body).map((l: any) => ({
+      list_id: l.list_id ?? l.id,
+      internal_name: l.internal_name ?? l.name,
+      public_name: l.public_name ?? l.title,
+      total_contacts:
+        l.total_contacts ?? l.contacts_count ?? l.contacts ?? l.total ?? null,
+    }));
+    const senders = normalizeItems(sendersRes.body).map((s: any) => ({
+      sender_id: s.sender_id ?? s.id,
+      name: s.name ?? s.sender_name,
+      email: s.email ?? s.sender_email,
+    }));
+
+    return new Response(
+      JSON.stringify({
+        lists,
+        senders,
+        _debug: { listsStatus: listsRes.status, sendersStatus: sendersRes.status },
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
