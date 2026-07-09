@@ -141,17 +141,21 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
   switch (block.kind) {
     case "header": {
+      // A1 fix: Outlook (desktop) ignora max-height/width:auto do CSS. Precisa
+      // do atributo HTML `height` para dimensionar corretamente. Sem `width`
+      // fixo — deixamos o cliente calcular pelo aspect ratio.
       const height = Math.max(24, Math.min(200, block.logo_height ?? 64));
       const inner = settings.logo_url
-        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" style="display:block;max-height:${height}px;width:auto;margin:0 auto;">`
+        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" height="${height}" border="0" style="display:block;height:${height}px;max-height:${height}px;width:auto;margin:0 auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
       return `<tr><td align="center" style="padding:32px 24px 24px 24px;">${inner}</td></tr>`;
     }
 
     case "hero_image":
+      // A1 fix: adiciona border="0" e propriedades anti-Outlook.
       return `<tr><td align="center" style="padding:0 24px;">
         <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:#111;">
+          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">
         </a>
       </td></tr>`;
 
