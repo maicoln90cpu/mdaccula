@@ -156,6 +156,7 @@ const App = () => (
                         <Route path="redirects" element={<PageWithError name="Redirecionador de Links"><RedirectsManager /></PageWithError>} />
                         <Route path="data-import" element={<PageWithError name="Importação de Dados"><DataImport /></PageWithError>} />
                         <Route path="egress-monitor" element={<PageWithError name="Monitor de Egress"><EgressMonitor /></PageWithError>} />
+                        <Route path="email-preview" element={<PageWithError name="Preview de E-mail"><EmailPreview /></PageWithError>} />
                       </Route>
                       
                       {/* Redirect shortener */}
