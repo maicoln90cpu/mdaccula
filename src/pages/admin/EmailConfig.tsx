@@ -109,7 +109,7 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist] = await Promise.all([
+      const [master, config, hist, tplRes] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
         supabase
@@ -117,9 +117,11 @@ const EmailConfig = () => {
           .select("*, events(title)")
           .order("created_at", { ascending: false })
           .limit(200),
+        (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
+      if (tplRes?.data) setTpl(tplRes.data);
       if (config.data) {
         setCfg({
           id: config.data.id,
