@@ -420,6 +420,78 @@ export type Database = {
         }
         Relationships: []
       }
+      email_template_settings: {
+        Row: {
+          accent_color: string
+          background_color: string
+          brand_name: string
+          created_at: string
+          cta_label: string
+          custom_html_footer: string | null
+          custom_html_header: string | null
+          footer_text: string
+          id: string
+          instagram_url: string | null
+          logo_url: string | null
+          primary_color: string
+          secondary_link_label: string
+          show_description: boolean
+          show_secondary_link: boolean
+          show_socials: boolean
+          show_subtitle: boolean
+          singleton: boolean
+          tiktok_url: string | null
+          updated_at: string
+          youtube_url: string | null
+        }
+        Insert: {
+          accent_color?: string
+          background_color?: string
+          brand_name?: string
+          created_at?: string
+          cta_label?: string
+          custom_html_footer?: string | null
+          custom_html_header?: string | null
+          footer_text?: string
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          primary_color?: string
+          secondary_link_label?: string
+          show_description?: boolean
+          show_secondary_link?: boolean
+          show_socials?: boolean
+          show_subtitle?: boolean
+          singleton?: boolean
+          tiktok_url?: string | null
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Update: {
+          accent_color?: string
+          background_color?: string
+          brand_name?: string
+          created_at?: string
+          cta_label?: string
+          custom_html_footer?: string | null
+          custom_html_header?: string | null
+          footer_text?: string
+          id?: string
+          instagram_url?: string | null
+          logo_url?: string | null
+          primary_color?: string
+          secondary_link_label?: string
+          show_description?: boolean
+          show_secondary_link?: boolean
+          show_socials?: boolean
+          show_subtitle?: boolean
+          singleton?: boolean
+          tiktok_url?: string | null
+          updated_at?: string
+          youtube_url?: string | null
+        }
+        Relationships: []
+      }
       event_email_campaigns: {
         Row: {
           created_at: string

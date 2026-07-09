@@ -19,12 +19,14 @@ async function egoiFetch(path: string, apiKey: string) {
   return { status: res.status, ok: res.ok, body };
 }
 
-/** Normaliza payloads que podem vir como array direto ou { items: [...] } aninhado. */
+/** Normaliza payloads que podem vir como array direto ou aninhado em várias chaves. */
 function normalizeItems(raw: any): any[] {
   if (Array.isArray(raw)) return raw;
-  if (Array.isArray(raw?.items)) return raw.items;
-  if (Array.isArray(raw?.data)) return raw.data;
-  if (Array.isArray(raw?.items?.data)) return raw.items.data;
+  for (const k of ["items", "data", "senders", "lists", "segments", "results"]) {
+    if (Array.isArray(raw?.[k])) return raw[k];
+    if (Array.isArray(raw?.[k]?.data)) return raw[k].data;
+    if (Array.isArray(raw?.[k]?.items)) return raw[k].items;
+  }
   return [];
 }
 
@@ -111,9 +113,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const [listsRes, sendersRes] = await Promise.all([
-      egoiFetch('/lists', apiKey),
-      egoiFetch('/senders', apiKey),
+    // E-goi expõe remetentes em /senders/email (e-mail) e /senders/sms (sms).
+    // Alguns tenants também respondem em /senders. Consultamos todos e mesclamos.
+    const [listsRes, sendersEmailRes, sendersLegacyRes] = await Promise.all([
+      egoiFetch('/lists?limit=100', apiKey),
+      egoiFetch('/senders/email?limit=100', apiKey),
+      egoiFetch('/senders?limit=100', apiKey),
     ]);
 
     const lists = normalizeItems(listsRes.body).map((l: any) => ({
@@ -123,17 +128,35 @@ Deno.serve(async (req) => {
       total_contacts:
         l.total_contacts ?? l.contacts_count ?? l.contacts ?? l.total ?? null,
     }));
-    const senders = normalizeItems(sendersRes.body).map((s: any) => ({
-      sender_id: s.sender_id ?? s.id,
-      name: s.name ?? s.sender_name,
-      email: s.email ?? s.sender_email,
-    }));
+
+    const rawSenders = [
+      ...normalizeItems(sendersEmailRes.body),
+      ...normalizeItems(sendersLegacyRes.body),
+    ];
+    const seen = new Set<number>();
+    const senders = rawSenders
+      .map((s: any) => ({
+        sender_id: s.sender_id ?? s.id,
+        name: s.name ?? s.sender_name ?? s.title,
+        email: s.email ?? s.sender_email,
+      }))
+      .filter((s) => {
+        if (!s.sender_id || seen.has(s.sender_id)) return false;
+        seen.add(s.sender_id);
+        return true;
+      });
 
     return new Response(
       JSON.stringify({
         lists,
         senders,
-        _debug: { listsStatus: listsRes.status, sendersStatus: sendersRes.status },
+        _debug: {
+          listsStatus: listsRes.status,
+          sendersEmailStatus: sendersEmailRes.status,
+          sendersLegacyStatus: sendersLegacyRes.status,
+          sendersEmailSample: sendersEmailRes.body,
+          sendersLegacySample: sendersLegacyRes.body,
+        },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );

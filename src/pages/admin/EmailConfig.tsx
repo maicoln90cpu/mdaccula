@@ -17,12 +17,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { NavLink } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   renderEventAnnouncementEmail,
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
+  type EmailTemplateSettings,
 } from "@/lib/emailTemplates/eventAnnouncement";
 
 type Mode = "draft" | "immediate" | "scheduled";
@@ -86,6 +87,10 @@ const EmailConfig = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
+  const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
+  const [tplLoading, setTplLoading] = useState(false);
+  const [tplSaving, setTplSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     void loadAll();
@@ -104,7 +109,7 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist] = await Promise.all([
+      const [master, config, hist, tplRes] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
         supabase
@@ -112,9 +117,11 @@ const EmailConfig = () => {
           .select("*, events(title)")
           .order("created_at", { ascending: false })
           .limit(200),
+        (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
+      if (tplRes?.data) setTpl(tplRes.data);
       if (config.data) {
         setCfg({
           id: config.data.id,
@@ -251,7 +258,49 @@ const EmailConfig = () => {
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[s]}`}>{s}</span>;
   };
 
-  const previewHtml = useMemo(() => renderEventAnnouncementEmail(previewData), [previewData]);
+  const previewHtml = useMemo(() => renderEventAnnouncementEmail(previewData, tpl), [previewData, tpl]);
+
+  const saveTemplate = async () => {
+    setTplSaving(true);
+    try {
+      const { id, ...payload } = tpl as any;
+      const table = (supabase.from as any)("email_template_settings");
+      const { error } = id
+        ? await table.update(payload).eq("id", id)
+        : await table.insert({ ...payload, singleton: true });
+      if (error) throw error;
+      toast({ title: "Template salvo" });
+      void loadAll();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao salvar template", description: e.message });
+    } finally {
+      setTplSaving(false);
+    }
+  };
+
+  const uploadLogo = async (file: File) => {
+    if (file.size > 500 * 1024) {
+      toast({ variant: "destructive", title: "Arquivo muito grande", description: "Máximo 500KB para logos." });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `email-template/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("link-thumbnails").upload(path, file, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("link-thumbnails").getPublicUrl(path);
+      setTpl({ ...tpl, logo_url: pub.publicUrl });
+      toast({ title: "Logo enviada", description: "Clique em Salvar para aplicar." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro no upload", description: e.message });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
 
   // Alcance estimado
   const reachEstimate = useMemo(() => {
@@ -285,7 +334,8 @@ const EmailConfig = () => {
       <Tabs defaultValue="config" className="space-y-6">
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
-          <TabsTrigger value="preview">Preview do template</TabsTrigger>
+          <TabsTrigger value="template">Template (marca)</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
@@ -512,6 +562,198 @@ const EmailConfig = () => {
           </Card>
         </TabsContent>
 
+        {/* ================= TEMPLATE (marca) ================= */}
+        <TabsContent value="template" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><ImageIcon className="w-5 h-5" /> Marca</CardTitle>
+                  <CardDescription>Logo e nome exibidos no topo do e-mail.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label>Nome da marca (fallback sem logo)</Label>
+                    <Input
+                      value={tpl.brand_name ?? ""}
+                      placeholder="MDACCULA"
+                      onChange={(e) => setTpl({ ...tpl, brand_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Logo (PNG/SVG, máx 500KB)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="file"
+                        accept="image/png,image/jpeg,image/svg+xml,image/webp"
+                        disabled={uploadingLogo}
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) void uploadLogo(f);
+                        }}
+                      />
+                      {uploadingLogo && <RefreshCw className="w-4 h-4 animate-spin" />}
+                    </div>
+                    {tpl.logo_url && (
+                      <div className="mt-2 flex items-center gap-3 p-2 rounded border bg-muted/20">
+                        <img src={tpl.logo_url} alt="Logo" className="h-10 w-auto bg-black rounded" />
+                        <Button size="sm" variant="ghost" onClick={() => setTpl({ ...tpl, logo_url: null })}>
+                          Remover
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Palette className="w-5 h-5" /> Cores</CardTitle>
+                  <CardDescription>Base do gradiente do CTA e destaques.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {([
+                    ["primary_color", "Cor primária"],
+                    ["accent_color", "Cor de acento"],
+                    ["background_color", "Fundo do e-mail"],
+                  ] as const).map(([key, label]) => (
+                    <div key={key} className="flex items-center gap-3">
+                      <Label className="w-40 shrink-0">{label}</Label>
+                      <input
+                        type="color"
+                        value={(tpl as any)[key] ?? "#000000"}
+                        onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
+                        className="h-9 w-14 rounded border cursor-pointer bg-transparent"
+                      />
+                      <Input
+                        value={(tpl as any)[key] ?? ""}
+                        onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
+                        placeholder="#a855f7"
+                        className="font-mono text-xs"
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Textos e links</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label>Texto do botão principal (CTA)</Label>
+                    <Input
+                      value={tpl.cta_label ?? ""}
+                      placeholder="Garantir ingresso"
+                      onChange={(e) => setTpl({ ...tpl, cta_label: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Texto do link secundário</Label>
+                    <Input
+                      value={tpl.secondary_link_label ?? ""}
+                      placeholder="Ver agenda completa no site"
+                      onChange={(e) => setTpl({ ...tpl, secondary_link_label: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Rodapé (aviso de descadastro)</Label>
+                    <Textarea
+                      rows={3}
+                      value={tpl.footer_text ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, footer_text: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>Instagram URL</Label>
+                    <Input value={tpl.instagram_url ?? ""} onChange={(e) => setTpl({ ...tpl, instagram_url: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>YouTube URL</Label>
+                    <Input value={tpl.youtube_url ?? ""} onChange={(e) => setTpl({ ...tpl, youtube_url: e.target.value })} />
+                  </div>
+                  <div>
+                    <Label>TikTok URL</Label>
+                    <Input value={tpl.tiktok_url ?? ""} onChange={(e) => setTpl({ ...tpl, tiktok_url: e.target.value })} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Blocos visíveis</CardTitle>
+                  <CardDescription>Ligue/desligue seções do template.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {([
+                    ["show_subtitle", "Subtítulo do evento"],
+                    ["show_description", "Descrição do evento"],
+                    ["show_socials", "Links de redes sociais no rodapé"],
+                    ["show_secondary_link", "Link secundário (agenda)"],
+                  ] as const).map(([key, label]) => (
+                    <div key={key} className="flex items-center justify-between py-1">
+                      <Label className="cursor-pointer">{label}</Label>
+                      <Switch
+                        checked={(tpl as any)[key] !== false}
+                        onCheckedChange={(v) => setTpl({ ...tpl, [key]: v })}
+                      />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>HTML customizado (avançado)</CardTitle>
+                  <CardDescription>
+                    Blocos extras acima/abaixo do e-mail. <b>Scripts, styles e handlers on* são removidos automaticamente.</b>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <Label>HTML no topo (antes da logo)</Label>
+                    <Textarea
+                      rows={4}
+                      className="font-mono text-xs"
+                      placeholder="<p>Newsletter #12 · Maio 2026</p>"
+                      value={tpl.custom_html_header ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, custom_html_header: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <Label>HTML no rodapé (após descadastro)</Label>
+                    <Textarea
+                      rows={4}
+                      className="font-mono text-xs"
+                      placeholder="<p>MDAccula LTDA · Cuiabá-MT</p>"
+                      value={tpl.custom_html_footer ?? ""}
+                      onChange={(e) => setTpl({ ...tpl, custom_html_footer: e.target.value })}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end sticky bottom-4">
+                <Button onClick={saveTemplate} disabled={tplSaving} size="lg">
+                  <Save className="w-4 h-4 mr-2" />
+                  {tplSaving ? "Salvando..." : "Salvar template"}
+                </Button>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-border bg-[#050505] p-4 lg:sticky lg:top-4 lg:self-start">
+              <div className="text-xs text-muted-foreground mb-2 px-1">Preview ao vivo (dados mock)</div>
+              <iframe
+                title="Template preview"
+                srcDoc={previewHtml}
+                sandbox=""
+                className="mx-auto block h-[820px] w-full max-w-[640px] rounded-md border-0 bg-white"
+              />
+            </div>
+          </div>
+        </TabsContent>
+
         {/* ================= PREVIEW ================= */}
         <TabsContent value="preview" className="space-y-4">
           <Card>
@@ -585,7 +827,7 @@ const EmailConfig = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground pt-2">
-                    Para editar logo, cores e textos fixos do template, aguarde a próxima etapa (editor completo).
+                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>.
                   </p>
                 </div>
 
