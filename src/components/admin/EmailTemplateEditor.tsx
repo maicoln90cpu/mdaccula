@@ -30,8 +30,13 @@ import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
   renderBlockedTemplate, type ArticleSummary,
+  TEMPLATE_PRESETS, buildPresetBlocks,
 } from "@/lib/emailTemplates/blocks";
 import { MOCK_EVENT_DATA, type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   templates: Template[];
