@@ -561,6 +561,62 @@ const EmailConfig = () => {
     }
   };
 
+  // B.8 — Upload da arte específica da virada de lote
+  const uploadBatchArtwork = async (file: File) => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ variant: "destructive", title: "Arquivo muito grande", description: "Máximo 2MB." });
+      return;
+    }
+    setBatchUploadingArt(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const path = `email-template/batch-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("link-thumbnails")
+        .upload(path, file, { cacheControl: "3600", upsert: true });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("link-thumbnails").getPublicUrl(path);
+      setBatchArtworkUrl(pub.publicUrl);
+      toast({ title: "Arte enviada", description: "Ela vai substituir o flyer padrão neste disparo." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro no upload", description: e.message });
+    } finally {
+      setBatchUploadingArt(false);
+    }
+  };
+
+  // B.8 — Dispara virada de lote (rascunho ou envio real)
+  const dispatchBatch = async (sendNow: boolean) => {
+    if (!batchEventId) {
+      toast({ variant: "destructive", title: "Selecione um evento" });
+      return;
+    }
+    setBatchDispatching(true);
+    try {
+      const res = await dispatchEventDraftEmail(batchEventId, {
+        forceResend: true,
+        sendNow,
+        templateIdOverride: batchTemplateId || undefined,
+        flyerOverrideUrl: batchArtworkUrl || undefined,
+        subjectOverride: batchSubject || undefined,
+      });
+      if (res.ok) {
+        toast({
+          title: sendNow ? "E-mail de virada enviado!" : "Rascunho de virada criado",
+          description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
+        });
+        void loadAll();
+      } else {
+        toast({ variant: "destructive", title: "Falha", description: res.error || res.reason || "Erro desconhecido" });
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } finally {
+      setBatchDispatching(false);
+    }
+  };
+
+
 
   if (loading) {
     return (
