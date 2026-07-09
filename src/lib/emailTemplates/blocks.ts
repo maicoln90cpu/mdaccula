@@ -363,3 +363,138 @@ export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "description", "article_summary", "cta_button", "secondary_link",
   "image_with_link", "divider", "text", "social_icons", "footer",
 ];
+
+// ============================================
+// Presets de template (B.5.2)
+// ============================================
+
+/**
+ * Gera blocos base para cada preset. Usa `newBlockId()` a cada chamada para
+ * garantir IDs únicos quando o usuário cria múltiplos templates a partir do
+ * mesmo preset.
+ */
+export function buildPresetBlocks(
+  type: "event_new" | "ticket_batch" | "weekly_digest",
+): Block[] {
+  const defaultSocials: SocialNetwork[] = [
+    { id: "instagram", label: "Instagram", url: "", enabled: true },
+    { id: "youtube", label: "YouTube", url: "", enabled: true },
+    { id: "tiktok", label: "TikTok", url: "", enabled: false },
+    { id: "soundcloud", label: "SoundCloud", url: "", enabled: false },
+    { id: "spotify", label: "Spotify", url: "", enabled: false },
+    { id: "linktree", label: "Linktree", url: "", enabled: false },
+  ];
+
+  if (type === "event_new") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 64 },
+      { id: newBlockId(), kind: "hero_image" },
+      { id: newBlockId(), kind: "eyebrow", text: "Novo evento confirmado" },
+      { id: newBlockId(), kind: "title" },
+      { id: newBlockId(), kind: "subtitle" },
+      { id: newBlockId(), kind: "event_meta" },
+      { id: newBlockId(), kind: "description" },
+      { id: newBlockId(), kind: "article_summary" },
+      { id: newBlockId(), kind: "cta_button", label: "Garantir ingresso", url_field: "ticket_link" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  if (type === "ticket_batch") {
+    // Virada de lote: urgência + arte específica opcional (image_with_link)
+    // com fallback para o flyer do evento (hero_image renderiza sozinho).
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 56 },
+      {
+        id: newBlockId(),
+        kind: "image_with_link",
+        image_url: "",
+        link_url: "",
+        alt: "Arte da virada de lote (opcional — preencha na hora do disparo)",
+        max_width: 552,
+      },
+      { id: newBlockId(), kind: "hero_image" },
+      { id: newBlockId(), kind: "eyebrow", text: "ÚLTIMAS HORAS · LOTE ATUAL" },
+      { id: newBlockId(), kind: "title" },
+      { id: newBlockId(), kind: "event_meta" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html: "<p><strong>O lote atual está acabando.</strong> Garanta o seu antes da próxima virada de preço.</p>",
+      },
+      { id: newBlockId(), kind: "cta_button", label: "Garantir ingresso agora", url_field: "ticket_link" },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  // weekly_digest — resumo semanal (usa blocos de texto/imagem livre; a
+  // renderização com múltiplos eventos/notícias virá na fase B.7)
+  return [
+    { id: newBlockId(), kind: "header", logo_height: 64 },
+    { id: newBlockId(), kind: "eyebrow", text: "Resumo da semana · MDAccula" },
+    {
+      id: newBlockId(),
+      kind: "text",
+      html:
+        "<h2 style=\"color:#fff;font-size:22px;margin:0 0 12px 0;\">O que rolou (e o que vem por aí)</h2>" +
+        "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em Cuiabá.</p>",
+    },
+    { id: newBlockId(), kind: "divider" },
+    {
+      id: newBlockId(),
+      kind: "text",
+      html:
+        "<p><strong>📅 Próximos eventos</strong><br>Adicione aqui os destaques (edição manual até B.7 automatizar).</p>",
+    },
+    { id: newBlockId(), kind: "divider" },
+    {
+      id: newBlockId(),
+      kind: "text",
+      html:
+        "<p><strong>📰 Matérias em alta</strong><br>Cole links ou use blocos de imagem-com-link para destacar posts do blog.</p>",
+    },
+    {
+      id: newBlockId(),
+      kind: "cta_button",
+      label: "Ver tudo no site",
+      url_field: "custom",
+      custom_url: "https://mdaccula.com",
+    },
+    { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+    { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+  ];
+}
+
+export const TEMPLATE_PRESETS: Array<{
+  key: "event_new" | "ticket_batch" | "weekly_digest";
+  name: string;
+  description: string;
+  subject_template: string;
+  preheader_template: string;
+}> = [
+  {
+    key: "event_new",
+    name: "Novo evento",
+    description: "Anúncio de evento novo confirmado — flyer, data, local, CTA de ingresso e resumo da matéria (se houver).",
+    subject_template: "🎧 Novo evento: {{event_title}} — {{date_label}}",
+    preheader_template: "{{event_title}} em {{venue_name}}, {{city_state}}. Ingressos abertos.",
+  },
+  {
+    key: "ticket_batch",
+    name: "Virada de lote",
+    description: "Aviso de urgência para virada de lote (mesmo dia ou 1 dia antes). Inclui bloco de arte específica opcional.",
+    subject_template: "⏰ Últimas horas do lote — {{event_title}}",
+    preheader_template: "O lote atual está acabando. Garanta antes da próxima virada de preço.",
+  },
+  {
+    key: "weekly_digest",
+    name: "Resumo semanal",
+    description: "Newsletter semanal com destaques da agenda e matérias do blog.",
+    subject_template: "📬 MDAccula desta semana",
+    preheader_template: "Eventos, matérias e novidades da cena eletrônica em Cuiabá.",
+  },
+];

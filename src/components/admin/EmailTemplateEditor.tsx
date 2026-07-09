@@ -30,8 +30,13 @@ import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
   renderBlockedTemplate, type ArticleSummary,
+  TEMPLATE_PRESETS, buildPresetBlocks,
 } from "@/lib/emailTemplates/blocks";
 import { MOCK_EVENT_DATA, type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Props {
   templates: Template[];
@@ -164,17 +169,30 @@ export function EmailTemplateEditor({
     }
   };
 
-  const createTemplate = async () => {
+  const createTemplate = async (
+    presetKey?: "event_new" | "ticket_batch" | "weekly_digest",
+  ) => {
     try {
-      const name = prompt("Nome do novo template:");
+      const preset = presetKey ? TEMPLATE_PRESETS.find((p) => p.key === presetKey) : null;
+      const defaultName = preset ? preset.name : "Novo template";
+      const name = prompt("Nome do novo template:", defaultName);
       if (!name) return;
+      const blocks = preset
+        ? buildPresetBlocks(preset.key)
+        : [defaultForKind("header"), defaultForKind("hero_image"), defaultForKind("title"), defaultForKind("cta_button"), defaultForKind("footer")];
       const { data, error } = await (supabase.from as any)("email_templates")
-        .insert({ name, type: "custom", blocks: [defaultForKind("header"), defaultForKind("hero_image"), defaultForKind("title"), defaultForKind("cta_button"), defaultForKind("footer")] })
+        .insert({
+          name,
+          type: preset ? preset.key : "custom",
+          blocks,
+          subject_template: preset?.subject_template ?? null,
+          preheader_template: preset?.preheader_template ?? null,
+        })
         .select().single();
       if (error) throw error;
       await onReload();
       onActiveChange(data.id);
-      toast({ title: "Template criado" });
+      toast({ title: preset ? `Template criado a partir do preset "${preset.name}"` : "Template criado" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro", description: e.message });
     }
@@ -237,7 +255,22 @@ export function EmailTemplateEditor({
             </SelectContent>
           </Select>
         </div>
-        <Button size="sm" variant="outline" onClick={createTemplate}><Plus className="w-4 h-4 mr-1" />Novo</Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="outline"><Plus className="w-4 h-4 mr-1" />Novo</Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel>Criar a partir de preset</DropdownMenuLabel>
+            {TEMPLATE_PRESETS.map((p) => (
+              <DropdownMenuItem key={p.key} onClick={() => createTemplate(p.key)} className="flex-col items-start gap-0.5">
+                <span className="font-medium">{p.name}</span>
+                <span className="text-[11px] text-muted-foreground whitespace-normal">{p.description}</span>
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => createTemplate()}>Em branco</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button size="sm" variant="outline" onClick={duplicateTemplate} disabled={!activeTpl}><Copy className="w-4 h-4 mr-1" />Duplicar</Button>
         <Button size="sm" variant="outline" onClick={deleteTemplate} disabled={!activeTpl || activeTpl.is_default}>
           <Trash2 className="w-4 h-4 mr-1" />Excluir
