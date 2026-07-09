@@ -27,6 +27,7 @@ import {
 } from "@/lib/emailTemplates/eventAnnouncement";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
+import { dispatchEventDraftEmail } from "@/lib/emailTemplates/dispatchEventDraft";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
