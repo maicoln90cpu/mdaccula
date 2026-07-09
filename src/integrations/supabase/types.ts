@@ -351,6 +351,7 @@ export type Database = {
       egoi_config: {
         Row: {
           created_at: string
+          default_event_template_id: string | null
           id: string
           is_enabled: boolean
           list_id: number | null
@@ -363,6 +364,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_event_template_id?: string | null
           id?: string
           is_enabled?: boolean
           list_id?: number | null
@@ -375,6 +377,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_event_template_id?: string | null
           id?: string
           is_enabled?: boolean
           list_id?: number | null
@@ -385,7 +388,15 @@ export type Database = {
           singleton?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "egoi_config_default_event_template_id_fkey"
+            columns: ["default_event_template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       egoi_resources_cache: {
         Row: {
@@ -519,6 +530,45 @@ export type Database = {
           tiktok_url?: string | null
           updated_at?: string
           youtube_url?: string | null
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          blocks: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          is_default: boolean
+          name: string
+          preheader_template: string | null
+          subject_template: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name: string
+          preheader_template?: string | null
+          subject_template?: string | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_default?: boolean
+          name?: string
+          preheader_template?: string | null
+          subject_template?: string | null
+          type?: string
+          updated_at?: string
         }
         Relationships: []
       }

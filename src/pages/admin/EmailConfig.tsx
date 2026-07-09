@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { NavLink } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon, LayoutGrid, Mail } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   renderEventAnnouncementEmail,
@@ -25,6 +25,8 @@ import {
   type EventAnnouncementData,
   type EmailTemplateSettings,
 } from "@/lib/emailTemplates/eventAnnouncement";
+import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
+import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
@@ -92,6 +94,13 @@ const EmailConfig = () => {
   const [tplLoading, setTplLoading] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null }>>([]);
+  const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
+  const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
+  const [sendingTest, setSendingTest] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     void loadAll();
@@ -110,7 +119,7 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist, tplRes, cacheRes] = await Promise.all([
+      const [master, config, hist, tplRes, cacheRes, tplList, evts] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
         supabase
@@ -120,6 +129,11 @@ const EmailConfig = () => {
           .limit(200),
         (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
+        (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
+        supabase.from("events")
+          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id")
+          .order("date", { ascending: false })
+          .limit(30),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
@@ -129,6 +143,10 @@ const EmailConfig = () => {
         setSenders(Array.isArray(cacheRes.data.senders) ? cacheRes.data.senders : []);
         setLastSyncedAt(cacheRes.data.last_synced_at ?? null);
       }
+      const tplArr = (tplList?.data as Template[]) ?? [];
+      setTemplates(tplArr);
+      setActiveTemplateId((prev) => prev || tplArr.find((t) => t.is_default)?.id || tplArr[0]?.id || null);
+      setRealEvents((evts.data as any) ?? []);
       if (config.data) {
         setCfg({
           id: config.data.id,
@@ -146,6 +164,12 @@ const EmailConfig = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const reloadTemplates = async () => {
+    const { data } = await (supabase.from as any)("email_templates")
+      .select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true });
+    setTemplates((data as Template[]) ?? []);
   };
 
   const fetchEgoiResources = async () => {
@@ -266,7 +290,14 @@ const EmailConfig = () => {
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[s]}`}>{s}</span>;
   };
 
-  const previewHtml = useMemo(() => renderEventAnnouncementEmail(previewData, tpl), [previewData, tpl]);
+  // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
+  const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
+  const previewHtml = useMemo(() => {
+    if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle);
+    }
+    return renderEventAnnouncementEmail(previewData, tpl);
+  }, [activeTemplate, previewData, tpl, previewArticle]);
 
   const saveTemplate = async () => {
     setTplSaving(true);
@@ -310,14 +341,81 @@ const EmailConfig = () => {
     }
   };
 
-  // Alcance estimado
+  // Alcance estimado: segmento tem prioridade; senão pega o total da lista (do detalhe ou do cache do select).
   const reachEstimate = useMemo(() => {
     if (cfg.segment_id) {
       const s = segments.find((x) => x.segment_id === cfg.segment_id);
       return s?.total_contacts ?? null;
     }
-    return listTotal;
-  }, [cfg.segment_id, segments, listTotal]);
+    if (listTotal !== null) return listTotal;
+    const l = lists.find((x) => x.list_id === cfg.list_id);
+    return typeof l?.total_contacts === "number" ? l.total_contacts : null;
+  }, [cfg.segment_id, segments, listTotal, lists, cfg.list_id]);
+
+  // Aplica dados de um evento real ao previewData quando seleciona no dropdown.
+  useEffect(() => {
+    const applyEvent = async () => {
+      if (selectedRealEventId === "mock" || !selectedRealEventId) {
+        setPreviewData(MOCK_EVENT_DATA);
+        setPreviewArticle(null);
+        return;
+      }
+      const ev = realEvents.find((e) => e.id === selectedRealEventId);
+      if (!ev) return;
+      const dateObj = new Date(`${ev.date}T${ev.time || "00:00"}`);
+      const dateLabel = dateObj.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
+      const timeLabel = (ev.time || "").slice(0, 5);
+      const baseUrl = "https://mdaccula.com";
+      setPreviewData({
+        eventTitle: ev.title,
+        eventSubtitle: ev.subtitle ?? undefined,
+        flyerUrl: ev.image_url || MOCK_EVENT_DATA.flyerUrl,
+        dateLabel,
+        timeLabel: timeLabel ? `${timeLabel}` : "22h",
+        venueName: ev.venue,
+        cityState: `${ev.location_city}-${ev.location_state}`,
+        description: ev.description || "",
+        ticketUrl: ev.ticket_link || `${baseUrl}/eventos/${ev.slug}`,
+        eventUrl: `${baseUrl}/eventos/${ev.slug}`,
+        agendaUrl: `${baseUrl}/eventos`,
+        instagramUrl: MOCK_EVENT_DATA.instagramUrl,
+        youtubeUrl: MOCK_EVENT_DATA.youtubeUrl,
+        tiktokUrl: MOCK_EVENT_DATA.tiktokUrl,
+        unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
+      });
+      // Se o evento tem matéria vinculada, busca o resumo
+      if (ev.blog_post_id) {
+        const { data: post } = await supabase.from("blog_posts")
+          .select("title,excerpt,slug,image_url")
+          .eq("id", ev.blog_post_id).maybeSingle();
+        if (post) {
+          setPreviewArticle({
+            title: post.title,
+            excerpt: post.excerpt || "",
+            url: `${baseUrl}/blog/${post.slug}`,
+            image_url: post.image_url || undefined,
+          });
+        } else setPreviewArticle(null);
+      } else setPreviewArticle(null);
+    };
+    void applyEvent();
+  }, [selectedRealEventId, realEvents]);
+
+  const sendTestEmail = async (html: string, subject: string) => {
+    setSendingTest(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-test-email", {
+        body: { html, subject, to_email: testEmail || undefined },
+      });
+      if (error) throw error;
+      toast({ title: "E-mail de teste enviado", description: `Enviado para ${data?.sent_to || testEmail || "seu e-mail"}` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Falha no envio de teste", description: e.message });
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -343,6 +441,7 @@ const EmailConfig = () => {
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
+          <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor de blocos</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
@@ -762,6 +861,19 @@ const EmailConfig = () => {
           </div>
         </TabsContent>
 
+        {/* ================= EDITOR DE BLOCOS ================= */}
+        <TabsContent value="editor" className="space-y-4">
+          <EmailTemplateEditor
+            templates={templates}
+            activeId={activeTemplateId}
+            onActiveChange={setActiveTemplateId}
+            onReload={reloadTemplates}
+            settings={tpl}
+            previewEvent={previewData}
+            previewArticle={previewArticle}
+          />
+        </TabsContent>
+
         {/* ================= PREVIEW ================= */}
         <TabsContent value="preview" className="space-y-4">
           <Card>
@@ -774,6 +886,35 @@ const EmailConfig = () => {
             <CardContent>
               <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
                 <div className="space-y-3">
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                    <Label className="text-xs">Simular com evento real</Label>
+                    <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
+                        {realEvents.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.title} · {e.date}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedRealEventId !== "mock" && previewArticle && (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        ✓ Matéria vinculada: bloco "Resumo da matéria" ativo no template.
+                      </p>
+                    )}
+                    <Label className="text-xs mt-2 block">Template</Label>
+                    <Select value={activeTemplateId ?? ""} onValueChange={setActiveTemplateId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
+                      <SelectContent>
+                        {templates.map((t) => (
+                          <SelectItem key={t.id!} value={t.id!}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label>Título</Label>
                     <Input value={previewData.eventTitle} onChange={(e) => setPreviewData({ ...previewData, eventTitle: e.target.value })} />
@@ -814,8 +955,29 @@ const EmailConfig = () => {
                     <Label>Link do ingresso</Label>
                     <Input value={previewData.ticketUrl} onChange={(e) => setPreviewData({ ...previewData, ticketUrl: e.target.value })} />
                   </div>
+
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2 mt-3">
+                    <Label className="text-xs flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> Enviar teste para meu e-mail</Label>
+                    <Input
+                      type="email"
+                      placeholder="Deixe em branco para enviar ao meu e-mail admin"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                    />
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={sendingTest}
+                      onClick={() => sendTestEmail(previewHtml, `[Teste] ${previewData.eventTitle}`)}
+                    >
+                      <Send className="w-4 h-4 mr-1" />
+                      {sendingTest ? "Enviando…" : "Enviar teste agora"}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Envia via Resend (não usa E-goi). O link "Descadastrar" aparece como texto porque só é substituído em envios reais pela E-goi.</p>
+                  </div>
+
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => setPreviewData(MOCK_EVENT_DATA)}>
+                    <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
                       Restaurar mock
                     </Button>
                     <Button
@@ -835,7 +997,7 @@ const EmailConfig = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground pt-2">
-                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>.
+                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>. Para reordenar blocos e customizar o layout, use <b>Editor de blocos</b>.
                   </p>
                 </div>
 
