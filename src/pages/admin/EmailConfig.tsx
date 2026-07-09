@@ -290,7 +290,14 @@ const EmailConfig = () => {
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[s]}`}>{s}</span>;
   };
 
-  const previewHtml = useMemo(() => renderEventAnnouncementEmail(previewData, tpl), [previewData, tpl]);
+  // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
+  const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
+  const previewHtml = useMemo(() => {
+    if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle);
+    }
+    return renderEventAnnouncementEmail(previewData, tpl);
+  }, [activeTemplate, previewData, tpl, previewArticle]);
 
   const saveTemplate = async () => {
     setTplSaving(true);
