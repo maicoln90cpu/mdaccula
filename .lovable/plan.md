@@ -46,35 +46,29 @@
   2. Renderizar `<img>` do logo com atributo `height` HTML e `width="auto"` (Outlook).
   3. Adicionar régua visual de 600px no preview para o admin ter referência.
 
-## Próxima etapa — B.9 (analytics de aberturas/cliques)
+## B.9 — Analytics de aberturas/cliques (CONCLUÍDO)
 
-**Objetivo:** puxar métricas reais da E-goi (aberturas, cliques, bounces, descadastros) por campanha e mostrar no painel de Histórico do MDACCULA.
+- **Migration `event_email_campaign_stats`:** FK para `event_email_campaigns`, `stats_json jsonb`, `fetched_at`, `updated_at`, RLS admin-only, unique por campaign_id.
+- **Edge function `egoi-campaign-stats`:** `GET /campaigns/email/{id}/statistics` na E-goi, normaliza resposta (sent/delivered/opens/clicks/bounces/unsubscribes + taxas), aceita `campaign_id` (uma) ou `sync_all` (cron). Guards: auth admin OR `x-cron-secret`, master switch.
+- **UI no Histórico:** ao expandir grupo, cada campanha `sent` mostra 4 cards (Envios / Abertura % / Cliques % / Baixas+Bounces) + botão "Carregar/Atualizar métricas" que dispara refresh sob demanda.
+- **Persistência:** métricas são salvas no upsert e recarregadas automaticamente ao abrir a página.
 
-### Escopo proposto
-1. **Edge function `egoi-campaign-stats`:**
-   - Recebe `egoi_campaign_id`, chama `GET /campaigns/email/{id}/stats` na E-goi.
-   - Retorna: `sent`, `delivered`, `opens_unique`, `clicks_unique`, `bounces`, `unsubscribes`, `open_rate`, `click_rate`.
-2. **Tabela `event_email_campaign_stats`** (nova):
-   - `campaign_id` (FK), `stats_json`, `updated_at`.
-   - Índice em `campaign_id`.
-   - RLS: só admin lê.
-3. **Job de sync (cron):** roda a cada 6h para campanhas `sent` das últimas 30 dias, atualiza `stats_json`.
-4. **UI no Histórico:** ao expandir um evento com campanha `sent`, mostrar 4 cards (envios, abertura %, clique %, descadastros) + botão "Atualizar métricas agora".
-5. **Guard:** stats só aparecem se master switch ligou e a campanha tem `egoi_campaign_id`.
+### Pendências B.9 (backlog)
+- **Cron 6h** (`sync_all=true`) — precisa habilitar no `pg_cron`; hoje a atualização é sob demanda pelo admin.
+- Teste de contrato para a edge function (401 sem auth, 400 sem `campaign_id`).
 
-### Prevenção de regressão
-- Teste de contrato para a edge function (401 sem auth, 400 sem `egoi_campaign_id`).
-- Teste unit para o parser de resposta E-goi (evita quebrar se a API mudar shape).
+## Ondas restantes
 
-## Sugestões de melhoria pós-B.9 (backlog)
-- **B.10** — A/B test de assunto (E-goi tem endpoint próprio) via UI simples.
-- **B.11** — Digest semanal automático (usa preset `weekly_digest` + edge function cron toda quinta 18h).
-- **B.12** — Segmentação por comportamento (quem abriu últimos 3 e-mails, quem nunca abriu, quem clicou em ticket_link).
-- **A1/A2** — implementar as correções do bloco de auditoria acima após validar em Litmus.
+- **A1** — Aplicar VML/atributos HTML width/height nos `<img>` (candidato documentado). Já mitigado parcialmente em B.8-fix.
+- **A2** — Preview mais fiel ao envio real (iframe 600px). Já mitigado parcialmente em B.8-fix.
+- **B.10** — A/B test de assunto via UI simples (E-goi tem endpoint próprio).
+- **B.11** — Digest semanal automático (preset `weekly_digest` + cron toda quinta 18h).
+- **B.12** — Segmentação por comportamento (abriu últimos 3, nunca abriu, clicou em ticket_link).
 
-## Ordem de implementação sugerida
-1. Aplicar B.8 (esta onda) → **feito**.
-2. Auditoria A1 (Outlook) — mais crítico, afeta entregabilidade.
-3. Auditoria A2 (preview fidelity) — melhora produtividade do editor.
-4. B.9 (analytics) — dá visibilidade de retorno dos envios.
-5. B.10–B.12 conforme prioridade do negócio.
+## Ordem sugerida
+1. Validar B.9 em produção com uma campanha `sent` real.
+2. Habilitar cron de 6h (`sync_all`) para popular métricas sem clique manual.
+3. B.10 (A/B assunto) — retorno rápido.
+4. B.11 (digest semanal) — engajamento contínuo.
+5. B.12 (segmentação) — otimização fina de entregabilidade.
+

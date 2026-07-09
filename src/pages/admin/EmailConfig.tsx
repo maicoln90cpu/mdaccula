@@ -181,6 +181,13 @@ const EmailConfig = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // B.9 — métricas E-goi por campaign_id
+  const [campaignStats, setCampaignStats] = useState<Record<string, {
+    sent: number; delivered: number; opens_unique: number; clicks_unique: number;
+    bounces: number; unsubscribes: number; open_rate: number; click_rate: number;
+    fetched_at?: string;
+  }>>({});
+  const [refreshingStatsId, setRefreshingStatsId] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
   const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
   const [tplLoading, setTplLoading] = useState(false);
@@ -258,6 +265,23 @@ const EmailConfig = () => {
         });
       }
       setCampaigns((hist.data as Campaign[]) ?? []);
+
+      // B.9 — carrega estatísticas persistidas
+      const sentIds = ((hist.data as Campaign[]) ?? [])
+        .filter((c) => c.status === "sent")
+        .map((c) => c.id);
+      if (sentIds.length > 0) {
+        const { data: statsRows } = await (supabase.from as any)("event_email_campaign_stats")
+          .select("campaign_id, stats_json, fetched_at")
+          .in("campaign_id", sentIds);
+        if (Array.isArray(statsRows)) {
+          const map: Record<string, any> = {};
+          for (const r of statsRows) {
+            map[r.campaign_id] = { ...(r.stats_json || {}), fetched_at: r.fetched_at };
+          }
+          setCampaignStats(map);
+        }
+      }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao carregar", description: e.message });
     } finally {
@@ -269,6 +293,30 @@ const EmailConfig = () => {
     const { data } = await (supabase.from as any)("email_templates")
       .select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true });
     setTemplates((data as Template[]) ?? []);
+  };
+
+  // B.9 — Atualiza métricas de uma campanha específica na E-goi
+  const refreshCampaignStats = async (campaignId: string) => {
+    setRefreshingStatsId(campaignId);
+    try {
+      const { data, error } = await supabase.functions.invoke("egoi-campaign-stats", {
+        body: { campaign_id: campaignId },
+      });
+      if (error) throw error;
+      const res = data as { ok?: boolean; stats?: any; error?: string };
+      if (!res?.ok || !res.stats) {
+        throw new Error(res?.error || "Resposta inválida da E-goi");
+      }
+      setCampaignStats((prev) => ({
+        ...prev,
+        [campaignId]: { ...res.stats, fetched_at: new Date().toISOString() },
+      }));
+      toast({ title: "Métricas atualizadas" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao atualizar métricas", description: e.message });
+    } finally {
+      setRefreshingStatsId(null);
+    }
   };
 
   const fetchEgoiResources = async () => {
@@ -1426,26 +1474,72 @@ const EmailConfig = () => {
 
                         {open && (
                           <div className="border-t divide-y">
-                            {g.items.map((c) => (
-                              <div key={c.id} className="p-3 text-sm flex items-center justify-between gap-2">
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {statusBadge(c.status)}
-                                    <span className="text-xs text-muted-foreground">
-                                      {c.mode} • {new Date(c.created_at).toLocaleString("pt-BR")}
-                                    </span>
-                                    {c.egoi_campaign_id && (
+                            {g.items.map((c) => {
+                              const s = campaignStats[c.id];
+                              const canShowStats = c.status === "sent" && !!c.egoi_campaign_id;
+                              return (
+                              <div key={c.id} className="p-3 text-sm space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {statusBadge(c.status)}
                                       <span className="text-xs text-muted-foreground">
-                                        E-goi #{c.egoi_campaign_id}
+                                        {c.mode} • {new Date(c.created_at).toLocaleString("pt-BR")}
                                       </span>
+                                      {c.egoi_campaign_id && (
+                                        <span className="text-xs text-muted-foreground">
+                                          E-goi #{c.egoi_campaign_id}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {c.error_message && (
+                                      <div className="text-xs text-red-500 mt-1 break-words">{c.error_message}</div>
                                     )}
                                   </div>
-                                  {c.error_message && (
-                                    <div className="text-xs text-red-500 mt-1 break-words">{c.error_message}</div>
+                                  {canShowStats && (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      disabled={!masterEnabled || refreshingStatsId === c.id}
+                                      onClick={() => refreshCampaignStats(c.id)}
+                                      title={masterEnabled ? "Puxar métricas da E-goi" : "Master switch desligado"}
+                                    >
+                                      <RefreshCw className={`w-4 h-4 mr-1 ${refreshingStatsId === c.id ? "animate-spin" : ""}`} />
+                                      {s ? "Atualizar" : "Carregar métricas"}
+                                    </Button>
                                   )}
                                 </div>
+                                {canShowStats && s && (
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1">
+                                    <div className="rounded border p-2 bg-background">
+                                      <div className="text-[10px] uppercase text-muted-foreground">Envios</div>
+                                      <div className="text-lg font-semibold">{s.delivered || s.sent || 0}</div>
+                                    </div>
+                                    <div className="rounded border p-2 bg-background">
+                                      <div className="text-[10px] uppercase text-muted-foreground">Abertura</div>
+                                      <div className="text-lg font-semibold">{s.open_rate ?? 0}%</div>
+                                      <div className="text-[10px] text-muted-foreground">{s.opens_unique || 0} únicas</div>
+                                    </div>
+                                    <div className="rounded border p-2 bg-background">
+                                      <div className="text-[10px] uppercase text-muted-foreground">Cliques</div>
+                                      <div className="text-lg font-semibold">{s.click_rate ?? 0}%</div>
+                                      <div className="text-[10px] text-muted-foreground">{s.clicks_unique || 0} únicos</div>
+                                    </div>
+                                    <div className="rounded border p-2 bg-background">
+                                      <div className="text-[10px] uppercase text-muted-foreground">Baixas</div>
+                                      <div className="text-lg font-semibold">{s.unsubscribes || 0}</div>
+                                      <div className="text-[10px] text-muted-foreground">{s.bounces || 0} bounces</div>
+                                    </div>
+                                    {s.fetched_at && (
+                                      <div className="col-span-2 md:col-span-4 text-[10px] text-muted-foreground text-right">
+                                        Atualizado em {new Date(s.fetched_at).toLocaleString("pt-BR")}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
-                            ))}
+                              );
+                            })}
                             <div className="p-3 bg-muted/20 flex flex-wrap justify-end gap-2">
                               <Button
                                 size="sm"
