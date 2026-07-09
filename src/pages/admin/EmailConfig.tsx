@@ -193,6 +193,13 @@ const EmailConfig = () => {
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  // B.8 — Virada de lote
+  const [batchEventId, setBatchEventId] = useState<string>("");
+  const [batchTemplateId, setBatchTemplateId] = useState<string>("");
+  const [batchArtworkUrl, setBatchArtworkUrl] = useState<string>("");
+  const [batchSubject, setBatchSubject] = useState<string>("");
+  const [batchUploadingArt, setBatchUploadingArt] = useState(false);
+  const [batchDispatching, setBatchDispatching] = useState(false);
 
   useEffect(() => {
     void loadAll();
