@@ -505,14 +505,15 @@ const EmailConfig = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
                 <div>
-                  <div className="font-medium">Master (Lovable)</div>
+                  <div className="font-medium">Master switch</div>
                   <div className="text-xs text-muted-foreground">
-                    Controlado pela agência. Trave global — só a Lovable/agência altera.
+                    Trava global da automação. Deixe OFF enquanto valida; ligue para permitir disparos reais.
                   </div>
                 </div>
-                <Badge variant={masterEnabled ? "default" : "secondary"}>
-                  {masterEnabled ? "ON" : "OFF"}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant={masterEnabled ? "default" : "secondary"}>{masterEnabled ? "ON" : "OFF"}</Badge>
+                  <Switch checked={masterEnabled} onCheckedChange={toggleMaster} />
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-lg border">
