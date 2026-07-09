@@ -886,6 +886,35 @@ const EmailConfig = () => {
             <CardContent>
               <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
                 <div className="space-y-3">
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                    <Label className="text-xs">Simular com evento real</Label>
+                    <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
+                        {realEvents.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.title} · {e.date}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedRealEventId !== "mock" && previewArticle && (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        ✓ Matéria vinculada: bloco "Resumo da matéria" ativo no template.
+                      </p>
+                    )}
+                    <Label className="text-xs mt-2 block">Template</Label>
+                    <Select value={activeTemplateId ?? ""} onValueChange={setActiveTemplateId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
+                      <SelectContent>
+                        {templates.map((t) => (
+                          <SelectItem key={t.id!} value={t.id!}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <Label>Título</Label>
                     <Input value={previewData.eventTitle} onChange={(e) => setPreviewData({ ...previewData, eventTitle: e.target.value })} />
@@ -926,8 +955,29 @@ const EmailConfig = () => {
                     <Label>Link do ingresso</Label>
                     <Input value={previewData.ticketUrl} onChange={(e) => setPreviewData({ ...previewData, ticketUrl: e.target.value })} />
                   </div>
+
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2 mt-3">
+                    <Label className="text-xs flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> Enviar teste para meu e-mail</Label>
+                    <Input
+                      type="email"
+                      placeholder="Deixe em branco para enviar ao meu e-mail admin"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                    />
+                    <Button
+                      size="sm"
+                      className="w-full"
+                      disabled={sendingTest}
+                      onClick={() => sendTestEmail(previewHtml, `[Teste] ${previewData.eventTitle}`)}
+                    >
+                      <Send className="w-4 h-4 mr-1" />
+                      {sendingTest ? "Enviando…" : "Enviar teste agora"}
+                    </Button>
+                    <p className="text-[10px] text-muted-foreground">Envia via Resend (não usa E-goi). O link "Descadastrar" aparece como texto porque só é substituído em envios reais pela E-goi.</p>
+                  </div>
+
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => setPreviewData(MOCK_EVENT_DATA)}>
+                    <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
                       Restaurar mock
                     </Button>
                     <Button
@@ -947,7 +997,7 @@ const EmailConfig = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground pt-2">
-                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>.
+                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>. Para reordenar blocos e customizar o layout, use <b>Editor de blocos</b>.
                   </p>
                 </div>
 
