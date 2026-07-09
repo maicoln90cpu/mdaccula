@@ -497,6 +497,13 @@ const EmailConfig = () => {
     return typeof l?.total_contacts === "number" ? l.total_contacts : null;
   }, [cfg.segment_id, segments, listTotal, lists, cfg.list_id]);
 
+  // B.8 — quando templates carregarem, pré-seleciona o primeiro ticket_batch
+  useEffect(() => {
+    if (batchTemplateId) return;
+    const tb = templates.find((t) => (t as any).type === "ticket_batch");
+    if (tb?.id) setBatchTemplateId(tb.id);
+  }, [templates, batchTemplateId]);
+
   // Aplica dados de um evento real ao previewData quando seleciona no dropdown.
   useEffect(() => {
     const applyEvent = async () => {
