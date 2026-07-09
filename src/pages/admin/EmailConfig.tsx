@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { NavLink } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon, LayoutGrid, Mail } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   renderEventAnnouncementEmail,
@@ -25,6 +25,8 @@ import {
   type EventAnnouncementData,
   type EmailTemplateSettings,
 } from "@/lib/emailTemplates/eventAnnouncement";
+import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
+import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
