@@ -827,7 +827,7 @@ const EmailConfig = () => {
                     </Button>
                   </div>
                   <p className="text-xs text-muted-foreground pt-2">
-                    Para editar logo, cores e textos fixos do template, aguarde a próxima etapa (editor completo).
+                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>.
                   </p>
                 </div>
 
