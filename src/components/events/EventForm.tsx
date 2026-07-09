@@ -20,6 +20,7 @@ import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
+import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
 
 interface EventFormData {
   title: string;
