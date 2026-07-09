@@ -238,7 +238,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       if (!block.image_url) return "";
       const maxW = block.max_width ?? 552;
       const alt = escape(block.alt || "");
-      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:8px;border:0;">`;
+      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`;
       const wrapped = block.link_url
         ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>`
         : inner;
