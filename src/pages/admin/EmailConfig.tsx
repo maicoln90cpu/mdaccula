@@ -23,6 +23,7 @@ import {
   renderEventAnnouncementEmail,
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
+  type EmailTemplateSettings,
 } from "@/lib/emailTemplates/eventAnnouncement";
 
 type Mode = "draft" | "immediate" | "scheduled";
