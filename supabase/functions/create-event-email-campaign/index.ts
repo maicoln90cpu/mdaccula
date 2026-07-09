@@ -68,10 +68,12 @@ Deno.serve(async (req) => {
     const subject = (body?.subject as string | undefined) || undefined;
     const preheader = (body?.preheader as string | undefined) || undefined;
     const forceResend = body?.force_resend === true;
+    const sendNow = body?.send_now === true;
 
     if (!eventId || !html) {
       return json({ error: 'event_id e html são obrigatórios' }, 400);
     }
+
 
     // Guard 1: Master switch
     const { data: masterRow } = await admin
