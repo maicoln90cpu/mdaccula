@@ -155,29 +155,18 @@ const EmailConfig = () => {
   const fetchSegments = async (listId: number) => {
     setFetchingSegments(true);
     try {
-      const { data, error } = await supabase.functions.invoke("egoi-resources", {
-        body: {},
-        // Passa list_id como query string (edge function lê da URL)
-        // supabase-js só permite via query em invoke usando "queryParams" — fallback: chamada direta.
-      } as any);
-      // Fallback: se a API do invoke não passar querystring, usar fetch direto autenticado.
-      if (error || !data?.segments) {
-        const { data: sess } = await supabase.auth.getSession();
-        const token = sess.session?.access_token;
-        const url = `${(supabase as any).functionsUrl ?? ""}`;
-        // Faz fetch manual usando o endpoint padrão
-        const projectUrl = "https://xfvpuzlspvvsmmunznxw.supabase.co";
-        const res = await fetch(
-          `${projectUrl}/functions/v1/egoi-resources?list_id=${listId}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        const json = await res.json();
-        setSegments(Array.isArray(json?.segments) ? json.segments : []);
-        setListTotal(typeof json?.list_total_contacts === "number" ? json.list_total_contacts : null);
-      } else {
-        setSegments(data.segments);
-        setListTotal(data.list_total_contacts ?? null);
-      }
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error("Sessão expirada");
+      const projectUrl = "https://xfvpuzlspvvsmmunznxw.supabase.co";
+      const res = await fetch(
+        `${projectUrl}/functions/v1/egoi-resources?list_id=${listId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const json = await res.json();
+      setSegments(Array.isArray(json?.segments) ? json.segments : []);
+      setListTotal(typeof json?.list_total_contacts === "number" ? json.list_total_contacts : null);
     } catch (e: any) {
       toast({ variant: "destructive", title: "Falha ao buscar segmentos", description: e.message });
       setSegments([]);
