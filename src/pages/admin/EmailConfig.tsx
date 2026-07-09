@@ -1226,6 +1226,120 @@ const EmailConfig = () => {
         </TabsContent>
 
         {/* ================= HISTÓRICO ================= */}
+        {/* ================= B.8 — VIRADA DE LOTE ================= */}
+        <TabsContent value="batch" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Virada de lote — disparo pontual</CardTitle>
+              <CardDescription>
+                Envia um e-mail de urgência ("lote atual acabando") para um evento específico, com opção de <b>arte diferente</b> do flyer padrão. Usa por padrão o template do tipo "ticket_batch".
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!masterEnabled && (
+                <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+                  <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>Master switch está OFF — o disparo será recusado. Ligue em "Configuração" antes de tentar.</span>
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>Evento</Label>
+                  <Select value={batchEventId} onValueChange={setBatchEventId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o evento" /></SelectTrigger>
+                    <SelectContent>
+                      {realEvents.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>
+                          {e.title} · {new Date(e.date).toLocaleDateString("pt-BR")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Template</Label>
+                  <Select value={batchTemplateId} onValueChange={setBatchTemplateId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione template" /></SelectTrigger>
+                    <SelectContent>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id!} value={t.id!}>
+                          {t.name}{(t as any).type === "ticket_batch" ? " · recomendado" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Dica: crie um template do preset "Virada de lote" na aba "Editor de blocos" para reaproveitar.
+                  </p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label>Assunto do e-mail (opcional)</Label>
+                  <Input
+                    value={batchSubject}
+                    placeholder="Ex.: ÚLTIMAS HORAS — lote 2 acabando"
+                    onChange={(e) => setBatchSubject(e.target.value)}
+                  />
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Se vazio, usa o assunto padrão do template.
+                  </p>
+                </div>
+
+                <div className="md:col-span-2">
+                  <Label>Arte específica da virada (opcional)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={batchUploadingArt}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadBatchArtwork(f);
+                      }}
+                    />
+                    {batchArtworkUrl && (
+                      <Button size="sm" variant="ghost" onClick={() => setBatchArtworkUrl("")}>
+                        Remover
+                      </Button>
+                    )}
+                  </div>
+                  {batchArtworkUrl && (
+                    <div className="mt-2 flex items-center gap-3">
+                      <img src={batchArtworkUrl} alt="Preview arte virada" className="w-32 h-32 object-contain rounded border bg-muted/30" />
+                      <p className="text-[11px] text-muted-foreground">
+                        Esta arte substitui o flyer padrão neste disparo. Se não enviar nada, o flyer atual do evento é usado.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  disabled={!batchEventId || batchDispatching}
+                  onClick={() => dispatchBatch(false)}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  {batchDispatching ? "Criando..." : "Criar rascunho na E-goi"}
+                </Button>
+                <SendNowButton
+                  eventTitle={realEvents.find((e) => e.id === batchEventId)?.title || "(selecione)"}
+                  disabled={!batchEventId || batchDispatching}
+                  onConfirm={() => dispatchBatch(true)}
+                />
+              </div>
+
+              <p className="text-[11px] text-muted-foreground">
+                O disparo é registrado no <b>Histórico</b> como uma nova campanha (o histórico anterior do evento é preservado).
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ================= HISTÓRICO ================= */}
         <TabsContent value="history" className="space-y-4">
           {/* B.6.1 — Eventos sem campanha (importados via CSV/script) */}
           {(() => {
