@@ -87,6 +87,10 @@ const EmailConfig = () => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
+  const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
+  const [tplLoading, setTplLoading] = useState(false);
+  const [tplSaving, setTplSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     void loadAll();
