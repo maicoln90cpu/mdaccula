@@ -715,6 +715,39 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           }
         }
 
+      // B.6 — Se admin marcou o toggle e a automação está pronta, cria rascunho na E-goi.
+      // Falha aqui NÃO reverte o evento — apenas mostra toast. Histórico grava error_message.
+      if (dispatchEmail && emailAutomationReady && createdEventId) {
+        try {
+          const result = await dispatchEventDraftEmail(createdEventId);
+          if (result.skipped) {
+            toast({
+              title: 'Rascunho de e-mail não criado',
+              description: `Motivo: ${result.reason ?? 'desconhecido'}. Verifique o painel /admin/email-config.`,
+              variant: 'destructive',
+            });
+          } else if (result.ok) {
+            toast({
+              title: 'Rascunho criado na E-goi',
+              description: 'Revise e envie manualmente pela sua conta E-goi.',
+            });
+          } else {
+            toast({
+              title: 'Falha ao criar rascunho na E-goi',
+              description: result.error || 'Veja o histórico no painel de e-mails.',
+              variant: 'destructive',
+            });
+          }
+        } catch (dispatchErr: any) {
+          console.error('[EventForm] Falha no disparo de rascunho E-goi:', dispatchErr);
+          toast({
+            title: 'Falha no disparo de e-mail',
+            description: dispatchErr?.message || 'Erro desconhecido',
+            variant: 'destructive',
+          });
+        }
+      }
+
       onSuccess();
     } catch (error) {
       console.error('Error saving event:', error);
