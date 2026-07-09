@@ -169,17 +169,30 @@ export function EmailTemplateEditor({
     }
   };
 
-  const createTemplate = async () => {
+  const createTemplate = async (
+    presetKey?: "event_new" | "ticket_batch" | "weekly_digest",
+  ) => {
     try {
-      const name = prompt("Nome do novo template:");
+      const preset = presetKey ? TEMPLATE_PRESETS.find((p) => p.key === presetKey) : null;
+      const defaultName = preset ? preset.name : "Novo template";
+      const name = prompt("Nome do novo template:", defaultName);
       if (!name) return;
+      const blocks = preset
+        ? buildPresetBlocks(preset.key)
+        : [defaultForKind("header"), defaultForKind("hero_image"), defaultForKind("title"), defaultForKind("cta_button"), defaultForKind("footer")];
       const { data, error } = await (supabase.from as any)("email_templates")
-        .insert({ name, type: "custom", blocks: [defaultForKind("header"), defaultForKind("hero_image"), defaultForKind("title"), defaultForKind("cta_button"), defaultForKind("footer")] })
+        .insert({
+          name,
+          type: preset ? preset.key : "custom",
+          blocks,
+          subject_template: preset?.subject_template ?? null,
+          preheader_template: preset?.preheader_template ?? null,
+        })
         .select().single();
       if (error) throw error;
       await onReload();
       onActiveChange(data.id);
-      toast({ title: "Template criado" });
+      toast({ title: preset ? `Template criado a partir do preset "${preset.name}"` : "Template criado" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro", description: e.message });
     }
