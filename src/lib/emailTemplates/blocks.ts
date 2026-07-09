@@ -141,17 +141,21 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
   switch (block.kind) {
     case "header": {
+      // A1 fix: Outlook (desktop) ignora max-height/width:auto do CSS. Precisa
+      // do atributo HTML `height` para dimensionar corretamente. Sem `width`
+      // fixo — deixamos o cliente calcular pelo aspect ratio.
       const height = Math.max(24, Math.min(200, block.logo_height ?? 64));
       const inner = settings.logo_url
-        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" style="display:block;max-height:${height}px;width:auto;margin:0 auto;">`
+        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" height="${height}" border="0" style="display:block;height:${height}px;max-height:${height}px;width:auto;margin:0 auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
       return `<tr><td align="center" style="padding:32px 24px 24px 24px;">${inner}</td></tr>`;
     }
 
     case "hero_image":
+      // A1 fix: adiciona border="0" e propriedades anti-Outlook.
       return `<tr><td align="center" style="padding:0 24px;">
         <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:#111;">
+          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">
         </a>
       </td></tr>`;
 
@@ -196,7 +200,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     case "article_summary": {
       if (!article) return "";
       const imgHtml = article.image_url
-        ? `<img src="${escape(article.image_url)}" alt="" width="120" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;">`
+        ? `<img src="${escape(article.image_url)}" alt="" width="120" height="80" border="0" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : "";
       return `<tr><td style="padding:8px 32px 24px 32px;">
         <a href="${escape(article.url)}" style="text-decoration:none;display:block;">
@@ -234,7 +238,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       if (!block.image_url) return "";
       const maxW = block.max_width ?? 552;
       const alt = escape(block.alt || "");
-      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:8px;border:0;">`;
+      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`;
       const wrapped = block.link_url
         ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>`
         : inner;
@@ -310,23 +314,31 @@ export function renderBlockedTemplate(
   const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
 
   return `<!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="color-scheme" content="dark light">
 <meta name="supported-color-schemes" content="dark light">
 <title>${escape(event.eventTitle)} — ${brand}</title>
+<!--[if mso]>
+<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml>
+<style>table,td,div,p,a{font-family:'Segoe UI',Arial,sans-serif !important;} img{-ms-interpolation-mode:bicubic;}</style>
+<![endif]-->
+<style>img{border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;display:block;}</style>
 </head>
 <body style="margin:0;padding:0;background:${bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e5e5e5;">
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};">
 <tr><td align="center" style="padding:24px 12px;">
+<!--[if mso | IE]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#080808;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
 ${customHeader ? `<tr><td style="padding:16px 24px 0 24px;">${customHeader}</td></tr>` : ""}
 ${rows}
 ${customFooter ? `<tr><td style="padding:0 24px 16px 24px;">${customFooter}</td></tr>` : ""}
 </table>
+<!--[if mso | IE]></td></tr></table><![endif]-->
 </td></tr>
 </table>
 </body>

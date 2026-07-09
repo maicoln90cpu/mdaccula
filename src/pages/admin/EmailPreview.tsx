@@ -153,20 +153,22 @@ export default function EmailPreview() {
             </CardContent>
           </Card>
 
-          {/* Preview iframe */}
+          {/* Preview iframe — fixo em 600px para refletir largura real do e-mail */}
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                Preview (600px — como aparece na caixa de entrada)
+                Preview (600px — largura real na caixa de entrada)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border border-border bg-[#050505] p-4">
+              <div className="overflow-x-auto rounded-lg border border-border bg-[#050505] p-4">
                 <iframe
                   title="Email preview"
                   srcDoc={html}
                   sandbox=""
-                  className="mx-auto block h-[900px] w-full max-w-[640px] rounded-md border-0 bg-white"
+                  width={600}
+                  className="mx-auto block h-[900px] bg-white"
+                  style={{ width: 600, minWidth: 600, border: 0 }}
                 />
               </div>
             </CardContent>
