@@ -334,16 +334,25 @@ export function EmailTemplateEditor({
           </CardContent>
         </Card>
 
-        {/* Preview */}
+        {/* Preview — A2 fix: iframe fixado em 600px (largura real do e-mail).
+            Container com scroll horizontal em telas estreitas, para que o logo
+            e todas as imagens apareçam no mesmo tamanho que o cliente receberá. */}
         <Card>
           <CardContent className="p-2">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 px-2">Preview ao vivo</div>
-            <iframe
-              title="preview"
-              srcDoc={previewHtml}
-              className="w-full h-[720px] rounded border bg-white"
-              sandbox=""
-            />
+            <div className="flex items-center justify-between mb-2 px-2">
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview ao vivo (600px reais)</div>
+              <div className="text-[10px] text-muted-foreground">≈ largura real na caixa de entrada</div>
+            </div>
+            <div className="overflow-x-auto rounded border bg-[#050505] p-2">
+              <iframe
+                title="preview"
+                srcDoc={previewHtml}
+                width={600}
+                className="block mx-auto h-[900px] bg-white"
+                style={{ width: 600, minWidth: 600, border: 0 }}
+                sandbox=""
+              />
+            </div>
           </CardContent>
         </Card>
       </div>
