@@ -334,7 +334,8 @@ const EmailConfig = () => {
       <Tabs defaultValue="config" className="space-y-6">
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
-          <TabsTrigger value="preview">Preview do template</TabsTrigger>
+          <TabsTrigger value="template">Template (marca)</TabsTrigger>
+          <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
