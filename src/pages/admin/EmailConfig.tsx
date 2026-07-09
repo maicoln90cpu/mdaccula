@@ -861,6 +861,19 @@ const EmailConfig = () => {
           </div>
         </TabsContent>
 
+        {/* ================= EDITOR DE BLOCOS ================= */}
+        <TabsContent value="editor" className="space-y-4">
+          <EmailTemplateEditor
+            templates={templates}
+            activeId={activeTemplateId}
+            onActiveChange={setActiveTemplateId}
+            onReload={reloadTemplates}
+            settings={tpl}
+            previewEvent={previewData}
+            previewArticle={previewArticle}
+          />
+        </TabsContent>
+
         {/* ================= PREVIEW ================= */}
         <TabsContent value="preview" className="space-y-4">
           <Card>
