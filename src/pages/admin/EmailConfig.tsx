@@ -794,16 +794,17 @@ const EmailConfig = () => {
             </CardContent>
           </Card>
 
-          {/* Teste */}
+          {/* Teste — agora um atalho real, não um placeholder */}
           <Card>
             <CardHeader>
               <CardTitle>Teste de disparo</CardTitle>
-              <CardDescription>Criar campanha real na E-goi como rascunho para revisão.</CardDescription>
+              <CardDescription>
+                O teste real fica na aba <b>Preview</b> ("Enviar teste agora") e o disparo de rascunhos/envios reais na aba <b>Histórico</b> (por evento) ou <b>Virada de lote</b> (com arte específica).
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button variant="outline" disabled title="Disponível após a Fase B.3 (integração de disparo)">
-                <Send className="w-4 h-4 mr-2" /> Criar rascunho de teste (em breve)
-              </Button>
+            <CardContent className="text-xs text-muted-foreground">
+              A caixa "Criar rascunho de teste (em breve)" foi substituída pelo fluxo real da aba <b>Histórico</b>.
+              Use "Criar rascunho" ou "Enviar agora" no evento desejado — cada disparo fica registrado com status e ID da E-goi.
             </CardContent>
           </Card>
         </TabsContent>
