@@ -1,85 +1,80 @@
-# Fase B.6 — Automação: rascunho automático na E-goi ao publicar evento
+# Roadmap E-mail (E-goi) — status atual
 
-## Objetivo
-Quando um evento novo for publicado (status `active`) **e** o admin marcar explicitamente "disparar e-mail ao salvar", o sistema deve criar automaticamente uma campanha em **rascunho** na E-goi usando o template padrão configurado no painel. O admin depois revisa e envia manualmente pela E-goi (mesmo comportamento hoje, só que sem precisar montar o e-mail à mão).
+## Concluído
+- **B.5.1 — Editor de blocos** (drag-and-drop, logo redimensionável, imagem-com-link, social icons customizáveis, botão descadastrar oficial E-goi, resumo da matéria, preview com evento real, envio de teste).
+- **B.5.2 — Presets** de template ("event_new", "ticket_batch", "weekly_digest") + banner de alcance estimado (com contagem e origem: lista inteira ou segmento).
+- **B.6 — Auto-trigger** de rascunho ao publicar evento (toggle `dispatch_email_on_save`, guards master/agência, anti-race com `email_campaign_dispatched_at`).
+- **B.6.1 — Criar rascunho agora** por evento (para eventos importados via CSV/script), painel B.4 com "Eventos sem rascunho".
+- **B.7 — Envio imediato com dupla confirmação** (checklist + digitar "ENVIAR"), correção 403 no endpoint `POST /campaigns/email` (schema v3 correto).
+- **B.8 — Virada de lote com arte opcional (esta onda):**
+  - Nova aba "Virada de lote" em `/admin/email-config`.
+  - Seleciona evento, template (pré-seleciona preset `ticket_batch`), assunto opcional e **upload de arte específica** que substitui o flyer padrão apenas neste disparo.
+  - Reutiliza `dispatchEventDraftEmail` com novos overrides: `templateIdOverride`, `flyerOverrideUrl`, `subjectOverride`.
+  - Se o template tem bloco `image_with_link` vazio (preset ticket_batch), a arte enviada também preenche esse bloco automaticamente.
+  - Botões "Criar rascunho" + "Enviar agora" (dupla confirmação já existente).
+  - Cada disparo cria uma nova entrada no histórico (`forceResend: true`), preserva histórico anterior.
+- **Correção do banner "em breve":** o card "Criar rascunho de teste (em breve)" foi substituído por um card informativo apontando para o fluxo real (Preview → envio de teste; Histórico → rascunho/envio por evento; Virada de lote → disparo pontual).
 
-## Antes vs Depois
+## Auditoria pendente (apenas planejar, não implementar agora)
 
-**Antes:**
-- Ao criar um evento, o admin precisa entrar na E-goi, copiar arte, escrever assunto, montar HTML manualmente.
-- Cada evento novo = ~10 minutos de trabalho manual + risco de erro.
+### A1 — Imagens não aparecem no Outlook (mobile mostra, Gmail mostra)
+- **Sintoma:** ao enviar teste, no Outlook desktop as imagens ficam como `[x]` (bloqueadas/quebradas). No Gmail e no celular funcionam.
+- **Prováveis causas:**
+  1. Outlook (2016+/Windows) usa o motor **Word** para renderizar HTML — não interpreta `background-image` CSS, `object-fit`, `<picture>`, `srcset`, e trata `width/height` só via atributo HTML (não CSS).
+  2. Imagens hospedadas em domínios sem CORS/`Content-Type` correto (Bunny CDN pode servir `application/octet-stream` em alguns paths) — Outlook exige `image/*`.
+  3. `<img>` sem atributos `width` e `height` explícitos → Outlook não reserva espaço e o proxy de segurança pode bloquear.
+  4. URLs assinadas de curta duração (Supabase Storage `getPublicUrl` em bucket privado) — Outlook faz cache/prefetch tardio e o link expira.
+- **Investigação sugerida:**
+  - Rodar o HTML no [Litmus](https://litmus.com/) ou [Email on Acid] para diagnóstico oficial.
+  - Testar com CID (Content-ID) via Resend/E-goi anexando a imagem em vez de URL externa.
+  - Adicionar `width`/`height` HTML atributos em todos `<img>` gerados por `renderBlockedTemplate`.
+  - Verificar cabeçalho `Content-Type` das artes no Bunny/Supabase.
+- **Correção candidata (não aplicar ainda):**
+  1. Em `blocks.ts` / `eventAnnouncement.ts`: adicionar `width="X" height="Y" style="display:block;"` em todos os `<img>` (Outlook exige atributo HTML).
+  2. Forçar `image/jpeg` ou `image/png` no upload (rejeitar formatos exóticos).
+  3. Adicionar VML fallback (`<!--[if mso]>`) para hero images grandes — hack clássico Outlook.
 
-**Depois:**
-- Admin cria o evento no MDAccula com toggle "Criar rascunho de e-mail na E-goi" ligado.
-- Em segundos, aparece um rascunho pronto na conta E-goi, já com: assunto sugerido do template, HTML renderizado com dados reais do evento (título, flyer, data, local, line-up), lista e remetente escolhidos no painel B.4, link oficial de descadastro.
-- Admin só revisa e clica em "Enviar" dentro da E-goi.
-- Histórico do disparo fica registrado em `event_email_campaigns` e aparece no painel B.4.
+### A2 — Preview do logo não corresponde ao e-mail real
+- **Sintoma:** aumentar `logo_height` no editor deixa o logo pequeno no preview mas gigante no e-mail enviado.
+- **Provável causa:** o iframe do preview aplica CSS herdado do site (fonts, box-sizing, dpi) e/ou o `srcDoc` renderiza com escala diferente da caixa de e-mail real (Outlook/Gmail usam viewport de ~600px, o preview atual tem ~640-720px de largura e a altura vai a 900px). Também: preview usa `sandbox=""` sem base CSS, mas fontes do sistema afetam altura das imagens.
+- **Investigação sugerida:**
+  - Comparar o HTML renderizado do preview vs HTML enviado (baixar via botão "Baixar HTML" já existente).
+  - Confirmar se o `logo_height` está sendo aplicado como atributo HTML (`height="120"`) ou só CSS (`style="height:120px"`) — Outlook ignora CSS.
+  - Validar largura do iframe: e-mails são desenhados para 600px; se o preview mostra em 900px, o logo parece proporcionalmente menor.
+- **Correção candidata (não aplicar ainda):**
+  1. Fixar largura do iframe do preview em **600px** (padrão de e-mail) em vez de `max-w-[640px]`.
+  2. Renderizar `<img>` do logo com atributo `height` HTML e `width="auto"` (Outlook).
+  3. Adicionar régua visual de 600px no preview para o admin ter referência.
 
-## Camadas de segurança (defesa em profundidade)
+## Próxima etapa — B.9 (analytics de aberturas/cliques)
 
-1. **Master switch (Lovable):** `site_settings.egoi_email_enabled` precisa estar `true`. Fica OFF por padrão até você validar 1 teste real.
-2. **Agência switch:** `egoi_config.is_enabled` precisa estar `true` **e** `list_id`, `sender_id`, `default_event_template_id` preenchidos.
-3. **Toggle por evento:** novo campo `events.dispatch_email_on_save` (default `false`). Criar evento **não** dispara e-mail sozinho — só se o admin marcar o toggle no formulário.
-4. **Anti-duplicidade atômica:** `events.email_campaign_dispatched_at`. Um `UPDATE ... WHERE email_campaign_dispatched_at IS NULL RETURNING id` garante que dois cliques simultâneos nunca criam dois rascunhos.
-5. **Botão "Reenviar" no painel B.4** (já existente na estrutura): limpa `dispatched_at` com confirmação dupla e permite novo rascunho.
+**Objetivo:** puxar métricas reais da E-goi (aberturas, cliques, bounces, descadastros) por campanha e mostrar no painel de Histórico do MDACCULA.
 
-## O que muda no código
+### Escopo proposto
+1. **Edge function `egoi-campaign-stats`:**
+   - Recebe `egoi_campaign_id`, chama `GET /campaigns/email/{id}/stats` na E-goi.
+   - Retorna: `sent`, `delivered`, `opens_unique`, `clicks_unique`, `bounces`, `unsubscribes`, `open_rate`, `click_rate`.
+2. **Tabela `event_email_campaign_stats`** (nova):
+   - `campaign_id` (FK), `stats_json`, `updated_at`.
+   - Índice em `campaign_id`.
+   - RLS: só admin lê.
+3. **Job de sync (cron):** roda a cada 6h para campanhas `sent` das últimas 30 dias, atualiza `stats_json`.
+4. **UI no Histórico:** ao expandir um evento com campanha `sent`, mostrar 4 cards (envios, abertura %, clique %, descadastros) + botão "Atualizar métricas agora".
+5. **Guard:** stats só aparecem se master switch ligou e a campanha tem `egoi_campaign_id`.
 
-### Migration
-- Adiciona coluna `events.dispatch_email_on_save BOOLEAN DEFAULT false`.
-- Adiciona coluna `events.email_campaign_dispatched_at TIMESTAMPTZ NULL` (se ainda não existir).
-- Seed de `site_settings`: `egoi_email_enabled = 'false'` (só se ainda não existir).
+### Prevenção de regressão
+- Teste de contrato para a edge function (401 sem auth, 400 sem `egoi_campaign_id`).
+- Teste unit para o parser de resposta E-goi (evita quebrar se a API mudar shape).
 
-### Edge function nova: `create-event-email-campaign`
-Recebe `event_id`, aplica os 3 guards, faz o UPDATE atômico do `dispatched_at`, renderiza o HTML do template padrão com os dados do evento (usando as funções que já existem em `src/lib/emailTemplates/`), chama a API E-goi para criar a campanha em modo `draft`, grava a linha em `event_email_campaigns` com `status='draft'` (ou `failed` + `error_message` em erro).
-Idempotência: se já existe campanha `sent` para o evento → cria uma nova (histórico); se existe `draft/failed/scheduled` → atualiza a existente.
+## Sugestões de melhoria pós-B.9 (backlog)
+- **B.10** — A/B test de assunto (E-goi tem endpoint próprio) via UI simples.
+- **B.11** — Digest semanal automático (usa preset `weekly_digest` + edge function cron toda quinta 18h).
+- **B.12** — Segmentação por comportamento (quem abriu últimos 3 e-mails, quem nunca abriu, quem clicou em ticket_link).
+- **A1/A2** — implementar as correções do bloco de auditoria acima após validar em Litmus.
 
-### EventForm
-Adiciona um toggle discreto: **"Criar rascunho de e-mail na E-goi ao salvar"** (default OFF). Só aparece se master + agência estiverem ligados e template padrão configurado; caso contrário fica desabilitado com tooltip explicando o motivo.
-
-### Trigger no client (não em SQL)
-Após o `insert`/`update` do evento retornar sucesso E `dispatch_email_on_save=true` E status ficar `active`, chama `supabase.functions.invoke('create-event-email-campaign', { body: { event_id } })`. Escolha por client-side em vez de `pg_net`: mais simples de debugar, erros aparecem no toast, e evita dependência de extensão.
-
-### Painel B.4
-Adiciona seletor "Template padrão de novos eventos" (grava em `egoi_config.default_event_template_id`) — provavelmente já existe da B.5.1, apenas garantir que está listado como pré-requisito visual do master switch.
-
-## Vantagens
-- Zero risco de disparo acidental (3 switches independentes + toggle explícito por evento).
-- Histórico completo preservado.
-- Sem `pg_net` / SQL trigger — menor superfície de bug, mais fácil de reverter.
-- Erros no fluxo E-goi aparecem no toast do admin imediatamente.
-
-## Desvantagens / trade-offs
-- Se o admin criar evento via import CSV ou script fora da UI, o rascunho **não** é criado automaticamente (por design — protege contra spam em bulk import). Solução: botão "Criar rascunho agora" no painel B.4 por evento (fica para B.6.1 se você quiser).
-- Depende do navegador do admin ficar aberto até a edge function responder (~2s). Se fechar antes, o `dispatched_at` foi marcado mas a campanha pode ter falhado — nesse caso, botão "Reenviar" resolve.
-
-## Checklist manual de validação (após deploy)
-1. Painel B.4: master switch continua OFF (esperado). Ligue temporariamente para testar.
-2. Confirme que `list_id`, `sender_id` e `default_event_template_id` estão preenchidos.
-3. Crie um evento de teste com data futura, marque o toggle "Criar rascunho de e-mail na E-goi".
-4. Salve. Deve aparecer toast: "Rascunho criado na E-goi".
-5. Entre na sua conta E-goi → deve haver uma campanha nova em rascunho com o HTML renderizado corretamente (título, flyer, data).
-6. Volte ao painel B.4 → histórico deve mostrar 1 disparo `draft` para esse evento.
-7. Crie outro evento **sem** marcar o toggle → nenhum rascunho deve ser criado.
-8. Reative o toggle no primeiro evento e salve → nada deve acontecer (já dispatched). Use "Reenviar" no painel B.4 para forçar novo rascunho.
-9. Desligue o master switch e tente de novo → nada acontece, toast informa "Automação de e-mail desativada".
-
-## Pendências (para fases futuras, não agora)
-- **B.6.1:** botão "Criar rascunho agora" por evento no painel B.4 (para eventos criados via CSV/script).
-- **B.7:** envio imediato (não só rascunho) com dupla confirmação.
-- **B.8:** virada de lote (adaptado ao seu fluxo de "avisado 1 dia antes" com upload de arte opcional).
-- **B.9:** analytics de aberturas/cliques puxando da E-goi.
-
-## Prevenção de regressão
-- Teste unit para a função de idempotência (`sent → cria nova`, `draft → atualiza`, `não existe → cria`).
-- Teste de contrato para a edge function: request sem `event_id` → 400; sem auth → 401; master OFF → 200 com `skipped: true`.
-- Assertion no EventForm: toggle **nunca** vem `true` por default.
-- ESLint continua bloqueando `api.egoiapp.com` fora do shared.
-- Documentar no `docs/ROADMAP.md` que o master switch só liga após 1 rascunho validado manualmente.
-
-## Ordem de execução dentro da B.6
-1. Migration (colunas novas).
-2. Edge function `create-event-email-campaign` + testes.
-3. Toggle no EventForm + chamada client-side.
-4. Ajuste do painel B.4 (histórico + botão reenviar já estruturados; garantir que funcionam com o novo fluxo).
-5. Validação manual com master OFF → ON → teste real → OFF de novo.
+## Ordem de implementação sugerida
+1. Aplicar B.8 (esta onda) → **feito**.
+2. Auditoria A1 (Outlook) — mais crítico, afeta entregabilidade.
+3. Auditoria A2 (preview fidelity) — melhora produtividade do editor.
+4. B.9 (analytics) — dá visibilidade de retorno dos envios.
+5. B.10–B.12 conforme prioridade do negócio.
