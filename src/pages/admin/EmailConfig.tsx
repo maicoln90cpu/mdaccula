@@ -822,7 +822,7 @@ const EmailConfig = () => {
         youtubeUrl: MOCK_EVENT_DATA.youtubeUrl,
         tiktokUrl: MOCK_EVENT_DATA.tiktokUrl,
         unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
-        lineup: Array.isArray((ev as any).lineup) ? (ev as any).lineup : undefined,
+        lineup: Array.isArray(ev.lineup) ? ev.lineup : undefined,
         eventStartIso: dateObj.toISOString(),
         ticketBatchDeadlineIso: batchDeadline.toISOString(),
       });
