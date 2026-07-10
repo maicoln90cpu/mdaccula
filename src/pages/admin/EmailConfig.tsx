@@ -735,12 +735,15 @@ const EmailConfig = () => {
     return renderEventAnnouncementEmail(previewData, tpl);
   }, [activeTemplate, previewData, tpl, previewArticle]);
 
-  const loadDigestPreview = async () => {
+  const loadDigestPreview = async (opts?: { source?: "digest" | "weekend"; templateId?: string }) => {
+    const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : "digest");
+    const tplId = opts?.templateId ?? digestTemplateId;
     setDigestPreviewLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", {
-        body: { dry_run: true, force: true },
-      });
+      const body: Record<string, unknown> = { dry_run: true, force: true };
+      if (src === "weekend") body.range = "weekend";
+      if (tplId) body.template_id = tplId;
+      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", { body });
       if (error) throw error;
       if ((data as any)?.skipped) {
         toast({ title: "Preview indisponível", description: `Motivo: ${(data as any).reason}`, variant: "destructive" });
@@ -755,20 +758,38 @@ const EmailConfig = () => {
         events_count: (data as any).events_count,
         posts_count: (data as any).posts_count,
         range: (data as any).range,
+        render_source: (data as any).render_source,
+        template_name: (data as any).template_name,
       });
     } catch (e: any) {
-      toast({ title: "Erro ao carregar digest", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: "Erro ao carregar preview", description: e.message ?? String(e), variant: "destructive" });
     } finally {
       setDigestPreviewLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (previewSource === "digest" && !digestPreviewHtml && !digestPreviewLoading) {
-      loadDigestPreview();
+  // Templates filtrados pela fonte selecionada
+  const digestTemplateOptions = useMemo(() => {
+    if (previewSource === "digest") {
+      return templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
     }
+    if (previewSource === "weekend") {
+      return templates.filter((t) => t.type === "weekend_agenda");
+    }
+    return [];
+  }, [templates, previewSource]);
+
+  useEffect(() => {
+    if (previewSource === "event") return;
+    // Ajusta template selecionado quando fonte muda
+    const opts = previewSource === "weekend"
+      ? templates.filter((t) => t.type === "weekend_agenda")
+      : templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
+    const defaultId = opts.find((t) => t.is_default)?.id || opts[0]?.id || "";
+    setDigestTemplateId(defaultId);
+    loadDigestPreview({ source: previewSource, templateId: defaultId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSource]);
+  }, [previewSource, templates]);
 
 
   const saveTemplate = async () => {
