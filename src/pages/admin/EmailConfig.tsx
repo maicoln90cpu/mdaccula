@@ -911,13 +911,10 @@ const EmailConfig = () => {
 
 
 
-  if (loading) {
-    return (
-      <div className="w-full flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
-    );
-  }
+  // Nota: não retornamos mais uma tela de loading que desmonta os Tabs. O
+  // spinner aparece dentro do conteúdo da aba ativa, para que salvar/atualizar
+  // não force o usuário de volta para "Configuração".
+
 
   return (
     <main className="w-full px-4 md:px-6 py-6 space-y-6">
