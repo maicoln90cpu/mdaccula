@@ -829,7 +829,13 @@ export function renderBlockedTemplate(
     custom_html_header: settings?.custom_html_header ?? null,
     custom_html_footer: settings?.custom_html_footer ?? null,
   };
-  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId };
+  // Detecta se o template usa weekly_hero com o primeiro evento do FDS —
+  // nesse caso, o grid deve pular esse evento para não duplicar o card.
+  const heroBlock = blocks.find(
+    (b) => (b as any).kind === "weekly_hero" && ((b as any).source ?? "first_weekend") === "first_weekend",
+  );
+  const heroEventId = heroBlock ? event.weekendEvents?.[0]?.id : undefined;
+  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId, heroEventId };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
   const preheader = `${escape(event.eventTitle)} — ${escape(event.dateLabel)} em ${escape(event.venueName)}, ${escape(event.cityState)}`;
