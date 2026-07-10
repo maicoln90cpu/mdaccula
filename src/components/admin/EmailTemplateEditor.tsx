@@ -79,6 +79,8 @@ const defaultForKind = (kind: Block["kind"]): Block => {
     case "ticker": return { id, kind, messages: ["Últimas horas", "Ingressos limitados", "Restam poucos"], animation: "fade", align: "center", icon: "clock" };
     case "static_map": return { id, kind, zoom: 15, height: 300, map_style: "roadmap", show_address_label: true, border_radius: 12 };
     case "weekend_grid": return { id, kind, layout: "cartaz", title: "", eyebrow: "", show_article_link: true, align: "left" };
+    case "weekly_hero": return { id, kind, source: "first_weekend", eyebrow: "DESTAQUE DA SEMANA", cta_label: "Garantir ingresso", show_venue: true, show_cta: true, overlay_intensity: "strong", align: "left" };
+    case "blog_posts_list": return { id, kind, title: "Do blog nesta semana", eyebrow: "MATÉRIAS", max_items: 3, layout: "list", show_excerpt: true, show_category: true, align: "left" };
     case "dedge_block": return { id, kind, button_style: "dark", override_content: false };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
