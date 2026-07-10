@@ -411,7 +411,6 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       } else if (source === "batch_deadline" && event.ticketBatchDeadlineIso) {
         deadline = new Date(event.ticketBatchDeadlineIso);
       } else {
-        // today_2359 — hoje às 23:59 no timezone do servidor de renderização
         deadline = new Date();
         deadline.setHours(23, 59, 0, 0);
       }
@@ -420,16 +419,50 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const days = Math.floor(totalMin / (60 * 24));
       const hours = Math.floor((totalMin % (60 * 24)) / 60);
       const minutes = totalMin % 60;
-      const parts: Array<{ v: number; label: string }> = [];
-      if (days > 0) parts.push({ v: days, label: days === 1 ? "dia" : "dias" });
-      parts.push({ v: hours, label: hours === 1 ? "hora" : "horas" });
-      parts.push({ v: minutes, label: "min" });
       const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
       const align = block.align ?? "center";
       const label = escape(block.label || "Lote atual encerra em");
       const deadlineLabel = deadline.toLocaleString("pt-BR", {
         day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
       });
+      const size = block.size || "large";
+
+      // minimal — 1 linha compacta
+      if (size === "minimal") {
+        const inline = `${days > 0 ? `${days}d ` : ""}${hours}h ${minutes.toString().padStart(2, "0")}m`;
+        return `<tr><td align="${align}" style="padding:8px 32px;text-align:${align};">
+          <div style="display:inline-block;padding:10px 16px;background:${bg};border-radius:999px;color:#ffffff;font-size:13px;font-weight:800;letter-spacing:0.02em;">⏰ ${label}: ${inline} <span style="opacity:0.85;font-weight:600;">(até ${escape(deadlineLabel)})</span></div>
+        </td></tr>`;
+      }
+
+      // medium — 2 caixas (dias + horas)
+      if (size === "medium") {
+        const parts = [
+          { v: days, label: days === 1 ? "dia" : "dias" },
+          { v: hours, label: hours === 1 ? "hora" : "horas" },
+        ];
+        const boxes = parts.map((p) =>
+          `<td style="padding:0 6px;"><div style="min-width:80px;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
+            <div style="color:#ffffff;font-size:22px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
+            <div style="color:#ffffff;opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>
+          </div></td>`
+        ).join("");
+        return `<tr><td style="padding:8px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:14px;">
+            <tr><td align="${align}" style="padding:14px 12px;text-align:${align};">
+              <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">${label}</div>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
+              <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:8px;">até ${escape(deadlineLabel)}</div>
+            </td></tr>
+          </table>
+        </td></tr>`;
+      }
+
+      // large — comportamento original (dias/horas/min)
+      const parts: Array<{ v: number; label: string }> = [];
+      if (days > 0) parts.push({ v: days, label: days === 1 ? "dia" : "dias" });
+      parts.push({ v: hours, label: hours === 1 ? "hora" : "horas" });
+      parts.push({ v: minutes, label: "min" });
       const boxes = parts.map((p) =>
         `<td style="padding:0 6px;"><div style="min-width:64px;padding:12px 10px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
           <div style="color:#ffffff;font-size:26px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
@@ -446,6 +479,85 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         </table>
       </td></tr>`;
     }
+
+    case "ticker": {
+      const msgs = (block.messages && block.messages.length > 0
+        ? block.messages
+        : ["Últimas horas", "Ingressos limitados", "Restam poucos"]
+      ).slice(0, 3).map((m) => escape(m));
+      const bg = escape(block.bg_color || primary);
+      const color = escape(block.text_color || "#ffffff");
+      const align = block.align ?? "center";
+      const anim = block.animation || "fade";
+      const iconMap: Record<string, string> = { none: "", clock: "⏰ ", fire: "🔥 ", bolt: "⚡ " };
+      const icon = iconMap[block.icon || "clock"] ?? "⏰ ";
+
+      // Fallback estático universal + camada animada via CSS (progressive enhancement).
+      // Gmail/Outlook mostram só a 1ª mensagem; Apple Mail/iOS animam.
+      const staticLine = msgs.join(" · ");
+      const animatedSpans = anim === "fade"
+        ? msgs.map((m, i) => `<span class="tk tk${i}">${icon}${m}</span>`).join("")
+        : anim === "slide"
+        ? `<span class="tk-slide">${msgs.map((m) => `${icon}${m}`).join("  ·  ")}</span>`
+        : `<span>${icon}${staticLine}</span>`;
+
+      const keyframes = anim === "fade" && msgs.length > 1
+        ? `<style>@media screen{
+          .ticker-anim .tk{display:none;}
+          .ticker-anim .tk0{display:inline;animation:tkf 9s infinite;}
+          ${msgs.length >= 2 ? ".ticker-anim .tk1{display:inline;animation:tkf 9s infinite -3s;}" : ""}
+          ${msgs.length >= 3 ? ".ticker-anim .tk2{display:inline;animation:tkf 9s infinite -6s;}" : ""}
+          @keyframes tkf{0%,25%{opacity:1}33%,92%{opacity:0}100%{opacity:1}}
+        }</style>`
+        : anim === "slide"
+        ? `<style>@media screen{.ticker-anim .tk-slide{display:inline-block;animation:tks 18s linear infinite;}@keyframes tks{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}}</style>`
+        : "";
+
+      return `${keyframes}<tr><td align="${align}" style="padding:0 32px;">
+        <div class="ticker-anim" style="background:${bg};color:${color};padding:10px 16px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;text-align:${align};overflow:hidden;white-space:nowrap;">
+          <!--[if mso]>${icon}${escape(msgs[0])}<![endif]-->
+          <!--[if !mso]><!-->${animatedSpans}<!--<![endif]-->
+        </div>
+      </td></tr>`;
+    }
+
+    case "static_map": {
+      const lat = event.venueLat;
+      const lng = event.venueLng;
+      if (typeof lat !== "number" || typeof lng !== "number") {
+        // Sem coordenadas cadastradas — bloco não aparece
+        if (!ctx.preview) return "";
+        // Em preview, mostra placeholder informativo
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            🗺️ Mapa aparecerá aqui quando o evento tiver <strong style="color:#fff;">coordenadas do venue</strong> (latitude/longitude) preenchidas.
+          </div>
+        </td></tr>`;
+      }
+      const zoom = Math.max(12, Math.min(19, block.zoom ?? 15));
+      const height = Math.max(200, Math.min(400, block.height ?? 300));
+      const style = block.map_style || "roadmap";
+      const radius = block.border_radius ?? 12;
+      const showLabel = block.show_address_label !== false;
+
+      // URL do proxy — funciona em qualquer client de e-mail (sem referrer)
+      const projectId = (typeof import.meta !== "undefined" && (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID) || "xfvpuzlspvvsmmunznxw";
+      const mapSrc = `https://${projectId}.supabase.co/functions/v1/render-static-map?lat=${lat}&lng=${lng}&zoom=${zoom}&w=600&h=${height}&style=${style}`;
+      const mapsDeepLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      const label = showLabel
+        ? `<div style="padding:10px 14px;color:#a1a1aa;font-size:13px;line-height:1.4;text-align:center;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);">
+            <strong style="color:#ffffff;">${escape(event.venueName)}</strong> · ${escape(event.cityState)}<br>
+            <span style="color:${primary};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">Toque para abrir no mapa →</span>
+          </div>`
+        : "";
+      return `<tr><td style="padding:8px 32px;">
+        <a href="${escape(mapsDeepLink)}" style="text-decoration:none;display:block;border-radius:${radius}px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
+          <img src="${escape(mapSrc)}" alt="Mapa de ${escape(event.venueName)}" width="600" height="${height}" border="0" style="display:block;width:100%;max-width:100%;height:auto;">
+          ${label}
+        </a>
+      </td></tr>`;
+    }
+
 
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
