@@ -51,14 +51,21 @@ interface Props {
 const defaultForKind = (kind: Block["kind"]): Block => {
   const id = newBlockId();
   switch (kind) {
-    case "header": return { id, kind, logo_height: 64 };
-    case "eyebrow": return { id, kind, text: "Novo evento" };
-    case "cta_button": return { id, kind, label: "Garantir ingresso", url_field: "ticket_link" };
-    case "secondary_link": return { id, kind, label: "Ver agenda completa", url_field: "agenda_url" };
-    case "image_with_link": return { id, kind, image_url: "", link_url: "", alt: "", max_width: 552 };
-    case "text": return { id, kind, html: "<p>Texto livre — suporta HTML básico.</p>" };
+    case "header": return { id, kind, logo_height: 64, align: "center", padding_y: 32 };
+    case "hero_image": return { id, kind, max_width: 552, border_radius: 12 };
+    case "eyebrow": return { id, kind, text: "Novo evento", align: "left" };
+    case "title": return { id, kind, align: "left", font_size: 28 };
+    case "subtitle": return { id, kind, align: "left" };
+    case "event_meta": return { id, kind, layout: "columns" };
+    case "description": return { id, kind, align: "left" };
+    case "article_summary": return { id, kind, show_image: true };
+    case "cta_button": return { id, kind, label: "Garantir ingresso", url_field: "ticket_link", align: "center", full_width: true, bg_style: "gradient" };
+    case "secondary_link": return { id, kind, label: "Ver agenda completa", url_field: "agenda_url", align: "center" };
+    case "image_with_link": return { id, kind, image_url: "", link_url: "", alt: "", max_width: 552, align: "center", border_radius: 8 };
+    case "divider": return { id, kind, thickness: 1 };
+    case "text": return { id, kind, html: "<p>Texto livre — suporta HTML básico.</p>", align: "left" };
     case "social_icons": return {
-      id, kind, networks: [
+      id, kind, style: "text", align: "center", networks: [
         { id: "instagram", label: "Instagram", url: "", enabled: true },
         { id: "youtube", label: "YouTube", url: "", enabled: true },
         { id: "tiktok", label: "TikTok", url: "", enabled: false },
@@ -67,10 +74,49 @@ const defaultForKind = (kind: Block["kind"]): Block => {
         { id: "linktree", label: "Linktree", url: "", enabled: false },
       ],
     };
-    case "footer": return { id, kind, include_unsubscribe: true };
+    case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
 };
+
+// Controle reutilizável de alinhamento (esq/centro/dir)
+function AlignControl({ value, onChange }: { value?: "left" | "center" | "right"; onChange: (v: "left" | "center" | "right") => void }) {
+  return (
+    <div>
+      <Label className="text-xs">Alinhamento</Label>
+      <Select value={value || "left"} onValueChange={(v) => onChange(v as any)}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="left">Esquerda</SelectItem>
+          <SelectItem value="center">Centro</SelectItem>
+          <SelectItem value="right">Direita</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function ColorControl({ label, value, onChange, placeholder }: { label: string; value?: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ffffff"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-14 rounded border cursor-pointer bg-transparent"
+        />
+        <Input
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || "auto"}
+          className="font-mono text-xs h-9"
+        />
+      </div>
+    </div>
+  );
+}
 
 function SortableRow({ block, active, onSelect, onRemove, onDuplicate }: {
   block: Block; active: boolean; onSelect: () => void;
