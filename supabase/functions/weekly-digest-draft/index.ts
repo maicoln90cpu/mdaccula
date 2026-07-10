@@ -265,7 +265,7 @@ Deno.serve(async (req) => {
     const todayIso = now.toISOString().slice(0, 10);
     const in7Iso = in7.toISOString().slice(0, 10);
 
-    const [{ data: events }, { data: posts }, { data: tplSettings }] = await Promise.all([
+    const [{ data: events }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
       admin.from('events')
         .select('id,title,slug,date,time,venue,location_city,location_state,image_url,ticket_link,status')
         .eq('status', 'active')
@@ -279,6 +279,13 @@ Deno.serve(async (req) => {
         .order('published_at', { ascending: false, nullsFirst: false })
         .limit(3),
       admin.from('email_template_settings').select('*').maybeSingle(),
+      (admin.from as any)('email_templates')
+        .select('id,name,type,blocks,is_default')
+        .in('type', ['weekly_digest', 'weekly_digest_editorial'])
+        .order('is_default', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     const evs = (events ?? []) as EventRow[];
@@ -286,7 +293,73 @@ Deno.serve(async (req) => {
     const settings = (tplSettings ?? {}) as BrandSettings;
 
     const rangeLabel = `${now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → ${in7.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
-    const html = renderDigestHtml(evs, pts, settings, rangeLabel);
+
+    // Tenta renderizar via template ativo (blocos). Se falhar por qualquer motivo, cai no HTML legado.
+    let html = '';
+    let renderSource: 'template' | 'legacy' = 'legacy';
+    const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
+
+    if (tplBlocks && tplBlocks.length > 0) {
+      try {
+        const first = evs[0];
+        const weekendEvents: WeekendEventItem[] = evs.map((e) => ({
+          id: e.id,
+          title: e.title,
+          dayLabel: formatDatePt(e.date, e.time),
+          timeLabel: (e.time || '').slice(0, 5) || '22h',
+          venue: e.venue,
+          cityState: `${e.location_city}-${e.location_state}`,
+          imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
+          eventUrl: `${SITE_URL}/eventos/${e.slug}`,
+          ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
+        }));
+        const blogPosts: BlogPostItem[] = pts.map((p) => ({
+          id: p.id,
+          title: p.title,
+          excerpt: p.excerpt ?? undefined,
+          imageUrl: p.image_url ?? undefined,
+          url: `${SITE_URL}/blog/${p.slug}`,
+        }));
+
+        const eventPayload: EventAnnouncementData = {
+          eventTitle: first?.title || 'O que rola na semana',
+          eventSubtitle: `Resumo semanal · ${rangeLabel}`,
+          flyerUrl: first?.image_url || (settings as any).logo_url || `${SITE_URL}/placeholder.svg`,
+          dateLabel: rangeLabel,
+          timeLabel: first ? ((first.time || '').slice(0, 5) || '22h') : '',
+          venueName: first?.venue || 'Cuiabá',
+          cityState: first ? `${first.location_city}-${first.location_state}` : 'Cuiabá-MT',
+          description: 'Os destaques da agenda e do blog nos próximos dias em Cuiabá.',
+          ticketUrl: first ? (first.ticket_link || `${SITE_URL}/eventos/${first.slug}`) : `${SITE_URL}/eventos`,
+          eventUrl: first ? `${SITE_URL}/eventos/${first.slug}` : `${SITE_URL}/eventos`,
+          agendaUrl: `${SITE_URL}/eventos`,
+          instagramUrl: (settings as any).instagram_url || '',
+          youtubeUrl: (settings as any).youtube_url || '',
+          tiktokUrl: (settings as any).tiktok_url || '',
+          unsubscribeUrl: '[E-GOI_UNSUBSCRIBE_LINK]',
+          weekendEvents,
+          blogPosts,
+        };
+
+        html = renderBlockedTemplate(
+          tplBlocks,
+          eventPayload,
+          settings as EmailTemplateSettings,
+          null,
+          { preview: false },
+        );
+        renderSource = 'template';
+      } catch (err) {
+        console.error('[weekly-digest-draft] template render failed, using legacy HTML:', err);
+        html = '';
+      }
+    }
+
+    if (!html) {
+      html = renderDigestHtml(evs, pts, settings, rangeLabel);
+      renderSource = 'legacy';
+    }
+
     const subject = `📬 MDAccula desta semana — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} no radar`;
     const internalName = `MDAccula • Digest semanal • ${todayIso}`;
 
@@ -300,8 +373,12 @@ Deno.serve(async (req) => {
         events_count: evs.length,
         posts_count: pts.length,
         range: rangeLabel,
+        render_source: renderSource,
+        template_id: (activeTpl as any)?.id ?? null,
+        template_name: (activeTpl as any)?.name ?? null,
       });
     }
+
 
 
     const createPayload: Record<string, unknown> = {
