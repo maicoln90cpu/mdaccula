@@ -350,8 +350,8 @@ Deno.serve(async (req) => {
         }));
 
         const eventPayload: EventAnnouncementData = {
-          eventTitle: first?.title || 'O que rola na semana',
-          eventSubtitle: `Resumo semanal · ${rangeLabel}`,
+          eventTitle: first?.title || (range === 'weekend' ? 'Agenda do fim de semana' : 'O que rola na semana'),
+          eventSubtitle: `${digestLabel} · ${rangeLabel}`,
           flyerUrl: first?.image_url || (settings as any).logo_url || `${SITE_URL}/placeholder.svg`,
           dateLabel: rangeLabel,
           timeLabel: first ? ((first.time || '').slice(0, 5) || '22h') : '',
