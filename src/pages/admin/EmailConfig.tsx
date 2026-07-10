@@ -1453,6 +1453,70 @@ const EmailConfig = () => {
           </Card>
         </TabsContent>
 
+        {/* ================= B.11 — DIGEST SEMANAL ================= */}
+        <TabsContent value="digest" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Digest semanal — resumo automático</CardTitle>
+              <CardDescription>
+                Toda <b>quinta-feira às 18h de Cuiabá</b>, um rascunho é criado automaticamente na E-goi com a agenda dos próximos 7 dias e as matérias mais recentes do blog. O e-mail <b>não é enviado</b> automaticamente — você revisa e envia dentro da E-goi.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!masterEnabled && (
+                <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+                  <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>Master switch está OFF — nenhum rascunho será criado. Ligue em "Configuração" antes.</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                <div>
+                  <div className="text-sm font-medium">Cron automático (quinta 18h BRT)</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Quando ligado, o banco de dados chama a função <code>weekly-digest-draft</code> semanalmente.
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant={digestEnabled ? "default" : "secondary"}>{digestEnabled ? "ON" : "OFF"}</Badge>
+                  <Switch checked={digestEnabled} onCheckedChange={toggleDigestEnabled} />
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-border p-4 space-y-3">
+                <div>
+                  <div className="text-sm font-medium">Gerar rascunho agora</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Cria imediatamente um rascunho na E-goi usando os próximos 7 dias, sem depender do cron. Útil para testar ou disparar fora da quinta.
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  onClick={generateDigestNow}
+                  disabled={!masterEnabled || digestGenerating}
+                >
+                  {digestGenerating ? (
+                    <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Gerando…</>
+                  ) : (
+                    <><Mail className="w-4 h-4 mr-2" /> Gerar rascunho agora</>
+                  )}
+                </Button>
+                {digestLastResult && (
+                  <div className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 rounded-md p-3">
+                    <div><b>Rascunho criado.</b> Campanha #{digestLastResult.egoi_campaign_id || "—"}</div>
+                    <div>Período: {digestLastResult.range} · {digestLastResult.events_count} evento(s) · {digestLastResult.posts_count} matéria(s)</div>
+                    <div className="mt-1">Abra o painel da E-goi para revisar e enviar.</div>
+                  </div>
+                )}
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                O layout do digest é fixo (agenda + blog + CTA para a agenda completa) e usa as cores/logo do <b>Template (marca)</b>. Personalização por blocos virá em uma onda futura.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* ================= HISTÓRICO ================= */}
         <TabsContent value="history" className="space-y-4">
           {/* B.6.1 — Eventos sem campanha (importados via CSV/script) */}
