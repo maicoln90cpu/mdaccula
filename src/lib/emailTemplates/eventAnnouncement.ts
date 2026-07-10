@@ -30,6 +30,10 @@ export interface EventAnnouncementData {
   eventStartIso?: string;
   /** Deadline explícito para countdown (ISO). Ex.: virada de lote às 23:59 SP. */
   ticketBatchDeadlineIso?: string;
+  /** Latitude do venue — usada pelo bloco `static_map`. */
+  venueLat?: number;
+  /** Longitude do venue — usada pelo bloco `static_map`. */
+  venueLng?: number;
 }
 
 export interface EmailTemplateSettings {
