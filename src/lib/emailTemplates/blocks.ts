@@ -553,9 +553,9 @@ export function buildPresetBlocks(
   type: "event_new" | "ticket_batch" | "weekly_digest",
 ): Block[] {
   const defaultSocials: SocialNetwork[] = [
-    { id: "instagram", label: "Instagram", url: "", enabled: true },
-    { id: "youtube", label: "YouTube", url: "", enabled: true },
-    { id: "tiktok", label: "TikTok", url: "", enabled: false },
+    { id: "instagram", label: "Instagram", url: "https://instagram.com/mdaccula", enabled: true },
+    { id: "youtube", label: "YouTube", url: "https://youtube.com/@mdaccula", enabled: true },
+    { id: "tiktok", label: "TikTok", url: "https://tiktok.com/@mdaccula", enabled: false },
     { id: "soundcloud", label: "SoundCloud", url: "", enabled: false },
     { id: "spotify", label: "Spotify", url: "", enabled: false },
     { id: "linktree", label: "Linktree", url: "", enabled: false },
