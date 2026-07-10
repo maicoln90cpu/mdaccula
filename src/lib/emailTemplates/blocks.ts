@@ -864,6 +864,7 @@ export type PresetKey =
   | "event_new"
   | "ticket_batch"
   | "weekly_digest"
+  | "weekly_digest_poster"
   | "weekend_agenda_cartaz"
   | "weekend_agenda_timeline";
 
