@@ -35,7 +35,7 @@ export interface CustomLink {
   override_date?: string | null;
   override_time?: string | null;
   manual_order_override?: boolean;
-  events?: LinkEvent | null;
+  events?: (LinkEvent & { end_date?: string | null }) | null;
 }
 
 export interface LinkGroup {
@@ -70,18 +70,29 @@ const setCachedLinks = (data: LinkGroup[]) => {
   } catch {}
 };
 
-const processLinks = (
+export const processLinks = (
   links: RawLinkData[],
   settings: TimezoneSettings = {}
 ): CustomLink[] => {
   return links
     .map((link) => {
-      const eventDate = link.events?.date || link.override_date;
-      const eventTime = link.events?.time || link.override_time || null;
+      // Se o link tem override_date, ele representa uma data específica
+      // (ex.: festival com 1 link por dia) → override manda no cálculo de visibilidade.
+      // Sem override, usamos os campos do evento (incluindo end_date para multi-dia).
+      const useOverride = !!link.override_date;
+      const effectiveDate = useOverride
+        ? link.override_date
+        : (link.events?.date ?? null);
+      const effectiveTime = useOverride
+        ? (link.override_time ?? null)
+        : (link.events?.time ?? null);
+      const effectiveEndDate = useOverride
+        ? null
+        : ((link.events as { end_date?: string | null } | null)?.end_date ?? null);
 
-      if (eventDate) {
+      if (effectiveDate) {
         const isVisible = isEventVisible(
-          { date: eventDate, time: eventTime },
+          { date: effectiveDate, end_date: effectiveEndDate, time: effectiveTime },
           settings
         );
         if (!isVisible) {
@@ -105,7 +116,7 @@ const fetchLinksData = async (visibilitySettings: TimezoneSettings): Promise<Lin
         group_id, event_id, override_date, override_time, manual_order_override,
         is_internal, clicks,
         events:event_id (
-          venue, location_city, location_state, date, time, image_url
+          venue, location_city, location_state, date, end_date, time, image_url
         )
       )
     `)
@@ -119,9 +130,83 @@ const fetchLinksData = async (visibilitySettings: TimezoneSettings): Promise<Lin
     custom_links: processLinks(group.custom_links || [], visibilitySettings),
   })) || [];
 
-  setCachedLinks(result);
-  return result;
+  const sorted = sortLinkGroups(result);
+  setCachedLinks(sorted);
+  return sorted;
 };
+
+/**
+ * Ordenação de grupos em 3 blocos:
+ *   A) Fixos no topo: Redes Sociais → Navegação (ordem do display_order manual)
+ *   B) Meses (JAN/25 … DEZ/26 …) em ordem cronológica automática pelo nome
+ *   C) Temáticos manuais (LITORAL SP, GREEN VALLEY, DEDGE SP, REVEILLON, …)
+ *
+ * Motivo: display_order tem duas convenções misturadas (0..N legado e AAAAMM).
+ * Ordenar pelo nome de mês elimina o problema e libera o usuário de mexer no
+ * display_order de grupos mensais.
+ */
+const MONTH_MAP: Record<string, number> = {
+  JAN: 1, FEV: 2, MAR: 3, ABR: 4, MAI: 5, JUN: 6,
+  JUL: 7, AGO: 8, SET: 9, OUT: 10, NOV: 11, DEZ: 12,
+};
+
+const parseMonthGroup = (name: string): number | null => {
+  const normalized = (name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+  // Aceita "JAN/26", "JANEIRO/26", "JAN/2026", etc.
+  const m = normalized.match(/^([A-Z]{3,})\s*\/\s*(\d{2,4})\b/);
+  if (!m) return null;
+  const prefix = m[1].slice(0, 3);
+  const month = MONTH_MAP[prefix];
+  if (!month) return null;
+  let year = parseInt(m[2], 10);
+  if (year < 100) year += 2000;
+  return year * 100 + month; // AAAAMM
+};
+
+const isPinnedName = (name: string): number | null => {
+  const n = (name || '').trim().toLowerCase();
+  if (n === 'redes sociais') return 0;
+  if (n === 'navegação' || n === 'navegacao') return 1;
+  return null;
+};
+
+export const sortLinkGroups = <T extends { name: string; display_order: number | null }>(
+  groups: T[],
+): T[] => {
+  const pinned: T[] = [];
+  const months: Array<{ g: T; key: number }> = [];
+  const themed: T[] = [];
+
+  for (const g of groups) {
+    const pin = isPinnedName(g.name);
+    if (pin !== null) {
+      pinned.push(g);
+      continue;
+    }
+    const monthKey = parseMonthGroup(g.name);
+    if (monthKey !== null) {
+      months.push({ g, key: monthKey });
+      continue;
+    }
+    themed.push(g);
+  }
+
+  pinned.sort((a, b) => {
+    const pa = isPinnedName(a.name) ?? 99;
+    const pb = isPinnedName(b.name) ?? 99;
+    if (pa !== pb) return pa - pb;
+    return (a.display_order ?? 0) - (b.display_order ?? 0);
+  });
+  months.sort((a, b) => a.key - b.key);
+  themed.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+  return [...pinned, ...months.map((m) => m.g), ...themed];
+};
+
 
 export const useLinks = (options: UseLinksOptions = {}) => {
   const {
