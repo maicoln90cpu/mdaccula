@@ -24,6 +24,12 @@ export interface EventAnnouncementData {
   youtubeUrl: string;
   tiktokUrl: string;
   unsubscribeUrl: string;
+  /** Line-up do evento (artistas). Usado pelo bloco `lineup`. */
+  lineup?: string[];
+  /** Data/hora ISO do evento (usada pelo bloco `countdown` para virada de lote). */
+  eventStartIso?: string;
+  /** Deadline explícito para countdown (ISO). Ex.: virada de lote às 23:59 SP. */
+  ticketBatchDeadlineIso?: string;
 }
 
 export interface EmailTemplateSettings {
