@@ -70,7 +70,7 @@ const setCachedLinks = (data: LinkGroup[]) => {
   } catch {}
 };
 
-const processLinks = (
+export const processLinks = (
   links: RawLinkData[],
   settings: TimezoneSettings = {}
 ): CustomLink[] => {
