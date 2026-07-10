@@ -1431,7 +1431,9 @@ const EmailConfig = () => {
                 )}
               </div>
 
-                <div className="space-y-3">
+              <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+                <div className={`space-y-3 ${previewSource === "digest" ? "opacity-60 pointer-events-none" : ""}`}>
+
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
                     <Label className="text-xs">Simular com evento real</Label>
                     <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
