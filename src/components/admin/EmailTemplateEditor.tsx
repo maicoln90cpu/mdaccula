@@ -410,7 +410,7 @@ export function EmailTemplateEditor({
             <div className="overflow-x-auto rounded border bg-[#050505] p-2">
               <iframe
                 title="preview"
-                srcDoc={previewHtml}
+                srcDoc={overrideHtml || previewHtml}
                 width={600}
                 className="block mx-auto h-[900px] bg-white"
                 style={{ width: 600, minWidth: 600, border: 0 }}
