@@ -1102,12 +1102,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
-    <lastmod>2026-07-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ahdo67</loc>
     <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
@@ -1128,6 +1122,12 @@
   <url>
     <loc>https://mdaccula.com/eventos/pistinha2103</loc>
     <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1162,8 +1162,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/up2026</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/mp190926</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1192,8 +1192,8 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/mp190926</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/up2026</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1690,14 +1690,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/parador050926p</loc>
-    <lastmod>2026-07-07</lastmod>
+    <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/parador050926p</loc>
+    <lastmod>2026-07-07</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
