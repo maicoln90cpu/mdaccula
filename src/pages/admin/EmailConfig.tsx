@@ -1563,7 +1563,7 @@ const EmailConfig = () => {
                     >
                       <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                        {/* Removida a opção "— Padrão (is_default) —": era ambígua. O template default aparece com "· padrão" no rótulo. */}
                         {digestTemplateOptions.map((t) => (
                           <SelectItem key={t.id} value={t.id!}>
                             {t.name} {t.is_default ? "· padrão" : ""}
