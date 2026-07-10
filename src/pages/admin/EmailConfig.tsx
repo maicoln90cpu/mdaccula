@@ -1896,10 +1896,12 @@ const EmailConfig = () => {
                 <div>
                   <Label className="text-xs">Template padrão</Label>
                   <Select
-                    value={weeklyCfg.templateId || "__default__"}
-                    onValueChange={(v) =>
-                      setWeeklyCfg({ ...weeklyCfg, templateId: v === "__default__" ? "" : v })
+                    value={
+                      weeklyCfg.templateId ||
+                      templates.find((t) => (t.type === "weekly_digest" || t.type === "weekly_digest_editorial") && t.is_default)?.id ||
+                      ""
                     }
+                    onValueChange={(v) => setWeeklyCfg({ ...weeklyCfg, templateId: v })}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
