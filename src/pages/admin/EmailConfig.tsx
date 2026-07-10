@@ -353,10 +353,18 @@ const EmailConfig = () => {
   const [batchSubject, setBatchSubject] = useState<string>("");
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
-  // B.11 — Digest semanal
-  const [digestEnabled, setDigestEnabled] = useState(false);
+  // Automações (Digest semanal + Agenda FDS)
+  type AutomationCfg = { enabled: boolean; day: number; hour: number; templateId: string };
+  const [weeklyCfg, setWeeklyCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 18, templateId: "" });
+  const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 12, templateId: "" });
+  const [savingWeekly, setSavingWeekly] = useState(false);
+  const [savingWeekend, setSavingWeekend] = useState(false);
   const [digestGenerating, setDigestGenerating] = useState(false);
+  const [weekendGenerating, setWeekendGenerating] = useState(false);
   const [digestLastResult, setDigestLastResult] = useState<{
+    egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+  } | null>(null);
+  const [weekendLastResult, setWeekendLastResult] = useState<{
     egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
   } | null>(null);
 
@@ -392,11 +400,31 @@ const EmailConfig = () => {
           .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup,venue_lat,venue_lng")
           .order("date", { ascending: false })
           .limit(30),
-        supabase.from("site_settings").select("value").eq("key", "weekly_digest_enabled").maybeSingle(),
+        supabase.from("site_settings").select("key, value").in("key", [
+          "weekly_digest_enabled", "weekly_digest_cron_day", "weekly_digest_cron_hour", "weekly_digest_template_id",
+          "weekend_agenda_enabled", "weekend_agenda_cron_day", "weekend_agenda_cron_hour", "weekend_agenda_template_id",
+        ]),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
-      setDigestEnabled(digestRow.data?.value === "true");
+      const settingsMap: Record<string, string> = {};
+      for (const r of ((digestRow.data as any[]) ?? [])) settingsMap[r.key] = r.value ?? "";
+      const parseInt10 = (v: string | undefined, fallback: number) => {
+        const n = parseInt(v ?? "", 10);
+        return Number.isFinite(n) ? n : fallback;
+      };
+      setWeeklyCfg({
+        enabled: settingsMap.weekly_digest_enabled === "true",
+        day: parseInt10(settingsMap.weekly_digest_cron_day, 4),
+        hour: parseInt10(settingsMap.weekly_digest_cron_hour, 18),
+        templateId: settingsMap.weekly_digest_template_id || "",
+      });
+      setWeekendCfg({
+        enabled: settingsMap.weekend_agenda_enabled === "true",
+        day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
+        hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
+        templateId: settingsMap.weekend_agenda_template_id || "",
+      });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
         setLists(Array.isArray(cacheRes.data.lists) ? cacheRes.data.lists : []);
@@ -635,22 +663,68 @@ const EmailConfig = () => {
     }
   };
 
-  // B.11 — Digest semanal
-  const toggleDigestEnabled = async (v: boolean) => {
-    try {
+  // Automações — helpers
+  const DAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+  const upsertSettings = async (rows: Array<{ key: string; value: string }>) => {
+    for (const r of rows) {
       const { error } = await supabase
         .from("site_settings")
-        .upsert({ key: "weekly_digest_enabled", value: v ? "true" : "false" }, { onConflict: "key" });
+        .upsert({ key: r.key, value: r.value }, { onConflict: "key" });
       if (error) throw error;
-      setDigestEnabled(v);
+    }
+  };
+
+  const saveAutomation = async (
+    job: "weekly_digest" | "weekend_agenda",
+    cfg: AutomationCfg,
+  ) => {
+    const prefix = job;
+    await upsertSettings([
+      { key: `${prefix}_enabled`, value: cfg.enabled ? "true" : "false" },
+      { key: `${prefix}_cron_day`, value: String(cfg.day) },
+      { key: `${prefix}_cron_hour`, value: String(cfg.hour) },
+      { key: `${prefix}_template_id`, value: cfg.templateId || "" },
+    ]);
+    const { data, error } = await supabase.functions.invoke("update-digest-schedule", {
+      body: { job },
+    });
+    if (error) throw error;
+    if ((data as any)?.error) throw new Error((data as any).error);
+    return data;
+  };
+
+  const handleSaveWeekly = async () => {
+    setSavingWeekly(true);
+    try {
+      await saveAutomation("weekly_digest", weeklyCfg);
       toast({
-        title: v ? "Digest semanal ligado" : "Digest semanal desligado",
-        description: v
-          ? "Toda quinta-feira às 18h (Cuiabá) um rascunho será criado automaticamente na E-goi."
-          : "O cron semanal não criará mais rascunhos.",
+        title: weeklyCfg.enabled ? "Digest semanal agendado" : "Digest semanal salvo (desligado)",
+        description: weeklyCfg.enabled
+          ? `Próxima execução: ${DAY_LABELS[weeklyCfg.day]} ${String(weeklyCfg.hour).padStart(2, "0")}:00 BRT.`
+          : "As chaves foram salvas; nenhum cron ativo.",
       });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao alterar toggle", description: e.message });
+      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } finally {
+      setSavingWeekly(false);
+    }
+  };
+
+  const handleSaveWeekend = async () => {
+    setSavingWeekend(true);
+    try {
+      await saveAutomation("weekend_agenda", weekendCfg);
+      toast({
+        title: weekendCfg.enabled ? "Agenda FDS agendada" : "Agenda FDS salva (desligada)",
+        description: weekendCfg.enabled
+          ? `Próxima execução: ${DAY_LABELS[weekendCfg.day]} ${String(weekendCfg.hour).padStart(2, "0")}:00 BRT.`
+          : "As chaves foram salvas; nenhum cron ativo.",
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } finally {
+      setSavingWeekend(false);
     }
   };
 
@@ -689,6 +763,42 @@ const EmailConfig = () => {
       setDigestGenerating(false);
     }
   };
+
+  const generateWeekendNow = async () => {
+    setWeekendGenerating(true);
+    setWeekendLastResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekend-agenda-draft", {
+        body: { force: true },
+      });
+      if (error) throw error;
+      const res = data as {
+        ok?: boolean; skipped?: boolean; reason?: string; error?: string;
+        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          agenda_disabled: "Agenda FDS está desligada — ligue o toggle primeiro.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+        };
+        toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+        return;
+      }
+      if (!res?.ok) throw new Error(res?.error || "Falha ao criar rascunho");
+      setWeekendLastResult(res);
+      toast({
+        title: "Rascunho FDS criado na E-goi",
+        description: `${res.events_count ?? 0} evento(s) no fim de semana.`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao gerar agenda FDS", description: e.message });
+    } finally {
+      setWeekendGenerating(false);
+    }
+  };
+
+
 
 
 
@@ -1010,7 +1120,7 @@ const EmailConfig = () => {
           <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor de blocos</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="batch">Virada de lote</TabsTrigger>
-          <TabsTrigger value="digest">Digest semanal</TabsTrigger>
+          <TabsTrigger value="digest">Automações</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
@@ -1722,67 +1832,218 @@ const EmailConfig = () => {
 
         {/* ================= B.11 — DIGEST SEMANAL ================= */}
         <TabsContent value="digest" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Digest semanal — resumo automático</CardTitle>
-              <CardDescription>
-                Toda <b>quinta-feira às 18h de Cuiabá</b>, um rascunho é criado automaticamente na E-goi com a agenda dos próximos 7 dias e as matérias mais recentes do blog. O e-mail <b>não é enviado</b> automaticamente — você revisa e envia dentro da E-goi.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!masterEnabled && (
-                <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
-                  <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>Master switch está OFF — nenhum rascunho será criado. Ligue em "Configuração" antes.</span>
-                </div>
-              )}
+          {!masterEnabled && (
+            <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+              <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Master switch está OFF — nenhum rascunho será criado. Ligue em "Configuração" antes.</span>
+            </div>
+          )}
 
-              <div className="flex items-center justify-between rounded-lg border border-border p-4">
-                <div>
-                  <div className="text-sm font-medium">Cron automático (quinta 18h BRT)</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Quando ligado, o banco de dados chama a função <code>weekly-digest-draft</code> semanalmente.
+          <div className="grid gap-4 lg:grid-cols-2">
+            {/* Card 1 — Digest semanal */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Digest semanal</span>
+                  <Badge variant={weeklyCfg.enabled ? "default" : "secondary"}>
+                    {weeklyCfg.enabled ? "ON" : "OFF"}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Rascunho automático na E-goi com a agenda dos próximos 7 dias + últimas matérias. Você revisa e envia.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="text-sm">Ativar geração automática</div>
+                  <Switch
+                    checked={weeklyCfg.enabled}
+                    onCheckedChange={(v) => setWeeklyCfg({ ...weeklyCfg, enabled: v })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Dia da semana</Label>
+                    <Select
+                      value={String(weeklyCfg.day)}
+                      onValueChange={(v) => setWeeklyCfg({ ...weeklyCfg, day: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DAY_LABELS.map((d, i) => (
+                          <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Horário (BRT)</Label>
+                    <Select
+                      value={String(weeklyCfg.hour)}
+                      onValueChange={(v) => setWeeklyCfg({ ...weeklyCfg, hour: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, h) => (
+                          <SelectItem key={h} value={String(h)}>{String(h).padStart(2, "0")}:00</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant={digestEnabled ? "default" : "secondary"}>{digestEnabled ? "ON" : "OFF"}</Badge>
-                  <Switch checked={digestEnabled} onCheckedChange={toggleDigestEnabled} />
-                </div>
-              </div>
 
-              <div className="rounded-lg border border-border p-4 space-y-3">
                 <div>
-                  <div className="text-sm font-medium">Gerar rascunho agora</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Cria imediatamente um rascunho na E-goi usando os próximos 7 dias, sem depender do cron. Útil para testar ou disparar fora da quinta.
-                  </div>
+                  <Label className="text-xs">Template padrão</Label>
+                  <Select
+                    value={weeklyCfg.templateId || "__default__"}
+                    onValueChange={(v) =>
+                      setWeeklyCfg({ ...weeklyCfg, templateId: v === "__default__" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                      {templates
+                        .filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial")
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name}{t.is_default ? " · padrão" : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={generateDigestNow}
-                  disabled={!masterEnabled || digestGenerating}
-                >
-                  {digestGenerating ? (
-                    <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Gerando…</>
-                  ) : (
-                    <><Mail className="w-4 h-4 mr-2" /> Gerar rascunho agora</>
-                  )}
-                </Button>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleSaveWeekly} disabled={savingWeekly}>
+                    {savingWeekly ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Salvando…</> : <><Save className="w-4 h-4 mr-2" />Salvar agendamento</>}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={generateDigestNow} disabled={!masterEnabled || digestGenerating}>
+                    {digestGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
+                  </Button>
+                </div>
+
+                {weeklyCfg.enabled && (
+                  <div className="text-xs text-muted-foreground">
+                    Próxima execução: <b>{DAY_LABELS[weeklyCfg.day]} {String(weeklyCfg.hour).padStart(2, "0")}:00 BRT</b>.
+                  </div>
+                )}
+
                 {digestLastResult && (
                   <div className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 rounded-md p-3">
                     <div><b>Rascunho criado.</b> Campanha #{digestLastResult.egoi_campaign_id || "—"}</div>
                     <div>Período: {digestLastResult.range} · {digestLastResult.events_count} evento(s) · {digestLastResult.posts_count} matéria(s)</div>
-                    <div className="mt-1">Abra o painel da E-goi para revisar e enviar.</div>
                   </div>
                 )}
-              </div>
+              </CardContent>
+            </Card>
 
-              <p className="text-xs text-muted-foreground">
-                O layout do digest é fixo (agenda + blog + CTA para a agenda completa) e usa as cores/logo do <b>Template (marca)</b>. Personalização por blocos virá em uma onda futura.
-              </p>
-            </CardContent>
-          </Card>
+            {/* Card 2 — Agenda FDS */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Agenda do FDS</span>
+                  <Badge variant={weekendCfg.enabled ? "default" : "secondary"}>
+                    {weekendCfg.enabled ? "ON" : "OFF"}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Rascunho automático com os eventos da próxima sexta, sábado e domingo. Ideal disparar antes do fim de semana.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="text-sm">Ativar geração automática</div>
+                  <Switch
+                    checked={weekendCfg.enabled}
+                    onCheckedChange={(v) => setWeekendCfg({ ...weekendCfg, enabled: v })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Dia da semana</Label>
+                    <Select
+                      value={String(weekendCfg.day)}
+                      onValueChange={(v) => setWeekendCfg({ ...weekendCfg, day: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DAY_LABELS.map((d, i) => (
+                          <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Horário (BRT)</Label>
+                    <Select
+                      value={String(weekendCfg.hour)}
+                      onValueChange={(v) => setWeekendCfg({ ...weekendCfg, hour: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, h) => (
+                          <SelectItem key={h} value={String(h)}>{String(h).padStart(2, "0")}:00</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Template padrão</Label>
+                  <Select
+                    value={weekendCfg.templateId || "__default__"}
+                    onValueChange={(v) =>
+                      setWeekendCfg({ ...weekendCfg, templateId: v === "__default__" ? "" : v })
+                    }
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                      {templates
+                        .filter((t) => t.type === "weekend_agenda")
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name}{t.is_default ? " · padrão" : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleSaveWeekend} disabled={savingWeekend}>
+                    {savingWeekend ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Salvando…</> : <><Save className="w-4 h-4 mr-2" />Salvar agendamento</>}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={generateWeekendNow} disabled={!masterEnabled || weekendGenerating}>
+                    {weekendGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
+                  </Button>
+                </div>
+
+                {weekendCfg.enabled && (
+                  <div className="text-xs text-muted-foreground">
+                    Próxima execução: <b>{DAY_LABELS[weekendCfg.day]} {String(weekendCfg.hour).padStart(2, "0")}:00 BRT</b>.
+                  </div>
+                )}
+
+                {weekendLastResult && (
+                  <div className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 rounded-md p-3">
+                    <div><b>Rascunho FDS criado.</b> Campanha #{weekendLastResult.egoi_campaign_id || "—"}</div>
+                    <div>Período: {weekendLastResult.range} · {weekendLastResult.events_count} evento(s)</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Fuso fixo BRT (-3). O sistema converte automaticamente para UTC no <code>pg_cron</code>. O e-mail <b>não é enviado</b> automaticamente — sempre fica como rascunho na E-goi para revisão.
+          </p>
         </TabsContent>
+
 
         {/* ================= HISTÓRICO ================= */}
         <TabsContent value="history" className="space-y-4">
