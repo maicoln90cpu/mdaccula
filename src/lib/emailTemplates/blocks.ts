@@ -906,7 +906,7 @@ export function renderBlockedTemplate(
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,
   article?: ArticleSummary | null,
-  opts?: { preview?: boolean },
+  opts?: { preview?: boolean; globals?: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null },
 ): string {
   const s = {
     brand_name: settings?.brand_name || "MDACCULA",
@@ -924,7 +924,9 @@ export function renderBlockedTemplate(
   const brand = escape(s.brand_name);
   const preheader = `${escape(event.eventTitle)} — ${escape(event.dateLabel)} em ${escape(event.venueName)}, ${escape(event.cityState)}`;
 
-  const rows = blocks.map((b) => renderBlock(b, ctx)).join("\n");
+  // Expande blocos globais antes de renderizar (Fase C - biblioteca de blocos)
+  const resolvedBlocks = opts?.globals ? expandGlobalRefs(blocks, opts.globals) : blocks;
+  const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
   const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
   const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
 
