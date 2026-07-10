@@ -1162,12 +1162,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/mp190926</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/piknic1104</loc>
     <lastmod>2026-06-30</lastmod>
     <changefreq>weekly</changefreq>
@@ -1188,6 +1182,12 @@
   <url>
     <loc>https://mdaccula.com/eventos/heyhoy1104</loc>
     <lastmod>2026-07-09</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/mp190926</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
