@@ -39,6 +39,17 @@ export interface DedgeBlockData {
   primaryUrl?: string;   // botão principal (ex.: todos os eventos Dedge)
   primaryLabel?: string;
 }
+/** Item de matéria/post do blog (bloco `blog_posts_list`). */
+export interface BlogPostItem {
+  id?: string;
+  title: string;
+  excerpt?: string;
+  imageUrl?: string;
+  url: string;
+  publishedLabel?: string; // "há 2 dias" ou "12 mai"
+  category?: string;
+}
+
 
 export interface EventAnnouncementData {
   eventTitle: string;
