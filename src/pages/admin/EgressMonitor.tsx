@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Activity, HardDrive, Gauge, TrendingUp, RefreshCw, ExternalLink, Server, Database, Globe, Users, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Activity, HardDrive, Gauge, TrendingUp, RefreshCw, ExternalLink, Server, Database, Globe, Users, AlertTriangle, Bell } from "lucide-react";
+import { EgressAlertsCard } from "@/components/admin/EgressAlertsCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from "recharts";
 
 // ---------------- Types ----------------
