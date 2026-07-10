@@ -397,6 +397,7 @@ Deno.serve(async (req) => {
           unsubscribeUrl: '[E-GOI_UNSUBSCRIBE_LINK]',
           weekendEvents,
           blogPosts,
+          dedge: dedgePayload,
         };
 
         html = renderBlockedTemplate(
