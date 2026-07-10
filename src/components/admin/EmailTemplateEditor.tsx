@@ -364,6 +364,7 @@ export function EmailTemplateEditor({
                       onSelect={() => setSelectedBlockId(b.id)}
                       onRemove={() => removeBlock(b.id)}
                       onDuplicate={() => duplicateBlock(b.id)}
+                      onToggleHidden={() => updateBlock(b.id, { hidden: !(b as { hidden?: boolean }).hidden } as Partial<Block>)}
                     />
                   ))}
                 </div>
