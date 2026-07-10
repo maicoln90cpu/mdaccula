@@ -93,7 +93,9 @@ export interface RawLinkData {
     location_city: string;
     location_state: string;
     date: string;
+    end_date?: string | null;
     time: string;
+    image_url?: string | null;
   } | null;
 }
 
