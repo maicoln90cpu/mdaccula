@@ -292,13 +292,40 @@ Deno.serve(async (req) => {
 
     if (tplBlocks && tplBlocks.length > 0) {
       try {
-        const first = evs[0];
-        const weekendEvents: WeekendEventItem[] = evs.map((e) => ({
+        // Templates "Cartaz" (1 imagem grande) → agrupar recorrentes (mesmo venue) em 1 card.
+        const tplName = String((activeTpl as any)?.name || '').toLowerCase();
+        const isCartazTemplate = tplName.includes('cartaz');
+
+        const evsForRender = isCartazTemplate
+          ? Object.values(
+              evs.reduce<Record<string, EventRow[]>>((acc, e) => {
+                const key = (e.venue || '').trim().toLowerCase() || e.id;
+                (acc[key] ||= []).push(e);
+                return acc;
+              }, {})
+            ).map((group) => group.sort((a, b) => a.date.localeCompare(b.date)))
+             .map((group) => {
+               if (group.length === 1) return group[0];
+               const head = group[0];
+               const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(' · ');
+               return {
+                 ...head,
+                 title: head.venue,
+                 __joinedDates: joinedDates,
+               } as EventRow & { __joinedDates?: string };
+             })
+             .sort((a, b) => a.date.localeCompare(b.date))
+          : evs;
+
+        const first = evsForRender[0];
+        const weekendEvents: WeekendEventItem[] = evsForRender.map((e) => ({
           id: e.id,
           title: e.title,
-          dayLabel: e.end_date && e.end_date !== e.date
-            ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
-            : formatDatePt(e.date, e.time),
+          dayLabel: (e as any).__joinedDates
+            ? (e as any).__joinedDates
+            : (e.end_date && e.end_date !== e.date
+                ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
+                : formatDatePt(e.date, e.time)),
           timeLabel: (e.time || '').slice(0, 5) || '22h',
           venue: e.venue,
           cityState: `${e.location_city}-${e.location_state}`,
