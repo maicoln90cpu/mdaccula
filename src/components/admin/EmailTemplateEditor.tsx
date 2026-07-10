@@ -51,14 +51,21 @@ interface Props {
 const defaultForKind = (kind: Block["kind"]): Block => {
   const id = newBlockId();
   switch (kind) {
-    case "header": return { id, kind, logo_height: 64 };
-    case "eyebrow": return { id, kind, text: "Novo evento" };
-    case "cta_button": return { id, kind, label: "Garantir ingresso", url_field: "ticket_link" };
-    case "secondary_link": return { id, kind, label: "Ver agenda completa", url_field: "agenda_url" };
-    case "image_with_link": return { id, kind, image_url: "", link_url: "", alt: "", max_width: 552 };
-    case "text": return { id, kind, html: "<p>Texto livre — suporta HTML básico.</p>" };
+    case "header": return { id, kind, logo_height: 64, align: "center", padding_y: 32 };
+    case "hero_image": return { id, kind, max_width: 552, border_radius: 12 };
+    case "eyebrow": return { id, kind, text: "Novo evento", align: "left" };
+    case "title": return { id, kind, align: "left", font_size: 28 };
+    case "subtitle": return { id, kind, align: "left" };
+    case "event_meta": return { id, kind, layout: "columns" };
+    case "description": return { id, kind, align: "left" };
+    case "article_summary": return { id, kind, show_image: true };
+    case "cta_button": return { id, kind, label: "Garantir ingresso", url_field: "ticket_link", align: "center", full_width: true, bg_style: "gradient" };
+    case "secondary_link": return { id, kind, label: "Ver agenda completa", url_field: "agenda_url", align: "center" };
+    case "image_with_link": return { id, kind, image_url: "", link_url: "", alt: "", max_width: 552, align: "center", border_radius: 8 };
+    case "divider": return { id, kind, thickness: 1 };
+    case "text": return { id, kind, html: "<p>Texto livre — suporta HTML básico.</p>", align: "left" };
     case "social_icons": return {
-      id, kind, networks: [
+      id, kind, style: "text", align: "center", networks: [
         { id: "instagram", label: "Instagram", url: "", enabled: true },
         { id: "youtube", label: "YouTube", url: "", enabled: true },
         { id: "tiktok", label: "TikTok", url: "", enabled: false },
@@ -67,10 +74,49 @@ const defaultForKind = (kind: Block["kind"]): Block => {
         { id: "linktree", label: "Linktree", url: "", enabled: false },
       ],
     };
-    case "footer": return { id, kind, include_unsubscribe: true };
+    case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
 };
+
+// Controle reutilizável de alinhamento (esq/centro/dir)
+function AlignControl({ value, onChange }: { value?: "left" | "center" | "right"; onChange: (v: "left" | "center" | "right") => void }) {
+  return (
+    <div>
+      <Label className="text-xs">Alinhamento</Label>
+      <Select value={value || "left"} onValueChange={(v) => onChange(v as any)}>
+        <SelectTrigger><SelectValue /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="left">Esquerda</SelectItem>
+          <SelectItem value="center">Centro</SelectItem>
+          <SelectItem value="right">Direita</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function ColorControl({ label, value, onChange, placeholder }: { label: string; value?: string; onChange: (v: string) => void; placeholder?: string }) {
+  return (
+    <div>
+      <Label className="text-xs">{label}</Label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value && /^#[0-9a-fA-F]{6}$/.test(value) ? value : "#ffffff"}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-14 rounded border cursor-pointer bg-transparent"
+        />
+        <Input
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder || "auto"}
+          className="font-mono text-xs h-9"
+        />
+      </div>
+    </div>
+  );
+}
 
 function SortableRow({ block, active, onSelect, onRemove, onDuplicate }: {
   block: Block; active: boolean; onSelect: () => void;
@@ -365,27 +411,106 @@ export function EmailTemplateEditor({
 // ============================================
 
 function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: Partial<Block>) => void }) {
+  const patch = (p: any) => onChange(p as Partial<Block>);
+
   switch (block.kind) {
     case "header":
       return (
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Altura do logo: {block.logo_height ?? 64}px</Label>
-            <Slider
-              min={32} max={120} step={4}
-              value={[block.logo_height ?? 64]}
-              onValueChange={(v) => onChange({ logo_height: v[0] } as any)}
-            />
+            <Slider min={32} max={120} step={4} value={[block.logo_height ?? 64]} onValueChange={(v) => patch({ logo_height: v[0] })} />
           </div>
+          <div>
+            <Label className="text-xs">Espaçamento superior: {block.padding_y ?? 32}px</Label>
+            <Slider min={0} max={80} step={4} value={[block.padding_y ?? 32]} onValueChange={(v) => patch({ padding_y: v[0] })} />
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
           <p className="text-xs text-muted-foreground">O logo em si é definido na aba "Template (marca)".</p>
+        </div>
+      );
+
+    case "hero_image":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Largura máxima: {block.max_width ?? 552}px</Label>
+            <Slider min={300} max={600} step={20} value={[block.max_width ?? 552]} onValueChange={(v) => patch({ max_width: v[0] })} />
+          </div>
+          <div>
+            <Label className="text-xs">Borda arredondada: {block.border_radius ?? 12}px</Label>
+            <Slider min={0} max={24} step={2} value={[block.border_radius ?? 12]} onValueChange={(v) => patch({ border_radius: v[0] })} />
+          </div>
+          <p className="text-xs text-muted-foreground">A imagem vem do flyer do evento.</p>
         </div>
       );
 
     case "eyebrow":
       return (
-        <div>
-          <Label className="text-xs">Texto</Label>
-          <Input value={block.text || ""} onChange={(e) => onChange({ text: e.target.value } as any)} />
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Texto</Label>
+            <Input value={block.text || ""} onChange={(e) => patch({ text: e.target.value })} />
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <ColorControl label="Cor do texto (deixe vazio para usar a cor primária)" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#a855f7" />
+        </div>
+      );
+
+    case "title":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Tamanho da fonte: {block.font_size ?? 28}px</Label>
+            <Slider min={18} max={48} step={2} value={[block.font_size ?? 28]} onValueChange={(v) => patch({ font_size: v[0] })} />
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <ColorControl label="Cor do texto" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#ffffff" />
+          <p className="text-xs text-muted-foreground">O texto vem do título do evento.</p>
+        </div>
+      );
+
+    case "subtitle":
+      return (
+        <div className="space-y-3">
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <ColorControl label="Cor do texto" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#a1a1aa" />
+          <p className="text-xs text-muted-foreground">O texto vem do subtítulo do evento (some se vazio).</p>
+        </div>
+      );
+
+    case "event_meta":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Layout</Label>
+            <Select value={block.layout || "columns"} onValueChange={(v) => patch({ layout: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="columns">Duas colunas (data | local)</SelectItem>
+                <SelectItem value="stacked">Empilhado (melhor no mobile)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      );
+
+    case "description":
+      return (
+        <div className="space-y-3">
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <ColorControl label="Cor do texto" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#a1a1aa" />
+        </div>
+      );
+
+    case "article_summary":
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Switch checked={block.show_image !== false} onCheckedChange={(v) => patch({ show_image: v })} />
+            <Label className="text-xs">Mostrar imagem da matéria</Label>
+          </div>
+          <p className="text-xs text-muted-foreground">Bloco só aparece quando o evento tem matéria vinculada.</p>
         </div>
       );
 
@@ -394,11 +519,11 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Texto do botão</Label>
-            <Input value={block.label || ""} onChange={(e) => onChange({ label: e.target.value } as any)} />
+            <Input value={block.label || ""} onChange={(e) => patch({ label: e.target.value })} />
           </div>
           <div>
             <Label className="text-xs">Link do botão</Label>
-            <Select value={block.url_field || "ticket_link"} onValueChange={(v) => onChange({ url_field: v as any } as any)}>
+            <Select value={block.url_field || "ticket_link"} onValueChange={(v) => patch({ url_field: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="ticket_link">Link de ingresso do evento</SelectItem>
@@ -411,8 +536,26 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           {block.url_field === "custom" && (
             <div>
               <Label className="text-xs">URL personalizada</Label>
-              <Input value={block.custom_url || ""} onChange={(e) => onChange({ custom_url: e.target.value } as any)} placeholder="https://…" />
+              <Input value={block.custom_url || ""} onChange={(e) => patch({ custom_url: e.target.value })} placeholder="https://…" />
             </div>
+          )}
+          <div className="flex items-center gap-2">
+            <Switch checked={block.full_width !== false} onCheckedChange={(v) => patch({ full_width: v })} />
+            <Label className="text-xs">Ocupar toda a largura</Label>
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <div>
+            <Label className="text-xs">Cor de fundo</Label>
+            <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gradient">Gradiente da marca (padrão)</SelectItem>
+                <SelectItem value="solid">Cor sólida</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {block.bg_style === "solid" && (
+            <ColorControl label="Cor sólida do botão" value={block.bg_color} onChange={(v) => patch({ bg_color: v })} placeholder="#a855f7" />
           )}
         </div>
       );
@@ -422,11 +565,11 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Texto</Label>
-            <Input value={block.label || ""} onChange={(e) => onChange({ label: e.target.value } as any)} />
+            <Input value={block.label || ""} onChange={(e) => patch({ label: e.target.value })} />
           </div>
           <div>
             <Label className="text-xs">Link</Label>
-            <Select value={block.url_field || "agenda_url"} onValueChange={(v) => onChange({ url_field: v as any } as any)}>
+            <Select value={block.url_field || "agenda_url"} onValueChange={(v) => patch({ url_field: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="agenda_url">Agenda completa</SelectItem>
@@ -436,8 +579,9 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
             </Select>
           </div>
           {block.url_field === "custom" && (
-            <Input value={block.custom_url || ""} onChange={(e) => onChange({ custom_url: e.target.value } as any)} placeholder="https://…" />
+            <Input value={block.custom_url || ""} onChange={(e) => patch({ custom_url: e.target.value })} placeholder="https://…" />
           )}
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         </div>
       );
 
@@ -446,42 +590,73 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
         <div className="space-y-3">
           <div>
             <Label className="text-xs">URL da imagem</Label>
-            <Input value={block.image_url} onChange={(e) => onChange({ image_url: e.target.value } as any)} placeholder="https://…" />
+            <Input value={block.image_url} onChange={(e) => patch({ image_url: e.target.value })} placeholder="https://…" />
           </div>
           <div>
             <Label className="text-xs">Link ao clicar</Label>
-            <Input value={block.link_url} onChange={(e) => onChange({ link_url: e.target.value } as any)} placeholder="https://…" />
+            <Input value={block.link_url} onChange={(e) => patch({ link_url: e.target.value })} placeholder="https://…" />
           </div>
           <div>
             <Label className="text-xs">Texto alternativo (alt)</Label>
-            <Input value={block.alt || ""} onChange={(e) => onChange({ alt: e.target.value } as any)} />
+            <Input value={block.alt || ""} onChange={(e) => patch({ alt: e.target.value })} />
           </div>
           <div>
-            <Label className="text-xs">Largura máxima: {block.max_width ?? 552}px</Label>
-            <Slider min={200} max={600} step={20} value={[block.max_width ?? 552]} onValueChange={(v) => onChange({ max_width: v[0] } as any)} />
+            <Label className="text-xs">Largura máxima: {block.max_width ?? 552}px (máx. 552 = largura útil do e-mail)</Label>
+            <Slider min={200} max={552} step={8} value={[block.max_width ?? 552]} onValueChange={(v) => patch({ max_width: v[0] })} />
           </div>
+          <div>
+            <Label className="text-xs">Borda arredondada: {block.border_radius ?? 8}px</Label>
+            <Slider min={0} max={24} step={2} value={[block.border_radius ?? 8]} onValueChange={(v) => patch({ border_radius: v[0] })} />
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        </div>
+      );
+
+    case "divider":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Espessura: {block.thickness ?? 1}px</Label>
+            <Slider min={1} max={8} step={1} value={[block.thickness ?? 1]} onValueChange={(v) => patch({ thickness: v[0] })} />
+          </div>
+          <ColorControl label="Cor" value={block.color} onChange={(v) => patch({ color: v })} placeholder="rgba(255,255,255,0.08)" />
         </div>
       );
 
     case "text":
       return (
-        <div>
-          <Label className="text-xs">HTML (tags básicas)</Label>
-          <Textarea rows={6} value={block.html || ""} onChange={(e) => onChange({ html: e.target.value } as any)} />
-          <p className="text-xs text-muted-foreground mt-1">Tags de script, style, iframe e handlers on* são removidos.</p>
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">HTML (tags básicas)</Label>
+            <Textarea rows={6} value={block.html || ""} onChange={(e) => patch({ html: e.target.value })} />
+            <p className="text-xs text-muted-foreground mt-1">Tags de script, style, iframe e handlers on* são removidos.</p>
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <ColorControl label="Cor base do texto" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#a1a1aa" />
         </div>
       );
 
     case "social_icons":
       return (
-        <div className="space-y-2">
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Estilo</Label>
+            <Select value={block.style || "text"} onValueChange={(v) => patch({ style: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="text">Texto colorido (padrão)</SelectItem>
+                <SelectItem value="pill">Pílulas coloridas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
           <p className="text-xs text-muted-foreground">Ative e informe a URL de cada rede. Somente as ativadas com URL aparecem no e-mail.</p>
           {(block.networks || []).map((n, i) => (
             <div key={n.id} className="flex items-center gap-2 p-2 rounded border">
               <Switch checked={n.enabled} onCheckedChange={(v) => {
                 const next = [...(block.networks || [])];
                 next[i] = { ...n, enabled: v };
-                onChange({ networks: next } as any);
+                patch({ networks: next });
               }} />
               <div className="flex-1">
                 <div className="text-xs font-medium">{n.label}</div>
@@ -492,7 +667,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
                   onChange={(e) => {
                     const next = [...(block.networks || [])];
                     next[i] = { ...n, url: e.target.value };
-                    onChange({ networks: next } as any);
+                    patch({ networks: next });
                   }}
                 />
               </div>
@@ -506,19 +681,20 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Texto do rodapé (opcional — usa o padrão se vazio)</Label>
-            <Textarea rows={3} value={block.text || ""} onChange={(e) => onChange({ text: e.target.value } as any)} />
+            <Textarea rows={3} value={block.text || ""} onChange={(e) => patch({ text: e.target.value })} />
           </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
           <div className="flex items-center gap-2">
-            <Switch checked={block.include_unsubscribe !== false} onCheckedChange={(v) => onChange({ include_unsubscribe: v } as any)} />
+            <Switch checked={block.include_unsubscribe !== false} onCheckedChange={(v) => patch({ include_unsubscribe: v })} />
             <Label className="text-xs">Incluir botão "Descadastrar-se" (oficial E-goi)</Label>
           </div>
           <p className="text-xs text-muted-foreground">
-            O link usa o placeholder <code className="bg-muted px-1 rounded">[E-GOI_UNSUBSCRIBE_LINK]</code>, que a E-goi substitui automaticamente pelo link oficial rastreável no momento do envio.
+            O link usa o placeholder <code className="bg-muted px-1 rounded">[E-GOI_UNSUBSCRIBE_LINK]</code>, substituído pela E-goi no momento do envio.
           </p>
         </div>
       );
 
     default:
-      return <p className="text-sm text-muted-foreground">Este bloco não tem propriedades editáveis — sua aparência vem dos dados do evento e das configurações de marca.</p>;
+      return <p className="text-sm text-muted-foreground">Este bloco não tem propriedades editáveis — sua aparência vem dos dados do evento.</p>;
   }
 }

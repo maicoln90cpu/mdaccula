@@ -1,83 +1,109 @@
-# Onda B.12 — Segmentação por comportamento (baseada nas métricas B.9)
 
-## Objetivo
-Permitir que o admin escolha, no momento do disparo, um **segmento comportamental** em vez de mandar sempre para a lista inteira. Isso reduz descadastros, aumenta taxa de entrega e permite mensagens diferentes para perfis diferentes.
+# Onda C.1 — Polimento do Editor de E-mails
 
-## Como está hoje (antes)
-- Todo disparo (Enviar agora, Virada de lote, Digest, A/B) envia para a **lista completa** configurada em `egoi_config.list_id`.
-- Não há como filtrar "só quem engaja" ou "reengajar quem sumiu".
-- O campo `egoi_config.segment_id` existe mas hoje só é usado para a contagem estimada no banner de alcance — não é aplicado no envio real.
+Foco: **corrigir bugs de UI** e **aumentar personalização por bloco**, sem mexer em backend/E-goi. Deploy em 5 sub-etapas seguras.
 
-## Como fica (depois)
-- Novo dropdown **"Segmento"** aparece nos modais **Enviar agora**, **Virada de lote** e **Teste A/B assunto**, com 4 opções:
-  1. **Lista completa** (padrão, comportamento atual)
-  2. **Engajados** — abriram ≥ 1 dos últimos 3 e-mails enviados
-  3. **Frios** — nunca abriram nenhum e-mail nos últimos 60 dias (mas estão inscritos)
-  4. **Cliques em ingresso** — clicaram em qualquer link nos últimos 30 dias (potenciais compradores)
-- Ao escolher um segmento diferente de "Lista completa":
-  - A edge function chama `POST /lists/{list_id}/contacts/search` na E-goi para pegar os e-mails do segmento (paginado, cache 15min).
-  - Cria a campanha na E-goi apontando para uma **segmentação temporária** ou envia a lista de e-mails via `extra_data.emails` (fluxo depende do que a v3 aceita — veremos na etapa 1).
-  - **Fallback:** se a E-goi v3 não aceitar segmentação dinâmica via API, criamos **listas espelho** (`MDAccula_Engajados`, `MDAccula_Frios`, `MDAccula_Cliques`) sincronizadas por uma edge function agendada e disparamos para essas listas.
-- Banner de alcance estimado atualiza para mostrar o tamanho do segmento escolhido antes do envio.
-- Histórico grava o segmento usado (`segment_key` novo campo em `event_email_campaigns`).
+## Diagnóstico dos problemas
 
-## Detalhes técnicos
-1. **Migration:**
-   - `event_email_campaigns.segment_key text null` (`full_list` | `engaged` | `cold` | `clicked_tickets`).
-   - `event_email_campaigns.segment_size integer null` (contagem no momento do disparo, para auditoria).
-   - Tabela nova `email_segment_snapshots` (opcional): guarda o resultado do cálculo do segmento com TTL de 15min para evitar recontar a cada envio.
-2. **Nova edge function `compute-email-segment`:**
-   - Input: `{ segment_key: 'engaged'|'cold'|'clicked_tickets' }`.
-   - Consulta a E-goi via `egoi-campaign-stats` já materializadas em `event_email_campaign_stats` (que temos desde B.9-extra) para saber quem abriu/clicou o quê.
-   - Cruza com a lista da E-goi (`egoi_resources_cache` + fetch fresco quando necessário) para retornar `{ emails: string[], count: number, cached_at: ISO }`.
-   - Guarda em `email_segment_snapshots` para reaproveitar por 15min.
-   - Auth admin-only.
-3. **`create-event-email-campaign` (edge):**
-   - Aceita `segment_key` opcional. Se ≠ `full_list`:
-     - Chama `compute-email-segment` internamente.
-     - Ajusta o payload da E-goi para atingir apenas esses contatos (ver etapa 1 de investigação).
-     - Persiste `segment_key` + `segment_size` no histórico.
-4. **UI (`EmailConfig.tsx`):**
-   - Dropdown "Segmento" nos 3 modais (Enviar agora, Virada de lote, A/B). Reutiliza componente `SegmentSelect`.
-   - Banner mostra "Alcance estimado: X contatos (segmento: Engajados)".
-   - Histórico exibe badge "Segmento: Engajados" quando `segment_key ≠ full_list`.
+### 1) CTA no "Template (marca)" não muda o preview
+Quando o **Editor de blocos** já tem um bloco `cta_button` com `label` próprio, o render usa `block.label || settings.cta_label`. Ou seja, o campo "Texto do botão principal" da aba Marca **é sobrescrito** pelo label do bloco. Isso é o comportamento correto, mas hoje **não é explicado** ao usuário e dá impressão de bug.
 
-## Riscos
-- **API da E-goi:** precisamos confirmar se v3 aceita segmentação dinâmica (`extra_data.filter`) ou se dependemos de listas espelho. Vou verificar na etapa 1 antes de qualquer implementação irreversível — se cair no fallback, o custo é maior (cron sincronizando listas espelho) e a implementação é mais complexa; nesse caso pauso e alinho contigo.
-- **Volume de dados:** cálculo do segmento "Frios" pode varrer 60 dias de métricas. Cache de 15min mitiga.
-- **Métricas B.9 imaturas:** com pouco histórico acumulado, o segmento "Engajados" pode ficar pequeno. Vou mostrar aviso na UI quando o segmento tiver < 100 contatos.
-- **Regressão:** todos os fluxos existentes continuam padrão em "Lista completa" — segmentação é opt-in.
+### 2) Redes sociais fixas (Instagram/YouTube/TikTok) na aba Marca
+Legado. Hoje o bloco `social_icons` do editor já suporta 6 redes com toggle e URL individual. Manter os 3 campos fixos duplica configuração e confunde.
 
-## Checklist manual (após implementar)
-1. Master switch ON; abrir Histórico de um evento e clicar "Criar rascunho agora".
-2. Verificar novo dropdown "Segmento" com 4 opções e alcance estimado atualizando.
-3. Escolher "Engajados", confirmar, ver rascunho na E-goi apontando apenas para esse subgrupo.
-4. Repetir para "Frios" e "Cliques em ingresso".
-5. Verificar badge "Segmento: X" no histórico.
-6. Confirmar que escolher "Lista completa" mantém o fluxo idêntico ao atual (regressão).
-7. Repetir os 3 testes na aba **Virada de lote** e no modal **Teste A/B assunto**.
+### 3) "Blocos visíveis" (subtítulo/descrição/social/link secundário) na aba Marca
+Legado. Cada um agora é um bloco no editor, que pode ser adicionado/removido/reordenado. **Redundante.**
 
-## Vantagens x desvantagens
-- **+** Mensagens certas para o público certo — menos descadastros, mais engajamento.
-- **+** Todos os fluxos existentes se beneficiam sem mudar de tela.
-- **+** Segmentação calculada a partir das métricas B.9 que já coletamos.
-- **−** Depende de ~30 dias de histórico B.9 para segmentos terem tamanho útil (aviso na UI).
-- **−** Se cair no fallback de listas espelho, adiciona uma cron a mais e requer mais permissões na E-goi.
+### 4) "HTML customizado (avançado)"
+São dois campos livres (`custom_html_header` e `custom_html_footer`) que injetam HTML **antes da logo** e **depois do rodapé**. Serve para colar coisas como "Newsletter #12 · Maio 2026" no topo, ou razão social/CNPJ no final. Hoje já pode ser substituído por um bloco `text` na posição desejada. Vou manter, mas explicar melhor no rótulo.
+
+### 5) Tela pisca e volta para a aba "Configuração"
+`<Tabs defaultValue="config">` é **não controlado**. Toda vez que uma ação chama `loadAll()` (salvar template, toggle digest, etc.), `setLoading(true)` desmonta o `<Tabs>` inteiro e ao remontar volta ao default. Fix: controlar o valor da aba em `useState` e **não desmontar** os Tabs durante o refresh (mostrar spinner interno em vez de troca completa de tela).
+
+### 6) Preview do slider "Largura máxima" da Imagem com link
+O `<img>` usa `width:100%; max-width:{maxW}px`. Enquanto o `maxW` for **maior** que a largura útil do container (~552px), visualmente nada muda. Slider vai de 200–600, então só valores abaixo de ~500 mostram diferença. **Não é bug**, é limite físico do container. Vou:
+- limitar o slider a 200–552;
+- adicionar controle de **alinhamento** (esquerda/centro/direita) que muda de fato o preview em qualquer largura.
+
+### 7) "Erro ao gerar rascunho do digest semanal — Failed to send a request to the Edge Function"
+Função `weekly-digest-draft` provavelmente ainda não foi deployada (foi criada na B.11 mas não vi confirmação de deploy). Vou redeployar e verificar logs.
+
+## Sub-etapas (deploy em fases)
+
+### C.1.1 — Fix do flicker de abas
+- Controlar `<Tabs value=... onValueChange=...>` em `EmailConfig.tsx`.
+- Remover o `if (loading) return spinner` que desmonta tudo. Mostrar spinner apenas dentro das abas afetadas.
+- **Ganho:** trocar de aba, salvar, alternar toggle — nada mais volta pra "Configuração".
+
+### C.1.2 — Limpeza da aba "Template (marca)"
+- **Remover** cards: "Blocos visíveis", "Instagram/YouTube/TikTok URL" (o bloco social_icons cuida disso).
+- **Manter**: Marca (logo + nome), Cores, Texto do CTA/link secundário/rodapé, HTML customizado.
+- Renomear "HTML customizado (avançado)" → "HTML no topo e no rodapé (opcional)" com descrição em português leigo.
+- **Adicionar aviso** no card "Textos e links": *"Se o Editor de blocos tem um botão CTA com texto próprio, ele tem prioridade sobre este campo."*
+- **Ganho:** uma fonte de verdade por configuração, sem duplicação.
+
+### C.1.3 — Personalização por bloco (item a item)
+Auditoria bloco por bloco, adicionando propriedades editáveis + garantindo que o preview reflete cada mudança:
+
+| Bloco | Novas propriedades |
+|---|---|
+| header (cabeçalho) | ✓ altura logo já existe. Adicionar: alinhamento (esq/centro/dir), padding vertical |
+| eyebrow (etiqueta) | texto ✓. Adicionar: cor (usa primary por padrão), alinhamento |
+| title (título) | Adicionar: tamanho (24/28/32/40px), alinhamento, cor |
+| subtitle | Adicionar: alinhamento, cor |
+| event_meta (data/hora/local) | Adicionar: layout (2 colunas / empilhado) |
+| description | Adicionar: alinhamento, cor do texto |
+| article_summary | Adicionar: mostrar/ocultar imagem da matéria |
+| cta_button | label ✓, url_field ✓. Adicionar: largura (full/auto), alinhamento (auto/esq/centro/dir), cor de fundo (auto usa gradiente, ou cor fixa) |
+| secondary_link | label ✓, url ✓. Adicionar: alinhamento |
+| image_with_link | url/link/alt ✓. Ajustar slider p/ 200–552. Adicionar: alinhamento, borda arredondada (0/8/16px) |
+| divider | Adicionar: espessura (1/2/4px), cor |
+| text (HTML livre) | html ✓. Adicionar: alinhamento, cor base |
+| social_icons | ✓ completo, adicionar: estilo (texto atual / pílulas coloridas) |
+| footer | texto ✓, unsubscribe ✓. Adicionar: alinhamento |
+| hero_image (flyer) | Adicionar: largura máxima (400–600), borda arredondada |
+
+Cada opção usa design tokens existentes. Preview atualiza via `useMemo` já implementado — só preciso plugar as novas props no `renderBlock`.
+
+- **Ganho:** flexibilidade real por template, sem mexer em código a cada nova campanha.
+
+### C.1.4 — Deploy e teste do `weekly-digest-draft`
+- Confirmar que o edge function foi deployado (`supabase--deploy_edge_functions`).
+- Testar via `supabase--curl_edge_functions` com `{ force: true }`.
+- Ler logs para diagnosticar erro real caso persista.
+
+### C.1.5 — Validação manual (checklist)
+Vou te entregar um checklist com 15 itens: alternar cada aba, salvar, gerar digest, editar cada bloco novo, ver preview atualizar.
+
+## Riscos e mitigação
+
+- **Risco:** remover campos da aba "Marca" pode apagar dados salvos (redes sociais URL).
+  **Mitigação:** os campos ficam no banco (`email_template_settings`) mas somem da UI. Se um dia quiser voltar, os valores estão lá. Alternativamente, migro pro bloco social_icons do template padrão automaticamente (opcional — pergunto se quer).
+
+- **Risco:** novas props de bloco em templates antigos.
+  **Mitigação:** todo campo novo tem default; blocos existentes continuam renderizando igual.
+
+- **Risco:** Tabs controlado pode ter regressão de acessibilidade.
+  **Mitigação:** shadcn Tabs suporta controlado nativamente, sem mudança de API.
+
+## Ordem de execução recomendada
+
+1. **C.1.1** (flicker) — deploy independente, fix rápido.
+2. **C.1.4** (digest) — deploy independente, fix rápido.
+3. **C.1.2** (limpeza aba Marca) — deploy independente.
+4. **C.1.3** (personalização por bloco) — maior, faço tudo em uma rodada mas com testes bloco a bloco.
+5. **C.1.5** (checklist final).
+
+## Pendências propositais (fora do escopo)
+
+- Migrar `instagram_url/youtube_url/tiktok_url` do settings para o bloco social_icons do template padrão. (Faço se pedir.)
+- Salvamento automático (autosave) no editor de blocos.
+- Copiar bloco entre templates diferentes.
 
 ## Prevenção de regressão
-- Escolher "Lista completa" deve gerar payload da E-goi bit-idêntico ao fluxo atual (teste unitário do `create-event-email-campaign`).
-- Guard: se `segment_key` chegar mas o cálculo retornar 0 contatos, aborta com `skipped: 'empty_segment'` em vez de mandar para lista inteira por engano.
 
-## Pendências (ficam pra depois)
-- Segmentos customizados salvos pelo admin (hoje são 4 fixos).
-- Segmento "Interessados neste evento" — quem clicou em qualquer link deste evento específico.
-- Dashboard comparando performance por segmento.
+- Nenhum caminho de disparo real (Enviar agora, A/B, Virada de lote, Digest) é tocado — só UI de edição e o renderer HTML.
+- Todo bloco novo tem valor default retro-compatível.
+- Testes de contrato existentes de e-mail seguem verdes (não usam props novas).
 
-## Ordem de execução
-1. **Investigar** endpoints da E-goi v3 para segmentação dinâmica no envio (via `egoi-curl-probe` na doc). **Se não houver suporte, pauso e alinho o fallback de listas espelho contigo antes de continuar.**
-2. Migration (`segment_key`, `segment_size`, tabela `email_segment_snapshots`).
-3. Edge function `compute-email-segment`.
-4. Ajuste em `create-event-email-campaign` (aceitar `segment_key`).
-5. Ajuste em `dispatchEventDraftEmail` + `dispatchAbSubjectTest` para propagar `segment_key`.
-6. Componente `SegmentSelect` + integração nos 3 modais.
-7. Banner de alcance estimado + badge no histórico.
+Pode aprovar essa Onda C.1 para eu começar pela C.1.1 (fix do flicker)?

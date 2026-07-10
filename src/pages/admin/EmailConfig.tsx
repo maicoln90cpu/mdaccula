@@ -302,6 +302,7 @@ const AbTestButton = ({
 const EmailConfig = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("config");
   const [saving, setSaving] = useState(false);
   const [masterEnabled, setMasterEnabled] = useState(false);
   const [cfg, setCfg] = useState<EgoiConfig>({
@@ -910,13 +911,10 @@ const EmailConfig = () => {
 
 
 
-  if (loading) {
-    return (
-      <div className="w-full flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
-    );
-  }
+  // Nota: não retornamos mais uma tela de loading que desmonta os Tabs. O
+  // spinner aparece dentro do conteúdo da aba ativa, para que salvar/atualizar
+  // não force o usuário de volta para "Configuração".
+
 
   return (
     <main className="w-full px-4 md:px-6 py-6 space-y-6">
@@ -930,7 +928,13 @@ const EmailConfig = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="config" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {loading && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
+            Atualizando dados…
+          </div>
+        )}
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
@@ -1242,11 +1246,15 @@ const EmailConfig = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Textos e links</CardTitle>
+                  <CardTitle>Textos e links (fallback global)</CardTitle>
+                  <CardDescription>
+                    Valores usados como padrão. Se o <b>Editor de blocos</b> tem um botão CTA ou link secundário
+                    com texto próprio, o texto do bloco tem prioridade sobre este campo.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <Label>Texto do botão principal (CTA)</Label>
+                    <Label>Texto do botão principal (CTA) — fallback</Label>
                     <Input
                       value={tpl.cta_label ?? ""}
                       placeholder="Garantir ingresso"
@@ -1254,7 +1262,7 @@ const EmailConfig = () => {
                     />
                   </div>
                   <div>
-                    <Label>Texto do link secundário</Label>
+                    <Label>Texto do link secundário — fallback</Label>
                     <Input
                       value={tpl.secondary_link_label ?? ""}
                       placeholder="Ver agenda completa no site"
@@ -1269,49 +1277,20 @@ const EmailConfig = () => {
                       onChange={(e) => setTpl({ ...tpl, footer_text: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <Label>Instagram URL</Label>
-                    <Input value={tpl.instagram_url ?? ""} onChange={(e) => setTpl({ ...tpl, instagram_url: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>YouTube URL</Label>
-                    <Input value={tpl.youtube_url ?? ""} onChange={(e) => setTpl({ ...tpl, youtube_url: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>TikTok URL</Label>
-                    <Input value={tpl.tiktok_url ?? ""} onChange={(e) => setTpl({ ...tpl, tiktok_url: e.target.value })} />
-                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    💡 Redes sociais agora são configuradas dentro de cada template, no bloco <b>Redes sociais</b> do
+                    <b> Editor de blocos</b>. Assim cada template pode ter suas próprias redes.
+                  </p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Blocos visíveis</CardTitle>
-                  <CardDescription>Ligue/desligue seções do template.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {([
-                    ["show_subtitle", "Subtítulo do evento"],
-                    ["show_description", "Descrição do evento"],
-                    ["show_socials", "Links de redes sociais no rodapé"],
-                    ["show_secondary_link", "Link secundário (agenda)"],
-                  ] as const).map(([key, label]) => (
-                    <div key={key} className="flex items-center justify-between py-1">
-                      <Label className="cursor-pointer">{label}</Label>
-                      <Switch
-                        checked={(tpl as any)[key] !== false}
-                        onCheckedChange={(v) => setTpl({ ...tpl, [key]: v })}
-                      />
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>HTML customizado (avançado)</CardTitle>
+                  <CardTitle>HTML no topo e no rodapé (opcional)</CardTitle>
                   <CardDescription>
-                    Blocos extras acima/abaixo do e-mail. <b>Scripts, styles e handlers on* são removidos automaticamente.</b>
+                    Cola HTML fixo antes da logo (ex.: "Newsletter #12 · Maio 2026") e depois do descadastro
+                    (ex.: razão social, CNPJ). Aplicado a <b>todos</b> os templates. Scripts, styles e handlers
+                    on* são removidos automaticamente por segurança.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -1337,6 +1316,7 @@ const EmailConfig = () => {
                   </div>
                 </CardContent>
               </Card>
+
 
               <div className="flex justify-end sticky bottom-4">
                 <Button onClick={saveTemplate} disabled={tplSaving} size="lg">
