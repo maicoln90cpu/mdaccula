@@ -28,6 +28,8 @@ interface EventFormData {
   address?: string;
   location_state: string;
   location_city: string;
+  venue_lat?: number | null;
+  venue_lng?: number | null;
   date: string;
   end_date?: string;
   time: string;
