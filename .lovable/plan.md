@@ -1,84 +1,83 @@
-# Onda B.10 — Teste A/B de assunto (E-goi split test)
+# Onda B.12 — Segmentação por comportamento (baseada nas métricas B.9)
 
 ## Objetivo
-Permitir que o admin, ao disparar uma campanha de evento, envie **duas versões de assunto** (A e B) para uma amostra da lista. A E-goi mede aberturas por N horas e envia automaticamente a versão vencedora ao restante.
+Permitir que o admin escolha, no momento do disparo, um **segmento comportamental** em vez de mandar sempre para a lista inteira. Isso reduz descadastros, aumenta taxa de entrega e permite mensagens diferentes para perfis diferentes.
 
 ## Como está hoje (antes)
-- No painel `/admin/email-config` → aba **Histórico**, cada evento tem "Criar rascunho" e "Enviar agora".
-- Só existe **um assunto** por campanha.
-- Não há como comparar títulos empiricamente — o admin escolhe no escuro.
+- Todo disparo (Enviar agora, Virada de lote, Digest, A/B) envia para a **lista completa** configurada em `egoi_config.list_id`.
+- Não há como filtrar "só quem engaja" ou "reengajar quem sumiu".
+- O campo `egoi_config.segment_id` existe mas hoje só é usado para a contagem estimada no banner de alcance — não é aplicado no envio real.
 
 ## Como fica (depois)
-- No card de cada evento (Histórico) e na aba **Virada de lote**, novo botão **"Enviar teste A/B"** ao lado de "Enviar agora".
-- Ao clicar, abre modal com:
-  - Assunto A (obrigatório, pré-preenchido com o assunto atual)
-  - Assunto B (obrigatório, campo novo)
-  - **% de amostra por versão** (slider 10–40%, default 20%) — cada versão recebe essa fatia
-  - **Janela de teste em horas** (slider 2–48h, default 6h)
-  - **Métrica vencedora** — aberturas (default) ou cliques
-  - Checklist de dupla confirmação (mesma UX do "Enviar agora") + digitar "ENVIAR AB"
-- Ao confirmar:
-  1. Cria a campanha na E-goi como draft (mesmo fluxo do `dispatchEventDraftEmail`).
-  2. Chama endpoint E-goi de split test para configurar A/B com os parâmetros.
-  3. Envia imediatamente (a E-goi cuida do delay e da escolha do vencedor).
-  4. Grava no histórico (`event_email_campaigns`) marcando `campaign_type = 'ab_subject'` com JSON dos parâmetros.
-- Na exibição do Histórico, campanhas A/B mostram badge **"A/B"** e, quando as métricas B.9 chegam, indicam qual versão venceu (via `stats_json.winning_variant`).
+- Novo dropdown **"Segmento"** aparece nos modais **Enviar agora**, **Virada de lote** e **Teste A/B assunto**, com 4 opções:
+  1. **Lista completa** (padrão, comportamento atual)
+  2. **Engajados** — abriram ≥ 1 dos últimos 3 e-mails enviados
+  3. **Frios** — nunca abriram nenhum e-mail nos últimos 60 dias (mas estão inscritos)
+  4. **Cliques em ingresso** — clicaram em qualquer link nos últimos 30 dias (potenciais compradores)
+- Ao escolher um segmento diferente de "Lista completa":
+  - A edge function chama `POST /lists/{list_id}/contacts/search` na E-goi para pegar os e-mails do segmento (paginado, cache 15min).
+  - Cria a campanha na E-goi apontando para uma **segmentação temporária** ou envia a lista de e-mails via `extra_data.emails` (fluxo depende do que a v3 aceita — veremos na etapa 1).
+  - **Fallback:** se a E-goi v3 não aceitar segmentação dinâmica via API, criamos **listas espelho** (`MDAccula_Engajados`, `MDAccula_Frios`, `MDAccula_Cliques`) sincronizadas por uma edge function agendada e disparamos para essas listas.
+- Banner de alcance estimado atualiza para mostrar o tamanho do segmento escolhido antes do envio.
+- Histórico grava o segmento usado (`segment_key` novo campo em `event_email_campaigns`).
 
 ## Detalhes técnicos
 1. **Migration:**
-   - Coluna `campaign_type text default 'standard'` em `event_email_campaigns` (valores: `standard`, `ticket_batch`, `weekly_digest`, `ab_subject`).
-   - Coluna `ab_test_config jsonb null` para guardar `{subject_a, subject_b, sample_pct, window_hours, winner_metric}`.
-2. **`dispatchEventDraftEmail` (src/lib/emailTemplates/dispatchEventDraft.ts):**
-   - Novos overrides opcionais: `abTest?: { subjectB, samplePct, windowHours, winnerMetric }`.
-   - Quando presente, após criar o draft na E-goi, chama a edge function nova `egoi-ab-test-schedule` passando o `campaign_hash` + config.
-3. **Nova edge function `egoi-ab-test-schedule`:**
-   - Auth admin only.
-   - Chama `POST /campaigns/email/{hash}/tests` (endpoint oficial split test da E-goi v3) com payload:
-     ```
-     { subject_a, subject_b, test_size_pct, wait_hours, winning_criteria }
-     ```
-   - Se a E-goi não expuser endpoint direto de split-test, fallback: cria **duas campanhas separadas** apontando para **dois segmentos aleatórios** de X% cada, com envio agendado; nesse caso o vencedor é decidido pela edge function `egoi-campaign-stats` após a janela (job pontual).
-   - Retorna status para o frontend.
-4. **UI (`src/pages/admin/EmailConfig.tsx`):**
-   - Modal `ABTestDialog` reutilizável (Histórico + Virada de lote).
-   - Reaproveita o checklist de dupla confirmação do "Enviar agora".
-5. **Histórico:**
-   - Badge "A/B" nas campanhas `campaign_type='ab_subject'`.
-   - Se `stats_json.winning_variant` existir (populado pela B.9-extra), destaca "Venceu: Assunto A" / "Venceu: Assunto B".
+   - `event_email_campaigns.segment_key text null` (`full_list` | `engaged` | `cold` | `clicked_tickets`).
+   - `event_email_campaigns.segment_size integer null` (contagem no momento do disparo, para auditoria).
+   - Tabela nova `email_segment_snapshots` (opcional): guarda o resultado do cálculo do segmento com TTL de 15min para evitar recontar a cada envio.
+2. **Nova edge function `compute-email-segment`:**
+   - Input: `{ segment_key: 'engaged'|'cold'|'clicked_tickets' }`.
+   - Consulta a E-goi via `egoi-campaign-stats` já materializadas em `event_email_campaign_stats` (que temos desde B.9-extra) para saber quem abriu/clicou o quê.
+   - Cruza com a lista da E-goi (`egoi_resources_cache` + fetch fresco quando necessário) para retornar `{ emails: string[], count: number, cached_at: ISO }`.
+   - Guarda em `email_segment_snapshots` para reaproveitar por 15min.
+   - Auth admin-only.
+3. **`create-event-email-campaign` (edge):**
+   - Aceita `segment_key` opcional. Se ≠ `full_list`:
+     - Chama `compute-email-segment` internamente.
+     - Ajusta o payload da E-goi para atingir apenas esses contatos (ver etapa 1 de investigação).
+     - Persiste `segment_key` + `segment_size` no histórico.
+4. **UI (`EmailConfig.tsx`):**
+   - Dropdown "Segmento" nos 3 modais (Enviar agora, Virada de lote, A/B). Reutiliza componente `SegmentSelect`.
+   - Banner mostra "Alcance estimado: X contatos (segmento: Engajados)".
+   - Histórico exibe badge "Segmento: Engajados" quando `segment_key ≠ full_list`.
 
 ## Riscos
-- **E-goi pode não expor split-test em v3 REST.** Se confirmarmos ausência, cai no fallback (2 campanhas + escolha manual/automática após janela). Vou verificar o endpoint na primeira etapa da implementação; se falhar, aviso antes de prosseguir.
-- **Custo:** cada teste dispara 2× o número de e-mails para a amostra + 1× para o restante. Sem impacto na lista total.
-- **Regressão:** o fluxo padrão "Enviar agora" continua intacto — A/B é caminho paralelo opcional.
+- **API da E-goi:** precisamos confirmar se v3 aceita segmentação dinâmica (`extra_data.filter`) ou se dependemos de listas espelho. Vou verificar na etapa 1 antes de qualquer implementação irreversível — se cair no fallback, o custo é maior (cron sincronizando listas espelho) e a implementação é mais complexa; nesse caso pauso e alinho contigo.
+- **Volume de dados:** cálculo do segmento "Frios" pode varrer 60 dias de métricas. Cache de 15min mitiga.
+- **Métricas B.9 imaturas:** com pouco histórico acumulado, o segmento "Engajados" pode ficar pequeno. Vou mostrar aviso na UI quando o segmento tiver < 100 contatos.
+- **Regressão:** todos os fluxos existentes continuam padrão em "Lista completa" — segmentação é opt-in.
 
 ## Checklist manual (após implementar)
-1. Master switch ON; abrir Histórico de um evento.
-2. Clicar "Enviar teste A/B", preencher A e B, 20%/6h/aberturas, confirmar.
-3. Verificar toast de sucesso e entrada no histórico com badge A/B.
-4. Conferir na E-goi que a campanha foi criada como split test (ou as duas campanhas do fallback).
-5. Após 6h, atualizar métricas — o card mostra qual versão venceu.
-6. Testar cancelamento do modal (fecha sem enviar).
-7. Testar validação: A=B deve bloquear; assunto vazio deve bloquear.
+1. Master switch ON; abrir Histórico de um evento e clicar "Criar rascunho agora".
+2. Verificar novo dropdown "Segmento" com 4 opções e alcance estimado atualizando.
+3. Escolher "Engajados", confirmar, ver rascunho na E-goi apontando apenas para esse subgrupo.
+4. Repetir para "Frios" e "Cliques em ingresso".
+5. Verificar badge "Segmento: X" no histórico.
+6. Confirmar que escolher "Lista completa" mantém o fluxo idêntico ao atual (regressão).
+7. Repetir os 3 testes na aba **Virada de lote** e no modal **Teste A/B assunto**.
 
 ## Vantagens x desvantagens
-- **+** Descoberta de assunto vencedor sem chutes; +5-15% de abertura típico com A/B em campanhas maduras.
-- **+** Sem alterar fluxo padrão — 100% opt-in.
-- **−** Requer amostra mínima (~500 envios/versão) para ter significância; abaixo disso o vencedor é ruído. Vou adicionar aviso no modal quando alcance estimado < 1000.
-- **−** Se a E-goi não tiver split-test nativo, o fallback tem lógica mais complexa e pode ter delay de até 15min pós-janela para o disparo do vencedor.
+- **+** Mensagens certas para o público certo — menos descadastros, mais engajamento.
+- **+** Todos os fluxos existentes se beneficiam sem mudar de tela.
+- **+** Segmentação calculada a partir das métricas B.9 que já coletamos.
+- **−** Depende de ~30 dias de histórico B.9 para segmentos terem tamanho útil (aviso na UI).
+- **−** Se cair no fallback de listas espelho, adiciona uma cron a mais e requer mais permissões na E-goi.
 
 ## Prevenção de regressão
-- Teste de contrato para `egoi-ab-test-schedule` (401 sem auth, 400 sem config, 200 com admin).
-- Teste unitário do `dispatchEventDraftEmail` garantindo que **sem** `abTest` o comportamento permanece idêntico (assinatura de argumentos).
+- Escolher "Lista completa" deve gerar payload da E-goi bit-idêntico ao fluxo atual (teste unitário do `create-event-email-campaign`).
+- Guard: se `segment_key` chegar mas o cálculo retornar 0 contatos, aborta com `skipped: 'empty_segment'` em vez de mandar para lista inteira por engano.
 
 ## Pendências (ficam pra depois)
-- UI para editar A/B em rascunho antes de enviar (hoje é decisão no momento do envio).
-- Histórico específico de "batalhas A/B" agregado (dashboard de aprendizados).
+- Segmentos customizados salvos pelo admin (hoje são 4 fixos).
+- Segmento "Interessados neste evento" — quem clicou em qualquer link deste evento específico.
+- Dashboard comparando performance por segmento.
 
 ## Ordem de execução
-1. Verificar endpoint E-goi de split-test (leitura da doc via `egoi-curl-probe` se necessário).
-2. Migration (`campaign_type` + `ab_test_config`).
-3. Edge function `egoi-ab-test-schedule`.
-4. Ajuste em `dispatchEventDraftEmail`.
-5. Modal + botão na UI.
-6. Badge no histórico.
-7. Testes de contrato.
+1. **Investigar** endpoints da E-goi v3 para segmentação dinâmica no envio (via `egoi-curl-probe` na doc). **Se não houver suporte, pauso e alinho o fallback de listas espelho contigo antes de continuar.**
+2. Migration (`segment_key`, `segment_size`, tabela `email_segment_snapshots`).
+3. Edge function `compute-email-segment`.
+4. Ajuste em `create-event-email-campaign` (aceitar `segment_key`).
+5. Ajuste em `dispatchEventDraftEmail` + `dispatchAbSubjectTest` para propagar `segment_key`.
+6. Componente `SegmentSelect` + integração nos 3 modais.
+7. Banner de alcance estimado + badge no histórico.
