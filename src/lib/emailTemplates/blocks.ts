@@ -933,46 +933,82 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     ];
   }
 
-  // weekly_digest — resumo semanal (usa blocos de texto/imagem livre; a
-  // renderização com múltiplos eventos/notícias virá na fase B.7)
-  return [
-    { id: newBlockId(), kind: "header", logo_height: 64 },
-    { id: newBlockId(), kind: "eyebrow", text: "Resumo da semana · MDAccula" },
-    {
-      id: newBlockId(),
-      kind: "text",
-      html:
-        "<h2 style=\"color:#fff;font-size:22px;margin:0 0 12px 0;\">O que rolou (e o que vem por aí)</h2>" +
-        "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em Cuiabá.</p>",
-    },
-    { id: newBlockId(), kind: "divider" },
-    {
-      id: newBlockId(),
-      kind: "text",
-      html:
-        "<p><strong>📅 Próximos eventos</strong><br>Adicione aqui os destaques (edição manual até B.7 automatizar).</p>",
-    },
-    { id: newBlockId(), kind: "divider" },
-    {
-      id: newBlockId(),
-      kind: "text",
-      html:
-        "<p><strong>📰 Matérias em alta</strong><br>Cole links ou use blocos de imagem-com-link para destacar posts do blog.</p>",
-    },
-    {
-      id: newBlockId(),
-      kind: "cta_button",
-      label: "Ver tudo no site",
-      url_field: "custom",
-      custom_url: "https://mdaccula.com",
-    },
-    { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
-    { id: newBlockId(), kind: "footer", include_unsubscribe: true },
-  ];
+  // weekly_digest — resumo semanal simples (blocos de texto/imagem livre)
+  if (type === "weekly_digest") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 64 },
+      { id: newBlockId(), kind: "eyebrow", text: "Resumo da semana · MDAccula" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<h2 style=\"color:#fff;font-size:22px;margin:0 0 12px 0;\">O que rolou (e o que vem por aí)</h2>" +
+          "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em Cuiabá.</p>",
+      },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "weekend_grid", layout: "timeline", show_article_link: true },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "blog_posts_list", max_items: 3, layout: "list", show_excerpt: true, show_category: true },
+      {
+        id: newBlockId(), kind: "cta_button",
+        label: "Ver tudo no site", url_field: "custom", custom_url: "https://mdaccula.com",
+      },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
 
-
-
-
+  // weekly_digest_poster — "Cartaz da semana" (D.1.b, recomendado)
+  if (type === "weekly_digest_poster") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "MDACCULA · ESTA SEMANA", align: "center" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<h1 style=\"color:#fff;font-size:30px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.02em;text-align:center;\">O cartaz da semana</h1>" +
+          "<p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">O que não pode faltar na sua agenda — de segunda a domingo em Cuiabá.</p>",
+        align: "center",
+      },
+      {
+        id: newBlockId(),
+        kind: "weekly_hero",
+        source: "first_weekend",
+        eyebrow: "DESTAQUE DA SEMANA",
+        cta_label: "Garantir ingresso",
+        show_venue: true,
+        show_cta: true,
+        overlay_intensity: "strong",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "weekend_grid",
+        layout: "cartaz",
+        eyebrow: "TAMBÉM ACONTECE",
+        title: "Mais programação",
+        show_article_link: true,
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "blog_posts_list",
+        title: "Do blog nesta semana",
+        eyebrow: "MATÉRIAS",
+        max_items: 3,
+        layout: "list",
+        show_excerpt: true,
+        show_category: true,
+      },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "dedge_block", button_style: "dark" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
 
   // Agenda do fim de semana — layout C (Cartaz digital, recomendado)
   if (type === "weekend_agenda_cartaz") {
