@@ -734,6 +734,42 @@ const EmailConfig = () => {
     return renderEventAnnouncementEmail(previewData, tpl);
   }, [activeTemplate, previewData, tpl, previewArticle]);
 
+  const loadDigestPreview = async () => {
+    setDigestPreviewLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", {
+        body: { dry_run: true, force: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.skipped) {
+        toast({ title: "Preview indisponível", description: `Motivo: ${(data as any).reason}`, variant: "destructive" });
+        setDigestPreviewHtml("");
+        setDigestPreviewMeta(null);
+        return;
+      }
+      if (!(data as any)?.html) throw new Error((data as any)?.error || "Sem HTML retornado");
+      setDigestPreviewHtml((data as any).html);
+      setDigestPreviewMeta({
+        subject: (data as any).subject,
+        events_count: (data as any).events_count,
+        posts_count: (data as any).posts_count,
+        range: (data as any).range,
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao carregar digest", description: e.message ?? String(e), variant: "destructive" });
+    } finally {
+      setDigestPreviewLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (previewSource === "digest" && !digestPreviewHtml && !digestPreviewLoading) {
+      loadDigestPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewSource]);
+
+
   const saveTemplate = async () => {
     setTplSaving(true);
     try {
