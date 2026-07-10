@@ -1997,10 +1997,12 @@ const EmailConfig = () => {
                 <div>
                   <Label className="text-xs">Template padrão</Label>
                   <Select
-                    value={weekendCfg.templateId || "__default__"}
-                    onValueChange={(v) =>
-                      setWeekendCfg({ ...weekendCfg, templateId: v === "__default__" ? "" : v })
+                    value={
+                      weekendCfg.templateId ||
+                      templates.find((t) => t.type === "weekend_agenda" && t.is_default)?.id ||
+                      ""
                     }
+                    onValueChange={(v) => setWeekendCfg({ ...weekendCfg, templateId: v })}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
