@@ -928,7 +928,13 @@ const EmailConfig = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="config" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {loading && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
+            Atualizando dados…
+          </div>
+        )}
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
