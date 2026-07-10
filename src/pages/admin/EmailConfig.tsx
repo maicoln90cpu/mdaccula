@@ -54,6 +54,10 @@ type Campaign = {
   error_message: string | null;
   sent_at: string | null;
   created_at: string;
+  campaign_type?: string | null;
+  ab_group_id?: string | null;
+  ab_variant?: string | null;
+  ab_test_config?: Record<string, unknown> | null;
   events?: { title: string | null } | null;
 };
 
