@@ -457,6 +457,63 @@ const EmailConfig = () => {
     }
   };
 
+  // B.11 — Digest semanal
+  const toggleDigestEnabled = async (v: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "weekly_digest_enabled", value: v ? "true" : "false" }, { onConflict: "key" });
+      if (error) throw error;
+      setDigestEnabled(v);
+      toast({
+        title: v ? "Digest semanal ligado" : "Digest semanal desligado",
+        description: v
+          ? "Toda quinta-feira às 18h (Cuiabá) um rascunho será criado automaticamente na E-goi."
+          : "O cron semanal não criará mais rascunhos.",
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao alterar toggle", description: e.message });
+    }
+  };
+
+  const generateDigestNow = async () => {
+    setDigestGenerating(true);
+    setDigestLastResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", {
+        body: { force: true },
+      });
+      if (error) throw error;
+      const res = data as {
+        ok?: boolean; skipped?: boolean; reason?: string; error?: string;
+        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          digest_disabled: "Digest está desligado — ligue o toggle acima primeiro.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+        };
+        toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+        return;
+      }
+      if (!res?.ok) {
+        throw new Error(res?.error || "Falha ao criar rascunho");
+      }
+      setDigestLastResult(res);
+      toast({
+        title: "Rascunho criado na E-goi",
+        description: `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest.`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao gerar digest", description: e.message });
+    } finally {
+      setDigestGenerating(false);
+    }
+  };
+
+
+
 
   // Agrupamento por evento
   const groups: EventGroup[] = useMemo(() => {
