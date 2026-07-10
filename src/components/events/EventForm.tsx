@@ -426,6 +426,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         ticket_link: normalizedTicketLink,
         vip_link: normalizedVipLink,
         lineup: normalizedLineup,
+        venue_lat: data.venue_lat === undefined || data.venue_lat === null || Number.isNaN(data.venue_lat as any) ? null : Number(data.venue_lat),
+        venue_lng: data.venue_lng === undefined || data.venue_lng === null || Number.isNaN(data.venue_lng as any) ? null : Number(data.venue_lng),
         genres: selectedGenres,
         image_url: imageUrl,
         slug: eventSlug,
