@@ -837,11 +837,14 @@ export type Database = {
           end_date: string | null
           end_time: string | null
           genres: string[]
+          geocoded_at: string | null
           id: string
           image_url: string | null
+          latitude: number | null
           lineup: string[] | null
           location_city: string
           location_state: string
+          longitude: number | null
           merged_at: string | null
           merged_into_id: string | null
           pix_button_enabled: boolean
@@ -873,11 +876,14 @@ export type Database = {
           end_date?: string | null
           end_time?: string | null
           genres?: string[]
+          geocoded_at?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
           lineup?: string[] | null
           location_city: string
           location_state: string
+          longitude?: number | null
           merged_at?: string | null
           merged_into_id?: string | null
           pix_button_enabled?: boolean
@@ -909,11 +915,14 @@ export type Database = {
           end_date?: string | null
           end_time?: string | null
           genres?: string[]
+          geocoded_at?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
           lineup?: string[] | null
           location_city?: string
           location_state?: string
+          longitude?: number | null
           merged_at?: string | null
           merged_into_id?: string | null
           pix_button_enabled?: boolean
