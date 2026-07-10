@@ -318,7 +318,9 @@ Deno.serve(async (req) => {
     const pts = (posts ?? []) as PostRow[];
     const settings = (tplSettings ?? {}) as BrandSettings;
 
-    const rangeLabel = `${now.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → ${in7.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
+    const todayIso = now.toISOString().slice(0, 10);
+    const rangeLabel = `${rangeStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → ${rangeEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
+    const digestLabel = range === 'weekend' ? 'Agenda do FDS' : 'Resumo semanal';
 
     // Tenta renderizar via template ativo (blocos). Se falhar por qualquer motivo, cai no HTML legado.
     let html = '';
