@@ -1118,8 +1118,7 @@ const EmailConfig = () => {
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
-          <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor de blocos</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
+          <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor + Preview</TabsTrigger>
           <TabsTrigger value="batch">Virada de lote</TabsTrigger>
           <TabsTrigger value="digest">Automações</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
