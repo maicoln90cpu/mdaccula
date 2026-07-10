@@ -27,6 +27,7 @@ import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucid
 import { Helmet } from "react-helmet-async";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { StructuredData } from "@/components/StructuredData";
+import { EventLocationMap } from "@/components/events/EventLocationMap";
 
 interface Event {
   id: string;
