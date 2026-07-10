@@ -156,7 +156,7 @@ export type Block =
 export type Template = {
   id?: string;
   name: string;
-  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "custom";
+  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekly_digest_editorial" | "weekend_agenda" | "custom";
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;
