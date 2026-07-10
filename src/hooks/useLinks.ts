@@ -70,10 +70,17 @@ const setCachedLinks = (data: LinkGroup[]) => {
   } catch {}
 };
 
+export interface ProcessLinksOptions {
+  /** Se true, mantém links desabilitados (usado no admin). */
+  includeDisabled?: boolean;
+}
+
 export const processLinks = (
   links: RawLinkData[],
-  settings: TimezoneSettings = {}
+  settings: TimezoneSettings = {},
+  options: ProcessLinksOptions = {}
 ): CustomLink[] => {
+  const { includeDisabled = false } = options;
   return links
     .map((link) => {
       // Se o link tem override_date, ele representa uma data específica
@@ -101,7 +108,7 @@ export const processLinks = (
       }
       return link;
     })
-    .filter((link): link is CustomLink => link.enabled === true)
+    .filter((link): link is CustomLink => includeDisabled ? true : link.enabled === true)
     .sort(sortByEventDate);
 };
 

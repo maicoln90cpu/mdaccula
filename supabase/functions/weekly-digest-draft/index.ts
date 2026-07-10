@@ -60,7 +60,7 @@ function formatDatePt(dateStr: string, timeStr?: string | null) {
 }
 
 type EventRow = {
-  id: string; title: string; slug: string; date: string; time: string | null;
+  id: string; title: string; slug: string; date: string; end_date: string | null; time: string | null;
   venue: string; location_city: string; location_state: string;
   image_url: string | null; ticket_link: string | null;
 };
@@ -88,7 +88,7 @@ function renderDigestHtml(
   const bg = settings.background_color || '#050505';
   const brand = settings.brand_name || 'MDACCULA';
   const footer = settings.footer_text ||
-    'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de Cuiabá-MT.';
+    'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de São Paulo-SP.';
   const logo = settings.logo_url
     ? `<img src="${escapeHtml(settings.logo_url)}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
     : `<div style="font-family:Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;">${escapeHtml(brand)}</div>`;
@@ -159,7 +159,7 @@ function renderDigestHtml(
       <tr><td style="padding:0 20px 8px 20px;font-family:Arial,sans-serif;">
         <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${accent};font-weight:700;">Resumo semanal · ${escapeHtml(rangeLabel)}</div>
         <h1 style="font-size:24px;line-height:1.2;color:#fff;margin:6px 0 4px 0;">O que rola na semana</h1>
-        <p style="font-size:14px;color:#bbb;margin:0;">Os destaques da agenda e do blog nos próximos dias em Cuiabá.</p>
+        <p style="font-size:14px;color:#bbb;margin:0;">Os destaques da agenda e do blog nos próximos dias em São Paulo.</p>
       </td></tr>
 
       ${eventCards}
@@ -298,14 +298,16 @@ Deno.serve(async (req) => {
         .limit(1);
     }
 
-    const [{ data: events }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
+    const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
       admin.from('events')
-        .select('id,title,slug,date,time,venue,location_city,location_state,image_url,ticket_link,status')
+        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,status')
         .eq('status', 'active')
-        .gte('date', startIso)
+        // Multi-dia: inclui eventos cuja janela [date, coalesce(end_date, date)]
+        // intersecta [startIso, endIso]. Sem isso o Nostalgia (09→10/07) some no dia 10.
         .lte('date', endIso)
+        .or(`date.gte.${startIso},end_date.gte.${startIso}`)
         .order('date', { ascending: true })
-        .limit(20),
+        .limit(50),
       admin.from('blog_posts')
         .select('id,title,slug,excerpt,image_url,published_at,published')
         .eq('published', true)
@@ -315,7 +317,9 @@ Deno.serve(async (req) => {
       activeTplQuery.maybeSingle(),
     ]);
 
-    const evs = (events ?? []) as EventRow[];
+    const evs = ((eventRows ?? []) as EventRow[])
+      .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
+      .slice(0, 20);
     const pts = (posts ?? []) as PostRow[];
     const settings = (tplSettings ?? {}) as BrandSettings;
 
@@ -330,11 +334,48 @@ Deno.serve(async (req) => {
 
     if (tplBlocks && tplBlocks.length > 0) {
       try {
-        const first = evs[0];
-        const weekendEvents: WeekendEventItem[] = evs.map((e) => ({
+        // Templates "Cartaz" mostram 1 imagem grande por card → agrupar eventos
+        // recorrentes (mesmo venue, ex.: D.EDGE) em UM card com todas as datas.
+        // Timeline/lista mantém 1 card por data.
+        const tplName = String((activeTpl as any)?.name || '').toLowerCase();
+        const isCartazTemplate = tplName.includes('cartaz');
+
+        const evsForRender = isCartazTemplate
+          ? Object.values(
+              evs.reduce<Record<string, EventRow[]>>((acc, e) => {
+                const key = (e.venue || '').trim().toLowerCase() || e.id;
+                (acc[key] ||= []).push(e);
+                return acc;
+              }, {})
+            ).map((group) => group.sort((a, b) => a.date.localeCompare(b.date)))
+             .map((group) => {
+               if (group.length === 1) return group[0];
+               // Card consolidado: título vira base (venue), image_url do 1º, dayLabel = lista.
+               const head = group[0];
+               const joinedDates = group
+                 .map((g) => formatDatePt(g.date, g.time))
+                 .join(' · ');
+               return {
+                 ...head,
+                 title: head.venue,
+                 date: head.date, // mantém para ordenação
+                 // Passa a lista de datas via ai_context reservado — mais simples:
+                 // sobrescreve dayLabel na próxima etapa via marker interno.
+                 __joinedDates: joinedDates,
+               } as EventRow & { __joinedDates?: string };
+             })
+             .sort((a, b) => a.date.localeCompare(b.date))
+          : evs;
+
+        const first = evsForRender[0];
+        const weekendEvents: WeekendEventItem[] = evsForRender.map((e) => ({
           id: e.id,
           title: e.title,
-          dayLabel: formatDatePt(e.date, e.time),
+          dayLabel: (e as any).__joinedDates
+            ? (e as any).__joinedDates
+            : (e.end_date && e.end_date !== e.date
+                ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
+                : formatDatePt(e.date, e.time)),
           timeLabel: (e.time || '').slice(0, 5) || '22h',
           venue: e.venue,
           cityState: `${e.location_city}-${e.location_state}`,
@@ -356,9 +397,9 @@ Deno.serve(async (req) => {
           flyerUrl: first?.image_url || (settings as any).logo_url || `${SITE_URL}/placeholder.svg`,
           dateLabel: rangeLabel,
           timeLabel: first ? ((first.time || '').slice(0, 5) || '22h') : '',
-          venueName: first?.venue || 'Cuiabá',
-          cityState: first ? `${first.location_city}-${first.location_state}` : 'Cuiabá-MT',
-          description: 'Os destaques da agenda e do blog nos próximos dias em Cuiabá.',
+          venueName: first?.venue || 'São Paulo',
+          cityState: first ? `${first.location_city}-${first.location_state}` : 'São Paulo-SP',
+          description: 'Os destaques da agenda e do blog nos próximos dias em São Paulo.',
           ticketUrl: first ? (first.ticket_link || `${SITE_URL}/eventos/${first.slug}`) : `${SITE_URL}/eventos`,
           eventUrl: first ? `${SITE_URL}/eventos/${first.slug}` : `${SITE_URL}/eventos`,
           agendaUrl: `${SITE_URL}/eventos`,

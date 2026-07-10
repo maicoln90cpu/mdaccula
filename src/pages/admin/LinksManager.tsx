@@ -19,6 +19,7 @@ import { SortableItem } from "@/components/links/SortableItem";
 import { LinksPageSettings } from "@/components/links/LinksPageSettings";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { isEventVisible } from "@/lib/eventDateHelper";
+import { processLinks, sortLinkGroups } from "@/hooks/useLinks";
 import { useAdminRealtime } from "@/hooks/useAdminRealtime";
 
 // Helper para extrair mensagem de erro de forma segura
@@ -53,7 +54,7 @@ interface CustomLink {
   card_height?: number;
   card_width?: number;
   event_id?: string | null;
-  events?: { date: string; time: string; end_time?: string | null } | null;
+  events?: { date: string; end_date?: string | null; time: string; end_time?: string | null } | null;
   manual_order_override?: boolean;
 }
 
@@ -146,19 +147,27 @@ const LinksManager = () => {
           *,
           custom_links (
             *,
-            events (date, time, end_time)
+            events:event_id (date, end_date, time, end_time, venue, location_city, location_state, image_url)
           )
         `)
         .order("display_order", { ascending: true });
 
       if (error) throw error;
 
-      const groupsWithSortedLinks = data?.map(group => ({
-        ...group,
-        custom_links: group.custom_links?.sort((a: CustomLink, b: CustomLink) => a.display_order - b.display_order) || []
-      })) || [];
+      // Reaproveita EXATAMENTE os helpers usados em /links (processLinks + sortLinkGroups),
+      // para que /admin/links-manager e /links fiquem 100% sincronizados.
+      // includeDisabled=true garante que o admin veja também os links desabilitados.
+      const hoursAfterStart = parseInt(settings?.event_hours_after_start || "12");
+      const hoursWithoutTime = parseInt(settings?.event_hours_without_time || "24");
+      const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
+      const visibility = { hoursAfterStart, hoursWithoutTime, timezoneOffset };
 
-      setGroups(groupsWithSortedLinks);
+      const withProcessed = (data || []).map((group: any) => ({
+        ...group,
+        custom_links: processLinks(group.custom_links || [], visibility, { includeDisabled: true }) as unknown as CustomLink[],
+      }));
+
+      setGroups(sortLinkGroups(withProcessed as any) as any);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({

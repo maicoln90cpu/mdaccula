@@ -1054,7 +1054,7 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
         kind: "text",
         html:
           "<h2 style=\"color:#fff;font-size:22px;margin:0 0 12px 0;\">O que rolou (e o que vem por aí)</h2>" +
-          "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em Cuiabá.</p>",
+          "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em São Paulo.</p>",
       },
       { id: newBlockId(), kind: "divider" },
       { id: newBlockId(), kind: "weekend_grid", layout: "timeline", show_article_link: true },
@@ -1079,7 +1079,7 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
         kind: "text",
         html:
           "<h1 style=\"color:#fff;font-size:30px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.02em;text-align:center;\">O cartaz da semana</h1>" +
-          "<p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">O que não pode faltar na sua agenda — de segunda a domingo em Cuiabá.</p>",
+          "<p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">O que não pode faltar na sua agenda — de segunda a domingo em São Paulo.</p>",
         align: "center",
       },
       {
@@ -1125,7 +1125,7 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
   if (type === "weekly_digest_editorial") {
     return [
       { id: newBlockId(), kind: "header", logo_height: 52, align: "left" },
-      { id: newBlockId(), kind: "eyebrow", text: "EDITORIAL · SEMANA EM CUIABÁ", align: "left" },
+      { id: newBlockId(), kind: "eyebrow", text: "EDITORIAL · SEMANA EM SÃO PAULO", align: "left" },
       {
         id: newBlockId(),
         kind: "text",
@@ -1184,7 +1184,7 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
       {
         id: newBlockId(),
         kind: "text",
-        html: "<h1 style=\"color:#fff;font-size:28px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;text-align:center;\">O que rola no fds</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">Sexta, sábado e domingo — os destaques da cena eletrônica em Cuiabá.</p>",
+        html: "<h1 style=\"color:#fff;font-size:28px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;text-align:center;\">O que rola no fds</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">Sexta, sábado e domingo — os destaques da cena eletrônica em São Paulo.</p>",
         align: "center",
       },
       { id: newBlockId(), kind: "weekend_grid", layout: "cartaz", eyebrow: "", title: "", show_article_link: true },
@@ -1204,7 +1204,7 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
       {
         id: newBlockId(),
         kind: "text",
-        html: "<h1 style=\"color:#fff;font-size:26px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;\">Sexta, sábado e domingo</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0;\">A ordem cronológica da cena eletrônica — do fim de semana em Cuiabá.</p>",
+        html: "<h1 style=\"color:#fff;font-size:26px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;\">Sexta, sábado e domingo</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0;\">A ordem cronológica da cena eletrônica — do fim de semana em São Paulo.</p>",
         align: "left",
       },
       { id: newBlockId(), kind: "weekend_grid", layout: "timeline", title: "", eyebrow: "", show_article_link: true },
@@ -1250,7 +1250,7 @@ export const TEMPLATE_PRESETS: Array<{
     name: "Resumo semanal",
     description: "Newsletter semanal com destaques da agenda e matérias do blog.",
     subject_template: "📬 MDAccula desta semana",
-    preheader_template: "Eventos, matérias e novidades da cena eletrônica em Cuiabá.",
+    preheader_template: "Eventos, matérias e novidades da cena eletrônica em São Paulo.",
     template_type: "weekly_digest",
   },
   {
@@ -1265,7 +1265,7 @@ export const TEMPLATE_PRESETS: Array<{
     key: "weekly_digest_editorial",
     name: "Digest semanal — Editorial",
     description: "Estilo revista, minimalista. Título grande, timeline da semana e matérias em destaque. Sem bloco Dedge por padrão — foco editorial.",
-    subject_template: "📖 A semana em Cuiabá — {{week_range}}",
+    subject_template: "📖 A semana em São Paulo — {{week_range}}",
     preheader_template: "Curadoria enxuta: shows, festas e as histórias que valem seu tempo.",
     template_type: "weekly_digest",
   },
@@ -1273,7 +1273,7 @@ export const TEMPLATE_PRESETS: Array<{
     key: "weekend_agenda_cartaz",
     name: "Agenda do FDS — Cartaz digital ⭐",
     description: "Recomendado. Cards full-width com flyers grandes, badge do dia e bloco Dedge de encerramento em preto/branco.",
-    subject_template: "🎧 Seu fds em Cuiabá — {{weekend_range}}",
+    subject_template: "🎧 Seu fds em São Paulo — {{weekend_range}}",
     preheader_template: "Sexta, sábado e domingo — os destaques da cena eletrônica.",
     template_type: "weekend_agenda",
   },

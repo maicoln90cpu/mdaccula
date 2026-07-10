@@ -1,113 +1,74 @@
-## Diagnóstico (o que descobri no seu banco)
 
-Você **não** errou no cadastro. O evento Nostalgia está perfeito no banco:
+# Plano — 10 itens em 3 fases
 
-- `date = 2026-07-09`
-- `end_date = 2026-07-10` ✅
-- `time = 20:00`
-- `schedule` com as duas datas (09/07 e 10/07 às 20h) ✅
-- `status = active`
-
-O irmão `nostalgia0907` está com `merged_into_id` apontando para o principal (`nostalgia1007`) e `merged_at = 14/06/2026`. Mesclagem correta.
-
-**O problema está em 3 lugares no código que ignoram `end_date`:**
+Todos os itens de baixo risco, agrupados por área. Nada muda em banco de dados.
 
 ---
 
-### Bug 1 — Página `/eventos` esconde festival no dia final
+## FASE 1 — /links e /admin/links-manager 100% sincronizados
 
-Arquivo: `src/pages/Eventos.tsx` (linhas 216-222)
+### Item 1 — Admin usar o mesmo helper de ordenação
+**Antes:** `src/pages/admin/LinksManager.tsx` faz `.from("link_groups")...order("display_order")` direto e usa esse resultado. Por isso mostra MAIO/26 antes de SETEMBRO/26 sem obedecer a regra cronológica.
 
-```ts
-.filter(event => parseLocalDate(event.date) >= now)   // ← usa só date
-```
+**Depois:**
+- Importar `sortLinkGroups` de `@/hooks/useLinks` e aplicar após o fetch.
+- Aplicar também `processLinks` (mesmo helper de `/links`) para que os cartões dentro de cada grupo respeitem override_date/end_date, exatamente como no site público. Em modo admin, `processLinks` continua filtrando `enabled=true`; para o admin queremos ver os desabilitados também → adicionar flag opcional `processLinks(links, settings, { includeDisabled: true })` que pula o `.filter`.
+- Refactor: extrair as duas funções (`processLinks` + `sortLinkGroups`) para `src/lib/linksOrdering.ts` (ou manter em `useLinks.ts` — só re-exportar), para que ambas as páginas importem do mesmo arquivo.
 
-Hoje é 10/07. `event.date = 09/07` → o filtro elimina o evento, mesmo com `end_date = 10/07`. É por isso que o Nostalgia sumiu da lista pública hoje.
+**Ganho:** alterar num lugar reflete nos dois. Fim da divergência.
 
-O hook `useEvents` está correto (usa `isEventVisible` que já considera `end_date`), mas a página filtra de novo por cima e derruba o festival.
+### Item 2 — Nostalgia (10/07) nos templates FDS/digest
+**Diagnóstico esperado:** o filtro de eventos dos templates `weekend-agenda-draft` e `weekly-digest-draft` provavelmente compara só `event.date`, ignorando `end_date`. Nostalgia tem `date=2026-07-09`, `end_date=2026-07-10` → filtro do dia 10 exclui.
 
-**Antes:** `event.date >= hoje` → festival some no último dia.
-**Depois:** `(event.end_date ?? event.date) >= hoje` → festival aparece até o último dia.
+**Ação:** ajustar a query/filter para incluir eventos onde `date <= rangeEnd AND coalesce(end_date, date) >= rangeStart` nas duas edge functions e no preview do admin. Reutilizar `isEventVisible` / lógica de `eventDateHelper` no lado servidor via helper compartilhado (copiar utilitário para `supabase/functions/_shared/`).
 
----
+### Item 3 — DEDGE recorrente condensado em 1 card com múltiplas datas
+**Antes:** templates "Agenda FDS — Cartaz digital" e "Digest semanal — Cartaz da semana" listam 1 card por data de DEDGE.
 
-### Bug 2 — Agenda FDS (edge `weekend-agenda-draft`) ignora `end_date`
+**Depois:** no builder desses dois templates, agrupar eventos que compartilham `recurring_event_config_id` (ou mesmo `title` + `venue`) em um único card com lista de datas (mesmo padrão já usado no "Timeline por dia").
 
-Arquivo: `supabase/functions/weekend-agenda-draft/index.ts` (linhas 270-271)
-
-```ts
-.gte('date', startIso).lte('date', endIso)   // ← só date
-```
-
-Se o FDS for sex-dom (10-12/07) e o Nostalgia começou quinta 09/07, ele fica de fora — mesmo terminando na sexta.
-
-**Depois:** buscar num range mais amplo e filtrar em memória:
-`(date <= endIso) && ((end_date ?? date) >= startIso)`
-(Range multi-dia sobrepõe a janela do FDS.)
+Arquivos envolvidos: `supabase/functions/_shared/emailBlocks.ts` + os templates de cartaz. Investigar ponto exato durante execução.
 
 ---
 
-### Bug 3 — Aba "Eventos Mesclados" vazia
+## FASE 2 — Auditoria de conteúdo + Editor de Blocos
 
-Arquivo: `src/components/admin/MergedEventsTab.tsx`
+### Item 4 — Trocar "Cuiabá" por "São Paulo - SP"
+Auditoria global via `rg -i "cuiab"` em `src/`, `supabase/functions/`, `public/`, `docs/`. Substituir por São Paulo/SP em: previews mock, textos de digest, subtítulos automáticos, seed data. Listar antes de trocar para o usuário confirmar caso apareça em algum lugar sensível.
 
-A aba lê **`application_logs`** filtrando por `context.action = 'merge_events'`. Rodei `SELECT` — **não existe nenhum log de merge no banco**. Mesclagens antigas (como Nostalgia, feita em 14/06) foram executadas antes do logging existir, então ficam invisíveis por esse caminho.
+### Item 5 — Contagem regressiva tamanho "médio"
+No editor de blocos (`EmailTemplateEditor.tsx` ou equivalente), reduzir o tamanho "médio" ~30% (fonte/padding) para ficar entre o minimalista e o grande. Manter o grande intacto.
 
-A **fonte de verdade** é a tabela `events` (colunas `merged_into_id` e `merged_at`).
+### Item 6 — Bloco "Flyer do evento" sem preview
+Adicionar imagem placeholder genérica quando `event.image_url` está vazio no preview (usar `/placeholder.svg` ou asset dedicado). Só afeta o preview do editor, não a geração real.
 
-**Depois:** a aba passa a consultar `events` diretamente:
-- lista todo evento com `merged_into_id IS NOT NULL` e `merged_at` recente
-- agrupa pelo evento principal (o "pai")
-- só mostra grupos cujo evento principal ainda não passou (usando `end_date ?? date`)
-- para cada grupo, se existir log com snapshot em `application_logs`, o botão "Desfazer" fica ativo; senão, mostra "Mesclagem antiga sem snapshot — desfazer manualmente"
-
-Assim o Nostalgia (e outros mesclados históricos) volta a aparecer, e novas mesclagens (com log) continuam com undo automático.
+### Item 7 — Ícone de olho (mostrar/ocultar) por bloco
+Ao lado dos botões duplicar/excluir de cada bloco, adicionar toggle olho aberto/fechado (lucide `Eye`/`EyeOff`). Persiste em `block.hidden` (novo campo booleano no JSON do template). Preview e geração final respeitam a flag: bloco oculto é pulado no render.
 
 ---
 
-## Plano de execução (3 fases isoladas)
+## FASE 3 — Automações, Histórico e Pendências
 
-### Fase A — Corrigir listagem pública (Bug 1)
-- Editar `getUpcomingEvents` em `src/pages/Eventos.tsx` para considerar `end_date`.
-- Verificar rapidamente `EventsCarousel` e `FeaturedEvents` — pelo que vi já usam `end_date` para exibição, mas confirmo se algum filtro adicional também precisa ajuste.
-- **Sem** mudança de banco. Sem mudança de UI. Só o filtro.
+### Item 8 — Opção "— Padrão (is_default) —" nos selects de template
+Investigar de onde vem. Provavelmente é o registro em `email_templates` marcado com `is_default=true`. Se estiver duplicando o template real (que aparece nomeado logo abaixo), remover a opção genérica e deixar apenas os templates nomeados, marcando visualmente qual é o default (⭐ já existe).
 
-### Fase B — Corrigir Agenda FDS (Bug 2)
-- Editar a query do `weekend-agenda-draft` para não excluir festivais que atravessam a janela.
-- Redeploy automático da edge.
+### Item 9 — Busca por nome de evento na aba Histórico
+Adicionar `<Input>` de busca no topo da seção "Histórico por evento" filtrando client-side pelo `event.title` (case-insensitive, sem acento).
 
-### Fase C — Corrigir aba "Eventos Mesclados" (Bug 3)
-- Reescrever `MergedEventsTab` para ler `events` (fonte de verdade) em vez de `application_logs`.
-- Manter `UndoMergeDialog` atual — só passa a receber os dados agrupados vindos de `events`.
-- Botão "Desfazer" só habilitado se existir log com snapshot; caso contrário, mostra aviso.
+### Item 10 — Levantamento de pendências das fases anteriores
+Ler `PENDENCIAS.MD` + `.lovable/plan.md` e listar aqui, num último passo, o que ficou em aberto (SEO, egress, geração automática, etc.). Sem executar — só relatar para você decidir o próximo ciclo, junto com a integração Google Maps.
 
 ---
 
-## Checklist de validação (após cada fase)
+## Execução em 2 etapas (como você pediu)
 
-**Fase A**
-- [ ] Abrir `/eventos` hoje: Nostalgia aparece na lista.
-- [ ] Abrir amanhã (11/07): Nostalgia some (end_date passou).
-- [ ] Eventos de dia único continuam sumindo no dia seguinte como antes.
+**Etapa A — Itens 1, 2, 3, 4** (sincronia /links + admin, multi-dia, DEDGE, Cuiabá→SP)
+Risco: baixo. Alteração de leitura/exibição. Validação manual: abrir /links e /admin/links-manager lado a lado → ordem idêntica. Nostalgia visível no dia 10/07 no preview dos 4 templates. Cards DEDGE consolidados. Nenhuma menção a Cuiabá restante.
 
-**Fase B**
-- [ ] Gerar rascunho da Agenda FDS: Nostalgia aparece se a janela do FDS pegar 10/07.
-- [ ] Eventos totalmente fora da janela continuam de fora.
+**Etapa B — Itens 5, 6, 7, 8, 9, 10** (editor de blocos + automações + histórico + relatório)
+Risco: baixo, mudanças isoladas no editor e nas abas. Validação manual: olho oculta bloco no preview e no envio; contagem regressiva média visualmente distinta da grande; busca no histórico filtra corretamente.
 
-**Fase C**
-- [ ] Abrir Admin → Eventos → aba "Eventos Mesclados": Nostalgia aparece.
-- [ ] Mesclagens de eventos que já passaram **não** aparecem (limpeza visual).
-- [ ] Botão "Desfazer" aparece habilitado só quando há snapshot.
+## Protocolo de resposta (por etapa)
+Para cada etapa concluída informarei: antes vs depois, melhorias, vantagens/desvantagens, checklist manual, pendências, prevenção de regressão (testes/guards adicionados onde couber — ex: teste que garante `LinksManager` usa `sortLinkGroups`).
 
----
-
-## Riscos e prevenção de regressão
-
-- **Risco baixo em todas as fases**: só ampliam o que é considerado ativo/visível, não escondem nada que hoje aparece.
-- Testes existentes em `eventDateHelper.test.ts` já cobrem multi-dia com `end_date` — vou adicionar um teste unitário para o novo filtro em `Eventos.tsx` e um para o filtro da edge FDS.
-- **Sem migração de banco.** Zero mudança de schema.
-
-## Pendências (não incluídas agora)
-- Auditoria geral em todo o código atrás de outros `event.date >=` órfãos (existe em admin? em cron de recorrentes?). Se quiser, faço um segundo plano só para isso depois.
-
-**Pergunta antes de começar:** posso ir na ordem A → B → C, executando **uma fase por vez** e esperando você validar antes de seguir para a próxima?
+Confirma iniciar pela Etapa A?
