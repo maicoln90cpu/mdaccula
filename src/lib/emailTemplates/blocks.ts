@@ -491,24 +491,24 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         </td></tr>`;
       }
 
-      // medium — 2 caixas (dias + horas)
+      // medium — 2 caixas (dias + horas), ~30% menor que large
       if (size === "medium") {
         const parts = [
           { v: days, label: days === 1 ? "dia" : "dias" },
           { v: hours, label: hours === 1 ? "hora" : "horas" },
         ];
         const boxes = parts.map((p) =>
-          `<td style="padding:0 6px;"><div style="min-width:80px;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
-            <div style="color:#ffffff;font-size:22px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
-            <div style="color:#ffffff;opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>
+          `<td style="padding:0 4px;"><div style="min-width:56px;padding:7px 9px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:8px;text-align:center;">
+            <div style="color:#ffffff;font-size:16px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
+            <div style="color:#ffffff;opacity:0.85;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">${p.label}</div>
           </div></td>`
         ).join("");
-        return `<tr><td style="padding:8px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:14px;">
-            <tr><td align="${align}" style="padding:14px 12px;text-align:${align};">
-              <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">${label}</div>
+        return `<tr><td style="padding:6px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:11px;">
+            <tr><td align="${align}" style="padding:10px 10px;text-align:${align};">
+              <div style="color:#ffffff;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">${label}</div>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
-              <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:8px;">até ${escape(deadlineLabel)}</div>
+              <div style="color:#ffffff;opacity:0.85;font-size:10px;margin-top:6px;">até ${escape(deadlineLabel)}</div>
             </td></tr>
           </table>
         </td></tr>`;
