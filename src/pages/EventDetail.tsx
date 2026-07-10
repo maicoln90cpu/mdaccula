@@ -52,6 +52,8 @@ interface Event {
   blog_post_id: string | null;
   views: number;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface BlogPost {
