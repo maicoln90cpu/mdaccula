@@ -825,6 +825,8 @@ const EmailConfig = () => {
         lineup: Array.isArray(ev.lineup) ? ev.lineup : undefined,
         eventStartIso: dateObj.toISOString(),
         ticketBatchDeadlineIso: batchDeadline.toISOString(),
+        venueLat: typeof ev.venue_lat === "number" ? ev.venue_lat : undefined,
+        venueLng: typeof ev.venue_lng === "number" ? ev.venue_lng : undefined,
       });
       // Se o evento tem matéria vinculada, busca o resumo
       if (ev.blog_post_id) {
