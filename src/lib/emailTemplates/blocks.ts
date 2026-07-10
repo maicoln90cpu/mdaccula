@@ -584,6 +584,129 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
 
+    case "weekend_grid": {
+      const list = (event.weekendEvents || []).filter(Boolean);
+      const align = block.align ?? "left";
+      const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
+      const title = escape(block.title || "O que rola no fds");
+      const showArticle = block.show_article_link !== false;
+      const layout = block.layout || "cartaz";
+
+      if (list.length === 0) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            📅 Aqui aparecem os eventos do fim de semana quando a newsletter for gerada.
+          </div>
+        </td></tr>`;
+      }
+
+      const header = `<tr><td style="padding:16px 32px 4px 32px;text-align:${align};">
+        <div style="color:${primary};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>
+        <h2 style="margin:0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>
+      </td></tr>`;
+
+      if (layout === "timeline") {
+        // Layout B — barra colorida por dia, miniatura + info
+        const barColor = escape(block.day_bar_color || accent);
+        const rows = list.map((ev) => {
+          const url = escape(ev.eventUrl || "#");
+          const article = showArticle && ev.articleUrl
+            ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Ler matéria →</a>`
+            : "";
+          return `<tr><td style="padding:6px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+              <tr>
+                <td width="6" style="background:${barColor};"></td>
+                <td width="96" style="padding:0;">
+                  <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(ev.imageUrl)}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
+                </td>
+                <td style="padding:12px 14px;vertical-align:top;">
+                  <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+                  <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+                  <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+                  ${article}
+                </td>
+              </tr>
+            </table>
+          </td></tr>`;
+        }).join("");
+        return `${header}${rows}`;
+      }
+
+      // Layout C — Cartaz digital: cards full-width com imagem grande + badge do dia
+      const cards = list.map((ev) => {
+        const url = escape(ev.eventUrl || "#");
+        const article = showArticle && ev.articleUrl
+          ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
+          : "";
+        const ticketBtn = ev.ticketUrl
+          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">Garantir ingresso</a>`
+          : "";
+        return `<tr><td style="padding:10px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+            <tr><td style="padding:0;position:relative;">
+              <a href="${url}" style="text-decoration:none;display:block;">
+                <img src="${escape(ev.imageUrl)}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+              </a>
+            </td></tr>
+            <tr><td style="padding:16px 18px 18px 18px;">
+              <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+              <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+              <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+              ${ticketBtn}${article}
+            </td></tr>
+          </table>
+        </td></tr>`;
+      }).join("");
+      return `${header}${cards}`;
+    }
+
+    case "dedge_block": {
+      const d = event.dedge;
+      const override = block.override_content === true;
+      const imageUrl = (override ? block.image_url : d?.imageUrl) || block.image_url || d?.imageUrl || "";
+      const eyebrow = escape((override ? block.eyebrow : d?.eyebrow) || block.eyebrow || d?.eyebrow || "TODA SEMANA · RESIDÊNCIA");
+      const title = escape((override ? block.title : d?.title) || block.title || d?.title || "Dedge — sua residência da semana");
+      const description = escape((override ? block.description : d?.description) || block.description || d?.description || "");
+      const primaryUrl = (override ? block.primary_url : d?.primaryUrl) || block.primary_url || d?.primaryUrl || "";
+      const primaryLabel = escape((override ? block.primary_label : d?.primaryLabel) || block.primary_label || d?.primaryLabel || "Ver todos os eventos Dedge");
+      const nights = (d?.nights || []).filter((n) => n.enabled && n.url);
+      const buttonStyle = block.button_style || "dark";
+
+      if (!imageUrl && nights.length === 0 && !primaryUrl) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            🎧 Bloco Dedge — configure a imagem e os links das noites nas propriedades do bloco.
+          </div>
+        </td></tr>`;
+      }
+
+      const btnBg = buttonStyle === "primary" ? gradient : "#0a0a0a";
+      const btnBorder = buttonStyle === "primary" ? "transparent" : "rgba(255,255,255,0.18)";
+      const nightBtns = nights.map((n) =>
+        `<tr><td style="padding:6px 0;"><a href="${escape(n.url)}" style="display:block;width:100%;box-sizing:border-box;padding:14px 18px;background:${btnBg};border:1px solid ${btnBorder};color:#ffffff;font-size:13px;font-weight:800;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:10px;">${escape(n.label)}</a></td></tr>`
+      ).join("");
+
+      return `<tr><td style="padding:20px 32px 8px 32px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000000;border:1px solid rgba(255,255,255,0.12);border-radius:16px;overflow:hidden;">
+          ${imageUrl ? `<tr><td style="padding:0;"><img src="${escape(imageUrl)}" alt="Dedge" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></td></tr>` : ""}
+          <tr><td style="padding:22px 22px 8px 22px;text-align:center;">
+            <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:6px;">${eyebrow}</div>
+            <h2 style="margin:0 0 8px 0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:900;letter-spacing:-0.01em;">${title}</h2>
+            ${description ? `<p style="margin:0 0 4px 0;color:#a1a1aa;font-size:14px;line-height:1.55;">${description}</p>` : ""}
+          </td></tr>
+          ${nights.length > 0 ? `<tr><td style="padding:12px 22px 6px 22px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${nightBtns}</table>
+          </td></tr>` : ""}
+          ${primaryUrl ? `<tr><td align="center" style="padding:8px 22px 22px 22px;text-align:center;">
+            <a href="${escape(primaryUrl)}" style="display:inline-block;padding:14px 22px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:10px;">${primaryLabel}</a>
+          </td></tr>` : ""}
+        </table>
+      </td></tr>`;
+    }
+
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
       const align = block.align ?? "center";
