@@ -570,6 +570,7 @@ export function buildPresetBlocks(
       { id: newBlockId(), kind: "subtitle" },
       { id: newBlockId(), kind: "event_meta" },
       { id: newBlockId(), kind: "description" },
+      { id: newBlockId(), kind: "lineup", title: "Line-up", layout: "chips", align: "center" },
       { id: newBlockId(), kind: "article_summary" },
       { id: newBlockId(), kind: "cta_button", label: "Garantir ingresso", url_field: "ticket_link" },
       { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
