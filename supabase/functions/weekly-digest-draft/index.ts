@@ -282,6 +282,20 @@ Deno.serve(async (req) => {
     const subject = `📬 MDAccula desta semana — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} no radar`;
     const internalName = `MDAccula • Digest semanal • ${todayIso}`;
 
+    if (dryRun) {
+      return json({
+        ok: true,
+        dry_run: true,
+        subject,
+        internal_name: internalName,
+        html,
+        events_count: evs.length,
+        posts_count: pts.length,
+        range: rangeLabel,
+      });
+    }
+
+
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
