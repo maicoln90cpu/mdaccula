@@ -227,6 +227,8 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const force = body?.force === true;
     const dryRun = body?.dry_run === true;
+    const overrideTemplateId: string | null = typeof body?.template_id === 'string' && body.template_id ? body.template_id : null;
+    const range: 'week' | 'weekend' = body?.range === 'weekend' ? 'weekend' : 'week';
 
     // Guard 1: master switch
     const { data: masterRow } = await admin
