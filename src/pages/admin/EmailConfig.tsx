@@ -1785,6 +1785,34 @@ const EmailConfig = () => {
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       {statusBadge(c.status)}
+                                      {c.campaign_type === "ab_subject" && (() => {
+                                        // Determina o vencedor entre pares A/B se ambos têm stats.
+                                        const cfg = (c.ab_test_config || {}) as any;
+                                        const metricKey = cfg.winner_metric === "clicks" ? "click_rate" : "open_rate";
+                                        const partner = g.items.find(
+                                          (x) => x.id !== c.id && x.ab_group_id === c.ab_group_id,
+                                        );
+                                        const myStats = campaignStats[c.id];
+                                        const partnerStats = partner ? campaignStats[partner.id] : null;
+                                        let winnerLabel: string | null = null;
+                                        if (myStats && partnerStats) {
+                                          const mine = (myStats as any)[metricKey] ?? 0;
+                                          const theirs = (partnerStats as any)[metricKey] ?? 0;
+                                          if (mine > theirs) winnerLabel = "🏆 Venceu";
+                                          else if (mine < theirs) winnerLabel = "Perdeu";
+                                          else winnerLabel = "Empate";
+                                        }
+                                        return (
+                                          <>
+                                            <Badge variant="outline" className="text-xs">A/B {c.ab_variant || "?"}</Badge>
+                                            {winnerLabel && (
+                                              <Badge className="text-xs" variant={winnerLabel.includes("Venceu") ? "default" : "secondary"}>
+                                                {winnerLabel} ({cfg.winner_metric === "clicks" ? "cliques" : "aberturas"})
+                                              </Badge>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                       <span className="text-xs text-muted-foreground">
                                         {c.mode} • {new Date(c.created_at).toLocaleString("pt-BR")}
                                       </span>
