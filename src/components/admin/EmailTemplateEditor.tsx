@@ -282,7 +282,7 @@ export function EmailTemplateEditor({
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
   const previewHtml = useMemo(
-    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle),
+    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true }),
     [blocks, previewEvent, settings, previewArticle],
   );
 
