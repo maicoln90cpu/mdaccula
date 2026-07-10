@@ -1,109 +1,66 @@
+# Onda D — Melhorias no Digest Semanal (aprovado)
 
-# Onda C.1 — Polimento do Editor de E-mails
+Decisões confirmadas com o usuário:
 
-Foco: **corrigir bugs de UI** e **aumentar personalização por bloco**, sem mexer em backend/E-goi. Deploy em 5 sub-etapas seguras.
+1. **Preview do digest real**: alternativa B — dropdown "Fonte dos dados" na aba Preview existente (sem card duplicado).
+2. **Bloco Dedge no "Cartaz da semana"**: sim, incluir por padrão, mas como bloco removível pelo editor (igual aos outros blocos — o usuário arrasta pra fora se não quiser).
+3. **Cron default**: segunda-feira 10:00 (America/Sao_Paulo), com dia e hora **personalizáveis** pelo admin.
 
-## Diagnóstico dos problemas
+---
 
-### 1) CTA no "Template (marca)" não muda o preview
-Quando o **Editor de blocos** já tem um bloco `cta_button` com `label` próprio, o render usa `block.label || settings.cta_label`. Ou seja, o campo "Texto do botão principal" da aba Marca **é sobrescrito** pelo label do bloco. Isso é o comportamento correto, mas hoje **não é explicado** ao usuário e dá impressão de bug.
+## Ordem de execução (fases seguras)
 
-### 2) Redes sociais fixas (Instagram/YouTube/TikTok) na aba Marca
-Legado. Hoje o bloco `social_icons` do editor já suporta 6 redes com toggle e URL individual. Manter os 3 campos fixos duplica configuração e confunde.
+### D.3 — Preview real do digest na aba Preview (primeira etapa, mais barata)
+- Editar `supabase/functions/weekly-digest-draft/index.ts` — aceitar `?dry_run=true` (ou body `{ dry_run: true }`); nesse modo pula o `POST /campaigns/email` da E-goi e retorna `{ ok:true, dry_run:true, html, subject, events_count, posts_count, range }`. Retrocompatível: modo normal continua igual.
+- Editar aba "Preview" em `src/pages/admin/EmailConfig.tsx`: adicionar select "Fonte dos dados" com 3 opções:
+  - `mock` — dados de exemplo (atual).
+  - `next_event` — próximo evento real (atual, se disponível).
+  - `weekly_digest` — chama a edge function em modo dry-run e injeta o HTML direto no iframe (600px).
+- Botão "Atualizar preview" ao lado do select.
+- **Ganho imediato:** vê o digest da semana como ele sai, sem esperar a quinta ou criar rascunho de teste na E-goi.
 
-### 3) "Blocos visíveis" (subtítulo/descrição/social/link secundário) na aba Marca
-Legado. Cada um agora é um bloco no editor, que pode ser adicionado/removido/reordenado. **Redundante.**
+### D.1.b — Novo preset "Digest Semanal — Cartaz da semana" (recomendado)
+- Novo bloco `weekly_hero`: destaque full-width do 1º evento da semana (imagem grande + título + data + venue + CTA).
+- Reaproveita `weekend_grid` (layout cartaz) para os demais eventos da semana — o helper `getWeeklyEvents()` popula `weekendEvents` com 7 dias em vez de 3.
+- Novo bloco `blog_posts_list`: cards horizontais com thumbnail + título + trecho + "Ler matéria →" (consome `blogPosts` do payload).
+- Bloco `dedge_block` incluído por padrão no preset — o usuário remove no editor se não quiser.
+- Preset registrado como `template_type: "weekly_digest"` (a edge function já reconhece).
 
-### 4) "HTML customizado (avançado)"
-São dois campos livres (`custom_html_header` e `custom_html_footer`) que injetam HTML **antes da logo** e **depois do rodapé**. Serve para colar coisas como "Newsletter #12 · Maio 2026" no topo, ou razão social/CNPJ no final. Hoje já pode ser substituído por um bloco `text` na posição desejada. Vou manter, mas explicar melhor no rótulo.
+### D.1.a — Novo preset "Digest Semanal — Editorial"
+- Estilo revista: eyebrow, título grande, subtítulo.
+- `weekend_grid` em modo **timeline** alimentado com a semana inteira.
+- `blog_posts_list` para matérias em alta.
+- CTA "Ver agenda completa" + rodapé.
+- (Sem Dedge por padrão neste — foco editorial.)
 
-### 5) Tela pisca e volta para a aba "Configuração"
-`<Tabs defaultValue="config">` é **não controlado**. Toda vez que uma ação chama `loadAll()` (salvar template, toggle digest, etc.), `setLoading(true)` desmonta o `<Tabs>` inteiro e ao remontar volta ao default. Fix: controlar o valor da aba em `useState` e **não desmontar** os Tabs durante o refresh (mostrar spinner interno em vez de troca completa de tela).
+### D.2 — Agendamento configurável do cron
 
-### 6) Preview do slider "Largura máxima" da Imagem com link
-O `<img>` usa `width:100%; max-width:{maxW}px`. Enquanto o `maxW` for **maior** que a largura útil do container (~552px), visualmente nada muda. Slider vai de 200–600, então só valores abaixo de ~500 mostram diferença. **Não é bug**, é limite físico do container. Vou:
-- limitar o slider a 200–552;
-- adicionar controle de **alinhamento** (esquerda/centro/direita) que muda de fato o preview em qualquer largura.
+**UI na aba Digest Semanal (`/admin/email-config`)**
+- Toggle "Ativar geração automática do digest semanal" (já existe — `weekly_digest_enabled`).
+- **Novo:** Select de dia da semana. Default: **segunda-feira**.
+- **Novo:** Input de horário. Default: **10:00** (America/Sao_Paulo).
+- Botão "Salvar agendamento" → salva em `site_settings` (`weekly_digest_cron_day`, `weekly_digest_cron_hour`) e chama edge function `update-weekly-digest-schedule`.
+- Exibe "Próxima execução: segunda 10:00 SP" calculado a partir do que foi salvo.
 
-### 7) "Erro ao gerar rascunho do digest semanal — Failed to send a request to the Edge Function"
-Função `weekly-digest-draft` provavelmente ainda não foi deployada (foi criada na B.11 mas não vi confirmação de deploy). Vou redeployar e verificar logs.
+**Backend**
+- Nova edge function `update-weekly-digest-schedule`: recebe `{ day: 1..7, hour: 0..23 }`, converte SP → UTC (fixo -3, ignora DST porque BR não tem DST), roda `cron.unschedule('weekly-digest-cron')` + `cron.schedule('weekly-digest-cron', 'X X * * X', $$…$$)`. Guard: admin obrigatório.
+- **Prevenção de regressão:** retorna `next_run_at` calculado; UI mostra ao usuário para confirmação visual.
 
-## Sub-etapas (deploy em fases)
+---
 
-### C.1.1 — Fix do flicker de abas
-- Controlar `<Tabs value=... onValueChange=...>` em `EmailConfig.tsx`.
-- Remover o `if (loading) return spinner` que desmonta tudo. Mostrar spinner apenas dentro das abas afetadas.
-- **Ganho:** trocar de aba, salvar, alternar toggle — nada mais volta pra "Configuração".
+## Riscos & Mitigação
 
-### C.1.2 — Limpeza da aba "Template (marca)"
-- **Remover** cards: "Blocos visíveis", "Instagram/YouTube/TikTok URL" (o bloco social_icons cuida disso).
-- **Manter**: Marca (logo + nome), Cores, Texto do CTA/link secundário/rodapé, HTML customizado.
-- Renomear "HTML customizado (avançado)" → "HTML no topo e no rodapé (opcional)" com descrição em português leigo.
-- **Adicionar aviso** no card "Textos e links": *"Se o Editor de blocos tem um botão CTA com texto próprio, ele tem prioridade sobre este campo."*
-- **Ganho:** uma fonte de verdade por configuração, sem duplicação.
+- **`pg_cron` falhar silenciosamente:** UI mostra próxima execução calculada; se der erro no `unschedule`, retornar mensagem clara e não sobrescrever settings.
+- **Payload do digest não tem `weekendEvents` populado:** o helper novo (`getWeeklyEvents()`) roda dentro da edge function e injeta antes do render. Preview dry-run usa o mesmo caminho.
+- **Templates antigos:** presets novos são novos registros; nenhum template existente é tocado.
 
-### C.1.3 — Personalização por bloco (item a item)
-Auditoria bloco por bloco, adicionando propriedades editáveis + garantindo que o preview reflete cada mudança:
+## Pendências propositais (fora desta onda)
 
-| Bloco | Novas propriedades |
-|---|---|
-| header (cabeçalho) | ✓ altura logo já existe. Adicionar: alinhamento (esq/centro/dir), padding vertical |
-| eyebrow (etiqueta) | texto ✓. Adicionar: cor (usa primary por padrão), alinhamento |
-| title (título) | Adicionar: tamanho (24/28/32/40px), alinhamento, cor |
-| subtitle | Adicionar: alinhamento, cor |
-| event_meta (data/hora/local) | Adicionar: layout (2 colunas / empilhado) |
-| description | Adicionar: alinhamento, cor do texto |
-| article_summary | Adicionar: mostrar/ocultar imagem da matéria |
-| cta_button | label ✓, url_field ✓. Adicionar: largura (full/auto), alinhamento (auto/esq/centro/dir), cor de fundo (auto usa gradiente, ou cor fixa) |
-| secondary_link | label ✓, url ✓. Adicionar: alinhamento |
-| image_with_link | url/link/alt ✓. Ajustar slider p/ 200–552. Adicionar: alinhamento, borda arredondada (0/8/16px) |
-| divider | Adicionar: espessura (1/2/4px), cor |
-| text (HTML livre) | html ✓. Adicionar: alinhamento, cor base |
-| social_icons | ✓ completo, adicionar: estilo (texto atual / pílulas coloridas) |
-| footer | texto ✓, unsubscribe ✓. Adicionar: alinhamento |
-| hero_image (flyer) | Adicionar: largura máxima (400–600), borda arredondada |
+- Google Maps connector (bloco `static_map` em produção) — fica pra onda seguinte.
+- Helper `getWeekendEvents()` real para o cron da quinta (Agenda do FDS automático) — depende da mesma infraestrutura, faço junto se você quiser aproveitar a viagem.
 
-Cada opção usa design tokens existentes. Preview atualiza via `useMemo` já implementado — só preciso plugar as novas props no `renderBlock`.
+---
 
-- **Ganho:** flexibilidade real por template, sem mexer em código a cada nova campanha.
+## Aprovação para começar
 
-### C.1.4 — Deploy e teste do `weekly-digest-draft`
-- Confirmar que o edge function foi deployado (`supabase--deploy_edge_functions`).
-- Testar via `supabase--curl_edge_functions` com `{ force: true }`.
-- Ler logs para diagnosticar erro real caso persista.
-
-### C.1.5 — Validação manual (checklist)
-Vou te entregar um checklist com 15 itens: alternar cada aba, salvar, gerar digest, editar cada bloco novo, ver preview atualizar.
-
-## Riscos e mitigação
-
-- **Risco:** remover campos da aba "Marca" pode apagar dados salvos (redes sociais URL).
-  **Mitigação:** os campos ficam no banco (`email_template_settings`) mas somem da UI. Se um dia quiser voltar, os valores estão lá. Alternativamente, migro pro bloco social_icons do template padrão automaticamente (opcional — pergunto se quer).
-
-- **Risco:** novas props de bloco em templates antigos.
-  **Mitigação:** todo campo novo tem default; blocos existentes continuam renderizando igual.
-
-- **Risco:** Tabs controlado pode ter regressão de acessibilidade.
-  **Mitigação:** shadcn Tabs suporta controlado nativamente, sem mudança de API.
-
-## Ordem de execução recomendada
-
-1. **C.1.1** (flicker) — deploy independente, fix rápido.
-2. **C.1.4** (digest) — deploy independente, fix rápido.
-3. **C.1.2** (limpeza aba Marca) — deploy independente.
-4. **C.1.3** (personalização por bloco) — maior, faço tudo em uma rodada mas com testes bloco a bloco.
-5. **C.1.5** (checklist final).
-
-## Pendências propositais (fora do escopo)
-
-- Migrar `instagram_url/youtube_url/tiktok_url` do settings para o bloco social_icons do template padrão. (Faço se pedir.)
-- Salvamento automático (autosave) no editor de blocos.
-- Copiar bloco entre templates diferentes.
-
-## Prevenção de regressão
-
-- Nenhum caminho de disparo real (Enviar agora, A/B, Virada de lote, Digest) é tocado — só UI de edição e o renderer HTML.
-- Todo bloco novo tem valor default retro-compatível.
-- Testes de contrato existentes de e-mail seguem verdes (não usam props novas).
-
-Pode aprovar essa Onda C.1 para eu começar pela C.1.1 (fix do flicker)?
+Posso iniciar por **D.3 (preview real)** — é a mudança mais rápida, menor risco e você já enxerga valor no mesmo deploy. Depois seguimos D.1.b → D.1.a → D.2.
