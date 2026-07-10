@@ -765,6 +765,7 @@ const EmailConfig = () => {
           <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor de blocos</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
           <TabsTrigger value="batch">Virada de lote</TabsTrigger>
+          <TabsTrigger value="digest">Digest semanal</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
