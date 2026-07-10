@@ -400,11 +400,31 @@ const EmailConfig = () => {
           .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup,venue_lat,venue_lng")
           .order("date", { ascending: false })
           .limit(30),
-        supabase.from("site_settings").select("value").eq("key", "weekly_digest_enabled").maybeSingle(),
+        supabase.from("site_settings").select("key, value").in("key", [
+          "weekly_digest_enabled", "weekly_digest_cron_day", "weekly_digest_cron_hour", "weekly_digest_template_id",
+          "weekend_agenda_enabled", "weekend_agenda_cron_day", "weekend_agenda_cron_hour", "weekend_agenda_template_id",
+        ]),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
-      setDigestEnabled(digestRow.data?.value === "true");
+      const settingsMap: Record<string, string> = {};
+      for (const r of ((digestRow.data as any[]) ?? [])) settingsMap[r.key] = r.value ?? "";
+      const parseInt10 = (v: string | undefined, fallback: number) => {
+        const n = parseInt(v ?? "", 10);
+        return Number.isFinite(n) ? n : fallback;
+      };
+      setWeeklyCfg({
+        enabled: settingsMap.weekly_digest_enabled === "true",
+        day: parseInt10(settingsMap.weekly_digest_cron_day, 4),
+        hour: parseInt10(settingsMap.weekly_digest_cron_hour, 18),
+        templateId: settingsMap.weekly_digest_template_id || "",
+      });
+      setWeekendCfg({
+        enabled: settingsMap.weekend_agenda_enabled === "true",
+        day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
+        hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
+        templateId: settingsMap.weekend_agenda_template_id || "",
+      });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
         setLists(Array.isArray(cacheRes.data.lists) ? cacheRes.data.lists : []);
