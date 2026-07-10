@@ -2308,7 +2308,8 @@ const EmailConfig = () => {
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
