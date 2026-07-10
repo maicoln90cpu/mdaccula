@@ -77,8 +77,10 @@ export interface EventAnnouncementData {
   venueLat?: number;
   /** Longitude do venue — usada pelo bloco `static_map`. */
   venueLng?: number;
-  /** Eventos do fim de semana (usado pelo bloco `weekend_grid`). */
+  /** Eventos do fim de semana / semana (usado por `weekend_grid` e `weekly_hero`). */
   weekendEvents?: WeekendEventItem[];
+  /** Últimos posts do blog (usado por `blog_posts_list`). */
+  blogPosts?: BlogPostItem[];
   /** Configuração do bloco Dedge (residência semanal). */
   dedge?: DedgeBlockData;
 }
