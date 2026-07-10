@@ -69,6 +69,8 @@ async function buildEventData(ev: EventRow): Promise<EventAnnouncementData> {
     timeLabel,
     venueName: ev.venue,
     cityState: `${ev.location_city}-${ev.location_state}`,
+    venueLat: ev.latitude != null ? Number(ev.latitude) : undefined,
+    venueLng: ev.longitude != null ? Number(ev.longitude) : undefined,
     description: ev.description || "",
     ticketUrl: ev.ticket_link || `${BASE_URL}/eventos/${ev.slug}`,
     eventUrl: `${BASE_URL}/eventos/${ev.slug}`,
