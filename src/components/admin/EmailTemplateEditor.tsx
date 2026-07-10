@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
   renderBlockedTemplate, type ArticleSummary,
-  TEMPLATE_PRESETS, buildPresetBlocks,
+  TEMPLATE_PRESETS, buildPresetBlocks, type PresetKey,
 } from "@/lib/emailTemplates/blocks";
 import { MOCK_EVENT_DATA, type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
 import {
