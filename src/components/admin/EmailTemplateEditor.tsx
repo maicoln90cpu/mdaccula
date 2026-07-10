@@ -25,7 +25,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, Trash2, Copy, Save } from "lucide-react";
+import { GripVertical, Plus, Trash2, Copy, Save, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
