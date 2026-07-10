@@ -150,41 +150,63 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
   switch (block.kind) {
     case "header": {
-      // A1 fix: Outlook (desktop) ignora max-height/width:auto do CSS. Precisa
-      // do atributo HTML `height` para dimensionar corretamente. Sem `width`
-      // fixo — deixamos o cliente calcular pelo aspect ratio.
       const height = Math.max(24, Math.min(200, block.logo_height ?? 64));
+      const align = block.align ?? "center";
+      const pad = Math.max(0, Math.min(80, block.padding_y ?? 32));
       const inner = settings.logo_url
-        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" height="${height}" border="0" style="display:block;height:${height}px;max-height:${height}px;width:auto;margin:0 auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
+        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" height="${height}" border="0" style="display:inline-block;height:${height}px;max-height:${height}px;width:auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
-      return `<tr><td align="center" style="padding:32px 24px 24px 24px;">${inner}</td></tr>`;
+      return `<tr><td align="${align}" style="padding:${pad}px 24px ${Math.max(8, pad - 8)}px 24px;text-align:${align};">${inner}</td></tr>`;
     }
 
-    case "hero_image":
-      // A1 fix: adiciona border="0" e propriedades anti-Outlook.
+    case "hero_image": {
+      const maxW = Math.max(300, Math.min(600, block.max_width ?? 552));
+      const radius = block.border_radius ?? 12;
       return `<tr><td align="center" style="padding:0 24px;">
         <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">
+          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
         </a>
       </td></tr>`;
+    }
 
-    case "eyebrow":
-      return `<tr><td style="padding:24px 32px 0 32px;">
-        <p style="margin:0;color:${primary};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">${escape(block.text || "Novo evento")}</p>
+    case "eyebrow": {
+      const color = escape(block.text_color || primary);
+      const align = block.align ?? "left";
+      return `<tr><td style="padding:24px 32px 0 32px;text-align:${align};">
+        <p style="margin:0;color:${color};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">${escape(block.text || "Novo evento")}</p>
       </td></tr>`;
+    }
 
-    case "title":
-      return `<tr><td style="padding:8px 32px 0 32px;">
-        <h1 style="margin:0;color:#ffffff;font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.01em;">${escape(event.eventTitle)}</h1>
+    case "title": {
+      const color = escape(block.text_color || "#ffffff");
+      const align = block.align ?? "left";
+      const size = Math.max(18, Math.min(48, block.font_size ?? 28));
+      return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
+        <h1 style="margin:0;color:${color};font-size:${size}px;line-height:1.15;font-weight:800;letter-spacing:-0.01em;">${escape(event.eventTitle)}</h1>
       </td></tr>`;
+    }
 
-    case "subtitle":
+    case "subtitle": {
       if (!event.eventSubtitle) return "";
-      return `<tr><td style="padding:8px 32px 0 32px;">
-        <p style="margin:0;color:#a1a1aa;font-size:16px;line-height:1.5;">${escape(event.eventSubtitle)}</p>
+      const color = escape(block.text_color || "#a1a1aa");
+      const align = block.align ?? "left";
+      return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
+        <p style="margin:0;color:${color};font-size:16px;line-height:1.5;">${escape(event.eventSubtitle)}</p>
       </td></tr>`;
+    }
 
-    case "event_meta":
+    case "event_meta": {
+      const stacked = block.layout === "stacked";
+      if (stacked) {
+        return `<tr><td style="padding:16px 32px;">
+          <div style="border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:20px 0;">
+            <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:-0.01em;text-transform:uppercase;margin-bottom:6px;">Data e hora</div>
+            <div style="color:#a1a1aa;font-size:14px;line-height:1.5;margin-bottom:14px;">${escape(event.dateLabel)}<br>${escape(event.timeLabel)}</div>
+            <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:-0.01em;text-transform:uppercase;margin-bottom:6px;">Local</div>
+            <div style="color:#a1a1aa;font-size:14px;line-height:1.5;">${escape(event.venueName)}<br>${escape(event.cityState)}</div>
+          </div>
+        </td></tr>`;
+      }
       return `<tr><td style="padding:16px 32px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
           <tr>
@@ -199,16 +221,21 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           </tr>
         </table>
       </td></tr>`;
+    }
 
-    case "description":
+    case "description": {
       if (!event.description) return "";
-      return `<tr><td style="padding:8px 32px 24px 32px;">
-        <p style="margin:0;color:#a1a1aa;font-size:15px;line-height:1.6;">${escape(event.description)}</p>
+      const color = escape(block.text_color || "#a1a1aa");
+      const align = block.align ?? "left";
+      return `<tr><td style="padding:8px 32px 24px 32px;text-align:${align};">
+        <p style="margin:0;color:${color};font-size:15px;line-height:1.6;">${escape(event.description)}</p>
       </td></tr>`;
+    }
 
     case "article_summary": {
       if (!article) return "";
-      const imgHtml = article.image_url
+      const showImage = block.show_image !== false;
+      const imgHtml = showImage && article.image_url
         ? `<img src="${escape(article.image_url)}" alt="" width="120" height="80" border="0" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : "";
       return `<tr><td style="padding:8px 32px 24px 32px;">
@@ -230,59 +257,76 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     case "cta_button": {
       const url = resolveCtaUrl(block, event);
       const label = escape(block.label || settings.cta_label || "Garantir ingresso");
-      return `<tr><td align="center" style="padding:8px 32px 8px 32px;">
-        <a href="${escape(url)}" style="display:block;width:100%;padding:18px 24px;box-sizing:border-box;background:${gradient};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">${label}</a>
+      const align = block.align ?? "center";
+      const fullWidth = block.full_width !== false;
+      const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
+      const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
+      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">
+        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">${label}</a>
       </td></tr>`;
     }
 
     case "secondary_link": {
       const url = resolveSecondaryUrl(block, event);
       const label = escape(block.label || "Ver mais");
-      return `<tr><td align="center" style="padding:8px 32px 24px 32px;">
+      const align = block.align ?? "center";
+      return `<tr><td align="${align}" style="padding:8px 32px 24px 32px;text-align:${align};">
         <a href="${escape(url)}" style="display:inline-block;color:#71717a;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${label}</a>
       </td></tr>`;
     }
 
     case "image_with_link": {
       if (!block.image_url) return "";
-      const maxW = block.max_width ?? 552;
+      const maxW = Math.max(120, Math.min(552, block.max_width ?? 552));
+      const align = block.align ?? "center";
+      const radius = block.border_radius ?? 8;
       const alt = escape(block.alt || "");
-      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`;
+      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
       const wrapped = block.link_url
         ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>`
         : inner;
-      return `<tr><td align="center" style="padding:8px 32px;">${wrapped}</td></tr>`;
+      return `<tr><td align="${align}" style="padding:8px 32px;text-align:${align};">${wrapped}</td></tr>`;
     }
 
-    case "divider":
-      return `<tr><td style="padding:8px 32px;"><div style="height:1px;background:rgba(255,255,255,0.08);"></div></td></tr>`;
+    case "divider": {
+      const thickness = Math.max(1, Math.min(8, block.thickness ?? 1));
+      const color = escape(block.color || "rgba(255,255,255,0.08)");
+      return `<tr><td style="padding:8px 32px;"><div style="height:${thickness}px;background:${color};line-height:${thickness}px;font-size:0;">&nbsp;</div></td></tr>`;
+    }
 
     case "text": {
       const safe = sanitizeCustomHtml(block.html || "");
-      return `<tr><td style="padding:8px 32px;color:#a1a1aa;font-size:14px;line-height:1.6;">${safe}</td></tr>`;
+      const color = escape(block.text_color || "#a1a1aa");
+      const align = block.align ?? "left";
+      return `<tr><td style="padding:8px 32px;color:${color};font-size:14px;line-height:1.6;text-align:${align};">${safe}</td></tr>`;
     }
 
     case "social_icons": {
       const enabled = (block.networks || []).filter((n) => n.enabled && n.url);
       if (enabled.length === 0) return "";
+      const align = block.align ?? "center";
+      const style = block.style || "text";
       const colors = [primary, accent, "#60a5fa", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#fb923c"];
       const cells = enabled.map((n, i) => {
+        if (style === "pill") {
+          return `<td style="padding:4px 6px;"><a href="${escape(n.url)}" style="display:inline-block;padding:8px 14px;background:${colors[i % colors.length]};color:#ffffff;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:999px;">${escape(n.label)}</a></td>`;
+        }
         const sep = i > 0 ? `<td style="padding:0 8px;color:#3f3f46;">·</td>` : "";
         return `${sep}<td style="padding:0 8px;"><a href="${escape(n.url)}" style="color:${colors[i % colors.length]};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${escape(n.label)}</a></td>`;
       }).join("");
-      return `<tr><td align="center" style="padding:16px 32px 8px 32px;">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table>
+      return `<tr><td align="${align}" style="padding:16px 32px 8px 32px;text-align:${align};">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${cells}</tr></table>
       </td></tr>`;
     }
 
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
+      const align = block.align ?? "center";
       const unsubscribe = block.include_unsubscribe !== false
-        // Placeholder oficial E-goi: substituído por link rastreável no envio real.
         ? `<p style="margin:8px 0 0 0;font-size:11px;"><a href="[E-GOI_UNSUBSCRIBE_LINK]" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a></p>`
         : "";
-      return `<tr><td align="center" style="padding:24px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);">
-        <p style="margin:0;color:#52525b;font-size:11px;line-height:1.6;max-width:400px;">${txt}</p>
+      return `<tr><td align="${align}" style="padding:24px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);text-align:${align};">
+        <p style="margin:0;color:#52525b;font-size:11px;line-height:1.6;max-width:400px;display:inline-block;">${txt}</p>
         ${unsubscribe}
       </td></tr>`;
     }
