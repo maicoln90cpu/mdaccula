@@ -1088,6 +1088,14 @@ export const TEMPLATE_PRESETS: Array<{
     template_type: "weekly_digest",
   },
   {
+    key: "weekly_digest_poster",
+    name: "Digest semanal — Cartaz da semana ⭐",
+    description: "Recomendado. Hero de destaque + grade cartaz com toda a semana + últimos posts do blog + bloco Dedge. Ideal para o disparo de segunda-feira.",
+    subject_template: "🎧 O cartaz da semana — {{week_range}}",
+    preheader_template: "Destaque da semana, agenda completa e as matérias mais quentes da cena.",
+    template_type: "weekly_digest",
+  },
+  {
     key: "weekend_agenda_cartaz",
     name: "Agenda do FDS — Cartaz digital ⭐",
     description: "Recomendado. Cards full-width com flyers grandes, badge do dia e bloco Dedge de encerramento em preto/branco.",
