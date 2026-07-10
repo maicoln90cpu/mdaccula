@@ -89,6 +89,16 @@ export async function dispatchEventDraftEmail(
     flyerOverrideUrl?: string;
     /** B.8 — sobrescreve o assunto do e-mail (ex.: "ÚLTIMAS HORAS — {evento}"). */
     subjectOverride?: string;
+    /** B.10 — marca este disparo como uma variante de teste A/B. */
+    abTest?: {
+      groupId: string;
+      variant: "A" | "B";
+      config: {
+        subject_a: string;
+        subject_b: string;
+        winner_metric: "opens" | "clicks";
+      };
+    };
   } = {},
 ): Promise<DispatchEventDraftResult> {
   // 1. Config + template padrão + settings de marca
@@ -196,23 +206,74 @@ export async function dispatchEventDraftEmail(
     `${event.title} — ${eventData.dateLabel} em ${event.venue}, ${event.location_city}-${event.location_state}`;
 
   // 5. Chama edge function
+  const invokeBody: Record<string, unknown> = {
+    event_id: eventId,
+    html,
+    subject,
+    preheader,
+    force_resend: opts.forceResend === true,
+    send_now: opts.sendNow === true,
+  };
+  if (opts.abTest) {
+    invokeBody.ab_group_id = opts.abTest.groupId;
+    invokeBody.ab_variant = opts.abTest.variant;
+    invokeBody.ab_test_config = opts.abTest.config;
+  }
+
   const { data, error } = await supabase.functions.invoke(
     "create-event-email-campaign",
-    {
-      body: {
-        event_id: eventId,
-        html,
-        subject,
-        preheader,
-        force_resend: opts.forceResend === true,
-        send_now: opts.sendNow === true,
-      },
-    },
+    { body: invokeBody },
   );
 
   if (error) {
     return { ok: false, error: error.message };
   }
   return (data as DispatchEventDraftResult) ?? { ok: false, error: "Resposta vazia" };
+}
+
+/**
+ * B.10 — Dispara teste A/B de assunto criando 2 campanhas na E-goi (variantes A e B),
+ * cada uma com um assunto distinto, ambas apontando para a lista completa.
+ * O vencedor é apurado depois pelas métricas B.9 (open_rate ou click_rate).
+ *
+ * Nota: a v3 REST da E-goi não expõe endpoint nativo de split-test por assunto.
+ * Este é o fallback documentado no plano — duas campanhas independentes.
+ */
+export async function dispatchAbSubjectTest(
+  eventId: string,
+  params: {
+    subjectA: string;
+    subjectB: string;
+    winnerMetric: "opens" | "clicks";
+    sendNow: boolean;
+    templateIdOverride?: string;
+  },
+): Promise<{ variantA: DispatchEventDraftResult; variantB: DispatchEventDraftResult; groupId: string }> {
+  const groupId =
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `ab-${Date.now()}-${Math.random().toString(16).slice(2)}`) as string;
+
+  const config = {
+    subject_a: params.subjectA,
+    subject_b: params.subjectB,
+    winner_metric: params.winnerMetric,
+  };
+
+  const variantA = await dispatchEventDraftEmail(eventId, {
+    sendNow: params.sendNow,
+    templateIdOverride: params.templateIdOverride,
+    subjectOverride: params.subjectA,
+    abTest: { groupId, variant: "A", config },
+  });
+
+  const variantB = await dispatchEventDraftEmail(eventId, {
+    sendNow: params.sendNow,
+    templateIdOverride: params.templateIdOverride,
+    subjectOverride: params.subjectB,
+    abTest: { groupId, variant: "B", config },
+  });
+
+  return { variantA, variantB, groupId };
 }
 

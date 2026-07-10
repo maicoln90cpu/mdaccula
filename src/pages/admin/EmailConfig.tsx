@@ -27,7 +27,7 @@ import {
 } from "@/lib/emailTemplates/eventAnnouncement";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
-import { dispatchEventDraftEmail } from "@/lib/emailTemplates/dispatchEventDraft";
+import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTemplates/dispatchEventDraft";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
@@ -54,6 +54,10 @@ type Campaign = {
   error_message: string | null;
   sent_at: string | null;
   created_at: string;
+  campaign_type?: string | null;
+  ab_group_id?: string | null;
+  ab_variant?: string | null;
+  ab_test_config?: Record<string, unknown> | null;
   events?: { title: string | null } | null;
 };
 
@@ -158,6 +162,142 @@ const SendNowButton = ({
   );
 };
 
+/**
+ * B.10 — Botão + modal para disparar teste A/B de assunto.
+ * Cria DUAS campanhas na E-goi (variantes A e B) com assuntos distintos, agrupadas por ab_group_id.
+ * O vencedor é apurado depois pelas métricas B.9.
+ */
+const AbTestButton = ({
+  eventTitle,
+  defaultSubject,
+  disabled,
+  onConfirm,
+}: {
+  eventTitle: string;
+  defaultSubject: string;
+  disabled?: boolean;
+  onConfirm: (params: {
+    subjectA: string;
+    subjectB: string;
+    winnerMetric: "opens" | "clicks";
+    sendNow: boolean;
+  }) => void | Promise<void>;
+}) => {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [subjectA, setSubjectA] = useState(defaultSubject);
+  const [subjectB, setSubjectB] = useState("");
+  const [winnerMetric, setWinnerMetric] = useState<"opens" | "clicks">("opens");
+  const [sendNow, setSendNow] = useState(false);
+  const [reviewed, setReviewed] = useState(false);
+  const [typed, setTyped] = useState("");
+  const reset = () => {
+    setStep(1); setReviewed(false); setTyped("");
+    setSubjectA(defaultSubject); setSubjectB(""); setWinnerMetric("opens"); setSendNow(false);
+  };
+  const canContinue =
+    subjectA.trim().length >= 3 &&
+    subjectB.trim().length >= 3 &&
+    subjectA.trim() !== subjectB.trim() &&
+    reviewed;
+
+  return (
+    <AlertDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+      <AlertDialogTrigger asChild>
+        <Button size="sm" variant="outline" disabled={disabled}>
+          <Send className="w-4 h-4 mr-2" /> Teste A/B assunto
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent className="max-w-lg">
+        {step === 1 ? (
+          <>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Teste A/B de assunto — {eventTitle}</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p className="text-sm">
+                    Serão criadas <b>duas campanhas</b> na E-goi, cada uma com um assunto diferente.
+                    Ambas vão para a lista completa. O vencedor é apurado depois pelas métricas
+                    (abertura ou clique).
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Obs.: a API v3 da E-goi não expõe split-test nativo por assunto — este é o
+                    fluxo de "duas campanhas independentes". Recomendado apenas com listas ≥ 1000
+                    contatos para o resultado ter significância.
+                  </p>
+                  <div>
+                    <Label>Assunto A</Label>
+                    <Input value={subjectA} onChange={(e) => setSubjectA(e.target.value)} placeholder="Ex.: Novo evento chegou 🔥" />
+                  </div>
+                  <div>
+                    <Label>Assunto B</Label>
+                    <Input value={subjectB} onChange={(e) => setSubjectB(e.target.value)} placeholder="Ex.: Você não vai querer perder este" />
+                    {subjectA.trim() && subjectB.trim() && subjectA.trim() === subjectB.trim() && (
+                      <p className="text-xs text-red-500 mt-1">Assuntos A e B precisam ser diferentes.</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label>Métrica vencedora</Label>
+                    <Select value={winnerMetric} onValueChange={(v) => setWinnerMetric(v as "opens" | "clicks")}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="opens">Taxa de abertura</SelectItem>
+                        <SelectItem value="clicks">Taxa de cliques</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={sendNow} onChange={(e) => setSendNow(e.target.checked)} className="mt-1" />
+                    <span>Enviar agora (imediato). Se desmarcado, cria apenas os rascunhos na E-goi.</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={reviewed} onChange={(e) => setReviewed(e.target.checked)} className="mt-1" />
+                    <span>Eu revisei os assuntos e sei que <b>duas campanhas</b> serão criadas.</span>
+                  </label>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <Button disabled={!canContinue} onClick={() => setStep(2)}>Continuar</Button>
+            </AlertDialogFooter>
+          </>
+        ) : (
+          <>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Última confirmação</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p className="text-sm">
+                    Para liberar o {sendNow ? "envio" : "criação"} do teste A/B, digite <b>ENVIAR AB</b>.
+                  </p>
+                  <Input autoFocus value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Digite ENVIAR AB" />
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={typed.trim().toUpperCase() !== "ENVIAR AB"}
+                onClick={async () => {
+                  setOpen(false); reset();
+                  await onConfirm({
+                    subjectA: subjectA.trim(),
+                    subjectB: subjectB.trim(),
+                    winnerMetric,
+                    sendNow,
+                  });
+                }}
+              >
+                Sim, {sendNow ? "enviar" : "criar rascunhos"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </>
+        )}
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};
 
 const EmailConfig = () => {
   const { toast } = useToast();
@@ -443,6 +583,38 @@ const EmailConfig = () => {
       setDispatchingId(null);
     }
   };
+
+  // B.10 — dispara teste A/B de assunto (duas campanhas na E-goi).
+  const dispatchAbTest = async (
+    eventId: string,
+    params: { subjectA: string; subjectB: string; winnerMetric: "opens" | "clicks"; sendNow: boolean },
+  ) => {
+    setDispatchingId(eventId);
+    try {
+      const res = await dispatchAbSubjectTest(eventId, params);
+      const okA = res.variantA.ok;
+      const okB = res.variantB.ok;
+      if (okA && okB) {
+        toast({
+          title: params.sendNow ? "Teste A/B enviado!" : "Rascunhos A e B criados",
+          description: `Grupo ${res.groupId.slice(0, 8)} • A #${res.variantA.egoi_campaign_id ?? "?"} • B #${res.variantB.egoi_campaign_id ?? "?"}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Teste A/B com falhas",
+          description: `A: ${okA ? "ok" : res.variantA.error || res.variantA.reason || "falhou"} • B: ${okB ? "ok" : res.variantB.error || res.variantB.reason || "falhou"}`,
+        });
+      }
+      void loadAll();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro no teste A/B", description: e.message });
+    } finally {
+      setDispatchingId(null);
+    }
+  };
+
+
 
   const toggleMaster = async (v: boolean) => {
     try {
@@ -1613,6 +1785,34 @@ const EmailConfig = () => {
                                   <div className="min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                       {statusBadge(c.status)}
+                                      {c.campaign_type === "ab_subject" && (() => {
+                                        // Determina o vencedor entre pares A/B se ambos têm stats.
+                                        const cfg = (c.ab_test_config || {}) as any;
+                                        const metricKey = cfg.winner_metric === "clicks" ? "click_rate" : "open_rate";
+                                        const partner = g.items.find(
+                                          (x) => x.id !== c.id && x.ab_group_id === c.ab_group_id,
+                                        );
+                                        const myStats = campaignStats[c.id];
+                                        const partnerStats = partner ? campaignStats[partner.id] : null;
+                                        let winnerLabel: string | null = null;
+                                        if (myStats && partnerStats) {
+                                          const mine = (myStats as any)[metricKey] ?? 0;
+                                          const theirs = (partnerStats as any)[metricKey] ?? 0;
+                                          if (mine > theirs) winnerLabel = "🏆 Venceu";
+                                          else if (mine < theirs) winnerLabel = "Perdeu";
+                                          else winnerLabel = "Empate";
+                                        }
+                                        return (
+                                          <>
+                                            <Badge variant="outline" className="text-xs">A/B {c.ab_variant || "?"}</Badge>
+                                            {winnerLabel && (
+                                              <Badge className="text-xs" variant={winnerLabel.includes("Venceu") ? "default" : "secondary"}>
+                                                {winnerLabel} ({cfg.winner_metric === "clicks" ? "cliques" : "aberturas"})
+                                              </Badge>
+                                            )}
+                                          </>
+                                        );
+                                      })()}
                                       <span className="text-xs text-muted-foreground">
                                         {c.mode} • {new Date(c.created_at).toLocaleString("pt-BR")}
                                       </span>
@@ -1685,6 +1885,14 @@ const EmailConfig = () => {
                                 disabled={dispatchingId === g.event_id}
                                 onConfirm={() => dispatchNow(g.event_id, { sendNow: true, forceResend: true })}
                               />
+                              <AbTestButton
+                                eventTitle={g.title}
+                                defaultSubject={`Novo evento: ${g.title}`}
+                                disabled={dispatchingId === g.event_id}
+                                onConfirm={(p) => dispatchAbTest(g.event_id, p)}
+                              />
+
+
 
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
