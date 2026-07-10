@@ -1857,6 +1857,14 @@ const EmailConfig = () => {
                                 disabled={dispatchingId === g.event_id}
                                 onConfirm={() => dispatchNow(g.event_id, { sendNow: true, forceResend: true })}
                               />
+                              <AbTestButton
+                                eventTitle={g.title}
+                                defaultSubject={`Novo evento: ${g.title}`}
+                                disabled={dispatchingId === g.event_id}
+                                onConfirm={(p) => dispatchAbTest(g.event_id, p)}
+                              />
+
+
 
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
