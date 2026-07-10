@@ -81,6 +81,27 @@ export type Block =
       bg_style?: "gradient" | "solid";
       bg_color?: string;
       align?: Align;
+      /** large: caixas grandes (padrão). medium: 2 caixas dias/horas. minimal: 1 linha compacta. */
+      size?: "large" | "medium" | "minimal";
+    }
+  | {
+      id: string;
+      kind: "ticker";
+      messages?: string[]; // até 3 frases
+      bg_color?: string;
+      text_color?: string;
+      animation?: "none" | "slide" | "fade";
+      align?: Align;
+      icon?: "none" | "clock" | "fire" | "bolt";
+    }
+  | {
+      id: string;
+      kind: "static_map";
+      zoom?: number;
+      height?: number;
+      map_style?: "roadmap" | "terrain";
+      show_address_label?: boolean;
+      border_radius?: number;
     }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
