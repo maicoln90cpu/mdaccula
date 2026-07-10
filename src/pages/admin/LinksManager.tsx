@@ -19,6 +19,7 @@ import { SortableItem } from "@/components/links/SortableItem";
 import { LinksPageSettings } from "@/components/links/LinksPageSettings";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { isEventVisible } from "@/lib/eventDateHelper";
+import { processLinks, sortLinkGroups } from "@/hooks/useLinks";
 import { useAdminRealtime } from "@/hooks/useAdminRealtime";
 
 // Helper para extrair mensagem de erro de forma segura
