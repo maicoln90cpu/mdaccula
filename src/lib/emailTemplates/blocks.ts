@@ -813,12 +813,15 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   divider: "Divisor",
   text: "Bloco de texto livre",
   social_icons: "Redes sociais",
+  weekend_grid: "Agenda do fim de semana",
+  dedge_block: "Bloco Dedge (residência)",
   footer: "Rodapé + descadastrar",
 };
 
 export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "header", "hero_image", "eyebrow", "title", "subtitle", "event_meta",
   "description", "lineup", "article_summary", "countdown", "ticker", "static_map",
+  "weekend_grid", "dedge_block",
   "cta_button", "secondary_link", "image_with_link", "divider", "text",
   "social_icons", "footer",
 ];
