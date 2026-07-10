@@ -27,6 +27,7 @@ import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucid
 import { Helmet } from "react-helmet-async";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { StructuredData } from "@/components/StructuredData";
+import { EventLocationMap } from "@/components/events/EventLocationMap";
 
 interface Event {
   id: string;
@@ -52,6 +53,8 @@ interface Event {
   blog_post_id: string | null;
   views: number;
   created_at: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 interface BlogPost {
@@ -427,6 +430,20 @@ const EventDetail = () => {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Mapa da localização + botão Como chegar */}
+                {event.venue && event.location_city && (
+                  <EventLocationMap
+                    eventId={event.id}
+                    venue={event.venue}
+                    city={event.location_city}
+                    state={event.location_state}
+                    latitude={event.latitude}
+                    longitude={event.longitude}
+                  />
+                )}
+
+
 
                 {/* Programação por dia (festival) ou Line-up único */}
                 {(() => {

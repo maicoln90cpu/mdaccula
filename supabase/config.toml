@@ -25,3 +25,7 @@ verify_jwt = false
 verify_jwt = false
 [functions.egoi-curl-probe]
 verify_jwt = false
+
+[functions.geocode-event]
+verify_jwt = false
+
