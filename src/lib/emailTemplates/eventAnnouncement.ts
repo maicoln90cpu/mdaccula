@@ -24,6 +24,12 @@ export interface EventAnnouncementData {
   youtubeUrl: string;
   tiktokUrl: string;
   unsubscribeUrl: string;
+  /** Line-up do evento (artistas). Usado pelo bloco `lineup`. */
+  lineup?: string[];
+  /** Data/hora ISO do evento (usada pelo bloco `countdown` para virada de lote). */
+  eventStartIso?: string;
+  /** Deadline explícito para countdown (ISO). Ex.: virada de lote às 23:59 SP. */
+  ticketBatchDeadlineIso?: string;
 }
 
 export interface EmailTemplateSettings {
@@ -228,7 +234,7 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
   venueName: "Musiva",
   cityState: "Cuiabá-MT",
   description:
-    "Prepare-se para uma noite intensa com line-up selecionado, sistema de som premium e visuais imersivos. Ingressos limitados, primeiro lote em promoção.",
+    "Prepare-se para uma noite intensa com line-up selecionado, sistema de som premium e visuais imersivos.\nIngressos limitados, primeiro lote em promoção.\nAcesso permitido apenas para maiores de 18 anos.",
   ticketUrl: "https://mdaccula.com/eventos/neon-garden-melodic-techno",
   eventUrl: "https://mdaccula.com/eventos/neon-garden-melodic-techno",
   agendaUrl: "https://mdaccula.com/eventos",
@@ -236,4 +242,11 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
   youtubeUrl: "https://youtube.com/@mdaccula",
   tiktokUrl: "https://tiktok.com/@mdaccula",
   unsubscribeUrl: "https://mdaccula.com/descadastrar?token=EXAMPLE",
+  lineup: ["ANNA", "Adam Beyer", "Charlotte de Witte", "Amelie Lens", "Local Support"],
+  eventStartIso: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+  ticketBatchDeadlineIso: (() => {
+    const d = new Date();
+    d.setHours(23, 59, 0, 0);
+    return d.toISOString();
+  })(),
 };

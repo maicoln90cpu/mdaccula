@@ -66,14 +66,16 @@ const defaultForKind = (kind: Block["kind"]): Block => {
     case "text": return { id, kind, html: "<p>Texto livre — suporta HTML básico.</p>", align: "left" };
     case "social_icons": return {
       id, kind, style: "text", align: "center", networks: [
-        { id: "instagram", label: "Instagram", url: "", enabled: true },
-        { id: "youtube", label: "YouTube", url: "", enabled: true },
-        { id: "tiktok", label: "TikTok", url: "", enabled: false },
+        { id: "instagram", label: "Instagram", url: "https://instagram.com/mdaccula", enabled: true },
+        { id: "youtube", label: "YouTube", url: "https://youtube.com/@mdaccula", enabled: true },
+        { id: "tiktok", label: "TikTok", url: "https://tiktok.com/@mdaccula", enabled: false },
         { id: "soundcloud", label: "SoundCloud", url: "", enabled: false },
         { id: "spotify", label: "Spotify", url: "", enabled: false },
         { id: "linktree", label: "Linktree", url: "", enabled: false },
       ],
     };
+    case "lineup": return { id, kind, title: "Line-up", layout: "chips", align: "center" };
+    case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center" };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
@@ -280,7 +282,7 @@ export function EmailTemplateEditor({
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
   const previewHtml = useMemo(
-    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle),
+    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true }),
     [blocks, previewEvent, settings, previewArticle],
   );
 
@@ -673,6 +675,80 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
               </div>
             </div>
           ))}
+        </div>
+      );
+
+    case "lineup":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Título da seção</Label>
+            <Input value={block.title || ""} onChange={(e) => patch({ title: e.target.value })} placeholder="Line-up" />
+          </div>
+          <div>
+            <Label className="text-xs">Layout</Label>
+            <Select value={block.layout || "chips"} onValueChange={(v) => patch({ layout: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="chips">Pílulas (compacto)</SelectItem>
+                <SelectItem value="list">Lista (um por linha)</SelectItem>
+                <SelectItem value="grid">Grade (2 colunas)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <ColorControl label="Cor do título" value={block.title_color} onChange={(v) => patch({ title_color: v })} placeholder="#a855f7" />
+          <ColorControl label="Cor dos nomes" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#ffffff" />
+          <p className="text-xs text-muted-foreground">Os artistas vêm do campo "Line-up" do evento. Se estiver vazio, o bloco some.</p>
+        </div>
+      );
+
+    case "countdown":
+      return (
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Texto acima do contador</Label>
+            <Input value={block.label || ""} onChange={(e) => patch({ label: e.target.value })} placeholder="Lote atual encerra em" />
+          </div>
+          <div>
+            <Label className="text-xs">Data-limite</Label>
+            <Select value={block.deadline_source || "today_2359"} onValueChange={(v) => patch({ deadline_source: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today_2359">Hoje às 23:59 (padrão virada de lote)</SelectItem>
+                <SelectItem value="batch_deadline">Data da virada do evento (se cadastrada)</SelectItem>
+                <SelectItem value="event_start">Início do evento</SelectItem>
+                <SelectItem value="custom">Data/hora personalizada</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {block.deadline_source === "custom" && (
+            <div>
+              <Label className="text-xs">Data/hora personalizada</Label>
+              <Input
+                type="datetime-local"
+                value={block.custom_deadline ? block.custom_deadline.slice(0, 16) : ""}
+                onChange={(e) => patch({ custom_deadline: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+              />
+            </div>
+          )}
+          <div>
+            <Label className="text-xs">Estilo de fundo</Label>
+            <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="gradient">Gradiente da marca</SelectItem>
+                <SelectItem value="solid">Cor sólida</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {block.bg_style === "solid" && (
+            <ColorControl label="Cor de fundo" value={block.bg_color} onChange={(v) => patch({ bg_color: v })} placeholder="#a855f7" />
+          )}
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+          <p className="text-xs text-muted-foreground">
+            E-mail não roda JavaScript — o contador é <strong>congelado no momento do envio</strong> (dias/horas/minutos restantes).
+          </p>
         </div>
       );
 

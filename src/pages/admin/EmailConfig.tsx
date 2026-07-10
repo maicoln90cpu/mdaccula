@@ -336,7 +336,7 @@ const EmailConfig = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null }>>([]);
+  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
@@ -384,7 +384,7 @@ const EmailConfig = () => {
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
         (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
         supabase.from("events")
-          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id")
+          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup")
           .order("date", { ascending: false })
           .limit(30),
         supabase.from("site_settings").select("value").eq("key", "weekly_digest_enabled").maybeSingle(),
@@ -725,7 +725,7 @@ const EmailConfig = () => {
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
-      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle);
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true });
     }
     return renderEventAnnouncementEmail(previewData, tpl);
   }, [activeTemplate, previewData, tpl, previewArticle]);
@@ -804,6 +804,8 @@ const EmailConfig = () => {
       const dateLabel = dateObj.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
       const timeLabel = (ev.time || "").slice(0, 5);
       const baseUrl = "https://mdaccula.com";
+      const batchDeadline = new Date();
+      batchDeadline.setHours(23, 59, 0, 0);
       setPreviewData({
         eventTitle: ev.title,
         eventSubtitle: ev.subtitle ?? undefined,
@@ -820,6 +822,9 @@ const EmailConfig = () => {
         youtubeUrl: MOCK_EVENT_DATA.youtubeUrl,
         tiktokUrl: MOCK_EVENT_DATA.tiktokUrl,
         unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
+        lineup: Array.isArray(ev.lineup) ? ev.lineup : undefined,
+        eventStartIso: dateObj.toISOString(),
+        ticketBatchDeadlineIso: batchDeadline.toISOString(),
       });
       // Se o evento tem matéria vinculada, busca o resumo
       if (ev.blog_post_id) {

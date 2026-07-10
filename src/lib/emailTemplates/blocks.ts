@@ -63,6 +63,25 @@ export type Block =
   | { id: string; kind: "divider"; thickness?: number; color?: string }
   | { id: string; kind: "text"; html: string; align?: Align; text_color?: string }
   | { id: string; kind: "social_icons"; networks: SocialNetwork[]; style?: "text" | "pill"; align?: Align }
+  | {
+      id: string;
+      kind: "lineup";
+      title?: string;
+      layout?: "chips" | "list" | "grid";
+      align?: Align;
+      title_color?: string;
+      text_color?: string;
+    }
+  | {
+      id: string;
+      kind: "countdown";
+      label?: string;
+      deadline_source?: "today_2359" | "event_start" | "batch_deadline" | "custom";
+      custom_deadline?: string; // ISO
+      bg_style?: "gradient" | "solid";
+      bg_color?: string;
+      align?: Align;
+    }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
@@ -92,6 +111,8 @@ export type RenderContext = {
   settings: Required<Pick<EmailTemplateSettings,
     "brand_name" | "primary_color" | "accent_color" | "background_color" | "footer_text" | "cta_label"
   >> & Partial<EmailTemplateSettings>;
+  /** Modo preview: renderiza mesmo com URLs vazias (usa "#") para o admin visualizar. */
+  preview?: boolean;
 };
 
 // ============================================
@@ -227,9 +248,12 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       if (!event.description) return "";
       const color = escape(block.text_color || "#a1a1aa");
       const align = block.align ?? "left";
-      return `<tr><td style="padding:8px 32px 24px 32px;text-align:${align};">
-        <p style="margin:0;color:${color};font-size:15px;line-height:1.6;">${escape(event.description)}</p>
-      </td></tr>`;
+      // Preserva quebras de linha do texto do evento: cada linha vira um parágrafo.
+      const lines = event.description.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const paragraphs = lines
+        .map((l) => `<p style="margin:0 0 10px 0;color:${color};font-size:15px;line-height:1.6;">${escape(l)}</p>`)
+        .join("");
+      return `<tr><td style="padding:8px 32px 24px 32px;text-align:${align};">${paragraphs}</td></tr>`;
     }
 
     case "article_summary": {
@@ -302,20 +326,103 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
     case "social_icons": {
-      const enabled = (block.networks || []).filter((n) => n.enabled && n.url);
-      if (enabled.length === 0) return "";
+      // Em modo preview, exibe todas as redes ativadas (mesmo sem URL) para o admin ver o layout.
+      // No envio real, filtra só as que têm URL válida.
+      const list = (block.networks || []).filter((n) => n.enabled && (ctx.preview || n.url));
+      if (list.length === 0) return "";
       const align = block.align ?? "center";
       const style = block.style || "text";
       const colors = [primary, accent, "#60a5fa", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#fb923c"];
-      const cells = enabled.map((n, i) => {
+      const cells = list.map((n, i) => {
+        const href = escape(n.url || "#");
         if (style === "pill") {
-          return `<td style="padding:4px 6px;"><a href="${escape(n.url)}" style="display:inline-block;padding:8px 14px;background:${colors[i % colors.length]};color:#ffffff;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:999px;">${escape(n.label)}</a></td>`;
+          return `<td style="padding:4px 6px;"><a href="${href}" style="display:inline-block;padding:8px 14px;background:${colors[i % colors.length]};color:#ffffff;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:999px;">${escape(n.label)}</a></td>`;
         }
         const sep = i > 0 ? `<td style="padding:0 8px;color:#3f3f46;">·</td>` : "";
-        return `${sep}<td style="padding:0 8px;"><a href="${escape(n.url)}" style="color:${colors[i % colors.length]};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${escape(n.label)}</a></td>`;
+        return `${sep}<td style="padding:0 8px;"><a href="${href}" style="color:${colors[i % colors.length]};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${escape(n.label)}</a></td>`;
       }).join("");
       return `<tr><td align="${align}" style="padding:16px 32px 8px 32px;text-align:${align};">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${cells}</tr></table>
+      </td></tr>`;
+    }
+
+    case "lineup": {
+      const artists = (event.lineup || []).filter(Boolean);
+      if (artists.length === 0) return "";
+      const align = block.align ?? "center";
+      const titleColor = escape(block.title_color || primary);
+      const textColor = escape(block.text_color || "#ffffff");
+      const title = escape(block.title || "Line-up");
+      const layout = block.layout || "chips";
+      let body = "";
+      if (layout === "chips") {
+        body = artists.map((a) =>
+          `<span style="display:inline-block;margin:4px 4px;padding:8px 14px;background:rgba(168,85,247,0.12);border:1px solid ${primary};border-radius:999px;color:${textColor};font-size:13px;font-weight:700;letter-spacing:0.02em;">${escape(a)}</span>`
+        ).join("");
+      } else if (layout === "list") {
+        body = `<ul style="list-style:none;padding:0;margin:0;">${artists.map((a) =>
+          `<li style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:${textColor};font-size:15px;font-weight:600;">${escape(a)}</li>`
+        ).join("")}</ul>`;
+      } else {
+        // grid — 2 colunas via table
+        const rows: string[] = [];
+        for (let i = 0; i < artists.length; i += 2) {
+          const a = escape(artists[i]);
+          const b = artists[i + 1] ? escape(artists[i + 1]) : "";
+          rows.push(`<tr><td width="50%" style="padding:8px 12px 8px 0;color:${textColor};font-size:15px;font-weight:700;">${a}</td><td width="50%" style="padding:8px 0 8px 12px;color:${textColor};font-size:15px;font-weight:700;">${b}</td></tr>`);
+        }
+        body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows.join("")}</table>`;
+      }
+      return `<tr><td style="padding:8px 32px 16px 32px;text-align:${align};">
+        <div style="color:${titleColor};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${title}</div>
+        <div style="text-align:${align};">${body}</div>
+      </td></tr>`;
+    }
+
+    case "countdown": {
+      const source = block.deadline_source || "today_2359";
+      let deadline: Date;
+      const now = new Date();
+      if (source === "custom" && block.custom_deadline) {
+        deadline = new Date(block.custom_deadline);
+      } else if (source === "event_start" && event.eventStartIso) {
+        deadline = new Date(event.eventStartIso);
+      } else if (source === "batch_deadline" && event.ticketBatchDeadlineIso) {
+        deadline = new Date(event.ticketBatchDeadlineIso);
+      } else {
+        // today_2359 — hoje às 23:59 no timezone do servidor de renderização
+        deadline = new Date();
+        deadline.setHours(23, 59, 0, 0);
+      }
+      const diffMs = Math.max(0, deadline.getTime() - now.getTime());
+      const totalMin = Math.floor(diffMs / 60000);
+      const days = Math.floor(totalMin / (60 * 24));
+      const hours = Math.floor((totalMin % (60 * 24)) / 60);
+      const minutes = totalMin % 60;
+      const parts: Array<{ v: number; label: string }> = [];
+      if (days > 0) parts.push({ v: days, label: days === 1 ? "dia" : "dias" });
+      parts.push({ v: hours, label: hours === 1 ? "hora" : "horas" });
+      parts.push({ v: minutes, label: "min" });
+      const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
+      const align = block.align ?? "center";
+      const label = escape(block.label || "Lote atual encerra em");
+      const deadlineLabel = deadline.toLocaleString("pt-BR", {
+        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+      });
+      const boxes = parts.map((p) =>
+        `<td style="padding:0 6px;"><div style="min-width:64px;padding:12px 10px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
+          <div style="color:#ffffff;font-size:26px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
+          <div style="color:#ffffff;opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>
+        </div></td>`
+      ).join("");
+      return `<tr><td style="padding:8px 32px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:14px;">
+          <tr><td align="${align}" style="padding:18px 16px;text-align:${align};">
+            <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${label}</div>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
+            <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:10px;">até ${escape(deadlineLabel)}</div>
+          </td></tr>
+        </table>
       </td></tr>`;
     }
 
@@ -345,6 +452,7 @@ export function renderBlockedTemplate(
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,
   article?: ArticleSummary | null,
+  opts?: { preview?: boolean },
 ): string {
   const s = {
     brand_name: settings?.brand_name || "MDACCULA",
@@ -357,7 +465,7 @@ export function renderBlockedTemplate(
     custom_html_header: settings?.custom_html_header ?? null,
     custom_html_footer: settings?.custom_html_footer ?? null,
   };
-  const ctx: RenderContext = { event, article, settings: s };
+  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
   const preheader = `${escape(event.eventTitle)} — ${escape(event.dateLabel)} em ${escape(event.venueName)}, ${escape(event.cityState)}`;
@@ -414,6 +522,8 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   event_meta: "Data, hora e local",
   description: "Descrição do evento",
   article_summary: "Resumo da matéria (se houver)",
+  lineup: "Line-up do evento",
+  countdown: "Contagem regressiva",
   cta_button: "Botão CTA (ingresso)",
   secondary_link: "Link secundário",
   image_with_link: "Imagem com link",
@@ -425,8 +535,9 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
 
 export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "header", "hero_image", "eyebrow", "title", "subtitle", "event_meta",
-  "description", "article_summary", "cta_button", "secondary_link",
-  "image_with_link", "divider", "text", "social_icons", "footer",
+  "description", "lineup", "article_summary", "countdown",
+  "cta_button", "secondary_link", "image_with_link", "divider", "text",
+  "social_icons", "footer",
 ];
 
 // ============================================
@@ -442,9 +553,9 @@ export function buildPresetBlocks(
   type: "event_new" | "ticket_batch" | "weekly_digest",
 ): Block[] {
   const defaultSocials: SocialNetwork[] = [
-    { id: "instagram", label: "Instagram", url: "", enabled: true },
-    { id: "youtube", label: "YouTube", url: "", enabled: true },
-    { id: "tiktok", label: "TikTok", url: "", enabled: false },
+    { id: "instagram", label: "Instagram", url: "https://instagram.com/mdaccula", enabled: true },
+    { id: "youtube", label: "YouTube", url: "https://youtube.com/@mdaccula", enabled: true },
+    { id: "tiktok", label: "TikTok", url: "https://tiktok.com/@mdaccula", enabled: false },
     { id: "soundcloud", label: "SoundCloud", url: "", enabled: false },
     { id: "spotify", label: "Spotify", url: "", enabled: false },
     { id: "linktree", label: "Linktree", url: "", enabled: false },
@@ -459,6 +570,7 @@ export function buildPresetBlocks(
       { id: newBlockId(), kind: "subtitle" },
       { id: newBlockId(), kind: "event_meta" },
       { id: newBlockId(), kind: "description" },
+      { id: newBlockId(), kind: "lineup", title: "Line-up", layout: "chips", align: "center" },
       { id: newBlockId(), kind: "article_summary" },
       { id: newBlockId(), kind: "cta_button", label: "Garantir ingresso", url_field: "ticket_link" },
       { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
@@ -484,6 +596,14 @@ export function buildPresetBlocks(
       { id: newBlockId(), kind: "eyebrow", text: "ÚLTIMAS HORAS · LOTE ATUAL" },
       { id: newBlockId(), kind: "title" },
       { id: newBlockId(), kind: "event_meta" },
+      {
+        id: newBlockId(),
+        kind: "countdown",
+        label: "Lote atual encerra em",
+        deadline_source: "today_2359",
+        bg_style: "gradient",
+        align: "center",
+      },
       {
         id: newBlockId(),
         kind: "text",
