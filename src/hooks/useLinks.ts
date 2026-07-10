@@ -116,7 +116,7 @@ const fetchLinksData = async (visibilitySettings: TimezoneSettings): Promise<Lin
         group_id, event_id, override_date, override_time, manual_order_override,
         is_internal, clicks,
         events:event_id (
-          venue, location_city, location_state, date, time, image_url
+          venue, location_city, location_state, date, end_date, time, image_url
         )
       )
     `)
