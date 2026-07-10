@@ -557,7 +557,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
     case "weekend_grid": {
-      const list = (event.weekendEvents || []).filter(Boolean);
+      const heroId = ctx.heroEventId;
+      const list = (event.weekendEvents || []).filter((ev) => ev && (!heroId || ev.id !== heroId));
       const align = block.align ?? "left";
       const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
       const title = escape(block.title || "O que rola no fds");
