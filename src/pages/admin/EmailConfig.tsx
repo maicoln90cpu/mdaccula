@@ -207,6 +207,12 @@ const EmailConfig = () => {
   const [batchSubject, setBatchSubject] = useState<string>("");
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
+  // B.11 — Digest semanal
+  const [digestEnabled, setDigestEnabled] = useState(false);
+  const [digestGenerating, setDigestGenerating] = useState(false);
+  const [digestLastResult, setDigestLastResult] = useState<{
+    egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+  } | null>(null);
 
   useEffect(() => {
     void loadAll();
