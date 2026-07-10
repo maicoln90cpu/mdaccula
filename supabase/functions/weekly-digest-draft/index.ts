@@ -388,8 +388,10 @@ Deno.serve(async (req) => {
       renderSource = 'legacy';
     }
 
-    const subject = `📬 MDAccula desta semana — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} no radar`;
-    const internalName = `MDAccula • Digest semanal • ${todayIso}`;
+    const subject = range === 'weekend'
+      ? `🎉 Agenda do FDS — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} confirmados`
+      : `📬 MDAccula desta semana — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} no radar`;
+    const internalName = `MDAccula • ${digestLabel} • ${todayIso}`;
 
     if (dryRun) {
       return json({
