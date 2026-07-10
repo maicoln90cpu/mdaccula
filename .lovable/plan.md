@@ -1,66 +1,112 @@
-# Onda D — Melhorias no Digest Semanal (aprovado)
+## Correções + Automações (Digest semanal & Agenda FDS)
 
-Decisões confirmadas com o usuário:
-
-1. **Preview do digest real**: alternativa B — dropdown "Fonte dos dados" na aba Preview existente (sem card duplicado).
-2. **Bloco Dedge no "Cartaz da semana"**: sim, incluir por padrão, mas como bloco removível pelo editor (igual aos outros blocos — o usuário arrasta pra fora se não quiser).
-3. **Cron default**: segunda-feira 10:00 (America/Sao_Paulo), com dia e hora **personalizáveis** pelo admin.
+### Resposta rápida à sua dúvida
+Hoje o sistema cria **rascunhos automáticos** na E-goi (você entra lá e envia com 1 clique). Ele **não envia sozinho por e-mail**. Isso é proposital — evita mandar erro pra base inteira. Se quiser envio 100% automático depois, é uma etapa extra (adicionar um toggle "auto-enviar" que troca o modo E-goi de `draft` pra `send`). Por enquanto o plano abaixo entrega: **agendar + gerar rascunho automático** dos dois digests (semanal e FDS), sem envio automático ainda.
 
 ---
 
-## Ordem de execução (fases seguras)
+### Fase 1 — Corrigir erro dos templates novos (bloqueante)
 
-### D.3 — Preview real do digest na aba Preview (primeira etapa, mais barata)
-- Editar `supabase/functions/weekly-digest-draft/index.ts` — aceitar `?dry_run=true` (ou body `{ dry_run: true }`); nesse modo pula o `POST /campaigns/email` da E-goi e retorna `{ ok:true, dry_run:true, html, subject, events_count, posts_count, range }`. Retrocompatível: modo normal continua igual.
-- Editar aba "Preview" em `src/pages/admin/EmailConfig.tsx`: adicionar select "Fonte dos dados" com 3 opções:
-  - `mock` — dados de exemplo (atual).
-  - `next_event` — próximo evento real (atual, se disponível).
-  - `weekly_digest` — chama a edge function em modo dry-run e injeta o HTML direto no iframe (600px).
-- Botão "Atualizar preview" ao lado do select.
-- **Ganho imediato:** vê o digest da semana como ele sai, sem esperar a quinta ou criar rascunho de teste na E-goi.
+**Antes:** ao salvar os presets "Agenda do FDS — Cartaz" e "Agenda do FDS — Timeline", o banco recusa com `email_templates_type_check` porque a constraint atual só aceita `event_new | ticket_batch | weekly_digest | custom`.
 
-### D.1.b — Novo preset "Digest Semanal — Cartaz da semana" (recomendado)
-- Novo bloco `weekly_hero`: destaque full-width do 1º evento da semana (imagem grande + título + data + venue + CTA).
-- Reaproveita `weekend_grid` (layout cartaz) para os demais eventos da semana — o helper `getWeeklyEvents()` popula `weekendEvents` com 7 dias em vez de 3.
-- Novo bloco `blog_posts_list`: cards horizontais com thumbnail + título + trecho + "Ler matéria →" (consome `blogPosts` do payload).
-- Bloco `dedge_block` incluído por padrão no preset — o usuário remove no editor se não quiser.
-- Preset registrado como `template_type: "weekly_digest"` (a edge function já reconhece).
+**Depois:** migration expande a constraint para incluir `weekend_agenda` e `weekly_digest_editorial`. Presets passam a salvar.
 
-### D.1.a — Novo preset "Digest Semanal — Editorial"
-- Estilo revista: eyebrow, título grande, subtítulo.
-- `weekend_grid` em modo **timeline** alimentado com a semana inteira.
-- `blog_posts_list` para matérias em alta.
-- CTA "Ver agenda completa" + rodapé.
-- (Sem Dedge por padrão neste — foco editorial.)
-
-### D.2 — Agendamento configurável do cron
-
-**UI na aba Digest Semanal (`/admin/email-config`)**
-- Toggle "Ativar geração automática do digest semanal" (já existe — `weekly_digest_enabled`).
-- **Novo:** Select de dia da semana. Default: **segunda-feira**.
-- **Novo:** Input de horário. Default: **10:00** (America/Sao_Paulo).
-- Botão "Salvar agendamento" → salva em `site_settings` (`weekly_digest_cron_day`, `weekly_digest_cron_hour`) e chama edge function `update-weekly-digest-schedule`.
-- Exibe "Próxima execução: segunda 10:00 SP" calculado a partir do que foi salvo.
-
-**Backend**
-- Nova edge function `update-weekly-digest-schedule`: recebe `{ day: 1..7, hour: 0..23 }`, converte SP → UTC (fixo -3, ignora DST porque BR não tem DST), roda `cron.unschedule('weekly-digest-cron')` + `cron.schedule('weekly-digest-cron', 'X X * * X', $$…$$)`. Guard: admin obrigatório.
-- **Prevenção de regressão:** retorna `next_run_at` calculado; UI mostra ao usuário para confirmação visual.
+Nada mais muda. Zero risco pros templates existentes.
 
 ---
 
-## Riscos & Mitigação
+### Fase 2 — Preview com os 4 presets
 
-- **`pg_cron` falhar silenciosamente:** UI mostra próxima execução calculada; se der erro no `unschedule`, retornar mensagem clara e não sobrescrever settings.
-- **Payload do digest não tem `weekendEvents` populado:** o helper novo (`getWeeklyEvents()`) roda dentro da edge function e injeta antes do render. Preview dry-run usa o mesmo caminho.
-- **Templates antigos:** presets novos são novos registros; nenhum template existente é tocado.
+**Antes:** dropdown "Fonte dos dados" tem só `Evento` e `Digest semanal real`.
 
-## Pendências propositais (fora desta onda)
+**Depois:** dropdown vira 3 opções:
+- Evento individual (mock/real)
+- Digest semanal real (próximos 7 dias)
+- **Agenda FDS real (próximo fim de semana)** ← novo
 
-- Google Maps connector (bloco `static_map` em produção) — fica pra onda seguinte.
-- Helper `getWeekendEvents()` real para o cron da quinta (Agenda do FDS automático) — depende da mesma infraestrutura, faço junto se você quiser aproveitar a viagem.
+O seletor "Template" (abaixo) passa a listar os 4 novos presets junto com os antigos, filtrado pela fonte escolhida:
+- Fonte "evento" → templates de tipo `event_new/ticket_batch/custom`
+- Fonte "digest" → `Cartaz da semana` + `Editorial`
+- Fonte "agenda FDS" → `Cartaz FDS` + `Timeline FDS`
+
+O edge `weekly-digest-draft` passa a aceitar `?template_id=xxx` no dry-run, pra renderizar exatamente o template que você escolheu no preview (hoje ele pega o `is_default`). Idem novo edge FDS.
 
 ---
 
-## Aprovação para começar
+### Fase 3 — Reformular aba "Digest semanal" → "Automações"
 
-Posso iniciar por **D.3 (preview real)** — é a mudança mais rápida, menor risco e você já enxerga valor no mesmo deploy. Depois seguimos D.1.b → D.1.a → D.2.
+**Antes:** aba com 1 card só (toggle cron + gerar agora), layout fixo, sem escolha de template, sem controle de horário.
+
+**Depois:** aba renomeada pra **"Automações"** com 2 cards espelhados:
+
+**Card 1 — Digest semanal**
+- Toggle "Ativar geração automática"
+- Select "Template padrão" (Cartaz da semana / Editorial)
+- Select "Dia da semana" (default: quinta)
+- Input "Horário" (default: 18:00 BRT)
+- Botão "Salvar agendamento"
+- Botão "Gerar rascunho agora"
+- Texto "Próxima execução: quinta 18:00 SP"
+
+**Card 2 — Agenda do FDS**
+- Mesma estrutura
+- Templates: Cartaz FDS / Timeline FDS
+- Default: quinta 12:00 (antes do fim de semana)
+
+Ambos gravam em `site_settings` (chaves `weekly_digest_*` e `weekend_agenda_*`) e chamam um edge `update-digest-schedule` que refaz o `pg_cron` (usa fuso fixo -3, sem horário de verão).
+
+---
+
+### Fase 4 — Backend das automações
+
+- Nova edge `weekend-agenda-draft` espelhando a `weekly-digest-draft` (mesma auth, mesmo padrão), mas coleta eventos de **sex/sáb/dom** e usa templates `weekend_agenda`. Suporta `dry_run` e `template_id`.
+- Nova edge `update-digest-schedule` (uma só, param `job: 'weekly_digest' | 'weekend_agenda'`) que faz `cron.unschedule` + `cron.schedule` com o horário salvo.
+- Migration adiciona chaves em `site_settings`:
+  - `weekly_digest_template_id`, `weekly_digest_cron_day`, `weekly_digest_cron_hour`
+  - `weekend_agenda_enabled`, `weekend_agenda_template_id`, `weekend_agenda_cron_day`, `weekend_agenda_cron_hour`
+- Edge `weekly-digest-draft` passa a respeitar `weekly_digest_template_id` (se setado, usa esse; senão continua com `is_default`).
+
+---
+
+### Ordem de execução (deploys em fases seguras)
+
+1. **Fase 1** — migration da constraint. Deploy isolado. Você testa salvar os 2 presets FDS. **Se falhar, reverte migration em 1 comando.**
+2. **Fase 2** — preview com os 4 presets. Deploy isolado, só frontend + parâmetro opcional no edge. **Zero impacto no cron.**
+3. **Fase 4 (backend primeiro)** — nova edge FDS + edge de agendamento + migration de settings. Sem UI ainda. Testável via botão manual.
+4. **Fase 3** — UI da aba "Automações". Deploy final, tudo já plugado.
+
+---
+
+### Riscos & Mitigação
+
+| Risco | Mitigação |
+|---|---|
+| Migration da constraint quebrar templates antigos | Constraint expande o conjunto, nunca reduz. Templates existentes continuam válidos. |
+| Novo cron do FDS conflitar com o semanal | Nomes de job distintos (`weekly-digest-cron`, `weekend-agenda-cron`). Um não sobrescreve o outro. |
+| Falha no cron silenciosa | UI mostra "Próxima execução" calculada; edge de agendamento retorna erro claro se `pg_cron` recusar. |
+| Preview do FDS sem eventos no fim de semana | Retorna placeholder (mesmo comportamento do digest hoje). |
+
+### Checklist de validação (após deploy completo)
+
+- [ ] Salvar os 2 presets FDS sem erro.
+- [ ] Preview mostra os 4 templates novos com dados reais.
+- [ ] Toggle + horário do Digest semanal salva e mostra "Próxima execução".
+- [ ] Toggle + horário da Agenda FDS salva e mostra "Próxima execução".
+- [ ] Botão "Gerar rascunho agora" funciona pros dois.
+- [ ] Rascunho aparece na E-goi com o template escolhido.
+
+### Prevenção de regressão
+
+- Testes de contrato do edge `weekly-digest-draft` continuam válidos (o `template_id` é opcional).
+- Fallback do edge continua: se template do banco falhar, cai no HTML legado.
+- Migration idempotente (`DROP CONSTRAINT IF EXISTS` + `ADD CONSTRAINT`).
+
+### Pendências propositais (fora desta onda)
+
+- **Envio automático** (sem passar pela revisão manual na E-goi) — só se você aprovar depois.
+- Preview do "Agenda FDS" via botão dedicado (por ora reaproveita o `dry_run` do edge novo).
+- Google Maps no bloco `static_map` (ainda pendente da onda D anterior).
+
+---
+
+**Posso começar pela Fase 1 (migration da constraint) já?** É a mais rápida (1 comando) e destrava seu problema imediato dos presets FDS.
