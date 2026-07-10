@@ -143,6 +143,8 @@ export type RenderContext = {
   preview?: boolean;
   /** Project ID para montar URLs do render-static-map (edge). */
   projectId?: string;
+  /** Id do evento usado no weekly_hero — grid deve pulá-lo para não duplicar. */
+  heroEventId?: string;
 };
 
 // ============================================
