@@ -322,6 +322,7 @@ const EmailConfig = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [historySearch, setHistorySearch] = useState("");
   // B.9 — métricas E-goi por campaign_id
   const [campaignStats, setCampaignStats] = useState<Record<string, {
     sent: number; delivered: number; opens_unique: number; clicks_unique: number;
@@ -1563,7 +1564,7 @@ const EmailConfig = () => {
                     >
                       <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                        {/* Removida a opção "— Padrão (is_default) —": era ambígua. O template default aparece com "· padrão" no rótulo. */}
                         {digestTemplateOptions.map((t) => (
                           <SelectItem key={t.id} value={t.id!}>
                             {t.name} {t.is_default ? "· padrão" : ""}
@@ -1896,14 +1897,16 @@ const EmailConfig = () => {
                 <div>
                   <Label className="text-xs">Template padrão</Label>
                   <Select
-                    value={weeklyCfg.templateId || "__default__"}
-                    onValueChange={(v) =>
-                      setWeeklyCfg({ ...weeklyCfg, templateId: v === "__default__" ? "" : v })
+                    value={
+                      weeklyCfg.templateId ||
+                      templates.find((t) => (t.type === "weekly_digest" || t.type === "weekly_digest_editorial") && t.is_default)?.id ||
+                      ""
                     }
+                    onValueChange={(v) => setWeeklyCfg({ ...weeklyCfg, templateId: v })}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                      {/* Sem opção genérica "Padrão": o default aparece com "· padrão" no rótulo. */}
                       {templates
                         .filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial")
                         .map((t) => (
@@ -1995,14 +1998,16 @@ const EmailConfig = () => {
                 <div>
                   <Label className="text-xs">Template padrão</Label>
                   <Select
-                    value={weekendCfg.templateId || "__default__"}
-                    onValueChange={(v) =>
-                      setWeekendCfg({ ...weekendCfg, templateId: v === "__default__" ? "" : v })
+                    value={
+                      weekendCfg.templateId ||
+                      templates.find((t) => t.type === "weekend_agenda" && t.is_default)?.id ||
+                      ""
                     }
+                    onValueChange={(v) => setWeekendCfg({ ...weekendCfg, templateId: v })}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                      {/* Sem opção genérica "Padrão": o default aparece com "· padrão" no rótulo. */}
                       {templates
                         .filter((t) => t.type === "weekend_agenda")
                         .map((t) => (
@@ -2102,13 +2107,35 @@ const EmailConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {groups.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">
-                  Nenhuma campanha registrada ainda.
-                </p>
-              ) : (
+              <div className="mb-3">
+                <Input
+                  placeholder="Buscar por nome do evento…"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              {(() => {
+                const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                const q = norm(historySearch);
+                const visibleGroups = q ? groups.filter((g) => norm(g.title).includes(q)) : groups;
+                if (groups.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      Nenhuma campanha registrada ainda.
+                    </p>
+                  );
+                }
+                if (visibleGroups.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      Nenhum evento encontrado para "{historySearch}".
+                    </p>
+                  );
+                }
+                return (
                 <div className="space-y-2">
-                  {groups.map((g) => {
+                  {visibleGroups.map((g) => {
                     const open = expanded[g.event_id];
                     return (
                       <div key={g.event_id} className="border rounded-lg">
@@ -2281,7 +2308,8 @@ const EmailConfig = () => {
                     );
                   })}
                 </div>
-              )}
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
