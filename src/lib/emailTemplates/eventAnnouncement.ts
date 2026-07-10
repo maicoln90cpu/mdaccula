@@ -253,4 +253,6 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
     d.setHours(23, 59, 0, 0);
     return d.toISOString();
   })(),
+  venueLat: -15.601411,
+  venueLng: -56.097892,
 };
