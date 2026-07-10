@@ -46,6 +46,8 @@ interface Props {
   settings: EmailTemplateSettings;
   previewEvent: EventAnnouncementData;
   previewArticle: ArticleSummary | null;
+  /** Quando não-nulo, o preview usa este HTML (ex.: digest/agenda FDS reais) em vez de calcular do mock. */
+  overrideHtml?: string | null;
 }
 
 const defaultForKind = (kind: Block["kind"]): Block => {
