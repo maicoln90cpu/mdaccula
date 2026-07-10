@@ -72,20 +72,25 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     const cronSecret = req.headers.get('x-cron-secret');
+    const cronJobHeader = req.headers.get('x-cron-job');
     const expectedCron = Deno.env.get('CRON_SHARED_SECRET');
-    const isCron = !!(cronSecret && expectedCron && cronSecret === expectedCron);
-
-    if (!authHeader && !isCron) return json({ error: 'Não autenticado' }, 401);
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // B.9-extra: cron via pg_net usa Authorization: Bearer <service_role_key> + x-cron-job header
+    const bearerToken = authHeader?.replace('Bearer ', '').trim();
+    const isCronBySecret = !!(cronSecret && expectedCron && cronSecret === expectedCron);
+    const isCronByServiceRole = !!(bearerToken && bearerToken === serviceKey && cronJobHeader);
+    const isCron = isCronBySecret || isCronByServiceRole;
+
+    if (!authHeader && !isCron) return json({ error: 'Não autenticado' }, 401);
+
     const admin = createClient(supabaseUrl, serviceKey);
 
     if (!isCron && authHeader) {
       const anonClient = createClient(supabaseUrl, anonKey);
-      const token = authHeader.replace('Bearer ', '');
-      const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
+      const { data: userData, error: userErr } = await anonClient.auth.getUser(bearerToken!);
       if (userErr || !userData.user) return json({ error: 'Token inválido' }, 401);
       const { data: isAdmin } = await admin.rpc('has_role', {
         _user_id: userData.user.id, _role: 'admin',
