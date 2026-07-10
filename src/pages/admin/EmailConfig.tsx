@@ -298,6 +298,8 @@ const AbTestButton = ({
     </AlertDialog>
   );
 };
+
+const EmailConfig = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
