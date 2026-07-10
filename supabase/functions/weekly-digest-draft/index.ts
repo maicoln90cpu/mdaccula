@@ -88,7 +88,7 @@ function renderDigestHtml(
   const bg = settings.background_color || '#050505';
   const brand = settings.brand_name || 'MDACCULA';
   const footer = settings.footer_text ||
-    'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de Cuiabá-MT.';
+    'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de São Paulo-SP.';
   const logo = settings.logo_url
     ? `<img src="${escapeHtml(settings.logo_url)}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
     : `<div style="font-family:Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;">${escapeHtml(brand)}</div>`;
@@ -159,7 +159,7 @@ function renderDigestHtml(
       <tr><td style="padding:0 20px 8px 20px;font-family:Arial,sans-serif;">
         <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${accent};font-weight:700;">Resumo semanal · ${escapeHtml(rangeLabel)}</div>
         <h1 style="font-size:24px;line-height:1.2;color:#fff;margin:6px 0 4px 0;">O que rola na semana</h1>
-        <p style="font-size:14px;color:#bbb;margin:0;">Os destaques da agenda e do blog nos próximos dias em Cuiabá.</p>
+        <p style="font-size:14px;color:#bbb;margin:0;">Os destaques da agenda e do blog nos próximos dias em São Paulo.</p>
       </td></tr>
 
       ${eventCards}
@@ -356,9 +356,9 @@ Deno.serve(async (req) => {
           flyerUrl: first?.image_url || (settings as any).logo_url || `${SITE_URL}/placeholder.svg`,
           dateLabel: rangeLabel,
           timeLabel: first ? ((first.time || '').slice(0, 5) || '22h') : '',
-          venueName: first?.venue || 'Cuiabá',
-          cityState: first ? `${first.location_city}-${first.location_state}` : 'Cuiabá-MT',
-          description: 'Os destaques da agenda e do blog nos próximos dias em Cuiabá.',
+          venueName: first?.venue || 'São Paulo',
+          cityState: first ? `${first.location_city}-${first.location_state}` : 'São Paulo-SP',
+          description: 'Os destaques da agenda e do blog nos próximos dias em São Paulo.',
           ticketUrl: first ? (first.ticket_link || `${SITE_URL}/eventos/${first.slug}`) : `${SITE_URL}/eventos`,
           eventUrl: first ? `${SITE_URL}/eventos/${first.slug}` : `${SITE_URL}/eventos`,
           agendaUrl: `${SITE_URL}/eventos`,

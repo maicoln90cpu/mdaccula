@@ -1488,7 +1488,7 @@ const EmailConfig = () => {
                     <Textarea
                       rows={4}
                       className="font-mono text-xs"
-                      placeholder="<p>MDAccula LTDA · Cuiabá-MT</p>"
+                      placeholder="<p>MDAccula LTDA · São Paulo-SP</p>"
                       value={tpl.custom_html_footer ?? ""}
                       onChange={(e) => setTpl({ ...tpl, custom_html_footer: e.target.value })}
                     />
