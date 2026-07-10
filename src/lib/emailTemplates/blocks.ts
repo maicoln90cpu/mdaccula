@@ -232,6 +232,8 @@ const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, 
 // ============================================
 
 function renderBlock(block: Block, ctx: RenderContext): string {
+  // Bloco oculto (toggle do olho no editor): pula render em preview e em envio real.
+  if ((block as { hidden?: boolean }).hidden) return "";
   const { event, article, settings } = ctx;
   const primary = escape(settings.primary_color);
   const accent = escape(settings.accent_color);
