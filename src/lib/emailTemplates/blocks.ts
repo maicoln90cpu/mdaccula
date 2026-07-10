@@ -128,6 +128,29 @@ export type Block =
       primary_url?: string;
       button_style?: "dark" | "primary";
     }
+  | {
+      id: string;
+      kind: "weekly_hero";
+      /** Se true, usa o primeiro item de weekendEvents; senão, dados do evento principal. */
+      source?: "first_weekend" | "main_event";
+      eyebrow?: string;         // "DESTAQUE DA SEMANA"
+      cta_label?: string;       // "Garantir ingresso"
+      show_venue?: boolean;
+      show_cta?: boolean;
+      overlay_intensity?: "soft" | "strong";
+      align?: Align;
+    }
+  | {
+      id: string;
+      kind: "blog_posts_list";
+      title?: string;           // "Do blog nesta semana"
+      eyebrow?: string;
+      max_items?: number;       // 1..5
+      layout?: "list" | "cards"; // list = compacto com miniatura, cards = grid vertical
+      show_excerpt?: boolean;
+      show_category?: boolean;
+      align?: Align;
+    }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
