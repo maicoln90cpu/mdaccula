@@ -606,6 +606,10 @@ export type Database = {
       }
       event_email_campaigns: {
         Row: {
+          ab_group_id: string | null
+          ab_test_config: Json | null
+          ab_variant: string | null
+          campaign_type: string
           created_at: string
           egoi_campaign_id: string | null
           error_message: string | null
@@ -617,6 +621,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ab_group_id?: string | null
+          ab_test_config?: Json | null
+          ab_variant?: string | null
+          campaign_type?: string
           created_at?: string
           egoi_campaign_id?: string | null
           error_message?: string | null
@@ -628,6 +636,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ab_group_id?: string | null
+          ab_test_config?: Json | null
+          ab_variant?: string | null
+          campaign_type?: string
           created_at?: string
           egoi_campaign_id?: string | null
           error_message?: string | null
