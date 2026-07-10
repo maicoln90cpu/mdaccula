@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Activity, HardDrive, Gauge, TrendingUp, RefreshCw, ExternalLink, Server, Database, Globe, Users, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Activity, HardDrive, Gauge, TrendingUp, RefreshCw, ExternalLink, Server, Database, Globe, Users, AlertTriangle, Bell } from "lucide-react";
+import { EgressAlertsCard } from "@/components/admin/EgressAlertsCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from "recharts";
 
 // ---------------- Types ----------------
@@ -231,7 +232,9 @@ const EgressMonitor = () => {
                 <TabsTrigger value="supabase">Supabase (oficial)</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
                 <TabsTrigger value="internal">Estimativa Interna (SW)</TabsTrigger>
+                <TabsTrigger value="alerts"><Bell className="h-3.5 w-3.5 mr-1" />Alertas</TabsTrigger>
               </TabsList>
+
 
               {/* ============ BUNNY TAB ============ */}
               <TabsContent value="bunny" className="space-y-6">
@@ -715,7 +718,13 @@ const EgressMonitor = () => {
                   </Card>
                 </div>
               </TabsContent>
+
+              {/* ============ ALERTS TAB ============ */}
+              <TabsContent value="alerts" className="space-y-6">
+                <EgressAlertsCard />
+              </TabsContent>
             </Tabs>
+
 
             <p className="text-xs text-muted-foreground text-center mt-6">
               Bunny atualizado: {bunny ? new Date(bunny.fetchedAt).toLocaleString("pt-BR") : "—"} ·

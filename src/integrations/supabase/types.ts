@@ -428,6 +428,54 @@ export type Database = {
         }
         Relationships: []
       }
+      egress_alerts: {
+        Row: {
+          api_path: string | null
+          baseline_bytes: number
+          created_at: string
+          details: Json
+          email_error: string | null
+          email_sent: boolean
+          id: string
+          ratio: number | null
+          reason: string
+          source: string | null
+          threshold_mb: number | null
+          triggered_at: string
+          window_bytes: number
+        }
+        Insert: {
+          api_path?: string | null
+          baseline_bytes?: number
+          created_at?: string
+          details?: Json
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          ratio?: number | null
+          reason: string
+          source?: string | null
+          threshold_mb?: number | null
+          triggered_at?: string
+          window_bytes?: number
+        }
+        Update: {
+          api_path?: string | null
+          baseline_bytes?: number
+          created_at?: string
+          details?: Json
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          ratio?: number | null
+          reason?: string
+          source?: string | null
+          threshold_mb?: number | null
+          triggered_at?: string
+          window_bytes?: number
+        }
+        Relationships: []
+      }
       egress_metrics: {
         Row: {
           api_path: string
