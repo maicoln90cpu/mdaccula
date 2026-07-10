@@ -384,7 +384,7 @@ const EmailConfig = () => {
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
         (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
         supabase.from("events")
-          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup")
+          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup,venue_lat,venue_lng")
           .order("date", { ascending: false })
           .limit(30),
         supabase.from("site_settings").select("value").eq("key", "weekly_digest_enabled").maybeSingle(),
