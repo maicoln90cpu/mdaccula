@@ -76,12 +76,23 @@ const processLinks = (
 ): CustomLink[] => {
   return links
     .map((link) => {
-      const eventDate = link.events?.date || link.override_date;
-      const eventTime = link.events?.time || link.override_time || null;
+      // Se o link tem override_date, ele representa uma data específica
+      // (ex.: festival com 1 link por dia) → override manda no cálculo de visibilidade.
+      // Sem override, usamos os campos do evento (incluindo end_date para multi-dia).
+      const useOverride = !!link.override_date;
+      const effectiveDate = useOverride
+        ? link.override_date
+        : (link.events?.date ?? null);
+      const effectiveTime = useOverride
+        ? (link.override_time ?? null)
+        : (link.events?.time ?? null);
+      const effectiveEndDate = useOverride
+        ? null
+        : ((link.events as { end_date?: string | null } | null)?.end_date ?? null);
 
-      if (eventDate) {
+      if (effectiveDate) {
         const isVisible = isEventVisible(
-          { date: eventDate, time: eventTime },
+          { date: effectiveDate, end_date: effectiveEndDate, time: effectiveTime },
           settings
         );
         if (!isVisible) {
