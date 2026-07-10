@@ -217,7 +217,13 @@ const Eventos = () => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
     return filteredEvents
-      .filter(event => parseLocalDate(event.date) >= now)
+      .filter(event => {
+        // Festivais multi-dia: usa end_date se existir e for >= date; senão usa date.
+        const endStr = (event as any).end_date && (event as any).end_date >= event.date
+          ? (event as any).end_date
+          : event.date;
+        return parseLocalDate(endStr) >= now;
+      })
       .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
   };
 

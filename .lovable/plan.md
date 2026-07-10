@@ -1,112 +1,113 @@
-## Correções + Automações (Digest semanal & Agenda FDS)
+## Diagnóstico (o que descobri no seu banco)
 
-### Resposta rápida à sua dúvida
-Hoje o sistema cria **rascunhos automáticos** na E-goi (você entra lá e envia com 1 clique). Ele **não envia sozinho por e-mail**. Isso é proposital — evita mandar erro pra base inteira. Se quiser envio 100% automático depois, é uma etapa extra (adicionar um toggle "auto-enviar" que troca o modo E-goi de `draft` pra `send`). Por enquanto o plano abaixo entrega: **agendar + gerar rascunho automático** dos dois digests (semanal e FDS), sem envio automático ainda.
+Você **não** errou no cadastro. O evento Nostalgia está perfeito no banco:
 
----
+- `date = 2026-07-09`
+- `end_date = 2026-07-10` ✅
+- `time = 20:00`
+- `schedule` com as duas datas (09/07 e 10/07 às 20h) ✅
+- `status = active`
 
-### Fase 1 — Corrigir erro dos templates novos (bloqueante)
+O irmão `nostalgia0907` está com `merged_into_id` apontando para o principal (`nostalgia1007`) e `merged_at = 14/06/2026`. Mesclagem correta.
 
-**Antes:** ao salvar os presets "Agenda do FDS — Cartaz" e "Agenda do FDS — Timeline", o banco recusa com `email_templates_type_check` porque a constraint atual só aceita `event_new | ticket_batch | weekly_digest | custom`.
-
-**Depois:** migration expande a constraint para incluir `weekend_agenda` e `weekly_digest_editorial`. Presets passam a salvar.
-
-Nada mais muda. Zero risco pros templates existentes.
-
----
-
-### Fase 2 — Preview com os 4 presets
-
-**Antes:** dropdown "Fonte dos dados" tem só `Evento` e `Digest semanal real`.
-
-**Depois:** dropdown vira 3 opções:
-- Evento individual (mock/real)
-- Digest semanal real (próximos 7 dias)
-- **Agenda FDS real (próximo fim de semana)** ← novo
-
-O seletor "Template" (abaixo) passa a listar os 4 novos presets junto com os antigos, filtrado pela fonte escolhida:
-- Fonte "evento" → templates de tipo `event_new/ticket_batch/custom`
-- Fonte "digest" → `Cartaz da semana` + `Editorial`
-- Fonte "agenda FDS" → `Cartaz FDS` + `Timeline FDS`
-
-O edge `weekly-digest-draft` passa a aceitar `?template_id=xxx` no dry-run, pra renderizar exatamente o template que você escolheu no preview (hoje ele pega o `is_default`). Idem novo edge FDS.
+**O problema está em 3 lugares no código que ignoram `end_date`:**
 
 ---
 
-### Fase 3 — Reformular aba "Digest semanal" → "Automações"
+### Bug 1 — Página `/eventos` esconde festival no dia final
 
-**Antes:** aba com 1 card só (toggle cron + gerar agora), layout fixo, sem escolha de template, sem controle de horário.
+Arquivo: `src/pages/Eventos.tsx` (linhas 216-222)
 
-**Depois:** aba renomeada pra **"Automações"** com 2 cards espelhados:
+```ts
+.filter(event => parseLocalDate(event.date) >= now)   // ← usa só date
+```
 
-**Card 1 — Digest semanal**
-- Toggle "Ativar geração automática"
-- Select "Template padrão" (Cartaz da semana / Editorial)
-- Select "Dia da semana" (default: quinta)
-- Input "Horário" (default: 18:00 BRT)
-- Botão "Salvar agendamento"
-- Botão "Gerar rascunho agora"
-- Texto "Próxima execução: quinta 18:00 SP"
+Hoje é 10/07. `event.date = 09/07` → o filtro elimina o evento, mesmo com `end_date = 10/07`. É por isso que o Nostalgia sumiu da lista pública hoje.
 
-**Card 2 — Agenda do FDS**
-- Mesma estrutura
-- Templates: Cartaz FDS / Timeline FDS
-- Default: quinta 12:00 (antes do fim de semana)
+O hook `useEvents` está correto (usa `isEventVisible` que já considera `end_date`), mas a página filtra de novo por cima e derruba o festival.
 
-Ambos gravam em `site_settings` (chaves `weekly_digest_*` e `weekend_agenda_*`) e chamam um edge `update-digest-schedule` que refaz o `pg_cron` (usa fuso fixo -3, sem horário de verão).
+**Antes:** `event.date >= hoje` → festival some no último dia.
+**Depois:** `(event.end_date ?? event.date) >= hoje` → festival aparece até o último dia.
 
 ---
 
-### Fase 4 — Backend das automações
+### Bug 2 — Agenda FDS (edge `weekend-agenda-draft`) ignora `end_date`
 
-- Nova edge `weekend-agenda-draft` espelhando a `weekly-digest-draft` (mesma auth, mesmo padrão), mas coleta eventos de **sex/sáb/dom** e usa templates `weekend_agenda`. Suporta `dry_run` e `template_id`.
-- Nova edge `update-digest-schedule` (uma só, param `job: 'weekly_digest' | 'weekend_agenda'`) que faz `cron.unschedule` + `cron.schedule` com o horário salvo.
-- Migration adiciona chaves em `site_settings`:
-  - `weekly_digest_template_id`, `weekly_digest_cron_day`, `weekly_digest_cron_hour`
-  - `weekend_agenda_enabled`, `weekend_agenda_template_id`, `weekend_agenda_cron_day`, `weekend_agenda_cron_hour`
-- Edge `weekly-digest-draft` passa a respeitar `weekly_digest_template_id` (se setado, usa esse; senão continua com `is_default`).
+Arquivo: `supabase/functions/weekend-agenda-draft/index.ts` (linhas 270-271)
 
----
+```ts
+.gte('date', startIso).lte('date', endIso)   // ← só date
+```
 
-### Ordem de execução (deploys em fases seguras)
+Se o FDS for sex-dom (10-12/07) e o Nostalgia começou quinta 09/07, ele fica de fora — mesmo terminando na sexta.
 
-1. **Fase 1** — migration da constraint. Deploy isolado. Você testa salvar os 2 presets FDS. **Se falhar, reverte migration em 1 comando.**
-2. **Fase 2** — preview com os 4 presets. Deploy isolado, só frontend + parâmetro opcional no edge. **Zero impacto no cron.**
-3. **Fase 4 (backend primeiro)** — nova edge FDS + edge de agendamento + migration de settings. Sem UI ainda. Testável via botão manual.
-4. **Fase 3** — UI da aba "Automações". Deploy final, tudo já plugado.
+**Depois:** buscar num range mais amplo e filtrar em memória:
+`(date <= endIso) && ((end_date ?? date) >= startIso)`
+(Range multi-dia sobrepõe a janela do FDS.)
 
 ---
 
-### Riscos & Mitigação
+### Bug 3 — Aba "Eventos Mesclados" vazia
 
-| Risco | Mitigação |
-|---|---|
-| Migration da constraint quebrar templates antigos | Constraint expande o conjunto, nunca reduz. Templates existentes continuam válidos. |
-| Novo cron do FDS conflitar com o semanal | Nomes de job distintos (`weekly-digest-cron`, `weekend-agenda-cron`). Um não sobrescreve o outro. |
-| Falha no cron silenciosa | UI mostra "Próxima execução" calculada; edge de agendamento retorna erro claro se `pg_cron` recusar. |
-| Preview do FDS sem eventos no fim de semana | Retorna placeholder (mesmo comportamento do digest hoje). |
+Arquivo: `src/components/admin/MergedEventsTab.tsx`
 
-### Checklist de validação (após deploy completo)
+A aba lê **`application_logs`** filtrando por `context.action = 'merge_events'`. Rodei `SELECT` — **não existe nenhum log de merge no banco**. Mesclagens antigas (como Nostalgia, feita em 14/06) foram executadas antes do logging existir, então ficam invisíveis por esse caminho.
 
-- [ ] Salvar os 2 presets FDS sem erro.
-- [ ] Preview mostra os 4 templates novos com dados reais.
-- [ ] Toggle + horário do Digest semanal salva e mostra "Próxima execução".
-- [ ] Toggle + horário da Agenda FDS salva e mostra "Próxima execução".
-- [ ] Botão "Gerar rascunho agora" funciona pros dois.
-- [ ] Rascunho aparece na E-goi com o template escolhido.
+A **fonte de verdade** é a tabela `events` (colunas `merged_into_id` e `merged_at`).
 
-### Prevenção de regressão
+**Depois:** a aba passa a consultar `events` diretamente:
+- lista todo evento com `merged_into_id IS NOT NULL` e `merged_at` recente
+- agrupa pelo evento principal (o "pai")
+- só mostra grupos cujo evento principal ainda não passou (usando `end_date ?? date`)
+- para cada grupo, se existir log com snapshot em `application_logs`, o botão "Desfazer" fica ativo; senão, mostra "Mesclagem antiga sem snapshot — desfazer manualmente"
 
-- Testes de contrato do edge `weekly-digest-draft` continuam válidos (o `template_id` é opcional).
-- Fallback do edge continua: se template do banco falhar, cai no HTML legado.
-- Migration idempotente (`DROP CONSTRAINT IF EXISTS` + `ADD CONSTRAINT`).
-
-### Pendências propositais (fora desta onda)
-
-- **Envio automático** (sem passar pela revisão manual na E-goi) — só se você aprovar depois.
-- Preview do "Agenda FDS" via botão dedicado (por ora reaproveita o `dry_run` do edge novo).
-- Google Maps no bloco `static_map` (ainda pendente da onda D anterior).
+Assim o Nostalgia (e outros mesclados históricos) volta a aparecer, e novas mesclagens (com log) continuam com undo automático.
 
 ---
 
-**Posso começar pela Fase 1 (migration da constraint) já?** É a mais rápida (1 comando) e destrava seu problema imediato dos presets FDS.
+## Plano de execução (3 fases isoladas)
+
+### Fase A — Corrigir listagem pública (Bug 1)
+- Editar `getUpcomingEvents` em `src/pages/Eventos.tsx` para considerar `end_date`.
+- Verificar rapidamente `EventsCarousel` e `FeaturedEvents` — pelo que vi já usam `end_date` para exibição, mas confirmo se algum filtro adicional também precisa ajuste.
+- **Sem** mudança de banco. Sem mudança de UI. Só o filtro.
+
+### Fase B — Corrigir Agenda FDS (Bug 2)
+- Editar a query do `weekend-agenda-draft` para não excluir festivais que atravessam a janela.
+- Redeploy automático da edge.
+
+### Fase C — Corrigir aba "Eventos Mesclados" (Bug 3)
+- Reescrever `MergedEventsTab` para ler `events` (fonte de verdade) em vez de `application_logs`.
+- Manter `UndoMergeDialog` atual — só passa a receber os dados agrupados vindos de `events`.
+- Botão "Desfazer" só habilitado se existir log com snapshot; caso contrário, mostra aviso.
+
+---
+
+## Checklist de validação (após cada fase)
+
+**Fase A**
+- [ ] Abrir `/eventos` hoje: Nostalgia aparece na lista.
+- [ ] Abrir amanhã (11/07): Nostalgia some (end_date passou).
+- [ ] Eventos de dia único continuam sumindo no dia seguinte como antes.
+
+**Fase B**
+- [ ] Gerar rascunho da Agenda FDS: Nostalgia aparece se a janela do FDS pegar 10/07.
+- [ ] Eventos totalmente fora da janela continuam de fora.
+
+**Fase C**
+- [ ] Abrir Admin → Eventos → aba "Eventos Mesclados": Nostalgia aparece.
+- [ ] Mesclagens de eventos que já passaram **não** aparecem (limpeza visual).
+- [ ] Botão "Desfazer" aparece habilitado só quando há snapshot.
+
+---
+
+## Riscos e prevenção de regressão
+
+- **Risco baixo em todas as fases**: só ampliam o que é considerado ativo/visível, não escondem nada que hoje aparece.
+- Testes existentes em `eventDateHelper.test.ts` já cobrem multi-dia com `end_date` — vou adicionar um teste unitário para o novo filtro em `Eventos.tsx` e um para o filtro da edge FDS.
+- **Sem migração de banco.** Zero mudança de schema.
+
+## Pendências (não incluídas agora)
+- Auditoria geral em todo o código atrás de outros `event.date >=` órfãos (existe em admin? em cron de recorrentes?). Se quiser, faço um segundo plano só para isso depois.
+
+**Pergunta antes de começar:** posso ir na ordem A → B → C, executando **uma fase por vez** e esperando você validar antes de seguir para a próxima?
