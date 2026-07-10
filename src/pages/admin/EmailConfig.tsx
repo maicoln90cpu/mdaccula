@@ -336,7 +336,7 @@ const EmailConfig = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null }>>([]);
+  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [sendingTest, setSendingTest] = useState(false);
@@ -384,7 +384,7 @@ const EmailConfig = () => {
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
         (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
         supabase.from("events")
-          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup")
+          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup,venue_lat,venue_lng")
           .order("date", { ascending: false })
           .limit(30),
         supabase.from("site_settings").select("value").eq("key", "weekly_digest_enabled").maybeSingle(),
@@ -825,6 +825,8 @@ const EmailConfig = () => {
         lineup: Array.isArray(ev.lineup) ? ev.lineup : undefined,
         eventStartIso: dateObj.toISOString(),
         ticketBatchDeadlineIso: batchDeadline.toISOString(),
+        venueLat: typeof ev.venue_lat === "number" ? ev.venue_lat : undefined,
+        venueLng: typeof ev.venue_lng === "number" ? ev.venue_lng : undefined,
       });
       // Se o evento tem matéria vinculada, busca o resumo
       if (ev.blog_post_id) {

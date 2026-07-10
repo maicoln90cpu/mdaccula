@@ -75,7 +75,9 @@ const defaultForKind = (kind: Block["kind"]): Block => {
       ],
     };
     case "lineup": return { id, kind, title: "Line-up", layout: "chips", align: "center" };
-    case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center" };
+    case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center", size: "large" };
+    case "ticker": return { id, kind, messages: ["Últimas horas", "Ingressos limitados", "Restam poucos"], animation: "fade", align: "center", icon: "clock" };
+    case "static_map": return { id, kind, zoom: 15, height: 300, map_style: "roadmap", show_address_label: true, border_radius: 12 };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
@@ -733,6 +735,17 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
             </div>
           )}
           <div>
+            <Label className="text-xs">Tamanho</Label>
+            <Select value={block.size || "large"} onValueChange={(v) => patch({ size: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="large">Grande — 3 caixas (dias/horas/min)</SelectItem>
+                <SelectItem value="medium">Médio — 2 caixas (dias/horas)</SelectItem>
+                <SelectItem value="minimal">Minimalista — 1 linha compacta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <Label className="text-xs">Estilo de fundo</Label>
             <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v as any })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -749,6 +762,120 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           <p className="text-xs text-muted-foreground">
             E-mail não roda JavaScript — o contador é <strong>congelado no momento do envio</strong> (dias/horas/minutos restantes).
           </p>
+        </div>
+      );
+
+    case "ticker": {
+      const msgs = block.messages || ["Últimas horas", "Ingressos limitados", "Restam poucos"];
+      const setMsg = (i: number, v: string) => {
+        const next = [...msgs];
+        next[i] = v;
+        patch({ messages: next.filter((x) => x !== "").slice(0, 3) });
+      };
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Barra fina com mensagens curtas de urgência. Suporta até 3 frases. Animação funciona em Apple Mail/iOS; Gmail/Outlook mostram a 1ª mensagem estática (fallback automático).
+          </p>
+          <div>
+            <Label className="text-xs">Mensagem 1</Label>
+            <Input value={msgs[0] || ""} onChange={(e) => setMsg(0, e.target.value)} placeholder="Últimas horas" />
+          </div>
+          <div>
+            <Label className="text-xs">Mensagem 2 (opcional)</Label>
+            <Input value={msgs[1] || ""} onChange={(e) => setMsg(1, e.target.value)} placeholder="Ingressos limitados" />
+          </div>
+          <div>
+            <Label className="text-xs">Mensagem 3 (opcional)</Label>
+            <Input value={msgs[2] || ""} onChange={(e) => setMsg(2, e.target.value)} placeholder="Restam poucos" />
+          </div>
+          <div>
+            <Label className="text-xs">Ícone</Label>
+            <Select value={block.icon || "clock"} onValueChange={(v) => patch({ icon: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhum</SelectItem>
+                <SelectItem value="clock">⏰ Relógio</SelectItem>
+                <SelectItem value="fire">🔥 Fogo</SelectItem>
+                <SelectItem value="bolt">⚡ Raio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Animação</Label>
+            <Select value={block.animation || "fade"} onValueChange={(v) => patch({ animation: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="fade">Alternar mensagens (fade)</SelectItem>
+                <SelectItem value="slide">Deslizar (marquee)</SelectItem>
+                <SelectItem value="none">Sem animação (estática)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <ColorControl label="Cor de fundo" value={block.bg_color} onChange={(v) => patch({ bg_color: v })} placeholder="Cor primária" />
+          <ColorControl label="Cor do texto" value={block.text_color} onChange={(v) => patch({ text_color: v })} placeholder="#ffffff" />
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        </div>
+      );
+    }
+
+    case "static_map":
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Mini-mapa do venue, clicável — abre no Waze/Google Maps do celular. Só aparece se o evento tiver <strong>coordenadas (latitude/longitude)</strong> preenchidas. Você configura isso no formulário do evento.
+          </p>
+          <div>
+            <Label className="text-xs">Zoom ({block.zoom ?? 15})</Label>
+            <input
+              type="range"
+              min={12}
+              max={18}
+              value={block.zoom ?? 15}
+              onChange={(e) => patch({ zoom: Number(e.target.value) })}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Altura</Label>
+            <Select value={String(block.height ?? 300)} onValueChange={(v) => patch({ height: Number(v) })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="200">Baixa (200px)</SelectItem>
+                <SelectItem value="300">Média (300px)</SelectItem>
+                <SelectItem value="400">Alta (400px)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Estilo do mapa</Label>
+            <Select value={block.map_style || "roadmap"} onValueChange={(v) => patch({ map_style: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="roadmap">Ruas (padrão)</SelectItem>
+                <SelectItem value="terrain">Terreno</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Bordas arredondadas</Label>
+            <Select value={String(block.border_radius ?? 12)} onValueChange={(v) => patch({ border_radius: Number(v) })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Sem borda</SelectItem>
+                <SelectItem value="8">8px</SelectItem>
+                <SelectItem value="12">12px</SelectItem>
+                <SelectItem value="16">16px</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={block.show_address_label !== false}
+              onCheckedChange={(v) => patch({ show_address_label: v })}
+            />
+            <Label className="text-xs">Mostrar nome do venue e cidade abaixo do mapa</Label>
+          </div>
         </div>
       );
 

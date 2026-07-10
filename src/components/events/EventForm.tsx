@@ -28,6 +28,8 @@ interface EventFormData {
   address?: string;
   location_state: string;
   location_city: string;
+  venue_lat?: number | null;
+  venue_lng?: number | null;
   date: string;
   end_date?: string;
   time: string;
@@ -140,6 +142,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       address: event.address,
       location_state: event.location_state,
       location_city: event.location_city,
+      venue_lat: (event as any).venue_lat ?? null,
+      venue_lng: (event as any).venue_lng ?? null,
       date: event.date,
       end_date: event.end_date || '',
       time: event.time,
@@ -422,6 +426,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         ticket_link: normalizedTicketLink,
         vip_link: normalizedVipLink,
         lineup: normalizedLineup,
+        venue_lat: data.venue_lat === undefined || data.venue_lat === null || Number.isNaN(data.venue_lat as any) ? null : Number(data.venue_lat),
+        venue_lng: data.venue_lng === undefined || data.venue_lng === null || Number.isNaN(data.venue_lng as any) ? null : Number(data.venue_lng),
         genres: selectedGenres,
         image_url: imageUrl,
         slug: eventSlug,
@@ -871,6 +877,34 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               {errors.location_city && <span className="text-sm text-destructive">{errors.location_city.message}</span>}
             </div>
           </div>
+
+          {/* Coordenadas do venue (opcional) — usadas pelo bloco Mapa estático no e-mail */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="venue_lat">Latitude do local (opcional)</Label>
+              <Input
+                id="venue_lat"
+                type="number"
+                step="any"
+                {...register('venue_lat', { valueAsNumber: true })}
+                placeholder="Ex.: -15.601411"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="venue_lng">Longitude do local (opcional)</Label>
+              <Input
+                id="venue_lng"
+                type="number"
+                step="any"
+                {...register('venue_lng', { valueAsNumber: true })}
+                placeholder="Ex.: -56.097892"
+              />
+              <p className="text-xs text-muted-foreground">
+                Dica: abra o Google Maps, clique no local, e as coordenadas aparecem no topo. Sem isso, o bloco "Mapa estático" do e-mail fica oculto.
+              </p>
+            </div>
+          </div>
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

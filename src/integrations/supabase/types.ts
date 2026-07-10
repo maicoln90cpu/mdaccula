@@ -807,6 +807,8 @@ export type Database = {
           title: string
           updated_at: string
           venue: string
+          venue_lat: number | null
+          venue_lng: number | null
           views: number | null
           vip_link: string | null
         }
@@ -841,6 +843,8 @@ export type Database = {
           title: string
           updated_at?: string
           venue: string
+          venue_lat?: number | null
+          venue_lng?: number | null
           views?: number | null
           vip_link?: string | null
         }
@@ -875,6 +879,8 @@ export type Database = {
           title?: string
           updated_at?: string
           venue?: string
+          venue_lat?: number | null
+          venue_lng?: number | null
           views?: number | null
           vip_link?: string | null
         }
