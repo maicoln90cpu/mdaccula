@@ -560,7 +560,9 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
     case "weekend_grid": {
       const heroId = ctx.heroEventId;
-      const list = (event.weekendEvents || []).filter((ev) => ev && (!heroId || ev.id !== heroId));
+      // Filtro defensivo: DEDGE nunca aparece aqui — só via `dedge_block`.
+      const isDedgeVenue = (v?: string) => /d\.?\s*edge/i.test((v || "").trim());
+      const list = (event.weekendEvents || []).filter((ev) => ev && (!heroId || ev.id !== heroId) && !isDedgeVenue(ev.venue));
       const align = block.align ?? "left";
       const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
       const title = escape(block.title || "O que rola no fds");
