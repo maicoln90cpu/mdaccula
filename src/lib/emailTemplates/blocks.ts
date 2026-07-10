@@ -103,12 +103,37 @@ export type Block =
       show_address_label?: boolean;
       border_radius?: number;
     }
+  | {
+      id: string;
+      kind: "weekend_grid";
+      /** cartaz = layout C (padrão, cartaz digital com cards full-width).
+       *  timeline = layout B (barra colorida por dia). */
+      layout?: "cartaz" | "timeline";
+      title?: string;         // "Programação do fim de semana"
+      eyebrow?: string;       // "AGENDA · FDS"
+      show_article_link?: boolean;
+      day_bar_color?: string; // cor da barra do dia (timeline)
+      align?: Align;
+    }
+  | {
+      id: string;
+      kind: "dedge_block";
+      /** Se true, sobrescreve a imagem/textos do payload dedge com valores do bloco. */
+      override_content?: boolean;
+      image_url?: string;
+      eyebrow?: string;
+      title?: string;
+      description?: string;
+      primary_label?: string;
+      primary_url?: string;
+      button_style?: "dark" | "primary";
+    }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
   id?: string;
   name: string;
-  type: "event_new" | "ticket_batch" | "weekly_digest" | "custom";
+  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "custom";
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;
