@@ -387,16 +387,16 @@ export function EmailTemplateEditor({
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Biblioteca de blocos globais - Fase C */}
+            <div className="pt-3 border-t mt-3">
+              <GlobalBlocksLibrary
+                selectedBlock={selectedBlock}
+                onInsert={(b) => setLocalBlocks([...(blocks as Block[]), b])}
+              />
+            </div>
           </CardContent>
         </Card>
-
-        {/* Biblioteca de blocos globais - Fase C */}
-        <div className="lg:col-span-3">
-          <GlobalBlocksLibrary
-            selectedBlock={selectedBlock}
-            onInsert={(b) => setLocalBlocks([...(blocks as Block[]), b])}
-          />
-        </div>
 
         {/* Painel de propriedades */}
         <Card>
