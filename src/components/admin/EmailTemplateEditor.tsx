@@ -219,9 +219,7 @@ export function EmailTemplateEditor({
     }
   };
 
-  const createTemplate = async (
-    presetKey?: "event_new" | "ticket_batch" | "weekly_digest",
-  ) => {
+  const createTemplate = async (presetKey?: PresetKey) => {
     try {
       const preset = presetKey ? TEMPLATE_PRESETS.find((p) => p.key === presetKey) : null;
       const defaultName = preset ? preset.name : "Novo template";
@@ -233,7 +231,7 @@ export function EmailTemplateEditor({
       const { data, error } = await (supabase.from as any)("email_templates")
         .insert({
           name,
-          type: preset ? preset.key : "custom",
+          type: preset ? preset.template_type : "custom",
           blocks,
           subject_template: preset?.subject_template ?? null,
           preheader_template: preset?.preheader_template ?? null,
