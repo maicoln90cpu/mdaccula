@@ -73,24 +73,29 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     const cronSecret = req.headers.get('x-cron-secret');
     const cronJobHeader = req.headers.get('x-cron-job');
-    const expectedCron = Deno.env.get('CRON_SHARED_SECRET');
+    const envCronSecret = Deno.env.get('CRON_SHARED_SECRET');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const admin = createClient(supabaseUrl, serviceKey);
 
-    // B.9-extra: cron via pg_net usa Authorization: Bearer <service_role_key> + x-cron-job header
-    const bearerToken = authHeader?.replace('Bearer ', '').trim();
-    const isCronBySecret = !!(cronSecret && expectedCron && cronSecret === expectedCron);
-    const isCronByServiceRole = !!(bearerToken && bearerToken === serviceKey && cronJobHeader);
-    const isCron = isCronBySecret || isCronByServiceRole;
+    // B.9-extra: valida x-cron-secret contra env OU tabela interna (usada pelo pg_cron)
+    let isCron = !!(cronSecret && envCronSecret && cronSecret === envCronSecret);
+    if (!isCron && cronSecret && cronJobHeader) {
+      const { data: row } = await admin
+        .from('internal_cron_secrets')
+        .select('secret')
+        .eq('name', 'egoi_stats_cron')
+        .maybeSingle();
+      if (row?.secret && row.secret === cronSecret) isCron = true;
+    }
 
     if (!authHeader && !isCron) return json({ error: 'Não autenticado' }, 401);
 
-    const admin = createClient(supabaseUrl, serviceKey);
-
     if (!isCron && authHeader) {
       const anonClient = createClient(supabaseUrl, anonKey);
-      const { data: userData, error: userErr } = await anonClient.auth.getUser(bearerToken!);
+      const token = authHeader.replace('Bearer ', '');
+      const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
       if (userErr || !userData.user) return json({ error: 'Token inválido' }, 401);
       const { data: isAdmin } = await admin.rpc('has_role', {
         _user_id: userData.user.id, _role: 'admin',
