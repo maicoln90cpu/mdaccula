@@ -1408,7 +1408,29 @@ const EmailConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+              <div className="mb-4 p-3 rounded-lg border bg-muted/20 flex flex-wrap items-center gap-3">
+                <Label className="text-xs whitespace-nowrap">Fonte dos dados</Label>
+                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest")}>
+                  <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="event">Evento individual (mock/real)</SelectItem>
+                    <SelectItem value="digest">Digest semanal real (próximos 7 dias)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {previewSource === "digest" && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={loadDigestPreview} disabled={digestPreviewLoading}>
+                      {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
+                    </Button>
+                    {digestPreviewMeta && (
+                      <span className="text-xs text-muted-foreground">
+                        {digestPreviewMeta.events_count ?? 0} eventos · {digestPreviewMeta.posts_count ?? 0} posts · {digestPreviewMeta.range}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+
                 <div className="space-y-3">
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
                     <Label className="text-xs">Simular com evento real</Label>
