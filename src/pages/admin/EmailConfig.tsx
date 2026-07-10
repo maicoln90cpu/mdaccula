@@ -322,6 +322,7 @@ const EmailConfig = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [historySearch, setHistorySearch] = useState("");
   // B.9 — métricas E-goi por campaign_id
   const [campaignStats, setCampaignStats] = useState<Record<string, {
     sent: number; delivered: number; opens_unique: number; clicks_unique: number;
