@@ -943,14 +943,60 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
     { id: newBlockId(), kind: "footer", include_unsubscribe: true },
   ];
+  }
+
+  // Agenda do fim de semana — layout C (Cartaz digital, recomendado)
+  if (type === "weekend_agenda_cartaz") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "AGENDA · FIM DE SEMANA", align: "center" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html: "<h1 style=\"color:#fff;font-size:28px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;text-align:center;\">O que rola no fds</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">Sexta, sábado e domingo — os destaques da cena eletrônica em Cuiabá.</p>",
+        align: "center",
+      },
+      { id: newBlockId(), kind: "weekend_grid", layout: "cartaz", eyebrow: "", title: "", show_article_link: true },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "dedge_block", button_style: "dark" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  // Agenda do fim de semana — layout B (Timeline por dia)
+  if (type === "weekend_agenda_timeline") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "PROGRAMAÇÃO DO FDS", align: "left" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html: "<h1 style=\"color:#fff;font-size:26px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;\">Sexta, sábado e domingo</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0;\">A ordem cronológica da cena eletrônica — do fim de semana em Cuiabá.</p>",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "weekend_grid", layout: "timeline", title: "", eyebrow: "", show_article_link: true },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "dedge_block", button_style: "primary" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  // fallback vazio
+  return [];
 }
 
 export const TEMPLATE_PRESETS: Array<{
-  key: "event_new" | "ticket_batch" | "weekly_digest";
+  key: PresetKey;
   name: string;
   description: string;
   subject_template: string;
   preheader_template: string;
+  /** Tipo salvo no banco (para agrupar variantes do mesmo formato). */
+  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "custom";
 }> = [
   {
     key: "event_new",
@@ -958,6 +1004,7 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Anúncio de evento novo confirmado — flyer, data, local, CTA de ingresso e resumo da matéria (se houver).",
     subject_template: "🎧 Novo evento: {{event_title}} — {{date_label}}",
     preheader_template: "{{event_title}} em {{venue_name}}, {{city_state}}. Ingressos abertos.",
+    template_type: "event_new",
   },
   {
     key: "ticket_batch",
@@ -965,6 +1012,7 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Aviso de urgência para virada de lote (mesmo dia ou 1 dia antes). Inclui bloco de arte específica opcional.",
     subject_template: "⏰ Últimas horas do lote — {{event_title}}",
     preheader_template: "O lote atual está acabando. Garanta antes da próxima virada de preço.",
+    template_type: "ticket_batch",
   },
   {
     key: "weekly_digest",
@@ -972,5 +1020,22 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Newsletter semanal com destaques da agenda e matérias do blog.",
     subject_template: "📬 MDAccula desta semana",
     preheader_template: "Eventos, matérias e novidades da cena eletrônica em Cuiabá.",
+    template_type: "weekly_digest",
+  },
+  {
+    key: "weekend_agenda_cartaz",
+    name: "Agenda do FDS — Cartaz digital ⭐",
+    description: "Recomendado. Cards full-width com flyers grandes, badge do dia e bloco Dedge de encerramento em preto/branco.",
+    subject_template: "🎧 Seu fds em Cuiabá — {{weekend_range}}",
+    preheader_template: "Sexta, sábado e domingo — os destaques da cena eletrônica.",
+    template_type: "weekend_agenda",
+  },
+  {
+    key: "weekend_agenda_timeline",
+    name: "Agenda do FDS — Timeline por dia",
+    description: "Layout compacto com barra colorida por dia e miniaturas. Bloco Dedge com botões coloridos ao final.",
+    subject_template: "📅 Programação do fds — {{weekend_range}}",
+    preheader_template: "Do sunset de sexta ao after de domingo. Sua semana começa aqui.",
+    template_type: "weekend_agenda",
   },
 ];
