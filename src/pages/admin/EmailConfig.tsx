@@ -339,6 +339,10 @@ const EmailConfig = () => {
   const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
+  const [previewSource, setPreviewSource] = useState<"event" | "digest">("event");
+  const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>("");
+  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string } | null>(null);
+  const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   // B.8 — Virada de lote
