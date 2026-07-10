@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
 
-    const created = await egoiRequest('/campaigns/email', apiKey, {
+    const created = await egoiRequest('/campaigns/email', apiKey!, {
       method: 'POST',
       body: JSON.stringify(createPayload),
     });
