@@ -697,7 +697,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align || "left";
       const showVenue = block.show_venue !== false;
       const showCta = block.show_cta !== false;
-      const ctaLabel = escape(block.cta_label || settings.cta_label || "Garantir ingresso");
+      const ctaLabel = escape((useWeekend && w?.ctaLabel) || block.cta_label || settings.cta_label || "Garantir ingresso");
       const overlayBg = block.overlay_intensity === "soft"
         ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)"
         : "linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.92) 100%)";
