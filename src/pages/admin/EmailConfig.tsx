@@ -804,6 +804,8 @@ const EmailConfig = () => {
       const dateLabel = dateObj.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
       const timeLabel = (ev.time || "").slice(0, 5);
       const baseUrl = "https://mdaccula.com";
+      const batchDeadline = new Date();
+      batchDeadline.setHours(23, 59, 0, 0);
       setPreviewData({
         eventTitle: ev.title,
         eventSubtitle: ev.subtitle ?? undefined,
@@ -820,6 +822,9 @@ const EmailConfig = () => {
         youtubeUrl: MOCK_EVENT_DATA.youtubeUrl,
         tiktokUrl: MOCK_EVENT_DATA.tiktokUrl,
         unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
+        lineup: Array.isArray((ev as any).lineup) ? (ev as any).lineup : undefined,
+        eventStartIso: dateObj.toISOString(),
+        ticketBatchDeadlineIso: batchDeadline.toISOString(),
       });
       // Se o evento tem matéria vinculada, busca o resumo
       if (ev.blog_post_id) {
