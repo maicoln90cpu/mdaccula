@@ -218,6 +218,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const force = body?.force === true;
+    const dryRun = body?.dry_run === true;
 
     // Guard 1: master switch
     const { data: masterRow } = await admin
