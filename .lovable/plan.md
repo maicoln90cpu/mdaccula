@@ -1,82 +1,84 @@
-# Roadmap E-mail (E-goi) — status atual
+# Onda B.10 — Teste A/B de assunto (E-goi split test)
 
-## Concluído
-- **B.5.1 — Editor de blocos** (drag-and-drop, logo redimensionável, imagem-com-link, social icons customizáveis, botão descadastrar oficial E-goi, resumo da matéria, preview com evento real, envio de teste).
-- **B.5.2 — Presets** de template ("event_new", "ticket_batch", "weekly_digest") + banner de alcance estimado (com contagem e origem: lista inteira ou segmento).
-- **B.6 — Auto-trigger** de rascunho ao publicar evento (toggle `dispatch_email_on_save`, guards master/agência, anti-race com `email_campaign_dispatched_at`).
-- **B.6.1 — Criar rascunho agora** por evento (para eventos importados via CSV/script), painel B.4 com "Eventos sem rascunho".
-- **B.7 — Envio imediato com dupla confirmação** (checklist + digitar "ENVIAR"), correção 403 no endpoint `POST /campaigns/email` (schema v3 correto).
-- **B.8 — Virada de lote com arte opcional (esta onda):**
-  - Nova aba "Virada de lote" em `/admin/email-config`.
-  - Seleciona evento, template (pré-seleciona preset `ticket_batch`), assunto opcional e **upload de arte específica** que substitui o flyer padrão apenas neste disparo.
-  - Reutiliza `dispatchEventDraftEmail` com novos overrides: `templateIdOverride`, `flyerOverrideUrl`, `subjectOverride`.
-  - Se o template tem bloco `image_with_link` vazio (preset ticket_batch), a arte enviada também preenche esse bloco automaticamente.
-  - Botões "Criar rascunho" + "Enviar agora" (dupla confirmação já existente).
-  - Cada disparo cria uma nova entrada no histórico (`forceResend: true`), preserva histórico anterior.
-- **Correção do banner "em breve":** o card "Criar rascunho de teste (em breve)" foi substituído por um card informativo apontando para o fluxo real (Preview → envio de teste; Histórico → rascunho/envio por evento; Virada de lote → disparo pontual).
+## Objetivo
+Permitir que o admin, ao disparar uma campanha de evento, envie **duas versões de assunto** (A e B) para uma amostra da lista. A E-goi mede aberturas por N horas e envia automaticamente a versão vencedora ao restante.
 
-## Auditoria pendente (apenas planejar, não implementar agora)
+## Como está hoje (antes)
+- No painel `/admin/email-config` → aba **Histórico**, cada evento tem "Criar rascunho" e "Enviar agora".
+- Só existe **um assunto** por campanha.
+- Não há como comparar títulos empiricamente — o admin escolhe no escuro.
 
-### A1 — Imagens não aparecem no Outlook (mobile mostra, Gmail mostra)
-- **Sintoma:** ao enviar teste, no Outlook desktop as imagens ficam como `[x]` (bloqueadas/quebradas). No Gmail e no celular funcionam.
-- **Prováveis causas:**
-  1. Outlook (2016+/Windows) usa o motor **Word** para renderizar HTML — não interpreta `background-image` CSS, `object-fit`, `<picture>`, `srcset`, e trata `width/height` só via atributo HTML (não CSS).
-  2. Imagens hospedadas em domínios sem CORS/`Content-Type` correto (Bunny CDN pode servir `application/octet-stream` em alguns paths) — Outlook exige `image/*`.
-  3. `<img>` sem atributos `width` e `height` explícitos → Outlook não reserva espaço e o proxy de segurança pode bloquear.
-  4. URLs assinadas de curta duração (Supabase Storage `getPublicUrl` em bucket privado) — Outlook faz cache/prefetch tardio e o link expira.
-- **Investigação sugerida:**
-  - Rodar o HTML no [Litmus](https://litmus.com/) ou [Email on Acid] para diagnóstico oficial.
-  - Testar com CID (Content-ID) via Resend/E-goi anexando a imagem em vez de URL externa.
-  - Adicionar `width`/`height` HTML atributos em todos `<img>` gerados por `renderBlockedTemplate`.
-  - Verificar cabeçalho `Content-Type` das artes no Bunny/Supabase.
-- **Correção candidata (não aplicar ainda):**
-  1. Em `blocks.ts` / `eventAnnouncement.ts`: adicionar `width="X" height="Y" style="display:block;"` em todos os `<img>` (Outlook exige atributo HTML).
-  2. Forçar `image/jpeg` ou `image/png` no upload (rejeitar formatos exóticos).
-  3. Adicionar VML fallback (`<!--[if mso]>`) para hero images grandes — hack clássico Outlook.
+## Como fica (depois)
+- No card de cada evento (Histórico) e na aba **Virada de lote**, novo botão **"Enviar teste A/B"** ao lado de "Enviar agora".
+- Ao clicar, abre modal com:
+  - Assunto A (obrigatório, pré-preenchido com o assunto atual)
+  - Assunto B (obrigatório, campo novo)
+  - **% de amostra por versão** (slider 10–40%, default 20%) — cada versão recebe essa fatia
+  - **Janela de teste em horas** (slider 2–48h, default 6h)
+  - **Métrica vencedora** — aberturas (default) ou cliques
+  - Checklist de dupla confirmação (mesma UX do "Enviar agora") + digitar "ENVIAR AB"
+- Ao confirmar:
+  1. Cria a campanha na E-goi como draft (mesmo fluxo do `dispatchEventDraftEmail`).
+  2. Chama endpoint E-goi de split test para configurar A/B com os parâmetros.
+  3. Envia imediatamente (a E-goi cuida do delay e da escolha do vencedor).
+  4. Grava no histórico (`event_email_campaigns`) marcando `campaign_type = 'ab_subject'` com JSON dos parâmetros.
+- Na exibição do Histórico, campanhas A/B mostram badge **"A/B"** e, quando as métricas B.9 chegam, indicam qual versão venceu (via `stats_json.winning_variant`).
 
-### A2 — Preview do logo não corresponde ao e-mail real
-- **Sintoma:** aumentar `logo_height` no editor deixa o logo pequeno no preview mas gigante no e-mail enviado.
-- **Provável causa:** o iframe do preview aplica CSS herdado do site (fonts, box-sizing, dpi) e/ou o `srcDoc` renderiza com escala diferente da caixa de e-mail real (Outlook/Gmail usam viewport de ~600px, o preview atual tem ~640-720px de largura e a altura vai a 900px). Também: preview usa `sandbox=""` sem base CSS, mas fontes do sistema afetam altura das imagens.
-- **Investigação sugerida:**
-  - Comparar o HTML renderizado do preview vs HTML enviado (baixar via botão "Baixar HTML" já existente).
-  - Confirmar se o `logo_height` está sendo aplicado como atributo HTML (`height="120"`) ou só CSS (`style="height:120px"`) — Outlook ignora CSS.
-  - Validar largura do iframe: e-mails são desenhados para 600px; se o preview mostra em 900px, o logo parece proporcionalmente menor.
-- **Correção candidata (não aplicar ainda):**
-  1. Fixar largura do iframe do preview em **600px** (padrão de e-mail) em vez de `max-w-[640px]`.
-  2. Renderizar `<img>` do logo com atributo `height` HTML e `width="auto"` (Outlook).
-  3. Adicionar régua visual de 600px no preview para o admin ter referência.
+## Detalhes técnicos
+1. **Migration:**
+   - Coluna `campaign_type text default 'standard'` em `event_email_campaigns` (valores: `standard`, `ticket_batch`, `weekly_digest`, `ab_subject`).
+   - Coluna `ab_test_config jsonb null` para guardar `{subject_a, subject_b, sample_pct, window_hours, winner_metric}`.
+2. **`dispatchEventDraftEmail` (src/lib/emailTemplates/dispatchEventDraft.ts):**
+   - Novos overrides opcionais: `abTest?: { subjectB, samplePct, windowHours, winnerMetric }`.
+   - Quando presente, após criar o draft na E-goi, chama a edge function nova `egoi-ab-test-schedule` passando o `campaign_hash` + config.
+3. **Nova edge function `egoi-ab-test-schedule`:**
+   - Auth admin only.
+   - Chama `POST /campaigns/email/{hash}/tests` (endpoint oficial split test da E-goi v3) com payload:
+     ```
+     { subject_a, subject_b, test_size_pct, wait_hours, winning_criteria }
+     ```
+   - Se a E-goi não expuser endpoint direto de split-test, fallback: cria **duas campanhas separadas** apontando para **dois segmentos aleatórios** de X% cada, com envio agendado; nesse caso o vencedor é decidido pela edge function `egoi-campaign-stats` após a janela (job pontual).
+   - Retorna status para o frontend.
+4. **UI (`src/pages/admin/EmailConfig.tsx`):**
+   - Modal `ABTestDialog` reutilizável (Histórico + Virada de lote).
+   - Reaproveita o checklist de dupla confirmação do "Enviar agora".
+5. **Histórico:**
+   - Badge "A/B" nas campanhas `campaign_type='ab_subject'`.
+   - Se `stats_json.winning_variant` existir (populado pela B.9-extra), destaca "Venceu: Assunto A" / "Venceu: Assunto B".
 
-## B.9 — Analytics de aberturas/cliques (CONCLUÍDO)
+## Riscos
+- **E-goi pode não expor split-test em v3 REST.** Se confirmarmos ausência, cai no fallback (2 campanhas + escolha manual/automática após janela). Vou verificar o endpoint na primeira etapa da implementação; se falhar, aviso antes de prosseguir.
+- **Custo:** cada teste dispara 2× o número de e-mails para a amostra + 1× para o restante. Sem impacto na lista total.
+- **Regressão:** o fluxo padrão "Enviar agora" continua intacto — A/B é caminho paralelo opcional.
 
-- **Migration `event_email_campaign_stats`:** FK para `event_email_campaigns`, `stats_json jsonb`, `fetched_at`, `updated_at`, RLS admin-only, unique por campaign_id.
-- **Edge function `egoi-campaign-stats`:** `GET /campaigns/email/{id}/statistics` na E-goi, normaliza resposta (sent/delivered/opens/clicks/bounces/unsubscribes + taxas), aceita `campaign_id` (uma) ou `sync_all` (cron). Guards: auth admin OR `x-cron-secret`, master switch.
-- **UI no Histórico:** ao expandir grupo, cada campanha `sent` mostra 4 cards (Envios / Abertura % / Cliques % / Baixas+Bounces) + botão "Carregar/Atualizar métricas" que dispara refresh sob demanda.
-- **Persistência:** métricas são salvas no upsert e recarregadas automaticamente ao abrir a página.
+## Checklist manual (após implementar)
+1. Master switch ON; abrir Histórico de um evento.
+2. Clicar "Enviar teste A/B", preencher A e B, 20%/6h/aberturas, confirmar.
+3. Verificar toast de sucesso e entrada no histórico com badge A/B.
+4. Conferir na E-goi que a campanha foi criada como split test (ou as duas campanhas do fallback).
+5. Após 6h, atualizar métricas — o card mostra qual versão venceu.
+6. Testar cancelamento do modal (fecha sem enviar).
+7. Testar validação: A=B deve bloquear; assunto vazio deve bloquear.
 
-### Pendências B.9 (backlog)
-- **Cron 6h** (`sync_all=true`) — precisa habilitar no `pg_cron`; hoje a atualização é sob demanda pelo admin.
-- Teste de contrato para a edge function (401 sem auth, 400 sem `campaign_id`).
+## Vantagens x desvantagens
+- **+** Descoberta de assunto vencedor sem chutes; +5-15% de abertura típico com A/B em campanhas maduras.
+- **+** Sem alterar fluxo padrão — 100% opt-in.
+- **−** Requer amostra mínima (~500 envios/versão) para ter significância; abaixo disso o vencedor é ruído. Vou adicionar aviso no modal quando alcance estimado < 1000.
+- **−** Se a E-goi não tiver split-test nativo, o fallback tem lógica mais complexa e pode ter delay de até 15min pós-janela para o disparo do vencedor.
 
-## B.11 — Digest semanal automático (CONCLUÍDO)
+## Prevenção de regressão
+- Teste de contrato para `egoi-ab-test-schedule` (401 sem auth, 400 sem config, 200 com admin).
+- Teste unitário do `dispatchEventDraftEmail` garantindo que **sem** `abTest` o comportamento permanece idêntico (assinatura de argumentos).
 
-- **site_setting `weekly_digest_enabled`** — toggle na aba "Digest semanal" em `/admin/email-config`.
-- **Cron `weekly-digest-thursday-18h-brt`** — job `pg_cron` toda quinta 21:00 UTC (18h BRT) chama a edge function `weekly-digest-draft` com `x-cron-secret` (guardado em `internal_cron_secrets.weekly_digest_cron`).
-- **Edge function `weekly-digest-draft`** — busca eventos ativos dos próximos 7 dias + últimos 3 posts publicados, renderiza HTML dark-neon inline (cores/logo do `email_template_settings`) e cria rascunho na E-goi (`POST /campaigns/email`, `mode: draft`). Guards: auth admin OU cron secret, master switch, `weekly_digest_enabled` (cron sempre respeita; admin pode `force: true`), `egoi_config` habilitado.
-- **UI:** botão "Gerar rascunho agora" com resultado imediato (número de eventos/posts + hash da campanha).
+## Pendências (ficam pra depois)
+- UI para editar A/B em rascunho antes de enviar (hoje é decisão no momento do envio).
+- Histórico específico de "batalhas A/B" agregado (dashboard de aprendizados).
 
-### Pendências B.11 (backlog)
-- Personalização do template por blocos (hoje é layout fixo).
-- Analytics específico para digest (a B.9-extra já vai pegar as métricas quando a campanha for enviada, mas seria útil marcar `campaign_type = 'weekly_digest'` no histórico).
-
-## Ondas restantes
-
-- **B.10** — A/B test de assunto via UI simples (E-goi tem endpoint próprio).
-- **B.12** — Segmentação por comportamento (abriu últimos 3, nunca abriu, clicou em ticket_link).
-
-## Ordem sugerida
-1. Validar B.11 em produção (gerar rascunho agora → conferir na E-goi).
-2. Ligar o toggle "Digest semanal" e aguardar a próxima quinta.
-3. B.10 (A/B assunto) — retorno rápido.
-4. B.12 (segmentação) — precisa de ~30 dias de métricas B.9 acumuladas.
-
-
+## Ordem de execução
+1. Verificar endpoint E-goi de split-test (leitura da doc via `egoi-curl-probe` se necessário).
+2. Migration (`campaign_type` + `ab_test_config`).
+3. Edge function `egoi-ab-test-schedule`.
+4. Ajuste em `dispatchEventDraftEmail`.
+5. Modal + botão na UI.
+6. Badge no histórico.
+7. Testes de contrato.
