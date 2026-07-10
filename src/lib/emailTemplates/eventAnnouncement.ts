@@ -39,6 +39,17 @@ export interface DedgeBlockData {
   primaryUrl?: string;   // botão principal (ex.: todos os eventos Dedge)
   primaryLabel?: string;
 }
+/** Item de matéria/post do blog (bloco `blog_posts_list`). */
+export interface BlogPostItem {
+  id?: string;
+  title: string;
+  excerpt?: string;
+  imageUrl?: string;
+  url: string;
+  publishedLabel?: string; // "há 2 dias" ou "12 mai"
+  category?: string;
+}
+
 
 export interface EventAnnouncementData {
   eventTitle: string;
@@ -66,8 +77,10 @@ export interface EventAnnouncementData {
   venueLat?: number;
   /** Longitude do venue — usada pelo bloco `static_map`. */
   venueLng?: number;
-  /** Eventos do fim de semana (usado pelo bloco `weekend_grid`). */
+  /** Eventos do fim de semana / semana (usado por `weekend_grid` e `weekly_hero`). */
   weekendEvents?: WeekendEventItem[];
+  /** Últimos posts do blog (usado por `blog_posts_list`). */
+  blogPosts?: BlogPostItem[];
   /** Configuração do bloco Dedge (residência semanal). */
   dedge?: DedgeBlockData;
 }
@@ -324,6 +337,35 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
       cityState: "Cuiabá-MT",
       imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
       eventUrl: "https://mdaccula.com/eventos/after-sunday",
+    },
+  ],
+  blogPosts: [
+    {
+      id: "p1",
+      title: "Charlotte de Witte revela setlist inédito em Cuiabá",
+      excerpt: "A rainha do techno passa pela capital mato-grossense com um set exclusivo de melodic techno.",
+      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+      url: "https://mdaccula.com/blog/charlotte-de-witte-cuiaba",
+      publishedLabel: "há 2 dias",
+      category: "Matéria",
+    },
+    {
+      id: "p2",
+      title: "Guia da cena eletrônica em Cuiabá — 2025",
+      excerpt: "Da progressive ao tech house: os coletivos, DJs e casas que estão moldando a cena local.",
+      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+      url: "https://mdaccula.com/blog/guia-cena-eletronica-cuiaba-2025",
+      publishedLabel: "há 5 dias",
+      category: "Guia",
+    },
+    {
+      id: "p3",
+      title: "Musiva completa 2 anos: os melhores momentos",
+      excerpt: "Duas temporadas de line-ups internacionais, sistema Function-One e produção audiovisual autoral.",
+      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+      url: "https://mdaccula.com/blog/musiva-2-anos",
+      publishedLabel: "há 1 semana",
+      category: "Notícia",
     },
   ],
   dedge: {

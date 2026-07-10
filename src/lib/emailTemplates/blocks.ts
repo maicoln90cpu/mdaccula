@@ -128,6 +128,29 @@ export type Block =
       primary_url?: string;
       button_style?: "dark" | "primary";
     }
+  | {
+      id: string;
+      kind: "weekly_hero";
+      /** Se true, usa o primeiro item de weekendEvents; senão, dados do evento principal. */
+      source?: "first_weekend" | "main_event";
+      eyebrow?: string;         // "DESTAQUE DA SEMANA"
+      cta_label?: string;       // "Garantir ingresso"
+      show_venue?: boolean;
+      show_cta?: boolean;
+      overlay_intensity?: "soft" | "strong";
+      align?: Align;
+    }
+  | {
+      id: string;
+      kind: "blog_posts_list";
+      title?: string;           // "Do blog nesta semana"
+      eyebrow?: string;
+      max_items?: number;       // 1..5
+      layout?: "list" | "cards"; // list = compacto com miniatura, cards = grid vertical
+      show_excerpt?: boolean;
+      show_category?: boolean;
+      align?: Align;
+    }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
@@ -707,6 +730,116 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       </td></tr>`;
     }
 
+    case "weekly_hero": {
+      const source = block.source || "first_weekend";
+      const w = event.weekendEvents?.[0];
+      const useWeekend = source === "first_weekend" && !!w;
+      const title = useWeekend ? w!.title : event.eventTitle;
+      const imageUrl = useWeekend ? w!.imageUrl : event.flyerUrl;
+      const url = useWeekend ? (w!.eventUrl || "#") : event.eventUrl;
+      const ticketUrl = useWeekend ? (w!.ticketUrl || w!.eventUrl) : event.ticketUrl;
+      const venue = useWeekend ? w!.venue : event.venueName;
+      const city = useWeekend ? (w!.cityState || "") : event.cityState;
+      const dayLabel = useWeekend ? w!.dayLabel : event.dateLabel;
+      const timeLabel = useWeekend ? (w!.timeLabel || "") : event.timeLabel;
+      const eyebrow = escape(block.eyebrow || "DESTAQUE DA SEMANA");
+      const align = block.align || "left";
+      const showVenue = block.show_venue !== false;
+      const showCta = block.show_cta !== false;
+      const ctaLabel = escape(block.cta_label || settings.cta_label || "Garantir ingresso");
+      const overlayBg = block.overlay_intensity === "soft"
+        ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)"
+        : "linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.92) 100%)";
+
+      if (!imageUrl && !title) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            ⭐ Hero da semana — mostrará o 1º evento do array <code>weekendEvents</code> quando o disparo real montar a lista.
+          </div>
+        </td></tr>`;
+      }
+
+      return `<tr><td style="padding:12px 32px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000;border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;">
+          <tr><td style="padding:0;position:relative;background:#000;">
+            <a href="${escape(url)}" style="text-decoration:none;display:block;">
+              <img src="${escape(imageUrl)}" alt="${escape(title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+            </a>
+          </td></tr>
+          <tr><td style="padding:20px 22px 22px 22px;text-align:${align};background-image:${overlayBg};">
+            <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:8px;">${eyebrow}</div>
+            <div style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;opacity:0.85;">${escape(dayLabel)}${timeLabel ? ` · ${escape(timeLabel)}` : ""}</div>
+            <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:26px;line-height:1.15;font-weight:900;letter-spacing:-0.02em;">
+              <a href="${escape(url)}" style="color:#ffffff;text-decoration:none;">${escape(title)}</a>
+            </h1>
+            ${showVenue ? `<div style="color:#a1a1aa;font-size:14px;margin-bottom:14px;">📍 ${escape(venue)}${city ? ` · ${escape(city)}` : ""}</div>` : ""}
+            ${showCta && ticketUrl ? `<a href="${escape(ticketUrl)}" style="display:inline-block;padding:14px 26px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.18em;border-radius:10px;">${ctaLabel}</a>` : ""}
+          </td></tr>
+        </table>
+      </td></tr>`;
+    }
+
+    case "blog_posts_list": {
+      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 5)));
+      const eyebrow = escape(block.eyebrow || "MATÉRIAS");
+      const title = escape(block.title || "Do blog nesta semana");
+      const layout = block.layout || "list";
+      const showExcerpt = block.show_excerpt !== false;
+      const showCategory = block.show_category !== false;
+      const align = block.align || "left";
+
+      if (posts.length === 0) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            📰 Últimos posts do blog aparecem aqui quando o disparo real montar a lista.
+          </div>
+        </td></tr>`;
+      }
+
+      const header = `<tr><td style="padding:14px 32px 6px 32px;text-align:${align};">
+        <div style="color:${primary};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>
+        <h2 style="margin:0;color:#ffffff;font-size:20px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>
+      </td></tr>`;
+
+      if (layout === "cards") {
+        const cards = posts.map((p) => {
+          const url = escape(p.url || "#");
+          return `<tr><td style="padding:8px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+              ${p.imageUrl ? `<tr><td style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(p.imageUrl)}" alt="${escape(p.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></a></td></tr>` : ""}
+              <tr><td style="padding:14px 16px 16px 16px;">
+                ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : "")}
+                <div style="color:#ffffff;font-size:16px;font-weight:800;line-height:1.25;margin-bottom:4px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
+                ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(p.excerpt)}</div>` : ""}
+                <a href="${url}" style="display:inline-block;margin-top:8px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">Ler matéria →</a>
+              </td></tr>
+            </table>
+          </td></tr>`;
+        }).join("");
+        return `${header}${cards}`;
+      }
+
+      // list (compacto — thumb + título + excerpt)
+      const rows = posts.map((p) => {
+        const url = escape(p.url || "#");
+        return `<tr><td style="padding:8px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+            <tr>
+              ${p.imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(p.imageUrl)}" alt="${escape(p.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
+              <td style="padding:12px 14px;vertical-align:top;">
+                ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : "")}
+                <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
+                ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${escape(p.excerpt)}</div>` : ""}
+              </td>
+            </tr>
+          </table>
+        </td></tr>`;
+      }).join("");
+      return `${header}${rows}`;
+    }
+
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
       const align = block.align ?? "center";
@@ -814,6 +947,8 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   text: "Bloco de texto livre",
   social_icons: "Redes sociais",
   weekend_grid: "Agenda do fim de semana",
+  weekly_hero: "Destaque da semana (hero)",
+  blog_posts_list: "Últimos posts do blog",
   dedge_block: "Bloco Dedge (residência)",
   footer: "Rodapé + descadastrar",
 };
@@ -821,7 +956,7 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
 export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "header", "hero_image", "eyebrow", "title", "subtitle", "event_meta",
   "description", "lineup", "article_summary", "countdown", "ticker", "static_map",
-  "weekend_grid", "dedge_block",
+  "weekend_grid", "weekly_hero", "blog_posts_list", "dedge_block",
   "cta_button", "secondary_link", "image_with_link", "divider", "text",
   "social_icons", "footer",
 ];
@@ -839,6 +974,7 @@ export type PresetKey =
   | "event_new"
   | "ticket_batch"
   | "weekly_digest"
+  | "weekly_digest_poster"
   | "weekend_agenda_cartaz"
   | "weekend_agenda_timeline";
 
@@ -907,46 +1043,82 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     ];
   }
 
-  // weekly_digest — resumo semanal (usa blocos de texto/imagem livre; a
-  // renderização com múltiplos eventos/notícias virá na fase B.7)
-  return [
-    { id: newBlockId(), kind: "header", logo_height: 64 },
-    { id: newBlockId(), kind: "eyebrow", text: "Resumo da semana · MDAccula" },
-    {
-      id: newBlockId(),
-      kind: "text",
-      html:
-        "<h2 style=\"color:#fff;font-size:22px;margin:0 0 12px 0;\">O que rolou (e o que vem por aí)</h2>" +
-        "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em Cuiabá.</p>",
-    },
-    { id: newBlockId(), kind: "divider" },
-    {
-      id: newBlockId(),
-      kind: "text",
-      html:
-        "<p><strong>📅 Próximos eventos</strong><br>Adicione aqui os destaques (edição manual até B.7 automatizar).</p>",
-    },
-    { id: newBlockId(), kind: "divider" },
-    {
-      id: newBlockId(),
-      kind: "text",
-      html:
-        "<p><strong>📰 Matérias em alta</strong><br>Cole links ou use blocos de imagem-com-link para destacar posts do blog.</p>",
-    },
-    {
-      id: newBlockId(),
-      kind: "cta_button",
-      label: "Ver tudo no site",
-      url_field: "custom",
-      custom_url: "https://mdaccula.com",
-    },
-    { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
-    { id: newBlockId(), kind: "footer", include_unsubscribe: true },
-  ];
+  // weekly_digest — resumo semanal simples (blocos de texto/imagem livre)
+  if (type === "weekly_digest") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 64 },
+      { id: newBlockId(), kind: "eyebrow", text: "Resumo da semana · MDAccula" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<h2 style=\"color:#fff;font-size:22px;margin:0 0 12px 0;\">O que rolou (e o que vem por aí)</h2>" +
+          "<p>Uma seleção rápida dos eventos, matérias e novidades da semana em Cuiabá.</p>",
+      },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "weekend_grid", layout: "timeline", show_article_link: true },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "blog_posts_list", max_items: 3, layout: "list", show_excerpt: true, show_category: true },
+      {
+        id: newBlockId(), kind: "cta_button",
+        label: "Ver tudo no site", url_field: "custom", custom_url: "https://mdaccula.com",
+      },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
 
-
-
-
+  // weekly_digest_poster — "Cartaz da semana" (D.1.b, recomendado)
+  if (type === "weekly_digest_poster") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "MDACCULA · ESTA SEMANA", align: "center" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<h1 style=\"color:#fff;font-size:30px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.02em;text-align:center;\">O cartaz da semana</h1>" +
+          "<p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">O que não pode faltar na sua agenda — de segunda a domingo em Cuiabá.</p>",
+        align: "center",
+      },
+      {
+        id: newBlockId(),
+        kind: "weekly_hero",
+        source: "first_weekend",
+        eyebrow: "DESTAQUE DA SEMANA",
+        cta_label: "Garantir ingresso",
+        show_venue: true,
+        show_cta: true,
+        overlay_intensity: "strong",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "weekend_grid",
+        layout: "cartaz",
+        eyebrow: "TAMBÉM ACONTECE",
+        title: "Mais programação",
+        show_article_link: true,
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "blog_posts_list",
+        title: "Do blog nesta semana",
+        eyebrow: "MATÉRIAS",
+        max_items: 3,
+        layout: "list",
+        show_excerpt: true,
+        show_category: true,
+      },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "dedge_block", button_style: "dark" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
 
   // Agenda do fim de semana — layout C (Cartaz digital, recomendado)
   if (type === "weekend_agenda_cartaz") {
@@ -1023,6 +1195,14 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Newsletter semanal com destaques da agenda e matérias do blog.",
     subject_template: "📬 MDAccula desta semana",
     preheader_template: "Eventos, matérias e novidades da cena eletrônica em Cuiabá.",
+    template_type: "weekly_digest",
+  },
+  {
+    key: "weekly_digest_poster",
+    name: "Digest semanal — Cartaz da semana ⭐",
+    description: "Recomendado. Hero de destaque + grade cartaz com toda a semana + últimos posts do blog + bloco Dedge. Ideal para o disparo de segunda-feira.",
+    subject_template: "🎧 O cartaz da semana — {{week_range}}",
+    preheader_template: "Destaque da semana, agenda completa e as matérias mais quentes da cena.",
     template_type: "weekly_digest",
   },
   {

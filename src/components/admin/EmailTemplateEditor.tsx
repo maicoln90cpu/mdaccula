@@ -79,6 +79,8 @@ const defaultForKind = (kind: Block["kind"]): Block => {
     case "ticker": return { id, kind, messages: ["Últimas horas", "Ingressos limitados", "Restam poucos"], animation: "fade", align: "center", icon: "clock" };
     case "static_map": return { id, kind, zoom: 15, height: 300, map_style: "roadmap", show_address_label: true, border_radius: 12 };
     case "weekend_grid": return { id, kind, layout: "cartaz", title: "", eyebrow: "", show_article_link: true, align: "left" };
+    case "weekly_hero": return { id, kind, source: "first_weekend", eyebrow: "DESTAQUE DA SEMANA", cta_label: "Garantir ingresso", show_venue: true, show_cta: true, overlay_intensity: "strong", align: "left" };
+    case "blog_posts_list": return { id, kind, title: "Do blog nesta semana", eyebrow: "MATÉRIAS", max_items: 3, layout: "list", show_excerpt: true, show_category: true, align: "left" };
     case "dedge_block": return { id, kind, button_style: "dark", override_content: false };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
@@ -910,6 +912,97 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           {block.layout === "timeline" && (
             <ColorControl label="Cor da barra do dia" value={block.day_bar_color} onChange={(v) => patch({ day_bar_color: v })} placeholder="Cor de destaque" />
           )}
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        </div>
+      );
+
+    case "weekly_hero":
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Destaque grande no topo do e-mail. Usa o 1º evento do array <code>weekendEvents</code> ou os dados do evento principal (mock/real).
+          </p>
+          <div>
+            <Label className="text-xs">Fonte dos dados</Label>
+            <Select value={block.source || "first_weekend"} onValueChange={(v) => patch({ source: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="first_weekend">1º evento de weekendEvents (recomendado para digest)</SelectItem>
+                <SelectItem value="main_event">Evento principal (mock/real selecionado no preview)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Etiqueta (topo)</Label>
+            <Input value={block.eyebrow || ""} onChange={(e) => patch({ eyebrow: e.target.value })} placeholder="DESTAQUE DA SEMANA" />
+          </div>
+          <div>
+            <Label className="text-xs">Texto do CTA</Label>
+            <Input value={block.cta_label || ""} onChange={(e) => patch({ cta_label: e.target.value })} placeholder="Garantir ingresso" />
+          </div>
+          <div>
+            <Label className="text-xs">Intensidade do overlay sobre o flyer</Label>
+            <Select value={block.overlay_intensity || "strong"} onValueChange={(v) => patch({ overlay_intensity: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="strong">Forte (recomendado — textos legíveis sobre qualquer flyer)</SelectItem>
+                <SelectItem value="soft">Suave (flyer mais visível)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={block.show_venue !== false} onCheckedChange={(v) => patch({ show_venue: v })} />
+            <Label className="text-xs">Mostrar local (venue + cidade)</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={block.show_cta !== false} onCheckedChange={(v) => patch({ show_cta: v })} />
+            <Label className="text-xs">Mostrar botão CTA</Label>
+          </div>
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        </div>
+      );
+
+    case "blog_posts_list":
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Lista dos últimos posts do blog. Os posts são coletados automaticamente pelo disparo semanal (últimos publicados).
+          </p>
+          <div>
+            <Label className="text-xs">Etiqueta (topo)</Label>
+            <Input value={block.eyebrow || ""} onChange={(e) => patch({ eyebrow: e.target.value })} placeholder="MATÉRIAS" />
+          </div>
+          <div>
+            <Label className="text-xs">Título</Label>
+            <Input value={block.title || ""} onChange={(e) => patch({ title: e.target.value })} placeholder="Do blog nesta semana" />
+          </div>
+          <div>
+            <Label className="text-xs">Layout</Label>
+            <Select value={block.layout || "list"} onValueChange={(v) => patch({ layout: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="list">Lista compacta (miniatura + texto)</SelectItem>
+                <SelectItem value="cards">Cards com imagem grande</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Máximo de posts</Label>
+            <Select value={String(block.max_items ?? 3)} onValueChange={(v) => patch({ max_items: Number(v) })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4, 5].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={block.show_excerpt !== false} onCheckedChange={(v) => patch({ show_excerpt: v })} />
+            <Label className="text-xs">Mostrar resumo (excerpt)</Label>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={block.show_category !== false} onCheckedChange={(v) => patch({ show_category: v })} />
+            <Label className="text-xs">Mostrar categoria + data</Label>
+          </div>
           <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         </div>
       );
