@@ -1596,7 +1596,7 @@ const EmailConfig = () => {
                 <div className="rounded-lg border border-border bg-[#050505] p-4">
                   <iframe
                     title="Email preview"
-                    srcDoc={previewSource === "digest" ? (digestPreviewHtml || "<div style='padding:40px;text-align:center;font-family:sans-serif;color:#888'>Carregando digest real…</div>") : previewHtml}
+                    srcDoc={previewSource !== "event" ? (digestPreviewHtml || "<div style='padding:40px;text-align:center;font-family:sans-serif;color:#888'>Carregando preview real…</div>") : previewHtml}
                     sandbox=""
                     className="mx-auto block h-[900px] w-full max-w-[640px] rounded-md border-0 bg-white"
                   />
