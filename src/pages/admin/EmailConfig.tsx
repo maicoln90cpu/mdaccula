@@ -246,9 +246,11 @@ const EmailConfig = () => {
           .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id")
           .order("date", { ascending: false })
           .limit(30),
+        supabase.from("site_settings").select("value").eq("key", "weekly_digest_enabled").maybeSingle(),
       ]);
 
       setMasterEnabled(master.data?.value === "true");
+      setDigestEnabled(digestRow.data?.value === "true");
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
         setLists(Array.isArray(cacheRes.data.lists) ? cacheRes.data.lists : []);
