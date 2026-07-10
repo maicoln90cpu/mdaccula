@@ -37,6 +37,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
+import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
 
 interface Props {
   templates: Template[];
@@ -169,6 +171,7 @@ export function EmailTemplateEditor({
   templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
   const { toast } = useToast();
+  const { globalsMap } = useEmailGlobalBlocks();
   const activeTpl = useMemo(() => templates.find((t) => t.id === activeId) || null, [templates, activeId]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -297,8 +300,8 @@ export function EmailTemplateEditor({
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
   const previewHtml = useMemo(
-    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true }),
-    [blocks, previewEvent, settings, previewArticle],
+    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true, globals: globalsMap }),
+    [blocks, previewEvent, settings, previewArticle, globalsMap],
   );
 
   return (
@@ -383,6 +386,14 @@ export function EmailTemplateEditor({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Biblioteca de blocos globais - Fase C */}
+            <div className="pt-3 border-t mt-3">
+              <GlobalBlocksLibrary
+                selectedBlock={selectedBlock}
+                onInsert={(b) => setLocalBlocks([...(blocks as Block[]), b])}
+              />
             </div>
           </CardContent>
         </Card>
