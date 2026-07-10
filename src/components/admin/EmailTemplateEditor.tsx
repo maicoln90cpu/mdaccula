@@ -404,7 +404,9 @@ export function EmailTemplateEditor({
         <Card>
           <CardContent className="p-2">
             <div className="flex items-center justify-between mb-2 px-2">
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview ao vivo (600px reais)</div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {overrideHtml ? "Preview real (dados do disparo)" : "Preview ao vivo (600px reais)"}
+              </div>
               <div className="text-[10px] text-muted-foreground">≈ largura real na caixa de entrada</div>
             </div>
             <div className="overflow-x-auto rounded border bg-[#050505] p-2">
