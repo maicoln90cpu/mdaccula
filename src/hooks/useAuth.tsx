@@ -33,29 +33,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
+    let currentUserId: string | null = null;
+
+    const applySession = (session: Session | null, forceProfile = false) => {
+      const nextUserId = session?.user?.id ?? null;
+      setSession(session);
+      // Só troca o objeto `user` quando o id muda de fato.
+      // Evita re-render em cascata (ex.: TOKEN_REFRESHED ao voltar de outra
+      // aba do navegador) que desmontava componentes filhos e resetava
+      // estado local como abas selecionadas.
+      if (nextUserId !== currentUserId) {
+        currentUserId = nextUserId;
         setUser(session?.user ?? null);
-        
         if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-          }, 0);
+          setTimeout(() => fetchProfile(session.user.id), 0);
         } else {
           setProfile(null);
         }
-        setLoading(false);
+      } else if (forceProfile && session?.user) {
+        setTimeout(() => fetchProfile(session.user.id), 0);
+      }
+      setLoading(false);
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        applySession(session);
       }
     );
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      }
-      setLoading(false);
+      applySession(session, true);
     });
 
     return () => subscription.unsubscribe();
