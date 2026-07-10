@@ -292,47 +292,54 @@ Deno.serve(async (req) => {
 
     if (tplBlocks && tplBlocks.length > 0) {
       try {
-        // Templates "Cartaz" (1 imagem grande) → agrupar recorrentes (mesmo venue) em 1 card.
+        // Templates "Cartaz" (1 imagem grande) → agrupar recorrentes em 1 card.
+        // DEDGE é SEMPRE consolidado (todo template) — regra da casa.
         const tplName = String((activeTpl as any)?.name || '').toLowerCase();
         const isCartazTemplate = tplName.includes('cartaz');
+        const isDedgeVenue = (v: string) => /d\.?\s*edge/i.test((v || '').trim());
 
-        const evsForRender = isCartazTemplate
-          ? Object.values(
-              evs.reduce<Record<string, EventRow[]>>((acc, e) => {
-                const key = (e.venue || '').trim().toLowerCase() || e.id;
-                (acc[key] ||= []).push(e);
-                return acc;
-              }, {})
-            ).map((group) => group.sort((a, b) => a.date.localeCompare(b.date)))
-             .map((group) => {
-               if (group.length === 1) return group[0];
-               const head = group[0];
-               const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(' · ');
-               return {
-                 ...head,
-                 title: head.venue,
-                 __joinedDates: joinedDates,
-               } as EventRow & { __joinedDates?: string };
-             })
-             .sort((a, b) => a.date.localeCompare(b.date))
-          : evs;
+        const groupsMap = evs.reduce<Record<string, EventRow[]>>((acc, e) => {
+          const key = (e.venue || '').trim().toLowerCase() || e.id;
+          (acc[key] ||= []).push(e);
+          return acc;
+        }, {});
+
+        const evsForRender = Object.values(groupsMap)
+          .map((group) => group.sort((a, b) => a.date.localeCompare(b.date)))
+          .flatMap((group) => {
+            const head = group[0];
+            const shouldMerge = group.length > 1 && (isCartazTemplate || isDedgeVenue(head.venue));
+            if (!shouldMerge) return group;
+            const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(' · ');
+            return [{
+              ...head,
+              title: head.venue,
+              __joinedDates: joinedDates,
+              __isDedge: isDedgeVenue(head.venue),
+            } as EventRow & { __joinedDates?: string; __isDedge?: boolean }];
+          })
+          .sort((a, b) => a.date.localeCompare(b.date));
 
         const first = evsForRender[0];
-        const weekendEvents: WeekendEventItem[] = evsForRender.map((e) => ({
-          id: e.id,
-          title: e.title,
-          dayLabel: (e as any).__joinedDates
-            ? (e as any).__joinedDates
-            : (e.end_date && e.end_date !== e.date
-                ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
-                : formatDatePt(e.date, e.time)),
-          timeLabel: (e.time || '').slice(0, 5) || '22h',
-          venue: e.venue,
-          cityState: `${e.location_city}-${e.location_state}`,
-          imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
-          eventUrl: `${SITE_URL}/eventos/${e.slug}`,
-          ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
-        }));
+        const weekendEvents: WeekendEventItem[] = evsForRender.map((e) => {
+          const dedge = (e as any).__isDedge || isDedgeVenue(e.venue);
+          return {
+            id: e.id,
+            title: e.title,
+            dayLabel: (e as any).__joinedDates
+              ? (e as any).__joinedDates
+              : (e.end_date && e.end_date !== e.date
+                  ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
+                  : formatDatePt(e.date, e.time)),
+            timeLabel: (e.time || '').slice(0, 5) || '22h',
+            venue: e.venue,
+            cityState: `${e.location_city}-${e.location_state}`,
+            imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
+            eventUrl: `${SITE_URL}/eventos/${e.slug}`,
+            ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
+            ctaLabel: dedge ? 'Enviar Nomes Para Lista' : undefined,
+          };
+        });
         const blogPosts: BlogPostItem[] = pts.map((p) => ({
           id: p.id,
           title: p.title,

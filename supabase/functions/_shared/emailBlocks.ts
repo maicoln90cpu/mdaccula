@@ -29,6 +29,8 @@ export interface WeekendEventItem {
   eventUrl: string;
   ticketUrl?: string;
   articleUrl?: string;
+  /** CTA custom por evento (ex.: DEDGE = "Enviar Nomes Para Lista"). */
+  ctaLabel?: string;
 }
 
 export interface DedgeNightConfig { label: string; url: string; enabled: boolean; }
@@ -141,6 +143,8 @@ export type RenderContext = {
   preview?: boolean;
   /** Project ID para montar URLs do render-static-map (edge). */
   projectId?: string;
+  /** Id do evento usado no weekly_hero — grid deve pulá-lo para não duplicar. */
+  heroEventId?: string;
 };
 
 // ============================================
@@ -553,7 +557,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
     case "weekend_grid": {
-      const list = (event.weekendEvents || []).filter(Boolean);
+      const heroId = ctx.heroEventId;
+      const list = (event.weekendEvents || []).filter((ev) => ev && (!heroId || ev.id !== heroId));
       const align = block.align ?? "left";
       const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
       const title = escape(block.title || "O que rola no fds");
@@ -610,7 +615,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
           : "";
         const ticketBtn = ev.ticketUrl
-          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">Garantir ingresso</a>`
+          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso")}</a>`
           : "";
         return `<tr><td style="padding:10px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
@@ -692,7 +697,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align || "left";
       const showVenue = block.show_venue !== false;
       const showCta = block.show_cta !== false;
-      const ctaLabel = escape(block.cta_label || settings.cta_label || "Garantir ingresso");
+      const ctaLabel = escape((useWeekend && w?.ctaLabel) || block.cta_label || settings.cta_label || "Garantir ingresso");
       const overlayBg = block.overlay_intensity === "soft"
         ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)"
         : "linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.92) 100%)";
@@ -824,7 +829,13 @@ export function renderBlockedTemplate(
     custom_html_header: settings?.custom_html_header ?? null,
     custom_html_footer: settings?.custom_html_footer ?? null,
   };
-  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId };
+  // Detecta se o template usa weekly_hero com o primeiro evento do FDS —
+  // nesse caso, o grid deve pular esse evento para não duplicar o card.
+  const heroBlock = blocks.find(
+    (b) => (b as any).kind === "weekly_hero" && ((b as any).source ?? "first_weekend") === "first_weekend",
+  );
+  const heroEventId = heroBlock ? event.weekendEvents?.[0]?.id : undefined;
+  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId, heroEventId };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
   const preheader = `${escape(event.eventTitle)} — ${escape(event.dateLabel)} em ${escape(event.venueName)}, ${escape(event.cityState)}`;
