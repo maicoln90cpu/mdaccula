@@ -718,7 +718,13 @@ const EgressMonitor = () => {
                   </Card>
                 </div>
               </TabsContent>
+
+              {/* ============ ALERTS TAB ============ */}
+              <TabsContent value="alerts" className="space-y-6">
+                <EgressAlertsCard />
+              </TabsContent>
             </Tabs>
+
 
             <p className="text-xs text-muted-foreground text-center mt-6">
               Bunny atualizado: {bunny ? new Date(bunny.fetchedAt).toLocaleString("pt-BR") : "—"} ·
