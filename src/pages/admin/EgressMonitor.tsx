@@ -232,7 +232,9 @@ const EgressMonitor = () => {
                 <TabsTrigger value="supabase">Supabase (oficial)</TabsTrigger>
                 <TabsTrigger value="history">Histórico</TabsTrigger>
                 <TabsTrigger value="internal">Estimativa Interna (SW)</TabsTrigger>
+                <TabsTrigger value="alerts"><Bell className="h-3.5 w-3.5 mr-1" />Alertas</TabsTrigger>
               </TabsList>
+
 
               {/* ============ BUNNY TAB ============ */}
               <TabsContent value="bunny" className="space-y-6">
