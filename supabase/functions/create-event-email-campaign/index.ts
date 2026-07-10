@@ -69,9 +69,17 @@ Deno.serve(async (req) => {
     const preheader = (body?.preheader as string | undefined) || undefined;
     const forceResend = body?.force_resend === true;
     const sendNow = body?.send_now === true;
+    // B.10 — teste A/B de assunto
+    const abGroupId = (body?.ab_group_id as string | undefined) || null;
+    const abVariant = (body?.ab_variant as string | undefined) || null; // 'A' | 'B'
+    const abTestConfig = (body?.ab_test_config as Record<string, unknown> | undefined) || null;
+    const isAbTest = !!abGroupId && !!abVariant;
 
     if (!eventId || !html) {
       return json({ error: 'event_id e html são obrigatórios' }, 400);
+    }
+    if (isAbTest && !['A', 'B'].includes(abVariant!)) {
+      return json({ error: 'ab_variant deve ser A ou B' }, 400);
     }
 
 
