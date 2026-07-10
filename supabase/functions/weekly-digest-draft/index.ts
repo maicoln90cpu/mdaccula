@@ -10,6 +10,14 @@
 // Modo padrão: cria rascunho (não envia). Admin pode enviar depois via aba Histórico da E-goi.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import {
+  renderBlockedTemplate,
+  type Block,
+  type EventAnnouncementData,
+  type EmailTemplateSettings,
+  type WeekendEventItem,
+  type BlogPostItem,
+} from '../_shared/emailBlocks.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
