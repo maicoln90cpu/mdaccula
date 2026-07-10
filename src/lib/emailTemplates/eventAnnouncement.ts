@@ -8,6 +8,38 @@
  * toggles de blocos, HTML extra do editor de template).
  */
 
+/** Item da agenda do fim de semana (bloco `weekend_grid`). */
+export interface WeekendEventItem {
+  id?: string;
+  title: string;
+  dayLabel: string;      // "Sex, 24/05" ou "Sexta"
+  timeLabel?: string;    // "22h"
+  venue: string;
+  cityState?: string;
+  imageUrl: string;
+  eventUrl: string;
+  ticketUrl?: string;
+  articleUrl?: string;   // matéria ligada, se houver
+}
+
+/** Config de uma noite do bloco Dedge (segundas até domingo, opcional). */
+export interface DedgeNightConfig {
+  label: string;         // "Sexta — Progressive House"
+  url: string;
+  enabled: boolean;
+}
+
+/** Config do bloco `dedge_block` — encerramento fixo da newsletter de FDS. */
+export interface DedgeBlockData {
+  imageUrl: string;
+  eyebrow?: string;      // "Toda semana"
+  title?: string;        // "Dedge — sua residência da semana"
+  description?: string;
+  nights: DedgeNightConfig[];
+  primaryUrl?: string;   // botão principal (ex.: todos os eventos Dedge)
+  primaryLabel?: string;
+}
+
 export interface EventAnnouncementData {
   eventTitle: string;
   eventSubtitle?: string;
@@ -34,6 +66,10 @@ export interface EventAnnouncementData {
   venueLat?: number;
   /** Longitude do venue — usada pelo bloco `static_map`. */
   venueLng?: number;
+  /** Eventos do fim de semana (usado pelo bloco `weekend_grid`). */
+  weekendEvents?: WeekendEventItem[];
+  /** Configuração do bloco Dedge (residência semanal). */
+  dedge?: DedgeBlockData;
 }
 
 export interface EmailTemplateSettings {
@@ -255,4 +291,52 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
   })(),
   venueLat: -15.601411,
   venueLng: -56.097892,
+  weekendEvents: [
+    {
+      id: "w1",
+      title: "NEON GARDEN: MELODIC TECHNO",
+      dayLabel: "Sexta, 24/05",
+      timeLabel: "22h",
+      venue: "Musiva",
+      cityState: "Cuiabá-MT",
+      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+      eventUrl: "https://mdaccula.com/eventos/neon-garden",
+      ticketUrl: "https://mdaccula.com/eventos/neon-garden",
+      articleUrl: "https://mdaccula.com/blog/neon-garden-materia",
+    },
+    {
+      id: "w2",
+      title: "OPEN AIR SUNSET",
+      dayLabel: "Sábado, 25/05",
+      timeLabel: "17h",
+      venue: "Rooftop 121",
+      cityState: "Cuiabá-MT",
+      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+      eventUrl: "https://mdaccula.com/eventos/open-air-sunset",
+      ticketUrl: "https://mdaccula.com/eventos/open-air-sunset",
+    },
+    {
+      id: "w3",
+      title: "AFTER SUNDAY: DEEP HOUSE",
+      dayLabel: "Domingo, 26/05",
+      timeLabel: "16h",
+      venue: "Casa da Praia",
+      cityState: "Cuiabá-MT",
+      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+      eventUrl: "https://mdaccula.com/eventos/after-sunday",
+    },
+  ],
+  dedge: {
+    imageUrl: "https://mdaccula.b-cdn.net/event-images/dedge-hero.jpg",
+    eyebrow: "TODA SEMANA · RESIDÊNCIA",
+    title: "Dedge — sua noite fixa da semana",
+    description: "Três noites por semana com residentes rotativos e line-ups selecionados. Escolha sua vibe:",
+    nights: [
+      { label: "Quinta — Progressive & Deep", url: "https://mdaccula.com/eventos/dedge-quinta", enabled: true },
+      { label: "Sexta — Melodic Techno", url: "https://mdaccula.com/eventos/dedge-sexta", enabled: true },
+      { label: "Sábado — Tech House", url: "https://mdaccula.com/eventos/dedge-sabado", enabled: true },
+    ],
+    primaryUrl: "https://mdaccula.com/eventos?venue=dedge",
+    primaryLabel: "Ver todos os eventos Dedge",
+  },
 };

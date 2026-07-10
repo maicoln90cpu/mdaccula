@@ -103,12 +103,37 @@ export type Block =
       show_address_label?: boolean;
       border_radius?: number;
     }
+  | {
+      id: string;
+      kind: "weekend_grid";
+      /** cartaz = layout C (padrão, cartaz digital com cards full-width).
+       *  timeline = layout B (barra colorida por dia). */
+      layout?: "cartaz" | "timeline";
+      title?: string;         // "Programação do fim de semana"
+      eyebrow?: string;       // "AGENDA · FDS"
+      show_article_link?: boolean;
+      day_bar_color?: string; // cor da barra do dia (timeline)
+      align?: Align;
+    }
+  | {
+      id: string;
+      kind: "dedge_block";
+      /** Se true, sobrescreve a imagem/textos do payload dedge com valores do bloco. */
+      override_content?: boolean;
+      image_url?: string;
+      eyebrow?: string;
+      title?: string;
+      description?: string;
+      primary_label?: string;
+      primary_url?: string;
+      button_style?: "dark" | "primary";
+    }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
   id?: string;
   name: string;
-  type: "event_new" | "ticket_batch" | "weekly_digest" | "custom";
+  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "custom";
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;
@@ -559,6 +584,129 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
 
+    case "weekend_grid": {
+      const list = (event.weekendEvents || []).filter(Boolean);
+      const align = block.align ?? "left";
+      const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
+      const title = escape(block.title || "O que rola no fds");
+      const showArticle = block.show_article_link !== false;
+      const layout = block.layout || "cartaz";
+
+      if (list.length === 0) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            📅 Aqui aparecem os eventos do fim de semana quando a newsletter for gerada.
+          </div>
+        </td></tr>`;
+      }
+
+      const header = `<tr><td style="padding:16px 32px 4px 32px;text-align:${align};">
+        <div style="color:${primary};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>
+        <h2 style="margin:0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>
+      </td></tr>`;
+
+      if (layout === "timeline") {
+        // Layout B — barra colorida por dia, miniatura + info
+        const barColor = escape(block.day_bar_color || accent);
+        const rows = list.map((ev) => {
+          const url = escape(ev.eventUrl || "#");
+          const article = showArticle && ev.articleUrl
+            ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Ler matéria →</a>`
+            : "";
+          return `<tr><td style="padding:6px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+              <tr>
+                <td width="6" style="background:${barColor};"></td>
+                <td width="96" style="padding:0;">
+                  <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(ev.imageUrl)}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
+                </td>
+                <td style="padding:12px 14px;vertical-align:top;">
+                  <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+                  <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+                  <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+                  ${article}
+                </td>
+              </tr>
+            </table>
+          </td></tr>`;
+        }).join("");
+        return `${header}${rows}`;
+      }
+
+      // Layout C — Cartaz digital: cards full-width com imagem grande + badge do dia
+      const cards = list.map((ev) => {
+        const url = escape(ev.eventUrl || "#");
+        const article = showArticle && ev.articleUrl
+          ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
+          : "";
+        const ticketBtn = ev.ticketUrl
+          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">Garantir ingresso</a>`
+          : "";
+        return `<tr><td style="padding:10px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+            <tr><td style="padding:0;position:relative;">
+              <a href="${url}" style="text-decoration:none;display:block;">
+                <img src="${escape(ev.imageUrl)}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+              </a>
+            </td></tr>
+            <tr><td style="padding:16px 18px 18px 18px;">
+              <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+              <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+              <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+              ${ticketBtn}${article}
+            </td></tr>
+          </table>
+        </td></tr>`;
+      }).join("");
+      return `${header}${cards}`;
+    }
+
+    case "dedge_block": {
+      const d = event.dedge;
+      const override = block.override_content === true;
+      const imageUrl = (override ? block.image_url : d?.imageUrl) || block.image_url || d?.imageUrl || "";
+      const eyebrow = escape((override ? block.eyebrow : d?.eyebrow) || block.eyebrow || d?.eyebrow || "TODA SEMANA · RESIDÊNCIA");
+      const title = escape((override ? block.title : d?.title) || block.title || d?.title || "Dedge — sua residência da semana");
+      const description = escape((override ? block.description : d?.description) || block.description || d?.description || "");
+      const primaryUrl = (override ? block.primary_url : d?.primaryUrl) || block.primary_url || d?.primaryUrl || "";
+      const primaryLabel = escape((override ? block.primary_label : d?.primaryLabel) || block.primary_label || d?.primaryLabel || "Ver todos os eventos Dedge");
+      const nights = (d?.nights || []).filter((n) => n.enabled && n.url);
+      const buttonStyle = block.button_style || "dark";
+
+      if (!imageUrl && nights.length === 0 && !primaryUrl) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            🎧 Bloco Dedge — configure a imagem e os links das noites nas propriedades do bloco.
+          </div>
+        </td></tr>`;
+      }
+
+      const btnBg = buttonStyle === "primary" ? gradient : "#0a0a0a";
+      const btnBorder = buttonStyle === "primary" ? "transparent" : "rgba(255,255,255,0.18)";
+      const nightBtns = nights.map((n) =>
+        `<tr><td style="padding:6px 0;"><a href="${escape(n.url)}" style="display:block;width:100%;box-sizing:border-box;padding:14px 18px;background:${btnBg};border:1px solid ${btnBorder};color:#ffffff;font-size:13px;font-weight:800;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:10px;">${escape(n.label)}</a></td></tr>`
+      ).join("");
+
+      return `<tr><td style="padding:20px 32px 8px 32px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000000;border:1px solid rgba(255,255,255,0.12);border-radius:16px;overflow:hidden;">
+          ${imageUrl ? `<tr><td style="padding:0;"><img src="${escape(imageUrl)}" alt="Dedge" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></td></tr>` : ""}
+          <tr><td style="padding:22px 22px 8px 22px;text-align:center;">
+            <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:6px;">${eyebrow}</div>
+            <h2 style="margin:0 0 8px 0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:900;letter-spacing:-0.01em;">${title}</h2>
+            ${description ? `<p style="margin:0 0 4px 0;color:#a1a1aa;font-size:14px;line-height:1.55;">${description}</p>` : ""}
+          </td></tr>
+          ${nights.length > 0 ? `<tr><td style="padding:12px 22px 6px 22px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${nightBtns}</table>
+          </td></tr>` : ""}
+          ${primaryUrl ? `<tr><td align="center" style="padding:8px 22px 22px 22px;text-align:center;">
+            <a href="${escape(primaryUrl)}" style="display:inline-block;padding:14px 22px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:10px;">${primaryLabel}</a>
+          </td></tr>` : ""}
+        </table>
+      </td></tr>`;
+    }
+
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
       const align = block.align ?? "center";
@@ -665,12 +813,15 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   divider: "Divisor",
   text: "Bloco de texto livre",
   social_icons: "Redes sociais",
+  weekend_grid: "Agenda do fim de semana",
+  dedge_block: "Bloco Dedge (residência)",
   footer: "Rodapé + descadastrar",
 };
 
 export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "header", "hero_image", "eyebrow", "title", "subtitle", "event_meta",
   "description", "lineup", "article_summary", "countdown", "ticker", "static_map",
+  "weekend_grid", "dedge_block",
   "cta_button", "secondary_link", "image_with_link", "divider", "text",
   "social_icons", "footer",
 ];
@@ -684,9 +835,14 @@ export const AVAILABLE_BLOCKS: Block["kind"][] = [
  * garantir IDs únicos quando o usuário cria múltiplos templates a partir do
  * mesmo preset.
  */
-export function buildPresetBlocks(
-  type: "event_new" | "ticket_batch" | "weekly_digest",
-): Block[] {
+export type PresetKey =
+  | "event_new"
+  | "ticket_batch"
+  | "weekly_digest"
+  | "weekend_agenda_cartaz"
+  | "weekend_agenda_timeline";
+
+export function buildPresetBlocks(type: PresetKey): Block[] {
   const defaultSocials: SocialNetwork[] = [
     { id: "instagram", label: "Instagram", url: "https://instagram.com/mdaccula", enabled: true },
     { id: "youtube", label: "YouTube", url: "https://youtube.com/@mdaccula", enabled: true },
@@ -787,14 +943,63 @@ export function buildPresetBlocks(
     { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
     { id: newBlockId(), kind: "footer", include_unsubscribe: true },
   ];
+
+
+
+
+
+  // Agenda do fim de semana — layout C (Cartaz digital, recomendado)
+  if (type === "weekend_agenda_cartaz") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "AGENDA · FIM DE SEMANA", align: "center" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html: "<h1 style=\"color:#fff;font-size:28px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;text-align:center;\">O que rola no fds</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0 0 4px 0;text-align:center;\">Sexta, sábado e domingo — os destaques da cena eletrônica em Cuiabá.</p>",
+        align: "center",
+      },
+      { id: newBlockId(), kind: "weekend_grid", layout: "cartaz", eyebrow: "", title: "", show_article_link: true },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "dedge_block", button_style: "dark" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  // Agenda do fim de semana — layout B (Timeline por dia)
+  if (type === "weekend_agenda_timeline") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "PROGRAMAÇÃO DO FDS", align: "left" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html: "<h1 style=\"color:#fff;font-size:26px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.01em;\">Sexta, sábado e domingo</h1><p style=\"color:#a1a1aa;font-size:14px;margin:0;\">A ordem cronológica da cena eletrônica — do fim de semana em Cuiabá.</p>",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "weekend_grid", layout: "timeline", title: "", eyebrow: "", show_article_link: true },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "dedge_block", button_style: "primary" },
+      { id: newBlockId(), kind: "secondary_link", label: "Ver agenda completa", url_field: "agenda_url" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  // fallback vazio
+  return [];
 }
 
 export const TEMPLATE_PRESETS: Array<{
-  key: "event_new" | "ticket_batch" | "weekly_digest";
+  key: PresetKey;
   name: string;
   description: string;
   subject_template: string;
   preheader_template: string;
+  /** Tipo salvo no banco (para agrupar variantes do mesmo formato). */
+  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "custom";
 }> = [
   {
     key: "event_new",
@@ -802,6 +1007,7 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Anúncio de evento novo confirmado — flyer, data, local, CTA de ingresso e resumo da matéria (se houver).",
     subject_template: "🎧 Novo evento: {{event_title}} — {{date_label}}",
     preheader_template: "{{event_title}} em {{venue_name}}, {{city_state}}. Ingressos abertos.",
+    template_type: "event_new",
   },
   {
     key: "ticket_batch",
@@ -809,6 +1015,7 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Aviso de urgência para virada de lote (mesmo dia ou 1 dia antes). Inclui bloco de arte específica opcional.",
     subject_template: "⏰ Últimas horas do lote — {{event_title}}",
     preheader_template: "O lote atual está acabando. Garanta antes da próxima virada de preço.",
+    template_type: "ticket_batch",
   },
   {
     key: "weekly_digest",
@@ -816,5 +1023,22 @@ export const TEMPLATE_PRESETS: Array<{
     description: "Newsletter semanal com destaques da agenda e matérias do blog.",
     subject_template: "📬 MDAccula desta semana",
     preheader_template: "Eventos, matérias e novidades da cena eletrônica em Cuiabá.",
+    template_type: "weekly_digest",
+  },
+  {
+    key: "weekend_agenda_cartaz",
+    name: "Agenda do FDS — Cartaz digital ⭐",
+    description: "Recomendado. Cards full-width com flyers grandes, badge do dia e bloco Dedge de encerramento em preto/branco.",
+    subject_template: "🎧 Seu fds em Cuiabá — {{weekend_range}}",
+    preheader_template: "Sexta, sábado e domingo — os destaques da cena eletrônica.",
+    template_type: "weekend_agenda",
+  },
+  {
+    key: "weekend_agenda_timeline",
+    name: "Agenda do FDS — Timeline por dia",
+    description: "Layout compacto com barra colorida por dia e miniaturas. Bloco Dedge com botões coloridos ao final.",
+    subject_template: "📅 Programação do fds — {{weekend_range}}",
+    preheader_template: "Do sunset de sexta ao after de domingo. Sua semana começa aqui.",
+    template_type: "weekend_agenda",
   },
 ];

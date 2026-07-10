@@ -30,7 +30,7 @@ import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
   renderBlockedTemplate, type ArticleSummary,
-  TEMPLATE_PRESETS, buildPresetBlocks,
+  TEMPLATE_PRESETS, buildPresetBlocks, type PresetKey,
 } from "@/lib/emailTemplates/blocks";
 import { MOCK_EVENT_DATA, type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
 import {
@@ -78,6 +78,8 @@ const defaultForKind = (kind: Block["kind"]): Block => {
     case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center", size: "large" };
     case "ticker": return { id, kind, messages: ["Últimas horas", "Ingressos limitados", "Restam poucos"], animation: "fade", align: "center", icon: "clock" };
     case "static_map": return { id, kind, zoom: 15, height: 300, map_style: "roadmap", show_address_label: true, border_radius: 12 };
+    case "weekend_grid": return { id, kind, layout: "cartaz", title: "", eyebrow: "", show_article_link: true, align: "left" };
+    case "dedge_block": return { id, kind, button_style: "dark", override_content: false };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
@@ -219,9 +221,7 @@ export function EmailTemplateEditor({
     }
   };
 
-  const createTemplate = async (
-    presetKey?: "event_new" | "ticket_batch" | "weekly_digest",
-  ) => {
+  const createTemplate = async (presetKey?: PresetKey) => {
     try {
       const preset = presetKey ? TEMPLATE_PRESETS.find((p) => p.key === presetKey) : null;
       const defaultName = preset ? preset.name : "Novo template";
@@ -233,7 +233,7 @@ export function EmailTemplateEditor({
       const { data, error } = await (supabase.from as any)("email_templates")
         .insert({
           name,
-          type: preset ? preset.key : "custom",
+          type: preset ? preset.template_type : "custom",
           blocks,
           subject_template: preset?.subject_template ?? null,
           preheader_template: preset?.preheader_template ?? null,
@@ -876,6 +876,92 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
             />
             <Label className="text-xs">Mostrar nome do venue e cidade abaixo do mapa</Label>
           </div>
+        </div>
+      );
+
+    case "weekend_grid":
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Grade de eventos do fim de semana. Os eventos são coletados automaticamente pelo disparo semanal (sex/sáb/dom da semana em curso).
+          </p>
+          <div>
+            <Label className="text-xs">Layout</Label>
+            <Select value={block.layout || "cartaz"} onValueChange={(v) => patch({ layout: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cartaz">Cartaz digital (recomendado — cards full-width)</SelectItem>
+                <SelectItem value="timeline">Timeline por dia (compacto, barra colorida)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Etiqueta (topo — opcional)</Label>
+            <Input value={block.eyebrow || ""} onChange={(e) => patch({ eyebrow: e.target.value })} placeholder="AGENDA · FIM DE SEMANA" />
+          </div>
+          <div>
+            <Label className="text-xs">Título (opcional)</Label>
+            <Input value={block.title || ""} onChange={(e) => patch({ title: e.target.value })} placeholder="O que rola no fds" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={block.show_article_link !== false} onCheckedChange={(v) => patch({ show_article_link: v })} />
+            <Label className="text-xs">Mostrar link "Ler matéria" quando o evento tiver artigo</Label>
+          </div>
+          {block.layout === "timeline" && (
+            <ColorControl label="Cor da barra do dia" value={block.day_bar_color} onChange={(v) => patch({ day_bar_color: v })} placeholder="Cor de destaque" />
+          )}
+          <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        </div>
+      );
+
+    case "dedge_block":
+      return (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Bloco fixo da residência Dedge (encerramento da newsletter do FDS). Por padrão usa a imagem/textos/noites configurados no disparo — marque "Personalizar" para sobrescrever aqui.
+          </p>
+          <div>
+            <Label className="text-xs">Estilo dos botões das noites</Label>
+            <Select value={block.button_style || "dark"} onValueChange={(v) => patch({ button_style: v as any })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dark">Preto minimalista (padrão — combina com layout cartaz)</SelectItem>
+                <SelectItem value="primary">Gradiente da marca (combina com layout timeline)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Switch checked={block.override_content === true} onCheckedChange={(v) => patch({ override_content: v })} />
+            <Label className="text-xs">Personalizar imagem e textos (sobrescreve o payload)</Label>
+          </div>
+          {block.override_content && (
+            <>
+              <div>
+                <Label className="text-xs">URL da imagem Dedge</Label>
+                <Input value={block.image_url || ""} onChange={(e) => patch({ image_url: e.target.value })} placeholder="https://mdaccula.b-cdn.net/…" />
+              </div>
+              <div>
+                <Label className="text-xs">Etiqueta</Label>
+                <Input value={block.eyebrow || ""} onChange={(e) => patch({ eyebrow: e.target.value })} placeholder="TODA SEMANA · RESIDÊNCIA" />
+              </div>
+              <div>
+                <Label className="text-xs">Título</Label>
+                <Input value={block.title || ""} onChange={(e) => patch({ title: e.target.value })} placeholder="Dedge — sua residência da semana" />
+              </div>
+              <div>
+                <Label className="text-xs">Descrição</Label>
+                <Textarea rows={2} value={block.description || ""} onChange={(e) => patch({ description: e.target.value })} />
+              </div>
+              <div>
+                <Label className="text-xs">Texto do botão principal</Label>
+                <Input value={block.primary_label || ""} onChange={(e) => patch({ primary_label: e.target.value })} placeholder="Ver todos os eventos Dedge" />
+              </div>
+              <div>
+                <Label className="text-xs">URL do botão principal</Label>
+                <Input value={block.primary_url || ""} onChange={(e) => patch({ primary_url: e.target.value })} placeholder="https://mdaccula.com/…" />
+              </div>
+            </>
+          )}
         </div>
       );
 
