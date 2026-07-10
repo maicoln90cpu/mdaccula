@@ -1623,6 +1623,16 @@ export type Database = {
       is_admin: { Args: never; Returns: boolean }
       is_authenticated: { Args: never; Returns: boolean }
       is_valid_email: { Args: { email: string }; Returns: boolean }
+      manage_digest_schedule: {
+        Args: {
+          _cron_expr: string
+          _cron_secret: string
+          _enabled: boolean
+          _function_url: string
+          _job_name: string
+        }
+        Returns: Json
+      }
       search_blog_posts: {
         Args: {
           category_filter?: string
