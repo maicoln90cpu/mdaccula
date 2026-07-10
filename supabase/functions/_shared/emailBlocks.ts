@@ -29,6 +29,8 @@ export interface WeekendEventItem {
   eventUrl: string;
   ticketUrl?: string;
   articleUrl?: string;
+  /** CTA custom por evento (ex.: DEDGE = "Enviar Nomes Para Lista"). */
+  ctaLabel?: string;
 }
 
 export interface DedgeNightConfig { label: string; url: string; enabled: boolean; }
