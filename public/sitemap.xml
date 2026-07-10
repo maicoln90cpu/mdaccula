@@ -503,7 +503,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/boma2208</loc>
-    <lastmod>2026-07-09</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -742,14 +742,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/bomarj1702</loc>
-    <lastmod>2026-03-16</lastmod>
+    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-kqtdp1</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-kqtdp1</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/bomarj1702</loc>
+    <lastmod>2026-03-16</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -904,14 +904,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/aliga1010</loc>
-    <lastmod>2026-07-09</lastmod>
+    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
-    <lastmod>2026-06-28</lastmod>
+    <loc>https://mdaccula.com/eventos/aliga1010</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1516,6 +1516,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/onelife281126</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/nostalgia300526</loc>
     <lastmod>2026-06-16</lastmod>
     <changefreq>weekly</changefreq>
@@ -1530,12 +1536,6 @@
   <url>
     <loc>https://mdaccula.com/eventos/industria1505vip</loc>
     <lastmod>2026-07-08</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/onelife281126</loc>
-    <lastmod>2026-07-09</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1594,6 +1594,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/allight1906</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-pd72zp</loc>
     <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -1620,12 +1626,6 @@
   <url>
     <loc>https://mdaccula.com/eventos/industria0708</loc>
     <lastmod>2026-07-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/allight1906</loc>
-    <lastmod>2026-07-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1684,12 +1684,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
-    <lastmod>2026-07-10</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/jardimcopa130626</loc>
     <lastmod>2026-06-13</lastmod>
     <changefreq>weekly</changefreq>
@@ -1698,6 +1692,12 @@
   <url>
     <loc>https://mdaccula.com/eventos/parador050926p</loc>
     <lastmod>2026-07-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/nostalgia1007</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1829,7 +1829,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/coletivos-perifericos-redesenham-o-mapa-das-noites-no-brasil</loc>
-    <lastmod>2026-07-06</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1956,6 +1956,12 @@
   <url>
     <loc>https://mdaccula.com/blog/dna-art-car-vintage-culture-incendeia-a-pista-em-6-de-dezembro-de-2025-mi7ghj62</loc>
     <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/festas-queer-reescrevem-as-regras-das-pistas-latino-americanas</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2795,7 +2801,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira</loc>
-    <lastmod>2026-07-09</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -2890,6 +2896,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/the-grid-apres-klangkuenstler-na-arca-sao-paulo-sabado-19</loc>
     <lastmod>2026-07-02</lastmod>
     <changefreq>monthly</changefreq>
@@ -2938,12 +2950,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
-    <lastmod>2026-07-09</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/winter-days-campos-do-jordao-eletronica-quente-no-frio-do-prana-park</loc>
     <lastmod>2026-06-21</lastmod>
     <changefreq>monthly</changefreq>
@@ -2970,6 +2976,12 @@
   <url>
     <loc>https://mdaccula.com/blog/recriar-o-brilho-como-a-ia-esta-redesenhando-a-identidade-visual-das-festas</loc>
     <lastmod>2026-06-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/microclubes-impulsionam-turismo-musical-nas-capitais-com-noites-intimas</loc>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -3012,12 +3024,6 @@
   <url>
     <loc>https://mdaccula.com/blog/warehouse-no-sonora-garden-17-04-2026-sao-paulo</loc>
     <lastmod>2026-07-09</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/microclubes-impulsionam-turismo-musical-nas-capitais-com-noites-intimas</loc>
-    <lastmod>2026-07-01</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
