@@ -20,21 +20,27 @@ export type SocialNetwork = {
   enabled: boolean;
 };
 
+export type Align = "left" | "center" | "right";
+
 export type Block =
-  | { id: string; kind: "header"; logo_height?: number }
-  | { id: string; kind: "hero_image" }
-  | { id: string; kind: "eyebrow"; text?: string }
-  | { id: string; kind: "title" }
-  | { id: string; kind: "subtitle" }
-  | { id: string; kind: "event_meta" }
-  | { id: string; kind: "description" }
-  | { id: string; kind: "article_summary" }
+  | { id: string; kind: "header"; logo_height?: number; align?: Align; padding_y?: number }
+  | { id: string; kind: "hero_image"; max_width?: number; border_radius?: number }
+  | { id: string; kind: "eyebrow"; text?: string; align?: Align; text_color?: string }
+  | { id: string; kind: "title"; align?: Align; text_color?: string; font_size?: number }
+  | { id: string; kind: "subtitle"; align?: Align; text_color?: string }
+  | { id: string; kind: "event_meta"; layout?: "columns" | "stacked" }
+  | { id: string; kind: "description"; align?: Align; text_color?: string }
+  | { id: string; kind: "article_summary"; show_image?: boolean }
   | {
       id: string;
       kind: "cta_button";
       label?: string;
       url_field?: "ticket_link" | "vip_link" | "event_url" | "custom";
       custom_url?: string;
+      align?: Align;
+      full_width?: boolean;
+      bg_style?: "gradient" | "solid";
+      bg_color?: string;
     }
   | {
       id: string;
@@ -42,6 +48,7 @@ export type Block =
       label?: string;
       url_field?: "agenda_url" | "event_url" | "custom";
       custom_url?: string;
+      align?: Align;
     }
   | {
       id: string;
@@ -50,11 +57,13 @@ export type Block =
       link_url: string;
       alt?: string;
       max_width?: number;
+      align?: Align;
+      border_radius?: number;
     }
-  | { id: string; kind: "divider" }
-  | { id: string; kind: "text"; html: string }
-  | { id: string; kind: "social_icons"; networks: SocialNetwork[] }
-  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean };
+  | { id: string; kind: "divider"; thickness?: number; color?: string }
+  | { id: string; kind: "text"; html: string; align?: Align; text_color?: string }
+  | { id: string; kind: "social_icons"; networks: SocialNetwork[]; style?: "text" | "pill"; align?: Align }
+  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
   id?: string;
