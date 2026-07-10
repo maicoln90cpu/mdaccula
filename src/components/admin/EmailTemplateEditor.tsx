@@ -37,6 +37,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
+import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
 
 interface Props {
   templates: Template[];
