@@ -338,7 +338,9 @@ Deno.serve(async (req) => {
         const weekendEvents: WeekendEventItem[] = evs.map((e) => ({
           id: e.id,
           title: e.title,
-          dayLabel: formatDatePt(e.date, e.time),
+          dayLabel: e.end_date && e.end_date !== e.date
+            ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
+            : formatDatePt(e.date, e.time),
           timeLabel: (e.time || '').slice(0, 5) || '22h',
           venue: e.venue,
           cityState: `${e.location_city}-${e.location_state}`,
