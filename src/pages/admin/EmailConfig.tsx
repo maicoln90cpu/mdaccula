@@ -1432,26 +1432,48 @@ const EmailConfig = () => {
             <CardContent>
               <div className="mb-4 p-3 rounded-lg border bg-muted/20 flex flex-wrap items-center gap-3">
                 <Label className="text-xs whitespace-nowrap">Fonte dos dados</Label>
-                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest")}>
+                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest" | "weekend")}>
                   <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="event">Evento individual (mock/real)</SelectItem>
                     <SelectItem value="digest">Digest semanal real (próximos 7 dias)</SelectItem>
+                    <SelectItem value="weekend">Agenda FDS real (próximo fim de semana)</SelectItem>
                   </SelectContent>
                 </Select>
-                {previewSource === "digest" && (
+                {(previewSource === "digest" || previewSource === "weekend") && (
                   <>
-                    <Button size="sm" variant="outline" onClick={loadDigestPreview} disabled={digestPreviewLoading}>
+                    <Label className="text-xs whitespace-nowrap ml-2">Template</Label>
+                    <Select
+                      value={digestTemplateId || "__default__"}
+                      onValueChange={(v) => {
+                        const id = v === "__default__" ? "" : v;
+                        setDigestTemplateId(id);
+                        loadDigestPreview({ source: previewSource, templateId: id });
+                      }}
+                    >
+                      <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                        {digestTemplateOptions.map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name} {t.is_default ? "· padrão" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline" onClick={() => loadDigestPreview()} disabled={digestPreviewLoading}>
                       {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
                     </Button>
                     {digestPreviewMeta && (
                       <span className="text-xs text-muted-foreground">
                         {digestPreviewMeta.events_count ?? 0} eventos · {digestPreviewMeta.posts_count ?? 0} posts · {digestPreviewMeta.range}
+                        {digestPreviewMeta.render_source && ` · ${digestPreviewMeta.render_source}${digestPreviewMeta.template_name ? ` (${digestPreviewMeta.template_name})` : ""}`}
                       </span>
                     )}
                   </>
                 )}
               </div>
+
 
               <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
                 <div className={`space-y-3 ${previewSource === "digest" ? "opacity-60 pointer-events-none" : ""}`}>
