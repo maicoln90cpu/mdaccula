@@ -584,6 +584,38 @@ const EmailConfig = () => {
     }
   };
 
+  // B.10 — dispara teste A/B de assunto (duas campanhas na E-goi).
+  const dispatchAbTest = async (
+    eventId: string,
+    params: { subjectA: string; subjectB: string; winnerMetric: "opens" | "clicks"; sendNow: boolean },
+  ) => {
+    setDispatchingId(eventId);
+    try {
+      const res = await dispatchAbSubjectTest(eventId, params);
+      const okA = res.variantA.ok;
+      const okB = res.variantB.ok;
+      if (okA && okB) {
+        toast({
+          title: params.sendNow ? "Teste A/B enviado!" : "Rascunhos A e B criados",
+          description: `Grupo ${res.groupId.slice(0, 8)} • A #${res.variantA.egoi_campaign_id ?? "?"} • B #${res.variantB.egoi_campaign_id ?? "?"}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Teste A/B com falhas",
+          description: `A: ${okA ? "ok" : res.variantA.error || res.variantA.reason || "falhou"} • B: ${okB ? "ok" : res.variantB.error || res.variantB.reason || "falhou"}`,
+        });
+      }
+      void loadAll();
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro no teste A/B", description: e.message });
+    } finally {
+      setDispatchingId(null);
+    }
+  };
+
+
+
   const toggleMaster = async (v: boolean) => {
     try {
       const { error } = await supabase
