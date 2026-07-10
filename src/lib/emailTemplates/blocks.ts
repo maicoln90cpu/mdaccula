@@ -252,9 +252,17 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     case "hero_image": {
       const maxW = Math.max(300, Math.min(600, block.max_width ?? 552));
       const radius = block.border_radius ?? 12;
+      // Sem flyer: no preview mostra placeholder; no envio real omite o bloco.
+      const flyer = event.flyerUrl && event.flyerUrl.trim();
+      if (!flyer) {
+        if (!ctx.preview) return "";
+        return `<tr><td align="center" style="padding:0 24px;">
+          <div style="width:100%;max-width:${maxW}px;height:${Math.round(maxW * 0.6)}px;border-radius:${radius}px;border:1px dashed rgba(255,255,255,0.2);background:#111;display:flex;align-items:center;justify-content:center;color:#71717a;font-size:12px;text-align:center;padding:16px;box-sizing:border-box;margin:0 auto;">Flyer do evento (sem imagem cadastrada — placeholder do preview)</div>
+        </td></tr>`;
+      }
       return `<tr><td align="center" style="padding:0 24px;">
         <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
+          <img src="${escape(flyer)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
         </a>
       </td></tr>`;
     }
