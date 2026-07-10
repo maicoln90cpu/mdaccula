@@ -142,6 +142,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       address: event.address,
       location_state: event.location_state,
       location_city: event.location_city,
+      venue_lat: (event as any).venue_lat ?? null,
+      venue_lng: (event as any).venue_lng ?? null,
       date: event.date,
       end_date: event.end_date || '',
       time: event.time,
