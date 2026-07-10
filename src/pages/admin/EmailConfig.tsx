@@ -339,6 +339,10 @@ const EmailConfig = () => {
   const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
+  const [previewSource, setPreviewSource] = useState<"event" | "digest">("event");
+  const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>("");
+  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string } | null>(null);
+  const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmail, setTestEmail] = useState("");
   // B.8 — Virada de lote
@@ -729,6 +733,42 @@ const EmailConfig = () => {
     }
     return renderEventAnnouncementEmail(previewData, tpl);
   }, [activeTemplate, previewData, tpl, previewArticle]);
+
+  const loadDigestPreview = async () => {
+    setDigestPreviewLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", {
+        body: { dry_run: true, force: true },
+      });
+      if (error) throw error;
+      if ((data as any)?.skipped) {
+        toast({ title: "Preview indisponível", description: `Motivo: ${(data as any).reason}`, variant: "destructive" });
+        setDigestPreviewHtml("");
+        setDigestPreviewMeta(null);
+        return;
+      }
+      if (!(data as any)?.html) throw new Error((data as any)?.error || "Sem HTML retornado");
+      setDigestPreviewHtml((data as any).html);
+      setDigestPreviewMeta({
+        subject: (data as any).subject,
+        events_count: (data as any).events_count,
+        posts_count: (data as any).posts_count,
+        range: (data as any).range,
+      });
+    } catch (e: any) {
+      toast({ title: "Erro ao carregar digest", description: e.message ?? String(e), variant: "destructive" });
+    } finally {
+      setDigestPreviewLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (previewSource === "digest" && !digestPreviewHtml && !digestPreviewLoading) {
+      loadDigestPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewSource]);
+
 
   const saveTemplate = async () => {
     setTplSaving(true);
@@ -1368,8 +1408,32 @@ const EmailConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="mb-4 p-3 rounded-lg border bg-muted/20 flex flex-wrap items-center gap-3">
+                <Label className="text-xs whitespace-nowrap">Fonte dos dados</Label>
+                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest")}>
+                  <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="event">Evento individual (mock/real)</SelectItem>
+                    <SelectItem value="digest">Digest semanal real (próximos 7 dias)</SelectItem>
+                  </SelectContent>
+                </Select>
+                {previewSource === "digest" && (
+                  <>
+                    <Button size="sm" variant="outline" onClick={loadDigestPreview} disabled={digestPreviewLoading}>
+                      {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
+                    </Button>
+                    {digestPreviewMeta && (
+                      <span className="text-xs text-muted-foreground">
+                        {digestPreviewMeta.events_count ?? 0} eventos · {digestPreviewMeta.posts_count ?? 0} posts · {digestPreviewMeta.range}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
+
               <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-                <div className="space-y-3">
+                <div className={`space-y-3 ${previewSource === "digest" ? "opacity-60 pointer-events-none" : ""}`}>
+
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
                     <Label className="text-xs">Simular com evento real</Label>
                     <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
@@ -1488,7 +1552,7 @@ const EmailConfig = () => {
                 <div className="rounded-lg border border-border bg-[#050505] p-4">
                   <iframe
                     title="Email preview"
-                    srcDoc={previewHtml}
+                    srcDoc={previewSource === "digest" ? (digestPreviewHtml || "<div style='padding:40px;text-align:center;font-family:sans-serif;color:#888'>Carregando digest real…</div>") : previewHtml}
                     sandbox=""
                     className="mx-auto block h-[900px] w-full max-w-[640px] rounded-md border-0 bg-white"
                   />
