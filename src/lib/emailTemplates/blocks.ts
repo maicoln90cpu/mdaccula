@@ -248,9 +248,12 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       if (!event.description) return "";
       const color = escape(block.text_color || "#a1a1aa");
       const align = block.align ?? "left";
-      return `<tr><td style="padding:8px 32px 24px 32px;text-align:${align};">
-        <p style="margin:0;color:${color};font-size:15px;line-height:1.6;">${escape(event.description)}</p>
-      </td></tr>`;
+      // Preserva quebras de linha do texto do evento: cada linha vira um parágrafo.
+      const lines = event.description.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      const paragraphs = lines
+        .map((l) => `<p style="margin:0 0 10px 0;color:${color};font-size:15px;line-height:1.6;">${escape(l)}</p>`)
+        .join("");
+      return `<tr><td style="padding:8px 32px 24px 32px;text-align:${align};">${paragraphs}</td></tr>`;
     }
 
     case "article_summary": {
