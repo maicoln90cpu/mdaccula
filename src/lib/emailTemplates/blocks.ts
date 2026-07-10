@@ -945,6 +945,8 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
   ];
   }
 
+
+
   // Agenda do fim de semana — layout C (Cartaz digital, recomendado)
   if (type === "weekend_agenda_cartaz") {
     return [
