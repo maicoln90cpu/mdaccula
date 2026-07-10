@@ -35,7 +35,7 @@ export interface CustomLink {
   override_date?: string | null;
   override_time?: string | null;
   manual_order_override?: boolean;
-  events?: LinkEvent | null;
+  events?: (LinkEvent & { end_date?: string | null }) | null;
 }
 
 export interface LinkGroup {
