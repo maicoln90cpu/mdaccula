@@ -1262,6 +1262,14 @@ export const TEMPLATE_PRESETS: Array<{
     template_type: "weekly_digest",
   },
   {
+    key: "weekly_digest_editorial",
+    name: "Digest semanal — Editorial",
+    description: "Estilo revista, minimalista. Título grande, timeline da semana e matérias em destaque. Sem bloco Dedge por padrão — foco editorial.",
+    subject_template: "📖 A semana em Cuiabá — {{week_range}}",
+    preheader_template: "Curadoria enxuta: shows, festas e as histórias que valem seu tempo.",
+    template_type: "weekly_digest",
+  },
+  {
     key: "weekend_agenda_cartaz",
     name: "Agenda do FDS — Cartaz digital ⭐",
     description: "Recomendado. Cards full-width com flyers grandes, badge do dia e bloco Dedge de encerramento em preto/branco.",
