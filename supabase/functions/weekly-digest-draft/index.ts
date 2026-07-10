@@ -298,14 +298,16 @@ Deno.serve(async (req) => {
         .limit(1);
     }
 
-    const [{ data: events }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
+    const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
       admin.from('events')
-        .select('id,title,slug,date,time,venue,location_city,location_state,image_url,ticket_link,status')
+        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,status')
         .eq('status', 'active')
-        .gte('date', startIso)
+        // Multi-dia: inclui eventos cuja janela [date, coalesce(end_date, date)]
+        // intersecta [startIso, endIso]. Sem isso o Nostalgia (09→10/07) some no dia 10.
         .lte('date', endIso)
+        .or(`date.gte.${startIso},end_date.gte.${startIso}`)
         .order('date', { ascending: true })
-        .limit(20),
+        .limit(50),
       admin.from('blog_posts')
         .select('id,title,slug,excerpt,image_url,published_at,published')
         .eq('published', true)
@@ -315,7 +317,9 @@ Deno.serve(async (req) => {
       activeTplQuery.maybeSingle(),
     ]);
 
-    const evs = (events ?? []) as EventRow[];
+    const evs = ((eventRows ?? []) as EventRow[])
+      .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
+      .slice(0, 20);
     const pts = (posts ?? []) as PostRow[];
     const settings = (tplSettings ?? {}) as BrandSettings;
 
