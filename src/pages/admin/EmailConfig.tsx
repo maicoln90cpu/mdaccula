@@ -302,6 +302,7 @@ const AbTestButton = ({
 const EmailConfig = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("config");
   const [saving, setSaving] = useState(false);
   const [masterEnabled, setMasterEnabled] = useState(false);
   const [cfg, setCfg] = useState<EgoiConfig>({
