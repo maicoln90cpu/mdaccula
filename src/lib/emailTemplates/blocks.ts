@@ -835,9 +835,14 @@ export const AVAILABLE_BLOCKS: Block["kind"][] = [
  * garantir IDs únicos quando o usuário cria múltiplos templates a partir do
  * mesmo preset.
  */
-export function buildPresetBlocks(
-  type: "event_new" | "ticket_batch" | "weekly_digest",
-): Block[] {
+export type PresetKey =
+  | "event_new"
+  | "ticket_batch"
+  | "weekly_digest"
+  | "weekend_agenda_cartaz"
+  | "weekend_agenda_timeline";
+
+export function buildPresetBlocks(type: PresetKey): Block[] {
   const defaultSocials: SocialNetwork[] = [
     { id: "instagram", label: "Instagram", url: "https://instagram.com/mdaccula", enabled: true },
     { id: "youtube", label: "YouTube", url: "https://youtube.com/@mdaccula", enabled: true },
