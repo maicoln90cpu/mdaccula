@@ -1121,6 +1121,61 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     ];
   }
 
+  // weekly_digest_editorial — "Editorial" (D.1.a) — estilo revista, sem Dedge por padrão
+  if (type === "weekly_digest_editorial") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 52, align: "left" },
+      { id: newBlockId(), kind: "eyebrow", text: "EDITORIAL · SEMANA EM CUIABÁ", align: "left" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<h1 style=\"color:#fff;font-size:34px;font-weight:900;margin:6px 0 8px 0;letter-spacing:-0.02em;line-height:1.1;\">A semana começa aqui.</h1>" +
+          "<p style=\"color:#a1a1aa;font-size:15px;line-height:1.6;margin:0;\">Uma curadoria enxuta da cena eletrônica — os shows, as festas e as histórias que valem seu tempo entre segunda e domingo.</p>",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "eyebrow",
+        text: "AGENDA DA SEMANA",
+        align: "left",
+      },
+      {
+        id: newBlockId(),
+        kind: "weekend_grid",
+        layout: "timeline",
+        title: "",
+        eyebrow: "",
+        show_article_link: true,
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "blog_posts_list",
+        title: "Leituras da semana",
+        eyebrow: "MATÉRIAS EM ALTA",
+        max_items: 3,
+        layout: "list",
+        show_excerpt: true,
+        show_category: true,
+        align: "left",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(),
+        kind: "cta_button",
+        label: "Ver agenda completa",
+        url_field: "custom",
+        custom_url: "https://mdaccula.com/eventos",
+        full_width: false,
+        align: "center",
+      },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials, align: "center" },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true, align: "center" },
+    ];
+  }
+
   // Agenda do fim de semana — layout C (Cartaz digital, recomendado)
   if (type === "weekend_agenda_cartaz") {
     return [
