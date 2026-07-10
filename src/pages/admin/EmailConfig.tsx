@@ -1118,8 +1118,7 @@ const EmailConfig = () => {
         <TabsList>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
-          <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor de blocos</TabsTrigger>
-          <TabsTrigger value="preview">Preview</TabsTrigger>
+          <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor + Preview</TabsTrigger>
           <TabsTrigger value="batch">Virada de lote</TabsTrigger>
           <TabsTrigger value="digest">Automações</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -1518,39 +1517,22 @@ const EmailConfig = () => {
           </div>
         </TabsContent>
 
-        {/* ================= EDITOR DE BLOCOS ================= */}
+        {/* ================= EDITOR + PREVIEW (unificado) ================= */}
         <TabsContent value="editor" className="space-y-4">
-          <EmailTemplateEditor
-            templates={templates}
-            activeId={activeTemplateId}
-            onActiveChange={setActiveTemplateId}
-            onReload={reloadTemplates}
-            settings={tpl}
-            previewEvent={previewData}
-            previewArticle={previewArticle}
-          />
-        </TabsContent>
-
-        {/* ================= PREVIEW ================= */}
-        <TabsContent value="preview" className="space-y-4">
+          {/* Barra de fonte do preview — antes era a aba "Preview" separada. */}
           <Card>
-            <CardHeader>
-              <CardTitle>Preview do template</CardTitle>
-              <CardDescription>
-                Edite os dados mock à esquerda e veja como o e-mail aparecerá na caixa de entrada.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 p-3 rounded-lg border bg-muted/20 flex flex-wrap items-center gap-3">
-                <Label className="text-xs whitespace-nowrap">Fonte dos dados</Label>
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Label className="text-xs whitespace-nowrap">Fonte do preview</Label>
                 <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest" | "weekend")}>
-                  <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="event">Evento individual (mock/real)</SelectItem>
-                    <SelectItem value="digest">Digest semanal real (próximos 7 dias)</SelectItem>
-                    <SelectItem value="weekend">Agenda FDS real (próximo fim de semana)</SelectItem>
+                    <SelectItem value="digest">Digest semanal real (7 dias)</SelectItem>
+                    <SelectItem value="weekend">Agenda FDS real (próximo FDS)</SelectItem>
                   </SelectContent>
                 </Select>
+
                 {(previewSource === "digest" || previewSource === "weekend") && (
                   <>
                     <Label className="text-xs whitespace-nowrap ml-2">Template</Label>
@@ -1562,9 +1544,8 @@ const EmailConfig = () => {
                         loadDigestPreview({ source: previewSource, templateId: id });
                       }}
                     >
-                      <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {/* Removida a opção "— Padrão (is_default) —": era ambígua. O template default aparece com "· padrão" no rótulo. */}
                         {digestTemplateOptions.map((t) => (
                           <SelectItem key={t.id} value={t.id!}>
                             {t.name} {t.is_default ? "· padrão" : ""}
@@ -1578,21 +1559,16 @@ const EmailConfig = () => {
                     {digestPreviewMeta && (
                       <span className="text-xs text-muted-foreground">
                         {digestPreviewMeta.events_count ?? 0} eventos · {digestPreviewMeta.posts_count ?? 0} posts · {digestPreviewMeta.range}
-                        {digestPreviewMeta.render_source && ` · ${digestPreviewMeta.render_source}${digestPreviewMeta.template_name ? ` (${digestPreviewMeta.template_name})` : ""}`}
                       </span>
                     )}
                   </>
                 )}
-              </div>
 
-
-              <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-                <div className={`space-y-3 ${previewSource !== "event" ? "opacity-60 pointer-events-none" : ""}`}>
-
-                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
-                    <Label className="text-xs">Simular com evento real</Label>
+                {previewSource === "event" && (
+                  <>
+                    <Label className="text-xs whitespace-nowrap ml-2">Simular com evento real</Label>
                     <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
                         {realEvents.map((e) => (
@@ -1602,120 +1578,54 @@ const EmailConfig = () => {
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedRealEventId !== "mock" && previewArticle && (
-                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                        ✓ Matéria vinculada: bloco "Resumo da matéria" ativo no template.
-                      </p>
-                    )}
-                    <Label className="text-xs mt-2 block">Template</Label>
-                    <Select value={activeTemplateId ?? ""} onValueChange={setActiveTemplateId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
-                      <SelectContent>
-                        {templates.map((t) => (
-                          <SelectItem key={t.id!} value={t.id!}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  </>
+                )}
 
-                  <div>
-                    <Label>Título</Label>
-                    <Input value={previewData.eventTitle} onChange={(e) => setPreviewData({ ...previewData, eventTitle: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Subtítulo</Label>
-                    <Input value={previewData.eventSubtitle ?? ""} onChange={(e) => setPreviewData({ ...previewData, eventSubtitle: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Flyer URL</Label>
-                    <Input value={previewData.flyerUrl} onChange={(e) => setPreviewData({ ...previewData, flyerUrl: e.target.value })} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label>Data</Label>
-                      <Input value={previewData.dateLabel} onChange={(e) => setPreviewData({ ...previewData, dateLabel: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>Hora</Label>
-                      <Input value={previewData.timeLabel} onChange={(e) => setPreviewData({ ...previewData, timeLabel: e.target.value })} />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label>Local</Label>
-                      <Input value={previewData.venueName} onChange={(e) => setPreviewData({ ...previewData, venueName: e.target.value })} />
-                    </div>
-                    <div>
-                      <Label>Cidade/UF</Label>
-                      <Input value={previewData.cityState} onChange={(e) => setPreviewData({ ...previewData, cityState: e.target.value })} />
-                    </div>
-                  </div>
-                  <div>
-                    <Label>Descrição</Label>
-                    <Textarea rows={3} value={previewData.description} onChange={(e) => setPreviewData({ ...previewData, description: e.target.value })} />
-                  </div>
-                  <div>
-                    <Label>Link do ingresso</Label>
-                    <Input value={previewData.ticketUrl} onChange={(e) => setPreviewData({ ...previewData, ticketUrl: e.target.value })} />
-                  </div>
-
-                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2 mt-3">
-                    <Label className="text-xs flex items-center gap-1"><Mail className="w-3.5 h-3.5" /> Enviar teste para meu e-mail</Label>
-                    <Input
-                      type="email"
-                      placeholder="Deixe em branco para enviar ao meu e-mail admin"
-                      value={testEmail}
-                      onChange={(e) => setTestEmail(e.target.value)}
-                    />
-                    <Button
-                      size="sm"
-                      className="w-full"
-                      disabled={sendingTest}
-                      onClick={() => sendTestEmail(previewHtml, `[Teste] ${previewData.eventTitle}`)}
-                    >
-                      <Send className="w-4 h-4 mr-1" />
-                      {sendingTest ? "Enviando…" : "Enviar teste agora"}
-                    </Button>
-                    <p className="text-[10px] text-muted-foreground">Envia via Resend (não usa E-goi). O link "Descadastrar" aparece como texto porque só é substituído em envios reais pela E-goi.</p>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
-                      Restaurar mock
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        const blob = new Blob([previewHtml], { type: "text/html" });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement("a");
-                        a.href = url;
-                        a.download = "mdaccula-email-preview.html";
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }}
-                    >
-                      Baixar HTML
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground pt-2">
-                    Para editar logo, cores e textos fixos, use a aba <b>Template (marca)</b>. Para reordenar blocos e customizar o layout, use <b>Editor de blocos</b>.
-                  </p>
-                </div>
-
-                <div className="rounded-lg border border-border bg-[#050505] p-4">
-                  <iframe
-                    title="Email preview"
-                    srcDoc={previewSource !== "event" ? (digestPreviewHtml || "<div style='padding:40px;text-align:center;font-family:sans-serif;color:#888'>Carregando preview real…</div>") : previewHtml}
-                    sandbox=""
-                    className="mx-auto block h-[900px] w-full max-w-[640px] rounded-md border-0 bg-white"
-                  />
+                <div className="flex gap-2 ml-auto">
+                  <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
+                    Restaurar mock
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const html = previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml;
+                      const blob = new Blob([html], { type: "text/html" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "mdaccula-email-preview.html";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Baixar HTML
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={sendingTest}
+                    onClick={() => sendTestEmail(previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml, `[Teste] ${previewData.eventTitle}`)}
+                  >
+                    <Send className="w-4 h-4 mr-1" />
+                    {sendingTest ? "Enviando…" : "Enviar teste"}
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          <EmailTemplateEditor
+            templates={templates}
+            activeId={activeTemplateId}
+            onActiveChange={setActiveTemplateId}
+            onReload={reloadTemplates}
+            settings={tpl}
+            previewEvent={previewData}
+            previewArticle={previewArticle}
+            overrideHtml={previewSource !== "event" ? digestPreviewHtml : null}
+          />
         </TabsContent>
+
 
         {/* ================= HISTÓRICO ================= */}
         {/* ================= B.8 — VIRADA DE LOTE ================= */}

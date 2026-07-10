@@ -327,10 +327,11 @@ Deno.serve(async (req) => {
           })
           .sort((a, b) => a.date.localeCompare(b.date));
 
-        const first = evsForRender[0];
-        const weekendEvents: WeekendEventItem[] = evsForRender.map((e) => {
-          const dedge = (e as any).__isDedge || isDedgeVenue(e.venue);
-          const ctas = (e as any).__subEvents as Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> | undefined;
+        // Separa DEDGE dos demais eventos — DEDGE só aparece via bloco `dedge_block`.
+        const dedgeGroup = evsForRender.filter((e) => (e as any).__isDedge || isDedgeVenue(e.venue));
+        const nonDedge = evsForRender.filter((e) => !((e as any).__isDedge || isDedgeVenue(e.venue)));
+        const first = nonDedge[0] ?? evsForRender[0];
+        const weekendEvents: WeekendEventItem[] = nonDedge.map((e) => {
           return {
             id: e.id,
             title: e.title,
@@ -345,10 +346,31 @@ Deno.serve(async (req) => {
             imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
             eventUrl: `${SITE_URL}/eventos/${e.slug}`,
             ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
-            ctaLabel: dedge ? 'Enviar Nomes Para Lista' : undefined,
-            ctas: ctas && ctas.length > 1 ? ctas : undefined,
           };
         });
+        const dedgeHead = dedgeGroup[0];
+        const dedgeSubs = dedgeHead
+          ? (((dedgeHead as any).__subEvents as Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> | undefined)
+              ?? [{
+                label: dedgeHead.title,
+                url: dedgeHead.ticket_link || `${SITE_URL}/eventos/${dedgeHead.slug}`,
+                dayLabel: formatDatePt(dedgeHead.date, dedgeHead.time),
+                timeLabel: (dedgeHead.time || '').slice(0, 5) || '22h',
+              }])
+          : [];
+        const dedgePayload = dedgeHead ? {
+          imageUrl: dedgeHead.image_url || `${SITE_URL}/placeholder.svg`,
+          eyebrow: 'TODA SEMANA · RESIDÊNCIA',
+          title: 'Dedge — sua residência da semana',
+          description: '',
+          nights: dedgeSubs.map((s) => ({
+            label: `${s.dayLabel} — ${s.label}`,
+            url: s.url,
+            enabled: true,
+          })),
+          primaryUrl: `${SITE_URL}/eventos?venue=dedge`,
+          primaryLabel: 'Ver todos os eventos Dedge',
+        } : undefined;
         const blogPosts: BlogPostItem[] = pts.map((p) => ({
           id: p.id,
           title: p.title,
@@ -375,6 +397,7 @@ Deno.serve(async (req) => {
           unsubscribeUrl: '[E-GOI_UNSUBSCRIBE_LINK]',
           weekendEvents,
           blogPosts,
+          dedge: dedgePayload,
         };
 
         html = renderBlockedTemplate(

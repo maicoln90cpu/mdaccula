@@ -46,6 +46,8 @@ interface Props {
   settings: EmailTemplateSettings;
   previewEvent: EventAnnouncementData;
   previewArticle: ArticleSummary | null;
+  /** Quando não-nulo, o preview usa este HTML (ex.: digest/agenda FDS reais) em vez de calcular do mock. */
+  overrideHtml?: string | null;
 }
 
 const defaultForKind = (kind: Block["kind"]): Block => {
@@ -164,7 +166,7 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
 }
 
 export function EmailTemplateEditor({
-  templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle,
+  templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
   const { toast } = useToast();
   const activeTpl = useMemo(() => templates.find((t) => t.id === activeId) || null, [templates, activeId]);
@@ -402,13 +404,15 @@ export function EmailTemplateEditor({
         <Card>
           <CardContent className="p-2">
             <div className="flex items-center justify-between mb-2 px-2">
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Preview ao vivo (600px reais)</div>
+              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {overrideHtml ? "Preview real (dados do disparo)" : "Preview ao vivo (600px reais)"}
+              </div>
               <div className="text-[10px] text-muted-foreground">≈ largura real na caixa de entrada</div>
             </div>
             <div className="overflow-x-auto rounded border bg-[#050505] p-2">
               <iframe
                 title="preview"
-                srcDoc={previewHtml}
+                srcDoc={overrideHtml || previewHtml}
                 width={600}
                 className="block mx-auto h-[900px] bg-white"
                 style={{ width: 600, minWidth: 600, border: 0 }}
