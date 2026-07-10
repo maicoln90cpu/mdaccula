@@ -54,7 +54,7 @@ interface CustomLink {
   card_height?: number;
   card_width?: number;
   event_id?: string | null;
-  events?: { date: string; time: string; end_time?: string | null } | null;
+  events?: { date: string; end_date?: string | null; time: string; end_time?: string | null } | null;
   manual_order_override?: boolean;
 }
 
