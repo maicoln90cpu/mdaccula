@@ -60,7 +60,7 @@ function formatDatePt(dateStr: string, timeStr?: string | null) {
 }
 
 type EventRow = {
-  id: string; title: string; slug: string; date: string; time: string | null;
+  id: string; title: string; slug: string; date: string; end_date: string | null; time: string | null;
   venue: string; location_city: string; location_state: string;
   image_url: string | null; ticket_link: string | null;
 };
