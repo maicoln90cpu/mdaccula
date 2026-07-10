@@ -545,6 +545,8 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   article_summary: "Resumo da matéria (se houver)",
   lineup: "Line-up do evento",
   countdown: "Contagem regressiva",
+  ticker: "Ticker de urgência (barra)",
+  static_map: "Mapa estático do local",
   cta_button: "Botão CTA (ingresso)",
   secondary_link: "Link secundário",
   image_with_link: "Imagem com link",
@@ -556,7 +558,7 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
 
 export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "header", "hero_image", "eyebrow", "title", "subtitle", "event_meta",
-  "description", "lineup", "article_summary", "countdown",
+  "description", "lineup", "article_summary", "countdown", "ticker", "static_map",
   "cta_button", "secondary_link", "image_with_link", "divider", "text",
   "social_icons", "footer",
 ];
