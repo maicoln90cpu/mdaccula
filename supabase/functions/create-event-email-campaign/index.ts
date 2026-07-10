@@ -227,27 +227,33 @@ Deno.serve(async (req) => {
       }
     } else {
       // Falha na criação — libera o dispatched_at para nova tentativa não ficar bloqueada.
-      await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+      if (!isAbTest) {
+        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+      }
       errorMessage = `E-goi ${created.status}: ${
         typeof created.body === 'string' ? created.body : JSON.stringify(created.body)
       }`.slice(0, 1000);
     }
 
     // Persistência do histórico
-    const rowPayload = {
+    const rowPayload: Record<string, unknown> = {
       event_id: eventId,
       egoi_campaign_id: campaignHash,
       status: campaignStatus,
       mode,
       error_message: errorMessage,
       sent_at: sentAt,
+      campaign_type: isAbTest ? 'ab_subject' : 'standard',
+      ab_group_id: abGroupId,
+      ab_variant: abVariant,
+      ab_test_config: abTestConfig,
     };
 
-    if (reuseRow && lastCampaign) {
+    if (reuseRow) {
       await admin
         .from('event_email_campaigns')
         .update(rowPayload)
-        .eq('id', lastCampaign.id);
+        .eq('id', (reuseRow as any).id);
     } else {
       await admin.from('event_email_campaigns').insert(rowPayload);
     }
