@@ -484,6 +484,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/solomunsp</loc>
+    <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/corona-apres-malive-476938</loc>
     <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -522,12 +528,6 @@
   <url>
     <loc>https://mdaccula.com/eventos/dna051226</loc>
     <lastmod>2026-07-09</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/solomunsp</loc>
-    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1553,7 +1553,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/dnabh26</loc>
-    <lastmod>2026-07-09</lastmod>
+    <lastmod>2026-07-10</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
