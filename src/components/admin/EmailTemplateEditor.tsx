@@ -390,6 +390,14 @@ export function EmailTemplateEditor({
           </CardContent>
         </Card>
 
+        {/* Biblioteca de blocos globais - Fase C */}
+        <div className="lg:col-span-3">
+          <GlobalBlocksLibrary
+            selectedBlock={selectedBlock}
+            onInsert={(b) => setLocalBlocks([...(blocks as Block[]), b])}
+          />
+        </div>
+
         {/* Painel de propriedades */}
         <Card>
           <CardContent className="p-4">
