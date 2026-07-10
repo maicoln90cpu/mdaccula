@@ -39,6 +39,15 @@ const BRAZILIAN_STATES = [
   'SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE', 'PA', 'MA', 'PB', 'ES', 'PI', 'AL', 'RN', 'MT', 'MS', 'DF', 'SE', 'RO', 'TO', 'AC', 'AM', 'RR', 'AP'
 ];
 
+const getEffectiveEventEndDate = (event: Pick<Event, 'date'> & { end_date?: string | null }) =>
+  event.end_date && event.end_date >= event.date ? event.end_date : event.date;
+
+const eventOccursOnDate = (event: Pick<Event, 'date'> & { end_date?: string | null }, date: string) =>
+  event.date <= date && date <= getEffectiveEventEndDate(event);
+
+const formatDateKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
 const Eventos = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -100,7 +109,7 @@ const Eventos = () => {
 
     // Filtro por data específica (do calendário)
     if (dateFilter) {
-      filtered = filtered.filter(event => event.date === dateFilter);
+      filtered = filtered.filter(event => eventOccursOnDate(event, dateFilter));
     }
 
     if (genreFilter !== 'Todos') {
@@ -202,8 +211,13 @@ const Eventos = () => {
     const dateCount: { [key: string]: number } = {};
 
     filteredEvents.forEach(event => {
-      const date = event.date;
-      dateCount[date] = (dateCount[date] || 0) + 1;
+      const start = parseLocalDate(event.date);
+      const end = parseLocalDate(getEffectiveEventEndDate(event));
+
+      for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
+        const date = formatDateKey(day);
+        dateCount[date] = (dateCount[date] || 0) + 1;
+      }
     });
 
     Object.entries(dateCount).forEach(([date, count]) => {
@@ -218,11 +232,7 @@ const Eventos = () => {
     now.setHours(0, 0, 0, 0);
     return filteredEvents
       .filter(event => {
-        // Festivais multi-dia: usa end_date se existir e for >= date; senão usa date.
-        const endStr = (event as any).end_date && (event as any).end_date >= event.date
-          ? (event as any).end_date
-          : event.date;
-        return parseLocalDate(endStr) >= now;
+        return parseLocalDate(getEffectiveEventEndDate(event)) >= now;
       })
       .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
   };

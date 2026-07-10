@@ -43,15 +43,15 @@ export function useEvents() {
         .from("events")
         .select(EVENT_PUBLIC_FIELDS)
         .eq("status", "active")
-        .gte("date", dateFilter)
+        .or(`date.gte.${dateFilter},end_date.gte.${dateFilter}`)
         .order("date", { ascending: true })
-        .limit(50);
+        .limit(100);
 
       if (error) throw error;
 
       const visibleEvents = ((data || []) as unknown as Event[]).filter((event) =>
         isEventVisible(
-          { date: event.date, time: event.time },
+          { date: event.date, end_date: event.end_date, time: event.time },
           { hoursAfterStart, hoursWithoutTime, timezoneOffset }
         )
       );
