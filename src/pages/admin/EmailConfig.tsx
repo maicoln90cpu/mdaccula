@@ -725,7 +725,7 @@ const EmailConfig = () => {
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
-      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle);
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true });
     }
     return renderEventAnnouncementEmail(previewData, tpl);
   }, [activeTemplate, previewData, tpl, previewArticle]);
