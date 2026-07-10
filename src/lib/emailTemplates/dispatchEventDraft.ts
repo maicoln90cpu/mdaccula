@@ -112,7 +112,7 @@ export async function dispatchEventDraftEmail(
     supabase
       .from("events")
       .select(
-        "id,title,subtitle,slug,date,time,venue,location_city,location_state,image_url,description,ticket_link,vip_link,blog_post_id",
+        "id,title,subtitle,slug,date,time,venue,location_city,location_state,image_url,description,ticket_link,vip_link,blog_post_id,latitude,longitude",
       )
       .eq("id", eventId)
       .maybeSingle(),
