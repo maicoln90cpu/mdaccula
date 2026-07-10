@@ -431,6 +431,20 @@ const EventDetail = () => {
                   </CardContent>
                 </Card>
 
+                {/* Mapa da localização + botão Como chegar */}
+                {event.venue && event.location_city && (
+                  <EventLocationMap
+                    eventId={event.id}
+                    venue={event.venue}
+                    city={event.location_city}
+                    state={event.location_state}
+                    latitude={event.latitude}
+                    longitude={event.longitude}
+                  />
+                )}
+
+
+
                 {/* Programação por dia (festival) ou Line-up único */}
                 {(() => {
                   const schedule = parseSchedule(event.schedule);
