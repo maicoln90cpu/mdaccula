@@ -102,55 +102,77 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
     }
 
-    // Guard 3: UPDATE atômico do dispatched_at.
+    // Guard 3: UPDATE atômico do dispatched_at (pulado em A/B).
     // Só marca se ainda estiver NULL — anti-race e anti-double-click.
     // force_resend permite botão "Reenviar" limpar antes de chamar novamente.
-    if (forceResend) {
-      await admin
-        .from('events')
-        .update({ email_campaign_dispatched_at: null })
-        .eq('id', eventId);
-    }
-
+    // B.10 — A/B: as duas variantes são intencionais, então bypass do claim; usa fetch para pegar title/status.
+    let claimedTitle: string | null = null;
+    let claimedStatus: string | null = null;
     const now = new Date().toISOString();
-    const { data: claimed, error: claimErr } = await admin
-      .from('events')
-      .update({ email_campaign_dispatched_at: now })
-      .eq('id', eventId)
-      .is('email_campaign_dispatched_at', null)
-      .select('id,title,status')
-      .maybeSingle();
 
-    if (claimErr) throw claimErr;
-    if (!claimed) {
-      return json({ skipped: true, reason: 'already_dispatched' });
-    }
-    if (claimed.status !== 'active') {
-      // Evento não está ativo — reverte a marca.
-      await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
-      return json({ skipped: true, reason: 'event_not_active' });
+    if (isAbTest) {
+      const { data: ev } = await admin
+        .from('events')
+        .select('id,title,status')
+        .eq('id', eventId)
+        .maybeSingle();
+      if (!ev) return json({ error: 'Evento não encontrado' }, 404);
+      if (ev.status !== 'active') return json({ skipped: true, reason: 'event_not_active' });
+      claimedTitle = ev.title;
+      claimedStatus = ev.status;
+    } else {
+      if (forceResend) {
+        await admin
+          .from('events')
+          .update({ email_campaign_dispatched_at: null })
+          .eq('id', eventId);
+      }
+
+      const { data: claimed, error: claimErr } = await admin
+        .from('events')
+        .update({ email_campaign_dispatched_at: now })
+        .eq('id', eventId)
+        .is('email_campaign_dispatched_at', null)
+        .select('id,title,status')
+        .maybeSingle();
+
+      if (claimErr) throw claimErr;
+      if (!claimed) {
+        return json({ skipped: true, reason: 'already_dispatched' });
+      }
+      if (claimed.status !== 'active') {
+        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+        return json({ skipped: true, reason: 'event_not_active' });
+      }
+      claimedTitle = claimed.title;
+      claimedStatus = claimed.status;
     }
 
     const apiKey = Deno.env.get('EGOI_API_KEY');
     if (!apiKey) {
-      await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+      if (!isAbTest) {
+        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+      }
       return json({ error: 'EGOI_API_KEY não configurada' }, 500);
     }
 
-    // Idempotência: se última campanha para o evento não é 'sent', reutiliza a linha.
-    const { data: lastCampaign } = await admin
-      .from('event_email_campaigns')
-      .select('*')
-      .eq('event_id', eventId)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    const reuseRow = lastCampaign && lastCampaign.status !== 'sent';
+    // Idempotência: em A/B, NUNCA reutiliza linha (cada variante é um registro novo).
+    let reuseRow: any = null;
+    if (!isAbTest) {
+      const { data: lastCampaign } = await admin
+        .from('event_email_campaigns')
+        .select('*')
+        .eq('event_id', eventId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      reuseRow = lastCampaign && lastCampaign.status !== 'sent' ? lastCampaign : null;
+    }
 
     const mode: Mode = sendNow ? 'immediate' : ((cfg.mode as Mode) || 'draft');
-    const internalName = `MDAccula • ${claimed.title || 'Evento'} • ${now.slice(0, 10)}`;
-    const finalSubject = subject || `Novo evento: ${claimed.title}`;
+    const abSuffix = isAbTest ? ` • A/B ${abVariant}` : '';
+    const internalName = `MDAccula • ${claimedTitle || 'Evento'} • ${now.slice(0, 10)}${abSuffix}`;
+    const finalSubject = subject || `Novo evento: ${claimedTitle}`;
 
     // E-goi v3: POST /campaigns/email
     // Doc: https://developers.e-goi.com/api/v3/#tag/Email/operation/createEmailCampaign
