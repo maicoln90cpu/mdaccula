@@ -752,7 +752,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="large">Grande — 3 caixas (dias/horas/min)</SelectItem>
-                <SelectItem value="medium">Médio — 2 caixas (dias/horas)</SelectItem>
+                <SelectItem value="medium">Médio — 2 caixas (horas/minutos)</SelectItem>
                 <SelectItem value="minimal">Minimalista — 1 linha compacta</SelectItem>
               </SelectContent>
             </Select>
