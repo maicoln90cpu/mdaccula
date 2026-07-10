@@ -764,6 +764,42 @@ const EmailConfig = () => {
     }
   };
 
+  const generateWeekendNow = async () => {
+    setWeekendGenerating(true);
+    setWeekendLastResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("weekend-agenda-draft", {
+        body: { force: true },
+      });
+      if (error) throw error;
+      const res = data as {
+        ok?: boolean; skipped?: boolean; reason?: string; error?: string;
+        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          agenda_disabled: "Agenda FDS está desligada — ligue o toggle primeiro.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+        };
+        toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+        return;
+      }
+      if (!res?.ok) throw new Error(res?.error || "Falha ao criar rascunho");
+      setWeekendLastResult(res);
+      toast({
+        title: "Rascunho FDS criado na E-goi",
+        description: `${res.events_count ?? 0} evento(s) no fim de semana.`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao gerar agenda FDS", description: e.message });
+    } finally {
+      setWeekendGenerating(false);
+    }
+  };
+
+
+
 
 
 
