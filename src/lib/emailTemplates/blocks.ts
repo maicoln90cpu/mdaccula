@@ -111,6 +111,8 @@ export type RenderContext = {
   settings: Required<Pick<EmailTemplateSettings,
     "brand_name" | "primary_color" | "accent_color" | "background_color" | "footer_text" | "cta_label"
   >> & Partial<EmailTemplateSettings>;
+  /** Modo preview: renderiza mesmo com URLs vazias (usa "#") para o admin visualizar. */
+  preview?: boolean;
 };
 
 // ============================================
