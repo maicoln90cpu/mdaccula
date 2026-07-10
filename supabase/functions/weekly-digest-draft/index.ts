@@ -263,6 +263,7 @@ Deno.serve(async (req) => {
 
     // Coleta de dados
     // Faixa de datas: semanal = próximos 7 dias; fim de semana = próxima sexta/sábado/domingo.
+    const now = new Date();
     let rangeStart: Date;
     let rangeEnd: Date;
     if (range === 'weekend') {
