@@ -46,6 +46,8 @@ type EventRow = {
   ticket_link?: string | null;
   vip_link?: string | null;
   blog_post_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 const BASE_URL = "https://mdaccula.com";
@@ -67,6 +69,8 @@ async function buildEventData(ev: EventRow): Promise<EventAnnouncementData> {
     timeLabel,
     venueName: ev.venue,
     cityState: `${ev.location_city}-${ev.location_state}`,
+    venueLat: ev.latitude != null ? Number(ev.latitude) : undefined,
+    venueLng: ev.longitude != null ? Number(ev.longitude) : undefined,
     description: ev.description || "",
     ticketUrl: ev.ticket_link || `${BASE_URL}/eventos/${ev.slug}`,
     eventUrl: `${BASE_URL}/eventos/${ev.slug}`,
@@ -108,7 +112,7 @@ export async function dispatchEventDraftEmail(
     supabase
       .from("events")
       .select(
-        "id,title,subtitle,slug,date,time,venue,location_city,location_state,image_url,description,ticket_link,vip_link,blog_post_id",
+        "id,title,subtitle,slug,date,time,venue,location_city,location_state,image_url,description,ticket_link,vip_link,blog_post_id,latitude,longitude",
       )
       .eq("id", eventId)
       .maybeSingle(),
