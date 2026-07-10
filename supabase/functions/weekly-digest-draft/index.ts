@@ -238,14 +238,18 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: 'digest_disabled' });
     }
 
-    // Guard 3: egoi_config
-    const { data: cfg } = await admin.from('egoi_config').select('*').maybeSingle();
-    if (!cfg || !cfg.is_enabled || !cfg.list_id || !cfg.sender_id) {
-      return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
+    // Guard 3: egoi_config (só necessário quando vai enviar de fato)
+    let cfg: any = null;
+    let apiKey: string | undefined;
+    if (!dryRun) {
+      const { data } = await admin.from('egoi_config').select('*').maybeSingle();
+      cfg = data;
+      if (!cfg || !cfg.is_enabled || !cfg.list_id || !cfg.sender_id) {
+        return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
+      }
+      apiKey = Deno.env.get('EGOI_API_KEY');
+      if (!apiKey) return json({ error: 'EGOI_API_KEY não configurada' }, 500);
     }
-
-    const apiKey = Deno.env.get('EGOI_API_KEY');
-    if (!apiKey) return json({ error: 'EGOI_API_KEY não configurada' }, 500);
 
     // Coleta de dados
     const now = new Date();
