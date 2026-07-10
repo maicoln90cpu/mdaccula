@@ -130,9 +130,83 @@ const fetchLinksData = async (visibilitySettings: TimezoneSettings): Promise<Lin
     custom_links: processLinks(group.custom_links || [], visibilitySettings),
   })) || [];
 
-  setCachedLinks(result);
-  return result;
+  const sorted = sortLinkGroups(result);
+  setCachedLinks(sorted);
+  return sorted;
 };
+
+/**
+ * Ordenação de grupos em 3 blocos:
+ *   A) Fixos no topo: Redes Sociais → Navegação (ordem do display_order manual)
+ *   B) Meses (JAN/25 … DEZ/26 …) em ordem cronológica automática pelo nome
+ *   C) Temáticos manuais (LITORAL SP, GREEN VALLEY, DEDGE SP, REVEILLON, …)
+ *
+ * Motivo: display_order tem duas convenções misturadas (0..N legado e AAAAMM).
+ * Ordenar pelo nome de mês elimina o problema e libera o usuário de mexer no
+ * display_order de grupos mensais.
+ */
+const MONTH_MAP: Record<string, number> = {
+  JAN: 1, FEV: 2, MAR: 3, ABR: 4, MAI: 5, JUN: 6,
+  JUL: 7, AGO: 8, SET: 9, OUT: 10, NOV: 11, DEZ: 12,
+};
+
+const parseMonthGroup = (name: string): number | null => {
+  const normalized = (name || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+  // Aceita "JAN/26", "JANEIRO/26", "JAN/2026", etc.
+  const m = normalized.match(/^([A-Z]{3,})\s*\/\s*(\d{2,4})\b/);
+  if (!m) return null;
+  const prefix = m[1].slice(0, 3);
+  const month = MONTH_MAP[prefix];
+  if (!month) return null;
+  let year = parseInt(m[2], 10);
+  if (year < 100) year += 2000;
+  return year * 100 + month; // AAAAMM
+};
+
+const isPinnedName = (name: string): number | null => {
+  const n = (name || '').trim().toLowerCase();
+  if (n === 'redes sociais') return 0;
+  if (n === 'navegação' || n === 'navegacao') return 1;
+  return null;
+};
+
+export const sortLinkGroups = <T extends { name: string; display_order: number | null }>(
+  groups: T[],
+): T[] => {
+  const pinned: T[] = [];
+  const months: Array<{ g: T; key: number }> = [];
+  const themed: T[] = [];
+
+  for (const g of groups) {
+    const pin = isPinnedName(g.name);
+    if (pin !== null) {
+      pinned.push(g);
+      continue;
+    }
+    const monthKey = parseMonthGroup(g.name);
+    if (monthKey !== null) {
+      months.push({ g, key: monthKey });
+      continue;
+    }
+    themed.push(g);
+  }
+
+  pinned.sort((a, b) => {
+    const pa = isPinnedName(a.name) ?? 99;
+    const pb = isPinnedName(b.name) ?? 99;
+    if (pa !== pb) return pa - pb;
+    return (a.display_order ?? 0) - (b.display_order ?? 0);
+  });
+  months.sort((a, b) => a.key - b.key);
+  themed.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+
+  return [...pinned, ...months.map((m) => m.g), ...themed];
+};
+
 
 export const useLinks = (options: UseLinksOptions = {}) => {
   const {
