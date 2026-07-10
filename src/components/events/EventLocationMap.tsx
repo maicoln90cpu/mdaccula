@@ -65,14 +65,14 @@ export const EventLocationMap = ({
         });
         if (cancelled) return;
         if (error) {
-          logger.warn("geocode-event failed", error, { component: "EventLocationMap" });
+          logger.warn("geocode-event failed", { component: "EventLocationMap", error: String(error) });
           return;
         }
         if (data?.ok && data.lat != null && data.lng != null) {
           setCoords({ lat: Number(data.lat), lng: Number(data.lng) });
         }
       } catch (err) {
-        logger.warn("geocode-event exception", err, { component: "EventLocationMap" });
+        logger.warn("geocode-event exception", { component: "EventLocationMap", error: err instanceof Error ? err.message : String(err) });
       } finally {
         if (!cancelled) setLoading(false);
       }
