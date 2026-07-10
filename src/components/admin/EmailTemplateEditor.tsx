@@ -171,6 +171,7 @@ export function EmailTemplateEditor({
   templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
   const { toast } = useToast();
+  const { globalsMap } = useEmailGlobalBlocks();
   const activeTpl = useMemo(() => templates.find((t) => t.id === activeId) || null, [templates, activeId]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
