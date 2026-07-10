@@ -166,7 +166,7 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
 }
 
 export function EmailTemplateEditor({
-  templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle,
+  templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
   const { toast } = useToast();
   const activeTpl = useMemo(() => templates.find((t) => t.id === activeId) || null, [templates, activeId]);
