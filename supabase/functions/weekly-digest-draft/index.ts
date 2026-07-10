@@ -262,17 +262,47 @@ Deno.serve(async (req) => {
     }
 
     // Coleta de dados
-    const now = new Date();
-    const in7 = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
-    const todayIso = now.toISOString().slice(0, 10);
-    const in7Iso = in7.toISOString().slice(0, 10);
+    // Faixa de datas: semanal = próximos 7 dias; fim de semana = próxima sexta/sábado/domingo.
+    let rangeStart: Date;
+    let rangeEnd: Date;
+    if (range === 'weekend') {
+      const day = now.getDay(); // 0 dom .. 6 sáb
+      // Se hoje é sex/sáb/dom, usa o FDS corrente; senão pula para próxima sexta.
+      const daysToFriday = day === 5 || day === 6 || day === 0 ? (day === 5 ? 0 : day === 6 ? -1 : -2) : (5 - day + 7) % 7;
+      rangeStart = new Date(now);
+      rangeStart.setDate(now.getDate() + daysToFriday);
+      rangeStart.setHours(0, 0, 0, 0);
+      rangeEnd = new Date(rangeStart);
+      rangeEnd.setDate(rangeStart.getDate() + 2); // sex + sáb + dom
+    } else {
+      rangeStart = now;
+      rangeEnd = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+    }
+    const startIso = rangeStart.toISOString().slice(0, 10);
+    const endIso = rangeEnd.toISOString().slice(0, 10);
+
+    const templateTypes = range === 'weekend'
+      ? ['weekend_agenda']
+      : ['weekly_digest', 'weekly_digest_editorial'];
+
+    let activeTplQuery = (admin.from as any)('email_templates')
+      .select('id,name,type,blocks,is_default');
+    if (overrideTemplateId) {
+      activeTplQuery = activeTplQuery.eq('id', overrideTemplateId);
+    } else {
+      activeTplQuery = activeTplQuery
+        .in('type', templateTypes)
+        .order('is_default', { ascending: false })
+        .order('updated_at', { ascending: false })
+        .limit(1);
+    }
 
     const [{ data: events }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
       admin.from('events')
         .select('id,title,slug,date,time,venue,location_city,location_state,image_url,ticket_link,status')
         .eq('status', 'active')
-        .gte('date', todayIso)
-        .lte('date', in7Iso)
+        .gte('date', startIso)
+        .lte('date', endIso)
         .order('date', { ascending: true })
         .limit(20),
       admin.from('blog_posts')
@@ -281,13 +311,7 @@ Deno.serve(async (req) => {
         .order('published_at', { ascending: false, nullsFirst: false })
         .limit(3),
       admin.from('email_template_settings').select('*').maybeSingle(),
-      (admin.from as any)('email_templates')
-        .select('id,name,type,blocks,is_default')
-        .in('type', ['weekly_digest', 'weekly_digest_editorial'])
-        .order('is_default', { ascending: false })
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
+      activeTplQuery.maybeSingle(),
     ]);
 
     const evs = (events ?? []) as EventRow[];
