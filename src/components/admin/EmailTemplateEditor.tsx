@@ -66,14 +66,16 @@ const defaultForKind = (kind: Block["kind"]): Block => {
     case "text": return { id, kind, html: "<p>Texto livre — suporta HTML básico.</p>", align: "left" };
     case "social_icons": return {
       id, kind, style: "text", align: "center", networks: [
-        { id: "instagram", label: "Instagram", url: "", enabled: true },
-        { id: "youtube", label: "YouTube", url: "", enabled: true },
-        { id: "tiktok", label: "TikTok", url: "", enabled: false },
+        { id: "instagram", label: "Instagram", url: "https://instagram.com/mdaccula", enabled: true },
+        { id: "youtube", label: "YouTube", url: "https://youtube.com/@mdaccula", enabled: true },
+        { id: "tiktok", label: "TikTok", url: "https://tiktok.com/@mdaccula", enabled: false },
         { id: "soundcloud", label: "SoundCloud", url: "", enabled: false },
         { id: "spotify", label: "Spotify", url: "", enabled: false },
         { id: "linktree", label: "Linktree", url: "", enabled: false },
       ],
     };
+    case "lineup": return { id, kind, title: "Line-up", layout: "chips", align: "center" };
+    case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center" };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
