@@ -311,18 +311,26 @@ Deno.serve(async (req) => {
             const shouldMerge = group.length > 1 && (isCartazTemplate || isDedgeVenue(head.venue));
             if (!shouldMerge) return group;
             const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(' · ');
+            const subEvents = group.map((g) => ({
+              label: g.title,
+              url: g.ticket_link || `${SITE_URL}/eventos/${g.slug}`,
+              dayLabel: formatDatePt(g.date, g.time),
+              timeLabel: (g.time || '').slice(0, 5) || '22h',
+            }));
             return [{
               ...head,
               title: head.venue,
               __joinedDates: joinedDates,
               __isDedge: isDedgeVenue(head.venue),
-            } as EventRow & { __joinedDates?: string; __isDedge?: boolean }];
+              __subEvents: subEvents,
+            } as EventRow & { __joinedDates?: string; __isDedge?: boolean; __subEvents?: Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> }];
           })
           .sort((a, b) => a.date.localeCompare(b.date));
 
         const first = evsForRender[0];
         const weekendEvents: WeekendEventItem[] = evsForRender.map((e) => {
           const dedge = (e as any).__isDedge || isDedgeVenue(e.venue);
+          const ctas = (e as any).__subEvents as Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> | undefined;
           return {
             id: e.id,
             title: e.title,
@@ -338,6 +346,7 @@ Deno.serve(async (req) => {
             eventUrl: `${SITE_URL}/eventos/${e.slug}`,
             ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
             ctaLabel: dedge ? 'Enviar Nomes Para Lista' : undefined,
+            ctas: ctas && ctas.length > 1 ? ctas : undefined,
           };
         });
         const blogPosts: BlogPostItem[] = pts.map((p) => ({
