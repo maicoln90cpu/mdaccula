@@ -353,10 +353,18 @@ const EmailConfig = () => {
   const [batchSubject, setBatchSubject] = useState<string>("");
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
-  // B.11 — Digest semanal
-  const [digestEnabled, setDigestEnabled] = useState(false);
+  // Automações (Digest semanal + Agenda FDS)
+  type AutomationCfg = { enabled: boolean; day: number; hour: number; templateId: string };
+  const [weeklyCfg, setWeeklyCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 18, templateId: "" });
+  const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 12, templateId: "" });
+  const [savingWeekly, setSavingWeekly] = useState(false);
+  const [savingWeekend, setSavingWeekend] = useState(false);
   const [digestGenerating, setDigestGenerating] = useState(false);
+  const [weekendGenerating, setWeekendGenerating] = useState(false);
   const [digestLastResult, setDigestLastResult] = useState<{
+    egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+  } | null>(null);
+  const [weekendLastResult, setWeekendLastResult] = useState<{
     egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
   } | null>(null);
 
