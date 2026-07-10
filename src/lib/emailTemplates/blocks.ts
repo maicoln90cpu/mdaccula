@@ -730,6 +730,116 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       </td></tr>`;
     }
 
+    case "weekly_hero": {
+      const source = block.source || "first_weekend";
+      const w = event.weekendEvents?.[0];
+      const useWeekend = source === "first_weekend" && !!w;
+      const title = useWeekend ? w!.title : event.eventTitle;
+      const imageUrl = useWeekend ? w!.imageUrl : event.flyerUrl;
+      const url = useWeekend ? (w!.eventUrl || "#") : event.eventUrl;
+      const ticketUrl = useWeekend ? (w!.ticketUrl || w!.eventUrl) : event.ticketUrl;
+      const venue = useWeekend ? w!.venue : event.venueName;
+      const city = useWeekend ? (w!.cityState || "") : event.cityState;
+      const dayLabel = useWeekend ? w!.dayLabel : event.dateLabel;
+      const timeLabel = useWeekend ? (w!.timeLabel || "") : event.timeLabel;
+      const eyebrow = escape(block.eyebrow || "DESTAQUE DA SEMANA");
+      const align = block.align || "left";
+      const showVenue = block.show_venue !== false;
+      const showCta = block.show_cta !== false;
+      const ctaLabel = escape(block.cta_label || settings.cta_label || "Garantir ingresso");
+      const overlayBg = block.overlay_intensity === "soft"
+        ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)"
+        : "linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.92) 100%)";
+
+      if (!imageUrl && !title) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            ⭐ Hero da semana — mostrará o 1º evento do array <code>weekendEvents</code> quando o disparo real montar a lista.
+          </div>
+        </td></tr>`;
+      }
+
+      return `<tr><td style="padding:12px 32px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000;border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;">
+          <tr><td style="padding:0;position:relative;background:#000;">
+            <a href="${escape(url)}" style="text-decoration:none;display:block;">
+              <img src="${escape(imageUrl)}" alt="${escape(title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+            </a>
+          </td></tr>
+          <tr><td style="padding:20px 22px 22px 22px;text-align:${align};background-image:${overlayBg};">
+            <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:8px;">${eyebrow}</div>
+            <div style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;opacity:0.85;">${escape(dayLabel)}${timeLabel ? ` · ${escape(timeLabel)}` : ""}</div>
+            <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:26px;line-height:1.15;font-weight:900;letter-spacing:-0.02em;">
+              <a href="${escape(url)}" style="color:#ffffff;text-decoration:none;">${escape(title)}</a>
+            </h1>
+            ${showVenue ? `<div style="color:#a1a1aa;font-size:14px;margin-bottom:14px;">📍 ${escape(venue)}${city ? ` · ${escape(city)}` : ""}</div>` : ""}
+            ${showCta && ticketUrl ? `<a href="${escape(ticketUrl)}" style="display:inline-block;padding:14px 26px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.18em;border-radius:10px;">${ctaLabel}</a>` : ""}
+          </td></tr>
+        </table>
+      </td></tr>`;
+    }
+
+    case "blog_posts_list": {
+      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 5)));
+      const eyebrow = escape(block.eyebrow || "MATÉRIAS");
+      const title = escape(block.title || "Do blog nesta semana");
+      const layout = block.layout || "list";
+      const showExcerpt = block.show_excerpt !== false;
+      const showCategory = block.show_category !== false;
+      const align = block.align || "left";
+
+      if (posts.length === 0) {
+        if (!ctx.preview) return "";
+        return `<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            📰 Últimos posts do blog aparecem aqui quando o disparo real montar a lista.
+          </div>
+        </td></tr>`;
+      }
+
+      const header = `<tr><td style="padding:14px 32px 6px 32px;text-align:${align};">
+        <div style="color:${primary};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>
+        <h2 style="margin:0;color:#ffffff;font-size:20px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>
+      </td></tr>`;
+
+      if (layout === "cards") {
+        const cards = posts.map((p) => {
+          const url = escape(p.url || "#");
+          return `<tr><td style="padding:8px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+              ${p.imageUrl ? `<tr><td style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(p.imageUrl)}" alt="${escape(p.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></a></td></tr>` : ""}
+              <tr><td style="padding:14px 16px 16px 16px;">
+                ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : "")}
+                <div style="color:#ffffff;font-size:16px;font-weight:800;line-height:1.25;margin-bottom:4px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
+                ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(p.excerpt)}</div>` : ""}
+                <a href="${url}" style="display:inline-block;margin-top:8px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">Ler matéria →</a>
+              </td></tr>
+            </table>
+          </td></tr>`;
+        }).join("");
+        return `${header}${cards}`;
+      }
+
+      // list (compacto — thumb + título + excerpt)
+      const rows = posts.map((p) => {
+        const url = escape(p.url || "#");
+        return `<tr><td style="padding:8px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+            <tr>
+              ${p.imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(p.imageUrl)}" alt="${escape(p.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
+              <td style="padding:12px 14px;vertical-align:top;">
+                ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : "")}
+                <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
+                ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${escape(p.excerpt)}</div>` : ""}
+              </td>
+            </tr>
+          </table>
+        </td></tr>`;
+      }).join("");
+      return `${header}${rows}`;
+    }
+
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
       const align = block.align ?? "center";
