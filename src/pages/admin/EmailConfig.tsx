@@ -663,22 +663,68 @@ const EmailConfig = () => {
     }
   };
 
-  // B.11 — Digest semanal
-  const toggleDigestEnabled = async (v: boolean) => {
-    try {
+  // Automações — helpers
+  const DAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+  const upsertSettings = async (rows: Array<{ key: string; value: string }>) => {
+    for (const r of rows) {
       const { error } = await supabase
         .from("site_settings")
-        .upsert({ key: "weekly_digest_enabled", value: v ? "true" : "false" }, { onConflict: "key" });
+        .upsert({ key: r.key, value: r.value }, { onConflict: "key" });
       if (error) throw error;
-      setDigestEnabled(v);
+    }
+  };
+
+  const saveAutomation = async (
+    job: "weekly_digest" | "weekend_agenda",
+    cfg: AutomationCfg,
+  ) => {
+    const prefix = job;
+    await upsertSettings([
+      { key: `${prefix}_enabled`, value: cfg.enabled ? "true" : "false" },
+      { key: `${prefix}_cron_day`, value: String(cfg.day) },
+      { key: `${prefix}_cron_hour`, value: String(cfg.hour) },
+      { key: `${prefix}_template_id`, value: cfg.templateId || "" },
+    ]);
+    const { data, error } = await supabase.functions.invoke("update-digest-schedule", {
+      body: { job },
+    });
+    if (error) throw error;
+    if ((data as any)?.error) throw new Error((data as any).error);
+    return data;
+  };
+
+  const handleSaveWeekly = async () => {
+    setSavingWeekly(true);
+    try {
+      await saveAutomation("weekly_digest", weeklyCfg);
       toast({
-        title: v ? "Digest semanal ligado" : "Digest semanal desligado",
-        description: v
-          ? "Toda quinta-feira às 18h (Cuiabá) um rascunho será criado automaticamente na E-goi."
-          : "O cron semanal não criará mais rascunhos.",
+        title: weeklyCfg.enabled ? "Digest semanal agendado" : "Digest semanal salvo (desligado)",
+        description: weeklyCfg.enabled
+          ? `Próxima execução: ${DAY_LABELS[weeklyCfg.day]} ${String(weeklyCfg.hour).padStart(2, "0")}:00 BRT.`
+          : "As chaves foram salvas; nenhum cron ativo.",
       });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao alterar toggle", description: e.message });
+      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } finally {
+      setSavingWeekly(false);
+    }
+  };
+
+  const handleSaveWeekend = async () => {
+    setSavingWeekend(true);
+    try {
+      await saveAutomation("weekend_agenda", weekendCfg);
+      toast({
+        title: weekendCfg.enabled ? "Agenda FDS agendada" : "Agenda FDS salva (desligada)",
+        description: weekendCfg.enabled
+          ? `Próxima execução: ${DAY_LABELS[weekendCfg.day]} ${String(weekendCfg.hour).padStart(2, "0")}:00 BRT.`
+          : "As chaves foram salvas; nenhum cron ativo.",
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } finally {
+      setSavingWeekend(false);
     }
   };
 
