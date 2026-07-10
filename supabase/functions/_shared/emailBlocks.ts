@@ -31,6 +31,8 @@ export interface WeekendEventItem {
   articleUrl?: string;
   /** CTA custom por evento (ex.: DEDGE = "Enviar Nomes Para Lista"). */
   ctaLabel?: string;
+  /** Múltiplos CTAs quando o card representa vários eventos (ex.: DEDGE quinta/sex/sáb/dom). */
+  ctas?: Array<{ label: string; url: string; dayLabel?: string; timeLabel?: string }>;
 }
 
 export interface DedgeNightConfig { label: string; url: string; enabled: boolean; }
