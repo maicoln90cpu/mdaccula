@@ -914,6 +914,27 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_cron_secrets: {
+        Row: {
+          created_at: string
+          name: string
+          secret: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          secret: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          secret?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       link_click_events: {
         Row: {
           clicked_at: string

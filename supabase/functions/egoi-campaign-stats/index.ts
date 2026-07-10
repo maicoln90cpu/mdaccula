@@ -72,15 +72,25 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     const cronSecret = req.headers.get('x-cron-secret');
-    const expectedCron = Deno.env.get('CRON_SHARED_SECRET');
-    const isCron = !!(cronSecret && expectedCron && cronSecret === expectedCron);
-
-    if (!authHeader && !isCron) return json({ error: 'Não autenticado' }, 401);
-
+    const cronJobHeader = req.headers.get('x-cron-job');
+    const envCronSecret = Deno.env.get('CRON_SHARED_SECRET');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const admin = createClient(supabaseUrl, serviceKey);
+
+    // B.9-extra: valida x-cron-secret contra env OU tabela interna (usada pelo pg_cron)
+    let isCron = !!(cronSecret && envCronSecret && cronSecret === envCronSecret);
+    if (!isCron && cronSecret && cronJobHeader) {
+      const { data: row } = await admin
+        .from('internal_cron_secrets')
+        .select('secret')
+        .eq('name', 'egoi_stats_cron')
+        .maybeSingle();
+      if (row?.secret && row.secret === cronSecret) isCron = true;
+    }
+
+    if (!authHeader && !isCron) return json({ error: 'Não autenticado' }, 401);
 
     if (!isCron && authHeader) {
       const anonClient = createClient(supabaseUrl, anonKey);
