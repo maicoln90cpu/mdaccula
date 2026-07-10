@@ -793,29 +793,9 @@
 
 ## 🔴 Pendências Ativas
 
-### Segurança
-
----
-
-#### Adicionar CAPTCHA no Formulário de Contato
-**Status:** pendente  
-**Descrição:** Formulário de contato não possui CAPTCHA, vulnerável a spam automatizado  
-**Data:** 06/01/2026  
-**Responsável:** Dev  
-**Impacto:** baixo  
-
----
-
 ### Melhorias Planejadas
 
-#### Guia de Onboarding Interativo
-**Status:** pendente  
-**Descrição:** Tour passo a passo para novos administradores  
-**Data:** 06/01/2026  
-**Responsável:** Dev  
-**Impacto:** baixo  
 
----
 
 #### Bundle Optimization
 **Status:** pendente  

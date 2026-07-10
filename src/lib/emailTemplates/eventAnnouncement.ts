@@ -281,7 +281,7 @@ export function renderEventAnnouncementEmail(
 export const MOCK_EVENT_DATA: EventAnnouncementData = {
   eventTitle: "NEON GARDEN: MELODIC TECHNO",
   eventSubtitle: "Uma imersão visual e sonora exclusiva no coração de São Paulo.",
-  flyerUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
+  flyerUrl: "https://placehold.co/1080x1350/1a1a2e/ffffff/png?text=Flyer+do+Evento",
   dateLabel: "Sábado, 25 de Maio",
   timeLabel: "22h às 06h",
   venueName: "Musiva",

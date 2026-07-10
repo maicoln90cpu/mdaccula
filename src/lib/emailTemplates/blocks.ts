@@ -493,11 +493,11 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         </td></tr>`;
       }
 
-      // medium — 2 caixas (dias + horas), ~30% menor que large
+      // medium — 2 caixas (horas + minutos), ~30% menor que large
       if (size === "medium") {
         const parts = [
-          { v: days, label: days === 1 ? "dia" : "dias" },
           { v: hours, label: hours === 1 ? "hora" : "horas" },
+          { v: minutes, label: "min" },
         ];
         const boxes = parts.map((p) =>
           `<td style="padding:0 4px;"><div style="min-width:56px;padding:7px 9px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:8px;text-align:center;">
