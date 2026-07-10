@@ -75,7 +75,9 @@ const defaultForKind = (kind: Block["kind"]): Block => {
       ],
     };
     case "lineup": return { id, kind, title: "Line-up", layout: "chips", align: "center" };
-    case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center" };
+    case "countdown": return { id, kind, label: "Lote atual encerra em", deadline_source: "today_2359", bg_style: "gradient", align: "center", size: "large" };
+    case "ticker": return { id, kind, messages: ["Últimas horas", "Ingressos limitados", "Restam poucos"], animation: "fade", align: "center", icon: "clock" };
+    case "static_map": return { id, kind, zoom: 15, height: 300, map_style: "roadmap", show_address_label: true, border_radius: 12 };
     case "footer": return { id, kind, include_unsubscribe: true, align: "center" };
     default: return { id, kind } as Block;
   }
