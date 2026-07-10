@@ -1517,8 +1517,103 @@ const EmailConfig = () => {
           </div>
         </TabsContent>
 
-        {/* ================= EDITOR DE BLOCOS ================= */}
+        {/* ================= EDITOR + PREVIEW (unificado) ================= */}
         <TabsContent value="editor" className="space-y-4">
+          {/* Barra de fonte do preview — antes era a aba "Preview" separada. */}
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Label className="text-xs whitespace-nowrap">Fonte do preview</Label>
+                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest" | "weekend")}>
+                  <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="event">Evento individual (mock/real)</SelectItem>
+                    <SelectItem value="digest">Digest semanal real (7 dias)</SelectItem>
+                    <SelectItem value="weekend">Agenda FDS real (próximo FDS)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(previewSource === "digest" || previewSource === "weekend") && (
+                  <>
+                    <Label className="text-xs whitespace-nowrap ml-2">Template</Label>
+                    <Select
+                      value={digestTemplateId || "__default__"}
+                      onValueChange={(v) => {
+                        const id = v === "__default__" ? "" : v;
+                        setDigestTemplateId(id);
+                        loadDigestPreview({ source: previewSource, templateId: id });
+                      }}
+                    >
+                      <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {digestTemplateOptions.map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name} {t.is_default ? "· padrão" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline" onClick={() => loadDigestPreview()} disabled={digestPreviewLoading}>
+                      {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
+                    </Button>
+                    {digestPreviewMeta && (
+                      <span className="text-xs text-muted-foreground">
+                        {digestPreviewMeta.events_count ?? 0} eventos · {digestPreviewMeta.posts_count ?? 0} posts · {digestPreviewMeta.range}
+                      </span>
+                    )}
+                  </>
+                )}
+
+                {previewSource === "event" && (
+                  <>
+                    <Label className="text-xs whitespace-nowrap ml-2">Simular com evento real</Label>
+                    <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
+                      <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
+                        {realEvents.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.title} · {e.date}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
+
+                <div className="flex gap-2 ml-auto">
+                  <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
+                    Restaurar mock
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const html = previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml;
+                      const blob = new Blob([html], { type: "text/html" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "mdaccula-email-preview.html";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Baixar HTML
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={sendingTest}
+                    onClick={() => sendTestEmail(previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml, `[Teste] ${previewData.eventTitle}`)}
+                  >
+                    <Send className="w-4 h-4 mr-1" />
+                    {sendingTest ? "Enviando…" : "Enviar teste"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <EmailTemplateEditor
             templates={templates}
             activeId={activeTemplateId}
@@ -1527,8 +1622,10 @@ const EmailConfig = () => {
             settings={tpl}
             previewEvent={previewData}
             previewArticle={previewArticle}
+            overrideHtml={previewSource !== "event" ? digestPreviewHtml : null}
           />
         </TabsContent>
+
 
         {/* ================= PREVIEW ================= */}
         <TabsContent value="preview" className="space-y-4">
