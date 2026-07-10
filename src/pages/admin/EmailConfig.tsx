@@ -2107,13 +2107,35 @@ const EmailConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {groups.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-6 text-center">
-                  Nenhuma campanha registrada ainda.
-                </p>
-              ) : (
+              <div className="mb-3">
+                <Input
+                  placeholder="Buscar por nome do evento…"
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  className="max-w-md"
+                />
+              </div>
+              {(() => {
+                const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+                const q = norm(historySearch);
+                const visibleGroups = q ? groups.filter((g) => norm(g.title).includes(q)) : groups;
+                if (groups.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      Nenhuma campanha registrada ainda.
+                    </p>
+                  );
+                }
+                if (visibleGroups.length === 0) {
+                  return (
+                    <p className="text-sm text-muted-foreground py-6 text-center">
+                      Nenhum evento encontrado para "{historySearch}".
+                    </p>
+                  );
+                }
+                return (
                 <div className="space-y-2">
-                  {groups.map((g) => {
+                  {visibleGroups.map((g) => {
                     const open = expanded[g.event_id];
                     return (
                       <div key={g.event_id} className="border rounded-lg">
