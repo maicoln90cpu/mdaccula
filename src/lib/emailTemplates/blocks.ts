@@ -837,6 +837,8 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   text: "Bloco de texto livre",
   social_icons: "Redes sociais",
   weekend_grid: "Agenda do fim de semana",
+  weekly_hero: "Destaque da semana (hero)",
+  blog_posts_list: "Últimos posts do blog",
   dedge_block: "Bloco Dedge (residência)",
   footer: "Rodapé + descadastrar",
 };
