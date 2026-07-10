@@ -846,7 +846,7 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
 export const AVAILABLE_BLOCKS: Block["kind"][] = [
   "header", "hero_image", "eyebrow", "title", "subtitle", "event_meta",
   "description", "lineup", "article_summary", "countdown", "ticker", "static_map",
-  "weekend_grid", "dedge_block",
+  "weekend_grid", "weekly_hero", "blog_posts_list", "dedge_block",
   "cta_button", "secondary_link", "image_with_link", "divider", "text",
   "social_icons", "footer",
 ];
