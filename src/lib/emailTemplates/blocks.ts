@@ -943,7 +943,8 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
     { id: newBlockId(), kind: "footer", include_unsubscribe: true },
   ];
-  }
+
+
 
 
 
