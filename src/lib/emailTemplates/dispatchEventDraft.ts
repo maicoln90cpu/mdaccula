@@ -46,6 +46,8 @@ type EventRow = {
   ticket_link?: string | null;
   vip_link?: string | null;
   blog_post_id?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 const BASE_URL = "https://mdaccula.com";
