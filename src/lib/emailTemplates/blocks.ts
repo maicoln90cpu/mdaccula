@@ -151,7 +151,35 @@ export type Block =
       show_category?: boolean;
       align?: Align;
     }
-  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
+  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align }
+  | { id: string; kind: "global_ref"; global_id: string; /** cache do nome para exibir no editor mesmo se offline */ _cached_name?: string };
+
+/** Bloco global salvo na biblioteca — reutilizável entre múltiplos templates. */
+export type GlobalBlock = {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  block: Block; // não pode ser outro global_ref (validado no save)
+};
+
+/**
+ * Expande referências a blocos globais para o bloco real. Usado antes do render.
+ * Mantém o id original do global_ref para preservar ordem/UI, mas troca o conteúdo.
+ * Se o global não for encontrado, o bloco é omitido (renderiza vazio).
+ */
+export function expandGlobalRefs(blocks: Block[], globals: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null | undefined): Block[] {
+  if (!globals) return blocks;
+  const get = (id: string): GlobalBlock | undefined =>
+    globals instanceof Map ? globals.get(id) : (globals as Record<string, GlobalBlock>)[id];
+  return blocks.map((b) => {
+    if (b.kind !== "global_ref") return b;
+    const g = get(b.global_id);
+    if (!g) return { id: b.id, kind: "text", html: `<p style="color:#71717a;font-size:12px;">[Bloco global "${b._cached_name || b.global_id}" indisponível]</p>` } as Block;
+    // preserva o id externo para não conflitar entre templates
+    return { ...g.block, id: b.id } as Block;
+  });
+}
 
 export type Template = {
   id?: string;
