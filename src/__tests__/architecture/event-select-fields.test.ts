@@ -62,4 +62,11 @@ describe('Architecture guard — SELECTs de events usam EVENT_PUBLIC_FIELDS', ()
       ).toBe(false);
     });
   }
+
+  it('useEvents mantém festivais multi-dia visíveis pelo end_date', () => {
+    const content = readFileSync(`${process.cwd()}/src/hooks/useEvents.ts`, 'utf-8');
+
+    expect(content).toContain('end_date.gte');
+    expect(content).toContain('end_date: event.end_date');
+  });
 });
