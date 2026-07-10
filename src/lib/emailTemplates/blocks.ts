@@ -990,6 +990,7 @@ export const BLOCK_LABELS: Record<Block["kind"], string> = {
   weekly_hero: "Destaque da semana (hero)",
   blog_posts_list: "Últimos posts do blog",
   dedge_block: "Bloco Dedge (residência)",
+  global_ref: "Bloco global (biblioteca)",
   footer: "Rodapé + descadastrar",
 };
 
