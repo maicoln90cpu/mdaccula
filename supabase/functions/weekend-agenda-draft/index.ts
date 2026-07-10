@@ -59,7 +59,7 @@ function formatDatePt(dateStr: string, timeStr?: string | null) {
 }
 
 type EventRow = {
-  id: string; title: string; slug: string; date: string; time: string | null;
+  id: string; title: string; slug: string; date: string; end_date: string | null; time: string | null;
   venue: string; location_city: string; location_state: string;
   image_url: string | null; ticket_link: string | null;
 };
@@ -263,14 +263,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const [{ data: events }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
+    const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
       admin.from('events')
-        .select('id,title,slug,date,time,venue,location_city,location_state,image_url,ticket_link,status')
+        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,status')
         .eq('status', 'active')
-        .gte('date', startIso)
         .lte('date', endIso)
+        .or(`date.gte.${startIso},end_date.gte.${startIso}`)
         .order('date', { ascending: true })
-        .limit(20),
+        .limit(50),
       admin.from('blog_posts')
         .select('id,title,slug,excerpt,image_url,published_at,published')
         .eq('published', true)
@@ -280,7 +280,9 @@ Deno.serve(async (req) => {
       activeTplQuery.maybeSingle(),
     ]);
 
-    const evs = (events ?? []) as EventRow[];
+    const evs = ((eventRows ?? []) as EventRow[])
+      .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
+      .slice(0, 20);
     const pts = (posts ?? []) as PostRow[];
     const settings = (tplSettings ?? {}) as BrandSettings;
 
@@ -294,7 +296,9 @@ Deno.serve(async (req) => {
         const weekendEvents: WeekendEventItem[] = evs.map((e) => ({
           id: e.id,
           title: e.title,
-          dayLabel: formatDatePt(e.date, e.time),
+          dayLabel: e.end_date && e.end_date !== e.date
+            ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
+            : formatDatePt(e.date, e.time),
           timeLabel: (e.time || '').slice(0, 5) || '22h',
           venue: e.venue,
           cityState: `${e.location_city}-${e.location_state}`,
