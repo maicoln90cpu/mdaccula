@@ -598,6 +598,14 @@ export function buildPresetBlocks(
       { id: newBlockId(), kind: "event_meta" },
       {
         id: newBlockId(),
+        kind: "countdown",
+        label: "Lote atual encerra em",
+        deadline_source: "today_2359",
+        bg_style: "gradient",
+        align: "center",
+      },
+      {
+        id: newBlockId(),
         kind: "text",
         html: "<p><strong>O lote atual está acabando.</strong> Garanta o seu antes da próxima virada de preço.</p>",
       },
