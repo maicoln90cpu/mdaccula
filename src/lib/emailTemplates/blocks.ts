@@ -63,6 +63,25 @@ export type Block =
   | { id: string; kind: "divider"; thickness?: number; color?: string }
   | { id: string; kind: "text"; html: string; align?: Align; text_color?: string }
   | { id: string; kind: "social_icons"; networks: SocialNetwork[]; style?: "text" | "pill"; align?: Align }
+  | {
+      id: string;
+      kind: "lineup";
+      title?: string;
+      layout?: "chips" | "list" | "grid";
+      align?: Align;
+      title_color?: string;
+      text_color?: string;
+    }
+  | {
+      id: string;
+      kind: "countdown";
+      label?: string;
+      deadline_source?: "today_2359" | "event_start" | "batch_deadline" | "custom";
+      custom_deadline?: string; // ISO
+      bg_style?: "gradient" | "solid";
+      bg_color?: string;
+      align?: Align;
+    }
   | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
 
 export type Template = {
