@@ -57,18 +57,26 @@
 - **Cron 6h** (`sync_all=true`) — precisa habilitar no `pg_cron`; hoje a atualização é sob demanda pelo admin.
 - Teste de contrato para a edge function (401 sem auth, 400 sem `campaign_id`).
 
+## B.11 — Digest semanal automático (CONCLUÍDO)
+
+- **site_setting `weekly_digest_enabled`** — toggle na aba "Digest semanal" em `/admin/email-config`.
+- **Cron `weekly-digest-thursday-18h-brt`** — job `pg_cron` toda quinta 21:00 UTC (18h BRT) chama a edge function `weekly-digest-draft` com `x-cron-secret` (guardado em `internal_cron_secrets.weekly_digest_cron`).
+- **Edge function `weekly-digest-draft`** — busca eventos ativos dos próximos 7 dias + últimos 3 posts publicados, renderiza HTML dark-neon inline (cores/logo do `email_template_settings`) e cria rascunho na E-goi (`POST /campaigns/email`, `mode: draft`). Guards: auth admin OU cron secret, master switch, `weekly_digest_enabled` (cron sempre respeita; admin pode `force: true`), `egoi_config` habilitado.
+- **UI:** botão "Gerar rascunho agora" com resultado imediato (número de eventos/posts + hash da campanha).
+
+### Pendências B.11 (backlog)
+- Personalização do template por blocos (hoje é layout fixo).
+- Analytics específico para digest (a B.9-extra já vai pegar as métricas quando a campanha for enviada, mas seria útil marcar `campaign_type = 'weekly_digest'` no histórico).
+
 ## Ondas restantes
 
-- **A1** — Aplicar VML/atributos HTML width/height nos `<img>` (candidato documentado). Já mitigado parcialmente em B.8-fix.
-- **A2** — Preview mais fiel ao envio real (iframe 600px). Já mitigado parcialmente em B.8-fix.
 - **B.10** — A/B test de assunto via UI simples (E-goi tem endpoint próprio).
-- **B.11** — Digest semanal automático (preset `weekly_digest` + cron toda quinta 18h).
 - **B.12** — Segmentação por comportamento (abriu últimos 3, nunca abriu, clicou em ticket_link).
 
 ## Ordem sugerida
-1. Validar B.9 em produção com uma campanha `sent` real.
-2. Habilitar cron de 6h (`sync_all`) para popular métricas sem clique manual.
+1. Validar B.11 em produção (gerar rascunho agora → conferir na E-goi).
+2. Ligar o toggle "Digest semanal" e aguardar a próxima quinta.
 3. B.10 (A/B assunto) — retorno rápido.
-4. B.11 (digest semanal) — engajamento contínuo.
-5. B.12 (segmentação) — otimização fina de entregabilidade.
+4. B.12 (segmentação) — precisa de ~30 dias de métricas B.9 acumuladas.
+
 
