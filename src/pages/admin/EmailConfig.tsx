@@ -1903,7 +1903,7 @@ const EmailConfig = () => {
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                      {/* Sem opção genérica "Padrão": o default aparece com "· padrão" no rótulo. */}
                       {templates
                         .filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial")
                         .map((t) => (
