@@ -231,7 +231,7 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist, tplRes, cacheRes, tplList, evts] = await Promise.all([
+      const [master, config, hist, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
         supabase
