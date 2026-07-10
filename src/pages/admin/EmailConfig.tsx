@@ -339,9 +339,10 @@ const EmailConfig = () => {
   const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
-  const [previewSource, setPreviewSource] = useState<"event" | "digest">("event");
+  const [previewSource, setPreviewSource] = useState<"event" | "digest" | "weekend">("event");
+  const [digestTemplateId, setDigestTemplateId] = useState<string>("");
   const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>("");
-  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string } | null>(null);
+  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string; render_source?: string; template_name?: string | null } | null>(null);
   const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmail, setTestEmail] = useState("");
@@ -734,12 +735,15 @@ const EmailConfig = () => {
     return renderEventAnnouncementEmail(previewData, tpl);
   }, [activeTemplate, previewData, tpl, previewArticle]);
 
-  const loadDigestPreview = async () => {
+  const loadDigestPreview = async (opts?: { source?: "digest" | "weekend"; templateId?: string }) => {
+    const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : "digest");
+    const tplId = opts?.templateId ?? digestTemplateId;
     setDigestPreviewLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", {
-        body: { dry_run: true, force: true },
-      });
+      const body: Record<string, unknown> = { dry_run: true, force: true };
+      if (src === "weekend") body.range = "weekend";
+      if (tplId) body.template_id = tplId;
+      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", { body });
       if (error) throw error;
       if ((data as any)?.skipped) {
         toast({ title: "Preview indisponível", description: `Motivo: ${(data as any).reason}`, variant: "destructive" });
@@ -754,20 +758,38 @@ const EmailConfig = () => {
         events_count: (data as any).events_count,
         posts_count: (data as any).posts_count,
         range: (data as any).range,
+        render_source: (data as any).render_source,
+        template_name: (data as any).template_name,
       });
     } catch (e: any) {
-      toast({ title: "Erro ao carregar digest", description: e.message ?? String(e), variant: "destructive" });
+      toast({ title: "Erro ao carregar preview", description: e.message ?? String(e), variant: "destructive" });
     } finally {
       setDigestPreviewLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (previewSource === "digest" && !digestPreviewHtml && !digestPreviewLoading) {
-      loadDigestPreview();
+  // Templates filtrados pela fonte selecionada
+  const digestTemplateOptions = useMemo(() => {
+    if (previewSource === "digest") {
+      return templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
     }
+    if (previewSource === "weekend") {
+      return templates.filter((t) => t.type === "weekend_agenda");
+    }
+    return [];
+  }, [templates, previewSource]);
+
+  useEffect(() => {
+    if (previewSource === "event") return;
+    // Ajusta template selecionado quando fonte muda
+    const opts = previewSource === "weekend"
+      ? templates.filter((t) => t.type === "weekend_agenda")
+      : templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
+    const defaultId = opts.find((t) => t.is_default)?.id || opts[0]?.id || "";
+    setDigestTemplateId(defaultId);
+    loadDigestPreview({ source: previewSource, templateId: defaultId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSource]);
+  }, [previewSource, templates]);
 
 
   const saveTemplate = async () => {
@@ -1410,29 +1432,51 @@ const EmailConfig = () => {
             <CardContent>
               <div className="mb-4 p-3 rounded-lg border bg-muted/20 flex flex-wrap items-center gap-3">
                 <Label className="text-xs whitespace-nowrap">Fonte dos dados</Label>
-                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest")}>
+                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest" | "weekend")}>
                   <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="event">Evento individual (mock/real)</SelectItem>
                     <SelectItem value="digest">Digest semanal real (próximos 7 dias)</SelectItem>
+                    <SelectItem value="weekend">Agenda FDS real (próximo fim de semana)</SelectItem>
                   </SelectContent>
                 </Select>
-                {previewSource === "digest" && (
+                {(previewSource === "digest" || previewSource === "weekend") && (
                   <>
-                    <Button size="sm" variant="outline" onClick={loadDigestPreview} disabled={digestPreviewLoading}>
+                    <Label className="text-xs whitespace-nowrap ml-2">Template</Label>
+                    <Select
+                      value={digestTemplateId || "__default__"}
+                      onValueChange={(v) => {
+                        const id = v === "__default__" ? "" : v;
+                        setDigestTemplateId(id);
+                        loadDigestPreview({ source: previewSource, templateId: id });
+                      }}
+                    >
+                      <SelectTrigger className="w-[280px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__default__">— Padrão (is_default) —</SelectItem>
+                        {digestTemplateOptions.map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name} {t.is_default ? "· padrão" : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button size="sm" variant="outline" onClick={() => loadDigestPreview()} disabled={digestPreviewLoading}>
                       {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
                     </Button>
                     {digestPreviewMeta && (
                       <span className="text-xs text-muted-foreground">
                         {digestPreviewMeta.events_count ?? 0} eventos · {digestPreviewMeta.posts_count ?? 0} posts · {digestPreviewMeta.range}
+                        {digestPreviewMeta.render_source && ` · ${digestPreviewMeta.render_source}${digestPreviewMeta.template_name ? ` (${digestPreviewMeta.template_name})` : ""}`}
                       </span>
                     )}
                   </>
                 )}
               </div>
 
+
               <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-                <div className={`space-y-3 ${previewSource === "digest" ? "opacity-60 pointer-events-none" : ""}`}>
+                <div className={`space-y-3 ${previewSource !== "event" ? "opacity-60 pointer-events-none" : ""}`}>
 
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
                     <Label className="text-xs">Simular com evento real</Label>
@@ -1552,7 +1596,7 @@ const EmailConfig = () => {
                 <div className="rounded-lg border border-border bg-[#050505] p-4">
                   <iframe
                     title="Email preview"
-                    srcDoc={previewSource === "digest" ? (digestPreviewHtml || "<div style='padding:40px;text-align:center;font-family:sans-serif;color:#888'>Carregando digest real…</div>") : previewHtml}
+                    srcDoc={previewSource !== "event" ? (digestPreviewHtml || "<div style='padding:40px;text-align:center;font-family:sans-serif;color:#888'>Carregando preview real…</div>") : previewHtml}
                     sandbox=""
                     className="mx-auto block h-[900px] w-full max-w-[640px] rounded-md border-0 bg-white"
                   />
