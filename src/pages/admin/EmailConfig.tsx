@@ -838,6 +838,18 @@ const EmailConfig = () => {
 
   // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
+
+  // Fonte do preview é derivada do TIPO do template ativo (evita 2 seletores conflitantes).
+  //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
+  //   weekend_agenda    → "weekend"     (mesma função, range weekend)
+  //   demais            → "event"       (mock/real do evento selecionado)
+  const previewSource: "event" | "digest" | "weekend" = useMemo(() => {
+    const t = activeTemplate?.type;
+    if (t === "weekly_digest" || t === "weekly_digest_editorial") return "digest";
+    if (t === "weekend_agenda") return "weekend";
+    return "event";
+  }, [activeTemplate?.type]);
+
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
       return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true });
