@@ -1962,48 +1962,74 @@ const EmailConfig = () => {
 
         {/* ================= HISTÓRICO ================= */}
         <TabsContent value="history" className="space-y-4">
+          {/* Campo de busca compartilhado: filtra "sem rascunho" E "histórico por evento" */}
+          <div>
+            <Input
+              placeholder="Buscar em rascunhos e histórico (nome, cidade)…"
+              value={historySearch}
+              onChange={(e) => setHistorySearch(e.target.value)}
+              className="max-w-md"
+            />
+          </div>
+
           {/* B.6.1 — Eventos sem campanha (importados via CSV/script) */}
           {(() => {
+            const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+            const q = norm(historySearch);
             const dispatchedIds = new Set(campaigns.map((c) => c.event_id));
-            const pending = realEvents.filter((e) => !dispatchedIds.has(e.id));
-            if (pending.length === 0) return null;
+            const allPending = realEvents.filter((e) => !dispatchedIds.has(e.id));
+            const pending = q
+              ? allPending.filter((e) => {
+                  const hay = norm(`${e.title} ${e.venue || ""} ${e.location_city || ""} ${e.location_state || ""}`);
+                  return hay.includes(q);
+                })
+              : allPending;
+            if (allPending.length === 0) return null;
             return (
               <Card>
                 <CardHeader>
-                  <CardTitle>Eventos sem rascunho ({pending.length})</CardTitle>
+                  <CardTitle>
+                    Eventos sem rascunho ({q ? `${pending.length} de ${allPending.length}` : allPending.length})
+                  </CardTitle>
                   <CardDescription>
                     Eventos criados via importação ou script que ainda não tiveram um rascunho de e-mail criado. Clique para criar manualmente.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {pending.map((ev) => (
-                      <div key={ev.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
-                        <div className="min-w-0 flex-1">
-                          <div className="font-medium truncate">{ev.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(ev.date).toLocaleDateString("pt-BR")} • {ev.venue}, {ev.location_city}-{ev.location_state}
+                  {pending.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">
+                      Nenhum evento sem rascunho encontrado para "{historySearch}".
+                    </p>
+                  ) : (
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {pending.map((ev) => (
+                        <div key={ev.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{ev.title}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {new Date(ev.date).toLocaleDateString("pt-BR")} • {ev.venue}, {ev.location_city}-{ev.location_state}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={dispatchingId === ev.id}
+                              onClick={() => dispatchNow(ev.id)}
+                            >
+                              <Send className="w-4 h-4 mr-2" />
+                              {dispatchingId === ev.id ? "Criando..." : "Criar rascunho"}
+                            </Button>
+                            <SendNowButton
+                              eventTitle={ev.title}
+                              disabled={dispatchingId === ev.id}
+                              onConfirm={() => dispatchNow(ev.id, { sendNow: true, forceResend: true })}
+                            />
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 justify-end">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={dispatchingId === ev.id}
-                            onClick={() => dispatchNow(ev.id)}
-                          >
-                            <Send className="w-4 h-4 mr-2" />
-                            {dispatchingId === ev.id ? "Criando..." : "Criar rascunho"}
-                          </Button>
-                          <SendNowButton
-                            eventTitle={ev.title}
-                            disabled={dispatchingId === ev.id}
-                            onConfirm={() => dispatchNow(ev.id, { sendNow: true, forceResend: true })}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -2017,14 +2043,7 @@ const EmailConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-3">
-                <Input
-                  placeholder="Buscar por nome do evento…"
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  className="max-w-md"
-                />
-              </div>
+              {/* busca movida para o topo da aba — filtra também 'sem rascunho' */}
               {(() => {
                 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
                 const q = norm(historySearch);
@@ -2228,4 +2247,13 @@ const EmailConfig = () => {
   );
 };
 
-export default EmailConfig;
+// Envolve a página com o Provider único de blocos globais para evitar
+// caches divergentes entre o editor e a biblioteca (bug do preview "indisponível").
+import { EmailGlobalBlocksProvider } from "@/contexts/EmailGlobalBlocksContext";
+const EmailConfigWithProviders = () => (
+  <EmailGlobalBlocksProvider>
+    <EmailConfig />
+  </EmailGlobalBlocksProvider>
+);
+
+export default EmailConfigWithProviders;

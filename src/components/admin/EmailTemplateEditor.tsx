@@ -4,7 +4,7 @@
  * Layout: lista drag-and-drop à esquerda, painel de propriedades à direita,
  * preview ao vivo abaixo. Usa dnd-kit (já no projeto).
  */
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -146,8 +146,13 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
       <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground p-1" aria-label="Arrastar">
         <GripVertical className="w-4 h-4" />
       </button>
-      <button className={`flex-1 text-left text-sm truncate ${hidden ? "line-through" : ""}`} onClick={onSelect}>
-        {BLOCK_LABELS[block.kind]}
+      <button className={`flex-1 text-left text-sm truncate flex items-center gap-2 ${hidden ? "line-through" : ""}`} onClick={onSelect}>
+        <span className="truncate">{BLOCK_LABELS[block.kind]}</span>
+        {hidden && (
+          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
+            oculto
+          </span>
+        )}
       </button>
       <button
         className={`p-1 ${hidden ? "text-muted-foreground" : "text-foreground/70 hover:text-foreground"}`}
@@ -304,13 +309,50 @@ export function EmailTemplateEditor({
     [blocks, previewEvent, settings, previewArticle, globalsMap],
   );
 
+  // ============================================================
+  // Detecção de "alterações não salvas" (item 7 do plano)
+  // ------------------------------------------------------------
+  // Antes: o editor mantinha localBlocks até "Salvar"; se você trocasse
+  // de template ou fechasse a aba, as mudanças sumiam sem aviso.
+  // Agora: badge visível + confirmação ao trocar + beforeunload.
+  // ============================================================
+  const isDirty = localBlocks !== null || (localName !== "" && localName !== activeTpl?.name);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  const handleActiveChange = (nextId: string) => {
+    if (isDirty && !confirm("Há alterações não salvas neste template. Trocar mesmo assim? As alterações serão perdidas.")) {
+      return;
+    }
+    setLocalBlocks(null);
+    setLocalName("");
+    setSelectedBlockId(null);
+    onActiveChange(nextId);
+  };
+
+
   return (
     <div className="space-y-4">
       {/* Barra superior: seletor de template + ações */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex-1 min-w-[240px]">
-          <Label className="text-xs">Template ativo</Label>
-          <Select value={activeId || ""} onValueChange={onActiveChange}>
+          <Label className="text-xs flex items-center gap-2">
+            Template ativo
+            {isDirty && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                • não salvo
+              </span>
+            )}
+          </Label>
+          <Select value={activeId || ""} onValueChange={handleActiveChange}>
             <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
             <SelectContent>
               {templates.map((t) => (
@@ -341,8 +383,14 @@ export function EmailTemplateEditor({
         <Button size="sm" variant="outline" onClick={deleteTemplate} disabled={!activeTpl || activeTpl.is_default}>
           <Trash2 className="w-4 h-4 mr-1" />Excluir
         </Button>
-        <Button size="sm" onClick={saveTemplate} disabled={!activeTpl || saving || localBlocks === null && !localName}>
-          <Save className="w-4 h-4 mr-1" />{saving ? "Salvando…" : "Salvar"}
+        <Button
+          size="sm"
+          variant={isDirty ? "default" : "outline"}
+          onClick={saveTemplate}
+          disabled={!activeTpl || saving || !isDirty}
+          className={isDirty ? "ring-2 ring-amber-500/40" : ""}
+        >
+          <Save className="w-4 h-4 mr-1" />{saving ? "Salvando…" : isDirty ? "Salvar alterações" : "Salvo"}
         </Button>
       </div>
 
