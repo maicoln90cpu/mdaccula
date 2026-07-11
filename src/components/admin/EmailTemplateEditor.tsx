@@ -130,8 +130,8 @@ function ColorControl({ label, value, onChange, placeholder }: { label: string; 
   );
 }
 
-function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleHidden }: {
-  block: Block; active: boolean; onSelect: () => void;
+function SortableRow({ block, active, label, isGlobal, onSelect, onRemove, onDuplicate, onToggleHidden }: {
+  block: Block; active: boolean; label: string; isGlobal: boolean; onSelect: () => void;
   onRemove: () => void; onDuplicate: () => void; onToggleHidden: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
@@ -146,8 +146,9 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
       <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground p-1" aria-label="Arrastar">
         <GripVertical className="w-4 h-4" />
       </button>
-      <button className={`flex-1 text-left text-sm truncate flex items-center gap-2 ${hidden ? "line-through" : ""}`} onClick={onSelect}>
-        <span className="truncate">{BLOCK_LABELS[block.kind]}</span>
+      <button className={`flex-1 text-left text-sm truncate flex items-center gap-1.5 ${hidden ? "line-through" : ""}`} onClick={onSelect}>
+        {isGlobal && <Library className="w-3.5 h-3.5 shrink-0 text-primary" />}
+        <span className="truncate">{label}</span>
         {hidden && (
           <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
             oculto
