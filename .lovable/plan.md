@@ -1,123 +1,81 @@
-# Plano — Lapidações finais
+# Plano — Lapidações finais no editor de e-mails
 
-## Item 1 · Imagem do evento quebrada só no Outlook
+## Item 1 · Placeholders reconhecidos + botão "Ver placeholders"
 
-**Diagnóstico:** os flyers são servidos pelo Bunny CDN em formato **WebP** (`mdaccula.b-cdn.net/...webp`). O Outlook desktop (Windows) **não suporta WebP** — por isso mostra o "X" só nele; Gmail/Apple Mail/Outlook web renderizam normal.
+**Problema (print 1):** o assunto salvo usa `{{event.title}}`, `{{event.date_label}}`, `{{event.venue}}`, `{{event.city_state}}` (notação com ponto). O resolver do preview só reconhece as versões com underline (`{{event_title}}`, `{{date_label}}`, `{{venue_name}}`, `{{city_state}}`) — por isso aparece "Placeholder não reconhecido" mesmo com evento selecionado.
 
-**Correção proposta:** passar as URLs de imagem por um **proxy que converte WebP → JPG na hora**, apenas dentro do HTML do e-mail. Sem re-upload, sem migração de arquivos.
+**Correção:**
+- Ampliar `resolvePlaceholders` em `src/components/admin/InboxPreviewHeader.tsx` para aceitar as duas notações (ponto e underline) e adicionar `{{weekend_range}}` e `{{time_label}}`.
+- Corrigir o mesmo mapeamento no HTML final: em `src/lib/emailTemplates/blocks.ts` a função que resolve assunto/preheader antes do envio (`renderBlockedTemplate` + `dispatchEventDraft`) precisa aceitar as duas notações também, senão o e-mail sai com `{{event.title}}` literal.
 
-**Opções técnicas:**
+Placeholders suportados (lista canônica):
+- `{{event_title}}` = `{{event.title}}`
+- `{{date_label}}` = `{{event.date_label}}`
+- `{{time_label}}` = `{{event.time_label}}`
+- `{{venue_name}}` = `{{event.venue}}`
+- `{{city_state}}` = `{{event.city_state}}`
+- `{{weekend_range}}` (só em Agenda FDS/Digest)
 
-| Opção | Custo | Confiabilidade | Recomendação |
-|---|---|---|---|
-| **A) wsrv.nl (weserv.nl)** — proxy público gratuito | Zero | Alta (usado por milhares de e-mails corporativos) | ✅ Recomendada |
-| B) Bunny Optimizer com `?format=jpg` | Precisa habilitar Optimizer na conta Bunny (~$9,50/mês) | Alta | Só se você já usa/quer Optimizer |
-| C) Re-upload de todos os flyers como JPG | Trabalho manual + dobra egress | Alta | ❌ |
+**Botão "Ver placeholders":** ao lado do campo Assunto, ícone `HelpCircle` que abre um `Dialog` (shadcn) listando os 6 placeholders com:
+- Nome do placeholder em `<code>`.
+- Descrição curta ("Título do evento", "Data já formatada", etc.).
+- Botão `Copiar` (ícone Copy) que copia para o clipboard.
+- Aviso de contexto: "weekend_range só funciona em Agenda FDS/Digest".
 
-**O que farei (Opção A):**
-No `src/lib/emailTemplates/blocks.ts`, criar helper:
-```ts
-function proxyForEmail(url: string): string {
-  // Só reescreve se for URL http(s) apontando pra .webp — placeholders,
-  // data URIs e outros formatos passam intactos.
-  if (!/^https?:\/\//.test(url) || !/\.webp(\?|$)/i.test(url)) return url;
-  const clean = url.replace(/^https?:\/\//, "");
-  return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
-}
-```
-Aplicar em 2 blocos: `hero_image` e `image_with_link`.
+## Item 2 · Preview do editor não respeita blocos ocultos (print 5)
 
-**Antes vs depois:**
-- Antes: Outlook desktop mostra ícone "X" no flyer.
-- Depois: Outlook baixa a mesma imagem convertida em JPG e renderiza normal. Demais clientes (Gmail, Apple, Outlook web) continuam recebendo JPG também — sem impacto perceptível de qualidade a 85%.
+**Diagnóstico:** naquela tela o rótulo é "PREVIEW REAL (DADOS DO DISPARO)" — o preview vem de uma edge function (`weekly-digest-draft`) que renderiza a partir do **template salvo no banco**. Como o template estava "NÃO SALVO" e o usuário só ocultou blocos localmente, a edge function ignora o estado local e devolve o HTML como estava salvo.
 
-**Vantagens:**
-- Zero configuração adicional.
-- Free e cached na borda do wsrv.nl.
-- Só afeta e-mail (site continua servindo WebP puro).
+**Correção — 2 partes:**
+1. **Aviso claro:** se `isDirty === true` e o preview está no modo "real (edge function)", mostrar banner amarelo acima do iframe: *"Alterações não salvas — o preview real usa o template salvo. Salve para atualizar."* + botão "Salvar e recarregar".
+2. **Fallback local:** quando `isDirty` for verdadeiro em Agenda FDS/Digest, cair no render local (`renderBlockedTemplate` client-side) usando `previewEvent` como mock, ao invés do HTML da edge. Assim, ocultar blocos reflete instantaneamente. Ao salvar, volta para o "real".
 
-**Desvantagens:**
-- Dependência de terceiro (wsrv.nl). Se cair, imagens do e-mail não carregam — mas mesmo assim Outlook não vê pior do que hoje.
-- Latência extra de ~200 ms no primeiro carregamento por imagem (depois cacheia).
+## Item 3 · Remover "Cuiabá" residual
 
-**Checklist manual:**
-1. Enviar teste para Outlook desktop → flyer aparece.
-2. Enviar teste para Gmail → flyer continua aparecendo (idealmente).
-3. Ver HTML gerado no botão "Baixar HTML" e conferir se URLs `.webp` viraram `wsrv.nl/?url=...&output=jpg`.
+Em `src/components/admin/settings/TimezoneSettings.tsx:22` o rótulo do fuso ainda lista `"Manaus, Cuiabá, Campo Grande"` como exemplos de cidades do fuso -4 (é factualmente correto — são cidades do fuso Amazônia). **Não vou remover Cuiabá dali** — é rótulo geográfico de fuso horário, não conteúdo de marca.
 
-**Prevenção de regressão:**
-- Adicionar 1 teste unitário: `proxyForEmail("https://x.b-cdn.net/foo.webp")` → contém `wsrv.nl` + `output=jpg`; `proxyForEmail("https://x.com/foo.jpg")` → retorna a URL original.
+Migrations antigas (`20260709…`, `20260710…`) já corrigiram `footer_text` e blocos JSON de "Cuiabá" para "São Paulo". Vou:
+- Rodar um `grep` final e confirmar que **nenhum** texto de marca/copy ainda cita Cuiabá fora do rótulo de fuso.
+- Adicionar nota em `mem://index.md` (Core): *"MDAccula é São Paulo-SP. Nunca usar Cuiabá em copy/marca. Exceção: rótulo geográfico de fuso horário em TimezoneSettings."* — para eu não regredir isso no futuro.
 
----
+## Antes vs depois
 
-## Item 2 · Mostrar assunto e preheader no preview ao vivo
+| Item | Antes | Depois |
+|---|---|---|
+| Placeholders | Só underline reconhecido → aviso amarelo constante | Ponto e underline aceitos + `{{weekend_range}}` |
+| Descoberta | Rodapé com 4 placeholders escondidos | Botão "Ver placeholders" com modal + copiar |
+| Preview ocultar bloco | Ignorado no modo "real" (usa DB) | Fallback local quando há alterações não salvas |
+| Cuiabá | Já limpo em copy; rótulo de fuso mantido | Memória atualizada para prevenir regressão |
 
-**Hoje:** o preview mostra só o corpo do e-mail (iframe do HTML). Você configura assunto/preheader mas **não vê como fica na caixa de entrada** até enviar teste.
+## Checklist manual
 
-**Proposta:** adicionar acima de cada iframe uma **"linha de caixa de entrada"** simulando o Gmail/Outlook, com:
-- Ícone/avatar circular com iniciais da marca (**MD**).
-- Nome do remetente (ex.: `MDAccula`).
-- **Assunto** em negrito.
-- **Preheader** em cinza claro, na mesma linha, com `—` como separador.
-- Horário simulado à direita ("agora").
-- Barra fina separando do iframe.
+1. Assunto `{{event.title}} — {{event.date_label}}` com evento selecionado → header mostra "Solomun SP — Sáb, 12 jul", sem aviso amarelo.
+2. Assunto `{{weekend_range}}` em Agenda FDS → header mostra o range real.
+3. Clicar em "Ver placeholders" → modal abre com 6 itens; clicar em Copiar em `{{event_title}}` cola `{{event_title}}` no clipboard.
+4. No Editor + Preview de Agenda FDS: ocultar todos os blocos → preview local fica vazio; banner "alterações não salvas" aparece; salvar → preview real recarrega vazio.
+5. Enviar teste com assunto `{{event.title}}` → e-mail chega com o título real, não literal.
 
-**Placeholders resolvidos:** aplicar `{{event_title}}`, `{{date_label}}`, `{{venue_name}}`, `{{city_state}}` usando `previewData` (mock ou evento real selecionado). Assim, o preview reflete o texto **final** que o assinante veria.
+## Prevenção de regressão
 
-**Onde entra:**
-1. Editor unificado (aba "Editor" em EmailConfig): sobre o iframe de 600 px em `EmailTemplateEditor.tsx`.
-2. Aba "Template" (preview lateral em `EmailConfig.tsx`, iframe de 640 px).
+- Teste unitário em `resolvePlaceholders`: aceita `{{event.title}}` e `{{event_title}}` como equivalentes.
+- Teste unitário no resolver de assunto do `blocks.ts` (mesma cobertura, para o HTML enviado).
+- Memory `mem://index.md`: entrada de marca "São Paulo, nunca Cuiabá em copy".
 
-**Componente novo:** `src/components/admin/InboxPreviewHeader.tsx` — recebe `{ subjectTemplate, preheaderTemplate, previewData, senderName?, senderInitials? }` e resolve os placeholders localmente.
+## Pendências (futuro)
 
-**Mock de layout (referência):**
+- Traduzir os placeholders para nome amigável no bloco "Título do evento" (fora do escopo agora).
+- Persistir a preferência do usuário entre "Preview local" vs "Preview real (edge)".
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│ (MD)  MDAccula                                    agora │
-│       Novo evento: Solomun SP — Solomun SP em Parque…   │
-│       ─ negrito ─── ── cinza claro (preheader) ────     │
-└─────────────────────────────────────────────────────────┘
-```
+## Fases de deploy
 
-**Antes vs depois:**
-- Antes: você editava o assunto às cegas e só via depois de enviar teste.
-- Depois: enquanto digita no campo "Assunto" ou "Preheader" (Item 1 do plano anterior), o preview em cima do iframe atualiza instantaneamente com os placeholders resolvidos.
-
-**Vantagens:**
-- Feedback imediato — reduz erros de placeholder (ex: esquecer `{{event_title}}`).
-- Vê exatamente como o assinante enxerga o e-mail no inbox (assunto+preheader é 70% da decisão de abrir).
-- Funciona em todos os tipos: `event_new`, `ticket_batch`, `weekend_agenda`, `weekly_digest`, `courtesy`, `custom`.
-
-**Desvantagens:**
-- Ocupa ~70 px extra em cima do preview (aceitável).
-
-**Checklist manual:**
-1. Abrir aba "Editor", trocar template → header do inbox atualiza com o novo assunto/preheader.
-2. Trocar o evento no seletor (previewData muda) → placeholders `{{event_title}}` etc. reagem em tempo real.
-3. Deixar assunto vazio → header mostra fallback "(sem assunto configurado)" em itálico cinza.
-4. Testar em digest/weekend — usa `digestPreviewMeta.subject` quando disponível.
-
-**Prevenção de regressão:**
-- 1 teste unitário do helper `resolvePlaceholders(template, data)` com casos: substituição normal, template vazio, placeholder inexistente permanece literal.
-
----
-
-## Ordem sugerida de deploy
-
-1. **Fase 1 (baixo risco, visual):** Item 2 (InboxPreviewHeader). Só afeta admin, zero impacto no e-mail enviado.
-2. **Fase 2 (afeta HTML enviado):** Item 1 (proxy WebP→JPG). Testar teste real em Gmail e Outlook antes de considerar concluído.
-
-## Pendências
-
-- Fase 5 do plano antigo (revisar templates com blocos novos) e melhorias payload E-goi seguem em aberto.
-
-## Detalhes técnicos
+1. **Fase A (baixo risco, só admin):** Itens 1 e 2 — placeholders + botão modal + fallback local. Sem impacto no HTML enviado, exceto o resolver do assunto que passa a aceitar mais formatos (retrocompatível).
+2. **Fase B (memória):** Item 3 — atualização de memória, sem código.
 
 Arquivos afetados:
-- `src/lib/emailTemplates/blocks.ts` — helper `proxyForEmail` + uso em `hero_image` e `image_with_link`.
-- `src/components/admin/InboxPreviewHeader.tsx` — novo componente.
-- `src/components/admin/EmailTemplateEditor.tsx` — insere o header sobre o iframe.
-- `src/pages/admin/EmailConfig.tsx` — insere o header sobre o iframe da aba "Template".
+- `src/components/admin/InboxPreviewHeader.tsx`
+- `src/components/admin/EmailTemplateEditor.tsx` (botão modal + banner isDirty + fallback local para override)
+- `src/lib/emailTemplates/blocks.ts` (resolver dual-notation no assunto/preheader do HTML enviado)
+- `src/components/admin/PlaceholdersHelpDialog.tsx` (novo, ~60 linhas)
+- `mem://index.md` (nota São Paulo)
 
-Aprovar para eu executar as duas fases?
+Aprovar para executar?
