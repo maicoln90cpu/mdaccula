@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
+import { InboxPreviewHeader } from "./InboxPreviewHeader";
 
 interface Props {
   templates: Template[];
