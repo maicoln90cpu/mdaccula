@@ -1381,10 +1381,10 @@ export const TEMPLATE_PRESETS: Array<{
   },
   {
     key: "courtesy",
-    name: "Cortesia (nominal)",
-    description: "E-mail de cortesia nominal: saudação personalizada, dados do evento, mapa e CTA único de retirada. Use {{guest_name}} e {{courtesy_link}} para personalizar por convidado no disparo.",
-    subject_template: "🎟️ Sua cortesia — {{event_title}}",
-    preheader_template: "Cortesia confirmada para {{event_title}} em {{venue_name}}. Link único no botão abaixo.",
+    name: "Cortesia — oportunidade (genérico)",
+    description: "Convite genérico de cortesia com gatilho de escassez: mesma estrutura do 'Novo evento', mas com copy destacando que as vagas são limitadas e por ordem de chegada. Não personaliza por convidado — envio único para toda a lista.",
+    subject_template: "🎟️ Cortesia liberada — {{event_title}} (poucas vagas)",
+    preheader_template: "Cortesias limitadas para {{event_title}}. Garanta a sua antes que acabe.",
     template_type: "courtesy",
   },
 ];
