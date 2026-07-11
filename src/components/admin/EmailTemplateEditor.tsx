@@ -25,7 +25,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Plus, Trash2, Copy, Save, Eye, EyeOff } from "lucide-react";
+import { GripVertical, Plus, Trash2, Copy, Save, Eye, EyeOff, Library, Unlink } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
@@ -130,8 +130,8 @@ function ColorControl({ label, value, onChange, placeholder }: { label: string; 
   );
 }
 
-function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleHidden }: {
-  block: Block; active: boolean; onSelect: () => void;
+function SortableRow({ block, active, label, isGlobal, onSelect, onRemove, onDuplicate, onToggleHidden }: {
+  block: Block; active: boolean; label: string; isGlobal: boolean; onSelect: () => void;
   onRemove: () => void; onDuplicate: () => void; onToggleHidden: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: block.id });
@@ -146,8 +146,9 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
       <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground p-1" aria-label="Arrastar">
         <GripVertical className="w-4 h-4" />
       </button>
-      <button className={`flex-1 text-left text-sm truncate flex items-center gap-2 ${hidden ? "line-through" : ""}`} onClick={onSelect}>
-        <span className="truncate">{BLOCK_LABELS[block.kind]}</span>
+      <button className={`flex-1 text-left text-sm truncate flex items-center gap-1.5 ${hidden ? "line-through" : ""}`} onClick={onSelect}>
+        {isGlobal && <Library className="w-3.5 h-3.5 shrink-0 text-primary" />}
+        <span className="truncate">{label}</span>
         {hidden && (
           <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border">
             oculto
@@ -199,7 +200,7 @@ export function EmailTemplateEditor({
   templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
   const { toast } = useToast();
-  const { globalsMap } = useEmailGlobalBlocks();
+  const { globalsMap, updateGlobal } = useEmailGlobalBlocks();
   const activeTpl = useMemo(() => templates.find((t) => t.id === activeId) || null, [templates, activeId]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -249,6 +250,11 @@ export function EmailTemplateEditor({
 
   const updateBlock = (id: string, patch: Partial<Block>) => {
     setLocalBlocks(blocks.map((b) => (b.id === id ? { ...b, ...patch } as Block : b)));
+  };
+
+  /** Substitui integralmente um bloco (sem merge). Usado para "desfazer vínculo" de global_ref. */
+  const replaceBlock = (id: string, next: Block) => {
+    setLocalBlocks(blocks.map((b) => (b.id === id ? next : b)));
   };
 
   const addBlock = (kind: Block["kind"]) => {
@@ -518,17 +524,27 @@ export function EmailTemplateEditor({
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-1.5">
-                  {blocks.map((b) => (
-                    <SortableRow
-                      key={b.id}
-                      block={b}
-                      active={selectedBlockId === b.id}
-                      onSelect={() => setSelectedBlockId(b.id)}
-                      onRemove={() => removeBlock(b.id)}
-                      onDuplicate={() => duplicateBlock(b.id)}
-                      onToggleHidden={() => updateBlock(b.id, ({ hidden: !(b as { hidden?: boolean }).hidden } as unknown) as Partial<Block>)}
-                    />
-                  ))}
+                  {blocks.map((b) => {
+                    const isGlobal = b.kind === "global_ref";
+                    const resolvedName = isGlobal
+                      ? (globalsMap.get((b as any).global_id)?.name
+                          ?? (b as any)._cached_name
+                          ?? "Bloco global")
+                      : BLOCK_LABELS[b.kind];
+                    return (
+                      <SortableRow
+                        key={b.id}
+                        block={b}
+                        active={selectedBlockId === b.id}
+                        label={resolvedName}
+                        isGlobal={isGlobal}
+                        onSelect={() => setSelectedBlockId(b.id)}
+                        onRemove={() => removeBlock(b.id)}
+                        onDuplicate={() => duplicateBlock(b.id)}
+                        onToggleHidden={() => updateBlock(b.id, ({ hidden: !(b as { hidden?: boolean }).hidden } as unknown) as Partial<Block>)}
+                      />
+                    );
+                  })}
                 </div>
               </SortableContext>
             </DndContext>
@@ -562,7 +578,23 @@ export function EmailTemplateEditor({
             {!selectedBlock && (
               <p className="text-sm text-muted-foreground">Clique num bloco à esquerda para editar suas propriedades.</p>
             )}
-            {selectedBlock && <BlockPropsPanel block={selectedBlock} onChange={(patch) => updateBlock(selectedBlock.id, patch)} />}
+            {selectedBlock && selectedBlock.kind === "global_ref" && (
+              <GlobalRefPropsPanel
+                refBlock={selectedBlock as Extract<Block, { kind: "global_ref" }>}
+                templates={templates}
+                globalsMap={globalsMap}
+                updateGlobal={updateGlobal}
+                onUnlink={(expanded) => {
+                  const localCopy: Block = { ...(expanded as any), id: (selectedBlock as any).id } as Block;
+                  replaceBlock((selectedBlock as any).id, localCopy);
+                  toast({ title: "Vínculo desfeito", description: "O bloco virou local neste template. Edições agora só afetam este template." });
+                }}
+                onToast={(t) => toast(t)}
+              />
+            )}
+            {selectedBlock && selectedBlock.kind !== "global_ref" && (
+              <BlockPropsPanel block={selectedBlock} onChange={(patch) => updateBlock(selectedBlock.id, patch)} />
+            )}
           </CardContent>
         </Card>
 
@@ -1261,4 +1293,115 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
     default:
       return <p className="text-sm text-muted-foreground">Este bloco não tem propriedades editáveis — sua aparência vem dos dados do evento.</p>;
   }
+}
+
+// ============================================
+// Painel para bloco global_ref
+// --------------------------------------------
+// Mostra info do global + reaproveita BlockPropsPanel para editar o CONTEÚDO
+// interno. Salvar propaga para todos os templates que referenciam este global.
+// Também oferece "Desfazer vínculo" para converter em bloco local.
+// ============================================
+function GlobalRefPropsPanel({
+  refBlock, templates, globalsMap, updateGlobal, onUnlink, onToast,
+}: {
+  refBlock: Extract<Block, { kind: "global_ref" }>;
+  templates: Template[];
+  globalsMap: Map<string, import("@/lib/emailTemplates/blocks").GlobalBlock>;
+  updateGlobal: (id: string, patch: Partial<Omit<import("@/lib/emailTemplates/blocks").GlobalBlock, "id">>) => Promise<void>;
+  onUnlink: (expanded: Block) => void;
+  onToast: (t: { title: string; description?: string; variant?: "default" | "destructive" }) => void;
+}) {
+  const global = globalsMap.get(refBlock.global_id) || null;
+  const [saving, setSaving] = useState(false);
+
+  const usageCount = useMemo(() => {
+    let n = 0;
+    for (const t of templates) {
+      for (const b of (t.blocks as Block[])) {
+        if (b.kind === "global_ref" && (b as any).global_id === refBlock.global_id) { n++; break; }
+      }
+    }
+    return n;
+  }, [templates, refBlock.global_id]);
+
+  if (!global) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm">
+          <Library className="w-4 h-4 text-destructive" />
+          <span className="font-medium">Bloco global indisponível</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Este bloco global foi excluído da biblioteca. Referência: <code className="text-[10px]">{refBlock.global_id}</code>.
+          {refBlock._cached_name && <> Última cópia conhecida: <strong>{refBlock._cached_name}</strong>.</>}
+        </p>
+        <p className="text-xs text-muted-foreground">Remova este bloco do template ou recrie o global com o mesmo nome.</p>
+      </div>
+    );
+  }
+
+  const handleInnerChange = async (patch: Partial<Block>) => {
+    const nextInner = { ...global.block, ...patch } as Block;
+    setSaving(true);
+    try {
+      await updateGlobal(global.id, { block: nextInner });
+    } catch (e: any) {
+      onToast({ variant: "destructive", title: "Erro ao salvar bloco global", description: e.message });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border border-primary/40 bg-primary/5 p-3 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <Library className="w-4 h-4 text-primary shrink-0" />
+          <span className="font-semibold text-sm truncate">{global.name}</span>
+          {saving && <span className="text-[10px] text-muted-foreground">salvando…</span>}
+        </div>
+        {global.description && (
+          <div className="text-xs text-muted-foreground">{global.description}</div>
+        )}
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="px-1.5 py-0.5 rounded bg-muted border border-border">{global.category}</span>
+          <span>{BLOCK_LABELS[global.block.kind] || global.block.kind}</span>
+          <span>·</span>
+          <span>usado em {usageCount} {usageCount === 1 ? "template" : "templates"}</span>
+        </div>
+      </div>
+
+      <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-[11px] text-amber-700 dark:text-amber-300">
+        ⚠️ <strong>Bloco compartilhado.</strong> Alterações aqui refletem em <strong>todos os {usageCount} templates</strong> que o utilizam.
+      </div>
+
+      <div>
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Propriedades do bloco global
+        </div>
+        {/* Reaproveita o painel padrão — edições disparam updateGlobal */}
+        <BlockPropsPanel block={global.block} onChange={handleInnerChange} />
+      </div>
+
+      <div className="pt-3 border-t">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            if (!confirm("Desfazer o vínculo com a biblioteca? O bloco vira uma cópia local deste template. Outros templates continuam usando o global normalmente.")) return;
+            // Passa cópia do inner com novo id local
+            onUnlink({ ...(global.block as any), id: `b${Date.now()}${Math.floor(Math.random() * 1000)}` } as Block);
+          }}
+          className="w-full"
+        >
+          <Unlink className="w-3.5 h-3.5 mr-1.5" />
+          Desfazer vínculo (converter em bloco local)
+        </Button>
+        <p className="text-[10px] text-muted-foreground mt-1.5 text-center">
+          Útil quando você quer customizar este bloco só neste template.
+        </p>
+      </div>
+    </div>
+  );
 }

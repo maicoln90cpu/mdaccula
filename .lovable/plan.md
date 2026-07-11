@@ -1,132 +1,103 @@
 ## Objetivo
-
-Duas frentes independentes, entregues em etapas seguras:
-
-**A. Melhorias no payload enviado à E-goi** (3 camadas: preheader, texto plano, tags)
-**B. Fase 5 — revisar templates antigos** aproveitando os novos blocos criados (global_ref, hidden, event_card_multi, dedge_multi_cta, agenda_grid, countdown, etc.)
+Três melhorias focadas na experiência do editor de e-mails e finalizar o template de Cortesia.
 
 ---
 
-## Etapa 1 — Preheader dedicado no payload E-goi
+### Etapa 1 — Rótulo compacto de blocos globais na lista de blocos do template
 
-**O que é hoje:** o preheader (aquele texto de preview que aparece ao lado do assunto na caixa de entrada) já é editável no admin e é embutido dentro do HTML como texto oculto. Alguns clientes de e-mail (Gmail app, Outlook novo) leem esse texto oculto; outros preferem um campo dedicado da API.
+**Como está hoje**
+Na lista "Blocos do E-mail", um bloco global aparece como `"Bloco global (biblioteca)"`. O texto é longo, é truncado (`Bloco global (b...`) e não dá para saber qual global é sem clicar.
 
-**O que muda:** passar o preheader também no campo `content.preheader` da API E-goi, além de continuar embutido no HTML (redundância intencional — cobre 100% dos clientes).
+**Como fica**
+- Bloco global passa a exibir: um ícone pequeno de "biblioteca" (`Library`) + o **nome do bloco global salvo** (usando `_cached_name` já existente, ou o nome resolvido pelo cache do contexto `useEmailGlobalBlocks`).
+- Fallback quando o nome não foi resolvido ainda: "Bloco global".
+- Alteração local em `SortableRow` dentro de `src/components/admin/EmailTemplateEditor.tsx`: quando `block.kind === "global_ref"`, renderiza `<Library icon/> + nome` em vez de `BLOCK_LABELS["global_ref"]`.
 
-**Arquivos:**
-- `supabase/functions/create-event-email-campaign/index.ts` → adicionar `preheader` no `createPayload.content`
-- `supabase/functions/weekly-digest-draft/index.ts` → mesma coisa
-- `supabase/functions/weekend-agenda-draft/index.ts` → mesma coisa
-
-**Ganho esperado:** +5 a 15% de taxa de abertura (dado do setor quando o preheader é bem escrito e chega pelo campo oficial).
-
----
-
-## Etapa 2 — Versão em texto plano (plain-text)
-
-**O que é hoje:** só enviamos HTML. Clientes que não renderizam HTML (smartwatch, leitor de tela, filtros anti-spam agressivos, Outlook muito antigo) veem "e-mail em branco" ou caem no spam por não ter fallback.
-
-**O que muda:** gerar automaticamente uma versão em texto puro a partir dos blocos do template (título, subtítulo, descrição, links do CTA) e enviar no campo `content.text` da E-goi.
-
-**Como será feito:**
-- Nova função `renderBlockedTemplateText(blocks, event, opts)` em `supabase/functions/_shared/emailBlocks.ts` — mesma lógica de `renderBlockedTemplate` (respeita `hidden`, expande `global_ref`), mas cospe texto ao invés de HTML.
-- Cada `kind` de bloco tem sua versão texto: título vira linha em CAIXA ALTA, CTA vira "Link: URL", divider vira linha em branco, imagem/mapa some, etc.
-- As 3 edge functions passam a enviar `content.text` além do `content.body`.
-
-**Ganho esperado:** melhor entregabilidade (filtros anti-spam veem multipart bem formado), acessibilidade real para leitores de tela, fallback universal.
-
-**Custo:** função nova de ~150 linhas + testes.
+**Vantagens** Leitura imediata; distingue vários globais no mesmo template.
+**Desvantagens** Nenhuma funcional. Só visual.
 
 ---
 
-## Etapa 3 — Tags nas campanhas E-goi
+### Etapa 2 — Cartão "Biblioteca de blocos globais" mais compacto
 
-**O que é hoje:** todas as campanhas ficam misturadas no painel E-goi. Não dá para filtrar "só digests" ou "só eventos" facilmente.
+**Como está hoje**
+No card da biblioteca (lateral), cada global ocupa 2 linhas: nome + linha secundária com "Bloco global (biblioteca) · descrição". O rótulo "Bloco global (biblioteca)" é redundante (o card já se chama "Biblioteca de blocos globais").
 
-**O que muda:** cada campanha criada leva uma tag identificando o tipo:
-- `mdaccula`, `evento-novo` → campanha de evento novo
-- `mdaccula`, `digest-semanal` → digest de segunda
-- `mdaccula`, `agenda-fds` → agenda de sexta
-- `mdaccula`, `cortesia` → template de cortesia
-- Se for teste A/B: adiciona `ab-test` e `variante-A` / `variante-B`
+**Como fica** (`src/components/admin/GlobalBlocksLibrary.tsx`)
+- Substituir o texto do tipo de bloco por um **ícone pequeno** representando o tipo interno (ex.: `Image` para hero, `Type` para title, `Square` para cta, `Library` genérico) + a descrição.
+- Título fica em 1 linha, sublinha só com a descrição (se houver).
+- Botões "+ / ✎ / 🗑" continuam iguais.
 
-**Como será feito:** cada edge function que cria campanha adiciona um array `tags` no payload (documentação E-goi: campo `tags` aceita array de strings).
-
-**Ganho esperado:** relatórios organizados por tipo, busca rápida no painel, base para automações futuras (ex.: "reenviar só os digests que tiveram bounce").
+**Vantagens** Mais globais visíveis sem rolagem; leitura mais limpa.
+**Desvantagens** Perde-se o texto do tipo, mas o ícone + o nome do próprio bloco global já bastam.
 
 ---
 
-## Etapa 4 — Testes de regressão
+### Etapa 3 — Propriedades do `global_ref` no painel direito
 
-Novos testes em `supabase/functions/_shared/emailBlocks_test.ts`:
-- `renderBlockedTemplateText` respeita `hidden`
-- `renderBlockedTemplateText` expande `global_ref`
-- Texto gerado contém título, subtítulo, URLs de CTA
-- Texto gerado NÃO contém tags HTML nem CSS
+**Como está hoje**
+Ao clicar num `global_ref` no editor, o painel de propriedades diz "Este bloco não tem propriedades editáveis". Não dá para editar nada.
 
-Contract tests adicionais em `src/__tests__/contracts/` verificando que o payload das edge functions inclui `preheader`, `text`, `tags` (usando mock do fetch).
+**Como fica** (`src/components/admin/EmailTemplateEditor.tsx`)
+Painel passa a mostrar, para `global_ref`:
+1. **Cabeçalho informativo**: ícone `Library` + nome do global + descrição + categoria (readonly, vindos do `globalsMap`).
+2. **Aviso didático**: "Este é um bloco compartilhado. Alterações aqui refletem em TODOS os templates que o usam."
+3. **Botão "Editar bloco global"** → abre um `Dialog` que renderiza o **mesmo painel de propriedades** que o bloco interno usaria (ex.: se o global for um `footer`, mostra os controles de `footer`).
+4. Ao salvar no dialog: chama `updateGlobal(id, { block: novoBlock })` (o hook já existe; hoje aceita `Partial<Omit<GlobalBlock, "id">>` — só precisa incluir `block` no update).
+5. Botão secundário "Desfazer vínculo (converter em bloco local)": substitui o `global_ref` pelo bloco expandido no template atual — útil quando o usuário quer customizar só ali.
 
----
-
-## Etapa 5 — Fase 5: revisão dos templates antigos
-
-**Motivo:** quando os blocos novos foram criados (`global_ref`, `event_card_multi`, `dedge_multi_cta`, `agenda_grid`, `countdown`, `hidden`), os templates que já existiam no banco (`email_templates`) não foram migrados — continuam usando os blocos antigos manualmente duplicados. Ex.: o rodapé social está copiado literalmente em cada template ao invés de referenciar um bloco global.
-
-**Diagnóstico primeiro (só leitura):**
-1. Listar todos os templates ativos em `email_templates` agrupados por `template_type`.
-2. Para cada um, marcar:
-   - Blocos que poderiam virar `global_ref` (rodapé, header, social icons repetidos)
-   - Blocos que poderiam usar `event_card_multi` (listas de eventos manuais)
-   - Blocos que poderiam usar `agenda_grid` (grades de fim de semana manuais)
-   - Blocos que poderiam usar `countdown` (contagens regressivas manuais)
-
-**Aplicação (com aprovação do relatório):**
-- Criar/garantir os globais necessários em `email_global_blocks` (rodapé padrão, header padrão, social icons padrão).
-- Substituir nos templates antigos os blocos duplicados por `global_ref` apontando para os globais.
-- Substituir listas manuais pelos blocos dinâmicos novos.
-- Nenhum template é deletado — só editado. Backup do JSON original em campo `previous_blocks` (migration adiciona coluna se não existir) para permitir rollback.
-
-**Ordem de aplicação:** um `template_type` por vez, com preview lado a lado (antes/depois) antes de gravar.
-
-**Ganho:** manutenção centralizada (mudar o rodapé em 1 lugar afeta todos), templates mais leves, uso dos recursos novos que já foram pagos em dev.
+**Vantagens** Edição direta sem sair para outra tela; reforça a natureza compartilhada com o aviso; opção de desvincular preserva flexibilidade.
+**Desvantagens** Ao salvar, todos os templates que usam o global mudam — o aviso mitiga; ainda assim precisa toast de confirmação com contagem de templates impactados (mostrar `"X templates usam este bloco"`).
+**Pendência futura** Página dedicada "Blocos Globais" (já mencionada no roadmap) para gerenciar em massa.
 
 ---
 
-## Ordem sugerida de execução
+### Etapa 4 — Criar template padrão de Cortesia
 
-1. **Etapa 1 (preheader)** — mudança pequena, ganho grande, quase zero risco.
-2. **Etapa 3 (tags)** — mudança pequena, benefício organizacional imediato.
-3. **Etapa 2 (texto plano)** — mudança média, requer testes.
-4. **Etapa 4 (testes)** — trava as 3 anteriores contra regressão.
-5. **Etapa 5 (revisão de templates)** — começa com o relatório de diagnóstico; aplicação só após você aprovar cada `template_type`.
+**Como está hoje**
+Aba "Cortesia (0)" no editor mostra "Nenhum template de 'Cortesia' ainda. Use 'Novo' para criar." O preset `courtesy` **já existe** em `buildPresetBlocks("courtesy")` e em `TEMPLATE_PRESETS`. Falta apenas seed do template no banco.
 
-Você pode parar em qualquer etapa. Recomendo pelo menos 1+3 juntas (são as mais baratas e de maior retorno visível).
+**Como fica**
+Migration Supabase inserindo **um** template com:
+- `type = 'courtesy'`
+- `name = 'Cortesia — oportunidade (padrão)'`
+- `subject_template = '🎟️ Cortesia liberada — {{event_title}} (poucas vagas)'`
+- `preheader_template = 'Cortesias limitadas para {{event_title}}. Garanta a sua antes que acabe.'`
+- `blocks` = saída de `buildPresetBlocks('courtesy')` (já com copy de escassez: "poucas vagas", "chegue cedo", CTA "Garantir minha cortesia").
+- `is_default = true` para esse tipo.
+
+Como é genérico (não nominal), fica reutilizável em qualquer evento onde admin queira anunciar cortesias.
+
+**Vantagens** Admin tem ponto de partida imediato; copy já vem alinhada com "sensação de oportunidade / escassez" que você pediu.
+**Desvantagens** Se o preset em código evoluir depois, o template no banco não muda sozinho (é uma foto). Isso é o comportamento normal e esperado dos outros presets.
 
 ---
 
-## Antes vs Depois
+### Checklist manual (após implementação)
 
-| Item | Antes | Depois |
-|---|---|---|
-| Preheader | Só HTML embutido | HTML + campo oficial E-goi |
-| Texto plano | Não existe | Gerado automaticamente |
-| Tags | Sem tags | Categorizado por tipo |
-| Templates antigos | Blocos duplicados | Usam globais + blocos dinâmicos |
+- [ ] Editor de template: bloco global agora mostra ícone + nome real (ex.: "🗂 Redes sociais GL").
+- [ ] Card "Biblioteca de blocos globais": lista mais enxuta, sem "Bloco global (biblioteca)" repetido.
+- [ ] Clicar em bloco global no editor: painel mostra info + botão "Editar bloco global" + botão "Desfazer vínculo".
+- [ ] Editar via dialog: alteração aparece em outros templates que usam o mesmo global.
+- [ ] "Desfazer vínculo": bloco vira local, edições posteriores só afetam este template.
+- [ ] Aba "Cortesia" agora mostra "Cortesia (1)" com o template padrão listado.
+- [ ] Preview do template Cortesia renderiza com copy de escassez.
 
-## Riscos
+### Prevenção de regressão
 
-- **Baixo** em 1 e 3 (aditivo ao payload; se E-goi ignorar, nada quebra).
-- **Médio** em 2 (função nova; risco de texto mal formatado — mitigado por testes).
-- **Médio** em 5 (edita templates existentes; mitigado por backup em `previous_blocks` e revisão antes/depois).
+- Snapshot test: `buildPresetBlocks("courtesy")` continua contendo pelo menos 1 CTA + 1 eyebrow com termos de escassez ("cortesia", "poucas").
+- Teste de componente (`EmailTemplateEditor`) para o rótulo do `global_ref` (mostra nome do global, não o label genérico).
+- Teste do painel de propriedades: `global_ref` selecionado renderiza botão "Editar bloco global".
 
-## Prevenção de regressão
+### Detalhes técnicos
 
-- Testes Deno para `renderBlockedTemplateText`.
-- Contract tests do payload E-goi.
-- Coluna `previous_blocks` nos templates para rollback rápido da Fase 5.
+- Alteração em `SortableRow`: usa `useEmailGlobalBlocks().globalsMap.get(block.global_id)?.name ?? block._cached_name ?? "Bloco global"`.
+- Update do bloco interno de um global usa `updateGlobal(id, { block: patched })` — já suportado pela assinatura do hook.
+- "Desfazer vínculo" chama `expandGlobalRefs` de forma local (só neste template) ou simplesmente substitui a entrada no array de blocks pelo `globalsMap.get(id).block` com novo `id`.
+- Migration usa `INSERT INTO public.email_templates (...) SELECT ...` para gerar `id` e `created_at` automáticos; roda uma vez, idempotente com `WHERE NOT EXISTS (SELECT 1 FROM email_templates WHERE type='courtesy')`.
 
-## Pendências fora deste plano
+### Ordem sugerida de deploy (fases seguras)
 
-- Nenhuma nova. Este plano fecha o ciclo de melhorias do sistema de e-mail iniciado nas fases anteriores.
-
-Aprova executar tudo, ou quer fatiar (ex.: só 1+3 primeiro)?
+1. **Fase A** (visual, sem risco): Etapa 1 + 2 juntas.
+2. **Fase B** (funcional, risco baixo/médio): Etapa 3 — sozinha, para validar edição de globais sem quebrar outros templates.
+3. **Fase C** (dados): Etapa 4 — migration do template padrão de Cortesia.
