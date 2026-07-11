@@ -344,7 +344,7 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
     {
       id: "p1",
       title: "Charlotte de Witte revela setlist inédito em São Paulo",
-      excerpt: "A rainha do techno passa pela capital mato-grossense com um set exclusivo de melodic techno.",
+      excerpt: "A rainha do techno passa por São Paulo com um set exclusivo de melodic techno.",
       imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
       url: "https://mdaccula.com/blog/charlotte-de-witte-sao-paulo",
       publishedLabel: "há 2 dias",
