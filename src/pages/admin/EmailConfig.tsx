@@ -842,6 +842,10 @@ const EmailConfig = () => {
 
   // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
+  const defaultEventTemplate = useMemo(
+    () => templates.find((t) => t.type === "event_new" && t.is_default) || templates.find((t) => t.type === "event_new") || null,
+    [templates],
+  );
 
   // Fonte do preview é derivada do TIPO do template ativo (evita 2 seletores conflitantes).
   //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
@@ -2230,7 +2234,7 @@ const EmailConfig = () => {
                               />
                               <AbTestButton
                                 eventTitle={g.title}
-                                defaultSubject={buildEmailMeta(activeTemplate?.subject_template, null, { eventTitle: g.title }).subject || g.title}
+                                defaultSubject={buildEmailMeta(defaultEventTemplate?.subject_template, null, { eventTitle: g.title }).subject || g.title}
                                 disabled={dispatchingId === g.event_id}
                                 onConfirm={(p) => dispatchAbTest(g.event_id, p)}
                               />
