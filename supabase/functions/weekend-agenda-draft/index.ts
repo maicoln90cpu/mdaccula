@@ -413,6 +413,7 @@ Deno.serve(async (req) => {
           null,
           { preview: false, globals: globalsMap },
         );
+        renderedEventPayload = eventPayload;
         renderSource = 'template';
       } catch (err) {
         console.error('[weekend-agenda-draft] template render failed, using fallback:', err);
