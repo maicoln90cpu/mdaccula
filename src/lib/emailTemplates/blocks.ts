@@ -268,6 +268,9 @@ function renderBlock(block: Block, ctx: RenderContext): string {
   const accent = escape(settings.accent_color);
   const brand = escape(settings.brand_name);
   const gradient = `linear-gradient(90deg, ${primary} 0%, ${accent} 50%, #2563eb 100%)`;
+  // Cor sólida de fallback para clientes que não suportam gradiente CSS (Outlook desktop).
+  // Usa a cor primária da marca como fallback consistente com o topo do gradiente.
+  const solidPrimary = primary;
 
   switch (block.kind) {
     case "header": {
