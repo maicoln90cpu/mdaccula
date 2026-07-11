@@ -436,8 +436,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
     case "divider": {
       const thickness = Math.max(1, Math.min(8, block.thickness ?? 1));
-      const color = escape(block.color || "rgba(255,255,255,0.08)");
-      return `<tr><td style="padding:8px 32px;"><div style="height:${thickness}px;background:${color};line-height:${thickness}px;font-size:0;">&nbsp;</div></td></tr>`;
+      const color = escape(block.color || "#3f3f46");
+      // Outlook (Word engine) descarta background em <div>. Usar <table bgcolor> renderiza consistente.
+      return `<tr><td style="padding:8px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+          <tr><td bgcolor="${color}" height="${thickness}" style="height:${thickness}px;line-height:${thickness}px;font-size:0;background-color:${color};">&nbsp;</td></tr>
+        </table>
+      </td></tr>`;
     }
 
     case "text": {
