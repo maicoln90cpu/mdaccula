@@ -1368,4 +1368,12 @@ export const TEMPLATE_PRESETS: Array<{
     preheader_template: "Do sunset de sexta ao after de domingo. Sua semana começa aqui.",
     template_type: "weekend_agenda",
   },
+  {
+    key: "courtesy",
+    name: "Cortesia (nominal)",
+    description: "E-mail de cortesia nominal: saudação personalizada, dados do evento, mapa e CTA único de retirada. Use {{guest_name}} e {{courtesy_link}} para personalizar por convidado no disparo.",
+    subject_template: "🎟️ Sua cortesia — {{event_title}}",
+    preheader_template: "Cortesia confirmada para {{event_title}} em {{venue_name}}. Link único no botão abaixo.",
+    template_type: "courtesy",
+  },
 ];
