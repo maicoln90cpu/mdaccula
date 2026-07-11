@@ -892,7 +892,7 @@ export function renderBlockedTemplate(
   const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId, heroEventId };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
-  const preheader = `${escape(event.eventTitle)} — ${escape(event.dateLabel)} em ${escape(event.venueName)}, ${escape(event.cityState)}`;
+  const preheader = escape(computePreheader(event));
 
   const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
   const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
