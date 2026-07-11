@@ -127,7 +127,45 @@ export type Block =
   | { id: string; kind: "dedge_block"; override_content?: boolean; image_url?: string; eyebrow?: string; title?: string; description?: string; primary_label?: string; primary_url?: string; button_style?: "dark" | "primary" }
   | { id: string; kind: "weekly_hero"; source?: "first_weekend" | "main_event"; eyebrow?: string; cta_label?: string; show_venue?: boolean; show_cta?: boolean; overlay_intensity?: "soft" | "strong"; align?: Align }
   | { id: string; kind: "blog_posts_list"; title?: string; eyebrow?: string; max_items?: number; layout?: "list" | "cards"; show_excerpt?: boolean; show_category?: boolean; align?: Align }
-  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
+  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align }
+  | { id: string; kind: "global_ref"; global_id: string; _cached_name?: string };
+
+/** Bloco global salvo na biblioteca — reutilizável entre templates. */
+export type GlobalBlock = {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  block: Block;
+};
+
+/**
+ * Expande referências a blocos globais para o bloco real.
+ * Paridade 1:1 com `src/lib/emailTemplates/blocks.ts`.
+ * Se o global não for encontrado, substitui por um texto marcador (não vaza para envio real).
+ */
+export function expandGlobalRefs(
+  blocks: Block[],
+  globals: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null | undefined,
+): Block[] {
+  if (!globals) {
+    // Sem catálogo: remove global_refs para não deixarem "" no envio real.
+    return blocks.filter((b) => b.kind !== "global_ref");
+  }
+  const get = (id: string): GlobalBlock | undefined =>
+    globals instanceof Map ? globals.get(id) : (globals as Record<string, GlobalBlock>)[id];
+  const out: Block[] = [];
+  for (const b of blocks) {
+    if (b.kind !== "global_ref") { out.push(b); continue; }
+    const g = get(b.global_id);
+    if (!g) continue; // envio real: pula silenciosamente
+    // Preserva o id externo para não conflitar entre templates e propaga a flag
+    // `hidden` do wrapper (o usuário oculta a referência no template, não o global).
+    const hidden = (b as { hidden?: boolean }).hidden === true;
+    out.push({ ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block);
+  }
+  return out;
+}
 
 export type ArticleSummary = {
   title: string;
@@ -197,6 +235,9 @@ const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, 
 // ============================================
 
 function renderBlock(block: Block, ctx: RenderContext): string {
+  // Bloco oculto (toggle do olho no editor): pula render em preview e em envio real.
+  // Paridade com src/lib/emailTemplates/blocks.ts (linha do check `hidden`).
+  if ((block as { hidden?: boolean }).hidden) return "";
   const { event, article, settings } = ctx;
   const primary = escape(settings.primary_color);
   const accent = escape(settings.accent_color);
@@ -827,7 +868,7 @@ export function renderBlockedTemplate(
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,
   article?: ArticleSummary | null,
-  opts?: { preview?: boolean; projectId?: string },
+  opts?: { preview?: boolean; projectId?: string; globals?: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null },
 ): string {
   const s = {
     brand_name: settings?.brand_name || "MDACCULA",
@@ -840,9 +881,11 @@ export function renderBlockedTemplate(
     custom_html_header: settings?.custom_html_header ?? null,
     custom_html_footer: settings?.custom_html_footer ?? null,
   };
+  // Expande blocos globais ANTES de checar hero e renderizar.
+  const resolvedBlocks = expandGlobalRefs(blocks, opts?.globals ?? null);
   // Detecta se o template usa weekly_hero com o primeiro evento do FDS —
   // nesse caso, o grid deve pular esse evento para não duplicar o card.
-  const heroBlock = blocks.find(
+  const heroBlock = resolvedBlocks.find(
     (b) => (b as any).kind === "weekly_hero" && ((b as any).source ?? "first_weekend") === "first_weekend",
   );
   const heroEventId = heroBlock ? event.weekendEvents?.[0]?.id : undefined;
@@ -851,7 +894,7 @@ export function renderBlockedTemplate(
   const brand = escape(s.brand_name);
   const preheader = `${escape(event.eventTitle)} — ${escape(event.dateLabel)} em ${escape(event.venueName)}, ${escape(event.cityState)}`;
 
-  const rows = blocks.map((b) => renderBlock(b, ctx)).join("\n");
+  const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
   const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
   const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
 

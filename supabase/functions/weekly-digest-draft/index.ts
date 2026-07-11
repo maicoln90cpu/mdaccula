@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
         .limit(1);
     }
 
-    const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }] = await Promise.all([
+    const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }, { data: globalBlocksRows }] = await Promise.all([
       admin.from('events')
         .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,status')
         .eq('status', 'active')
@@ -315,7 +315,11 @@ Deno.serve(async (req) => {
         .limit(3),
       admin.from('email_template_settings').select('*').maybeSingle(),
       activeTplQuery.maybeSingle(),
+      (admin.from as any)('email_global_blocks').select('id, name, description, category, block'),
     ]);
+    // Catálogo de blocos globais para expandir global_ref no render.
+    const globalsMap = new Map<string, any>();
+    for (const g of ((globalBlocksRows ?? []) as any[])) globalsMap.set(g.id, g);
 
     const evs = ((eventRows ?? []) as EventRow[])
       .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
@@ -453,7 +457,7 @@ Deno.serve(async (req) => {
           eventPayload,
           settings as EmailTemplateSettings,
           null,
-          { preview: false },
+          { preview: false, globals: globalsMap },
         );
         renderSource = 'template';
       } catch (err) {
