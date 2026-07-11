@@ -519,17 +519,27 @@ export function EmailTemplateEditor({
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-1.5">
-                  {blocks.map((b) => (
-                    <SortableRow
-                      key={b.id}
-                      block={b}
-                      active={selectedBlockId === b.id}
-                      onSelect={() => setSelectedBlockId(b.id)}
-                      onRemove={() => removeBlock(b.id)}
-                      onDuplicate={() => duplicateBlock(b.id)}
-                      onToggleHidden={() => updateBlock(b.id, ({ hidden: !(b as { hidden?: boolean }).hidden } as unknown) as Partial<Block>)}
-                    />
-                  ))}
+                  {blocks.map((b) => {
+                    const isGlobal = b.kind === "global_ref";
+                    const resolvedName = isGlobal
+                      ? (globalsMap.get((b as any).global_id)?.name
+                          ?? (b as any)._cached_name
+                          ?? "Bloco global")
+                      : BLOCK_LABELS[b.kind];
+                    return (
+                      <SortableRow
+                        key={b.id}
+                        block={b}
+                        active={selectedBlockId === b.id}
+                        label={resolvedName}
+                        isGlobal={isGlobal}
+                        onSelect={() => setSelectedBlockId(b.id)}
+                        onRemove={() => removeBlock(b.id)}
+                        onDuplicate={() => duplicateBlock(b.id)}
+                        onToggleHidden={() => updateBlock(b.id, ({ hidden: !(b as { hidden?: boolean }).hidden } as unknown) as Partial<Block>)}
+                      />
+                    );
+                  })}
                 </div>
               </SortableContext>
             </DndContext>
