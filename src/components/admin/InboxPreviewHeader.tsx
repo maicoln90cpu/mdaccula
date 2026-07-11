@@ -36,6 +36,8 @@ type Props = {
   senderInitials?: string;
   /** Assunto explícito (usa este direto, ignora subjectTemplate). Útil para digest/weekend. */
   overrideSubject?: string | null;
+  /** Preheader explícito (usa este direto, ignora preheaderTemplate). Útil para digest/weekend. */
+  overridePreheader?: string | null;
 };
 
 /**
@@ -95,9 +97,10 @@ export function InboxPreviewHeader({
   senderName = "MDAccula",
   senderInitials = "MD",
   overrideSubject,
+  overridePreheader,
 }: Props) {
   const subject = overrideSubject ?? resolvePlaceholders(subjectTemplate, data);
-  const preheader = resolvePlaceholders(preheaderTemplate, data);
+  const preheader = overridePreheader ?? resolvePlaceholders(preheaderTemplate, data);
   const rawCombined = `${subjectTemplate ?? ""} ${preheaderTemplate ?? ""}`;
 
   return (
