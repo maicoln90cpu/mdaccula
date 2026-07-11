@@ -4,7 +4,7 @@
  * Layout: lista drag-and-drop à esquerda, painel de propriedades à direita,
  * preview ao vivo abaixo. Usa dnd-kit (já no projeto).
  */
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
