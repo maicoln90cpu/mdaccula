@@ -585,10 +585,8 @@ export function EmailTemplateEditor({
                 globalsMap={globalsMap}
                 updateGlobal={updateGlobal}
                 onUnlink={(expanded) => {
-                  // Substitui o global_ref por uma cópia LOCAL do bloco expandido
-                  // apenas neste template. Outros templates continuam vinculados.
                   const localCopy: Block = { ...(expanded as any), id: (selectedBlock as any).id } as Block;
-                  updateBlock((selectedBlock as any).id, localCopy as Partial<Block>);
+                  replaceBlock((selectedBlock as any).id, localCopy);
                   toast({ title: "Vínculo desfeito", description: "O bloco virou local neste template. Edições agora só afetam este template." });
                 }}
                 onToast={(t) => toast(t)}
