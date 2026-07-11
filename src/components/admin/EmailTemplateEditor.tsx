@@ -172,6 +172,28 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
   );
 }
 
+// Fase 3 — Fluxo Editor em 2 passos:
+//   1º) tipo do template (Evento / Virada / Agenda FDS / Digest / Custom)
+//   2º) template daquele tipo
+// Persistimos a escolha em localStorage para lembrar entre sessões.
+type TypeFilterKey = "event_new" | "ticket_batch" | "weekend_agenda" | "weekly_digest" | "custom";
+const TYPE_FILTER_ORDER: TypeFilterKey[] = ["event_new", "ticket_batch", "weekend_agenda", "weekly_digest", "custom"];
+const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
+  event_new: "Evento",
+  ticket_batch: "Virada",
+  weekend_agenda: "Agenda FDS",
+  weekly_digest: "Digest",
+  custom: "Custom",
+};
+const TYPE_FILTER_STORAGE_KEY = "mdaccula_email_editor_type";
+
+/** weekly_digest_editorial é uma variação de weekly_digest para o filtro. */
+const normalizeType = (t: Template["type"] | undefined): TypeFilterKey => {
+  if (!t) return "custom";
+  if (t === "weekly_digest_editorial") return "weekly_digest";
+  return t as TypeFilterKey;
+};
+
 export function EmailTemplateEditor({
   templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
@@ -182,6 +204,29 @@ export function EmailTemplateEditor({
   const [saving, setSaving] = useState(false);
   const [localBlocks, setLocalBlocks] = useState<Block[] | null>(null);
   const [localName, setLocalName] = useState<string>("");
+
+  // Tipo selecionado (passo 1). Inicializa a partir do localStorage.
+  const [typeFilter, setTypeFilter] = useState<TypeFilterKey>(() => {
+    if (typeof window === "undefined") return "event_new";
+    const stored = window.localStorage.getItem(TYPE_FILTER_STORAGE_KEY);
+    if (stored && (TYPE_FILTER_ORDER as string[]).includes(stored)) return stored as TypeFilterKey;
+    return "event_new";
+  });
+
+  // Contagem por tipo (para exibir nos chips).
+  const countsByType = useMemo(() => {
+    const counts: Record<TypeFilterKey, number> = {
+      event_new: 0, ticket_batch: 0, weekend_agenda: 0, weekly_digest: 0, custom: 0,
+    };
+    templates.forEach((t) => { counts[normalizeType(t.type)] += 1; });
+    return counts;
+  }, [templates]);
+
+  // Templates do tipo selecionado (passo 2).
+  const filteredTemplates = useMemo(
+    () => templates.filter((t) => normalizeType(t.type) === typeFilter),
+    [templates, typeFilter],
+  );
 
   // Sincroniza com template ativo
   const blocks = localBlocks ?? (activeTpl?.blocks as Block[]) ?? [];
@@ -338,30 +383,93 @@ export function EmailTemplateEditor({
     onActiveChange(nextId);
   };
 
+  // Troca do tipo (passo 1). Se houver alterações não salvas, confirma antes.
+  const handleTypeFilterChange = (nextType: TypeFilterKey) => {
+    if (nextType === typeFilter) return;
+    if (isDirty && !confirm("Há alterações não salvas neste template. Trocar de tipo mesmo assim? As alterações serão perdidas.")) {
+      return;
+    }
+    setLocalBlocks(null);
+    setLocalName("");
+    setSelectedBlockId(null);
+    setTypeFilter(nextType);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(TYPE_FILTER_STORAGE_KEY, nextType);
+    }
+    const firstOfType = templates.find((t) => normalizeType(t.type) === nextType);
+    onActiveChange(firstOfType?.id ?? "");
+  };
+
+  // Se o template ativo mudou para outro tipo (ex.: vindo do histórico),
+  // ajusta o filtro para bater com ele.
+  useEffect(() => {
+    if (!activeTpl) return;
+    const activeType = normalizeType(activeTpl.type);
+    if (activeType !== typeFilter) {
+      setTypeFilter(activeType);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(TYPE_FILTER_STORAGE_KEY, activeType);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTpl?.id]);
+
 
   return (
     <div className="space-y-4">
-      {/* Barra superior: seletor de template + ações */}
+      {/* Passo 1 — escolher o TIPO do template */}
+      <div>
+        <Label className="text-xs mb-1.5 block">1º Tipo de template</Label>
+        <div className="flex flex-wrap gap-1.5">
+          {TYPE_FILTER_ORDER.map((key) => {
+            const active = typeFilter === key;
+            const count = countsByType[key];
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleTypeFilterChange(key)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-foreground/80 border-border hover:border-primary/50"
+                }`}
+              >
+                {TYPE_FILTER_LABELS[key]}{" "}
+                <span className={active ? "opacity-80" : "text-muted-foreground"}>({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Passo 2 — escolher o template daquele tipo + ações */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex-1 min-w-[240px]">
           <Label className="text-xs flex items-center gap-2">
-            Template ativo
+            2º Template de {TYPE_FILTER_LABELS[typeFilter]}
             {isDirty && (
               <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
                 • não salvo
               </span>
             )}
           </Label>
-          <Select value={activeId || ""} onValueChange={handleActiveChange}>
-            <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
-            <SelectContent>
-              {templates.map((t) => (
-                <SelectItem key={t.id!} value={t.id!}>
-                  {t.name} {t.is_default && "· padrão"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {filteredTemplates.length === 0 ? (
+            <div className="text-xs text-muted-foreground border border-dashed border-border rounded px-3 py-2">
+              Nenhum template de "{TYPE_FILTER_LABELS[typeFilter]}" ainda. Use "Novo" para criar.
+            </div>
+          ) : (
+            <Select value={activeId || ""} onValueChange={handleActiveChange}>
+              <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
+              <SelectContent>
+                {filteredTemplates.map((t) => (
+                  <SelectItem key={t.id!} value={t.id!}>
+                    {t.name} {t.is_default && "· padrão"}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
