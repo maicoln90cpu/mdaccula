@@ -13,6 +13,8 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   renderBlockedTemplate,
+  renderBlockedTemplateText,
+  computePreheader,
   expandGlobalRefs,
   type Block,
   type EventAnnouncementData,
