@@ -463,7 +463,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!html) {
+    if (!html && !renderedEventPayload) {
       html = renderDigestHtml(evs, pts, settings, rangeLabel);
       renderSource = 'legacy';
     }
