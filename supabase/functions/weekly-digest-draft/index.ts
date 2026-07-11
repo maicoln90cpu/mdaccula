@@ -502,9 +502,9 @@ Deno.serve(async (req) => {
     let textVersion = '';
     let preheaderText = '';
     try {
-      if (tplBlocks && renderSource === 'template') {
-        textVersion = renderBlockedTemplateText(tplBlocks, eventPayload!, settings as EmailTemplateSettings, null, { globals: globalsMap });
-        preheaderText = computePreheader(eventPayload!);
+      if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap });
+        preheaderText = computePreheader(renderedEventPayload);
       }
     } catch (e) { console.warn('[weekly-digest-draft] text/preheader gen failed:', e); }
 
