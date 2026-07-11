@@ -538,14 +538,17 @@ export function EmailTemplateEditor({
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <Label className="text-xs">Assunto do e-mail</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs">Assunto do e-mail</Label>
+                <PlaceholdersHelpDialog />
+              </div>
               <Input
                 value={currentSubject}
                 onChange={(e) => setLocalSubject(e.target.value)}
                 placeholder="Ex.: Novo evento: {{event_title}}"
               />
               <p className="text-[10px] text-muted-foreground mt-1">
-                Placeholders: <code>{"{{event_title}}"}</code>, <code>{"{{date_label}}"}</code>, <code>{"{{venue_name}}"}</code>, <code>{"{{city_state}}"}</code>
+                Aceita <code>{"{{event_title}}"}</code>, <code>{"{{date_label}}"}</code>, <code>{"{{venue_name}}"}</code>, <code>{"{{city_state}}"}</code>, <code>{"{{weekend_range}}"}</code> e mais — clique em <b>Ver placeholders</b>.
               </p>
             </div>
             <div>
