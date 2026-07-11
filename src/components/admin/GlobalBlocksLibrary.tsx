@@ -182,18 +182,22 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
                       className="flex items-center gap-1 p-2 rounded border border-border bg-card/60 hover:bg-card"
                     >
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium truncate">{g.name}</div>
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {BLOCK_LABELS[g.block.kind] || g.block.kind}
-                          {g.description ? ` · ${g.description}` : ""}
+                        <div className="text-xs font-medium truncate flex items-center gap-1.5">
+                          <BlockKindIcon kind={g.block.kind} />
+                          <span className="truncate">{g.name}</span>
                         </div>
+                        {g.description && (
+                          <div className="text-[10px] text-muted-foreground truncate pl-5">
+                            {g.description}
+                          </div>
+                        )}
                       </div>
                       <Button
                         size="sm"
                         variant="ghost"
                         className="h-7 px-2"
                         onClick={() => handleInsertRef(g)}
-                        title="Inserir referência a este bloco no template atual"
+                        title={`Inserir referência a "${g.name}" no template atual`}
                       >
                         <Plus className="w-3.5 h-3.5" />
                       </Button>
