@@ -2230,7 +2230,7 @@ const EmailConfig = () => {
                               />
                               <AbTestButton
                                 eventTitle={g.title}
-                                defaultSubject={`Novo evento: ${g.title}`}
+                                defaultSubject={buildEmailMeta(activeTemplate?.subject_template, null, { eventTitle: g.title }).subject || g.title}
                                 disabled={dispatchingId === g.event_id}
                                 onConfirm={(p) => dispatchAbTest(g.event_id, p)}
                               />

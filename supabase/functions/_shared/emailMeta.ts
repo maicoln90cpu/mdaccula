@@ -55,3 +55,17 @@ export function buildEmailMeta(
     preheader: resolveEmailPlaceholders(preheaderTemplate, data),
   };
 }
+
+export function injectEmailPreheader(html: string, preheader: string): string {
+  const escaped = preheader
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const hidden = `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escaped}</div>`;
+  if (/<div\s+style="display:none;max-height:0;overflow:hidden;mso-hide:all;">[\s\S]*?<\/div>/i.test(html)) {
+    return html.replace(/<div\s+style="display:none;max-height:0;overflow:hidden;mso-hide:all;">[\s\S]*?<\/div>/i, hidden);
+  }
+  return html.replace(/<body([^>]*)>/i, `<body$1>\n${hidden}`);
+}

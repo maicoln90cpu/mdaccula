@@ -19,7 +19,7 @@ import {
   type WeekendEventItem,
   type BlogPostItem,
 } from '../_shared/emailBlocks.ts';
-import { buildEmailMeta } from '../_shared/emailMeta.ts';
+import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -499,6 +499,8 @@ Deno.serve(async (req) => {
         null,
         { preview: false, globals: globalsMap, preheader: preheaderFromTpl },
       );
+    } else if (html && preheaderFromTpl) {
+      html = injectEmailPreheader(html, preheaderFromTpl);
     }
 
     if (dryRun) {
