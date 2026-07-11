@@ -154,6 +154,7 @@ const sanitizeCustomHtml = (raw: string) =>
 export function renderEventAnnouncementEmail(
   data: EventAnnouncementData,
   settingsInput?: EmailTemplateSettings | null,
+  opts?: { preheader?: string | null },
 ): string {
   const s = { ...DEFAULTS, ...(settingsInput ?? {}) };
 
@@ -175,7 +176,7 @@ export function renderEventAnnouncementEmail(
     unsubscribeUrl,
   } = data;
 
-  const preheader = `${escape(eventTitle)} — ${escape(dateLabel)} em ${escape(venueName)}, ${escape(cityState)}`;
+  const preheader = escape(opts?.preheader ?? `${eventTitle} — ${dateLabel} em ${venueName}, ${cityState}`);
   const bg = escape(s.background_color);
   const primary = escape(s.primary_color);
   const accent = escape(s.accent_color);
@@ -343,7 +344,7 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
     {
       id: "p1",
       title: "Charlotte de Witte revela setlist inédito em São Paulo",
-      excerpt: "A rainha do techno passa pela capital mato-grossense com um set exclusivo de melodic techno.",
+      excerpt: "A rainha do techno passa por São Paulo com um set exclusivo de melodic techno.",
       imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
       url: "https://mdaccula.com/blog/charlotte-de-witte-sao-paulo",
       publishedLabel: "há 2 dias",

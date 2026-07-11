@@ -1,81 +1,246 @@
-# Plano — Lapidações finais no editor de e-mails
+## Plano aprovado antes de mexer
 
-## Item 1 · Placeholders reconhecidos + botão "Ver placeholders"
+### Problema identificado
 
-**Problema (print 1):** o assunto salvo usa `{{event.title}}`, `{{event.date_label}}`, `{{event.venue}}`, `{{event.city_state}}` (notação com ponto). O resolver do preview só reconhece as versões com underline (`{{event_title}}`, `{{date_label}}`, `{{venue_name}}`, `{{city_state}}`) — por isso aparece "Placeholder não reconhecido" mesmo com evento selecionado.
+**Como está hoje**
+- **Enviar teste** ainda usa assunto hardcoded no frontend: `"[Teste] " + nome do evento`. Ele não lê o `subject_template` salvo.
+- O HTML do e-mail ainda tem um **preheader escondido hardcoded dentro do próprio HTML**, calculado pelo evento: `evento — data em local`. Mesmo que o campo `preheader_template` esteja salvo certo, o snippet pode continuar antigo.
+- **Criar rascunho / Enviar agora** chama outro fluxo. Nele, o template de evento é escolhido de forma insegura: busca qualquer template com `is_default = true`. Hoje existem mais de um `is_default = true` no banco, então a busca pode falhar e cair no fallback `Novo evento: ...`.
+- Os fluxos **weekly-digest** e **weekend-agenda** foram corrigidos parcialmente, mas ainda têm trechos de fallback/`computePreheader()` que podem gerar texto diferente do salvo.
+- Ainda existem templates salvos no banco com “Cuiabá”; isso precisa ser corrigido para **São Paulo**.
 
-**Correção:**
-- Ampliar `resolvePlaceholders` em `src/components/admin/InboxPreviewHeader.tsx` para aceitar as duas notações (ponto e underline) e adicionar `{{weekend_range}}` e `{{time_label}}`.
-- Corrigir o mesmo mapeamento no HTML final: em `src/lib/emailTemplates/blocks.ts` a função que resolve assunto/preheader antes do envio (`renderBlockedTemplate` + `dispatchEventDraft`) precisa aceitar as duas notações também, senão o e-mail sai com `{{event.title}}` literal.
+**Como ficará**
+- Um único contrato de geração de assunto/preheader será usado por todos os fluxos:
+  - preview visual;
+  - enviar teste;
+  - criar rascunho na E-goi;
+  - enviar agora;
+  - digest semanal;
+  - agenda FDS.
+- Se não houver template válido, o sistema deve **falhar com aviso claro**, em vez de enviar assunto/preheader hardcoded errado.
+- O HTML escondido, o assunto enviado para Resend e o assunto/preheader enviados para E-goi sairão da mesma fonte: `subject_template` e `preheader_template` salvos.
 
-Placeholders suportados (lista canônica):
-- `{{event_title}}` = `{{event.title}}`
-- `{{date_label}}` = `{{event.date_label}}`
-- `{{time_label}}` = `{{event.time_label}}`
-- `{{venue_name}}` = `{{event.venue}}`
-- `{{city_state}}` = `{{event.city_state}}`
-- `{{weekend_range}}` (só em Agenda FDS/Digest)
+---
 
-**Botão "Ver placeholders":** ao lado do campo Assunto, ícone `HelpCircle` que abre um `Dialog` (shadcn) listando os 6 placeholders com:
-- Nome do placeholder em `<code>`.
-- Descrição curta ("Título do evento", "Data já formatada", etc.).
-- Botão `Copiar` (ícone Copy) que copia para o clipboard.
-- Aviso de contexto: "weekend_range só funciona em Agenda FDS/Digest".
+## Etapa 1 — Criar helper central de assunto/preheader
 
-## Item 2 · Preview do editor não respeita blocos ocultos (print 5)
+### Antes vs depois
+- **Antes:** cada lugar resolve placeholders de um jeito: preview, envio teste, rascunho E-goi e funções Edge.
+- **Depois:** haverá uma função central para resolver:
+  - `{{event_title}}` e `{{event.title}}`
+  - `{{date_label}}` e `{{event.date_label}}`
+  - `{{time_label}}` e `{{event.time_label}}`
+  - `{{venue_name}}`, `{{event.venue}}`, `{{event.venue_name}}`
+  - `{{city_state}}` e `{{event.city_state}}`
+  - `{{weekend_range}}`
+  - `{{week_range}}`
+  - `{{range_label}}`
+  - `{{events_count}}`
 
-**Diagnóstico:** naquela tela o rótulo é "PREVIEW REAL (DADOS DO DISPARO)" — o preview vem de uma edge function (`weekly-digest-draft`) que renderiza a partir do **template salvo no banco**. Como o template estava "NÃO SALVO" e o usuário só ocultou blocos localmente, a edge function ignora o estado local e devolve o HTML como estava salvo.
+### Melhoria
+- Acaba a diferença entre “o que aparece no preview” e “o que chega no e-mail”.
 
-**Correção — 2 partes:**
-1. **Aviso claro:** se `isDirty === true` e o preview está no modo "real (edge function)", mostrar banner amarelo acima do iframe: *"Alterações não salvas — o preview real usa o template salvo. Salve para atualizar."* + botão "Salvar e recarregar".
-2. **Fallback local:** quando `isDirty` for verdadeiro em Agenda FDS/Digest, cair no render local (`renderBlockedTemplate` client-side) usando `previewEvent` como mock, ao invés do HTML da edge. Assim, ocultar blocos reflete instantaneamente. Ao salvar, volta para o "real".
+### Vantagens
+- Menos chance de um fluxo ficar esquecido.
+- Mais fácil testar e corrigir no futuro.
 
-## Item 3 · Remover "Cuiabá" residual
+### Desvantagens / riscos
+- Edge Functions e frontend têm runtimes diferentes. Então a solução segura é criar **um contrato único** com helper no frontend e equivalente em `_shared` para Edge Functions, usando os mesmos testes/mesma regra. Não vou tentar importar frontend dentro da Edge Function porque isso costuma quebrar deploy.
 
-Em `src/components/admin/settings/TimezoneSettings.tsx:22` o rótulo do fuso ainda lista `"Manaus, Cuiabá, Campo Grande"` como exemplos de cidades do fuso -4 (é factualmente correto — são cidades do fuso Amazônia). **Não vou remover Cuiabá dali** — é rótulo geográfico de fuso horário, não conteúdo de marca.
+### Checklist manual
+- Editar assunto para: `TESTE {{event.title}} — {{event.date_label}}`
+- Editar preheader para: `PREHEADER {{event.venue}}, {{event.city_state}}`
+- Conferir se preview mostra exatamente isso resolvido.
 
-Migrations antigas (`20260709…`, `20260710…`) já corrigiram `footer_text` e blocos JSON de "Cuiabá" para "São Paulo". Vou:
-- Rodar um `grep` final e confirmar que **nenhum** texto de marca/copy ainda cita Cuiabá fora do rótulo de fuso.
-- Adicionar nota em `mem://index.md` (Core): *"MDAccula é São Paulo-SP. Nunca usar Cuiabá em copy/marca. Exceção: rótulo geográfico de fuso horário em TimezoneSettings."* — para eu não regredir isso no futuro.
+### Pendências
+- Nenhuma nesta etapa, se aprovado.
 
-## Antes vs depois
+### Prevenção de regressão
+- Criar teste unitário simples para garantir que placeholder com ponto e underline geram o mesmo resultado.
 
-| Item | Antes | Depois |
-|---|---|---|
-| Placeholders | Só underline reconhecido → aviso amarelo constante | Ponto e underline aceitos + `{{weekend_range}}` |
-| Descoberta | Rodapé com 4 placeholders escondidos | Botão "Ver placeholders" com modal + copiar |
-| Preview ocultar bloco | Ignorado no modo "real" (usa DB) | Fallback local quando há alterações não salvas |
-| Cuiabá | Já limpo em copy; rótulo de fuso mantido | Memória atualizada para prevenir regressão |
+---
 
-## Checklist manual
+## Etapa 2 — Corrigir o HTML escondido do preheader
 
-1. Assunto `{{event.title}} — {{event.date_label}}` com evento selecionado → header mostra "Solomun SP — Sáb, 12 jul", sem aviso amarelo.
-2. Assunto `{{weekend_range}}` em Agenda FDS → header mostra o range real.
-3. Clicar em "Ver placeholders" → modal abre com 6 itens; clicar em Copiar em `{{event_title}}` cola `{{event_title}}` no clipboard.
-4. No Editor + Preview de Agenda FDS: ocultar todos os blocos → preview local fica vazio; banner "alterações não salvas" aparece; salvar → preview real recarrega vazio.
-5. Enviar teste com assunto `{{event.title}}` → e-mail chega com o título real, não literal.
+### Antes vs depois
+- **Antes:** o corpo HTML inclui um `<div style="display:none">` com preheader automático antigo.
+- **Depois:** o HTML recebe o preheader já resolvido do template salvo.
 
-## Prevenção de regressão
+### Melhoria
+- Corrige o problema do snippet antigo aparecendo em clientes de e-mail, mesmo quando o campo salvo está correto.
 
-- Teste unitário em `resolvePlaceholders`: aceita `{{event.title}}` e `{{event_title}}` como equivalentes.
-- Teste unitário no resolver de assunto do `blocks.ts` (mesma cobertura, para o HTML enviado).
-- Memory `mem://index.md`: entrada de marca "São Paulo, nunca Cuiabá em copy".
+### Vantagens
+- O preview da caixa de entrada, o Resend e a E-goi ficam alinhados.
 
-## Pendências (futuro)
+### Desvantagens / riscos
+- Alguns clientes de e-mail podem cachear conversas antigas. Teste novo deve ser feito com assunto diferente para evitar agrupamento/cache visual.
 
-- Traduzir os placeholders para nome amigável no bloco "Título do evento" (fora do escopo agora).
-- Persistir a preferência do usuário entre "Preview local" vs "Preview real (edge)".
+### Checklist manual
+- Enviar teste com preheader novo e assunto novo.
+- No e-mail recebido, verificar:
+  - assunto;
+  - snippet/preheader;
+  - primeira linha escondida não aparece visualmente no corpo.
 
-## Fases de deploy
+### Pendências
+- Nenhuma.
 
-1. **Fase A (baixo risco, só admin):** Itens 1 e 2 — placeholders + botão modal + fallback local. Sem impacto no HTML enviado, exceto o resolver do assunto que passa a aceitar mais formatos (retrocompatível).
-2. **Fase B (memória):** Item 3 — atualização de memória, sem código.
+### Prevenção de regressão
+- Teste verificando que o HTML gerado contém o preheader resolvido e não contém o preheader automático antigo.
 
-Arquivos afetados:
-- `src/components/admin/InboxPreviewHeader.tsx`
-- `src/components/admin/EmailTemplateEditor.tsx` (botão modal + banner isDirty + fallback local para override)
-- `src/lib/emailTemplates/blocks.ts` (resolver dual-notation no assunto/preheader do HTML enviado)
-- `src/components/admin/PlaceholdersHelpDialog.tsx` (novo, ~60 linhas)
-- `mem://index.md` (nota São Paulo)
+---
 
-Aprovar para executar?
+## Etapa 3 — Corrigir “Enviar teste”
+
+### Antes vs depois
+- **Antes:** botão “Enviar teste” manda assunto hardcoded: `[Teste] ${previewData.eventTitle}`.
+- **Depois:** botão “Enviar teste” vai usar o `subject_template` e `preheader_template` do template ativo, resolvidos com os dados do simulador.
+
+### Melhoria
+- O teste passa a representar fielmente o envio real.
+
+### Vantagens
+- Você consegue validar pelo próprio e-mail recebido antes de criar rascunho na E-goi.
+
+### Desvantagens / riscos
+- Se houver alterações não salvas no editor, o botão precisa usar o estado local do editor ou avisar claramente. Vou priorizar usar o que está visível no editor quando possível, e manter aviso de “não salvo” quando depender do servidor.
+
+### Checklist manual
+- Alterar assunto/preheader no template.
+- Salvar.
+- Clicar “Enviar teste”.
+- Confirmar no e-mail recebido que não aparece mais `[Teste] Nome do evento` como assunto principal, salvo se isso estiver no próprio template.
+
+### Pendências
+- Nenhuma.
+
+### Prevenção de regressão
+- Teste/contrato para impedir que `sendTestEmail` volte a receber assunto hardcoded.
+
+---
+
+## Etapa 4 — Corrigir “Criar rascunho” e “Enviar agora” de evento individual
+
+### Antes vs depois
+- **Antes:** `dispatchEventDraftEmail` tenta pegar `default_event_template_id`; se vazio, busca qualquer `is_default = true`. Como há mais de um default, pode falhar e cair no `Novo evento:` hardcoded.
+- **Depois:** evento individual sempre buscará template do tipo correto:
+  - `event_new` para evento normal;
+  - `ticket_batch` quando for virada de lote;
+  - `courtesy` quando o fluxo usar cortesia.
+
+### Melhoria
+- A E-goi receberá o assunto/preheader do template salvo, não o nome/fallback antigo.
+
+### Vantagens
+- Evita rascunho com “Novo evento:” quando você já alterou o assunto.
+- Evita pegar template errado, como Cortesia, por causa de `is_default` duplicado.
+
+### Desvantagens / riscos
+- Se não existir template do tipo certo, o envio será bloqueado com erro claro. Isso é melhor do que enviar errado.
+
+### Checklist manual
+- No template “Evento”, salvar assunto personalizado.
+- Em “Histórico por evento”, clicar “Criar rascunho agora”.
+- Conferir na E-goi que o campo **Título/Subject** está igual ao template salvo resolvido.
+- Só testar “Enviar agora” se você quiser fazer envio real; caso contrário, validar apenas rascunho.
+
+### Pendências
+- Avaliar depois se vale criar uma tela para escolher template por evento antes do envio. Nesta correção, vou manter o comportamento atual e só corrigir a fonte.
+
+### Prevenção de regressão
+- Função auxiliar única para seleção de template por tipo.
+- Teste garantindo que múltiplos `is_default = true` não derrubam o fluxo de evento.
+
+---
+
+## Etapa 5 — Corrigir weekly-digest-draft e weekend-agenda-draft 100%
+
+### Antes vs depois
+- **Antes:** ainda podem usar `computePreheader()` ou fallback automático se o template não estiver completo.
+- **Depois:** subject/preheader virão do template salvo. Se o assunto estiver vazio, retorna erro claro em vez de enviar um hardcoded.
+
+### Melhoria
+- Digest e Agenda FDS passam a obedecer o mesmo padrão do evento individual.
+
+### Vantagens
+- Menos diferença entre “Preview”, “Gerar rascunho” e automações.
+
+### Desvantagens / riscos
+- Templates antigos sem `subject_template` precisarão ser preenchidos. Pelo banco atual, os principais já têm valor.
+
+### Checklist manual
+- Alterar o assunto do Digest com `{{week_range}}`.
+- Alterar o assunto da Agenda FDS com `{{weekend_range}}`.
+- Gerar preview e rascunho.
+- Conferir se ambos usam o texto salvo.
+
+### Pendências
+- Nenhuma para a correção atual.
+
+### Prevenção de regressão
+- Teste de contrato para as Edge Functions retornarem `subject` e `preheader` no `dry_run`.
+
+---
+
+## Etapa 6 — Corrigir “Cuiabá” no banco/templates
+
+### Antes vs depois
+- **Antes:** ainda há templates salvos com “Cuiabá”.
+- **Depois:** templates salvos serão atualizados para “São Paulo”.
+
+### Melhoria
+- Remove origem persistida do texto errado.
+
+### Vantagens
+- Mesmo templates antigos deixam de reintroduzir “Cuiabá”.
+
+### Desvantagens / riscos
+- É mudança no banco. Será feita via migration controlada, apenas substituindo textos de template.
+
+### Checklist manual
+- Abrir templates de Digest/Agenda FDS.
+- Confirmar que nenhum assunto/preheader contém “Cuiabá”.
+
+### Pendências
+- Nenhuma.
+
+### Prevenção de regressão
+- Busca no código e no banco por “Cuiabá” depois da correção.
+
+---
+
+## Etapa 7 — Deploy e validação segura
+
+### Antes vs depois
+- **Antes:** funções diferentes deployadas com lógicas diferentes.
+- **Depois:** Edge Functions afetadas serão redeployadas juntas:
+  - `send-test-email` se necessário;
+  - `create-event-email-campaign` se necessário;
+  - `weekly-digest-draft`;
+  - `weekend-agenda-draft`.
+
+### Melhoria
+- Evita corrigir frontend e deixar backend antigo.
+
+### Vantagens
+- Menos risco de “preview certo, envio errado”.
+
+### Desvantagens / riscos
+- Qualquer alteração de Edge Function exige deploy. Vou manter a mudança pequena e focada.
+
+### Checklist manual final
+1. Editar e salvar template “Evento”.
+2. Enviar teste.
+3. Criar rascunho E-goi.
+4. Conferir assunto e preheader nos dois.
+5. Repetir para Digest e Agenda FDS usando preview/dry-run/rascunho.
+6. Confirmar que “Cuiabá” não aparece mais.
+
+### Pendências futuras
+- Opcional depois: mostrar no histórico qual `subject` e `preheader` foram enviados em cada campanha. Isso exigiria salvar esses campos na tabela de histórico, então não vou incluir agora para evitar escopo extra.
+
+### Prevenção de regressão
+- Testes de helper de placeholders.
+- Teste do HTML gerado com preheader resolvido.
+- Teste de seleção de template por tipo.
+- Monitoramento manual via logs das Edge Functions depois do primeiro rascunho.

@@ -41,6 +41,7 @@ import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
 import { InboxPreviewHeader } from "./InboxPreviewHeader";
 import { PlaceholdersHelpDialog } from "./PlaceholdersHelpDialog";
+import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 
 interface Props {
   templates: Template[];
@@ -369,9 +370,20 @@ export function EmailTemplateEditor({
   };
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
+  const previewMeta = useMemo(
+    () => buildEmailMeta(currentSubject, currentPreheader, {
+      eventTitle: previewEvent.eventTitle,
+      dateLabel: previewEvent.dateLabel,
+      timeLabel: previewEvent.timeLabel,
+      venueName: previewEvent.venueName,
+      cityState: previewEvent.cityState,
+    }),
+    [currentSubject, currentPreheader, previewEvent],
+  );
+
   const previewHtml = useMemo(
-    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true, globals: globalsMap }),
-    [blocks, previewEvent, settings, previewArticle, globalsMap],
+    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true, globals: globalsMap, preheader: previewMeta.preheader }),
+    [blocks, previewEvent, settings, previewArticle, globalsMap, previewMeta.preheader],
   );
 
   // ============================================================

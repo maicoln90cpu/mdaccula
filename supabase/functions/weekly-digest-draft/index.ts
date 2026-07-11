@@ -13,13 +13,13 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplate,
   renderBlockedTemplateText,
-  computePreheader,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
   type WeekendEventItem,
   type BlogPostItem,
 } from '../_shared/emailBlocks.ts';
+import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -455,13 +455,6 @@ Deno.serve(async (req) => {
           dedge: dedgePayload,
         };
 
-        html = renderBlockedTemplate(
-          tplBlocks,
-          eventPayload,
-          settings as EmailTemplateSettings,
-          null,
-          { preview: false, globals: globalsMap },
-        );
         renderedEventPayload = eventPayload;
         renderSource = 'template';
       } catch (err) {
@@ -470,7 +463,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (!html) {
+    if (!html && !renderedEventPayload) {
       html = renderDigestHtml(evs, pts, settings, rangeLabel);
       renderSource = 'legacy';
     }
@@ -478,38 +471,44 @@ Deno.serve(async (req) => {
     // Resolve subject/preheader a partir do template salvo (sem fallback hardcoded).
     // Ex.: {{event_title}}, {{event.title}}, {{date_label}}, {{weekend_range}}, {{week_range}}
     const firstEv = evs[0];
-    const phMap: Record<string, string> = {
-      event_title: firstEv?.title || 'MDAccula',
-      'event.title': firstEv?.title || 'MDAccula',
-      date_label: firstEv ? formatDatePt(firstEv.date, firstEv.time) : rangeLabel,
-      'event.date_label': firstEv ? formatDatePt(firstEv.date, firstEv.time) : rangeLabel,
-      time_label: firstEv ? ((firstEv.time || '').slice(0, 5) || '22h') : '',
-      venue_name: firstEv?.venue || '',
-      'event.venue': firstEv?.venue || '',
-      city_state: firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : 'São Paulo-SP',
-      'event.city_state': firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : 'São Paulo-SP',
-      weekend_range: rangeLabel,
-      week_range: rangeLabel,
-      range_label: rangeLabel,
-      events_count: String(evs.length),
-    };
-    const resolvePh = (tpl: string) =>
-      String(tpl || '').replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, k) => (phMap[k] ?? ''));
-
-    const defaultSubject = range === 'weekend'
-      ? `🎉 Agenda do FDS — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} confirmados`
-      : `📬 MDAccula desta semana — ${evs.length} ${evs.length === 1 ? 'evento' : 'eventos'} no radar`;
-    const subjectTpl = (activeTpl as any)?.subject_template;
-    const subject = subjectTpl ? (resolvePh(subjectTpl) || defaultSubject) : defaultSubject;
-    const preheaderTplRaw = (activeTpl as any)?.preheader_template;
-    const preheaderFromTpl = preheaderTplRaw ? resolvePh(preheaderTplRaw) : '';
+    const meta = buildEmailMeta(
+      (activeTpl as any)?.subject_template,
+      (activeTpl as any)?.preheader_template,
+      {
+        eventTitle: firstEv?.title || 'MDAccula',
+        dateLabel: firstEv ? formatDatePt(firstEv.date, firstEv.time) : rangeLabel,
+        timeLabel: firstEv ? ((firstEv.time || '').slice(0, 5) || '22h') : '',
+        venueName: firstEv?.venue || '',
+        cityState: firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : 'São Paulo-SP',
+        weekendRange: rangeLabel,
+        weekRange: rangeLabel,
+        rangeLabel,
+        eventsCount: evs.length,
+      },
+    );
+    if (!meta.subject) return json({ ok: false, error: 'Assunto do template está vazio' }, 400);
+    const subject = meta.subject;
+    const preheaderFromTpl = meta.preheader;
     const internalName = `MDAccula • ${digestLabel} • ${todayIso}`;
+
+    if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+      html = renderBlockedTemplate(
+        tplBlocks,
+        renderedEventPayload,
+        settings as EmailTemplateSettings,
+        null,
+        { preview: false, globals: globalsMap, preheader: preheaderFromTpl },
+      );
+    } else if (html && preheaderFromTpl) {
+      html = injectEmailPreheader(html, preheaderFromTpl);
+    }
 
     if (dryRun) {
       return json({
         ok: true,
         dry_run: true,
         subject,
+        preheader: preheaderFromTpl,
         internal_name: internalName,
         html,
         events_count: evs.length,
@@ -523,14 +522,12 @@ Deno.serve(async (req) => {
 
 
 
-    // Payload E-goi enriquecido: preheader dedicado, versão text (multipart) e tags.
-    // Prioridade do preheader: preheader_template salvo > computePreheader (fallback).
+    // Payload E-goi enriquecido: preheader dedicado e versão text (multipart).
     let textVersion = '';
     let preheaderText = preheaderFromTpl || '';
     try {
       if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
-        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap });
-        if (!preheaderText) preheaderText = computePreheader(renderedEventPayload);
+        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
       }
     } catch (e) { console.warn('[weekly-digest-draft] text/preheader gen failed:', e); }
 

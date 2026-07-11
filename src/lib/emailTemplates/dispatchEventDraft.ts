@@ -21,6 +21,7 @@ import {
   type EventAnnouncementData,
   type EmailTemplateSettings,
 } from "./eventAnnouncement";
+import { buildEmailMeta } from "./emailMeta";
 
 export type DispatchEventDraftResult = {
   ok: boolean;
@@ -128,7 +129,7 @@ export async function dispatchEventDraftEmail(
   const event = evRes.data as EventRow | null;
   if (!event) return { ok: false, error: "Evento não encontrado" };
 
-  // 2. Template — override tem prioridade; senão default_event_template_id; senão is_default
+  // 2. Template — override tem prioridade; senão template padrão de evento por tipo.
   let template: Template | null = null;
   if (opts.templateIdOverride) {
     const { data } = await (supabase.from as any)("email_templates")
@@ -142,14 +143,20 @@ export async function dispatchEventDraftEmail(
       .select("*")
       .eq("id", cfg.default_event_template_id)
       .maybeSingle();
-    template = data as Template | null;
+    template = (data as Template | null)?.type === "event_new" ? (data as Template) : null;
   }
   if (!template) {
     const { data } = await (supabase.from as any)("email_templates")
       .select("*")
-      .eq("is_default", true)
+      .eq("type", "event_new")
+      .order("is_default", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     template = data as Template | null;
+  }
+  if (!template) {
+    return { ok: false, error: "Nenhum template do tipo Evento encontrado" };
   }
 
   const settings = (tplSettingsRes?.data ?? {}) as EmailTemplateSettings;
@@ -208,16 +215,6 @@ export async function dispatchEventDraftEmail(
     // segue sem globals; global_refs serão renderizados como placeholder
   }
 
-  // 5. Render HTML
-  const html =
-    resolvedBlocks && resolvedBlocks.length > 0
-      ? renderBlockedTemplate(resolvedBlocks, eventData, settings, article, { globals: globalsMap })
-      : renderEventAnnouncementEmail(eventData, settings);
-
-  // Resolve placeholders ({{event_title}}, {{event.title}}, {{date_label}}, etc.)
-  // usando os dados reais do evento — antes lia colunas erradas (subject/preheader
-  // ao invés de subject_template/preheader_template) e enviava literais.
-  const { resolvePlaceholders } = await import("@/components/admin/InboxPreviewHeader");
   const phData = {
     eventTitle: event.title,
     dateLabel: eventData.dateLabel,
@@ -225,24 +222,28 @@ export async function dispatchEventDraftEmail(
     venueName: event.venue,
     cityState: `${event.location_city}-${event.location_state}`,
   };
-  const subjectTpl =
-    opts.subjectOverride ||
-    (template as any)?.subject_template ||
-    (template as any)?.subject ||
-    `Novo evento: {{event_title}}`;
-  const preheaderTpl =
-    (template as any)?.preheader_template ||
-    (template as any)?.preheader ||
-    `{{event_title}} — {{date_label}} em {{venue_name}}, {{city_state}}`;
-  const subject = resolvePlaceholders(subjectTpl, phData) || `Novo evento: ${event.title}`;
-  const preheader = resolvePlaceholders(preheaderTpl, phData);
+  const meta = buildEmailMeta(
+    opts.subjectOverride || template.subject_template,
+    template.preheader_template,
+    phData,
+  );
+  if (!meta.subject) {
+    return { ok: false, error: "Assunto do template está vazio" };
+  }
+
+  // 5. Render HTML com o mesmo preheader salvo/resolvido que será enviado.
+  const html =
+    resolvedBlocks && resolvedBlocks.length > 0
+      ? renderBlockedTemplate(resolvedBlocks, eventData, settings, article, { globals: globalsMap, preheader: meta.preheader })
+      : renderEventAnnouncementEmail(eventData, settings, { preheader: meta.preheader });
 
   // 5. Chama edge function
   const invokeBody: Record<string, unknown> = {
     event_id: eventId,
     html,
-    subject,
-    preheader,
+    subject: meta.subject,
+    preheader: meta.preheader,
+    template_type: template.type,
     force_resend: opts.forceResend === true,
     send_now: opts.sendNow === true,
   };

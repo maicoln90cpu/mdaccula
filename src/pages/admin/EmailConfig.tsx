@@ -28,6 +28,7 @@ import {
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
 import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTemplates/dispatchEventDraft";
+import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { InboxPreviewHeader } from "@/components/admin/InboxPreviewHeader";
 
@@ -345,7 +346,7 @@ const EmailConfig = () => {
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [digestTemplateId, setDigestTemplateId] = useState<string>("");
   const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>("");
-  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string; render_source?: string; template_name?: string | null } | null>(null);
+  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; preheader?: string; events_count?: number; posts_count?: number; range?: string; render_source?: string; template_name?: string | null } | null>(null);
   const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmail, setTestEmail] = useState("");
@@ -841,6 +842,10 @@ const EmailConfig = () => {
 
   // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
+  const defaultEventTemplate = useMemo(
+    () => templates.find((t) => t.type === "event_new" && t.is_default) || templates.find((t) => t.type === "event_new") || null,
+    [templates],
+  );
 
   // Fonte do preview é derivada do TIPO do template ativo (evita 2 seletores conflitantes).
   //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
@@ -853,12 +858,23 @@ const EmailConfig = () => {
     return "event";
   }, [activeTemplate?.type]);
 
+  const eventPreviewMeta = useMemo(
+    () => buildEmailMeta(activeTemplate?.subject_template, activeTemplate?.preheader_template, {
+      eventTitle: previewData.eventTitle,
+      dateLabel: previewData.dateLabel,
+      timeLabel: previewData.timeLabel,
+      venueName: previewData.venueName,
+      cityState: previewData.cityState,
+    }),
+    [activeTemplate?.subject_template, activeTemplate?.preheader_template, previewData],
+  );
+
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
-      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true, globals: globalsMap });
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true, globals: globalsMap, preheader: eventPreviewMeta.preheader });
     }
-    return renderEventAnnouncementEmail(previewData, tpl);
-  }, [activeTemplate, previewData, tpl, previewArticle, globalsMap]);
+    return renderEventAnnouncementEmail(previewData, tpl, { preheader: eventPreviewMeta.preheader });
+  }, [activeTemplate, previewData, tpl, previewArticle, globalsMap, eventPreviewMeta.preheader]);
 
   const loadDigestPreview = async (opts?: { source?: "digest" | "weekend"; templateId?: string }) => {
     const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : "digest");
@@ -880,6 +896,7 @@ const EmailConfig = () => {
       setDigestPreviewHtml((data as any).html);
       setDigestPreviewMeta({
         subject: (data as any).subject,
+        preheader: (data as any).preheader,
         events_count: (data as any).events_count,
         posts_count: (data as any).posts_count,
         range: (data as any).range,
@@ -1524,6 +1541,9 @@ const EmailConfig = () => {
                 overrideSubject={
                   previewSource !== "event" ? digestPreviewMeta?.subject ?? null : null
                 }
+                overridePreheader={
+                  previewSource !== "event" ? digestPreviewMeta?.preheader ?? null : null
+                }
                 data={{
                   eventTitle: previewData.eventTitle,
                   dateLabel: previewData.dateLabel,
@@ -1611,7 +1631,15 @@ const EmailConfig = () => {
                   <Button
                     size="sm"
                     disabled={sendingTest}
-                    onClick={() => sendTestEmail(previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml, `[Teste] ${previewData.eventTitle}`)}
+                    onClick={() => {
+                      const html = previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml;
+                      const subject = previewSource !== "event" ? (digestPreviewMeta?.subject || "") : eventPreviewMeta.subject;
+                      if (!subject) {
+                        toast({ variant: "destructive", title: "Assunto vazio", description: "Salve um assunto no template antes de enviar teste." });
+                        return;
+                      }
+                      void sendTestEmail(html, subject);
+                    }}
                   >
                     <Send className="w-4 h-4 mr-1" />
                     {sendingTest ? "Enviando…" : "Enviar teste"}
@@ -2206,7 +2234,7 @@ const EmailConfig = () => {
                               />
                               <AbTestButton
                                 eventTitle={g.title}
-                                defaultSubject={`Novo evento: ${g.title}`}
+                                defaultSubject={buildEmailMeta(defaultEventTemplate?.subject_template, null, { eventTitle: g.title }).subject || g.title}
                                 disabled={dispatchingId === g.event_id}
                                 onConfirm={(p) => dispatchAbTest(g.event_id, p)}
                               />

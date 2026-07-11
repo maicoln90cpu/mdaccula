@@ -174,7 +174,13 @@ Deno.serve(async (req) => {
     const mode: Mode = sendNow ? 'immediate' : ((cfg.mode as Mode) || 'draft');
     const abSuffix = isAbTest ? ` • A/B ${abVariant}` : '';
     const internalName = `MDAccula • ${claimedTitle || 'Evento'} • ${now.slice(0, 10)}${abSuffix}`;
-    const finalSubject = subject || `Novo evento: ${claimedTitle}`;
+    const finalSubject = subject?.trim();
+    if (!finalSubject) {
+      if (!isAbTest) {
+        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+      }
+      return json({ error: 'Assunto do template está vazio' }, 400);
+    }
 
     // E-goi v3: POST /campaigns/email
     // Doc: https://developers.e-goi.com/api/v3/#tag/Email/operation/createEmailCampaign

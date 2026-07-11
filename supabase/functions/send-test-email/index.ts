@@ -30,6 +30,9 @@ Deno.serve(async (req) => {
     if (!html || typeof html !== "string") {
       return new Response(JSON.stringify({ error: "html obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    if (!subject || typeof subject !== "string" || !subject.trim()) {
+      return new Response(JSON.stringify({ error: "subject obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
@@ -50,7 +53,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "MDAccula <onboarding@resend.dev>",
         to: [destination],
-        subject: typeof subject === "string" && subject.trim() ? subject : "[Teste] Preview de template MDAccula",
+        subject: subject.trim(),
         html,
       }),
     });

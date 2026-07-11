@@ -14,6 +14,7 @@
  * Além disso reconhecemos {{time_label}}, {{weekend_range}}, {{week_range}}.
  */
 import { Mail } from "lucide-react";
+import { resolveEmailPlaceholders } from "@/lib/emailTemplates/emailMeta";
 
 export type InboxPreviewData = {
   eventTitle?: string;
@@ -25,6 +26,10 @@ export type InboxPreviewData = {
   weekendRange?: string;
   /** Ex.: "24-30 jun". Usado em Digest semanal. */
   weekRange?: string;
+  /** Faixa genérica usada por funções de digest/agenda. */
+  rangeLabel?: string;
+  /** Quantidade de eventos renderizados no digest/agenda. */
+  eventsCount?: string | number;
 };
 
 type Props = {
@@ -35,6 +40,8 @@ type Props = {
   senderInitials?: string;
   /** Assunto explícito (usa este direto, ignora subjectTemplate). Útil para digest/weekend. */
   overrideSubject?: string | null;
+  /** Preheader explícito (usa este direto, ignora preheaderTemplate). Útil para digest/weekend. */
+  overridePreheader?: string | null;
 };
 
 /**
@@ -49,6 +56,8 @@ const PLACEHOLDER_ALIASES: Array<{ keys: string[]; get: (d: InboxPreviewData) =>
   { keys: ["city_state", "event.city_state"], get: (d) => d.cityState },
   { keys: ["weekend_range"], get: (d) => d.weekendRange },
   { keys: ["week_range"], get: (d) => d.weekRange },
+  { keys: ["range_label"], get: (d) => d.rangeLabel },
+  { keys: ["events_count"], get: (d) => d.eventsCount == null ? undefined : String(d.eventsCount) },
 ];
 
 /**
@@ -63,6 +72,8 @@ export const KNOWN_PLACEHOLDERS: Array<{ key: string; aliases: string[]; descrip
   { key: "city_state", aliases: ["event.city_state"], description: "Cidade e UF (ex.: 'São Paulo - SP').", scope: "Evento, Virada, Cortesia" },
   { key: "weekend_range", aliases: [], description: "Faixa de datas do fim de semana (ex.: '5-7 jul').", scope: "Agenda FDS" },
   { key: "week_range", aliases: [], description: "Faixa de datas da semana (ex.: '1-7 jul').", scope: "Digest semanal" },
+  { key: "range_label", aliases: [], description: "Faixa genérica retornada pelo disparo (quando não diferencia semana/FDS).", scope: "Digest semanal, Agenda FDS" },
+  { key: "events_count", aliases: [], description: "Quantidade de eventos incluídos no disparo.", scope: "Digest semanal, Agenda FDS" },
 ];
 
 /** Regex que casa qualquer `{{ nome }}` (com ou sem espaços, com ponto ou underline). */
@@ -78,14 +89,7 @@ export function resolvePlaceholders(
   template: string | null | undefined,
   data: InboxPreviewData | undefined,
 ): string {
-  if (!template) return "";
-  const d = data ?? {};
-  return template.replace(PLACEHOLDER_RE, (match, name: string) => {
-    const entry = PLACEHOLDER_ALIASES.find((e) => e.keys.includes(name));
-    if (!entry) return match; // placeholder desconhecido: preserva literal p/ debug
-    const value = entry.get(d);
-    return value ?? "";
-  });
+  return resolveEmailPlaceholders(template, data ?? {});
 }
 
 /** Retorna true se o texto ainda contém um placeholder que NÃO está na lista canônica. */
@@ -101,9 +105,10 @@ export function InboxPreviewHeader({
   senderName = "MDAccula",
   senderInitials = "MD",
   overrideSubject,
+  overridePreheader,
 }: Props) {
   const subject = overrideSubject ?? resolvePlaceholders(subjectTemplate, data);
-  const preheader = resolvePlaceholders(preheaderTemplate, data);
+  const preheader = overridePreheader ?? resolvePlaceholders(preheaderTemplate, data);
   const rawCombined = `${subjectTemplate ?? ""} ${preheaderTemplate ?? ""}`;
 
   return (
