@@ -1517,9 +1517,23 @@ const EmailConfig = () => {
 
             <div className="rounded-lg border border-border bg-[#050505] p-4 lg:sticky lg:top-4 lg:self-start">
               <div className="text-xs text-muted-foreground mb-2 px-1">Preview ao vivo (dados mock)</div>
+              <InboxPreviewHeader
+                subjectTemplate={activeTemplate?.subject_template}
+                preheaderTemplate={activeTemplate?.preheader_template}
+                overrideSubject={
+                  previewSource !== "event" ? digestPreviewMeta?.subject ?? null : null
+                }
+                data={{
+                  eventTitle: previewData.eventTitle,
+                  dateLabel: previewData.dateLabel,
+                  timeLabel: previewData.timeLabel,
+                  venueName: previewData.venueName,
+                  cityState: previewData.cityState,
+                }}
+              />
               <iframe
                 title="Template preview"
-                srcDoc={previewHtml}
+                srcDoc={previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml}
                 sandbox=""
                 className="mx-auto block h-[820px] w-full max-w-[640px] rounded-md border-0 bg-white"
               />
