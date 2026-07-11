@@ -172,6 +172,28 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
   );
 }
 
+// Fase 3 — Fluxo Editor em 2 passos:
+//   1º) tipo do template (Evento / Virada / Agenda FDS / Digest / Custom)
+//   2º) template daquele tipo
+// Persistimos a escolha em localStorage para lembrar entre sessões.
+type TypeFilterKey = "event_new" | "ticket_batch" | "weekend_agenda" | "weekly_digest" | "custom";
+const TYPE_FILTER_ORDER: TypeFilterKey[] = ["event_new", "ticket_batch", "weekend_agenda", "weekly_digest", "custom"];
+const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
+  event_new: "Evento",
+  ticket_batch: "Virada",
+  weekend_agenda: "Agenda FDS",
+  weekly_digest: "Digest",
+  custom: "Custom",
+};
+const TYPE_FILTER_STORAGE_KEY = "mdaccula_email_editor_type";
+
+/** weekly_digest_editorial é uma variação de weekly_digest para o filtro. */
+const normalizeType = (t: Template["type"] | undefined): TypeFilterKey => {
+  if (!t) return "custom";
+  if (t === "weekly_digest_editorial") return "weekly_digest";
+  return t as TypeFilterKey;
+};
+
 export function EmailTemplateEditor({
   templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
 }: Props) {
@@ -182,6 +204,29 @@ export function EmailTemplateEditor({
   const [saving, setSaving] = useState(false);
   const [localBlocks, setLocalBlocks] = useState<Block[] | null>(null);
   const [localName, setLocalName] = useState<string>("");
+
+  // Tipo selecionado (passo 1). Inicializa a partir do localStorage.
+  const [typeFilter, setTypeFilter] = useState<TypeFilterKey>(() => {
+    if (typeof window === "undefined") return "event_new";
+    const stored = window.localStorage.getItem(TYPE_FILTER_STORAGE_KEY);
+    if (stored && (TYPE_FILTER_ORDER as string[]).includes(stored)) return stored as TypeFilterKey;
+    return "event_new";
+  });
+
+  // Contagem por tipo (para exibir nos chips).
+  const countsByType = useMemo(() => {
+    const counts: Record<TypeFilterKey, number> = {
+      event_new: 0, ticket_batch: 0, weekend_agenda: 0, weekly_digest: 0, custom: 0,
+    };
+    templates.forEach((t) => { counts[normalizeType(t.type)] += 1; });
+    return counts;
+  }, [templates]);
+
+  // Templates do tipo selecionado (passo 2).
+  const filteredTemplates = useMemo(
+    () => templates.filter((t) => normalizeType(t.type) === typeFilter),
+    [templates, typeFilter],
+  );
 
   // Sincroniza com template ativo
   const blocks = localBlocks ?? (activeTpl?.blocks as Block[]) ?? [];
