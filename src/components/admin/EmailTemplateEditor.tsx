@@ -652,15 +652,24 @@ export function EmailTemplateEditor({
 
         {/* Preview — A2 fix: iframe fixado em 600px (largura real do e-mail).
             Container com scroll horizontal em telas estreitas, para que o logo
-            e todas as imagens apareçam no mesmo tamanho que o cliente receberá. */}
+            e todas as imagens apareçam no mesmo tamanho que o cliente receberá.
+
+            Fallback local: quando o override (HTML da edge function) existe mas
+            o template tem alterações não salvas, o HTML do servidor está
+            desatualizado — mostramos o render local + banner alertando. */}
         <Card>
           <CardContent className="p-2">
             <div className="flex items-center justify-between mb-2 px-2">
               <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {overrideHtml ? "Preview real (dados do disparo)" : "Preview ao vivo (600px reais)"}
+                {overrideHtml && !isDirty ? "Preview real (dados do disparo)" : "Preview ao vivo (600px reais)"}
               </div>
               <div className="text-[10px] text-muted-foreground">≈ largura real na caixa de entrada</div>
             </div>
+            {overrideHtml && isDirty && (
+              <div className="mx-1 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-300">
+                ⚠ Alterações não salvas — o preview real usa o template já salvo. Mostrando <b>render local</b> com os blocos atuais. Salve para atualizar o preview real.
+              </div>
+            )}
             <div className="px-1">
               <InboxPreviewHeader
                 subjectTemplate={currentSubject}
@@ -677,7 +686,7 @@ export function EmailTemplateEditor({
             <div className="overflow-x-auto rounded border bg-[#050505] p-2">
               <iframe
                 title="preview"
-                srcDoc={overrideHtml || previewHtml}
+                srcDoc={overrideHtml && !isDirty ? overrideHtml : previewHtml}
                 width={600}
                 className="block mx-auto h-[900px] bg-white"
                 style={{ width: 600, minWidth: 600, border: 0 }}
