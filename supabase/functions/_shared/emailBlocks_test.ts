@@ -13,6 +13,8 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   renderBlockedTemplate,
+  renderBlockedTemplateText,
+  computePreheader,
   expandGlobalRefs,
   type Block,
   type EventAnnouncementData,
@@ -138,4 +140,61 @@ Deno.test("backend: global_ref com hidden=true no wrapper também é ocultado", 
   const html = renderBlockedTemplate(blocks, mockEvent, null, null, { globals });
   assertEquals(html.includes("NAO_DEVE_APARECER"), false);
   assertStringIncludes(html, "DEVE_APARECER");
+});
+
+// ============================================
+// Etapa 2 — renderBlockedTemplateText (multipart plain-text)
+// ============================================
+
+Deno.test("text: gera versão plain-text com título, descrição e URL de CTA", () => {
+  const blocks: Block[] = [
+    { id: "1", kind: "title" } as any,
+    { id: "2", kind: "description" } as any,
+    { id: "3", kind: "cta_button", label: "Comprar", url_field: "ticket_link" } as any,
+  ];
+  const text = renderBlockedTemplateText(blocks, mockEvent, null, null);
+  assertStringIncludes(text, "TITULO_UNICO_XYZ");
+  assertStringIncludes(text, "DESC_UNICO_XYZ");
+  assertStringIncludes(text, "https://example.com/ticket");
+  // Não pode ter HTML no plain-text
+  assertEquals(text.includes("<"), false);
+  assertEquals(text.includes("&nbsp;"), false);
+});
+
+Deno.test("text: respeita hidden=true", () => {
+  const blocks: Block[] = [
+    { id: "a", kind: "text", html: "<p>VISIVEL_TXT</p>" } as any,
+    { id: "b", kind: "text", html: "<p>OCULTO_TXT</p>", hidden: true } as any,
+  ];
+  const text = renderBlockedTemplateText(blocks, mockEvent, null, null);
+  assertStringIncludes(text, "VISIVEL_TXT");
+  assertEquals(text.includes("OCULTO_TXT"), false);
+});
+
+Deno.test("text: expande global_ref quando catálogo disponível", () => {
+  const globals = new Map<string, GlobalBlock>();
+  globals.set("g1", {
+    id: "g1",
+    name: "Rodapé",
+    category: "footer",
+    block: { id: "tpl", kind: "text", html: "<p>GLOBAL_TXT_CONTENT</p>" } as any,
+  });
+  const blocks: Block[] = [
+    { id: "ref-1", kind: "global_ref", global_id: "g1" } as any,
+  ];
+  const text = renderBlockedTemplateText(blocks, mockEvent, null, null, { globals });
+  assertStringIncludes(text, "GLOBAL_TXT_CONTENT");
+});
+
+Deno.test("computePreheader: monta título — data em venue, cidade", () => {
+  const pre = computePreheader(mockEvent);
+  assertStringIncludes(pre, "TITULO_UNICO_XYZ");
+  assertStringIncludes(pre, "17 de julho");
+  assertStringIncludes(pre, "Casa Aragon");
+});
+
+Deno.test("computePreheader: limita em 150 chars", () => {
+  const longEvent = { ...mockEvent, eventTitle: "X".repeat(500) };
+  const pre = computePreheader(longEvent);
+  assertEquals(pre.length <= 150, true);
 });

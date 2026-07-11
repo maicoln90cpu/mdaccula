@@ -67,6 +67,8 @@ Deno.serve(async (req) => {
     const html = body?.html as string | undefined;
     const subject = (body?.subject as string | undefined) || undefined;
     const preheader = (body?.preheader as string | undefined) || undefined;
+    const textVersion = (body?.text as string | undefined) || undefined;
+    const templateType = (body?.template_type as string | undefined) || 'event_new';
     const forceResend = body?.force_resend === true;
     const sendNow = body?.send_now === true;
     // B.10 — teste A/B de assunto
@@ -177,6 +179,20 @@ Deno.serve(async (req) => {
     // E-goi v3: POST /campaigns/email
     // Doc: https://developers.e-goi.com/api/v3/#tag/Email/operation/createEmailCampaign
     // content deve ser { type: 'html', body: '<html>...' } (NÃO "html").
+    // Tag por tipo de template (courtesy, event_new, etc.) + A/B quando aplicável.
+    const typeTagMap: Record<string, string> = {
+      event_new: 'evento-novo',
+      courtesy: 'cortesia',
+      weekly_digest: 'digest-semanal',
+      weekly_digest_editorial: 'digest-editorial',
+      weekend_agenda: 'agenda-fds',
+    };
+    const typeTag = typeTagMap[templateType] || 'evento-novo';
+    const tags: string[] = ['mdaccula', typeTag];
+    if (isAbTest) {
+      tags.push('ab-test', `variante-${abVariant}`);
+    }
+
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
@@ -185,7 +201,10 @@ Deno.serve(async (req) => {
       content: {
         type: 'html',
         body: html,
+        ...(preheader ? { preheader } : {}),
+        ...(textVersion ? { text: textVersion } : {}),
       },
+      tags,
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
 

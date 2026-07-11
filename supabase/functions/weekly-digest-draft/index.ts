@@ -12,6 +12,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplate,
+  renderBlockedTemplateText,
+  computePreheader,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
@@ -334,6 +336,7 @@ Deno.serve(async (req) => {
     // Tenta renderizar via template ativo (blocos). Se falhar por qualquer motivo, cai no HTML legado.
     let html = '';
     let renderSource: 'template' | 'legacy' = 'legacy';
+    let renderedEventPayload: EventAnnouncementData | null = null;
     const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
 
     if (tplBlocks && tplBlocks.length > 0) {
@@ -459,6 +462,7 @@ Deno.serve(async (req) => {
           null,
           { preview: false, globals: globalsMap },
         );
+        renderedEventPayload = eventPayload;
         renderSource = 'template';
       } catch (err) {
         console.error('[weekly-digest-draft] template render failed, using legacy HTML:', err);
@@ -494,12 +498,29 @@ Deno.serve(async (req) => {
 
 
 
+    // Payload E-goi enriquecido: preheader dedicado, versão text (multipart) e tags.
+    let textVersion = '';
+    let preheaderText = '';
+    try {
+      if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap });
+        preheaderText = computePreheader(renderedEventPayload);
+      }
+    } catch (e) { console.warn('[weekly-digest-draft] text/preheader gen failed:', e); }
+
+    const digestTag = range === 'weekend' ? 'agenda-fds' : 'digest-semanal';
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
       subject,
       sender_id: Number(cfg.sender_id),
-      content: { type: 'html', body: html },
+      content: {
+        type: 'html',
+        body: html,
+        ...(preheaderText ? { preheader: preheaderText } : {}),
+        ...(textVersion ? { text: textVersion } : {}),
+      },
+      tags: ['mdaccula', digestTag],
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
 
