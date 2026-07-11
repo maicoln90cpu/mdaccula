@@ -252,6 +252,11 @@ export function EmailTemplateEditor({
     setLocalBlocks(blocks.map((b) => (b.id === id ? { ...b, ...patch } as Block : b)));
   };
 
+  /** Substitui integralmente um bloco (sem merge). Usado para "desfazer vínculo" de global_ref. */
+  const replaceBlock = (id: string, next: Block) => {
+    setLocalBlocks(blocks.map((b) => (b.id === id ? next : b)));
+  };
+
   const addBlock = (kind: Block["kind"]) => {
     setLocalBlocks([...blocks, defaultForKind(kind)]);
   };
