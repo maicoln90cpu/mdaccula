@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
           eventPayload,
           settings as EmailTemplateSettings,
           null,
-          { preview: false },
+          { preview: false, globals: globalsMap },
         );
         renderSource = 'template';
       } catch (err) {
