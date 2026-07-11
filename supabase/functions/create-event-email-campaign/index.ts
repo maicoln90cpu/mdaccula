@@ -67,6 +67,8 @@ Deno.serve(async (req) => {
     const html = body?.html as string | undefined;
     const subject = (body?.subject as string | undefined) || undefined;
     const preheader = (body?.preheader as string | undefined) || undefined;
+    const textVersion = (body?.text as string | undefined) || undefined;
+    const templateType = (body?.template_type as string | undefined) || 'event_new';
     const forceResend = body?.force_resend === true;
     const sendNow = body?.send_now === true;
     // B.10 — teste A/B de assunto
