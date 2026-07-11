@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
+import { InboxPreviewHeader } from "./InboxPreviewHeader";
 
 interface Props {
   templates: Template[];
@@ -655,6 +656,19 @@ export function EmailTemplateEditor({
                 {overrideHtml ? "Preview real (dados do disparo)" : "Preview ao vivo (600px reais)"}
               </div>
               <div className="text-[10px] text-muted-foreground">≈ largura real na caixa de entrada</div>
+            </div>
+            <div className="px-1">
+              <InboxPreviewHeader
+                subjectTemplate={currentSubject}
+                preheaderTemplate={currentPreheader}
+                data={{
+                  eventTitle: previewEvent.eventTitle,
+                  dateLabel: previewEvent.dateLabel,
+                  timeLabel: previewEvent.timeLabel,
+                  venueName: previewEvent.venueName,
+                  cityState: previewEvent.cityState,
+                }}
+              />
             </div>
             <div className="overflow-x-auto rounded border bg-[#050505] p-2">
               <iframe

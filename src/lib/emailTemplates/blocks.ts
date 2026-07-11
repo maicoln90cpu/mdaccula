@@ -256,6 +256,24 @@ const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, 
   }
 };
 
+/**
+ * Reescreve URL de imagem para compatibilidade com Outlook desktop.
+ *
+ * Outlook 2016+ (motor Word) NÃO suporta WebP → mostra ícone "X" no lugar do flyer.
+ * Solução: passar URLs .webp por um proxy que converte para JPG on-the-fly (wsrv.nl,
+ * gratuito, com cache de borda). Outros formatos e placeholders/data URIs passam intactos.
+ *
+ * Aplicado apenas no HTML de e-mail — o site continua servindo WebP nativo.
+ */
+export function proxyForEmail(url: string): string {
+  if (!url) return url;
+  if (!/^https?:\/\//i.test(url)) return url;
+  if (!/\.webp(\?|$)/i.test(url)) return url;
+  const clean = url.replace(/^https?:\/\//i, "");
+  return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
+}
+
+
 // ============================================
 // Renderização por bloco
 // ============================================
@@ -294,9 +312,10 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           <div style="width:100%;max-width:${maxW}px;height:${Math.round(maxW * 0.6)}px;border-radius:${radius}px;border:1px dashed rgba(255,255,255,0.2);background:#111;display:flex;align-items:center;justify-content:center;color:#71717a;font-size:12px;text-align:center;padding:16px;box-sizing:border-box;margin:0 auto;">Flyer do evento (sem imagem cadastrada — placeholder do preview)</div>
         </td></tr>`;
       }
+      const flyerSrc = proxyForEmail(flyer);
       return `<tr><td align="center" style="padding:0 24px;">
         <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(flyer)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
+          <img src="${escape(flyerSrc)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
         </a>
       </td></tr>`;
     }
@@ -427,7 +446,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align ?? "center";
       const radius = block.border_radius ?? 8;
       const alt = escape(block.alt || "");
-      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
+      const imgSrc = proxyForEmail(block.image_url);
+      const inner = `<img src="${escape(imgSrc)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
       const wrapped = block.link_url
         ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>`
         : inner;

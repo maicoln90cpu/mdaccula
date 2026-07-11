@@ -1,103 +1,123 @@
-## Objetivo
-Três melhorias focadas na experiência do editor de e-mails e finalizar o template de Cortesia.
+# Plano — Lapidações finais
+
+## Item 1 · Imagem do evento quebrada só no Outlook
+
+**Diagnóstico:** os flyers são servidos pelo Bunny CDN em formato **WebP** (`mdaccula.b-cdn.net/...webp`). O Outlook desktop (Windows) **não suporta WebP** — por isso mostra o "X" só nele; Gmail/Apple Mail/Outlook web renderizam normal.
+
+**Correção proposta:** passar as URLs de imagem por um **proxy que converte WebP → JPG na hora**, apenas dentro do HTML do e-mail. Sem re-upload, sem migração de arquivos.
+
+**Opções técnicas:**
+
+| Opção | Custo | Confiabilidade | Recomendação |
+|---|---|---|---|
+| **A) wsrv.nl (weserv.nl)** — proxy público gratuito | Zero | Alta (usado por milhares de e-mails corporativos) | ✅ Recomendada |
+| B) Bunny Optimizer com `?format=jpg` | Precisa habilitar Optimizer na conta Bunny (~$9,50/mês) | Alta | Só se você já usa/quer Optimizer |
+| C) Re-upload de todos os flyers como JPG | Trabalho manual + dobra egress | Alta | ❌ |
+
+**O que farei (Opção A):**
+No `src/lib/emailTemplates/blocks.ts`, criar helper:
+```ts
+function proxyForEmail(url: string): string {
+  // Só reescreve se for URL http(s) apontando pra .webp — placeholders,
+  // data URIs e outros formatos passam intactos.
+  if (!/^https?:\/\//.test(url) || !/\.webp(\?|$)/i.test(url)) return url;
+  const clean = url.replace(/^https?:\/\//, "");
+  return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
+}
+```
+Aplicar em 2 blocos: `hero_image` e `image_with_link`.
+
+**Antes vs depois:**
+- Antes: Outlook desktop mostra ícone "X" no flyer.
+- Depois: Outlook baixa a mesma imagem convertida em JPG e renderiza normal. Demais clientes (Gmail, Apple, Outlook web) continuam recebendo JPG também — sem impacto perceptível de qualidade a 85%.
+
+**Vantagens:**
+- Zero configuração adicional.
+- Free e cached na borda do wsrv.nl.
+- Só afeta e-mail (site continua servindo WebP puro).
+
+**Desvantagens:**
+- Dependência de terceiro (wsrv.nl). Se cair, imagens do e-mail não carregam — mas mesmo assim Outlook não vê pior do que hoje.
+- Latência extra de ~200 ms no primeiro carregamento por imagem (depois cacheia).
+
+**Checklist manual:**
+1. Enviar teste para Outlook desktop → flyer aparece.
+2. Enviar teste para Gmail → flyer continua aparecendo (idealmente).
+3. Ver HTML gerado no botão "Baixar HTML" e conferir se URLs `.webp` viraram `wsrv.nl/?url=...&output=jpg`.
+
+**Prevenção de regressão:**
+- Adicionar 1 teste unitário: `proxyForEmail("https://x.b-cdn.net/foo.webp")` → contém `wsrv.nl` + `output=jpg`; `proxyForEmail("https://x.com/foo.jpg")` → retorna a URL original.
 
 ---
 
-### Etapa 1 — Rótulo compacto de blocos globais na lista de blocos do template
+## Item 2 · Mostrar assunto e preheader no preview ao vivo
 
-**Como está hoje**
-Na lista "Blocos do E-mail", um bloco global aparece como `"Bloco global (biblioteca)"`. O texto é longo, é truncado (`Bloco global (b...`) e não dá para saber qual global é sem clicar.
+**Hoje:** o preview mostra só o corpo do e-mail (iframe do HTML). Você configura assunto/preheader mas **não vê como fica na caixa de entrada** até enviar teste.
 
-**Como fica**
-- Bloco global passa a exibir: um ícone pequeno de "biblioteca" (`Library`) + o **nome do bloco global salvo** (usando `_cached_name` já existente, ou o nome resolvido pelo cache do contexto `useEmailGlobalBlocks`).
-- Fallback quando o nome não foi resolvido ainda: "Bloco global".
-- Alteração local em `SortableRow` dentro de `src/components/admin/EmailTemplateEditor.tsx`: quando `block.kind === "global_ref"`, renderiza `<Library icon/> + nome` em vez de `BLOCK_LABELS["global_ref"]`.
+**Proposta:** adicionar acima de cada iframe uma **"linha de caixa de entrada"** simulando o Gmail/Outlook, com:
+- Ícone/avatar circular com iniciais da marca (**MD**).
+- Nome do remetente (ex.: `MDAccula`).
+- **Assunto** em negrito.
+- **Preheader** em cinza claro, na mesma linha, com `—` como separador.
+- Horário simulado à direita ("agora").
+- Barra fina separando do iframe.
 
-**Vantagens** Leitura imediata; distingue vários globais no mesmo template.
-**Desvantagens** Nenhuma funcional. Só visual.
+**Placeholders resolvidos:** aplicar `{{event_title}}`, `{{date_label}}`, `{{venue_name}}`, `{{city_state}}` usando `previewData` (mock ou evento real selecionado). Assim, o preview reflete o texto **final** que o assinante veria.
 
----
+**Onde entra:**
+1. Editor unificado (aba "Editor" em EmailConfig): sobre o iframe de 600 px em `EmailTemplateEditor.tsx`.
+2. Aba "Template" (preview lateral em `EmailConfig.tsx`, iframe de 640 px).
 
-### Etapa 2 — Cartão "Biblioteca de blocos globais" mais compacto
+**Componente novo:** `src/components/admin/InboxPreviewHeader.tsx` — recebe `{ subjectTemplate, preheaderTemplate, previewData, senderName?, senderInitials? }` e resolve os placeholders localmente.
 
-**Como está hoje**
-No card da biblioteca (lateral), cada global ocupa 2 linhas: nome + linha secundária com "Bloco global (biblioteca) · descrição". O rótulo "Bloco global (biblioteca)" é redundante (o card já se chama "Biblioteca de blocos globais").
+**Mock de layout (referência):**
 
-**Como fica** (`src/components/admin/GlobalBlocksLibrary.tsx`)
-- Substituir o texto do tipo de bloco por um **ícone pequeno** representando o tipo interno (ex.: `Image` para hero, `Type` para title, `Square` para cta, `Library` genérico) + a descrição.
-- Título fica em 1 linha, sublinha só com a descrição (se houver).
-- Botões "+ / ✎ / 🗑" continuam iguais.
+```text
+┌─────────────────────────────────────────────────────────┐
+│ (MD)  MDAccula                                    agora │
+│       Novo evento: Solomun SP — Solomun SP em Parque…   │
+│       ─ negrito ─── ── cinza claro (preheader) ────     │
+└─────────────────────────────────────────────────────────┘
+```
 
-**Vantagens** Mais globais visíveis sem rolagem; leitura mais limpa.
-**Desvantagens** Perde-se o texto do tipo, mas o ícone + o nome do próprio bloco global já bastam.
+**Antes vs depois:**
+- Antes: você editava o assunto às cegas e só via depois de enviar teste.
+- Depois: enquanto digita no campo "Assunto" ou "Preheader" (Item 1 do plano anterior), o preview em cima do iframe atualiza instantaneamente com os placeholders resolvidos.
 
----
+**Vantagens:**
+- Feedback imediato — reduz erros de placeholder (ex: esquecer `{{event_title}}`).
+- Vê exatamente como o assinante enxerga o e-mail no inbox (assunto+preheader é 70% da decisão de abrir).
+- Funciona em todos os tipos: `event_new`, `ticket_batch`, `weekend_agenda`, `weekly_digest`, `courtesy`, `custom`.
 
-### Etapa 3 — Propriedades do `global_ref` no painel direito
+**Desvantagens:**
+- Ocupa ~70 px extra em cima do preview (aceitável).
 
-**Como está hoje**
-Ao clicar num `global_ref` no editor, o painel de propriedades diz "Este bloco não tem propriedades editáveis". Não dá para editar nada.
+**Checklist manual:**
+1. Abrir aba "Editor", trocar template → header do inbox atualiza com o novo assunto/preheader.
+2. Trocar o evento no seletor (previewData muda) → placeholders `{{event_title}}` etc. reagem em tempo real.
+3. Deixar assunto vazio → header mostra fallback "(sem assunto configurado)" em itálico cinza.
+4. Testar em digest/weekend — usa `digestPreviewMeta.subject` quando disponível.
 
-**Como fica** (`src/components/admin/EmailTemplateEditor.tsx`)
-Painel passa a mostrar, para `global_ref`:
-1. **Cabeçalho informativo**: ícone `Library` + nome do global + descrição + categoria (readonly, vindos do `globalsMap`).
-2. **Aviso didático**: "Este é um bloco compartilhado. Alterações aqui refletem em TODOS os templates que o usam."
-3. **Botão "Editar bloco global"** → abre um `Dialog` que renderiza o **mesmo painel de propriedades** que o bloco interno usaria (ex.: se o global for um `footer`, mostra os controles de `footer`).
-4. Ao salvar no dialog: chama `updateGlobal(id, { block: novoBlock })` (o hook já existe; hoje aceita `Partial<Omit<GlobalBlock, "id">>` — só precisa incluir `block` no update).
-5. Botão secundário "Desfazer vínculo (converter em bloco local)": substitui o `global_ref` pelo bloco expandido no template atual — útil quando o usuário quer customizar só ali.
-
-**Vantagens** Edição direta sem sair para outra tela; reforça a natureza compartilhada com o aviso; opção de desvincular preserva flexibilidade.
-**Desvantagens** Ao salvar, todos os templates que usam o global mudam — o aviso mitiga; ainda assim precisa toast de confirmação com contagem de templates impactados (mostrar `"X templates usam este bloco"`).
-**Pendência futura** Página dedicada "Blocos Globais" (já mencionada no roadmap) para gerenciar em massa.
-
----
-
-### Etapa 4 — Criar template padrão de Cortesia
-
-**Como está hoje**
-Aba "Cortesia (0)" no editor mostra "Nenhum template de 'Cortesia' ainda. Use 'Novo' para criar." O preset `courtesy` **já existe** em `buildPresetBlocks("courtesy")` e em `TEMPLATE_PRESETS`. Falta apenas seed do template no banco.
-
-**Como fica**
-Migration Supabase inserindo **um** template com:
-- `type = 'courtesy'`
-- `name = 'Cortesia — oportunidade (padrão)'`
-- `subject_template = '🎟️ Cortesia liberada — {{event_title}} (poucas vagas)'`
-- `preheader_template = 'Cortesias limitadas para {{event_title}}. Garanta a sua antes que acabe.'`
-- `blocks` = saída de `buildPresetBlocks('courtesy')` (já com copy de escassez: "poucas vagas", "chegue cedo", CTA "Garantir minha cortesia").
-- `is_default = true` para esse tipo.
-
-Como é genérico (não nominal), fica reutilizável em qualquer evento onde admin queira anunciar cortesias.
-
-**Vantagens** Admin tem ponto de partida imediato; copy já vem alinhada com "sensação de oportunidade / escassez" que você pediu.
-**Desvantagens** Se o preset em código evoluir depois, o template no banco não muda sozinho (é uma foto). Isso é o comportamento normal e esperado dos outros presets.
+**Prevenção de regressão:**
+- 1 teste unitário do helper `resolvePlaceholders(template, data)` com casos: substituição normal, template vazio, placeholder inexistente permanece literal.
 
 ---
 
-### Checklist manual (após implementação)
+## Ordem sugerida de deploy
 
-- [ ] Editor de template: bloco global agora mostra ícone + nome real (ex.: "🗂 Redes sociais GL").
-- [ ] Card "Biblioteca de blocos globais": lista mais enxuta, sem "Bloco global (biblioteca)" repetido.
-- [ ] Clicar em bloco global no editor: painel mostra info + botão "Editar bloco global" + botão "Desfazer vínculo".
-- [ ] Editar via dialog: alteração aparece em outros templates que usam o mesmo global.
-- [ ] "Desfazer vínculo": bloco vira local, edições posteriores só afetam este template.
-- [ ] Aba "Cortesia" agora mostra "Cortesia (1)" com o template padrão listado.
-- [ ] Preview do template Cortesia renderiza com copy de escassez.
+1. **Fase 1 (baixo risco, visual):** Item 2 (InboxPreviewHeader). Só afeta admin, zero impacto no e-mail enviado.
+2. **Fase 2 (afeta HTML enviado):** Item 1 (proxy WebP→JPG). Testar teste real em Gmail e Outlook antes de considerar concluído.
 
-### Prevenção de regressão
+## Pendências
 
-- Snapshot test: `buildPresetBlocks("courtesy")` continua contendo pelo menos 1 CTA + 1 eyebrow com termos de escassez ("cortesia", "poucas").
-- Teste de componente (`EmailTemplateEditor`) para o rótulo do `global_ref` (mostra nome do global, não o label genérico).
-- Teste do painel de propriedades: `global_ref` selecionado renderiza botão "Editar bloco global".
+- Fase 5 do plano antigo (revisar templates com blocos novos) e melhorias payload E-goi seguem em aberto.
 
-### Detalhes técnicos
+## Detalhes técnicos
 
-- Alteração em `SortableRow`: usa `useEmailGlobalBlocks().globalsMap.get(block.global_id)?.name ?? block._cached_name ?? "Bloco global"`.
-- Update do bloco interno de um global usa `updateGlobal(id, { block: patched })` — já suportado pela assinatura do hook.
-- "Desfazer vínculo" chama `expandGlobalRefs` de forma local (só neste template) ou simplesmente substitui a entrada no array de blocks pelo `globalsMap.get(id).block` com novo `id`.
-- Migration usa `INSERT INTO public.email_templates (...) SELECT ...` para gerar `id` e `created_at` automáticos; roda uma vez, idempotente com `WHERE NOT EXISTS (SELECT 1 FROM email_templates WHERE type='courtesy')`.
+Arquivos afetados:
+- `src/lib/emailTemplates/blocks.ts` — helper `proxyForEmail` + uso em `hero_image` e `image_with_link`.
+- `src/components/admin/InboxPreviewHeader.tsx` — novo componente.
+- `src/components/admin/EmailTemplateEditor.tsx` — insere o header sobre o iframe.
+- `src/pages/admin/EmailConfig.tsx` — insere o header sobre o iframe da aba "Template".
 
-### Ordem sugerida de deploy (fases seguras)
-
-1. **Fase A** (visual, sem risco): Etapa 1 + 2 juntas.
-2. **Fase B** (funcional, risco baixo/médio): Etapa 3 — sozinha, para validar edição de globais sem quebrar outros templates.
-3. **Fase C** (dados): Etapa 4 — migration do template padrão de Cortesia.
+Aprovar para eu executar as duas fases?
