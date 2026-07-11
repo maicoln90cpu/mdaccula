@@ -1260,6 +1260,45 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     ];
   }
 
+  // courtesy — cortesia individual (nominal): saudação, evento, mapa, CTA único
+  if (type === "courtesy") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60, align: "center" },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<p style=\"font-size:16px;line-height:1.5;margin:0 0 12px 0;\">Olá, <strong>{{guest_name}}</strong>!</p>" +
+          "<p style=\"font-size:15px;line-height:1.5;margin:0;\">Sua cortesia para <strong>{{event_title}}</strong> está confirmada. Guarde este e-mail — o link de retirada é único e pessoal.</p>",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "eyebrow", text: "CORTESIA CONFIRMADA", align: "left" },
+      { id: newBlockId(), kind: "title", align: "left", font_size: 26 },
+      { id: newBlockId(), kind: "event_meta", layout: "columns" },
+      { id: newBlockId(), kind: "static_map", zoom: 15, height: 260, map_style: "roadmap", show_address_label: true, border_radius: 12 },
+      {
+        id: newBlockId(),
+        kind: "cta_button",
+        label: "Retirar cortesia",
+        url_field: "custom",
+        custom_url: "{{courtesy_link}}",
+        align: "center",
+        full_width: true,
+        bg_style: "gradient",
+      },
+      {
+        id: newBlockId(),
+        kind: "text",
+        html:
+          "<p style=\"font-size:12px;color:#a1a1aa;line-height:1.5;margin:0;text-align:center;\">Este link é único e válido apenas para você. Não compartilhe.</p>",
+        align: "center",
+      },
+      { id: newBlockId(), kind: "divider" },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
   // fallback vazio
   return [];
 }
@@ -1271,7 +1310,7 @@ export const TEMPLATE_PRESETS: Array<{
   subject_template: string;
   preheader_template: string;
   /** Tipo salvo no banco (para agrupar variantes do mesmo formato). */
-  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "custom";
+  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "courtesy" | "custom";
 }> = [
   {
     key: "event_new",
