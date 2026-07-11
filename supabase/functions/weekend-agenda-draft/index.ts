@@ -445,12 +445,27 @@ Deno.serve(async (req) => {
       });
     }
 
+    let textVersion = '';
+    let preheaderText = '';
+    try {
+      if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap });
+        preheaderText = computePreheader(renderedEventPayload);
+      }
+    } catch (e) { console.warn('[weekend-agenda-draft] text/preheader gen failed:', e); }
+
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
       subject,
       sender_id: Number(cfg.sender_id),
-      content: { type: 'html', body: html },
+      content: {
+        type: 'html',
+        body: html,
+        ...(preheaderText ? { preheader: preheaderText } : {}),
+        ...(textVersion ? { text: textVersion } : {}),
+      },
+      tags: ['mdaccula', 'agenda-fds'],
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
 
