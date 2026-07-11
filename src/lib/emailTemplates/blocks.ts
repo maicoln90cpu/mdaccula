@@ -256,6 +256,24 @@ const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, 
   }
 };
 
+/**
+ * Reescreve URL de imagem para compatibilidade com Outlook desktop.
+ *
+ * Outlook 2016+ (motor Word) NÃO suporta WebP → mostra ícone "X" no lugar do flyer.
+ * Solução: passar URLs .webp por um proxy que converte para JPG on-the-fly (wsrv.nl,
+ * gratuito, com cache de borda). Outros formatos e placeholders/data URIs passam intactos.
+ *
+ * Aplicado apenas no HTML de e-mail — o site continua servindo WebP nativo.
+ */
+export function proxyForEmail(url: string): string {
+  if (!url) return url;
+  if (!/^https?:\/\//i.test(url)) return url;
+  if (!/\.webp(\?|$)/i.test(url)) return url;
+  const clean = url.replace(/^https?:\/\//i, "");
+  return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
+}
+
+
 // ============================================
 // Renderização por bloco
 // ============================================
