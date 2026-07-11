@@ -302,6 +302,7 @@ const AbTestButton = ({
 
 const EmailConfig = () => {
   const { toast } = useToast();
+  const { globalsMap } = useEmailGlobalBlocks();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("config");
   const [saving, setSaving] = useState(false);
