@@ -529,11 +529,39 @@ export function EmailTemplateEditor({
       </div>
 
       {activeTpl && (
-        <div>
-          <Label className="text-xs">Nome do template</Label>
-          <Input value={currentName} onChange={(e) => setLocalName(e.target.value)} placeholder="Nome do template" />
+        <div className="space-y-3">
+          <div>
+            <Label className="text-xs">Nome do template</Label>
+            <Input value={currentName} onChange={(e) => setLocalName(e.target.value)} placeholder="Nome do template" />
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div>
+              <Label className="text-xs">Assunto do e-mail</Label>
+              <Input
+                value={currentSubject}
+                onChange={(e) => setLocalSubject(e.target.value)}
+                placeholder="Ex.: Novo evento: {{event_title}}"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Placeholders: <code>{"{{event_title}}"}</code>, <code>{"{{date_label}}"}</code>, <code>{"{{venue_name}}"}</code>, <code>{"{{city_state}}"}</code>
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs">Preheader (preview na caixa de entrada)</Label>
+              <Input
+                value={currentPreheader}
+                onChange={(e) => setLocalPreheader(e.target.value)}
+                placeholder="Ex.: {{event_title}} em {{venue_name}} — ingressos abertos"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Texto curto exibido ao lado do assunto. Aceita os mesmos placeholders.
+              </p>
+            </div>
+          </div>
         </div>
       )}
+
+
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr_1fr]">
         {/* Lista de blocos */}
