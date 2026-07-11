@@ -309,6 +309,36 @@ export function EmailTemplateEditor({
     [blocks, previewEvent, settings, previewArticle, globalsMap],
   );
 
+  // ============================================================
+  // Detecção de "alterações não salvas" (item 7 do plano)
+  // ------------------------------------------------------------
+  // Antes: o editor mantinha localBlocks até "Salvar"; se você trocasse
+  // de template ou fechasse a aba, as mudanças sumiam sem aviso.
+  // Agora: badge visível + confirmação ao trocar + beforeunload.
+  // ============================================================
+  const isDirty = localBlocks !== null || (localName !== "" && localName !== activeTpl?.name);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
+
+  const handleActiveChange = (nextId: string) => {
+    if (isDirty && !confirm("Há alterações não salvas neste template. Trocar mesmo assim? As alterações serão perdidas.")) {
+      return;
+    }
+    setLocalBlocks(null);
+    setLocalName("");
+    setSelectedBlockId(null);
+    onActiveChange(nextId);
+  };
+
+
   return (
     <div className="space-y-4">
       {/* Barra superior: seletor de template + ações */}
