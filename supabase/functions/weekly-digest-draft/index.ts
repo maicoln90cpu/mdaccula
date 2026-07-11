@@ -524,12 +524,13 @@ Deno.serve(async (req) => {
 
 
     // Payload E-goi enriquecido: preheader dedicado, versão text (multipart) e tags.
+    // Prioridade do preheader: preheader_template salvo > computePreheader (fallback).
     let textVersion = '';
-    let preheaderText = '';
+    let preheaderText = preheaderFromTpl || '';
     try {
       if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
         textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap });
-        preheaderText = computePreheader(renderedEventPayload);
+        if (!preheaderText) preheaderText = computePreheader(renderedEventPayload);
       }
     } catch (e) { console.warn('[weekly-digest-draft] text/preheader gen failed:', e); }
 
