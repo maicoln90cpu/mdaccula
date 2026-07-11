@@ -903,15 +903,12 @@ const EmailConfig = () => {
 
   useEffect(() => {
     if (previewSource === "event") return;
-    // Ajusta template selecionado quando fonte muda
-    const opts = previewSource === "weekend"
-      ? templates.filter((t) => t.type === "weekend_agenda")
-      : templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
-    const defaultId = opts.find((t) => t.is_default)?.id || opts[0]?.id || "";
-    setDigestTemplateId(defaultId);
-    loadDigestPreview({ source: previewSource, templateId: defaultId });
+    // Fonte digest/weekend: usa o próprio template ativo como fonte do preview.
+    const tplId = activeTemplateId || "";
+    setDigestTemplateId(tplId);
+    loadDigestPreview({ source: previewSource, templateId: tplId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSource, templates]);
+  }, [previewSource, activeTemplateId]);
 
 
   const saveTemplate = async () => {
