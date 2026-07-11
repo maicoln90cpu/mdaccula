@@ -866,7 +866,7 @@ export function renderBlockedTemplate(
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,
   article?: ArticleSummary | null,
-  opts?: { preview?: boolean; projectId?: string },
+  opts?: { preview?: boolean; projectId?: string; globals?: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null },
 ): string {
   const s = {
     brand_name: settings?.brand_name || "MDACCULA",
