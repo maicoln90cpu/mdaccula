@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "MDAccula <noreply@mdaccula.com>",
+        from: "MDAccula <onboarding@resend.dev>",
         to: [destination],
         subject: typeof subject === "string" && subject.trim() ? subject : "[Teste] Preview de template MDAccula",
         html,
