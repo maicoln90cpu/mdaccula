@@ -12,11 +12,48 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Save, Trash2, Library, Pencil } from "lucide-react";
+import {
+  Plus, Save, Trash2, Library, Pencil,
+  Image as ImageIcon, Type, AlignLeft, MousePointerClick, Minus,
+  Share2, LayoutGrid, Clock, Map, FileText, Link as LinkIcon, Package,
+} from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import type { Block, GlobalBlock } from "@/lib/emailTemplates/blocks";
 import { BLOCK_LABELS } from "@/lib/emailTemplates/blocks";
+
+// Ícone compacto por tipo de bloco — usado no card da biblioteca no lugar do
+// texto redundante "Bloco global (biblioteca)". O nome do bloco global já
+// aparece em destaque; o ícone dá a pista visual do que ele contém.
+function BlockKindIcon({ kind, className }: { kind: Block["kind"]; className?: string }) {
+  const cls = className || "w-3.5 h-3.5";
+  switch (kind) {
+    case "header": return <ImageIcon className={cls} />;
+    case "hero_image":
+    case "image_with_link":
+    case "static_map": return <ImageIcon className={cls} />;
+    case "eyebrow":
+    case "title":
+    case "subtitle": return <Type className={cls} />;
+    case "description":
+    case "text":
+    case "article_summary": return <AlignLeft className={cls} />;
+    case "cta_button":
+    case "secondary_link": return <MousePointerClick className={cls} />;
+    case "divider": return <Minus className={cls} />;
+    case "social_icons": return <Share2 className={cls} />;
+    case "weekend_grid":
+    case "weekly_hero":
+    case "event_meta": return <LayoutGrid className={cls} />;
+    case "countdown":
+    case "ticker": return <Clock className={cls} />;
+    case "blog_posts_list": return <FileText className={cls} />;
+    case "lineup": return <LinkIcon className={cls} />;
+    case "dedge_block": return <Package className={cls} />;
+    case "footer": return <AlignLeft className={cls} />;
+    default: return <Library className={cls} />;
+  }
+}
 
 interface Props {
   selectedBlock: Block | null;
