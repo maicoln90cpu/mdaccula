@@ -1260,28 +1260,37 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     ];
   }
 
-  // courtesy — cortesia individual (nominal): saudação, evento, mapa, CTA único
+  // courtesy — cortesia genérica (não nominal): mesma estrutura de "Novo evento",
+  // porém com copy de escassez/oportunidade. Link do CTA aponta pro ticket_link do
+  // evento (mesmo padrão do evento novo), sem placeholders personalizados.
   if (type === "courtesy") {
     return [
       { id: newBlockId(), kind: "header", logo_height: 60, align: "center" },
+      { id: newBlockId(), kind: "hero_image", max_width: 552, border_radius: 12 },
+      { id: newBlockId(), kind: "eyebrow", text: "CORTESIA · VAGAS LIMITADAS", align: "left", text_color: "#f59e0b" },
+      { id: newBlockId(), kind: "title", align: "left", font_size: 30 },
+      { id: newBlockId(), kind: "subtitle", align: "left" },
+      { id: newBlockId(), kind: "event_meta", layout: "columns" },
       {
         id: newBlockId(),
         kind: "text",
         html:
-          "<p style=\"font-size:16px;line-height:1.5;margin:0 0 12px 0;\">Olá, <strong>{{guest_name}}</strong>!</p>" +
-          "<p style=\"font-size:15px;line-height:1.5;margin:0;\">Sua cortesia para <strong>{{event_title}}</strong> está confirmada. Guarde este e-mail — o link de retirada é único e pessoal.</p>",
+          "<p style=\"font-size:15px;line-height:1.55;margin:0 0 10px 0;\">" +
+          "<strong>Boas notícias:</strong> liberamos algumas cortesias para esse rolê." +
+          "</p>" +
+          "<p style=\"font-size:15px;line-height:1.55;margin:0;\">" +
+          "São <strong>poucas vagas</strong> e vão por ordem de chegada — quem confirmar primeiro garante. " +
+          "Corre antes que acabe." +
+          "</p>",
         align: "left",
       },
-      { id: newBlockId(), kind: "eyebrow", text: "CORTESIA CONFIRMADA", align: "left" },
-      { id: newBlockId(), kind: "title", align: "left", font_size: 26 },
-      { id: newBlockId(), kind: "event_meta", layout: "columns" },
+      { id: newBlockId(), kind: "description", align: "left" },
       { id: newBlockId(), kind: "static_map", zoom: 15, height: 260, map_style: "roadmap", show_address_label: true, border_radius: 12 },
       {
         id: newBlockId(),
         kind: "cta_button",
-        label: "Retirar cortesia",
-        url_field: "custom",
-        custom_url: "{{courtesy_link}}",
+        label: "Quero minha cortesia",
+        url_field: "ticket_link",
         align: "center",
         full_width: true,
         bg_style: "gradient",
@@ -1290,7 +1299,9 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
         id: newBlockId(),
         kind: "text",
         html:
-          "<p style=\"font-size:12px;color:#a1a1aa;line-height:1.5;margin:0;text-align:center;\">Este link é único e válido apenas para você. Não compartilhe.</p>",
+          "<p style=\"font-size:12px;color:#a1a1aa;line-height:1.5;margin:0;text-align:center;\">" +
+          "Cortesias sujeitas à disponibilidade. Chegue cedo — a fila anda rápido." +
+          "</p>",
         align: "center",
       },
       { id: newBlockId(), kind: "divider" },
