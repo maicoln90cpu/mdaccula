@@ -401,6 +401,8 @@ export function EmailTemplateEditor({
     }
     setLocalBlocks(null);
     setLocalName("");
+    setLocalSubject(null);
+    setLocalPreheader(null);
     setSelectedBlockId(null);
     onActiveChange(nextId);
   };
