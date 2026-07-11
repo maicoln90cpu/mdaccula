@@ -154,6 +154,7 @@ const sanitizeCustomHtml = (raw: string) =>
 export function renderEventAnnouncementEmail(
   data: EventAnnouncementData,
   settingsInput?: EmailTemplateSettings | null,
+  opts?: { preheader?: string | null },
 ): string {
   const s = { ...DEFAULTS, ...(settingsInput ?? {}) };
 
@@ -175,7 +176,7 @@ export function renderEventAnnouncementEmail(
     unsubscribeUrl,
   } = data;
 
-  const preheader = `${escape(eventTitle)} — ${escape(dateLabel)} em ${escape(venueName)}, ${escape(cityState)}`;
+  const preheader = escape(opts?.preheader ?? `${eventTitle} — ${dateLabel} em ${venueName}, ${cityState}`);
   const bg = escape(s.background_color);
   const primary = escape(s.primary_color);
   const accent = escape(s.accent_color);

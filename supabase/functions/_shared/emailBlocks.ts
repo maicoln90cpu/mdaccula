@@ -868,7 +868,7 @@ export function renderBlockedTemplate(
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,
   article?: ArticleSummary | null,
-  opts?: { preview?: boolean; projectId?: string; globals?: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null },
+  opts?: { preview?: boolean; projectId?: string; globals?: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null; preheader?: string | null },
 ): string {
   const s = {
     brand_name: settings?.brand_name || "MDACCULA",
@@ -892,7 +892,7 @@ export function renderBlockedTemplate(
   const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId, heroEventId };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
-  const preheader = escape(computePreheader(event));
+  const preheader = escape(opts?.preheader ?? computePreheader(event));
 
   const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
   const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";

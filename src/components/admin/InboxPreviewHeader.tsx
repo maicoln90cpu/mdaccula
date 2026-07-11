@@ -14,6 +14,7 @@
  * Além disso reconhecemos {{time_label}}, {{weekend_range}}, {{week_range}}.
  */
 import { Mail } from "lucide-react";
+import { resolveEmailPlaceholders } from "@/lib/emailTemplates/emailMeta";
 
 export type InboxPreviewData = {
   eventTitle?: string;
@@ -78,14 +79,7 @@ export function resolvePlaceholders(
   template: string | null | undefined,
   data: InboxPreviewData | undefined,
 ): string {
-  if (!template) return "";
-  const d = data ?? {};
-  return template.replace(PLACEHOLDER_RE, (match, name: string) => {
-    const entry = PLACEHOLDER_ALIASES.find((e) => e.keys.includes(name));
-    if (!entry) return match; // placeholder desconhecido: preserva literal p/ debug
-    const value = entry.get(d);
-    return value ?? "";
-  });
+  return resolveEmailPlaceholders(template, data ?? {});
 }
 
 /** Retorna true se o texto ainda contém um placeholder que NÃO está na lista canônica. */
