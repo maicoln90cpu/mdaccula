@@ -415,6 +415,8 @@ export function EmailTemplateEditor({
     }
     setLocalBlocks(null);
     setLocalName("");
+    setLocalSubject(null);
+    setLocalPreheader(null);
     setSelectedBlockId(null);
     setTypeFilter(nextType);
     if (typeof window !== "undefined") {
