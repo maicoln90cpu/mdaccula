@@ -176,13 +176,14 @@ function SortableRow({ block, active, onSelect, onRemove, onDuplicate, onToggleH
 //   1º) tipo do template (Evento / Virada / Agenda FDS / Digest / Custom)
 //   2º) template daquele tipo
 // Persistimos a escolha em localStorage para lembrar entre sessões.
-type TypeFilterKey = "event_new" | "ticket_batch" | "weekend_agenda" | "weekly_digest" | "custom";
-const TYPE_FILTER_ORDER: TypeFilterKey[] = ["event_new", "ticket_batch", "weekend_agenda", "weekly_digest", "custom"];
+type TypeFilterKey = "event_new" | "ticket_batch" | "weekend_agenda" | "weekly_digest" | "courtesy" | "custom";
+const TYPE_FILTER_ORDER: TypeFilterKey[] = ["event_new", "ticket_batch", "weekend_agenda", "weekly_digest", "courtesy", "custom"];
 const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
   event_new: "Evento",
   ticket_batch: "Virada",
   weekend_agenda: "Agenda FDS",
   weekly_digest: "Digest",
+  courtesy: "Cortesia",
   custom: "Custom",
 };
 const TYPE_FILTER_STORAGE_KEY = "mdaccula_email_editor_type";
@@ -216,7 +217,7 @@ export function EmailTemplateEditor({
   // Contagem por tipo (para exibir nos chips).
   const countsByType = useMemo(() => {
     const counts: Record<TypeFilterKey, number> = {
-      event_new: 0, ticket_batch: 0, weekend_agenda: 0, weekly_digest: 0, custom: 0,
+      event_new: 0, ticket_batch: 0, weekend_agenda: 0, weekly_digest: 0, courtesy: 0, custom: 0,
     };
     templates.forEach((t) => { counts[normalizeType(t.type)] += 1; });
     return counts;
