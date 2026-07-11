@@ -28,6 +28,7 @@ import {
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
 import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTemplates/dispatchEventDraft";
+import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
@@ -301,6 +302,7 @@ const AbTestButton = ({
 
 const EmailConfig = () => {
   const { toast } = useToast();
+  const { globalsMap } = useEmailGlobalBlocks();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("config");
   const [saving, setSaving] = useState(false);
@@ -852,10 +854,10 @@ const EmailConfig = () => {
 
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
-      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true });
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true, globals: globalsMap });
     }
     return renderEventAnnouncementEmail(previewData, tpl);
-  }, [activeTemplate, previewData, tpl, previewArticle]);
+  }, [activeTemplate, previewData, tpl, previewArticle, globalsMap]);
 
   const loadDigestPreview = async (opts?: { source?: "digest" | "weekend"; templateId?: string }) => {
     const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : "digest");
