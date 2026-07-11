@@ -127,7 +127,43 @@ export type Block =
   | { id: string; kind: "dedge_block"; override_content?: boolean; image_url?: string; eyebrow?: string; title?: string; description?: string; primary_label?: string; primary_url?: string; button_style?: "dark" | "primary" }
   | { id: string; kind: "weekly_hero"; source?: "first_weekend" | "main_event"; eyebrow?: string; cta_label?: string; show_venue?: boolean; show_cta?: boolean; overlay_intensity?: "soft" | "strong"; align?: Align }
   | { id: string; kind: "blog_posts_list"; title?: string; eyebrow?: string; max_items?: number; layout?: "list" | "cards"; show_excerpt?: boolean; show_category?: boolean; align?: Align }
-  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align };
+  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align }
+  | { id: string; kind: "global_ref"; global_id: string; _cached_name?: string };
+
+/** Bloco global salvo na biblioteca — reutilizável entre templates. */
+export type GlobalBlock = {
+  id: string;
+  name: string;
+  description?: string | null;
+  category: string;
+  block: Block;
+};
+
+/**
+ * Expande referências a blocos globais para o bloco real.
+ * Paridade 1:1 com `src/lib/emailTemplates/blocks.ts`.
+ * Se o global não for encontrado, substitui por um texto marcador (não vaza para envio real).
+ */
+export function expandGlobalRefs(
+  blocks: Block[],
+  globals: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null | undefined,
+): Block[] {
+  if (!globals) {
+    // Sem catálogo: remove global_refs para não deixarem "" no envio real.
+    return blocks.filter((b) => b.kind !== "global_ref");
+  }
+  const get = (id: string): GlobalBlock | undefined =>
+    globals instanceof Map ? globals.get(id) : (globals as Record<string, GlobalBlock>)[id];
+  const out: Block[] = [];
+  for (const b of blocks) {
+    if (b.kind !== "global_ref") { out.push(b); continue; }
+    const g = get(b.global_id);
+    if (!g) continue; // envio real: pula silenciosamente
+    // Preserva o id externo para não conflitar entre templates.
+    out.push({ ...g.block, id: b.id } as Block);
+  }
+  return out;
+}
 
 export type ArticleSummary = {
   title: string;
