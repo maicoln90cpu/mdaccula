@@ -176,8 +176,9 @@ export function expandGlobalRefs(blocks: Block[], globals: Map<string, GlobalBlo
     if (b.kind !== "global_ref") return b;
     const g = get(b.global_id);
     if (!g) return { id: b.id, kind: "text", html: `<p style="color:#71717a;font-size:12px;">[Bloco global "${b._cached_name || b.global_id}" indisponível]</p>` } as Block;
-    // preserva o id externo para não conflitar entre templates
-    return { ...g.block, id: b.id } as Block;
+    // preserva o id externo E propaga o hidden do wrapper (para o usuário poder ocultar a referência)
+    const hidden = (b as { hidden?: boolean }).hidden === true;
+    return { ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block;
   });
 }
 
