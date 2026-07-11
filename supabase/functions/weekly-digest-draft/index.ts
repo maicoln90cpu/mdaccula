@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
       : ['weekly_digest', 'weekly_digest_editorial'];
 
     let activeTplQuery = (admin.from as any)('email_templates')
-      .select('id,name,type,blocks,is_default');
+      .select('id,name,type,blocks,is_default,subject_template,preheader_template');
     if (overrideTemplateId) {
       activeTplQuery = activeTplQuery.eq('id', overrideTemplateId);
     } else {
