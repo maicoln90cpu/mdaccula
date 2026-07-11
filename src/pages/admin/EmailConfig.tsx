@@ -29,6 +29,7 @@ import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
 import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTemplates/dispatchEventDraft";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
+import { InboxPreviewHeader } from "@/components/admin/InboxPreviewHeader";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
