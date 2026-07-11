@@ -1530,40 +1530,21 @@ const EmailConfig = () => {
 
         {/* ================= EDITOR + PREVIEW (unificado) ================= */}
         <TabsContent value="editor" className="space-y-4">
-          {/* Barra de fonte do preview — antes era a aba "Preview" separada. */}
+          {/* Barra de contexto do preview.
+              A fonte (evento / digest / agenda FDS) é DERIVADA do tipo do template selecionado no editor,
+              para evitar 2 seletores conflitantes. */}
           <Card>
             <CardContent className="p-3">
               <div className="flex flex-wrap items-center gap-3">
-                <Label className="text-xs whitespace-nowrap">Fonte do preview</Label>
-                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest" | "weekend")}>
-                  <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="event">Evento individual (mock/real)</SelectItem>
-                    <SelectItem value="digest">Digest semanal real (7 dias)</SelectItem>
-                    <SelectItem value="weekend">Agenda FDS real (próximo FDS)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/30 whitespace-nowrap">
+                  Fonte do preview: {previewSource === "digest" ? "Digest semanal real (7 dias)" : previewSource === "weekend" ? "Agenda FDS real (próximo FDS)" : "Evento individual (mock/real)"}
+                </span>
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  determinada pelo tipo do template selecionado no editor abaixo
+                </span>
 
                 {(previewSource === "digest" || previewSource === "weekend") && (
                   <>
-                    <Label className="text-xs whitespace-nowrap ml-2">Template</Label>
-                    <Select
-                      value={digestTemplateId || "__default__"}
-                      onValueChange={(v) => {
-                        const id = v === "__default__" ? "" : v;
-                        setDigestTemplateId(id);
-                        loadDigestPreview({ source: previewSource, templateId: id });
-                      }}
-                    >
-                      <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {digestTemplateOptions.map((t) => (
-                          <SelectItem key={t.id} value={t.id!}>
-                            {t.name} {t.is_default ? "· padrão" : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Button size="sm" variant="outline" onClick={() => loadDigestPreview()} disabled={digestPreviewLoading}>
                       {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
                     </Button>
@@ -1591,6 +1572,7 @@ const EmailConfig = () => {
                     </Select>
                   </>
                 )}
+
 
                 <div className="flex gap-2 ml-auto">
                   <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
