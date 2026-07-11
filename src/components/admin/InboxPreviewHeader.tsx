@@ -4,6 +4,14 @@
  * Motivo: antes o admin só via o corpo do e-mail — assunto/preheader ficavam
  * às cegas até enviar teste. Agora mostramos como o assinante vê no Gmail/Outlook,
  * com placeholders resolvidos a partir dos dados do preview.
+ *
+ * Aceita DUAS notações para o mesmo placeholder — as duas convivem em templates
+ * existentes no banco:
+ *   {{event_title}}  === {{event.title}}
+ *   {{date_label}}   === {{event.date_label}}
+ *   {{venue_name}}   === {{event.venue}}
+ *   {{city_state}}   === {{event.city_state}}
+ * Além disso reconhecemos {{time_label}}, {{weekend_range}}, {{week_range}}.
  */
 import { Mail } from "lucide-react";
 
@@ -13,6 +21,10 @@ export type InboxPreviewData = {
   timeLabel?: string;
   venueName?: string;
   cityState?: string;
+  /** Ex.: "28-29 jun". Usado em Agenda FDS. */
+  weekendRange?: string;
+  /** Ex.: "24-30 jun". Usado em Digest semanal. */
+  weekRange?: string;
 };
 
 type Props = {
@@ -26,21 +38,60 @@ type Props = {
 };
 
 /**
+ * Mapa canônico placeholder → valor.
+ * Cada chave lista TODAS as variações aceitas (ponto e underline).
+ */
+const PLACEHOLDER_ALIASES: Array<{ keys: string[]; get: (d: InboxPreviewData) => string | undefined }> = [
+  { keys: ["event_title", "event.title"], get: (d) => d.eventTitle },
+  { keys: ["date_label", "event.date_label"], get: (d) => d.dateLabel },
+  { keys: ["time_label", "event.time_label"], get: (d) => d.timeLabel },
+  { keys: ["venue_name", "event.venue", "event.venue_name"], get: (d) => d.venueName },
+  { keys: ["city_state", "event.city_state"], get: (d) => d.cityState },
+  { keys: ["weekend_range"], get: (d) => d.weekendRange },
+  { keys: ["week_range"], get: (d) => d.weekRange },
+];
+
+/**
+ * Lista canônica de placeholders reconhecidos (usada tanto pelo resolver
+ * quanto pelo dialog de ajuda "Ver placeholders").
+ */
+export const KNOWN_PLACEHOLDERS: Array<{ key: string; aliases: string[]; description: string; scope: string }> = [
+  { key: "event_title", aliases: ["event.title"], description: "Título do evento (ou destaque da semana em digest).", scope: "Evento, Virada, Cortesia" },
+  { key: "date_label", aliases: ["event.date_label"], description: "Data já formatada (ex.: 'Sáb, 12 jul').", scope: "Evento, Virada, Cortesia" },
+  { key: "time_label", aliases: ["event.time_label"], description: "Horário do evento (ex.: '22h').", scope: "Evento, Virada, Cortesia" },
+  { key: "venue_name", aliases: ["event.venue"], description: "Nome da casa/espaço.", scope: "Evento, Virada, Cortesia" },
+  { key: "city_state", aliases: ["event.city_state"], description: "Cidade e UF (ex.: 'São Paulo - SP').", scope: "Evento, Virada, Cortesia" },
+  { key: "weekend_range", aliases: [], description: "Faixa de datas do fim de semana (ex.: '5-7 jul').", scope: "Agenda FDS" },
+  { key: "week_range", aliases: [], description: "Faixa de datas da semana (ex.: '1-7 jul').", scope: "Digest semanal" },
+];
+
+/** Regex que casa qualquer `{{ nome }}` (com ou sem espaços, com ponto ou underline). */
+const PLACEHOLDER_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
+
+/**
  * Substitui placeholders {{campo}} pelos valores em `data`.
- * Placeholders desconhecidos ficam literais para facilitar o debug.
+ * Aceita as variações listadas em PLACEHOLDER_ALIASES.
+ * Placeholders reconhecidos mas sem valor viram string vazia (não geram warning).
+ * Placeholders totalmente desconhecidos ficam literais (e disparam o warning amber).
  */
 export function resolvePlaceholders(
   template: string | null | undefined,
   data: InboxPreviewData | undefined,
 ): string {
   if (!template) return "";
-  if (!data) return template;
-  return template
-    .replace(/\{\{\s*event_title\s*\}\}/g, data.eventTitle ?? "")
-    .replace(/\{\{\s*date_label\s*\}\}/g, data.dateLabel ?? "")
-    .replace(/\{\{\s*time_label\s*\}\}/g, data.timeLabel ?? "")
-    .replace(/\{\{\s*venue_name\s*\}\}/g, data.venueName ?? "")
-    .replace(/\{\{\s*city_state\s*\}\}/g, data.cityState ?? "");
+  const d = data ?? {};
+  return template.replace(PLACEHOLDER_RE, (match, name: string) => {
+    const entry = PLACEHOLDER_ALIASES.find((e) => e.keys.includes(name));
+    if (!entry) return match; // placeholder desconhecido: preserva literal p/ debug
+    const value = entry.get(d);
+    return value ?? "";
+  });
+}
+
+/** Retorna true se o texto ainda contém um placeholder que NÃO está na lista canônica. */
+function hasUnknownPlaceholder(text: string): boolean {
+  const matches = [...text.matchAll(PLACEHOLDER_RE)];
+  return matches.some((m) => !PLACEHOLDER_ALIASES.some((e) => e.keys.includes(m[1])));
 }
 
 export function InboxPreviewHeader({
@@ -53,6 +104,7 @@ export function InboxPreviewHeader({
 }: Props) {
   const subject = overrideSubject ?? resolvePlaceholders(subjectTemplate, data);
   const preheader = resolvePlaceholders(preheaderTemplate, data);
+  const rawCombined = `${subjectTemplate ?? ""} ${preheaderTemplate ?? ""}`;
 
   return (
     <div className="mb-2 rounded-md border border-border bg-background/60 backdrop-blur-sm">
@@ -95,10 +147,10 @@ export function InboxPreviewHeader({
             )}
           </div>
 
-          {/* Dica sutil de placeholders não resolvidos (aparece só se sobrar {{...}}) */}
-          {(subject + " " + preheader).match(/\{\{[^}]+\}\}/) && (
+          {/* Warning só quando há placeholder que a lista canônica NÃO reconhece. */}
+          {hasUnknownPlaceholder(rawCombined) && (
             <div className="mt-1 text-[10px] text-amber-500/80">
-              ⚠ Placeholder não reconhecido — verifique {"{{event_title}}"}, {"{{date_label}}"}, {"{{venue_name}}"}, {"{{city_state}}"}
+              ⚠ Placeholder não reconhecido — clique em "Ver placeholders" para a lista completa.
             </div>
           )}
         </div>
