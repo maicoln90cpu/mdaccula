@@ -340,7 +340,6 @@ const EmailConfig = () => {
   const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
-  const [previewSource, setPreviewSource] = useState<"event" | "digest" | "weekend">("event");
   const [digestTemplateId, setDigestTemplateId] = useState<string>("");
   const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>("");
   const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string; render_source?: string; template_name?: string | null } | null>(null);
@@ -839,6 +838,18 @@ const EmailConfig = () => {
 
   // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
+
+  // Fonte do preview é derivada do TIPO do template ativo (evita 2 seletores conflitantes).
+  //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
+  //   weekend_agenda    → "weekend"     (mesma função, range weekend)
+  //   demais            → "event"       (mock/real do evento selecionado)
+  const previewSource: "event" | "digest" | "weekend" = useMemo(() => {
+    const t = activeTemplate?.type;
+    if (t === "weekly_digest" || t === "weekly_digest_editorial") return "digest";
+    if (t === "weekend_agenda") return "weekend";
+    return "event";
+  }, [activeTemplate?.type]);
+
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
       return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true });
@@ -892,15 +903,12 @@ const EmailConfig = () => {
 
   useEffect(() => {
     if (previewSource === "event") return;
-    // Ajusta template selecionado quando fonte muda
-    const opts = previewSource === "weekend"
-      ? templates.filter((t) => t.type === "weekend_agenda")
-      : templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
-    const defaultId = opts.find((t) => t.is_default)?.id || opts[0]?.id || "";
-    setDigestTemplateId(defaultId);
-    loadDigestPreview({ source: previewSource, templateId: defaultId });
+    // Fonte digest/weekend: usa o próprio template ativo como fonte do preview.
+    const tplId = activeTemplateId || "";
+    setDigestTemplateId(tplId);
+    loadDigestPreview({ source: previewSource, templateId: tplId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSource, templates]);
+  }, [previewSource, activeTemplateId]);
 
 
   const saveTemplate = async () => {
@@ -1519,40 +1527,21 @@ const EmailConfig = () => {
 
         {/* ================= EDITOR + PREVIEW (unificado) ================= */}
         <TabsContent value="editor" className="space-y-4">
-          {/* Barra de fonte do preview — antes era a aba "Preview" separada. */}
+          {/* Barra de contexto do preview.
+              A fonte (evento / digest / agenda FDS) é DERIVADA do tipo do template selecionado no editor,
+              para evitar 2 seletores conflitantes. */}
           <Card>
             <CardContent className="p-3">
               <div className="flex flex-wrap items-center gap-3">
-                <Label className="text-xs whitespace-nowrap">Fonte do preview</Label>
-                <Select value={previewSource} onValueChange={(v) => setPreviewSource(v as "event" | "digest" | "weekend")}>
-                  <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="event">Evento individual (mock/real)</SelectItem>
-                    <SelectItem value="digest">Digest semanal real (7 dias)</SelectItem>
-                    <SelectItem value="weekend">Agenda FDS real (próximo FDS)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/30 whitespace-nowrap">
+                  Fonte do preview: {previewSource === "digest" ? "Digest semanal real (7 dias)" : previewSource === "weekend" ? "Agenda FDS real (próximo FDS)" : "Evento individual (mock/real)"}
+                </span>
+                <span className="text-[11px] text-muted-foreground whitespace-nowrap">
+                  determinada pelo tipo do template selecionado no editor abaixo
+                </span>
 
                 {(previewSource === "digest" || previewSource === "weekend") && (
                   <>
-                    <Label className="text-xs whitespace-nowrap ml-2">Template</Label>
-                    <Select
-                      value={digestTemplateId || "__default__"}
-                      onValueChange={(v) => {
-                        const id = v === "__default__" ? "" : v;
-                        setDigestTemplateId(id);
-                        loadDigestPreview({ source: previewSource, templateId: id });
-                      }}
-                    >
-                      <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {digestTemplateOptions.map((t) => (
-                          <SelectItem key={t.id} value={t.id!}>
-                            {t.name} {t.is_default ? "· padrão" : ""}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <Button size="sm" variant="outline" onClick={() => loadDigestPreview()} disabled={digestPreviewLoading}>
                       {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
                     </Button>
@@ -1580,6 +1569,7 @@ const EmailConfig = () => {
                     </Select>
                   </>
                 )}
+
 
                 <div className="flex gap-2 ml-auto">
                   <Button size="sm" variant="outline" onClick={() => { setSelectedRealEventId("mock"); setPreviewData(MOCK_EVENT_DATA); }}>
