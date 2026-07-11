@@ -214,13 +214,28 @@ export async function dispatchEventDraftEmail(
       ? renderBlockedTemplate(resolvedBlocks, eventData, settings, article, { globals: globalsMap })
       : renderEventAnnouncementEmail(eventData, settings);
 
-  const subject =
+  // Resolve placeholders ({{event_title}}, {{event.title}}, {{date_label}}, etc.)
+  // usando os dados reais do evento — antes lia colunas erradas (subject/preheader
+  // ao invés de subject_template/preheader_template) e enviava literais.
+  const { resolvePlaceholders } = await import("@/components/admin/InboxPreviewHeader");
+  const phData = {
+    eventTitle: event.title,
+    dateLabel: eventData.dateLabel,
+    timeLabel: eventData.timeLabel,
+    venueName: event.venue,
+    cityState: `${event.location_city}-${event.location_state}`,
+  };
+  const subjectTpl =
     opts.subjectOverride ||
+    (template as any)?.subject_template ||
     (template as any)?.subject ||
-    `Novo evento: ${event.title}`;
-  const preheader =
+    `Novo evento: {{event_title}}`;
+  const preheaderTpl =
+    (template as any)?.preheader_template ||
     (template as any)?.preheader ||
-    `${event.title} — ${eventData.dateLabel} em ${event.venue}, ${event.location_city}-${event.location_state}`;
+    `{{event_title}} — {{date_label}} em {{venue_name}}, {{city_state}}`;
+  const subject = resolvePlaceholders(subjectTpl, phData) || `Novo evento: ${event.title}`;
+  const preheader = resolvePlaceholders(preheaderTpl, phData);
 
   // 5. Chama edge function
   const invokeBody: Record<string, unknown> = {
