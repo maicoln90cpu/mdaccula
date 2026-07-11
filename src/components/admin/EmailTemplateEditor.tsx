@@ -40,6 +40,7 @@ import {
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
 import { InboxPreviewHeader } from "./InboxPreviewHeader";
+import { PlaceholdersHelpDialog } from "./PlaceholdersHelpDialog";
 
 interface Props {
   templates: Template[];
