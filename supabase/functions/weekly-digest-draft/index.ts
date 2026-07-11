@@ -462,6 +462,7 @@ Deno.serve(async (req) => {
           null,
           { preview: false, globals: globalsMap },
         );
+        renderedEventPayload = eventPayload;
         renderSource = 'template';
       } catch (err) {
         console.error('[weekly-digest-draft] template render failed, using legacy HTML:', err);
