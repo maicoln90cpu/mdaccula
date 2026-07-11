@@ -159,8 +159,10 @@ export function expandGlobalRefs(
     if (b.kind !== "global_ref") { out.push(b); continue; }
     const g = get(b.global_id);
     if (!g) continue; // envio real: pula silenciosamente
-    // Preserva o id externo para não conflitar entre templates.
-    out.push({ ...g.block, id: b.id } as Block);
+    // Preserva o id externo para não conflitar entre templates e propaga a flag
+    // `hidden` do wrapper (o usuário oculta a referência no template, não o global).
+    const hidden = (b as { hidden?: boolean }).hidden === true;
+    out.push({ ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block);
   }
   return out;
 }
