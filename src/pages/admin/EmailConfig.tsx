@@ -340,7 +340,6 @@ const EmailConfig = () => {
   const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
-  const [previewSource, setPreviewSource] = useState<"event" | "digest" | "weekend">("event");
   const [digestTemplateId, setDigestTemplateId] = useState<string>("");
   const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>("");
   const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; events_count?: number; posts_count?: number; range?: string; render_source?: string; template_name?: string | null } | null>(null);
