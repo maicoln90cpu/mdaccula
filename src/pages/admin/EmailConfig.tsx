@@ -2228,4 +2228,13 @@ const EmailConfig = () => {
   );
 };
 
-export default EmailConfig;
+// Envolve a página com o Provider único de blocos globais para evitar
+// caches divergentes entre o editor e a biblioteca (bug do preview "indisponível").
+import { EmailGlobalBlocksProvider } from "@/contexts/EmailGlobalBlocksContext";
+const EmailConfigWithProviders = () => (
+  <EmailGlobalBlocksProvider>
+    <EmailConfig />
+  </EmailGlobalBlocksProvider>
+);
+
+export default EmailConfigWithProviders;
