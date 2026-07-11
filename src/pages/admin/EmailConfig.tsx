@@ -854,10 +854,10 @@ const EmailConfig = () => {
 
   const previewHtml = useMemo(() => {
     if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
-      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true });
+      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true, globals: globalsMap });
     }
     return renderEventAnnouncementEmail(previewData, tpl);
-  }, [activeTemplate, previewData, tpl, previewArticle]);
+  }, [activeTemplate, previewData, tpl, previewArticle, globalsMap]);
 
   const loadDigestPreview = async (opts?: { source?: "digest" | "weekend"; templateId?: string }) => {
     const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : "digest");
