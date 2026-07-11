@@ -379,7 +379,11 @@ export function EmailTemplateEditor({
   // de template ou fechasse a aba, as mudanças sumiam sem aviso.
   // Agora: badge visível + confirmação ao trocar + beforeunload.
   // ============================================================
-  const isDirty = localBlocks !== null || (localName !== "" && localName !== activeTpl?.name);
+  const isDirty =
+    localBlocks !== null ||
+    (localName !== "" && localName !== activeTpl?.name) ||
+    (localSubject !== null && localSubject !== (activeTpl?.subject_template ?? "")) ||
+    (localPreheader !== null && localPreheader !== (activeTpl?.preheader_template ?? ""));
 
   useEffect(() => {
     if (!isDirty) return;
