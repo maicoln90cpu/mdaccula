@@ -143,12 +143,15 @@ export async function dispatchEventDraftEmail(
       .select("*")
       .eq("id", cfg.default_event_template_id)
       .maybeSingle();
-    template = data as Template | null;
+    template = (data as Template | null)?.type === "event_new" ? (data as Template) : null;
   }
   if (!template) {
     const { data } = await (supabase.from as any)("email_templates")
       .select("*")
       .eq("type", "event_new")
+      .order("is_default", { ascending: false })
+      .order("updated_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
     template = data as Template | null;
   }
