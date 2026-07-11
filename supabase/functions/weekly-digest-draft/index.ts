@@ -336,6 +336,7 @@ Deno.serve(async (req) => {
     // Tenta renderizar via template ativo (blocos). Se falhar por qualquer motivo, cai no HTML legado.
     let html = '';
     let renderSource: 'template' | 'legacy' = 'legacy';
+    let renderedEventPayload: EventAnnouncementData | null = null;
     const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
 
     if (tplBlocks && tplBlocks.length > 0) {
