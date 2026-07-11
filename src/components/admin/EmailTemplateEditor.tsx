@@ -284,12 +284,19 @@ export function EmailTemplateEditor({
     setSaving(true);
     try {
       const { error } = await (supabase.from as any)("email_templates")
-        .update({ blocks, name: currentName })
+        .update({
+          blocks,
+          name: currentName,
+          subject_template: currentSubject || null,
+          preheader_template: currentPreheader || null,
+        })
         .eq("id", activeTpl.id);
       if (error) throw error;
       toast({ title: "Template salvo" });
       setLocalBlocks(null);
       setLocalName("");
+      setLocalSubject(null);
+      setLocalPreheader(null);
       await onReload();
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
