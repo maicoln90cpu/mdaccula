@@ -573,7 +573,25 @@ export function EmailTemplateEditor({
             {!selectedBlock && (
               <p className="text-sm text-muted-foreground">Clique num bloco à esquerda para editar suas propriedades.</p>
             )}
-            {selectedBlock && <BlockPropsPanel block={selectedBlock} onChange={(patch) => updateBlock(selectedBlock.id, patch)} />}
+            {selectedBlock && selectedBlock.kind === "global_ref" && (
+              <GlobalRefPropsPanel
+                refBlock={selectedBlock as Extract<Block, { kind: "global_ref" }>}
+                templates={templates}
+                globalsMap={globalsMap}
+                updateGlobal={updateGlobal}
+                onUnlink={(expanded) => {
+                  // Substitui o global_ref por uma cópia LOCAL do bloco expandido
+                  // apenas neste template. Outros templates continuam vinculados.
+                  const localCopy: Block = { ...(expanded as any), id: (selectedBlock as any).id } as Block;
+                  updateBlock((selectedBlock as any).id, localCopy as Partial<Block>);
+                  toast({ title: "Vínculo desfeito", description: "O bloco virou local neste template. Edições agora só afetam este template." });
+                }}
+                onToast={(t) => toast(t)}
+              />
+            )}
+            {selectedBlock && selectedBlock.kind !== "global_ref" && (
+              <BlockPropsPanel block={selectedBlock} onChange={(patch) => updateBlock(selectedBlock.id, patch)} />
+            )}
           </CardContent>
         </Card>
 
