@@ -2043,14 +2043,7 @@ const EmailConfig = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-3">
-                <Input
-                  placeholder="Buscar por nome do evento…"
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  className="max-w-md"
-                />
-              </div>
+              {/* busca movida para o topo da aba — filtra também 'sem rascunho' */}
               {(() => {
                 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
                 const q = norm(historySearch);
