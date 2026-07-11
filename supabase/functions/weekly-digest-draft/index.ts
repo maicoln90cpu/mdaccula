@@ -496,12 +496,29 @@ Deno.serve(async (req) => {
 
 
 
+    // Payload E-goi enriquecido: preheader dedicado, versão text (multipart) e tags.
+    let textVersion = '';
+    let preheaderText = '';
+    try {
+      if (tplBlocks && renderSource === 'template') {
+        textVersion = renderBlockedTemplateText(tplBlocks, eventPayload!, settings as EmailTemplateSettings, null, { globals: globalsMap });
+        preheaderText = computePreheader(eventPayload!);
+      }
+    } catch (e) { console.warn('[weekly-digest-draft] text/preheader gen failed:', e); }
+
+    const digestTag = range === 'weekend' ? 'agenda-fds' : 'digest-semanal';
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
       subject,
       sender_id: Number(cfg.sender_id),
-      content: { type: 'html', body: html },
+      content: {
+        type: 'html',
+        body: html,
+        ...(preheaderText ? { preheader: preheaderText } : {}),
+        ...(textVersion ? { text: textVersion } : {}),
+      },
+      tags: ['mdaccula', digestTag],
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
 
