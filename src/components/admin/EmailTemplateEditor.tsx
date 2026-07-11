@@ -206,6 +206,8 @@ export function EmailTemplateEditor({
   const [saving, setSaving] = useState(false);
   const [localBlocks, setLocalBlocks] = useState<Block[] | null>(null);
   const [localName, setLocalName] = useState<string>("");
+  const [localSubject, setLocalSubject] = useState<string | null>(null);
+  const [localPreheader, setLocalPreheader] = useState<string | null>(null);
 
   // Tipo selecionado (passo 1). Inicializa a partir do localStorage.
   const [typeFilter, setTypeFilter] = useState<TypeFilterKey>(() => {
