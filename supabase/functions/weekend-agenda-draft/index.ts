@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
 
     // Query do template
     let activeTplQuery = (admin.from as any)('email_templates')
-      .select('id,name,type,blocks,is_default');
+      .select('id,name,type,blocks,is_default,subject_template,preheader_template');
     if (overrideTemplateId) {
       activeTplQuery = activeTplQuery.eq('id', overrideTemplateId);
     } else {
