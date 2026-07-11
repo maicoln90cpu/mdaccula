@@ -344,8 +344,15 @@ export function EmailTemplateEditor({
       {/* Barra superior: seletor de template + ações */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex-1 min-w-[240px]">
-          <Label className="text-xs">Template ativo</Label>
-          <Select value={activeId || ""} onValueChange={onActiveChange}>
+          <Label className="text-xs flex items-center gap-2">
+            Template ativo
+            {isDirty && (
+              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                • não salvo
+              </span>
+            )}
+          </Label>
+          <Select value={activeId || ""} onValueChange={handleActiveChange}>
             <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
             <SelectContent>
               {templates.map((t) => (
@@ -376,8 +383,14 @@ export function EmailTemplateEditor({
         <Button size="sm" variant="outline" onClick={deleteTemplate} disabled={!activeTpl || activeTpl.is_default}>
           <Trash2 className="w-4 h-4 mr-1" />Excluir
         </Button>
-        <Button size="sm" onClick={saveTemplate} disabled={!activeTpl || saving || localBlocks === null && !localName}>
-          <Save className="w-4 h-4 mr-1" />{saving ? "Salvando…" : "Salvar"}
+        <Button
+          size="sm"
+          variant={isDirty ? "default" : "outline"}
+          onClick={saveTemplate}
+          disabled={!activeTpl || saving || !isDirty}
+          className={isDirty ? "ring-2 ring-amber-500/40" : ""}
+        >
+          <Save className="w-4 h-4 mr-1" />{saving ? "Salvando…" : isDirty ? "Salvar alterações" : "Salvo"}
         </Button>
       </div>
 
