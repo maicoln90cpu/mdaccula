@@ -12,6 +12,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplate,
+  renderBlockedTemplateText,
+  computePreheader,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
