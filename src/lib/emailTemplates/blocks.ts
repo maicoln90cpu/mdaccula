@@ -184,7 +184,7 @@ export function expandGlobalRefs(blocks: Block[], globals: Map<string, GlobalBlo
 export type Template = {
   id?: string;
   name: string;
-  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekly_digest_editorial" | "weekend_agenda" | "custom";
+  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekly_digest_editorial" | "weekend_agenda" | "courtesy" | "custom";
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;
@@ -1020,7 +1020,8 @@ export type PresetKey =
   | "weekly_digest_poster"
   | "weekly_digest_editorial"
   | "weekend_agenda_cartaz"
-  | "weekend_agenda_timeline";
+  | "weekend_agenda_timeline"
+  | "courtesy";
 
 export function buildPresetBlocks(type: PresetKey): Block[] {
   const defaultSocials: SocialNetwork[] = [
