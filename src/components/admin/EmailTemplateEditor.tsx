@@ -235,6 +235,8 @@ export function EmailTemplateEditor({
   // Sincroniza com template ativo
   const blocks = localBlocks ?? (activeTpl?.blocks as Block[]) ?? [];
   const currentName = localName || activeTpl?.name || "";
+  const currentSubject = localSubject !== null ? localSubject : (activeTpl?.subject_template ?? "");
+  const currentPreheader = localPreheader !== null ? localPreheader : (activeTpl?.preheader_template ?? "");
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
