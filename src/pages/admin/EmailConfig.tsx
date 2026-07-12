@@ -816,6 +816,59 @@ const EmailConfig = () => {
     }
   };
 
+  const handleSaveBlog = async () => {
+    setSavingBlog(true);
+    try {
+      await saveAutomation("blog_digest", blogCfg);
+      toast({
+        title: blogCfg.enabled ? "Blog news agendado" : "Blog news salvo (desligado)",
+        description: blogCfg.enabled
+          ? `Próxima execução: ${DAY_LABELS[blogCfg.day]} ${String(blogCfg.hour).padStart(2, "0")}:00 BRT.`
+          : "As chaves foram salvas; nenhum cron ativo.",
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } finally {
+      setSavingBlog(false);
+    }
+  };
+
+  const generateBlogNow = async () => {
+    setBlogGenerating(true);
+    setBlogLastResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("blog-digest-draft", {
+        body: { force: true },
+      });
+      if (error) throw error;
+      const res = data as {
+        ok?: boolean; skipped?: boolean; reason?: string; error?: string;
+        egoi_campaign_id?: string | null; posts_count?: number; range?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          digest_disabled: "Blog news está desligado — ligue o toggle primeiro.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+          no_posts_in_range: "Nenhuma matéria publicada no período. Publique posts no blog primeiro.",
+        };
+        toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+        return;
+      }
+      if (!res?.ok) throw new Error(res?.error || "Falha ao criar rascunho");
+      setBlogLastResult(res);
+      toast({
+        title: "Rascunho Blog news criado na E-goi",
+        description: `${res.posts_count ?? 0} matéria(s) no digest.`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao gerar Blog news", description: e.message });
+    } finally {
+      setBlogGenerating(false);
+    }
+  };
+
+
 
 
 
