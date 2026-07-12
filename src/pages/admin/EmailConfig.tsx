@@ -358,19 +358,25 @@ const EmailConfig = () => {
   const [batchSubject, setBatchSubject] = useState<string>("");
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
-  // Automações (Digest semanal + Agenda FDS)
+  // Automações (Digest semanal + Agenda FDS + Blog news)
   type AutomationCfg = { enabled: boolean; day: number; hour: number; templateId: string };
   const [weeklyCfg, setWeeklyCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 18, templateId: "" });
   const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 12, templateId: "" });
+  const [blogCfg, setBlogCfg] = useState<AutomationCfg>({ enabled: false, day: 0, hour: 12, templateId: "" });
   const [savingWeekly, setSavingWeekly] = useState(false);
   const [savingWeekend, setSavingWeekend] = useState(false);
+  const [savingBlog, setSavingBlog] = useState(false);
   const [digestGenerating, setDigestGenerating] = useState(false);
   const [weekendGenerating, setWeekendGenerating] = useState(false);
+  const [blogGenerating, setBlogGenerating] = useState(false);
   const [digestLastResult, setDigestLastResult] = useState<{
     egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
   } | null>(null);
   const [weekendLastResult, setWeekendLastResult] = useState<{
     egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+  } | null>(null);
+  const [blogLastResult, setBlogLastResult] = useState<{
+    egoi_campaign_id?: string | null; posts_count?: number; range?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -408,6 +414,7 @@ const EmailConfig = () => {
         supabase.from("site_settings").select("key, value").in("key", [
           "weekly_digest_enabled", "weekly_digest_cron_day", "weekly_digest_cron_hour", "weekly_digest_template_id",
           "weekend_agenda_enabled", "weekend_agenda_cron_day", "weekend_agenda_cron_hour", "weekend_agenda_template_id",
+          "blog_digest_enabled", "blog_digest_cron_day", "blog_digest_cron_hour", "blog_digest_template_id",
         ]),
       ]);
 
@@ -429,6 +436,12 @@ const EmailConfig = () => {
         day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
         hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
         templateId: settingsMap.weekend_agenda_template_id || "",
+      });
+      setBlogCfg({
+        enabled: settingsMap.blog_digest_enabled === "true",
+        day: parseInt10(settingsMap.blog_digest_cron_day, 0),
+        hour: parseInt10(settingsMap.blog_digest_cron_hour, 12),
+        templateId: settingsMap.blog_digest_template_id || "",
       });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
@@ -681,7 +694,7 @@ const EmailConfig = () => {
   };
 
   const saveAutomation = async (
-    job: "weekly_digest" | "weekend_agenda",
+    job: "weekly_digest" | "weekend_agenda" | "blog_digest",
     cfg: AutomationCfg,
   ) => {
     const prefix = job;
@@ -802,6 +815,59 @@ const EmailConfig = () => {
       setWeekendGenerating(false);
     }
   };
+
+  const handleSaveBlog = async () => {
+    setSavingBlog(true);
+    try {
+      await saveAutomation("blog_digest", blogCfg);
+      toast({
+        title: blogCfg.enabled ? "Blog news agendado" : "Blog news salvo (desligado)",
+        description: blogCfg.enabled
+          ? `Próxima execução: ${DAY_LABELS[blogCfg.day]} ${String(blogCfg.hour).padStart(2, "0")}:00 BRT.`
+          : "As chaves foram salvas; nenhum cron ativo.",
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } finally {
+      setSavingBlog(false);
+    }
+  };
+
+  const generateBlogNow = async () => {
+    setBlogGenerating(true);
+    setBlogLastResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("blog-digest-draft", {
+        body: { force: true },
+      });
+      if (error) throw error;
+      const res = data as {
+        ok?: boolean; skipped?: boolean; reason?: string; error?: string;
+        egoi_campaign_id?: string | null; posts_count?: number; range?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          digest_disabled: "Blog news está desligado — ligue o toggle primeiro.",
+          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+          no_posts_in_range: "Nenhuma matéria publicada no período. Publique posts no blog primeiro.",
+        };
+        toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+        return;
+      }
+      if (!res?.ok) throw new Error(res?.error || "Falha ao criar rascunho");
+      setBlogLastResult(res);
+      toast({
+        title: "Rascunho Blog news criado na E-goi",
+        description: `${res.posts_count ?? 0} matéria(s) no digest.`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro ao gerar Blog news", description: e.message });
+    } finally {
+      setBlogGenerating(false);
+    }
+  };
+
 
 
 
@@ -1990,6 +2056,106 @@ const EmailConfig = () => {
                   <div className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 rounded-md p-3">
                     <div><b>Rascunho FDS criado.</b> Campanha #{weekendLastResult.egoi_campaign_id || "—"}</div>
                     <div>Período: {weekendLastResult.range} · {weekendLastResult.events_count} evento(s)</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Card 3 — Blog news */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Blog news (novidades do blog)</span>
+                  <Badge variant={blogCfg.enabled ? "default" : "secondary"}>
+                    {blogCfg.enabled ? "ON" : "OFF"}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Rascunho automático apenas com as <b>matérias publicadas</b> na semana (sem eventos). Sugerido: domingo à noite.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="text-sm">Ativar geração automática</div>
+                  <Switch
+                    checked={blogCfg.enabled}
+                    onCheckedChange={(v) => setBlogCfg({ ...blogCfg, enabled: v })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Dia da semana</Label>
+                    <Select
+                      value={String(blogCfg.day)}
+                      onValueChange={(v) => setBlogCfg({ ...blogCfg, day: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DAY_LABELS.map((d, i) => (
+                          <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Horário (BRT)</Label>
+                    <Select
+                      value={String(blogCfg.hour)}
+                      onValueChange={(v) => setBlogCfg({ ...blogCfg, hour: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, h) => (
+                          <SelectItem key={h} value={String(h)}>{String(h).padStart(2, "0")}:00</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Template padrão</Label>
+                  <Select
+                    value={
+                      blogCfg.templateId ||
+                      templates.find((t) => t.type === "blog_digest" && t.is_default)?.id ||
+                      ""
+                    }
+                    onValueChange={(v) => setBlogCfg({ ...blogCfg, templateId: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
+                    <SelectContent>
+                      {templates
+                        .filter((t) => t.type === "blog_digest")
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name}{t.is_default ? " · padrão" : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleSaveBlog} disabled={savingBlog}>
+                    {savingBlog ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Salvando…</> : <><Save className="w-4 h-4 mr-2" />Salvar agendamento</>}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={generateBlogNow} disabled={!masterEnabled || blogGenerating}>
+                    {blogGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
+                  </Button>
+                </div>
+
+                {blogCfg.enabled && (
+                  <div className="text-xs text-muted-foreground">
+                    Próxima execução: <b>{DAY_LABELS[blogCfg.day]} {String(blogCfg.hour).padStart(2, "0")}:00 BRT</b>.
+                  </div>
+                )}
+
+                {blogLastResult && (
+                  <div className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 rounded-md p-3">
+                    <div><b>Rascunho Blog news criado.</b> Campanha #{blogLastResult.egoi_campaign_id || "—"}</div>
+                    <div>Período: {blogLastResult.range} · {blogLastResult.posts_count} matéria(s)</div>
                   </div>
                 )}
               </CardContent>

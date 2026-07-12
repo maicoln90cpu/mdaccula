@@ -185,7 +185,7 @@ export function expandGlobalRefs(blocks: Block[], globals: Map<string, GlobalBlo
 export type Template = {
   id?: string;
   name: string;
-  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekly_digest_editorial" | "weekend_agenda" | "courtesy" | "custom";
+  type: "event_new" | "ticket_batch" | "weekly_digest" | "weekly_digest_editorial" | "weekend_agenda" | "courtesy" | "custom" | "blog_digest";
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;
@@ -1061,6 +1061,8 @@ export type PresetKey =
   | "weekly_digest_editorial"
   | "weekend_agenda_cartaz"
   | "weekend_agenda_timeline"
+  | "blog_digest_cards"
+  | "blog_digest_editorial"
   | "courtesy";
 
 export function buildPresetBlocks(type: PresetKey): Block[] {
@@ -1300,6 +1302,66 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
     ];
   }
 
+  // blog_digest_cards — novidades do blog (cards)
+  if (type === "blog_digest_cards") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 60 },
+      { id: newBlockId(), kind: "eyebrow", text: "NOVIDADES DO BLOG", align: "center" },
+      {
+        id: newBlockId(), kind: "text",
+        html:
+          "<h1 style=\"color:#fff;font-size:30px;font-weight:900;margin:6px 0 4px 0;letter-spacing:-0.02em;text-align:center;\">O que rolou no blog</h1>" +
+          "<p style=\"color:#a1a1aa;font-size:14px;margin:0;text-align:center;\">Uma seleção das matérias da semana em São Paulo.</p>",
+        align: "center",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(), kind: "blog_posts_list",
+        title: "Matérias em destaque", eyebrow: "DA SEMANA",
+        max_items: 10, layout: "list", show_excerpt: true, show_category: true,
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(), kind: "cta_button",
+        label: "Ver todas as matérias",
+        url_field: "custom", custom_url: "https://mdaccula.com/blog",
+        align: "center",
+      },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true },
+    ];
+  }
+
+  // blog_digest_editorial — novidades do blog (editorial revista)
+  if (type === "blog_digest_editorial") {
+    return [
+      { id: newBlockId(), kind: "header", logo_height: 52, align: "left" },
+      { id: newBlockId(), kind: "eyebrow", text: "EDITORIAL · BLOG MDACCULA", align: "left" },
+      {
+        id: newBlockId(), kind: "text",
+        html:
+          "<h1 style=\"color:#fff;font-size:34px;font-weight:900;margin:6px 0 8px 0;letter-spacing:-0.02em;line-height:1.1;\">Leituras da semana.</h1>" +
+          "<p style=\"color:#a1a1aa;font-size:15px;line-height:1.6;margin:0;\">Curadoria enxuta das matérias que valem seu tempo.</p>",
+        align: "left",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(), kind: "blog_posts_list",
+        title: "", eyebrow: "MATÉRIAS EM ALTA",
+        max_items: 8, layout: "list", show_excerpt: true, show_category: true, align: "left",
+      },
+      { id: newBlockId(), kind: "divider" },
+      {
+        id: newBlockId(), kind: "cta_button",
+        label: "Ler todas no blog",
+        url_field: "custom", custom_url: "https://mdaccula.com/blog",
+        align: "center",
+      },
+      { id: newBlockId(), kind: "social_icons", networks: defaultSocials, align: "center" },
+      { id: newBlockId(), kind: "footer", include_unsubscribe: true, align: "center" },
+    ];
+  }
+
   // courtesy — cortesia genérica (não nominal): mesma estrutura de "Novo evento",
   // porém com copy de escassez/oportunidade. Link do CTA aponta pro ticket_link do
   // evento (mesmo padrão do evento novo), sem placeholders personalizados.
@@ -1361,7 +1423,7 @@ export const TEMPLATE_PRESETS: Array<{
   subject_template: string;
   preheader_template: string;
   /** Tipo salvo no banco (para agrupar variantes do mesmo formato). */
-  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "courtesy" | "custom";
+  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "courtesy" | "custom" | "blog_digest";
 }> = [
   {
     key: "event_new",
@@ -1418,6 +1480,22 @@ export const TEMPLATE_PRESETS: Array<{
     subject_template: "📅 Programação do fds — {{weekend_range}}",
     preheader_template: "Do sunset de sexta ao after de domingo. Sua semana começa aqui.",
     template_type: "weekend_agenda",
+  },
+  {
+    key: "blog_digest_cards",
+    name: "Blog news — Cards ⭐",
+    description: "Novidades do blog em formato de cards. Ideal para o disparo dominical com as matérias da semana.",
+    subject_template: "📰 Novidades do blog — {{range_label}}",
+    preheader_template: "As matérias mais lidas da semana no MDAccula.",
+    template_type: "blog_digest",
+  },
+  {
+    key: "blog_digest_editorial",
+    name: "Blog news — Editorial",
+    description: "Novidades do blog em formato editorial (estilo revista). Só posts, sem eventos.",
+    subject_template: "📖 Leituras da semana — {{range_label}}",
+    preheader_template: "Uma curadoria editorial das matérias mais lidas em São Paulo.",
+    template_type: "blog_digest",
   },
   {
     key: "courtesy",

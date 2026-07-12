@@ -2,8 +2,8 @@
 // chaves em site_settings. Se `<job>_enabled` = false, apenas remove o job
 // (sem afetar o outro). Fuso fixo BRT (-3) → converte para UTC.
 //
-// Body: { job?: 'weekly_digest' | 'weekend_agenda' | 'both' }
-//   default = 'both'
+// Body: { job?: 'weekly_digest' | 'weekend_agenda' | 'blog_digest' | 'both' | 'all' }
+//   default = 'all' (aplica os três)
 // Apenas admins autenticados podem chamar.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -13,7 +13,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type JobKey = 'weekly_digest' | 'weekend_agenda';
+type JobKey = 'weekly_digest' | 'weekend_agenda' | 'blog_digest';
 
 const JOB_META: Record<JobKey, { jobName: string; slug: string; secretName: string }> = {
   weekly_digest: {
@@ -25,6 +25,11 @@ const JOB_META: Record<JobKey, { jobName: string; slug: string; secretName: stri
     jobName: 'weekend-agenda-cron',
     slug: 'weekend-agenda-draft',
     secretName: 'weekend_agenda_cron',
+  },
+  blog_digest: {
+    jobName: 'blog-digest-cron',
+    slug: 'blog-digest-draft',
+    secretName: 'blog_digest_cron',
   },
 };
 
@@ -136,11 +141,13 @@ Deno.serve(async (req) => {
     if (!isAdmin) return json({ error: 'Apenas admins' }, 403);
 
     const body = await req.json().catch(() => ({}));
-    const rawJob = typeof body?.job === 'string' ? body.job : 'both';
+    const rawJob = typeof body?.job === 'string' ? body.job : 'all';
     const jobs: JobKey[] =
       rawJob === 'weekly_digest' ? ['weekly_digest'] :
       rawJob === 'weekend_agenda' ? ['weekend_agenda'] :
-      ['weekly_digest', 'weekend_agenda'];
+      rawJob === 'blog_digest' ? ['blog_digest'] :
+      rawJob === 'both' ? ['weekly_digest', 'weekend_agenda'] :
+      ['weekly_digest', 'weekend_agenda', 'blog_digest'];
 
     const results = [];
     for (const j of jobs) {
