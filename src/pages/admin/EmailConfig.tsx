@@ -1995,6 +1995,15 @@ const EmailConfig = () => {
                   <Button size="sm" variant="outline" onClick={generateDigestNow} disabled={!masterEnabled || digestGenerating}>
                     {digestGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => sendAutomationTest("weekly-digest-draft", "Digest semanal", setTestingWeekly)}
+                    disabled={testingWeekly}
+                    title={`Envia via Resend para ${AUTOMATION_TEST_RECIPIENT} — não toca a E-goi`}
+                  >
+                    {testingWeekly ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Enviando…</> : <><Send className="w-4 h-4 mr-2" />Enviar teste agora</>}
+                  </Button>
                 </div>
 
                 {weeklyCfg.enabled && (
