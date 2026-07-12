@@ -694,7 +694,7 @@ const EmailConfig = () => {
   };
 
   const saveAutomation = async (
-    job: "weekly_digest" | "weekend_agenda",
+    job: "weekly_digest" | "weekend_agenda" | "blog_digest",
     cfg: AutomationCfg,
   ) => {
     const prefix = job;
