@@ -358,19 +358,25 @@ const EmailConfig = () => {
   const [batchSubject, setBatchSubject] = useState<string>("");
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
-  // Automações (Digest semanal + Agenda FDS)
+  // Automações (Digest semanal + Agenda FDS + Blog news)
   type AutomationCfg = { enabled: boolean; day: number; hour: number; templateId: string };
   const [weeklyCfg, setWeeklyCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 18, templateId: "" });
   const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 12, templateId: "" });
+  const [blogCfg, setBlogCfg] = useState<AutomationCfg>({ enabled: false, day: 0, hour: 12, templateId: "" });
   const [savingWeekly, setSavingWeekly] = useState(false);
   const [savingWeekend, setSavingWeekend] = useState(false);
+  const [savingBlog, setSavingBlog] = useState(false);
   const [digestGenerating, setDigestGenerating] = useState(false);
   const [weekendGenerating, setWeekendGenerating] = useState(false);
+  const [blogGenerating, setBlogGenerating] = useState(false);
   const [digestLastResult, setDigestLastResult] = useState<{
     egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
   } | null>(null);
   const [weekendLastResult, setWeekendLastResult] = useState<{
     egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+  } | null>(null);
+  const [blogLastResult, setBlogLastResult] = useState<{
+    egoi_campaign_id?: string | null; posts_count?: number; range?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -408,6 +414,7 @@ const EmailConfig = () => {
         supabase.from("site_settings").select("key, value").in("key", [
           "weekly_digest_enabled", "weekly_digest_cron_day", "weekly_digest_cron_hour", "weekly_digest_template_id",
           "weekend_agenda_enabled", "weekend_agenda_cron_day", "weekend_agenda_cron_hour", "weekend_agenda_template_id",
+          "blog_digest_enabled", "blog_digest_cron_day", "blog_digest_cron_hour", "blog_digest_template_id",
         ]),
       ]);
 
@@ -429,6 +436,12 @@ const EmailConfig = () => {
         day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
         hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
         templateId: settingsMap.weekend_agenda_template_id || "",
+      });
+      setBlogCfg({
+        enabled: settingsMap.blog_digest_enabled === "true",
+        day: parseInt10(settingsMap.blog_digest_cron_day, 0),
+        hour: parseInt10(settingsMap.blog_digest_cron_hour, 12),
+        templateId: settingsMap.blog_digest_template_id || "",
       });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
