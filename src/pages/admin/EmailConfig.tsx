@@ -868,6 +868,58 @@ const EmailConfig = () => {
     }
   };
 
+  // Envio de teste das automações — usa dry_run da edge function para renderizar
+  // com EXATAMENTE o mesmo pipeline do rascunho/envio real (mesmo helper de
+  // preheader, mesmos blocos, mesmas correções Outlook). Não toca a E-goi.
+  const [testingWeekly, setTestingWeekly] = useState(false);
+  const [testingWeekend, setTestingWeekend] = useState(false);
+  const [testingBlog, setTestingBlog] = useState(false);
+
+  const AUTOMATION_TEST_RECIPIENT = "contato@mdaccula.com";
+
+  const sendAutomationTest = async (
+    fnName: "weekly-digest-draft" | "weekend-agenda-draft" | "blog-digest-draft",
+    label: string,
+    setBusy: (v: boolean) => void,
+  ) => {
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke(fnName, {
+        body: { force: true, dry_run: true },
+      });
+      if (error) throw error;
+      const res = data as {
+        ok?: boolean; skipped?: boolean; reason?: string; error?: string;
+        subject?: string; html?: string; preheader?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: "Master switch está OFF.",
+          digest_disabled: "Automação desligada — ligue o toggle primeiro.",
+          agenda_disabled: "Automação desligada — ligue o toggle primeiro.",
+          no_posts_in_range: "Nenhuma matéria publicada no período.",
+        };
+        toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
+        return;
+      }
+      if (!res?.ok || !res.html || !res.subject) {
+        throw new Error(res?.error || "Renderização vazia");
+      }
+      const { data: sent, error: sendErr } = await supabase.functions.invoke("send-test-email", {
+        body: { html: res.html, subject: `[TESTE] ${res.subject}`, to_email: AUTOMATION_TEST_RECIPIENT },
+      });
+      if (sendErr) throw sendErr;
+      toast({
+        title: `Teste de ${label} enviado`,
+        description: `Enviado para ${sent?.sent_to || AUTOMATION_TEST_RECIPIENT}`,
+      });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: `Erro no teste de ${label}`, description: e.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
 
 
 
