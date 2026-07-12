@@ -230,7 +230,9 @@ export function EmailDashboard() {
   };
 
   const availableTypes = useMemo(() => {
-    const s = new Set<string>();
+    // Combina tipos conhecidos (fixos) com tipos vistos nas campanhas — garante
+    // que o filtro sempre exponha as opções mesmo antes de existir envio.
+    const s = new Set<string>(Object.keys(TYPE_LABEL));
     for (const r of rows) s.add(r.campaign_type || "standard");
     return [...s];
   }, [rows]);
