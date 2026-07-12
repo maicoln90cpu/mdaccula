@@ -17,7 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { NavLink } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon, LayoutGrid, Mail } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon, LayoutGrid, Mail, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   renderEventAnnouncementEmail,
@@ -31,6 +31,7 @@ import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTempl
 import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { InboxPreviewHeader } from "@/components/admin/InboxPreviewHeader";
+import { EmailDashboard } from "@/components/admin/EmailDashboard";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
@@ -306,7 +307,7 @@ const EmailConfig = () => {
   const { toast } = useToast();
   const { globalsMap } = useEmailGlobalBlocks();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("config");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
   const [saving, setSaving] = useState(false);
   const [masterEnabled, setMasterEnabled] = useState(false);
   const [cfg, setCfg] = useState<EgoiConfig>({
@@ -1144,6 +1145,7 @@ const EmailConfig = () => {
           </div>
         )}
         <TabsList>
+          <TabsTrigger value="dashboard"><BarChart3 className="w-3.5 h-3.5 mr-1" />Dashboard</TabsTrigger>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
           <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor + Preview</TabsTrigger>
@@ -1151,6 +1153,11 @@ const EmailConfig = () => {
           <TabsTrigger value="digest">Automações</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
+
+        {/* ================= DASHBOARD ================= */}
+        <TabsContent value="dashboard" className="space-y-6">
+          <EmailDashboard />
+        </TabsContent>
 
         {/* ================= CONFIGURAÇÃO ================= */}
         <TabsContent value="config" className="space-y-6">
