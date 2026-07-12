@@ -2105,6 +2105,15 @@ const EmailConfig = () => {
                   <Button size="sm" variant="outline" onClick={generateWeekendNow} disabled={!masterEnabled || weekendGenerating}>
                     {weekendGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => sendAutomationTest("weekend-agenda-draft", "Agenda FDS", setTestingWeekend)}
+                    disabled={testingWeekend}
+                    title={`Envia via Resend para ${AUTOMATION_TEST_RECIPIENT} — não toca a E-goi`}
+                  >
+                    {testingWeekend ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Enviando…</> : <><Send className="w-4 h-4 mr-2" />Enviar teste agora</>}
+                  </Button>
                 </div>
 
                 {weekendCfg.enabled && (
