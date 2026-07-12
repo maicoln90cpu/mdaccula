@@ -2060,6 +2060,106 @@ const EmailConfig = () => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Card 3 — Blog news */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Blog news (novidades do blog)</span>
+                  <Badge variant={blogCfg.enabled ? "default" : "secondary"}>
+                    {blogCfg.enabled ? "ON" : "OFF"}
+                  </Badge>
+                </CardTitle>
+                <CardDescription>
+                  Rascunho automático apenas com as <b>matérias publicadas</b> na semana (sem eventos). Sugerido: domingo à noite.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                  <div className="text-sm">Ativar geração automática</div>
+                  <Switch
+                    checked={blogCfg.enabled}
+                    onCheckedChange={(v) => setBlogCfg({ ...blogCfg, enabled: v })}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Dia da semana</Label>
+                    <Select
+                      value={String(blogCfg.day)}
+                      onValueChange={(v) => setBlogCfg({ ...blogCfg, day: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {DAY_LABELS.map((d, i) => (
+                          <SelectItem key={i} value={String(i)}>{d}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Horário (BRT)</Label>
+                    <Select
+                      value={String(blogCfg.hour)}
+                      onValueChange={(v) => setBlogCfg({ ...blogCfg, hour: parseInt(v, 10) })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 24 }, (_, h) => (
+                          <SelectItem key={h} value={String(h)}>{String(h).padStart(2, "0")}:00</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs">Template padrão</Label>
+                  <Select
+                    value={
+                      blogCfg.templateId ||
+                      templates.find((t) => t.type === "blog_digest" && t.is_default)?.id ||
+                      ""
+                    }
+                    onValueChange={(v) => setBlogCfg({ ...blogCfg, templateId: v })}
+                  >
+                    <SelectTrigger><SelectValue placeholder="Selecione um template" /></SelectTrigger>
+                    <SelectContent>
+                      {templates
+                        .filter((t) => t.type === "blog_digest")
+                        .map((t) => (
+                          <SelectItem key={t.id} value={t.id!}>
+                            {t.name}{t.is_default ? " · padrão" : ""}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" onClick={handleSaveBlog} disabled={savingBlog}>
+                    {savingBlog ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Salvando…</> : <><Save className="w-4 h-4 mr-2" />Salvar agendamento</>}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={generateBlogNow} disabled={!masterEnabled || blogGenerating}>
+                    {blogGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
+                  </Button>
+                </div>
+
+                {blogCfg.enabled && (
+                  <div className="text-xs text-muted-foreground">
+                    Próxima execução: <b>{DAY_LABELS[blogCfg.day]} {String(blogCfg.hour).padStart(2, "0")}:00 BRT</b>.
+                  </div>
+                )}
+
+                {blogLastResult && (
+                  <div className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 rounded-md p-3">
+                    <div><b>Rascunho Blog news criado.</b> Campanha #{blogLastResult.egoi_campaign_id || "—"}</div>
+                    <div>Período: {blogLastResult.range} · {blogLastResult.posts_count} matéria(s)</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
 
           <p className="text-xs text-muted-foreground">
