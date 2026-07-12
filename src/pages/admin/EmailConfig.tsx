@@ -2214,6 +2214,15 @@ const EmailConfig = () => {
                   <Button size="sm" variant="outline" onClick={generateBlogNow} disabled={!masterEnabled || blogGenerating}>
                     {blogGenerating ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Gerando…</> : <><Mail className="w-4 h-4 mr-2" />Gerar rascunho agora</>}
                   </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => sendAutomationTest("blog-digest-draft", "Blog news", setTestingBlog)}
+                    disabled={testingBlog}
+                    title={`Envia via Resend para ${AUTOMATION_TEST_RECIPIENT} — não toca a E-goi`}
+                  >
+                    {testingBlog ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Enviando…</> : <><Send className="w-4 h-4 mr-2" />Enviar teste agora</>}
+                  </Button>
                 </div>
 
                 {blogCfg.enabled && (
