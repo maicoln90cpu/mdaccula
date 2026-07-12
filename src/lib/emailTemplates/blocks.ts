@@ -1423,7 +1423,7 @@ export const TEMPLATE_PRESETS: Array<{
   subject_template: string;
   preheader_template: string;
   /** Tipo salvo no banco (para agrupar variantes do mesmo formato). */
-  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "courtesy" | "custom";
+  template_type: "event_new" | "ticket_batch" | "weekly_digest" | "weekend_agenda" | "courtesy" | "custom" | "blog_digest";
 }> = [
   {
     key: "event_new",
@@ -1480,6 +1480,22 @@ export const TEMPLATE_PRESETS: Array<{
     subject_template: "📅 Programação do fds — {{weekend_range}}",
     preheader_template: "Do sunset de sexta ao after de domingo. Sua semana começa aqui.",
     template_type: "weekend_agenda",
+  },
+  {
+    key: "blog_digest_cards",
+    name: "Blog news — Cards ⭐",
+    description: "Novidades do blog em formato de cards. Ideal para o disparo dominical com as matérias da semana.",
+    subject_template: "📰 Novidades do blog — {{range_label}}",
+    preheader_template: "As matérias mais lidas da semana no MDAccula.",
+    template_type: "blog_digest",
+  },
+  {
+    key: "blog_digest_editorial",
+    name: "Blog news — Editorial",
+    description: "Novidades do blog em formato editorial (estilo revista). Só posts, sem eventos.",
+    subject_template: "📖 Leituras da semana — {{range_label}}",
+    preheader_template: "Uma curadoria editorial das matérias mais lidas em São Paulo.",
+    template_type: "blog_digest",
   },
   {
     key: "courtesy",
