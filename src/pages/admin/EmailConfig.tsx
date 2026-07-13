@@ -53,8 +53,8 @@ import type {
   EventGroup,
 } from "@/components/admin/emailConfig/types";
 
-const formatCount = (n: number | null | undefined) =>
-  typeof n === "number" ? n.toLocaleString("pt-BR") : "—";
+import { formatCount } from "@/lib/formatters";
+
 
 const EmailConfig = () => {
   const { toast } = useToast();

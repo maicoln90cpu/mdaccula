@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { RefreshCw, BarChart3, Mail, MousePointerClick, Eye, TrendingUp, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
+import { formatCount } from "@/lib/formatters";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
@@ -56,9 +57,6 @@ const TYPE_LABEL: Record<string, string> = {
 
 const rateFmt = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : `${(n * 100).toFixed(1)}%`;
-
-const num = (n: number | null | undefined) =>
-  typeof n === "number" ? n.toLocaleString("pt-BR") : "—";
 
 export function EmailDashboard() {
   const { toast } = useToast();
@@ -306,14 +304,14 @@ export function EmailDashboard() {
 
       {/* KPIs */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={Mail} label="Campanhas enviadas" value={num(kpis.total)} />
-        <Kpi icon={Mail} label="Contatos alcançados" value={num(kpis.sent)} sub={`entregues: ${num(kpis.delivered)}`} />
-        <Kpi icon={Eye} label="Aberturas únicas" value={num(kpis.opens)} sub={`taxa média: ${rateFmt(kpis.openRateAvg)}`} />
-        <Kpi icon={MousePointerClick} label="Cliques únicos" value={num(kpis.clicks)} sub={`taxa média: ${rateFmt(kpis.clickRateAvg)}`} />
+        <Kpi icon={Mail} label="Campanhas enviadas" value={formatCount(kpis.total)} />
+        <Kpi icon={Mail} label="Contatos alcançados" value={formatCount(kpis.sent)} sub={`entregues: ${formatCount(kpis.delivered)}`} />
+        <Kpi icon={Eye} label="Aberturas únicas" value={formatCount(kpis.opens)} sub={`taxa média: ${rateFmt(kpis.openRateAvg)}`} />
+        <Kpi icon={MousePointerClick} label="Cliques únicos" value={formatCount(kpis.clicks)} sub={`taxa média: ${rateFmt(kpis.clickRateAvg)}`} />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={AlertTriangle} label="Bounces" value={num(kpis.bounces)} />
-        <Kpi icon={AlertTriangle} label="Descadastros" value={num(kpis.unsubs)} />
+        <Kpi icon={AlertTriangle} label="Bounces" value={formatCount(kpis.bounces)} />
+        <Kpi icon={AlertTriangle} label="Descadastros" value={formatCount(kpis.unsubs)} />
       </div>
 
       {/* Gráficos */}
@@ -403,9 +401,9 @@ export function EmailDashboard() {
                         </Badge>
                       </td>
                       <td className="pr-3 max-w-[280px] truncate">{r.event_title ?? "—"}</td>
-                      <td className="pr-3 text-right tabular-nums">{num(r.stats?.sent)}</td>
-                      <td className="pr-3 text-right tabular-nums">{num(r.stats?.opens_unique)}</td>
-                      <td className="pr-3 text-right tabular-nums">{num(r.stats?.clicks_unique)}</td>
+                      <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.sent)}</td>
+                      <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.opens_unique)}</td>
+                      <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.clicks_unique)}</td>
                       <td className="pr-3 text-right tabular-nums">{rateFmt(r.stats?.open_rate)}</td>
                       <td className="pr-3 text-right tabular-nums">{rateFmt(r.stats?.click_rate)}</td>
                       <td className="pr-3">
