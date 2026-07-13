@@ -11,7 +11,9 @@
 **URL do Projeto:** https://lovable.dev/projects/5fbf20d7-2f06-4b9e-8486-f99fd516e773  
 **Domínio:** https://mdaccula.com  
 **CDN:** https://cdn.mdaccula.com (Bunny CDN → Supabase Storage)  
-**Versão:** 1.3.0 | **Última atualização:** 15/03/2026
+**Versão:** 1.4.0 | **Última atualização:** 13/07/2026
+
+> **Novidades 07/2026:** renderer de e-mails unificado (fonte única frontend↔edge com snapshot bilateral), slim-down de `EmailConfig`/`EventForm`/`LinksManager`, AbortController em telas com busca, roteamento de template por automação, e Google Maps funcionando em `mdaccula.com` via edge `public-maps-config` + chave própria com referrer allowlist e **Maps Embed API** ativa.
 
 ---
 
