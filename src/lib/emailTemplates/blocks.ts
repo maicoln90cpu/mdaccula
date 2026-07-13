@@ -986,13 +986,19 @@ export function renderBlockedTemplate(
     custom_html_header: settings?.custom_html_header ?? null,
     custom_html_footer: settings?.custom_html_footer ?? null,
   };
-  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview };
+  // Expande blocos globais ANTES de detectar hero + renderizar (paridade edge).
+  const resolvedBlocks = expandGlobalRefs(blocks, opts?.globals ?? null);
+  // Detecta se o template usa weekly_hero com o primeiro evento do FDS —
+  // nesse caso, o grid deve pular esse evento para não duplicar o card.
+  const heroBlock = resolvedBlocks.find(
+    (b) => (b as any).kind === "weekly_hero" && ((b as any).source ?? "first_weekend") === "first_weekend",
+  );
+  const heroEventId = heroBlock ? event.weekendEvents?.[0]?.id : undefined;
+  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, heroEventId };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
-  const preheader = escape(opts?.preheader ?? `${event.eventTitle} — ${event.dateLabel} em ${event.venueName}, ${event.cityState}`);
+  const preheader = escape(opts?.preheader ?? computePreheader(event));
 
-  // Expande blocos globais antes de renderizar (Fase C - biblioteca de blocos)
-  const resolvedBlocks = opts?.globals ? expandGlobalRefs(blocks, opts.globals) : blocks;
   const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
   const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
   const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
