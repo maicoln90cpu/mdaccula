@@ -36,6 +36,7 @@ import { EmailPersonalControl } from "@/components/admin/EmailPersonalControl";
 import { SendNowButton } from "@/components/admin/emailConfig/SendNowButton";
 import { AbTestButton } from "@/components/admin/emailConfig/AbTestButton";
 import { HistoryTab } from "@/components/admin/emailConfig/HistoryTab";
+import { AutomationsTab } from "@/components/admin/emailConfig/AutomationsTab";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
