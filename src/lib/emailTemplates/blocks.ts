@@ -965,8 +965,30 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 }
 
 // ============================================
+// Preheader (texto de preview do inbox)
+// ============================================
+
+/**
+ * String plana usada tanto no <div style="display:none"> embutido no HTML
+ * quanto no campo `content.preheader` da API E-goi.
+ * Sem escape HTML (o consumidor decide).
+ * Paridade 1:1 com `supabase/functions/_shared/emailBlocks.ts::computePreheader`.
+ */
+export function computePreheader(event: EventAnnouncementData): string {
+  const t = (event.eventTitle || "").trim();
+  const d = (event.dateLabel || "").trim();
+  const v = (event.venueName || "").trim();
+  const c = (event.cityState || "").trim();
+  const parts = [t];
+  if (d) parts.push(d);
+  if (v || c) parts.push([v, c].filter(Boolean).join(", "));
+  return parts.filter(Boolean).join(" — ").slice(0, 150);
+}
+
+// ============================================
 // Renderer principal
 // ============================================
+
 
 export function renderBlockedTemplate(
   blocks: Block[],
