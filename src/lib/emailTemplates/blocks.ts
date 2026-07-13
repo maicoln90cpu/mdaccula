@@ -221,6 +221,8 @@ export type RenderContext = {
   >> & Partial<EmailTemplateSettings>;
   /** Modo preview: renderiza mesmo com URLs vazias (usa "#") para o admin visualizar. */
   preview?: boolean;
+  /** Id do evento usado no weekly_hero — grid deve pulá-lo para não duplicar. */
+  heroEventId?: string;
 };
 
 // ============================================
