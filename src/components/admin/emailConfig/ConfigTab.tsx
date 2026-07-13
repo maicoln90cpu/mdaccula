@@ -37,13 +37,13 @@ import {
   Users,
 } from "lucide-react";
 import type {
-import { formatDateTimeBR } from "@/lib/formatters";
   EgoiConfig,
   ListItem,
   Mode,
   SegmentItem,
   SenderItem,
 } from "./types";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 interface ConfigTabProps {
   masterEnabled: boolean;
