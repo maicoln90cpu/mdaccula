@@ -771,6 +771,8 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 | Imagens não carregam (CDN) | Cache corrompido no Bunny | Purge cache + fallback automático |
 | Imagens não carregam (Storage) | Bucket sem policy pública | Verificar policies do bucket |
 | Admin sem acesso | Role não configurada | Inserir em `user_roles` |
+| Mapa mostra "This API is not activated" em `mdaccula.com` | **Maps Embed API** desativada no projeto do Google Cloud da chave customizada | Ativar Maps Embed API e incluí-la na restrição de APIs da chave |
+| Mapa em branco em domínio customizado | Referrer allowlist da chave não cobre o domínio | Adicionar `https://mdaccula.com/*` e `https://*.mdaccula.com/*` na chave |
 
 ---
 
