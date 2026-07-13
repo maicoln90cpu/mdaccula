@@ -38,46 +38,20 @@ import { AbTestButton } from "@/components/admin/emailConfig/AbTestButton";
 import { HistoryTab } from "@/components/admin/emailConfig/HistoryTab";
 import { AutomationsTab } from "@/components/admin/emailConfig/AutomationsTab";
 import { ConfigTab } from "@/components/admin/emailConfig/ConfigTab";
-
-type Mode = "draft" | "immediate" | "scheduled";
-
-type EgoiConfig = {
-  id?: string;
-  list_id: number | null;
-  sender_id: number | null;
-  segment_id: number | null;
-  mode: Mode;
-  is_enabled: boolean;
-  scheduled_days_before: number;
-};
-
-type ListItem = { list_id: number; internal_name?: string; public_name?: string; total_contacts?: number | null };
-type SenderItem = { sender_id: number; name?: string; email?: string };
-type SegmentItem = { segment_id: number; name: string; total_contacts?: number | null };
-
-type Campaign = {
-  id: string;
-  event_id: string;
-  egoi_campaign_id: string | null;
-  status: "draft" | "scheduled" | "sent" | "failed";
-  mode: Mode;
-  error_message: string | null;
-  sent_at: string | null;
-  created_at: string;
-  campaign_type?: string | null;
-  ab_group_id?: string | null;
-  ab_variant?: string | null;
-  ab_test_config?: Record<string, unknown> | null;
-  events?: { title: string | null } | null;
-};
-
-type EventGroup = {
-  event_id: string;
-  title: string;
-  total: number;
-  last: Campaign;
-  items: Campaign[];
-};
+import {
+  useEmailAutomation,
+  DAY_LABELS,
+  AUTOMATION_TEST_RECIPIENT,
+} from "@/components/admin/emailConfig/useEmailAutomation";
+import type {
+  Mode,
+  EgoiConfig,
+  ListItem,
+  SenderItem,
+  SegmentItem,
+  Campaign,
+  EventGroup,
+} from "@/components/admin/emailConfig/types";
 
 const formatCount = (n: number | null | undefined) =>
   typeof n === "number" ? n.toLocaleString("pt-BR") : "—";
