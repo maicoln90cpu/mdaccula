@@ -57,9 +57,6 @@ const TYPE_LABEL: Record<string, string> = {
 const rateFmt = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? "—" : `${(n * 100).toFixed(1)}%`;
 
-const num = (n: number | null | undefined) =>
-  typeof n === "number" ? n.toLocaleString("pt-BR") : "—";
-
 export function EmailDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
