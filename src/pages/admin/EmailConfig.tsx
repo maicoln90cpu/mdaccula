@@ -728,7 +728,7 @@ const EmailConfig = () => {
   const handleSaveWeekly = async () => {
     setSavingWeekly(true);
     try {
-      await saveAutomation("weekly_digest", weeklyCfg);
+      await saveAutomation("weekly_digest", { ...weeklyCfg, templateId: weeklyEffectiveTemplateId });
       toast({
         title: weeklyCfg.enabled ? "Digest semanal agendado" : "Digest semanal salvo (desligado)",
         description: weeklyCfg.enabled
@@ -745,7 +745,7 @@ const EmailConfig = () => {
   const handleSaveWeekend = async () => {
     setSavingWeekend(true);
     try {
-      await saveAutomation("weekend_agenda", weekendCfg);
+      await saveAutomation("weekend_agenda", { ...weekendCfg, templateId: weekendEffectiveTemplateId });
       toast({
         title: weekendCfg.enabled ? "Agenda FDS agendada" : "Agenda FDS salva (desligada)",
         description: weekendCfg.enabled
@@ -834,7 +834,7 @@ const EmailConfig = () => {
   const handleSaveBlog = async () => {
     setSavingBlog(true);
     try {
-      await saveAutomation("blog_digest", blogCfg);
+      await saveAutomation("blog_digest", { ...blogCfg, templateId: blogEffectiveTemplateId });
       toast({
         title: blogCfg.enabled ? "Blog news agendado" : "Blog news salvo (desligado)",
         description: blogCfg.enabled

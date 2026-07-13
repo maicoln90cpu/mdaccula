@@ -235,7 +235,7 @@ Deno.serve(async (req) => {
     ]);
 
     const pts = (posts ?? []) as PostRow[];
-    if (pts.length === 0 && !force && !dryRun) {
+    if (pts.length === 0) {
       return json({ skipped: true, reason: 'no_posts_in_range', range: rangeLabel });
     }
     const settings = (tplSettings ?? {}) as BrandSettings;
