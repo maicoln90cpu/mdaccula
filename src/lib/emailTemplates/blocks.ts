@@ -8,7 +8,7 @@
  * substituídos pelo motor E-goi no momento do envio real.
  */
 import type { EmailTemplateSettings, EventAnnouncementData } from "./eventAnnouncement";
-import { EMAIL_BLOCK_LIMITS, clamp } from "./blocksLimits";
+import { EMAIL_BLOCK_LIMITS, clamp } from "@shared/emailBlocksLimits.ts";
 
 // ============================================
 // Tipos de bloco
