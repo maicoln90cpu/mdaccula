@@ -237,6 +237,22 @@ const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, 
 // Render por bloco
 // ============================================
 
+/**
+ * Reescreve URL de imagem para compatibilidade com Outlook desktop.
+ *
+ * Outlook 2016+ (motor Word) NÃO suporta WebP → mostra "X" no lugar do flyer.
+ * Solução: passar URLs .webp por um proxy (wsrv.nl, gratuito, cache de borda) que
+ * converte para JPG on-the-fly. Outros formatos e placeholders/data-URIs passam intactos.
+ * Aplicado APENAS no HTML de e-mail — o site continua servindo WebP nativo.
+ */
+export function proxyForEmail(url: string): string {
+  if (!url) return url;
+  if (!/^https?:\/\//i.test(url)) return url;
+  if (!/\.webp(\?|$)/i.test(url)) return url;
+  const clean = url.replace(/^https?:\/\//i, "");
+  return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
+}
+
 function renderBlock(block: Block, ctx: RenderContext): string {
   // Bloco oculto (toggle do olho no editor): pula render em preview e em envio real.
   // Paridade com src/lib/emailTemplates/blocks.ts (linha do check `hidden`).
@@ -246,6 +262,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
   const accent = escape(settings.accent_color);
   const brand = escape(settings.brand_name);
   const gradient = `linear-gradient(90deg, ${primary} 0%, ${accent} 50%, #2563eb 100%)`;
+  // Cor sólida de fallback para clientes sem gradiente CSS (Outlook desktop).
+  const solidPrimary = primary;
 
   switch (block.kind) {
     case "header": {
@@ -261,9 +279,18 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     case "hero_image": {
       const maxW = Math.max(300, Math.min(600, block.max_width ?? 552));
       const radius = block.border_radius ?? 12;
+      // Sem flyer: preview mostra placeholder; envio real omite o bloco.
+      const flyer = event.flyerUrl && event.flyerUrl.trim();
+      if (!flyer) {
+        if (!ctx.preview) return "";
+        return `<tr><td align="center" style="padding:0 24px;">
+          <div style="width:100%;max-width:${maxW}px;height:${Math.round(maxW * 0.6)}px;border-radius:${radius}px;border:1px dashed rgba(255,255,255,0.2);background:#111;display:flex;align-items:center;justify-content:center;color:#71717a;font-size:12px;text-align:center;padding:16px;box-sizing:border-box;margin:0 auto;">Flyer do evento (sem imagem cadastrada — placeholder do preview)</div>
+        </td></tr>`;
+      }
+      const flyerSrc = proxyForEmail(flyer);
       return `<tr><td align="center" style="padding:0 24px;">
         <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(event.flyerUrl)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
+          <img src="${escape(flyerSrc)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:1px solid rgba(255,255,255,0.08);background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
         </a>
       </td></tr>`;
     }
@@ -361,10 +388,21 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align ?? "center";
       const fullWidth = block.full_width !== false;
       const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
+      // Fallback sólido para Outlook (não renderiza gradiente CSS).
+      const bgSolid = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : solidPrimary;
       const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
-      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">
-        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">${label}</a>
-      </td></tr>`;
+      // Bulletproof button: VML para Outlook (cor sólida), <a> normal p/ o resto (gradiente).
+      const vmlWidth = fullWidth ? 480 : 240;
+      const vmlButton = `<!--[if mso]>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
+          <w:anchorlock/>
+          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
+        </v:roundrect>
+      <![endif]-->`;
+      const htmlButton = `<!--[if !mso]><!-- -->
+        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;mso-hide:all;">${label}</a>
+      <!--<![endif]-->`;
+      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
     }
 
     case "secondary_link": {
@@ -382,7 +420,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align ?? "center";
       const radius = block.border_radius ?? 8;
       const alt = escape(block.alt || "");
-      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
+      const imgSrc = proxyForEmail(block.image_url);
+      const inner = `<img src="${escape(imgSrc)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
       const wrapped = block.link_url
         ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>`
         : inner;
@@ -391,8 +430,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
     case "divider": {
       const thickness = Math.max(1, Math.min(8, block.thickness ?? 1));
-      const color = escape(block.color || "rgba(255,255,255,0.08)");
-      return `<tr><td style="padding:8px 32px;"><div style="height:${thickness}px;background:${color};line-height:${thickness}px;font-size:0;">&nbsp;</div></td></tr>`;
+      const color = escape(block.color || "#3f3f46");
+      // Outlook (Word engine) descarta background em <div>. Usar <table bgcolor> renderiza consistente.
+      return `<tr><td style="padding:8px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+          <tr><td bgcolor="${color}" height="${thickness}" style="height:${thickness}px;line-height:${thickness}px;font-size:0;background-color:${color};">&nbsp;</td></tr>
+        </table>
+      </td></tr>`;
     }
 
     case "text": {
@@ -487,23 +531,24 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         </td></tr>`;
       }
 
+      // medium — 2 caixas (horas + minutos), ~30% menor que large
       if (size === "medium") {
         const parts = [
-          { v: days, label: days === 1 ? "dia" : "dias" },
           { v: hours, label: hours === 1 ? "hora" : "horas" },
+          { v: minutes, label: "min" },
         ];
         const boxes = parts.map((p) =>
-          `<td style="padding:0 6px;"><div style="min-width:80px;padding:10px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
-            <div style="color:#ffffff;font-size:22px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
-            <div style="color:#ffffff;opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>
+          `<td style="padding:0 4px;"><div style="min-width:56px;padding:7px 9px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:8px;text-align:center;">
+            <div style="color:#ffffff;font-size:16px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
+            <div style="color:#ffffff;opacity:0.85;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">${p.label}</div>
           </div></td>`
         ).join("");
-        return `<tr><td style="padding:8px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:14px;">
-            <tr><td align="${align}" style="padding:14px 12px;text-align:${align};">
-              <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:8px;">${label}</div>
+        return `<tr><td style="padding:6px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:11px;">
+            <tr><td align="${align}" style="padding:10px 10px;text-align:${align};">
+              <div style="color:#ffffff;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">${label}</div>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
-              <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:8px;">até ${escape(deadlineLabel)}</div>
+              <div style="color:#ffffff;opacity:0.85;font-size:10px;margin-top:6px;">até ${escape(deadlineLabel)}</div>
             </td></tr>
           </table>
         </td></tr>`;
