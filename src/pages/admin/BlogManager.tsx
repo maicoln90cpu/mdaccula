@@ -175,7 +175,7 @@ const BlogManager = () => {
       
       // Se tiver 2+ eventos, usar generate-multi-event-article
       if (linkedEvents.length >= 2) {
-        logger.debug('[BlogManager] Regenerando artigo multi-eventos:', linkedEvents.length, 'eventos');
+        logger.debug('[BlogManager] Regenerando artigo multi-eventos', { eventsCount: linkedEvents.length });
         
         const { data, error } = await supabase.functions.invoke('generate-multi-event-article', {
           body: {

@@ -225,11 +225,11 @@ const EventsManager = () => {
     setGeneratingArticle(event.id);
     
     try {
-      logger.debug('[EventsManager] Iniciando geração de artigo para evento:', event.title);
+      logger.debug('[EventsManager] Iniciando geração de artigo para evento', { title: event.title });
       
       const payload = buildArticlePayload(event as any, { generateImage: !event.image_url });
       
-      logger.debug('[EventsManager] Payload para generate-blog-post-v2:', payload);
+      logger.debug('[EventsManager] Payload para generate-blog-post-v2', { payload });
       
       const { data: blogData, error: blogError } = await supabase.functions.invoke('generate-blog-post-v2', {
         body: payload

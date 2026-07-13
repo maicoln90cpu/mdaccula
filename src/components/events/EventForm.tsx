@@ -474,9 +474,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               { onConflict: 'old_slug' }
             );
           if (redirErr) {
-            logger.warn('[EventForm] ⚠️ Falha ao gravar redirect de slug antigo:', redirErr);
+            logger.warn('[EventForm] Falha ao gravar redirect de slug antigo', { error: String(redirErr?.message ?? redirErr) });
           } else {
-            logger.debug('[EventForm] 🔁 Redirect criado:', previousSlug, '→', eventSlug);
+            logger.debug('[EventForm] Redirect criado', { previousSlug, eventSlug });
           }
         }
         
@@ -582,7 +582,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           { generateImage: !imageUrl, aiContextOverride: aiContext },
         );
         
-        logger.debug('[EventForm] 📤 Payload para generate-blog-post-v2:', blogPayload);
+        logger.debug('[EventForm] Payload para generate-blog-post-v2', { payload: blogPayload });
         
         try {
           const startTime = Date.now();
@@ -591,12 +591,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           });
           const duration = Date.now() - startTime;
 
-          logger.debug('[EventForm] 📥 Resposta da edge function:', {
-            duration: `${duration}ms`,
+          logger.debug('[EventForm] Resposta da edge function', {
+            duration,
             hasData: !!blogPostData,
             hasError: !!blogError,
             postId: blogPostData?.post?.id,
-            error: blogError
+            error: blogError ? String(blogError?.message ?? blogError) : null,
           });
 
           if (blogError) throw blogError;
