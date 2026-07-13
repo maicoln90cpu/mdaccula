@@ -6,8 +6,9 @@
  * Esse tipo de divergência causou o bug de 5 posts (frontend) vs 10 posts
  * (edge) no `blog_posts_list`.
  */
-import { readFileSync } from "fs";
+import fs from "fs";
 import path from "path";
+const readFileSync = fs.readFileSync;
 import { describe, it, expect } from "vitest";
 import { EMAIL_BLOCK_LIMITS as FRONT_LIMITS } from "@/lib/emailTemplates/blocksLimits";
 
