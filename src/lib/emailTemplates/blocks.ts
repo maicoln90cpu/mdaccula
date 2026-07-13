@@ -166,21 +166,30 @@ export type GlobalBlock = {
 
 /**
  * Expande referências a blocos globais para o bloco real. Usado antes do render.
- * Mantém o id original do global_ref para preservar ordem/UI, mas troca o conteúdo.
- * Se o global não for encontrado, o bloco é omitido (renderiza vazio).
+ * Paridade 1:1 com `supabase/functions/_shared/emailBlocks.ts`.
+ *
+ * - Sem catálogo (`!globals`): remove `global_ref` — comportamento defensivo,
+ *   evita vazar "[Bloco global indisponível]" em envio real quando o caller
+ *   esquecer de passar globals.
+ * - Com catálogo: se o global existe, troca conteúdo preservando id/hidden;
+ *   se não existe, pula silenciosamente.
+ *
+ * Para o editor (visualização "bloco faltando"), use uma expansão própria
+ * antes de chamar o renderer — o renderer não é lugar para UI de erro.
  */
 export function expandGlobalRefs(blocks: Block[], globals: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null | undefined): Block[] {
-  if (!globals) return blocks;
+  if (!globals) return blocks.filter((b) => b.kind !== "global_ref");
   const get = (id: string): GlobalBlock | undefined =>
     globals instanceof Map ? globals.get(id) : (globals as Record<string, GlobalBlock>)[id];
-  return blocks.map((b) => {
-    if (b.kind !== "global_ref") return b;
+  const out: Block[] = [];
+  for (const b of blocks) {
+    if (b.kind !== "global_ref") { out.push(b); continue; }
     const g = get(b.global_id);
-    if (!g) return { id: b.id, kind: "text", html: `<p style="color:#71717a;font-size:12px;">[Bloco global "${b._cached_name || b.global_id}" indisponível]</p>` } as Block;
-    // preserva o id externo E propaga o hidden do wrapper (para o usuário poder ocultar a referência)
+    if (!g) continue;
     const hidden = (b as { hidden?: boolean }).hidden === true;
-    return { ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block;
-  });
+    out.push({ ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block);
+  }
+  return out;
 }
 
 export type Template = {
