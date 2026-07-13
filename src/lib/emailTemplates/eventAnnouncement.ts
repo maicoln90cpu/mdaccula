@@ -6,110 +6,25 @@
  *
  * Aceita `settings` opcional para customização de marca (logo, cores, textos,
  * toggles de blocos, HTML extra do editor de template).
+ *
+ * Etapa 2.5 (Fase B): os tipos `EventAnnouncementData`, `EmailTemplateSettings`,
+ * `WeekendEventItem`, `BlogPostItem`, `DedgeBlockData` e `DedgeNightConfig` são
+ * reexportados de `@shared/emailBlocks.ts` — fonte única, sem duplicação.
  */
 
-/** Item da agenda do fim de semana (bloco `weekend_grid`). */
-export interface WeekendEventItem {
-  id?: string;
-  title: string;
-  dayLabel: string;      // "Sex, 24/05" ou "Sexta"
-  timeLabel?: string;    // "22h"
-  venue: string;
-  cityState?: string;
-  imageUrl: string;
-  eventUrl: string;
-  ticketUrl?: string;
-  articleUrl?: string;   // matéria ligada, se houver
-  /** CTA custom por evento (ex.: DEDGE = "Enviar Nomes Para Lista"). */
-  ctaLabel?: string;
-  /** Múltiplos CTAs quando o card representa vários eventos (ex.: DEDGE quinta/sex/sáb/dom). */
-  ctas?: Array<{ label: string; url: string; dayLabel?: string; timeLabel?: string }>;
-}
+export type {
+  WeekendEventItem,
+  DedgeNightConfig,
+  DedgeBlockData,
+  BlogPostItem,
+  EventAnnouncementData,
+  EmailTemplateSettings,
+} from "@shared/emailBlocks.ts";
 
-/** Config de uma noite do bloco Dedge (segundas até domingo, opcional). */
-export interface DedgeNightConfig {
-  label: string;         // "Sexta — Progressive House"
-  url: string;
-  enabled: boolean;
-}
-
-/** Config do bloco `dedge_block` — encerramento fixo da newsletter de FDS. */
-export interface DedgeBlockData {
-  imageUrl: string;
-  eyebrow?: string;      // "Toda semana"
-  title?: string;        // "Dedge — sua residência da semana"
-  description?: string;
-  nights: DedgeNightConfig[];
-  primaryUrl?: string;   // botão principal (ex.: todos os eventos Dedge)
-  primaryLabel?: string;
-}
-/** Item de matéria/post do blog (bloco `blog_posts_list`). */
-export interface BlogPostItem {
-  id?: string;
-  title: string;
-  excerpt?: string;
-  imageUrl?: string;
-  url: string;
-  publishedLabel?: string; // "há 2 dias" ou "12 mai"
-  category?: string;
-}
-
-
-export interface EventAnnouncementData {
-  eventTitle: string;
-  eventSubtitle?: string;
-  flyerUrl: string;
-  dateLabel: string;
-  timeLabel: string;
-  venueName: string;
-  cityState: string;
-  description: string;
-  ticketUrl: string;
-  eventUrl: string;
-  agendaUrl: string;
-  instagramUrl: string;
-  youtubeUrl: string;
-  tiktokUrl: string;
-  unsubscribeUrl: string;
-  /** Line-up do evento (artistas). Usado pelo bloco `lineup`. */
-  lineup?: string[];
-  /** Data/hora ISO do evento (usada pelo bloco `countdown` para virada de lote). */
-  eventStartIso?: string;
-  /** Deadline explícito para countdown (ISO). Ex.: virada de lote às 23:59 SP. */
-  ticketBatchDeadlineIso?: string;
-  /** Latitude do venue — usada pelo bloco `static_map`. */
-  venueLat?: number;
-  /** Longitude do venue — usada pelo bloco `static_map`. */
-  venueLng?: number;
-  /** Eventos do fim de semana / semana (usado por `weekend_grid` e `weekly_hero`). */
-  weekendEvents?: WeekendEventItem[];
-  /** Últimos posts do blog (usado por `blog_posts_list`). */
-  blogPosts?: BlogPostItem[];
-  /** Configuração do bloco Dedge (residência semanal). */
-  dedge?: DedgeBlockData;
-  /** Link VIP alternativo — usado por `cta_button` com url_field="vip_link". */
-  vipLink?: string;
-}
-
-export interface EmailTemplateSettings {
-  brand_name?: string;
-  logo_url?: string | null;
-  primary_color?: string;
-  accent_color?: string;
-  background_color?: string;
-  footer_text?: string;
-  cta_label?: string;
-  instagram_url?: string | null;
-  youtube_url?: string | null;
-  tiktok_url?: string | null;
-  show_subtitle?: boolean;
-  show_description?: boolean;
-  show_socials?: boolean;
-  show_secondary_link?: boolean;
-  secondary_link_label?: string;
-  custom_html_header?: string | null;
-  custom_html_footer?: string | null;
-}
+import type {
+  EventAnnouncementData,
+  EmailTemplateSettings,
+} from "@shared/emailBlocks.ts";
 
 const DEFAULTS: Required<Omit<EmailTemplateSettings, "logo_url" | "custom_html_header" | "custom_html_footer" | "instagram_url" | "youtube_url" | "tiktok_url">> & {
   logo_url: string | null;
