@@ -784,7 +784,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
     case "blog_posts_list": {
-      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 5)));
+      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 10)));
       const eyebrow = escape(block.eyebrow || "MATÉRIAS");
       const title = escape(block.title || "Do blog nesta semana");
       const layout = block.layout || "list";

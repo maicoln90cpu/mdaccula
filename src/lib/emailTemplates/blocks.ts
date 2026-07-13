@@ -145,7 +145,7 @@ export type Block =
       kind: "blog_posts_list";
       title?: string;           // "Do blog nesta semana"
       eyebrow?: string;
-      max_items?: number;       // 1..5
+      max_items?: number;       // 1..10
       layout?: "list" | "cards"; // list = compacto com miniatura, cards = grid vertical
       show_excerpt?: boolean;
       show_category?: boolean;
@@ -861,7 +861,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
     case "blog_posts_list": {
-      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 5)));
+      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 10)));
       const eyebrow = escape(block.eyebrow || "MATÉRIAS");
       const title = escape(block.title || "Do blog nesta semana");
       const layout = block.layout || "list";
