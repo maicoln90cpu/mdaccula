@@ -9,6 +9,9 @@
 //
 // Escopo: apenas tipos + `renderBlockedTemplate`. Sem presets/UI helpers.
 
+import { EMAIL_BLOCK_LIMITS, clamp } from "./emailBlocksLimits.ts";
+
+
 export type SocialNetwork = {
   id: string;
   label: string;
@@ -784,7 +787,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
     }
 
     case "blog_posts_list": {
-      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(block.max_items ?? 3, 10)));
+      const posts = (event.blogPosts || []).slice(0, clamp(block.max_items, EMAIL_BLOCK_LIMITS.blogPostsList.minItems, EMAIL_BLOCK_LIMITS.blogPostsList.maxItems, EMAIL_BLOCK_LIMITS.blogPostsList.defaultItems));
       const eyebrow = escape(block.eyebrow || "MATÉRIAS");
       const title = escape(block.title || "Do blog nesta semana");
       const layout = block.layout || "list";
@@ -1056,7 +1059,7 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       return `${(block.eyebrow || "Destaque").toUpperCase()}: ${first.title} — ${first.eventUrl}`;
     }
     case "blog_posts_list": {
-      const posts = (event.blogPosts || []).slice(0, Math.max(1, Math.min(10, block.max_items ?? 3)));
+      const posts = (event.blogPosts || []).slice(0, clamp(block.max_items, EMAIL_BLOCK_LIMITS.blogPostsList.minItems, EMAIL_BLOCK_LIMITS.blogPostsList.maxItems, EMAIL_BLOCK_LIMITS.blogPostsList.defaultItems));
       if (!posts.length) return "";
       const header = (block.title || "No blog").toUpperCase();
       const rows = posts.map((p) => `- ${p.title} — ${p.url}`);
