@@ -112,25 +112,23 @@ const EmailConfig = () => {
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
   // Automações (Digest semanal + Agenda FDS + Blog news)
-  type AutomationCfg = { enabled: boolean; day: number; hour: number; templateId: string };
-  const [weeklyCfg, setWeeklyCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 18, templateId: "" });
-  const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({ enabled: false, day: 4, hour: 12, templateId: "" });
-  const [blogCfg, setBlogCfg] = useState<AutomationCfg>({ enabled: false, day: 0, hour: 12, templateId: "" });
-  const [savingWeekly, setSavingWeekly] = useState(false);
-  const [savingWeekend, setSavingWeekend] = useState(false);
-  const [savingBlog, setSavingBlog] = useState(false);
-  const [digestGenerating, setDigestGenerating] = useState(false);
-  const [weekendGenerating, setWeekendGenerating] = useState(false);
-  const [blogGenerating, setBlogGenerating] = useState(false);
-  const [digestLastResult, setDigestLastResult] = useState<{
-    egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
-  } | null>(null);
-  const [weekendLastResult, setWeekendLastResult] = useState<{
-    egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
-  } | null>(null);
-  const [blogLastResult, setBlogLastResult] = useState<{
-    egoi_campaign_id?: string | null; posts_count?: number; range?: string;
-  } | null>(null);
+  // Automações (Digest semanal + Agenda FDS + Blog news) — estado + handlers
+  // encapsulados no hook `useEmailAutomation` (Fase C).
+  const {
+    weeklyCfg, setWeeklyCfg,
+    weekendCfg, setWeekendCfg,
+    blogCfg, setBlogCfg,
+    savingWeekly, savingWeekend, savingBlog,
+    digestGenerating, weekendGenerating, blogGenerating,
+    testingWeekly, setTestingWeekly,
+    testingWeekend, setTestingWeekend,
+    testingBlog, setTestingBlog,
+    digestLastResult, weekendLastResult, blogLastResult,
+    weeklyEffectiveTemplateId, weekendEffectiveTemplateId, blogEffectiveTemplateId,
+    handleSaveWeekly, handleSaveWeekend, handleSaveBlog,
+    generateDigestNow, generateWeekendNow, generateBlogNow,
+    sendAutomationTest,
+  } = useEmailAutomation({ templates, toast });
 
   useEffect(() => {
     void loadAll();
