@@ -19,6 +19,7 @@ import { buildArticlePayload } from "@/lib/eventArticlePayload";
 import { addHours } from "date-fns";
 import { parseLocalDateTime } from "@/lib/dateUtils";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { logger } from "@/lib/logger";
 
 interface Event {
   id: string;
@@ -224,17 +225,17 @@ const EventsManager = () => {
     setGeneratingArticle(event.id);
     
     try {
-      console.log('[EventsManager] Iniciando geração de artigo para evento:', event.title);
+      logger.debug('[EventsManager] Iniciando geração de artigo para evento', { title: event.title });
       
       const payload = buildArticlePayload(event as any, { generateImage: !event.image_url });
       
-      console.log('[EventsManager] Payload para generate-blog-post-v2:', payload);
+      logger.debug('[EventsManager] Payload para generate-blog-post-v2', { payload });
       
       const { data: blogData, error: blogError } = await supabase.functions.invoke('generate-blog-post-v2', {
         body: payload
       });
       
-      console.log('[EventsManager] Resposta da edge function:', { blogData, blogError });
+      logger.debug('[EventsManager] Resposta da edge function:', { blogData, blogError });
       
       if (blogError) {
         throw new Error(blogError.message || 'Erro ao gerar artigo');
@@ -248,7 +249,7 @@ const EventsManager = () => {
           .eq('id', event.id);
         
         if (updateError) {
-          console.error('[EventsManager] Erro ao vincular blog post ao evento:', updateError);
+          logger.error('[EventsManager] Erro ao vincular blog post ao evento:', updateError);
         }
         
         toast({
@@ -261,7 +262,7 @@ const EventsManager = () => {
         throw new Error('Resposta inválida da API');
       }
     } catch (error: any) {
-      console.error('[EventsManager] Erro ao gerar artigo:', error);
+      logger.error('[EventsManager] Erro ao gerar artigo:', error);
       toast({
         variant: "destructive",
         title: "Erro ao gerar artigo",

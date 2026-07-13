@@ -11,6 +11,7 @@ import type { GenerationProgress } from "@/components/admin/ai-content/Suggestio
 import { SuggestionsList } from "@/components/admin/ai-content/SuggestionsList";
 import { PostsHistory } from "@/components/admin/ai-content/PostsHistory";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { logger } from "@/lib/logger";
 
 interface Suggestion {
   title: string;
@@ -106,7 +107,7 @@ export default function AIContent2() {
         initializeFormData(defaultTemplate.required_fields);
       }
     } catch (error) {
-      console.error("Error fetching templates:", error);
+      logger.error("Error fetching templates:", error);
       toast({
         title: "Erro ao carregar templates",
         description: "Não foi possível carregar os templates de prompt.",
@@ -155,7 +156,7 @@ export default function AIContent2() {
 
       setGeneratedPosts(mergedPosts);
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      logger.error("Error fetching posts:", error);
       toast({
         title: "Erro ao carregar posts",
         description: "Não foi possível carregar o histórico de posts.",
@@ -253,7 +254,7 @@ export default function AIContent2() {
       // Clear form
       initializeFormData(selectedTemplate.required_fields);
     } catch (error: any) {
-      console.error("Error generating article:", error);
+      logger.error("Error generating article:", error);
       toast({
         title: "Erro ao gerar artigo",
         description: error.message || "Ocorreu um erro durante a geração.",
@@ -292,7 +293,7 @@ export default function AIContent2() {
         description: `${data.suggestions?.length || 0} ideias de artigos foram geradas.`,
       });
     } catch (error: any) {
-      console.error("Error generating suggestions:", error);
+      logger.error("Error generating suggestions:", error);
       toast({
         title: "Erro ao gerar sugestões",
         description: error.message || "Ocorreu um erro ao buscar sugestões.",
@@ -341,7 +342,7 @@ export default function AIContent2() {
       if (!template) {
         throw new Error("Nenhum template disponível");
       }
-      console.log(`[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → template "${template.name}"`);
+      logger.debug(`[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → template "${template.name}"`);
 
       const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
         body: {
@@ -377,7 +378,7 @@ export default function AIContent2() {
       // Refresh posts
       fetchGeneratedPosts();
     } catch (error: any) {
-      console.error("Error generating from suggestion:", error);
+      logger.error("Error generating from suggestion:", error);
       toast({
         title: "Erro ao gerar artigo",
         description: error.message || "Ocorreu um erro durante a geração.",
@@ -407,7 +408,7 @@ export default function AIContent2() {
       // mas forçamos um refresh imediato para feedback visual.
       fetchGeneratedPosts();
     } catch (error: any) {
-      console.error("Error regenerating image:", error);
+      logger.error("Error regenerating image:", error);
       toast({
         title: "Erro ao regenerar imagem",
         description: error.message || "Ocorreu um erro ao gerar a nova capa.",
@@ -445,7 +446,7 @@ export default function AIContent2() {
         setGeneratingIndex(originalIndex);
 
         const template = pickTemplateForSuggestion(suggestion);
-        console.log(`[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → template "${template?.name}"`);
+        logger.debug(`[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → template "${template?.name}"`);
 
         if (!template) {
           progress.failed.push(suggestion.title);
@@ -474,7 +475,7 @@ export default function AIContent2() {
           });
 
           if (error) {
-            console.error(`Error generating "${suggestion.title}":`, error);
+            logger.error(`Error generating "${suggestion.title}":`, error);
             progress.failed.push(suggestion.title);
             setGenerationProgress({ ...progress });
             
@@ -496,7 +497,7 @@ export default function AIContent2() {
             });
           }
         } catch (err: any) {
-          console.error(`Error generating "${suggestion.title}":`, err);
+          logger.error(`Error generating "${suggestion.title}":`, err);
           progress.failed.push(suggestion.title);
           setGenerationProgress({ ...progress });
           
@@ -525,7 +526,7 @@ export default function AIContent2() {
 
       fetchGeneratedPosts();
     } catch (error: any) {
-      console.error("Error in batch generation:", error);
+      logger.error("Error in batch generation:", error);
       toast({
         title: "Erro na geração em lote",
         description: error.message || "Alguns artigos podem não ter sido gerados.",

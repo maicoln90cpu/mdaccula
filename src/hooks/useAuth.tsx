@@ -3,6 +3,8 @@ import { useState, useEffect, createContext, useContext } from 'react';
 import type { User, Session, AuthError } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
+import { queryClient } from '@/lib/queryClient';
+import { logger } from '@/lib/logger';
 
 // Profile type from database
 type Profile = Tables<'profiles'>;
@@ -80,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) throw error;
       setProfile(data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      logger.error('Error fetching profile', error, { component: 'useAuth', action: 'fetchProfile' });
     }
   };
 
@@ -110,7 +112,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Limpa cache do TanStack Query ANTES do signOut para evitar refetches
+    // com token ainda válido, e novamente DEPOIS para garantir estado zerado.
+    queryClient.clear();
     await supabase.auth.signOut();
+    queryClient.clear();
   };
 
   const [isAdmin, setIsAdmin] = useState(false);
@@ -135,7 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setIsAdmin(!!data);
       } catch (error) {
-        console.error('Error checking admin role:', error);
+        logger.error('Error checking admin role', error, { component: 'useAuth', action: 'checkAdminRole' });
         setIsAdmin(false);
       } finally {
         setIsAdminLoading(false);

@@ -9,6 +9,7 @@ import { AlertTriangle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 import { formatEventDateRange } from "@/lib/dateUtils";
+import { logger } from "@/lib/logger";
 
 interface MergeableEvent {
   id: string;
@@ -81,7 +82,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       const allIds = [primary.id, ...duplicateIds];
 
       // 0. Buscar dados COMPLETOS de todos os eventos (necessário p/ schedule e snapshot do principal)
-      console.log("[merge] step 0 · fetching full events", { allIds });
+      logger.debug("[merge] step 0 · fetching full events", { allIds });
       const { data: fullEvents, error: fetchErr } = await supabase
         .from("events")
         .select("*")
@@ -93,7 +94,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       if (!fullPrimary) throw new Error("Evento principal não encontrado.");
 
       // 0b. Buscar links que serão repontados (precisamos pra rollback)
-      console.log("[merge] step 0b · fetching links to repoint");
+      logger.debug("[merge] step 0b · fetching links to repoint");
       const { data: linksToRepoint } = await supabase
         .from("custom_links")
         .select("id, event_id")
@@ -120,7 +121,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         null;
 
       // 3. Snapshot COMPLETO para rollback (inclui estado pré-merge do principal e mapping de links)
-      console.log("[merge] step 3 · inserting snapshot log");
+      logger.debug("[merge] step 3 · inserting snapshot log");
       await supabase.from("application_logs").insert([{
         level: "info",
         message: `Mesclagem de eventos: ${duplicates.length} → 1`,
@@ -152,7 +153,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
 
       // 4. Repontar custom_links dos duplicados → principal
       if (duplicateIds.length > 0) {
-        console.log("[merge] step 4 · repointing custom_links", { count: duplicateIds.length });
+        logger.debug("[merge] step 4 · repointing custom_links", { count: duplicateIds.length });
         const { error: linkErr } = await supabase
           .from("custom_links")
           .update({ event_id: primary.id, updated_at: new Date().toISOString() })
@@ -161,7 +162,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       }
 
       // 5. Atualizar evento principal: end_date + schedule + views consolidadas + tickets_per_day
-      console.log("[merge] step 5 · updating primary event");
+      logger.debug("[merge] step 5 · updating primary event");
       const { error: updateErr } = await supabase
         .from("events")
         .update({
@@ -186,7 +187,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             reason: `merged into festival "${primary.title}"`,
           }));
         if (redirectRows.length > 0) {
-          console.log("[merge] step 6 · upserting slug redirects", { count: redirectRows.length });
+          logger.debug("[merge] step 6 · upserting slug redirects", { count: redirectRows.length });
           const { error: redirErr } = await supabase
             .from("event_slug_redirects")
             .upsert(redirectRows, { onConflict: "old_slug" });
@@ -197,7 +198,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       // 7. Soft-delete dos duplicados: marca como merged_inactive em vez de DELETE.
       // Permite reativar via admin e mantém histórico/FKs intactos.
       if (duplicateIds.length > 0) {
-        console.log("[merge] step 7 · soft-deleting duplicates", { ids: duplicateIds });
+        logger.debug("[merge] step 7 · soft-deleting duplicates", { ids: duplicateIds });
         const { error: delErr } = await supabase
           .from("events")
           .update({
@@ -210,7 +211,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
         if (delErr) throw delErr;
       }
 
-      console.log("[merge] step 7 done · todas as operações concluídas com sucesso");
+      logger.debug("[merge] step 7 done · todas as operações concluídas com sucesso");
       toast({
         title: "Eventos mesclados!",
         description: `${duplicates.length + 1} eventos viraram 1 festival de ${formatEventDateRange(dateRange.start, dateRange.end)}.`,
@@ -220,14 +221,14 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       try {
         await Promise.resolve(onSuccess());
       } catch (cbErr) {
-        console.warn("[merge] onSuccess callback falhou (não bloqueia merge):", cbErr);
+        logger.warn("[merge] onSuccess callback falhou (não bloqueia merge):", cbErr);
       }
       setMerging(false);
       onOpenChange(false);
       setConfirming(false);
       return;
     } catch (err: any) {
-      console.error("[MergeEventsDialog] Erro ao mesclar:", err);
+      logger.error("[MergeEventsDialog] Erro ao mesclar:", err);
       toast({
         variant: "destructive",
         title: "Erro ao mesclar eventos",

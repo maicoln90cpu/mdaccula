@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { logger } from "@/lib/logger";
 
 interface AutoGenSettings {
   enabled: boolean;
@@ -154,7 +155,7 @@ export default function AutoGenerationDashboard() {
       }
 
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
       toast({
         title: "Erro ao carregar dados",
         description: "Não foi possível carregar o dashboard.",
@@ -182,7 +183,7 @@ export default function AutoGenerationDashboard() {
           : "A geração automática foi pausada",
       });
     } catch (error) {
-      console.error('Error toggling enabled:', error);
+      logger.error('Error toggling enabled:', error);
       toast({
         title: "Erro ao salvar",
         variant: "destructive",
@@ -200,7 +201,7 @@ export default function AutoGenerationDashboard() {
     
     // Start polling every 10 seconds
     const interval = setInterval(async () => {
-      console.log('Polling for generation status...');
+      logger.debug('Polling for generation status...');
       await fetchData();
       
       // Check if generation completed (look for recent success or error log)
@@ -216,7 +217,7 @@ export default function AutoGenerationDashboard() {
       });
       
       if (recentLog) {
-        console.log('Generation completed, stopping polling');
+        logger.debug('Generation completed, stopping polling');
         setIsForcing(false);
         clearInterval(interval);
         setPollingInterval(null);
@@ -274,7 +275,7 @@ export default function AutoGenerationDashboard() {
       startPolling();
 
     } catch (error: any) {
-      console.error('Error forcing generation:', error);
+      logger.error('Error forcing generation:', error);
       toast({
         title: "Erro ao forçar geração",
         description: error.message || "Não foi possível iniciar a geração.",
@@ -299,7 +300,7 @@ export default function AutoGenerationDashboard() {
         description: "O contador de falhas foi zerado.",
       });
     } catch (error) {
-      console.error('Error resetting fail count:', error);
+      logger.error('Error resetting fail count:', error);
       toast({
         title: "Erro ao resetar",
         variant: "destructive",

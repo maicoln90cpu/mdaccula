@@ -2,7 +2,8 @@ import { Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./hooks/useAuth";
 import { ThemeProvider } from "next-themes";
@@ -67,14 +68,6 @@ const EmailPreview = lazy(() => import("./pages/admin/EmailPreview"));
 const EmailConfig = lazy(() => import("./pages/admin/EmailConfig"));
 const Redirect = lazy(() => import("./pages/Redirect"));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-});
 
 // Loading fallback component
 const PageLoader = () => (

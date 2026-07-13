@@ -24,6 +24,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { logger } from "@/lib/logger";
 
 interface BlogPost {
   id: string;
@@ -59,7 +60,7 @@ const BlogManager = () => {
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      console.error("Error fetching posts:", error);
+      logger.error("Error fetching posts:", error);
       toast.error("Erro ao carregar posts");
     } finally {
       setLoading(false);
@@ -102,7 +103,7 @@ const BlogManager = () => {
       toast.success("Post deletado com sucesso!");
       fetchPosts();
     } catch (error) {
-      console.error("Error deleting post:", error);
+      logger.error("Error deleting post:", error);
       toast.error("Erro ao deletar post");
     } finally {
       setDeletingId(null);
@@ -123,7 +124,7 @@ const BlogManager = () => {
       toast.success(published ? "Post publicado!" : "Post despublicado!");
       fetchPosts();
     } catch (error) {
-      console.error("Error updating post:", error);
+      logger.error("Error updating post:", error);
       toast.error("Erro ao atualizar post");
     }
   };
@@ -146,7 +147,7 @@ const BlogManager = () => {
         throw new Error(data?.error || 'Erro desconhecido');
       }
     } catch (error: any) {
-      console.error('Error regenerating image:', error);
+      logger.error('Error regenerating image:', error);
       toast.error(`Erro ao regenerar imagem: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setRegeneratingImageId(null);
@@ -174,7 +175,7 @@ const BlogManager = () => {
       
       // Se tiver 2+ eventos, usar generate-multi-event-article
       if (linkedEvents.length >= 2) {
-        console.log('[BlogManager] Regenerando artigo multi-eventos:', linkedEvents.length, 'eventos');
+        logger.debug('[BlogManager] Regenerando artigo multi-eventos', { eventsCount: linkedEvents.length });
         
         const { data, error } = await supabase.functions.invoke('generate-multi-event-article', {
           body: {
@@ -231,7 +232,7 @@ const BlogManager = () => {
       
       fetchPosts();
     } catch (error: any) {
-      console.error('Error regenerating post:', error);
+      logger.error('Error regenerating post:', error);
       toast.error(`Erro ao regenerar: ${error.message}`);
     } finally {
       setRegeneratingPostId(null);
