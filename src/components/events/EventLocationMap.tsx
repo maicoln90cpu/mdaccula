@@ -27,9 +27,29 @@ interface Props {
   longitude?: number | null;
 }
 
-const BROWSER_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as
+const FALLBACK_BROWSER_KEY = import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY as
   | string
   | undefined;
+
+// Cache do módulo — evita refetch a cada montagem do componente.
+let cachedBrowserKey: string | null | undefined;
+let inflightKeyPromise: Promise<string | null> | null = null;
+
+async function resolveBrowserKey(): Promise<string | null> {
+  if (cachedBrowserKey !== undefined) return cachedBrowserKey;
+  if (inflightKeyPromise) return inflightKeyPromise;
+  inflightKeyPromise = (async () => {
+    try {
+      const { data } = await supabase.functions.invoke("public-maps-config", { body: {} });
+      const key = (data as { browser_key?: string | null } | null)?.browser_key ?? null;
+      cachedBrowserKey = key ?? FALLBACK_BROWSER_KEY ?? null;
+    } catch {
+      cachedBrowserKey = FALLBACK_BROWSER_KEY ?? null;
+    }
+    return cachedBrowserKey ?? null;
+  })();
+  return inflightKeyPromise;
+}
 
 export const EventLocationMap = ({
   eventId,
