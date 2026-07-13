@@ -86,3 +86,32 @@ export type AutomationResult = {
   posts_count?: number;
   range?: string;
 } | null;
+
+export type EgoiConfig = {
+  id?: string;
+  list_id: number | null;
+  sender_id: number | null;
+  segment_id: number | null;
+  mode: Mode;
+  is_enabled: boolean;
+  scheduled_days_before: number;
+};
+
+export type ListItem = {
+  list_id: number;
+  internal_name?: string;
+  public_name?: string;
+  total_contacts?: number | null;
+};
+
+export type SenderItem = {
+  sender_id: number;
+  name?: string;
+  email?: string;
+};
+
+export type SegmentItem = {
+  segment_id: number;
+  name: string;
+  total_contacts?: number | null;
+};
