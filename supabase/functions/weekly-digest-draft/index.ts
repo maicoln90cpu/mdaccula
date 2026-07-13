@@ -341,14 +341,14 @@ Deno.serve(async (req) => {
       .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
       .slice(0, 20);
     const pts = (posts ?? []) as PostRow[];
-    if (evs.length === 0 && pts.length === 0) {
-      return json({ skipped: true, reason: 'no_content_in_range', range: rangeLabel });
-    }
     const settings = (tplSettings ?? {}) as BrandSettings;
 
     const todayIso = now.toISOString().slice(0, 10);
     const rangeLabel = `${rangeStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → ${rangeEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
     const digestLabel = range === 'weekend' ? 'Agenda do FDS' : 'Resumo semanal';
+    if (evs.length === 0 && pts.length === 0) {
+      return json({ skipped: true, reason: 'no_content_in_range', range: rangeLabel });
+    }
 
     // Tenta renderizar via template ativo (blocos). Se falhar por qualquer motivo, cai no HTML legado.
     let html = '';
