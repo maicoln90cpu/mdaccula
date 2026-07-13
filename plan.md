@@ -18,10 +18,10 @@ Aprovado pelo usuário para atacar todas as fases nas ondas sugeridas. Começar 
 - **B1.** Extrair constantes/limites compartilhados (`MAX_BLOG_POSTS`, `DEFAULT_MAX_ITEMS` etc.) para um único módulo, importado por `src/lib/emailTemplates/blocks.ts` **e** `supabase/functions/_shared/emailBlocks.ts`. Adicionar teste de contrato comparando limites.
 - **B2 (futuro).** Consolidar renderizador de blocos num módulo TS puro único.
 
-## Fase C — Slim-down `EmailConfig.tsx` (2.567 → ~6 arquivos)
+## Fase C — Slim-down `EmailConfig.tsx` (2.567 → 1.299 linhas) ✅
 - ✅ `SendNowButton.tsx`, `AbTestButton.tsx`, `HistoryTab.tsx`, `AutomationsTab.tsx`, `ConfigTab.tsx`
-- Pendentes: `hooks/useEmailAutomation.ts` (opcional, para tirar handlers do pai).
-- Sem mudança de comportamento.
+- ✅ `useEmailAutomation.ts` (hook com estado + handlers das 3 automações)
+- ✅ Tipos centralizados em `emailConfig/types.ts` (removidas 7 duplicações do pai)
 
 ## Fase D — Race conditions em buscas admin
 - `AbortController` onde há `useEffect` cru + debounce: `pages/Search.tsx`, `admin/EventsManager.tsx`, `admin/LinksManager.tsx`, `admin/BlogManager.tsx`.
