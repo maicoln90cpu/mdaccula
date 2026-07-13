@@ -2,9 +2,9 @@
 
 ## MDAccula - Plataforma de Agência de Música Eletrônica
 
-**Versão:** 1.3  
-**Data:** 15/03/2026  
-**Status:** Fase 2 Concluída, Fase 3 em Andamento
+**Versão:** 1.4  
+**Data:** 13/07/2026  
+**Status:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 em Andamento
 
 ---
 
