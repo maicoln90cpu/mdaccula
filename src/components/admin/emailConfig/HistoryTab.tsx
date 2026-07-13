@@ -223,8 +223,8 @@ export const HistoryTab = ({
                                       const partnerStats = partner ? campaignStats[partner.id] : null;
                                       let winnerLabel: string | null = null;
                                       if (myStats && partnerStats) {
-                                        const mine = (myStats as Record<string, number>)[metricKey] ?? 0;
-                                        const theirs = (partnerStats as Record<string, number>)[metricKey] ?? 0;
+                                        const mine = (myStats[metricKey] as number) ?? 0;
+                                        const theirs = (partnerStats[metricKey] as number) ?? 0;
                                         if (mine > theirs) winnerLabel = "🏆 Venceu";
                                         else if (mine < theirs) winnerLabel = "Perdeu";
                                         else winnerLabel = "Empate";
