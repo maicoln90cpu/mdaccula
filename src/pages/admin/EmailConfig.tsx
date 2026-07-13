@@ -32,6 +32,7 @@ import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { InboxPreviewHeader } from "@/components/admin/InboxPreviewHeader";
 import { EmailDashboard } from "@/components/admin/EmailDashboard";
+import { EmailPersonalControl } from "@/components/admin/EmailPersonalControl";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
@@ -1289,6 +1290,7 @@ const EmailConfig = () => {
           <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor + Preview</TabsTrigger>
           <TabsTrigger value="batch">Virada de lote</TabsTrigger>
           <TabsTrigger value="digest">Automações</TabsTrigger>
+          <TabsTrigger value="controle">Controle pessoal</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
         </TabsList>
 
@@ -2262,6 +2264,11 @@ const EmailConfig = () => {
 
 
         {/* ================= HISTÓRICO ================= */}
+        {/* ================= CONTROLE PESSOAL ================= */}
+        <TabsContent value="controle" className="space-y-4">
+          <EmailPersonalControl />
+        </TabsContent>
+
         <TabsContent value="history" className="space-y-4">
           {/* Campo de busca compartilhado: filtra "sem rascunho" E "histórico por evento" */}
           <div>
