@@ -114,17 +114,6 @@ export const EventLocationMap = ({
     };
   }, [eventId, venue, city, coords]);
 
-  const [browserKey, setBrowserKey] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    resolveBrowserKey().then((key) => {
-      if (!cancelled) setBrowserKey(key);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const embedSrc =
     coords && browserKey
