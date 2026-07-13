@@ -4,9 +4,9 @@
 
 > Planejamento de fases, prioridades e cronograma para evolução da plataforma.
 
-**Versão:** 1.3  
-**Data:** 15/03/2026  
-**Status Atual:** Fase 2 Concluída, Fase 3 Iniciando
+**Versão:** 1.4  
+**Data:** 13/07/2026  
+**Status Atual:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 Iniciando
 
 ---
 
