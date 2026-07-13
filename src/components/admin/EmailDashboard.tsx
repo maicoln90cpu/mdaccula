@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { RefreshCw, BarChart3, Mail, MousePointerClick, Eye, TrendingUp, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
+import { formatCount } from "@/lib/formatters";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
