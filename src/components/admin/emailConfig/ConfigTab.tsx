@@ -37,6 +37,7 @@ import {
   Users,
 } from "lucide-react";
 import type {
+import { formatDateTimeBR } from "@/lib/formatters";
   EgoiConfig,
   ListItem,
   Mode,

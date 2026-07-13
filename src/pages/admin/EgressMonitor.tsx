@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Activity, HardDrive, Gauge, TrendingUp, RefreshCw, ExternalLink, Server, Database, Globe, Users, AlertTriangle, Bell } from "lucide-react";
 import { EgressAlertsCard } from "@/components/admin/EgressAlertsCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from "recharts";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 // ---------------- Types ----------------
 interface EgressRow {

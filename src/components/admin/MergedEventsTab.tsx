@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Undo2, GitMerge, Loader2 } from "lucide-react";
 import { UndoMergeDialog } from "@/components/admin/UndoMergeDialog";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 interface MergedEventRow {
   id: string;

@@ -31,6 +31,7 @@ import type { Template } from "@/lib/emailTemplates/blocks";
 import { SendNowButton } from "./SendNowButton";
 import { AbTestButton } from "./AbTestButton";
 import type {
+import { formatDateTimeBR } from "@/lib/formatters";
   AbTestParams,
   Campaign,
   CampaignStatsMap,

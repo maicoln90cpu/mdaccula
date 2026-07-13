@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell, Save, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 interface AlertRow {
   id: string;
