@@ -166,21 +166,30 @@ export type GlobalBlock = {
 
 /**
  * Expande referências a blocos globais para o bloco real. Usado antes do render.
- * Mantém o id original do global_ref para preservar ordem/UI, mas troca o conteúdo.
- * Se o global não for encontrado, o bloco é omitido (renderiza vazio).
+ * Paridade 1:1 com `supabase/functions/_shared/emailBlocks.ts`.
+ *
+ * - Sem catálogo (`!globals`): remove `global_ref` — comportamento defensivo,
+ *   evita vazar "[Bloco global indisponível]" em envio real quando o caller
+ *   esquecer de passar globals.
+ * - Com catálogo: se o global existe, troca conteúdo preservando id/hidden;
+ *   se não existe, pula silenciosamente.
+ *
+ * Para o editor (visualização "bloco faltando"), use uma expansão própria
+ * antes de chamar o renderer — o renderer não é lugar para UI de erro.
  */
 export function expandGlobalRefs(blocks: Block[], globals: Map<string, GlobalBlock> | Record<string, GlobalBlock> | null | undefined): Block[] {
-  if (!globals) return blocks;
+  if (!globals) return blocks.filter((b) => b.kind !== "global_ref");
   const get = (id: string): GlobalBlock | undefined =>
     globals instanceof Map ? globals.get(id) : (globals as Record<string, GlobalBlock>)[id];
-  return blocks.map((b) => {
-    if (b.kind !== "global_ref") return b;
+  const out: Block[] = [];
+  for (const b of blocks) {
+    if (b.kind !== "global_ref") { out.push(b); continue; }
     const g = get(b.global_id);
-    if (!g) return { id: b.id, kind: "text", html: `<p style="color:#71717a;font-size:12px;">[Bloco global "${b._cached_name || b.global_id}" indisponível]</p>` } as Block;
-    // preserva o id externo E propaga o hidden do wrapper (para o usuário poder ocultar a referência)
+    if (!g) continue;
     const hidden = (b as { hidden?: boolean }).hidden === true;
-    return { ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block;
-  });
+    out.push({ ...g.block, id: b.id, ...(hidden ? { hidden: true } : {}) } as Block);
+  }
+  return out;
 }
 
 export type Template = {
@@ -212,6 +221,8 @@ export type RenderContext = {
   >> & Partial<EmailTemplateSettings>;
   /** Modo preview: renderiza mesmo com URLs vazias (usa "#") para o admin visualizar. */
   preview?: boolean;
+  /** Id do evento usado no weekly_hero — grid deve pulá-lo para não duplicar. */
+  heroEventId?: string;
 };
 
 // ============================================
@@ -687,9 +698,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
 
     case "weekend_grid": {
+      const heroId = ctx.heroEventId;
       // Filtro defensivo: DEDGE nunca aparece na agenda — só via `dedge_block`.
+      // Filtra também o evento usado pelo weekly_hero (paridade edge — evita duplicação).
       const isDedgeVenue = (v?: string) => /d\.?\s*edge/i.test((v || "").trim());
-      const list = (event.weekendEvents || []).filter(Boolean).filter((ev) => !isDedgeVenue(ev.venue));
+      const list = (event.weekendEvents || [])
+        .filter(Boolean)
+        .filter((ev) => (!heroId || ev.id !== heroId) && !isDedgeVenue(ev.venue));
       const align = block.align ?? "left";
       const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
       const title = escape(block.title || "O que rola no fds");
@@ -718,6 +733,10 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           const article = showArticle && ev.articleUrl
             ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Ler matéria →</a>`
             : "";
+          const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+          const multiCtasTimeline = (ev.ctas && ev.ctas.length > 1)
+            ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">${ev.ctas.map((c) => `<tr><td style="padding:3px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:9px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:6px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${singleCtaLabel}</a></td></tr>`).join("")}</table>`
+            : "";
           return `<tr><td style="padding:6px 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
               <tr>
@@ -729,6 +748,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
                   <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
                   <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
                   <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+                  ${multiCtasTimeline}
                   ${article}
                 </td>
               </tr>
@@ -744,9 +764,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         const article = showArticle && ev.articleUrl
           ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
           : "";
-        const ticketBtn = ev.ticketUrl
-          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">Garantir ingresso</a>`
-          : "";
+        const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+        const multiCtas = (ev.ctas && ev.ctas.length > 1) ? ev.ctas : null;
+        const ticketBtn = multiCtas
+          ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:12px 16px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:8px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${singleCtaLabel}</a></td></tr>`).join("")}</table>`
+          : (ev.ticketUrl
+            ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${singleCtaLabel}</a>`
+            : "");
         return `<tr><td style="padding:10px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
             <tr><td style="padding:0;position:relative;">
@@ -827,7 +851,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align || "left";
       const showVenue = block.show_venue !== false;
       const showCta = block.show_cta !== false;
-      const ctaLabel = escape(block.cta_label || settings.cta_label || "Garantir ingresso");
+      const ctaLabel = escape((useWeekend && w?.ctaLabel) || block.cta_label || settings.cta_label || "Garantir ingresso");
       const overlayBg = block.overlay_intensity === "soft"
         ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)"
         : "linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.92) 100%)";
@@ -855,7 +879,9 @@ function renderBlock(block: Block, ctx: RenderContext): string {
               <a href="${escape(url)}" style="color:#ffffff;text-decoration:none;">${escape(title)}</a>
             </h1>
             ${showVenue ? `<div style="color:#a1a1aa;font-size:14px;margin-bottom:14px;">📍 ${escape(venue)}${city ? ` · ${escape(city)}` : ""}</div>` : ""}
-            ${showCta && ticketUrl ? `<a href="${escape(ticketUrl)}" style="display:inline-block;padding:14px 26px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.18em;border-radius:10px;">${ctaLabel}</a>` : ""}
+            ${showCta ? ((useWeekend && w?.ctas && w.ctas.length > 1)
+              ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">${w!.ctas!.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;min-width:220px;padding:12px 22px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.14em;border-radius:10px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${ctaLabel}</a></td></tr>`).join("")}</table>`
+              : (ticketUrl ? `<a href="${escape(ticketUrl)}" style="display:inline-block;padding:14px 26px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.18em;border-radius:10px;">${ctaLabel}</a>` : "")) : ""}
           </td></tr>
         </table>
       </td></tr>`;
@@ -939,8 +965,30 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 }
 
 // ============================================
+// Preheader (texto de preview do inbox)
+// ============================================
+
+/**
+ * String plana usada tanto no <div style="display:none"> embutido no HTML
+ * quanto no campo `content.preheader` da API E-goi.
+ * Sem escape HTML (o consumidor decide).
+ * Paridade 1:1 com `supabase/functions/_shared/emailBlocks.ts::computePreheader`.
+ */
+export function computePreheader(event: EventAnnouncementData): string {
+  const t = (event.eventTitle || "").trim();
+  const d = (event.dateLabel || "").trim();
+  const v = (event.venueName || "").trim();
+  const c = (event.cityState || "").trim();
+  const parts = [t];
+  if (d) parts.push(d);
+  if (v || c) parts.push([v, c].filter(Boolean).join(", "));
+  return parts.filter(Boolean).join(" — ").slice(0, 150);
+}
+
+// ============================================
 // Renderer principal
 // ============================================
+
 
 export function renderBlockedTemplate(
   blocks: Block[],
@@ -960,13 +1008,19 @@ export function renderBlockedTemplate(
     custom_html_header: settings?.custom_html_header ?? null,
     custom_html_footer: settings?.custom_html_footer ?? null,
   };
-  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview };
+  // Expande blocos globais ANTES de detectar hero + renderizar (paridade edge).
+  const resolvedBlocks = expandGlobalRefs(blocks, opts?.globals ?? null);
+  // Detecta se o template usa weekly_hero com o primeiro evento do FDS —
+  // nesse caso, o grid deve pular esse evento para não duplicar o card.
+  const heroBlock = resolvedBlocks.find(
+    (b) => (b as any).kind === "weekly_hero" && ((b as any).source ?? "first_weekend") === "first_weekend",
+  );
+  const heroEventId = heroBlock ? event.weekendEvents?.[0]?.id : undefined;
+  const ctx: RenderContext = { event, article, settings: s, preview: opts?.preview, heroEventId };
   const bg = escape(s.background_color);
   const brand = escape(s.brand_name);
-  const preheader = escape(opts?.preheader ?? `${event.eventTitle} — ${event.dateLabel} em ${event.venueName}, ${event.cityState}`);
+  const preheader = escape(opts?.preheader ?? computePreheader(event));
 
-  // Expande blocos globais antes de renderizar (Fase C - biblioteca de blocos)
-  const resolvedBlocks = opts?.globals ? expandGlobalRefs(blocks, opts.globals) : blocks;
   const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
   const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
   const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
