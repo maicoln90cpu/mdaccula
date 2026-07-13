@@ -295,7 +295,8 @@
 | 1.1 | 10/01/2026 | Eventos recorrentes, automação e docs |
 | 1.2 | 23/01/2026 | Programa de Podcast e System Design |
 | 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, CDN fallback, importação CSV, otimização custos, performance. Fase 3 planejada com foco em engajamento |
+| 1.4 | 13/07/2026 | Higiene técnica finalizada: renderer de e-mails unificado (frontend↔edge byte-idêntico), slim-down de EmailConfig/EventForm/LinksManager, AbortController em telas com busca, roteamento de template por automação e Google Maps operando em `mdaccula.com` via chave própria + Maps Embed API |
 
 ---
 
-*Última atualização: 15/03/2026*
+*Última atualização: 13/07/2026*
