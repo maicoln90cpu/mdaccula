@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplate,
   renderBlockedTemplateText,
+  expandGlobalRefs,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
@@ -57,6 +58,11 @@ type BrandSettings = {
   footer_text?: string;
   instagram_url?: string | null; youtube_url?: string | null; tiktok_url?: string | null;
 };
+
+function hasAnyBlockKind(blocks: Block[] | null, kinds: string[]): boolean {
+  if (!blocks?.length) return false;
+  return blocks.some((b) => kinds.includes((b as any).kind));
+}
 
 /** HTML mínimo de fallback caso o template salvo esteja vazio/quebrado. */
 function renderLegacyBlogHtml(posts: PostRow[], settings: BrandSettings, rangeLabel: string): string {
@@ -202,11 +208,18 @@ Deno.serve(async (req) => {
     if (overrideTemplateId) {
       activeTplQuery = activeTplQuery.eq('id', overrideTemplateId);
     } else {
-      activeTplQuery = activeTplQuery
-        .eq('type', 'blog_digest')
-        .order('is_default', { ascending: false })
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      const { data: cfgTplRow } = await admin
+        .from('site_settings').select('value').eq('key', 'blog_digest_template_id').maybeSingle();
+      const cfgTplId = cfgTplRow?.value && cfgTplRow.value !== '' ? cfgTplRow.value : null;
+      if (cfgTplId) {
+        activeTplQuery = activeTplQuery.eq('id', cfgTplId);
+      } else {
+        activeTplQuery = activeTplQuery
+          .eq('type', 'blog_digest')
+          .order('is_default', { ascending: false })
+          .order('updated_at', { ascending: false })
+          .limit(1);
+      }
     }
 
     const [{ data: posts }, { data: tplSettings }, { data: activeTpl }, { data: globalBlocksRows }] = await Promise.all([
@@ -234,8 +247,17 @@ Deno.serve(async (req) => {
     let renderSource: 'template' | 'legacy' = 'legacy';
     let renderedEventPayload: EventAnnouncementData | null = null;
     const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
+    const resolvedTplBlocks = tplBlocks ? expandGlobalRefs(tplBlocks, globalsMap) : null;
 
-    if (tplBlocks && tplBlocks.length > 0) {
+    if (resolvedTplBlocks && resolvedTplBlocks.length > 0) {
+      if (!hasAnyBlockKind(resolvedTplBlocks, ['blog_posts_list'])) {
+        return json({
+          ok: false,
+          error: 'Template de Blog news precisa conter bloco de matérias do blog.',
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
+        }, 400);
+      }
       try {
         const blogPosts: BlogPostItem[] = pts.map((p) => ({
           id: p.id,
@@ -294,9 +316,9 @@ Deno.serve(async (req) => {
     const preheaderFromTpl = meta.preheader;
     const internalName = `MDAccula • Blog news • ${todayIso}`;
 
-    if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+    if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
       html = renderBlockedTemplate(
-        tplBlocks,
+        resolvedTplBlocks,
         renderedEventPayload,
         settings as EmailTemplateSettings,
         null,
@@ -325,8 +347,8 @@ Deno.serve(async (req) => {
     let textVersion = '';
     let preheaderText = preheaderFromTpl || '';
     try {
-      if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
-        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
+      if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(resolvedTplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
       }
     } catch (e) { console.warn('[blog-digest-draft] text/preheader gen failed:', e); }
 
@@ -371,6 +393,8 @@ Deno.serve(async (req) => {
       egoi_campaign_id: campaignHash,
       posts_count: pts.length,
       range: rangeLabel,
+      template_id: (activeTpl as any)?.id ?? null,
+      template_name: (activeTpl as any)?.name ?? null,
     });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
