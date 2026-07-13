@@ -388,10 +388,21 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align ?? "center";
       const fullWidth = block.full_width !== false;
       const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
+      // Fallback sólido para Outlook (não renderiza gradiente CSS).
+      const bgSolid = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : solidPrimary;
       const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
-      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">
-        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">${label}</a>
-      </td></tr>`;
+      // Bulletproof button: VML para Outlook (cor sólida), <a> normal p/ o resto (gradiente).
+      const vmlWidth = fullWidth ? 480 : 240;
+      const vmlButton = `<!--[if mso]>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
+          <w:anchorlock/>
+          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
+        </v:roundrect>
+      <![endif]-->`;
+      const htmlButton = `<!--[if !mso]><!-- -->
+        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;mso-hide:all;">${label}</a>
+      <!--<![endif]-->`;
+      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
     }
 
     case "secondary_link": {
@@ -409,7 +420,8 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align ?? "center";
       const radius = block.border_radius ?? 8;
       const alt = escape(block.alt || "");
-      const inner = `<img src="${escape(block.image_url)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
+      const imgSrc = proxyForEmail(block.image_url);
+      const inner = `<img src="${escape(imgSrc)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
       const wrapped = block.link_url
         ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>`
         : inner;
@@ -418,8 +430,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
     case "divider": {
       const thickness = Math.max(1, Math.min(8, block.thickness ?? 1));
-      const color = escape(block.color || "rgba(255,255,255,0.08)");
-      return `<tr><td style="padding:8px 32px;"><div style="height:${thickness}px;background:${color};line-height:${thickness}px;font-size:0;">&nbsp;</div></td></tr>`;
+      const color = escape(block.color || "#3f3f46");
+      // Outlook (Word engine) descarta background em <div>. Usar <table bgcolor> renderiza consistente.
+      return `<tr><td style="padding:8px 32px;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
+          <tr><td bgcolor="${color}" height="${thickness}" style="height:${thickness}px;line-height:${thickness}px;font-size:0;background-color:${color};">&nbsp;</td></tr>
+        </table>
+      </td></tr>`;
     }
 
     case "text": {
