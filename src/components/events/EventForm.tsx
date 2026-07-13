@@ -21,6 +21,7 @@ import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/even
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
+import { logger } from "@/lib/logger";
 
 interface EventFormData {
   title: string;
@@ -353,7 +354,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       const webpFile = await convertToWebP(imageFile);
       return await uploadImageToBunny(webpFile, 'event-images');
     } catch (error) {
-      console.error('Error uploading image:', error);
+      logger.error('Error uploading image:', error);
       toast({
         title: "Erro ao fazer upload da imagem",
         description: "Tente novamente",
@@ -367,7 +368,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
   const onSubmit = async (data: EventFormData) => {
     // 🔍 LOG DE DIAGNÓSTICO: Início do submit
-    console.log('[EventForm] 📝 Iniciando submit do formulário', {
+    logger.debug('[EventForm] 📝 Iniciando submit do formulário', {
       isEditing,
       eventId: event?.id,
       generateBlogPost,
@@ -380,14 +381,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       let imageUrl = event?.image_url;
       
       if (imageFile) {
-        console.log('[EventForm] 📷 Fazendo upload de imagem...');
+        logger.debug('[EventForm] 📷 Fazendo upload de imagem...');
         imageUrl = await uploadImage();
         if (!imageUrl) {
-          console.log('[EventForm] ❌ Falha no upload de imagem, abortando submit');
+          logger.debug('[EventForm] ❌ Falha no upload de imagem, abortando submit');
           setSubmitting(false);
           return;
         }
-        console.log('[EventForm] ✅ Upload de imagem concluído:', imageUrl);
+        logger.debug('[EventForm] ✅ Upload de imagem concluído:', imageUrl);
       }
 
       // Generate slug with timestamp to ensure uniqueness when duplicating
@@ -445,7 +446,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           data.tickets_per_day === true && !!data.end_date && data.end_date > data.date,
       };
 
-      console.log('[EventForm] 📦 Dados do evento preparados:', {
+      logger.debug('[EventForm] 📦 Dados do evento preparados:', {
         slug: eventSlug,
         genres: selectedGenres.length,
         hasImage: !!imageUrl,
@@ -455,7 +456,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       let createdEventId = event?.id;
 
       if (event?.id) {
-        console.log('[EventForm] 🔄 Atualizando evento existente:', event.id);
+        logger.debug('[EventForm] 🔄 Atualizando evento existente:', event.id);
         const previousSlug = event?.slug;
         const { error } = await supabase
           .from('events')
@@ -473,14 +474,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               { onConflict: 'old_slug' }
             );
           if (redirErr) {
-            console.warn('[EventForm] ⚠️ Falha ao gravar redirect de slug antigo:', redirErr);
+            logger.warn('[EventForm] ⚠️ Falha ao gravar redirect de slug antigo:', redirErr);
           } else {
-            console.log('[EventForm] 🔁 Redirect criado:', previousSlug, '→', eventSlug);
+            logger.debug('[EventForm] 🔁 Redirect criado:', previousSlug, '→', eventSlug);
           }
         }
         
         // 🔗 Sincronizar TODOS os campos com links vinculados
-        console.log('[EventForm] 🔗 Sincronizando campos com links vinculados...');
+        logger.debug('[EventForm] 🔗 Sincronizando campos com links vinculados...');
         const linkUpdateData: Record<string, any> = {
           title: data.title,
           subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
@@ -505,19 +506,19 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           .eq('event_id', event.id);
         
         if (linkUpdateError) {
-          console.error('[EventForm] ⚠️ Erro ao sincronizar links:', linkUpdateError);
+          logger.error('[EventForm] ⚠️ Erro ao sincronizar links:', linkUpdateError);
         } else {
-          console.log('[EventForm] ✅ Campos sincronizados com links vinculados');
+          logger.debug('[EventForm] ✅ Campos sincronizados com links vinculados');
         }
         
-        console.log('[EventForm] ✅ Evento atualizado com sucesso');
+        logger.debug('[EventForm] ✅ Evento atualizado com sucesso');
         
         // Invalidar cache de eventos para refletir mudanças imediatamente
         try {
           const { QueryClient } = await import('@tanstack/react-query');
           // Clear localStorage cache
           localStorage.removeItem('mdaccula-events-cache');
-          console.log('[EventForm] 🗑️ Cache localStorage de eventos limpo');
+          logger.debug('[EventForm] 🗑️ Cache localStorage de eventos limpo');
         } catch {}
         
         toast({
@@ -527,7 +528,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         // IndexNow: avisa Bing/Yandex que o evento foi atualizado
         notifyEventChange(eventSlug);
       } else {
-        console.log('[EventForm] ➕ Criando novo evento...');
+        logger.debug('[EventForm] ➕ Criando novo evento...');
         const { data: insertedEvent, error } = await supabase
           .from('events')
           .insert([eventData])
@@ -537,7 +538,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         if (error) throw error;
         createdEventId = insertedEvent.id;
         
-        console.log('[EventForm] ✅ Evento criado com sucesso:', createdEventId);
+        logger.debug('[EventForm] ✅ Evento criado com sucesso:', createdEventId);
         toast({
           title: "Evento criado com sucesso!",
         });
@@ -548,7 +549,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
       // Generate blog post AFTER event creation if checkbox is checked and creating new event
       // 🔍 LOG DE DIAGNÓSTICO: Verificação de geração de blog post
-      console.log('[EventForm] 🔍 Verificando se deve gerar blog post:', {
+      logger.debug('[EventForm] 🔍 Verificando se deve gerar blog post:', {
         generateBlogPost,
         isEditing,
         createdEventId,
@@ -556,7 +557,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       });
 
       if (generateBlogPost && !isEditing && createdEventId) {
-        console.log('[EventForm] 🤖 Iniciando geração de blog post via IA...');
+        logger.debug('[EventForm] 🤖 Iniciando geração de blog post via IA...');
         
         const blogPayload = buildArticlePayload(
           {
@@ -581,7 +582,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           { generateImage: !imageUrl, aiContextOverride: aiContext },
         );
         
-        console.log('[EventForm] 📤 Payload para generate-blog-post-v2:', blogPayload);
+        logger.debug('[EventForm] 📤 Payload para generate-blog-post-v2:', blogPayload);
         
         try {
           const startTime = Date.now();
@@ -590,7 +591,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           });
           const duration = Date.now() - startTime;
 
-          console.log('[EventForm] 📥 Resposta da edge function:', {
+          logger.debug('[EventForm] 📥 Resposta da edge function:', {
             duration: `${duration}ms`,
             hasData: !!blogPostData,
             hasError: !!blogError,
@@ -601,7 +602,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           if (blogError) throw blogError;
           
           if (blogPostData?.post?.id) {
-            console.log('[EventForm] 🔗 Vinculando blog post ao evento...');
+            logger.debug('[EventForm] 🔗 Vinculando blog post ao evento...');
             // Update event with blog_post_id
             const { error: updateError } = await supabase
               .from('events')
@@ -609,9 +610,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               .eq('id', createdEventId);
 
             if (updateError) {
-              console.error('[EventForm] ❌ Erro ao vincular blog post:', updateError);
+              logger.error('[EventForm] ❌ Erro ao vincular blog post:', updateError);
             } else {
-              console.log('[EventForm] ✅ Blog post vinculado com sucesso:', blogPostData.post.id);
+              logger.debug('[EventForm] ✅ Blog post vinculado com sucesso:', blogPostData.post.id);
               toast({
                 title: "Post do blog gerado e vinculado!",
                 description: "O post foi automaticamente vinculado ao evento.",
@@ -627,10 +628,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               });
             }
           } else {
-            console.warn('[EventForm] ⚠️ Resposta da IA não contém post.id:', blogPostData);
+            logger.warn('[EventForm] ⚠️ Resposta da IA não contém post.id:', blogPostData);
           }
         } catch (blogError) {
-          console.error('[EventForm] ❌ Erro ao gerar blog post:', blogError);
+          logger.error('[EventForm] ❌ Erro ao gerar blog post:', blogError);
           toast({
             title: "Erro ao gerar post do blog",
             description: "O evento foi criado, mas o post não foi gerado.",
@@ -638,7 +639,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           });
         }
       } else {
-        console.log('[EventForm] ⏭️ Geração de blog post ignorada:', {
+        logger.debug('[EventForm] ⏭️ Geração de blog post ignorada:', {
           reason: !generateBlogPost ? 'checkbox desmarcado' : isEditing ? 'modo edição' : 'sem eventId'
         });
       }
@@ -673,7 +674,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
               if (createGroupError) throw createGroupError;
               groupId = newGroup.id;
-              console.log(`[EventForm] 📁 Grupo "${groupName}" criado com display_order=${chronologicalOrder}`);
+              logger.debug(`[EventForm] 📁 Grupo "${groupName}" criado com display_order=${chronologicalOrder}`);
             }
 
             // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
@@ -712,7 +713,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               title: "Link criado em /links com sucesso!",
             });
           } catch (linkError) {
-            console.error('Error creating link:', linkError);
+            logger.error('Error creating link:', linkError);
             toast({
               title: "Erro ao criar link",
               description: "O evento foi criado, mas o link não foi criado.",
@@ -745,7 +746,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             });
           }
         } catch (dispatchErr: any) {
-          console.error('[EventForm] Falha no disparo de rascunho E-goi:', dispatchErr);
+          logger.error('[EventForm] Falha no disparo de rascunho E-goi:', dispatchErr);
           toast({
             title: 'Falha no disparo de e-mail',
             description: dispatchErr?.message || 'Erro desconhecido',
@@ -756,7 +757,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
       onSuccess();
     } catch (error) {
-      console.error('Error saving event:', error);
+      logger.error('Error saving event:', error);
       toast({
         title: "Erro ao salvar evento",
         description: "Tente novamente",
