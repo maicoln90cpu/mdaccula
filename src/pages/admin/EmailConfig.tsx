@@ -32,6 +32,7 @@ import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { InboxPreviewHeader } from "@/components/admin/InboxPreviewHeader";
 import { EmailDashboard } from "@/components/admin/EmailDashboard";
+import { EmailPersonalControl } from "@/components/admin/EmailPersonalControl";
 
 type Mode = "draft" | "immediate" | "scheduled";
 
