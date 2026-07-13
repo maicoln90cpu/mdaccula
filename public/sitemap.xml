@@ -574,12 +574,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/etc2504</loc>
-    <lastmod>2026-06-21</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/surreal-apres-old-is-cool-1097242</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>weekly</changefreq>
@@ -600,6 +594,12 @@
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-uq4025</loc>
     <lastmod>2026-07-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/etc2504</loc>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -904,14 +904,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
-    <lastmod>2026-07-13</lastmod>
+    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
-    <lastmod>2026-06-28</lastmod>
+    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1090,12 +1090,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
-    <lastmod>2026-07-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-nave-ahdo67</loc>
     <lastmod>2026-06-25</lastmod>
     <changefreq>weekly</changefreq>
@@ -1116,6 +1110,12 @@
   <url>
     <loc>https://mdaccula.com/eventos/pistinha2103</loc>
     <lastmod>2026-06-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1696,14 +1696,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/krush1707</loc>
-    <lastmod>2026-07-13</lastmod>
+    <loc>https://mdaccula.com/eventos/fire050626</loc>
+    <lastmod>2026-06-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/fire050626</loc>
-    <lastmod>2026-06-22</lastmod>
+    <loc>https://mdaccula.com/eventos/krush1707</loc>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
