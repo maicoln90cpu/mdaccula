@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/useToast";
 import { CheckCircle2, ExternalLink, RefreshCw, Undo2 } from "lucide-react";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 type PeriodFilter = "next7" | "next30" | "future" | "past30";
 type StatusFilter = "all" | "pending" | "sent" | "draft" | "failed" | "manual";
@@ -95,10 +96,6 @@ function fmtDate(date: string, time: string | null) {
   } catch { return date; }
 }
 
-function fmtDateTime(iso: string | null) {
-  if (!iso) return "—";
-  try { return new Date(iso).toLocaleString("pt-BR"); } catch { return iso; }
-}
 
 export function EmailPersonalControl() {
   const { toast } = useToast();
@@ -285,7 +282,7 @@ export function EmailPersonalControl() {
                         <div className="text-xs text-muted-foreground">{fmtDate(row.event.date, row.event.time)}</div>
                       </TableCell>
                       <TableCell>{statusBadge(s)}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{fmtDateTime(row.campaign?.sent_at ?? null)}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{formatDateTimeBR(row.campaign?.sent_at ?? null)}</TableCell>
                       <TableCell className="text-sm text-muted-foreground capitalize">{row.campaign?.mode ?? "—"}</TableCell>
                       <TableCell className="text-right space-x-2 whitespace-nowrap">
                         {row.campaign?.egoi_campaign_id && (

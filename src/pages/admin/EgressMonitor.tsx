@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Activity, HardDrive, Gauge, TrendingUp, RefreshCw, ExternalLink, Server, Database, Globe, Users, AlertTriangle, Bell } from "lucide-react";
 import { EgressAlertsCard } from "@/components/admin/EgressAlertsCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area } from "recharts";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 // ---------------- Types ----------------
 interface EgressRow {
@@ -727,8 +728,8 @@ const EgressMonitor = () => {
 
 
             <p className="text-xs text-muted-foreground text-center mt-6">
-              Bunny atualizado: {bunny ? new Date(bunny.fetchedAt).toLocaleString("pt-BR") : "—"} ·
-              Supabase atualizado: {sbData ? new Date(sbData.fetchedAt).toLocaleString("pt-BR") : "—"}
+              Bunny atualizado: {bunny ? formatDateTimeBR(bunny.fetchedAt) : "—"} ·
+              Supabase atualizado: {sbData ? formatDateTimeBR(sbData.fetchedAt) : "—"}
             </p>
           </div>
         </main>

@@ -43,6 +43,7 @@ import type {
   SegmentItem,
   SenderItem,
 } from "./types";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 interface ConfigTabProps {
   masterEnabled: boolean;
@@ -153,7 +154,7 @@ export const ConfigTab = ({
             </Button>
             <span className="text-xs text-muted-foreground">
               {lists.length > 0 || senders.length > 0
-                ? `${lists.length} listas • ${senders.length} remetentes${lastSyncedAt ? ` • sincronizado ${new Date(lastSyncedAt).toLocaleString("pt-BR")}` : ""}`
+                ? `${lists.length} listas • ${senders.length} remetentes${lastSyncedAt ? ` • sincronizado ${formatDateTimeBR(lastSyncedAt)}` : ""}`
                 : "Clique para popular os selects (usa sua API key)."}
             </span>
           </div>

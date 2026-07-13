@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Undo2, GitMerge, Loader2 } from "lucide-react";
 import { UndoMergeDialog } from "@/components/admin/UndoMergeDialog";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 interface MergedEventRow {
   id: string;
@@ -170,7 +171,7 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
         {groups.map((g) => {
           const canUndo = !!g.log?.context?.primary_pre_merge;
           const when = g.latestMergedAt
-            ? new Date(g.latestMergedAt).toLocaleString("pt-BR")
+            ? formatDateTimeBR(g.latestMergedAt)
             : "—";
           return (
             <Card key={g.primary.id}>

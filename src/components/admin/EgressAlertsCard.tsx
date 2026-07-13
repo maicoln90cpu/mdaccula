@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Bell, Save, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
+import { formatDateTimeBR } from "@/lib/formatters";
 
 interface AlertRow {
   id: string;
@@ -200,7 +201,7 @@ export const EgressAlertsCard = () => {
                   {alerts.map((a) => (
                     <tr key={a.id} className="border-b">
                       <td className="py-2 px-2 text-xs whitespace-nowrap">
-                        {new Date(a.triggered_at).toLocaleString("pt-BR")}
+                        {formatDateTimeBR(a.triggered_at)}
                       </td>
                       <td className="py-2 px-2 text-xs">{a.reason}</td>
                       <td className="py-2 px-2 text-xs text-right">{formatMB(a.window_bytes)}</td>
