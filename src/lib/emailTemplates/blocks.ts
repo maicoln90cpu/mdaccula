@@ -145,7 +145,7 @@ export type Block =
       kind: "blog_posts_list";
       title?: string;           // "Do blog nesta semana"
       eyebrow?: string;
-      max_items?: number;       // 1..5
+      max_items?: number;       // 1..10
       layout?: "list" | "cards"; // list = compacto com miniatura, cards = grid vertical
       show_excerpt?: boolean;
       show_category?: boolean;
