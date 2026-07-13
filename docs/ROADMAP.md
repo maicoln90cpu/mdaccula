@@ -4,9 +4,9 @@
 
 > Planejamento de fases, prioridades e cronograma para evolução da plataforma.
 
-**Versão:** 1.3  
-**Data:** 15/03/2026  
-**Status Atual:** Fase 2 Concluída, Fase 3 Iniciando
+**Versão:** 1.4  
+**Data:** 13/07/2026  
+**Status Atual:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 Iniciando
 
 ---
 
@@ -138,13 +138,27 @@
 
 | Feature | Status | Data |
 |---------|--------|------|
-| README.md completo | ✅ | 15/03/2026 |
-| PRD.md atualizado | ✅ | 15/03/2026 |
-| ROADMAP.md atualizado | ✅ | 15/03/2026 |
+| README.md completo | ✅ | 13/07/2026 |
+| PRD.md atualizado | ✅ | 13/07/2026 |
+| ROADMAP.md atualizado | ✅ | 13/07/2026 |
 | PENDENCIAS.md atualizado | ✅ | 15/03/2026 |
 | SYSTEM-DESIGN.md | ✅ | 15/03/2026 |
 | CODE_STYLE.md | ✅ | 06/01/2026 |
 | SECURITY-AUDIT.md | ✅ | 15/03/2026 |
+
+### Higiene técnica e paridade frontend↔edge 🧹 (Jul/2026)
+
+| Feature | Status | Data |
+|---------|--------|------|
+| Unificação do renderer de e-mails (fonte única `_shared/emailBlocks.ts`) | ✅ | 07/2026 |
+| Frontend virou reexport fino de `@shared/emailBlocks.ts` | ✅ | 07/2026 |
+| Snapshot bilateral (`frontend-edge-render-parity.test.ts`) | ✅ | 07/2026 |
+| Slim-down `EmailConfig.tsx` + `useEmailAutomation` | ✅ | 07/2026 |
+| Slim-down `EventForm.tsx` e `LinksManager.tsx` | ✅ | 07/2026 |
+| AbortController em Search / Events / Links / Blog | ✅ | 07/2026 |
+| Roteamento de template por automação (weekly/weekend/blog) + validação de bloco dinâmico | ✅ | 07/2026 |
+| Google Maps em domínio customizado (`public-maps-config` + chave própria com referrer allowlist + Maps Embed API) | ✅ | 13/07/2026 |
+| Sitemap regenerado | ✅ | 13/07/2026 |
 
 ---
 
@@ -281,7 +295,8 @@
 | 1.1 | 10/01/2026 | Eventos recorrentes, automação e docs |
 | 1.2 | 23/01/2026 | Programa de Podcast e System Design |
 | 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, CDN fallback, importação CSV, otimização custos, performance. Fase 3 planejada com foco em engajamento |
+| 1.4 | 13/07/2026 | Higiene técnica finalizada: renderer de e-mails unificado (frontend↔edge byte-idêntico), slim-down de EmailConfig/EventForm/LinksManager, AbortController em telas com busca, roteamento de template por automação e Google Maps operando em `mdaccula.com` via chave própria + Maps Embed API |
 
 ---
 
-*Última atualização: 15/03/2026*
+*Última atualização: 13/07/2026*

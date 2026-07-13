@@ -1,104 +1,85 @@
-# Plano consolidado — Fase B2 completa + pendências
+# Plano consolidado — Fase B2 + pendências (ARQUIVO / CONCLUÍDO)
 
-Aprovado pelo usuário. Substitui planos anteriores. Objetivo: unificar frontend↔edge sem perder features, e liquidar tudo que ficou aberto nas Fases A–E.
+> **Status geral: ✅ 100% CONCLUÍDO em 13/07/2026.**
+> Este arquivo é mantido como registro histórico. Novas iniciativas devem
+> ser adicionadas em `docs/ROADMAP.md` (Fase 3) e não aqui.
 
 ---
 
-## Parte 1 — Fase B2: unificação real do renderer (bloco a bloco)
+## Parte 1 — Fase B2: unificação real do renderer (bloco a bloco) — ✅
 
-Fonte única em `supabase/functions/_shared/emailBlocks.ts`. Frontend passa a reexportar.
-Regra: para cada divergência, escolher o melhor lado (conforme auditoria de 13 itens). Nada é perdido.
+Fonte única em `supabase/functions/_shared/emailBlocks.ts`; frontend reexporta.
 
-### Etapa 2.1 — Tipagem unificada (EM ANDAMENTO)
-Sem tocar em renderer. Só amplia tipos para conter união dos campos.
-- Frontend `WeekendEventItem` (em `eventAnnouncement.ts`): adicionar `ctaLabel?`, `ctas?: Array<{label,url,dayLabel?,timeLabel?}>`.
-- Frontend `EventAnnouncementData`: adicionar `vipLink?`.
-- Edge já tem todos esses campos; garantir paridade.
-- Validação: `tsgo --noEmit` limpo; testes passam.
+| Etapa | Descrição | Status |
+|-------|-----------|--------|
+| 2.1 | Tipagem unificada (`WeekendEventItem.ctas`, `vipLink`) | ✅ |
+| 2.2 | Utilitários FE→edge (`proxyForEmail`, placeholder flyer, CTA VML/Outlook, divider bgcolor, countdown medium, blocos `preview:true`) | ✅ |
+| 2.3 | Features edge→canônico (`weekend_grid` heroEventId+ctas, `weekly_hero` ctaLabel, `computePreheader` canônica, `static_map` ctx.projectId, `renderBlockedTemplateText`, `expandGlobalRefs` com `globalsCatalog`) | ✅ |
+| 2.4 | Frontend virou reexport fino: `src/lib/emailTemplates/blocks.ts` → `export * from "@shared/emailBlocks.ts"` + `blocksEditor.ts` | ✅ |
+| 2.5 | Snapshot bilateral (`src/__tests__/contracts/frontend-edge-render-parity.test.ts` + `_shared/emailBlocks_test.ts`) — trava duplicação futura | ✅ |
 
-### Etapa 2.2 — Utilitários "frontend-vence" portados p/ edge
-1. `proxyForEmail` (hero_image, image_with_link) — proxy Bunny/Supabase.
-2. Placeholder de flyer quando URL ausente.
-3. `cta_button` bulletproof VML/Outlook.
-4. `divider` `<table bgcolor>` (compat Outlook).
-5. `countdown medium` no formato dias/horas.
-6. Bloco `preview: true` com placeholders informativos.
-Validação: snapshot HTML edge antes/depois byte-idêntico para payloads reais.
+Prova viva:
+- `src/__tests__/contracts/frontend-edge-render-parity.test.ts` compara
+  referências de função e HTML byte-idêntico para 3 famílias de blocos.
+- Comentário-guardião presente em `_shared/emailBlocks.ts`.
 
-### Etapa 2.3 — Features "edge-vence" no canônico
-1. `weekend_grid`: `heroEventId`, `ev.ctas[]`, header opcional.
-2. `weekly_hero`: `ctaLabel`/`ctas[]`.
-3. `computePreheader` (edge) canônica, corte em 150.
-4. `static_map` usando `ctx.projectId`.
-5. `renderBlockedTemplateText` (multipart text) exportado.
-6. `expandGlobalRefs`: dois modos via `options.globalsCatalog?`.
-Validação: snapshot bilateral verde.
+---
 
-### Etapa 2.4 — Frontend vira reexport fino
-- `src/lib/emailTemplates/blocks.ts` → `export * from "@shared/emailBlocks.ts"` + reexports editor.
-- Helpers só-editor (presets, `BLOCK_LABELS`, `TEMPLATE_PRESETS`, factories) migrados p/ `src/lib/emailTemplates/blocksEditor.ts`.
-- Validação: preview `/admin → E-mail → Configuração` idêntico.
+## Parte 2 — Pendências das fases anteriores — ✅
 
-### Etapa 2.5 — Snapshot bilateral de contrato
-- Ampliar `_shared/emailBlocks_test.ts` (3 snapshots: preview off/on, com globals).
-- Criar `src/__tests__/lib/emailBlocks.snapshot.test.ts` que importa via `@shared` e compara com fixture — trava duplicação futura.
+| Fase | Item | Status |
+|------|------|--------|
+| A2 | Varredura `console.*` residual | ✅ |
+| A3 | Teste de cache de signout | ✅ (`useAuth-signout-cache.test.tsx`) |
+| B1 | Deduplicação `blocksLimits` | ✅ |
+| B2 | Unificação renderer (Parte 1) | ✅ |
+| C | Slim-down `EmailConfig.tsx` + `useEmailAutomation` | ✅ |
+| D | AbortController em Search / EventsManager / LinksManager / BlogManager + filtro `AbortError` no logger | ✅ |
+| E | Slim-down `EventForm.tsx` e `LinksManager.tsx` (extração de seções) | ✅ |
+| F1 | `computePreheader` chamada única (consequência de 2.3) | ✅ |
+| F2 | `eventAnnouncement.ts` migrado para `_shared` só se necessário | ⏸ dispensado (edge não precisa hoje) |
+| F3 | ESLint rule proibindo novo `blocks.ts` em `src/lib/emailTemplates/` | ⏸ opcional — não implementado (guardião via teste de paridade cumpre a função) |
+
+---
+
+## Parte 3 — Trabalhos adicionais concluídos após o plano original
+
+Não estavam previstos aqui, mas foram feitos e ficam registrados para
+histórico:
+
+1. **Google Maps em domínio customizado (`mdaccula.com`)** ✅
+   - Nova edge `public-maps-config` (fallback `GOOGLE_MAPS_BROWSER_KEY_CUSTOM` → managed).
+   - `EventLocationMap.tsx` passa a resolver a chave via edge, com cache de módulo.
+   - Chave customizada com referrer allowlist para `mdaccula.com`, `*.mdaccula.com`, `mdaccula.lovable.app`, `id-preview--*.lovable.app`.
+   - Ativadas no Google Cloud: **Maps Embed API** (causa raiz do "REQUEST_DENIED"), Maps JavaScript API, Places API, Geocoding, Maps Static, Maps SDK Android.
+2. **Roteamento de template por automação** ✅
+   - Teste `edge-automation-template-routing.test.ts` atualizado para o helper `body.template_id = tplId` e 3 cards independentes.
+   - Edges `weekly-digest-draft`, `weekend-agenda-draft`, `blog-digest-draft` validam bloco dinâmico obrigatório e prioridade override → configuração salva → default.
+3. **Sitemap** ✅
+   - Script `scripts/generate-sitemap.mjs` rodado; `public/sitemap.xml` atualizado.
+4. **Conexão Google Maps Platform** ✅
+   - Reconectada via workspace connector (Managed by Lovable) após troca de workspace.
+
+---
+
+## Prevenção de regressão em vigor
+
+- Snapshot bilateral (`frontend-edge-render-parity.test.ts`) — falha se
+  frontend voltar a ter renderer próprio.
 - Comentário-guardião no topo de `_shared/emailBlocks.ts`.
+- `edge-automation-template-routing.test.ts` — falha se algum card voltar a
+  ignorar `template_id`.
+- `EventLocationMap.tsx` documenta que a chave gerenciada só funciona em
+  `*.lovable.app` e que Maps Embed API precisa estar ativa no projeto do
+  Google Cloud.
 
----
+## Checklist manual final — ✅ tudo conferido
 
-## Parte 2 — Pendências das fases anteriores
+- [x] Preview `/admin → E-mail → Configuração` idêntico ao envio real.
+- [x] "Enviar teste" chega com HTML esperado.
+- [x] Edge logs limpos nas 3 automações.
+- [x] `bunx vitest run` verde.
+- [x] `tsgo --noEmit` limpo.
+- [x] Mapa carrega em `mdaccula.com` e no preview.
 
-### Fase A — Higiene
-- **A2 (residual):** varrer `console.*` restantes nos 7 arquivos originais + novos.
-- **A3:** ✅ já coberto por `useAuth-signout-cache.test.tsx`.
-
-### Fase B — Deduplicação
-- **B1 (limits):** ✅ concluída.
-- **B2 (renderer):** Parte 1 acima.
-
-### Fase C — Slim-down `EmailConfig.tsx`
-- ✅ concluída. Rever se `useEmailAutomation` cobre 100% dos handlers.
-
-### Fase D — Race conditions (AbortController)
-- Aplicar em: `pages/Search.tsx`, `admin/EventsManager.tsx`, `admin/LinksManager.tsx`, `admin/BlogManager.tsx`.
-- Filtrar `AbortError` do logger.
-- Teste: buscar rápido → só o último resolve.
-
-### Fase E — Slim-down grandes
-- `EventForm.tsx`: extrair seções (Datas, Lineup, Mídia, Preços, Local).
-- `LinksManager.tsx`: mesma técnica.
-- Executar só após D estabilizada.
-
-### Extras (novos da auditoria)
-- **F1.** `computePreheader` chamada única (consequência natural da 2.3).
-- **F2.** `eventAnnouncement.ts` → `_shared` só se edge precisar (futuro).
-- **F3.** ESLint rule proibindo novo `blocks.ts` em `src/lib/emailTemplates/` (blindagem opcional).
-
----
-
-## Ordem de execução
-
-```text
-2.1  tipagem unificada         (baixo risco) ← ATUAL
-2.2  utilitários FE→edge       (médio, snapshot)
-2.3  features edge→canônico    (médio, snapshot)
-2.4  frontend reexport         (baixo se 2.2/2.3 ok)
-2.5  snapshot bilateral        (trava regressão)
-── pausa: validação de envios reais ──
-D    AbortController (4 telas)
-A2   varredura logger residual
-E    slim-down EventForm/LinksManager
-F3   eslint guardião (opcional)
-```
-
-## Prevenção de regressão
-- Snapshot bilateral (2.5).
-- Comentário-guardião em `_shared/emailBlocks.ts`.
-- (Opcional F3) ESLint rule.
-
-## Checklist manual (fim da Parte 1)
-- [ ] Preview `/admin → E-mail → Configuração` idêntico.
-- [ ] "Enviar teste" com HTML esperado (imagem, CTA, countdown).
-- [ ] Edge logs limpos nas 3 funções.
-- [ ] `bunx vitest run` verde.
-- [ ] `tsgo --noEmit` limpo.
+*Encerrado em 13/07/2026.*

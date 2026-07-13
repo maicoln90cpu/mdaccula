@@ -2,9 +2,9 @@
 
 ## MDAccula - Plataforma de Agência de Música Eletrônica
 
-**Versão:** 1.3  
-**Data:** 15/03/2026  
-**Status:** Fase 2 Concluída, Fase 3 em Andamento
+**Versão:** 1.4  
+**Data:** 13/07/2026  
+**Status:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 em Andamento
 
 ---
 
@@ -257,7 +257,8 @@ Uma plataforma all-in-one que oferece:
 | 1.1 | 10/01/2026 | Eventos recorrentes, carousel mobile, melhorias IA |
 | 1.2 | 23/01/2026 | Programa de Podcast completo |
 | 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, importação CSV, CDN fallback, otimização custos, dual IA routing. Backlog atualizado para Fase 3 |
+| 1.4 | 13/07/2026 | Higiene técnica concluída: renderer de e-mails com fonte única frontend↔edge (`_shared/emailBlocks.ts`) + snapshot bilateral de contrato; slim-down de `EmailConfig`, `EventForm` e `LinksManager`; AbortController em telas com busca; roteamento de template por automação (weekly/weekend/blog) com validação de bloco dinâmico; mapa em domínio customizado via edge `public-maps-config` + Maps Embed API |
 
 ---
 
-*Última atualização: 15/03/2026*
+*Última atualização: 13/07/2026*

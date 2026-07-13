@@ -11,7 +11,9 @@
 **URL do Projeto:** https://lovable.dev/projects/5fbf20d7-2f06-4b9e-8486-f99fd516e773  
 **Domínio:** https://mdaccula.com  
 **CDN:** https://cdn.mdaccula.com (Bunny CDN → Supabase Storage)  
-**Versão:** 1.3.0 | **Última atualização:** 15/03/2026
+**Versão:** 1.4.0 | **Última atualização:** 13/07/2026
+
+> **Novidades 07/2026:** renderer de e-mails unificado (fonte única frontend↔edge com snapshot bilateral), slim-down de `EmailConfig`/`EventForm`/`LinksManager`, AbortController em telas com busca, roteamento de template por automação, e Google Maps funcionando em `mdaccula.com` via edge `public-maps-config` + chave própria com referrer allowlist e **Maps Embed API** ativa.
 
 ---
 
@@ -769,6 +771,8 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 | Imagens não carregam (CDN) | Cache corrompido no Bunny | Purge cache + fallback automático |
 | Imagens não carregam (Storage) | Bucket sem policy pública | Verificar policies do bucket |
 | Admin sem acesso | Role não configurada | Inserir em `user_roles` |
+| Mapa mostra "This API is not activated" em `mdaccula.com` | **Maps Embed API** desativada no projeto do Google Cloud da chave customizada | Ativar Maps Embed API e incluí-la na restrição de APIs da chave |
+| Mapa em branco em domínio customizado | Referrer allowlist da chave não cobre o domínio | Adicionar `https://mdaccula.com/*` e `https://*.mdaccula.com/*` na chave |
 
 ---
 
@@ -786,4 +790,4 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 
 ---
 
-*Última atualização: 15/03/2026*
+*Última atualização: 13/07/2026*
