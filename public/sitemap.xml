@@ -904,14 +904,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
-    <lastmod>2026-06-28</lastmod>
+    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
-    <lastmod>2026-07-13</lastmod>
+    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1186,13 +1186,13 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/xsp260926</loc>
+    <loc>https://mdaccula.com/eventos/sun190926</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/sun190926</loc>
+    <loc>https://mdaccula.com/eventos/xsp260926</loc>
     <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
@@ -1559,7 +1559,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/onelife281126</loc>
-    <lastmod>2026-07-11</lastmod>
+    <lastmod>2026-07-13</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -2584,6 +2584,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
+    <lastmod>2026-07-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/produtores-latinos-reinventam-o-techno-ao-vivo-com-hardware-e-acustica</loc>
     <lastmod>2026-07-08</lastmod>
     <changefreq>monthly</changefreq>
@@ -3024,12 +3030,6 @@
   <url>
     <loc>https://mdaccula.com/blog/who-we-are-em-sao-paulo-sexta-feira-3-de-julho-noite-progressive</loc>
     <lastmod>2026-07-12</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
-    <lastmod>2026-07-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
