@@ -138,13 +138,27 @@
 
 | Feature | Status | Data |
 |---------|--------|------|
-| README.md completo | ✅ | 15/03/2026 |
-| PRD.md atualizado | ✅ | 15/03/2026 |
-| ROADMAP.md atualizado | ✅ | 15/03/2026 |
+| README.md completo | ✅ | 13/07/2026 |
+| PRD.md atualizado | ✅ | 13/07/2026 |
+| ROADMAP.md atualizado | ✅ | 13/07/2026 |
 | PENDENCIAS.md atualizado | ✅ | 15/03/2026 |
 | SYSTEM-DESIGN.md | ✅ | 15/03/2026 |
 | CODE_STYLE.md | ✅ | 06/01/2026 |
 | SECURITY-AUDIT.md | ✅ | 15/03/2026 |
+
+### Higiene técnica e paridade frontend↔edge 🧹 (Jul/2026)
+
+| Feature | Status | Data |
+|---------|--------|------|
+| Unificação do renderer de e-mails (fonte única `_shared/emailBlocks.ts`) | ✅ | 07/2026 |
+| Frontend virou reexport fino de `@shared/emailBlocks.ts` | ✅ | 07/2026 |
+| Snapshot bilateral (`frontend-edge-render-parity.test.ts`) | ✅ | 07/2026 |
+| Slim-down `EmailConfig.tsx` + `useEmailAutomation` | ✅ | 07/2026 |
+| Slim-down `EventForm.tsx` e `LinksManager.tsx` | ✅ | 07/2026 |
+| AbortController em Search / Events / Links / Blog | ✅ | 07/2026 |
+| Roteamento de template por automação (weekly/weekend/blog) + validação de bloco dinâmico | ✅ | 07/2026 |
+| Google Maps em domínio customizado (`public-maps-config` + chave própria com referrer allowlist + Maps Embed API) | ✅ | 13/07/2026 |
+| Sitemap regenerado | ✅ | 13/07/2026 |
 
 ---
 
