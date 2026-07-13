@@ -95,10 +95,6 @@ function fmtDate(date: string, time: string | null) {
   } catch { return date; }
 }
 
-function fmtDateTime(iso: string | null) {
-  if (!iso) return "—";
-  try { return new Date(iso).toLocaleString("pt-BR"); } catch { return iso; }
-}
 
 export function EmailPersonalControl() {
   const { toast } = useToast();
