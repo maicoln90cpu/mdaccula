@@ -698,9 +698,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
 
     case "weekend_grid": {
+      const heroId = ctx.heroEventId;
       // Filtro defensivo: DEDGE nunca aparece na agenda — só via `dedge_block`.
+      // Filtra também o evento usado pelo weekly_hero (paridade edge — evita duplicação).
       const isDedgeVenue = (v?: string) => /d\.?\s*edge/i.test((v || "").trim());
-      const list = (event.weekendEvents || []).filter(Boolean).filter((ev) => !isDedgeVenue(ev.venue));
+      const list = (event.weekendEvents || [])
+        .filter(Boolean)
+        .filter((ev) => (!heroId || ev.id !== heroId) && !isDedgeVenue(ev.venue));
       const align = block.align ?? "left";
       const eyebrow = escape(block.eyebrow || "AGENDA · FIM DE SEMANA");
       const title = escape(block.title || "O que rola no fds");
@@ -729,6 +733,10 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           const article = showArticle && ev.articleUrl
             ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Ler matéria →</a>`
             : "";
+          const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+          const multiCtasTimeline = (ev.ctas && ev.ctas.length > 1)
+            ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">${ev.ctas.map((c) => `<tr><td style="padding:3px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:9px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:6px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${singleCtaLabel}</a></td></tr>`).join("")}</table>`
+            : "";
           return `<tr><td style="padding:6px 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
               <tr>
@@ -740,6 +748,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
                   <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
                   <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
                   <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+                  ${multiCtasTimeline}
                   ${article}
                 </td>
               </tr>
@@ -755,9 +764,13 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         const article = showArticle && ev.articleUrl
           ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
           : "";
-        const ticketBtn = ev.ticketUrl
-          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">Garantir ingresso</a>`
-          : "";
+        const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+        const multiCtas = (ev.ctas && ev.ctas.length > 1) ? ev.ctas : null;
+        const ticketBtn = multiCtas
+          ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:12px 16px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:8px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${singleCtaLabel}</a></td></tr>`).join("")}</table>`
+          : (ev.ticketUrl
+            ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${singleCtaLabel}</a>`
+            : "");
         return `<tr><td style="padding:10px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
             <tr><td style="padding:0;position:relative;">
