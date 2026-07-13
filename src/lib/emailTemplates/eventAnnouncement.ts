@@ -20,6 +20,10 @@ export interface WeekendEventItem {
   eventUrl: string;
   ticketUrl?: string;
   articleUrl?: string;   // matéria ligada, se houver
+  /** CTA custom por evento (ex.: DEDGE = "Enviar Nomes Para Lista"). */
+  ctaLabel?: string;
+  /** Múltiplos CTAs quando o card representa vários eventos (ex.: DEDGE quinta/sex/sáb/dom). */
+  ctas?: Array<{ label: string; url: string; dayLabel?: string; timeLabel?: string }>;
 }
 
 /** Config de uma noite do bloco Dedge (segundas até domingo, opcional). */
@@ -83,6 +87,8 @@ export interface EventAnnouncementData {
   blogPosts?: BlogPostItem[];
   /** Configuração do bloco Dedge (residência semanal). */
   dedge?: DedgeBlockData;
+  /** Link VIP alternativo — usado por `cta_button` com url_field="vip_link". */
+  vipLink?: string;
 }
 
 export interface EmailTemplateSettings {
