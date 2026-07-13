@@ -7,9 +7,9 @@ describe("Contract: automações de e-mail respeitam template selecionado", () =
   it("frontend envia template_id nos testes e rascunhos manuais dos 3 cards", () => {
     const content = read("src/pages/admin/EmailConfig.tsx");
 
-    expect(content).toContain("body.template_id = weeklyEffectiveTemplateId");
-    expect(content).toContain("body.template_id = weekendEffectiveTemplateId");
-    expect(content).toContain("body.template_id = blogEffectiveTemplateId");
+    // Helper único que injeta template_id no body (refatorado em 2024/2025).
+    expect(content).toContain("body.template_id = tplId");
+    // Os 3 cards continuam disparando testes com o template efetivo próprio.
     expect(content).toContain('sendAutomationTest("weekly-digest-draft", "Digest semanal", setTestingWeekly, weeklyEffectiveTemplateId)');
     expect(content).toContain('sendAutomationTest("weekend-agenda-draft", "Agenda FDS", setTestingWeekend, weekendEffectiveTemplateId)');
     expect(content).toContain('sendAutomationTest("blog-digest-draft", "Blog news", setTestingBlog, blogEffectiveTemplateId)');
