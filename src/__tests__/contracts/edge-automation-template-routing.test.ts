@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import fs from "fs";
 
-const read = (path: string) => readFileSync(`${process.cwd()}/${path}`, "utf-8");
+const read = (path: string) => fs.readFileSync(`${process.cwd()}/${path}`, "utf-8");
 
 describe("Contract: automações de e-mail respeitam template selecionado", () => {
   it("frontend envia template_id nos testes e rascunhos manuais dos 3 cards", () => {
