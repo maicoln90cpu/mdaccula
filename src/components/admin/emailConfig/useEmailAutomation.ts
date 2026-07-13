@@ -17,7 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Template } from "@/lib/emailTemplates/blocks";
 import type { AutomationCfg, AutomationResult } from "./types";
 
-export const DAY_LABELS = [
+export const DAY_LABELS: string[] = [
   "Domingo",
   "Segunda",
   "Terça",
@@ -25,7 +25,7 @@ export const DAY_LABELS = [
   "Quinta",
   "Sexta",
   "Sábado",
-] as const;
+];
 
 export const AUTOMATION_TEST_RECIPIENT = "contato@mdaccula.com";
 
