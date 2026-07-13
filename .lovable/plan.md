@@ -1,83 +1,85 @@
-## Fase 3 — Aba "Controle Pessoal"
+# Fase B2 — Unificar renderizador de blocos (frontend ↔ edge)
 
-Nova aba dentro de Admin → E-mail, para você acompanhar quais eventos já receberam e-mail e quais ainda estão pendentes/rascunho, com opção de marcar manualmente.
+## Antes vs Depois
 
-### Antes vs Depois
+**Antes:** dois arquivos gigantes em paralelo, mantidos manualmente sincronizados:
+- `src/lib/emailTemplates/blocks.ts` (1509 linhas) — usado no preview do admin.
+- `supabase/functions/_shared/emailBlocks.ts` (1100 linhas) — usado nas Edge Functions `weekly-digest-draft`, `weekend-agenda-draft`, `blog-digest-draft` que enviam à E-goi.
+- Além disso, `blocksLimits.ts` e `emailBlocksLimits.ts` também são duplicados.
+- Consequência: qualquer ajuste visual precisa ser feito 2×; divergências silenciosas geram e-mails diferentes do preview.
 
-**Antes:** só existe o Dashboard (métricas agregadas) e o Histórico (lista bruta de campanhas). Não há uma visão por evento que responda "esse evento já teve e-mail enviado ou não?".
+**Depois:** uma única fonte de verdade para tipos + renderer, importada dos dois lados. Zero duplicação de HTML/lógica. O preview renderiza exatamente o que a edge envia.
 
-**Depois:** nova aba **"Controle pessoal"** entre "Automações" e "Histórico" com uma tabela de eventos futuros e recentes, mostrando o status de e-mail de cada um e permitindo marcar como enviado manualmente.
+## Estratégia técnica
 
-### O que a aba mostra
+O obstáculo é ambiental: frontend (Vite/TS) e edge (Deno) têm regras de import diferentes. Solução escolhida (mais simples e sem tooling extra):
 
-Uma tabela com uma linha por **evento** (futuros + últimos 30 dias):
+1. **Fonte canônica em `supabase/functions/_shared/`** — Deno já importa nativamente; Vite passa a importar via alias `@shared` apontando para `supabase/functions/_shared`.
+2. Imports com extensão `.ts` explícita — Vite aceita, Deno exige. Isso mantém o mesmo caminho para os dois lados.
+3. Nenhum símbolo específico de Deno/Vite no arquivo compartilhado (é 100% string/template puro).
 
-| Coluna | Conteúdo |
-|---|---|
-| Evento | Título + data + horário |
-| Status e-mail | Badge: `Enviado`, `Rascunho na E-goi`, `Erro`, `Não disparado`, `Enviado manualmente` |
-| Data envio | Quando saiu (ou "—") |
-| Modo | `automático` / `manual` / `rascunho` |
-| Ações | Botão "Marcar enviado manualmente" (só quando status ≠ Enviado) e "Ver na E-goi" (quando existe `egoi_campaign_id`) |
+## Etapas (deploy em fases seguras)
 
-**Filtros no topo:** período (Próximos 7 dias / 30 dias / Todos futuros / Últimos 30 dias) e status (Todos / Pendentes / Enviados / Rascunho / Erro).
+### Etapa 1 — Consolidar `blocksLimits`
+- Manter `supabase/functions/_shared/emailBlocksLimits.ts` como canônico.
+- Deletar `src/lib/emailTemplates/blocksLimits.ts`.
+- Atualizar todos os imports do frontend para `@shared/emailBlocksLimits.ts`.
+- Adicionar alias `@shared` no `vite.config.ts` e `tsconfig`.
 
-**Contadores rápidos** no cabeçalho: "X pendentes • Y rascunhos • Z enviados".
+### Etapa 2 — Unificar `blocks.ts`
+- Escolher a versão **frontend** como base (mais completa, 1509 vs 1100 linhas — inclui presets e helpers do editor).
+- Copiar para `supabase/functions/_shared/emailBlocks.ts` **apenas as partes puras**: tipos + `renderBlockedTemplate` + `computePreheader`.
+- Manter os helpers de editor (presets, factories UI) **apenas em `src/`**, num novo arquivo `src/lib/emailTemplates/blocksEditor.ts` — não são usados pela edge.
+- `src/lib/emailTemplates/blocks.ts` passa a ser um re-export fino: `export * from "@shared/emailBlocks.ts"` + reexporta os editors.
 
-### Atualização automática
+### Etapa 3 — Migrar edge functions
+- `weekly-digest-draft`, `weekend-agenda-draft`, `blog-digest-draft` já importam de `../_shared/emailBlocks.ts` — nenhuma mudança de path.
+- Verificar que o HTML gerado é byte-idêntico ao anterior (snapshot antes/depois).
 
-- Refetch a cada 30 s enquanto a aba está aberta (React Query `refetchInterval`).
-- Refetch imediato após marcar manualmente ou quando a aba volta ao foco.
-- Nenhum polling quando a aba não está ativa (economia de egress).
+### Etapa 4 — Teste de contrato
+- Existe `supabase/functions/_shared/emailBlocks_test.ts`. Ampliar para gerar um snapshot HTML de um template completo.
+- Novo teste frontend `src/__tests__/lib/emailBlocks.snapshot.test.ts` chama o **mesmo** renderer com os **mesmos** dados e compara — se divergirem, o teste falha.
 
-### Marcar como enviado manualmente
+## Vantagens
 
-- Botão abre confirmação: "Confirma que este e-mail foi enviado manualmente pela E-goi?"
-- Ao confirmar: cria/atualiza uma linha em `event_email_campaigns` com `mode='manual'`, `status='sent'`, `sent_at=now()`, `campaign_type='manual'`.
-- Toast de sucesso + refetch.
-- Se já existir campanha para o evento, atualiza a linha existente em vez de duplicar.
+- Fonte única → nunca mais preview ≠ envio real.
+- Redução líquida de ~1000 linhas duplicadas.
+- Testes garantem que refactors futuros não regridam.
+- Deploy em etapas: cada uma pode ser validada isoladamente.
 
-### Detalhes técnicos
+## Desvantagens / riscos
 
-- **Sem migração de schema**: `event_email_campaigns` já tem `mode`, `status`, `sent_at`, `campaign_type` — reutilizamos.
-- Nova aba em `src/pages/admin/EmailConfig.tsx` (`value="controle"`), delegando toda a lógica a um novo componente `src/components/admin/EmailPersonalControl.tsx` (mantém o arquivo pai enxuto).
-- Fonte de dados: `events` (título/data/hora/id) LEFT JOIN `event_email_campaigns` (mais recente por evento).
-- Realtime é opcional; começamos apenas com `refetchInterval` de 30 s para não pagar realtime.
-- Reaproveita `Badge`, `Button`, `Table`, `Select` do design system.
+- Mexe em código quente que dispara e-mails reais → risco alto se HTML mudar por acidente.
+- Alias `@shared` novo pode confundir se não documentado.
+- Um único bug afeta os 3 fluxos de envio ao mesmo tempo (antes o "isolamento por duplicação" mascarava problemas).
 
-### Vantagens
+**Mitigação:** cada etapa vai com snapshot HTML comparando antes/depois; nenhum deploy sem esse diff conferido.
 
-- Visão única "quem falta / quem já foi" sem abrir E-goi.
-- Marcação manual cobre o período em que a automação ainda está desligada.
-- Zero mudança de banco → risco de regressão mínimo.
-- Componentizado → não incha `EmailConfig.tsx`.
+## Checklist manual de validação (ao final)
 
-### Desvantagens / limites
+- [ ] `/admin` → E-mail → Configuração: preview do template renderiza igual ao anterior.
+- [ ] `/admin` → E-mail → Automações: "Enviar teste" chega no inbox com o HTML esperado.
+- [ ] Edge logs de `weekly-digest-draft`, `weekend-agenda-draft`, `blog-digest-draft` sem erros de import.
+- [ ] Snapshot test passa (`bunx vitest run emailBlocks.snapshot`).
+- [ ] `tsgo --noEmit` sem erros.
 
-- Refetch de 30 s gera pequeno tráfego enquanto a aba está aberta (mitigado por foco).
-- "Marcar manualmente" não valida se o e-mail realmente foi enviado na E-goi — é um registro de controle seu.
-- Não edita/desmarca automaticamente: se marcar por engano, precisa botão "desfazer" (vou incluir).
+## Pendências / futuro
 
-### Checklist manual de validação
+- Depois de unificar, mover `computePreheader` para chamada única (hoje é replicada em 3 edges).
+- Considerar mover `eventAnnouncement.ts` também para `_shared` se algum dia a edge precisar dele.
 
-- [ ] Aba "Controle pessoal" aparece entre Automações e Histórico.
-- [ ] Lista traz eventos dos próximos 30 dias com status correto.
-- [ ] Filtro por período e por status funciona.
-- [ ] Contadores no topo batem com a lista filtrada.
-- [ ] "Marcar enviado manualmente" cria registro e badge muda para "Enviado manualmente".
-- [ ] Botão "Desfazer marcação manual" reverte o registro criado por engano.
-- [ ] "Ver na E-goi" abre a campanha em nova aba quando existe `egoi_campaign_id`.
-- [ ] Fecha e reabre a aba → dados atualizados sem F5.
+## Prevenção de regressão
 
-### Pendências / futuro (não agora)
+- Snapshot test compartilhado (mesmo fixture, dois runners) — falha se frontend e edge divergirem.
+- Comentário no topo de `_shared/emailBlocks.ts`: "fonte única; NÃO duplicar em `src/`".
+- ESLint rule opcional (futuro): proibir novo arquivo `blocks.ts` em `src/lib/emailTemplates/`.
 
-- Notificação (badge no menu) quando houver evento futuro sem e-mail enviado a menos de 48 h.
-- Exportar CSV do controle pessoal.
-- Realtime via Supabase channel (se o refetch parecer lento no uso real).
+## Recomendação de execução
 
-### Prevenção de regressão
+Executar etapa por etapa, com sua aprovação entre cada uma:
+1. Etapa 1 (limits) — baixo risco, aquece o alias.
+2. Etapa 2 (blocks) — coração da mudança, com snapshot antes/depois.
+3. Etapa 3 (edges) — só validação, imports não mudam.
+4. Etapa 4 (testes) — trava contra regressão.
 
-- Teste de contrato em `src/__tests__/` verificando que a aba `controle` existe em `EmailConfig.tsx` e que `EmailPersonalControl.tsx` consulta `event_email_campaigns` (não referencia campos inexistentes).
-- Nada de mudança de schema → migrações antigas seguem intactas.
-
-Confirma seguir com essa implementação?
+Confirma seguir por essa ordem, começando pela **Etapa 1**?

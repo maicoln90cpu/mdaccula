@@ -1,13 +1,12 @@
 /**
- * Fonte única de limites/defaults numéricos dos blocos de e-mail (Deno).
+ * Fonte ÚNICA de limites/defaults numéricos dos blocos de e-mail.
  *
- * Este arquivo é espelhado em `src/lib/emailTemplates/blocksLimits.ts`
- * (mesmo conteúdo). O teste `src/__tests__/contracts/email-blocks-limits.test.ts`
- * garante que os dois arquivos NÃO divergem — impedindo bugs como o cap de 5
- * posts no blog_posts_list (o edge dizia 10, o frontend dizia 5).
+ * Importado tanto pelas edge functions (Deno) quanto pelo frontend
+ * (Vite via alias `@shared/emailBlocksLimits.ts`).
  *
- * Se você alterar aqui, altere também em `src/lib/emailTemplates/blocksLimits.ts`.
+ * NÃO duplicar em `src/`. Fase B2 removeu a versão espelhada.
  */
+
 
 export const EMAIL_BLOCK_LIMITS = {
   logo: { minHeight: 24, maxHeight: 200, defaultHeight: 64 },
