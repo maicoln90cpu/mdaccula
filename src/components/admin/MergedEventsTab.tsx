@@ -170,7 +170,7 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
         {groups.map((g) => {
           const canUndo = !!g.log?.context?.primary_pre_merge;
           const when = g.latestMergedAt
-            ? new Date(g.latestMergedAt).toLocaleString("pt-BR")
+            ? formatDateTimeBR(g.latestMergedAt)
             : "—";
           return (
             <Card key={g.primary.id}>

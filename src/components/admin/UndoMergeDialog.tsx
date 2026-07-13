@@ -189,7 +189,7 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
 
   if (!log || !ctx) return null;
 
-  const when = new Date(log.logged_at).toLocaleString("pt-BR");
+  const when = formatDateTimeBR(log.logged_at);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

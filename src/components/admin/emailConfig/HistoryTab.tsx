@@ -189,7 +189,7 @@ export const HistoryTab = ({
                         <div className="font-medium truncate">{g.title}</div>
                         <div className="text-xs text-muted-foreground">
                           {g.total} disparo{g.total > 1 ? "s" : ""} • último em{" "}
-                          {new Date(g.last.created_at).toLocaleString("pt-BR")}
+                          {formatDateTimeBR(g.last.created_at)}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export const HistoryTab = ({
                                       );
                                     })()}
                                     <span className="text-xs text-muted-foreground">
-                                      {c.mode} • {new Date(c.created_at).toLocaleString("pt-BR")}
+                                      {c.mode} • {formatDateTimeBR(c.created_at)}
                                     </span>
                                     {c.egoi_campaign_id && (
                                       <span className="text-xs text-muted-foreground">
@@ -289,7 +289,7 @@ export const HistoryTab = ({
                                   </div>
                                   {s.fetched_at && (
                                     <div className="col-span-2 md:col-span-4 text-[10px] text-muted-foreground text-right">
-                                      Atualizado em {new Date(s.fetched_at).toLocaleString("pt-BR")}
+                                      Atualizado em {formatDateTimeBR(s.fetched_at)}
                                     </div>
                                   )}
                                 </div>

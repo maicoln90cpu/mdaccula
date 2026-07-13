@@ -727,8 +727,8 @@ const EgressMonitor = () => {
 
 
             <p className="text-xs text-muted-foreground text-center mt-6">
-              Bunny atualizado: {bunny ? new Date(bunny.fetchedAt).toLocaleString("pt-BR") : "—"} ·
-              Supabase atualizado: {sbData ? new Date(sbData.fetchedAt).toLocaleString("pt-BR") : "—"}
+              Bunny atualizado: {bunny ? formatDateTimeBR(bunny.fetchedAt) : "—"} ·
+              Supabase atualizado: {sbData ? formatDateTimeBR(sbData.fetchedAt) : "—"}
             </p>
           </div>
         </main>
