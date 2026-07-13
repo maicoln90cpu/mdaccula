@@ -2264,6 +2264,11 @@ const EmailConfig = () => {
 
 
         {/* ================= HISTÓRICO ================= */}
+        {/* ================= CONTROLE PESSOAL ================= */}
+        <TabsContent value="controle" className="space-y-4">
+          <EmailPersonalControl />
+        </TabsContent>
+
         <TabsContent value="history" className="space-y-4">
           {/* Campo de busca compartilhado: filtra "sem rascunho" E "histórico por evento" */}
           <div>
