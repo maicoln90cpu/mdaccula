@@ -19,8 +19,8 @@ Aprovado pelo usuário para atacar todas as fases nas ondas sugeridas. Começar 
 - **B2 (futuro).** Consolidar renderizador de blocos num módulo TS puro único.
 
 ## Fase C — Slim-down `EmailConfig.tsx` (2.567 → ~6 arquivos)
-- `AutomationsTab.tsx`, `HistoryTab.tsx`, `ConfigTab.tsx`, `SendNowButton.tsx`, `AbTestButton.tsx`
-- `hooks/useEmailAutomation.ts` para chamadas Supabase/edge.
+- ✅ `SendNowButton.tsx`, `AbTestButton.tsx`, `HistoryTab.tsx`, `AutomationsTab.tsx`
+- Pendentes: `ConfigTab.tsx` (aba "Configuração"), `hooks/useEmailAutomation.ts` (opcional).
 - Sem mudança de comportamento.
 
 ## Fase D — Race conditions em buscas admin

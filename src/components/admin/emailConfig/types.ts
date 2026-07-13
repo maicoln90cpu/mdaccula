@@ -72,3 +72,17 @@ export type AbTestParams = {
   winnerMetric: "opens" | "clicks";
   sendNow: boolean;
 };
+
+export type AutomationCfg = {
+  enabled: boolean;
+  day: number;
+  hour: number;
+  templateId: string;
+};
+
+export type AutomationResult = {
+  egoi_campaign_id?: string | null;
+  events_count?: number;
+  posts_count?: number;
+  range?: string;
+} | null;
