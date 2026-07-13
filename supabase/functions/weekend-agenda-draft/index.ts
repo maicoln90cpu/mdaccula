@@ -12,6 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplate,
   renderBlockedTemplateText,
+  expandGlobalRefs,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
@@ -77,6 +78,11 @@ type BrandSettings = {
   footer_text?: string;
   instagram_url?: string | null; youtube_url?: string | null; tiktok_url?: string | null;
 };
+
+function hasAnyBlockKind(blocks: Block[] | null, kinds: string[]): boolean {
+  if (!blocks?.length) return false;
+  return blocks.some((b) => kinds.includes((b as any).kind));
+}
 
 // Fallback HTML mínimo caso nenhum template weekend_agenda esteja disponível.
 function renderFallbackHtml(
@@ -289,14 +295,26 @@ Deno.serve(async (req) => {
       .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
       .slice(0, 20);
     const pts = (posts ?? []) as PostRow[];
+    if (evs.length === 0) {
+      return json({ skipped: true, reason: 'no_events_in_range', range: rangeLabel });
+    }
     const settings = (tplSettings ?? {}) as BrandSettings;
 
     let html = '';
     let renderSource: 'template' | 'legacy' = 'legacy';
     let renderedEventPayload: EventAnnouncementData | null = null;
     const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
+    const resolvedTplBlocks = tplBlocks ? expandGlobalRefs(tplBlocks, globalsMap) : null;
 
-    if (tplBlocks && tplBlocks.length > 0) {
+    if (resolvedTplBlocks && resolvedTplBlocks.length > 0) {
+      if (!hasAnyBlockKind(resolvedTplBlocks, ['weekend_grid', 'weekly_hero', 'dedge_block'])) {
+        return json({
+          ok: false,
+          error: 'Template de Agenda FDS precisa conter bloco de agenda dinâmica.',
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
+        }, 400);
+      }
       try {
         // Templates "Cartaz" (1 imagem grande) → agrupar recorrentes em 1 card.
         // DEDGE é SEMPRE consolidado (todo template) — regra da casa.
@@ -441,9 +459,9 @@ Deno.serve(async (req) => {
     const preheaderFromTpl = meta.preheader;
     const internalName = `MDAccula • Agenda FDS • ${todayIso}`;
 
-    if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+    if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
       html = renderBlockedTemplate(
-        tplBlocks,
+        resolvedTplBlocks,
         renderedEventPayload,
         settings as EmailTemplateSettings,
         null,
@@ -473,8 +491,8 @@ Deno.serve(async (req) => {
     let textVersion = '';
     let preheaderText = preheaderFromTpl || '';
     try {
-      if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
-        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
+      if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(resolvedTplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
       }
     } catch (e) { console.warn('[weekend-agenda-draft] text/preheader gen failed:', e); }
 
@@ -520,6 +538,8 @@ Deno.serve(async (req) => {
       events_count: evs.length,
       posts_count: pts.length,
       range: rangeLabel,
+      template_id: (activeTpl as any)?.id ?? null,
+      template_name: (activeTpl as any)?.name ?? null,
     });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

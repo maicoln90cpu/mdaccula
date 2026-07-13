@@ -13,6 +13,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplate,
   renderBlockedTemplateText,
+  expandGlobalRefs,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
@@ -78,6 +79,11 @@ type BrandSettings = {
   footer_text?: string;
   instagram_url?: string | null; youtube_url?: string | null; tiktok_url?: string | null;
 };
+
+function hasAnyBlockKind(blocks: Block[] | null, kinds: string[]): boolean {
+  if (!blocks?.length) return false;
+  return blocks.some((b) => kinds.includes((b as any).kind));
+}
 
 function renderDigestHtml(
   events: EventRow[],
@@ -293,11 +299,19 @@ Deno.serve(async (req) => {
     if (overrideTemplateId) {
       activeTplQuery = activeTplQuery.eq('id', overrideTemplateId);
     } else {
-      activeTplQuery = activeTplQuery
-        .in('type', templateTypes)
-        .order('is_default', { ascending: false })
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      const settingKey = range === 'weekend' ? 'weekend_agenda_template_id' : 'weekly_digest_template_id';
+      const { data: cfgTplRow } = await admin
+        .from('site_settings').select('value').eq('key', settingKey).maybeSingle();
+      const cfgTplId = cfgTplRow?.value && cfgTplRow.value !== '' ? cfgTplRow.value : null;
+      if (cfgTplId) {
+        activeTplQuery = activeTplQuery.eq('id', cfgTplId);
+      } else {
+        activeTplQuery = activeTplQuery
+          .in('type', templateTypes)
+          .order('is_default', { ascending: false })
+          .order('updated_at', { ascending: false })
+          .limit(1);
+      }
     }
 
     const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }, { data: globalBlocksRows }] = await Promise.all([
@@ -332,14 +346,31 @@ Deno.serve(async (req) => {
     const todayIso = now.toISOString().slice(0, 10);
     const rangeLabel = `${rangeStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → ${rangeEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
     const digestLabel = range === 'weekend' ? 'Agenda do FDS' : 'Resumo semanal';
+    if (evs.length === 0 && pts.length === 0) {
+      return json({ skipped: true, reason: 'no_content_in_range', range: rangeLabel });
+    }
 
     // Tenta renderizar via template ativo (blocos). Se falhar por qualquer motivo, cai no HTML legado.
     let html = '';
     let renderSource: 'template' | 'legacy' = 'legacy';
     let renderedEventPayload: EventAnnouncementData | null = null;
     const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
+    const resolvedTplBlocks = tplBlocks ? expandGlobalRefs(tplBlocks, globalsMap) : null;
 
-    if (tplBlocks && tplBlocks.length > 0) {
+    if (resolvedTplBlocks && resolvedTplBlocks.length > 0) {
+      if (!hasAnyBlockKind(resolvedTplBlocks, range === 'weekend'
+        ? ['weekend_grid', 'weekly_hero', 'dedge_block']
+        : ['weekend_grid', 'weekly_hero', 'blog_posts_list', 'dedge_block']
+      )) {
+        return json({
+          ok: false,
+          error: range === 'weekend'
+            ? 'Template de Agenda FDS precisa conter bloco de agenda dinâmica.'
+            : 'Template de Digest semanal precisa conter bloco de agenda ou blog dinâmico.',
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
+        }, 400);
+      }
       try {
         // Templates "Cartaz" mostram 1 imagem grande por card → agrupar eventos
         // recorrentes (mesmo venue) em UM card com todas as datas.
@@ -491,9 +522,9 @@ Deno.serve(async (req) => {
     const preheaderFromTpl = meta.preheader;
     const internalName = `MDAccula • ${digestLabel} • ${todayIso}`;
 
-    if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
+    if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
       html = renderBlockedTemplate(
-        tplBlocks,
+        resolvedTplBlocks,
         renderedEventPayload,
         settings as EmailTemplateSettings,
         null,
@@ -526,8 +557,8 @@ Deno.serve(async (req) => {
     let textVersion = '';
     let preheaderText = preheaderFromTpl || '';
     try {
-      if (tplBlocks && renderSource === 'template' && renderedEventPayload) {
-        textVersion = renderBlockedTemplateText(tplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
+      if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(resolvedTplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
       }
     } catch (e) { console.warn('[weekly-digest-draft] text/preheader gen failed:', e); }
 
@@ -574,6 +605,8 @@ Deno.serve(async (req) => {
       events_count: evs.length,
       posts_count: pts.length,
       range: rangeLabel,
+      template_id: (activeTpl as any)?.id ?? null,
+      template_name: (activeTpl as any)?.name ?? null,
     });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

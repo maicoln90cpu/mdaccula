@@ -712,10 +712,23 @@ const EmailConfig = () => {
     return data;
   };
 
+  const weeklyEffectiveTemplateId = useMemo(
+    () => weeklyCfg.templateId || templates.find((t) => (t.type === "weekly_digest" || t.type === "weekly_digest_editorial") && t.is_default)?.id || templates.find((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial")?.id || "",
+    [weeklyCfg.templateId, templates],
+  );
+  const weekendEffectiveTemplateId = useMemo(
+    () => weekendCfg.templateId || templates.find((t) => t.type === "weekend_agenda" && t.is_default)?.id || templates.find((t) => t.type === "weekend_agenda")?.id || "",
+    [weekendCfg.templateId, templates],
+  );
+  const blogEffectiveTemplateId = useMemo(
+    () => blogCfg.templateId || templates.find((t) => t.type === "blog_digest" && t.is_default)?.id || templates.find((t) => t.type === "blog_digest")?.id || "",
+    [blogCfg.templateId, templates],
+  );
+
   const handleSaveWeekly = async () => {
     setSavingWeekly(true);
     try {
-      await saveAutomation("weekly_digest", weeklyCfg);
+      await saveAutomation("weekly_digest", { ...weeklyCfg, templateId: weeklyEffectiveTemplateId });
       toast({
         title: weeklyCfg.enabled ? "Digest semanal agendado" : "Digest semanal salvo (desligado)",
         description: weeklyCfg.enabled
@@ -732,7 +745,7 @@ const EmailConfig = () => {
   const handleSaveWeekend = async () => {
     setSavingWeekend(true);
     try {
-      await saveAutomation("weekend_agenda", weekendCfg);
+      await saveAutomation("weekend_agenda", { ...weekendCfg, templateId: weekendEffectiveTemplateId });
       toast({
         title: weekendCfg.enabled ? "Agenda FDS agendada" : "Agenda FDS salva (desligada)",
         description: weekendCfg.enabled
@@ -750,19 +763,20 @@ const EmailConfig = () => {
     setDigestGenerating(true);
     setDigestLastResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", {
-        body: { force: true },
-      });
+      const body: Record<string, unknown> = { force: true };
+      if (weeklyEffectiveTemplateId) body.template_id = weeklyEffectiveTemplateId;
+      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", { body });
       if (error) throw error;
       const res = data as {
         ok?: boolean; skipped?: boolean; reason?: string; error?: string;
-        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string; template_name?: string | null;
       };
       if (res?.skipped) {
         const reasons: Record<string, string> = {
           master_off: "Master switch está OFF.",
           digest_disabled: "Digest está desligado — ligue o toggle acima primeiro.",
           config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+          no_content_in_range: "Nenhum evento ou matéria encontrado no período.",
         };
         toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
         return;
@@ -773,7 +787,7 @@ const EmailConfig = () => {
       setDigestLastResult(res);
       toast({
         title: "Rascunho criado na E-goi",
-        description: `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest.`,
+        description: `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ""}.`,
       });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao gerar digest", description: e.message });
@@ -786,19 +800,20 @@ const EmailConfig = () => {
     setWeekendGenerating(true);
     setWeekendLastResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("weekend-agenda-draft", {
-        body: { force: true },
-      });
+      const body: Record<string, unknown> = { force: true };
+      if (weekendEffectiveTemplateId) body.template_id = weekendEffectiveTemplateId;
+      const { data, error } = await supabase.functions.invoke("weekend-agenda-draft", { body });
       if (error) throw error;
       const res = data as {
         ok?: boolean; skipped?: boolean; reason?: string; error?: string;
-        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string;
+        egoi_campaign_id?: string | null; events_count?: number; posts_count?: number; range?: string; template_name?: string | null;
       };
       if (res?.skipped) {
         const reasons: Record<string, string> = {
           master_off: "Master switch está OFF.",
           agenda_disabled: "Agenda FDS está desligada — ligue o toggle primeiro.",
           config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
+          no_events_in_range: "Nenhum evento encontrado para este fim de semana.",
         };
         toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
         return;
@@ -807,7 +822,7 @@ const EmailConfig = () => {
       setWeekendLastResult(res);
       toast({
         title: "Rascunho FDS criado na E-goi",
-        description: `${res.events_count ?? 0} evento(s) no fim de semana.`,
+        description: `${res.events_count ?? 0} evento(s) no fim de semana${res.template_name ? ` · ${res.template_name}` : ""}.`,
       });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao gerar agenda FDS", description: e.message });
@@ -819,7 +834,7 @@ const EmailConfig = () => {
   const handleSaveBlog = async () => {
     setSavingBlog(true);
     try {
-      await saveAutomation("blog_digest", blogCfg);
+      await saveAutomation("blog_digest", { ...blogCfg, templateId: blogEffectiveTemplateId });
       toast({
         title: blogCfg.enabled ? "Blog news agendado" : "Blog news salvo (desligado)",
         description: blogCfg.enabled
@@ -837,13 +852,13 @@ const EmailConfig = () => {
     setBlogGenerating(true);
     setBlogLastResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("blog-digest-draft", {
-        body: { force: true },
-      });
+      const body: Record<string, unknown> = { force: true };
+      if (blogEffectiveTemplateId) body.template_id = blogEffectiveTemplateId;
+      const { data, error } = await supabase.functions.invoke("blog-digest-draft", { body });
       if (error) throw error;
       const res = data as {
         ok?: boolean; skipped?: boolean; reason?: string; error?: string;
-        egoi_campaign_id?: string | null; posts_count?: number; range?: string;
+        egoi_campaign_id?: string | null; posts_count?: number; range?: string; template_name?: string | null;
       };
       if (res?.skipped) {
         const reasons: Record<string, string> = {
@@ -859,7 +874,7 @@ const EmailConfig = () => {
       setBlogLastResult(res);
       toast({
         title: "Rascunho Blog news criado na E-goi",
-        description: `${res.posts_count ?? 0} matéria(s) no digest.`,
+        description: `${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ""}.`,
       });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao gerar Blog news", description: e.message });
@@ -881,16 +896,19 @@ const EmailConfig = () => {
     fnName: "weekly-digest-draft" | "weekend-agenda-draft" | "blog-digest-draft",
     label: string,
     setBusy: (v: boolean) => void,
+    templateId?: string,
   ) => {
     setBusy(true);
     try {
+      const body: Record<string, unknown> = { force: true, dry_run: true };
+      if (templateId) body.template_id = templateId;
       const { data, error } = await supabase.functions.invoke(fnName, {
-        body: { force: true, dry_run: true },
+        body,
       });
       if (error) throw error;
       const res = data as {
         ok?: boolean; skipped?: boolean; reason?: string; error?: string;
-        subject?: string; html?: string; preheader?: string;
+        subject?: string; html?: string; preheader?: string; template_name?: string | null;
       };
       if (res?.skipped) {
         const reasons: Record<string, string> = {
@@ -898,6 +916,8 @@ const EmailConfig = () => {
           digest_disabled: "Automação desligada — ligue o toggle primeiro.",
           agenda_disabled: "Automação desligada — ligue o toggle primeiro.",
           no_posts_in_range: "Nenhuma matéria publicada no período.",
+          no_events_in_range: "Nenhum evento encontrado no período.",
+          no_content_in_range: "Nenhum evento ou matéria encontrado no período.",
         };
         toast({ variant: "destructive", title: "Não gerado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
         return;
@@ -911,7 +931,7 @@ const EmailConfig = () => {
       if (sendErr) throw sendErr;
       toast({
         title: `Teste de ${label} enviado`,
-        description: `Enviado para ${sent?.sent_to || AUTOMATION_TEST_RECIPIENT}`,
+        description: `Enviado para ${sent?.sent_to || AUTOMATION_TEST_RECIPIENT}${res.template_name ? ` · ${res.template_name}` : ""}`,
       });
     } catch (e: any) {
       toast({ variant: "destructive", title: `Erro no teste de ${label}`, description: e.message });
@@ -1968,9 +1988,7 @@ const EmailConfig = () => {
                   <Label className="text-xs">Template padrão</Label>
                   <Select
                     value={
-                      weeklyCfg.templateId ||
-                      templates.find((t) => (t.type === "weekly_digest" || t.type === "weekly_digest_editorial") && t.is_default)?.id ||
-                      ""
+                      weeklyEffectiveTemplateId
                     }
                     onValueChange={(v) => setWeeklyCfg({ ...weeklyCfg, templateId: v })}
                   >
@@ -1998,7 +2016,7 @@ const EmailConfig = () => {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => sendAutomationTest("weekly-digest-draft", "Digest semanal", setTestingWeekly)}
+                    onClick={() => sendAutomationTest("weekly-digest-draft", "Digest semanal", setTestingWeekly, weeklyEffectiveTemplateId)}
                     disabled={testingWeekly}
                     title={`Envia via Resend para ${AUTOMATION_TEST_RECIPIENT} — não toca a E-goi`}
                   >
@@ -2078,9 +2096,7 @@ const EmailConfig = () => {
                   <Label className="text-xs">Template padrão</Label>
                   <Select
                     value={
-                      weekendCfg.templateId ||
-                      templates.find((t) => t.type === "weekend_agenda" && t.is_default)?.id ||
-                      ""
+                      weekendEffectiveTemplateId
                     }
                     onValueChange={(v) => setWeekendCfg({ ...weekendCfg, templateId: v })}
                   >
@@ -2108,7 +2124,7 @@ const EmailConfig = () => {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => sendAutomationTest("weekend-agenda-draft", "Agenda FDS", setTestingWeekend)}
+                    onClick={() => sendAutomationTest("weekend-agenda-draft", "Agenda FDS", setTestingWeekend, weekendEffectiveTemplateId)}
                     disabled={testingWeekend}
                     title={`Envia via Resend para ${AUTOMATION_TEST_RECIPIENT} — não toca a E-goi`}
                   >
@@ -2188,9 +2204,7 @@ const EmailConfig = () => {
                   <Label className="text-xs">Template padrão</Label>
                   <Select
                     value={
-                      blogCfg.templateId ||
-                      templates.find((t) => t.type === "blog_digest" && t.is_default)?.id ||
-                      ""
+                      blogEffectiveTemplateId
                     }
                     onValueChange={(v) => setBlogCfg({ ...blogCfg, templateId: v })}
                   >
@@ -2217,7 +2231,7 @@ const EmailConfig = () => {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => sendAutomationTest("blog-digest-draft", "Blog news", setTestingBlog)}
+                    onClick={() => sendAutomationTest("blog-digest-draft", "Blog news", setTestingBlog, blogEffectiveTemplateId)}
                     disabled={testingBlog}
                     title={`Envia via Resend para ${AUTOMATION_TEST_RECIPIENT} — não toca a E-goi`}
                   >
