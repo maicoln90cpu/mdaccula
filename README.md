@@ -790,4 +790,4 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 
 ---
 
-*Última atualização: 15/03/2026*
+*Última atualização: 13/07/2026*
