@@ -65,6 +65,17 @@ export const EventLocationMap = ({
       : null,
   );
   const [loading, setLoading] = useState(false);
+  const [browserKey, setBrowserKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    resolveBrowserKey().then((key) => {
+      if (!cancelled) setBrowserKey(key);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const address = [venue, city, state].filter(Boolean).join(", ");
   const directionsUrl = coords
