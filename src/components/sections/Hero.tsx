@@ -17,7 +17,7 @@ const FlyerMural = () => {
   const { events, isLoading } = useEvents();
   const flyers = events.slice(0, 3);
   const containerRef = useRef<HTMLDivElement>(null);
-  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const cardRefs = useRef<(HTMLElement | null)[]>([]);
 
   useEffect(() => {
     const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
