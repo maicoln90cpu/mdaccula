@@ -86,13 +86,13 @@ const CuradoriaCta = () => {
           </span>
 
           <h2 className="text-3xl sm:text-4xl font-display font-bold uppercase leading-tight mb-4">
-            Seu set pode ser o próximo a tocar nos nossos eventos
+            Seu set pode ser o próximo gravado pela MDAccula Radio
           </h2>
 
           <p className="text-muted-foreground max-w-xl mx-auto lg:mx-0 leading-relaxed mb-7">
             Envie seu material pro MDAccula Radio. A análise é 100% gratuita — nossa equipe ouve,
-            avalia e, se aprovar, você grava um set exclusivo com a gente e entra no radar pra
-            tocar nas festas que a MDAccula promove.
+            avalia e, se aprovado, seu set é gravado com a gente e divulgado em todos os nossos
+            canais.
           </p>
 
           <Button size="lg" className="btn-neon text-base px-8 py-4" asChild>
