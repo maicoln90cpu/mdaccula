@@ -2,7 +2,7 @@
 
 > Registro de alterações, bugs, melhorias e histórico do projeto
 
-**Última atualização:** 15/03/2026
+**Última atualização:** 14/07/2026
 
 ---
 
@@ -795,7 +795,23 @@
 
 ### Melhorias Planejadas
 
+#### SEO: Decidir se RSS volta como arquivo estático
+**Status:** pendente — aguardando decisão do usuário
+**Descrição:** O feed RSS dinâmico (edge function `blog-rss`) ficou inacessível pelo domínio próprio porque a hospedagem do Lovable não suporta redirects/rewrites customizados (confirmado em `docs/LOVABLE-PLATFORM-CAPABILITIES.md`, pergunta 4). A tag `<link rel="alternate" ... blog-rss>` foi removida do `index.html` no commit "fase 2 seo". Falta decidir: gerar `public/rss.xml` como arquivo estático (mesmo esquema do `sitemap.xml`, atualizado a cada build), ou deixar o RSS de fora por enquanto — não fazia parte dos achados críticos da auditoria de SEO original.
+**Data:** 14/07/2026
+**Responsável:** IA (aguardando resposta do usuário)
+**Impacto:** baixo
 
+---
+
+#### SEO: Pipeline de prerender via GitHub Actions (Fase 4 da auditoria)
+**Status:** pendente — aguardando sinal verde do usuário para iniciar
+**Descrição:** É o achado **crítico #1** de toda a auditoria de SEO (nota geral 42/100): hoje toda rota (`/`, `/eventos/:slug`, `/blog/:slug`) devolve o mesmo HTML genérico pra qualquer crawler que não execute JavaScript — redes sociais (Facebook, WhatsApp, Twitter/X) mostram sempre o preview da home ao compartilhar um evento ou post específico, e nenhum dado estruturado (JSON-LD) chega ao Google/IA sem a página hidratar primeiro. Confirmado com o Lovable (`docs/LOVABLE-PLATFORM-CAPABILITIES.md`, perguntas 2 e 3): a hospedagem não tem SSR/prerender nativo nem aceita passos de build customizados com Chromium. Única solução viável: gerar o HTML pré-renderizado **fora** do Lovable (via GitHub Actions, que já tem Playwright pros testes e2e) e commitar os arquivos prontos de volta no repo — o Lovable então serve como estático, sem saber que foram prerenderizados. É a maior mudança de todo o plano de correções (workflow de CI novo + risco de loop com o auto-sync que o Lovable já faz no repo — precisa ser desenhado com cuidado antes de implementar). Detalhamento técnico completo no plano de correções da sessão de auditoria SEO (14/07/2026).
+**Data:** 14/07/2026
+**Responsável:** IA (aguardando sinal verde do usuário)
+**Impacto:** crítico
+
+---
 
 #### Bundle Optimization
 **Status:** pendente  
@@ -888,7 +904,7 @@
 
 | Status | Quantidade |
 |--------|------------|
-| 🔴 Pendente | 4 |
+| 🔴 Pendente | 6 |
 | 🟡 Em andamento | 0 |
 | ✅ Concluído | 25+ |
 
