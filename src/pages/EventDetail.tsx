@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { ShareButtons } from "@/components/ShareButtons";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
-import { Helmet } from "react-helmet-async";
+import { SEOHead } from "@/components/SEOHead";
 import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
 import { StructuredData } from "@/components/StructuredData";
 import { EventLocationMap } from "@/components/events/EventLocationMap";
@@ -247,23 +247,16 @@ const EventDetail = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{event.title} - MDAccula</title>
-        <meta
-          name="description"
-          content={
-            event.description ||
-            `${event.title} acontece em ${formatEventDateRange(event.date, event.end_date)} no ${event.venue}, ${event.location_city} - ${event.location_state}`
-          }
-        />
-        <meta property="og:title" content={event.title} />
-        <meta property="og:description" content={event.description || `${(event.genres ?? []).join(", ") || "Música eletrônica"} - ${event.venue ?? ""}`} />
-        <meta property="og:image" content={getOptimizedImageUrl(event.image_url) || "https://mdaccula.com/hero-club.jpg"} />
-        <meta property="og:url" content={currentUrl} />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <link rel="canonical" href={currentUrl} />
-      </Helmet>
+      <SEOHead
+        title={event.title}
+        description={
+          event.description ||
+          `${event.title} acontece em ${formatEventDateRange(event.date, event.end_date)} no ${event.venue}, ${event.location_city} - ${event.location_state}`
+        }
+        keywords={event.genres ?? []}
+        image={event.image_url || undefined}
+        url={currentUrl}
+      />
       <StructuredData
         type="event"
         data={{

@@ -21,7 +21,7 @@ export const SEOHead = ({
   title, 
   description, 
   keywords = [],
-  image = 'https://mdaccula.com/hero-club.jpg',
+  image = 'https://mdaccula.com/logo-mdaccula.jpeg',
   type = 'website',
   url = 'https://mdaccula.com',
   noindex = false,

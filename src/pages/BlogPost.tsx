@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { SEOHead } from "@/components/SEOHead";
 import { useQuery } from "@tanstack/react-query";
 import DOMPurify from "dompurify";
 import Navigation from "@/components/ui/navigation";
@@ -143,21 +143,19 @@ const BlogPost = () => {
 
   return (
     <div className="min-h-screen">
-      <Helmet>
-        <title>{`${post.title} - MD Accula`}</title>
-        <meta name="description" content={post.excerpt || post.content?.substring(0, 160)} />
-        <meta property="og:title" content={post.title} />
-        <meta property="og:description" content={post.excerpt || post.content?.substring(0, 160)} />
-        <meta property="og:image" content={getOptimizedImageUrl(post.image_url) || ""} />
-        <meta property="og:url" content={currentUrl} />
-        <meta property="og:type" content="article" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={post.title} />
-        <meta name="twitter:description" content={post.excerpt || post.content?.substring(0, 160)} />
-        <meta name="twitter:image" content={getOptimizedImageUrl(post.image_url) || ""} />
-        <link rel="canonical" href={currentUrl} />
-        {/* Preload removed: the <img loading="eager"> already handles LCP */}
-      </Helmet>
+      <SEOHead
+        title={post.title}
+        description={post.excerpt || post.content?.substring(0, 160)}
+        keywords={[post.category].filter(Boolean)}
+        image={post.image_url || undefined}
+        type="article"
+        url={currentUrl}
+        article={{
+          publishedTime: post.created_at,
+          author: "MDAccula",
+          tags: [post.category].filter(Boolean),
+        }}
+      />
       <StructuredData
         type="article"
         data={{

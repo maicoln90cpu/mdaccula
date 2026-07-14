@@ -195,8 +195,8 @@ const Podcast = () => {
   return (
     <>
       <SEOHead
-        title="Podcast MDAccula Radio | Grave seu Set Exclusivo"
-        description="Grave seu set exclusivo no MDAccula Radio. Parceria com Methodus School, divulgação em +300 grupos de WhatsApp, SoundCloud e redes sociais. Inscreva-se!"
+        title="MDAccula Radio | Envie seu Set para Análise Gratuita"
+        description="Participe do MDAccula Radio: envie seu material para uma análise 100% gratuita. Se aprovado, grave seu set exclusivo com divulgação em +300 grupos de WhatsApp, SoundCloud e redes sociais."
         type="website"
       />
 
@@ -211,13 +211,19 @@ const Podcast = () => {
 
           <div className="container mx-auto px-4 relative z-10">
             <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30 mb-6">
-                <Mic className="w-5 h-5 text-primary" />
-                <span className="text-sm font-medium text-primary">MDAccula Radio</span>
+              <div className="inline-flex flex-wrap items-center justify-center gap-2 mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
+                  <Mic className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-medium text-primary">MDAccula Radio</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/30">
+                  <CheckCircle className="w-4 h-4 text-secondary" />
+                  <span className="text-sm font-medium text-secondary">Análise do material é gratuita</span>
+                </div>
               </div>
 
               <h1 className="text-display text-gradient mb-6">
-                Gravação Podcast / Set Exclusivo
+                Participe do MDAccula Radio
               </h1>
 
               <p className="text-xl md:text-2xl text-foreground mb-4 font-medium">
@@ -225,13 +231,13 @@ const Podcast = () => {
               </p>
 
               <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Com o formato de "social live" nosso canal tem como objetivo trazer novos talentos 
-                para a cena eletrônica. Se você quer fazer parte e ter seu projeto divulgado por 
+                Com o formato de "social live" nosso canal tem como objetivo trazer novos talentos
+                para a cena eletrônica. Se você quer fazer parte e ter seu projeto divulgado por
                 todos os canais e redes do MDAccula, sua chance está aqui!
               </p>
 
               <p className="mt-6 text-accent font-semibold text-lg">
-                Envie seu material e iremos analisar seu perfil. Se aprovado, sua chance está aqui! 🚀
+                Envie seu material — a análise é 100% gratuita. Se aprovado, você grava seu set exclusivo! 🚀
               </p>
             </div>
           </div>
@@ -293,35 +299,20 @@ const Podcast = () => {
           </div>
         </section>
 
-        {/* ============= VALOR ============= */}
-        <section className="py-16 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="max-w-2xl mx-auto">
-              <Card className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border-primary/30 overflow-hidden relative">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.2),transparent_70%)]" />
-                <CardContent className="p-8 md:p-12 text-center relative z-10">
-                  <h2 className="text-headline mb-2">VALOR</h2>
-                  <div className="text-5xl md:text-6xl font-bold text-gradient my-6">
-                    R$ 1.200<span className="text-2xl">,00</span>
-                  </div>
-                  <p className="text-muted-foreground">
-                    Pago antecipadamente via <span className="font-semibold text-foreground">PIX</span>
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </section>
-
-        {/* ============= FORMULÁRIO ============= */}
+        {/* ============= FORMULÁRIO (ETAPA 1 - GRÁTIS) ============= */}
         <section className="py-16" id="inscricao">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto">
-              <h2 className="text-headline text-center mb-4">
-                <span className="text-gradient">COMO PARTICIPAR</span>
-              </h2>
+              <div className="text-center mb-4">
+                <span className="inline-block px-3 py-1 rounded-full bg-secondary/10 text-secondary text-xs font-semibold uppercase tracking-wide mb-3">
+                  Etapa 1 · Grátis
+                </span>
+                <h2 className="text-headline">
+                  <span className="text-gradient">ENVIE SEU MATERIAL PARA ANÁLISE</span>
+                </h2>
+              </div>
               <p className="text-muted-foreground text-center mb-8">
-                Preencha o formulário abaixo e aguarde o nosso contato!
+                Preencha o formulário abaixo — a análise do seu perfil é 100% gratuita. Aguarde o nosso contato!
               </p>
 
               {isSubmitted ? (
@@ -592,6 +583,33 @@ const Podcast = () => {
                   </CardContent>
                 </Card>
               )}
+            </div>
+          </div>
+        </section>
+
+        {/* ============= ETAPA 2 - GRAVAÇÃO (PAGA, SÓ SE APROVADO) ============= */}
+        <section className="py-16 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto">
+              <Card className="bg-gradient-to-br from-primary/10 via-card to-accent/10 border-primary/30 overflow-hidden relative">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,hsl(var(--primary)/0.2),transparent_70%)]" />
+                <CardContent className="p-8 md:p-12 text-center relative z-10">
+                  <span className="inline-block px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wide mb-4">
+                    Etapa 2 · Após aprovação
+                  </span>
+                  <h2 className="text-headline mb-2">GRAVAÇÃO PROFISSIONAL</h2>
+                  <p className="text-muted-foreground max-w-md mx-auto mt-2">
+                    Se o seu projeto for aprovado na análise gratuita, a gravação exclusiva no
+                    estúdio parceiro (Methodus School) tem o valor de:
+                  </p>
+                  <div className="text-5xl md:text-6xl font-bold text-gradient my-6">
+                    R$ 1.200<span className="text-2xl">,00</span>
+                  </div>
+                  <p className="text-muted-foreground">
+                    Pago via <span className="font-semibold text-foreground">PIX</span>, somente após a aprovação — cobre estrutura e equipamento do estúdio
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>
