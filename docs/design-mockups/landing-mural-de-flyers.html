@@ -1,0 +1,820 @@
+<!--
+  Mockup estático da landing page — Conceito "Mural de Flyers" (aprovado como direção).
+  Não faz parte do build do site: é referência de design pra implementação futura em React.
+  Abra este arquivo direto no navegador para visualizar.
+-->
+<title>MDAccula — Conceito 1: Mural de Flyers</title>
+<style>
+  :root {
+    --bg: hsl(220 25% 5%);
+    --bg-darker: hsl(220 25% 4%);
+    --surface: hsl(220 25% 9%);
+    --surface-2: hsl(220 25% 12%);
+    --fg: hsl(0 0% 95%);
+    --muted: hsl(230 12% 62%);
+    --border: hsl(220 25% 20%);
+    --violet: hsl(280 100% 50%);
+    --violet-glow: hsl(280 100% 70%);
+    --blue: hsl(200 100% 45%);
+    --blue-glow: hsl(200 100% 62%);
+    --pink: hsl(320 100% 65%);
+    --pink-glow: hsl(320 100% 75%);
+    --paper: hsl(45 30% 92%);
+    --paper-ink: hsl(220 25% 10%);
+    --font-display: "Arial Black", "Helvetica Neue", Impact, sans-serif;
+    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; }
+  img { max-width: 100%; display: block; }
+  h1, h2, h3 { text-wrap: balance; margin: 0; }
+
+  .note-banner {
+    background: hsl(45 90% 55%);
+    color: hsl(30 60% 12%);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-align: center;
+    padding: 0.5rem 1rem;
+    letter-spacing: 0.02em;
+  }
+
+  /* ============ NAV (contexto mínimo do site real) ============ */
+  nav.site-nav {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1.5rem;
+    background: hsl(220 25% 5% / 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  .site-nav .logo {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    color: var(--fg);
+    text-transform: uppercase;
+  }
+  .site-nav ul {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .site-nav ul li { white-space: nowrap; }
+  @media (max-width: 720px) { .site-nav ul { display: none; } }
+
+  /* ============ HERO: MURAL DE FLYERS ============ */
+  .hero {
+    position: relative;
+    padding: 3.5rem 1.5rem 3rem;
+    background:
+      radial-gradient(ellipse 60% 60% at 20% 10%, hsl(280 100% 50% / 0.18), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 85% 30%, hsl(320 100% 65% / 0.14), transparent 60%),
+      var(--bg);
+    overflow: hidden;
+  }
+
+  .hero-inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 2rem;
+  }
+  @media (max-width: 980px) {
+    .hero-inner { grid-template-columns: 1fr; }
+  }
+
+  .hero-title-block {
+    position: relative;
+    z-index: 6;
+    max-width: 640px;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--blue-glow);
+    background: hsl(200 100% 45% / 0.12);
+    border: 1px solid hsl(200 100% 45% / 0.4);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    margin-bottom: 1.25rem;
+  }
+  .eyebrow .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--blue-glow);
+    box-shadow: 0 0 8px var(--blue-glow);
+  }
+
+  h1.brand {
+    font-family: var(--font-display);
+    font-weight: 900;
+    text-transform: uppercase;
+    font-size: clamp(3rem, 9vw, 6rem);
+    line-height: 0.92;
+    letter-spacing: -0.01em;
+    background: linear-gradient(100deg, var(--fg) 30%, var(--violet-glow) 65%, var(--pink) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    transform: skewX(-3deg);
+    transform-origin: left;
+  }
+
+  .hero-sub {
+    font-size: 1.15rem;
+    color: var(--muted);
+    margin: 1.25rem 0 2rem;
+    max-width: 34ch;
+    line-height: 1.5;
+  }
+
+  .cta-row { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+  .btn {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.95rem;
+    padding: 0.85rem 1.6rem;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn-primary {
+    background: var(--violet);
+    color: white;
+    box-shadow: 0 0 0 0 transparent;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+  .btn-primary:hover { box-shadow: 0 0 28px hsl(280 100% 50% / 0.55); transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    border-color: hsl(0 0% 95% / 0.3);
+    color: var(--fg);
+  }
+  .btn-ghost:hover { border-color: var(--fg); }
+
+  /* Flyer stack — o elemento de assinatura */
+  .flyer-stack {
+    position: relative;
+    width: 460px;
+    max-width: 46vw;
+    height: 480px;
+  }
+  .flyer-card {
+    position: absolute;
+    width: 280px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--paper);
+    color: var(--paper-ink);
+    box-shadow: 0 20px 45px hsl(220 25% 0% / 0.55), 0 2px 8px hsl(220 25% 0% / 0.4);
+    border: 1px solid hsl(220 25% 0% / 0.4);
+    will-change: transform;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+  }
+  .flyer-stack:hover .flyer-card {
+    box-shadow: 0 28px 60px hsl(220 25% 0% / 0.6), 0 4px 12px hsl(220 25% 0% / 0.45);
+  }
+  .flyer-card .flyer-photo {
+    height: 150px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .photo-1 { background: radial-gradient(circle at 30% 20%, hsl(280 100% 35%), hsl(220 25% 8%) 70%); }
+  .photo-2 { background: radial-gradient(circle at 70% 30%, hsl(200 100% 30%), hsl(220 25% 8%) 70%); }
+  .photo-3 { background: radial-gradient(circle at 50% 20%, hsl(320 100% 40%), hsl(220 25% 8%) 70%); }
+  .flyer-card .flyer-photo::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 40%, hsl(220 25% 5% / 0.35));
+  }
+  .flyer-card .flyer-body { padding: 0.9rem 1rem 1.1rem; }
+  .flyer-card .genre-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: hsl(220 25% 10%);
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    margin-bottom: 0.5rem;
+  }
+  .flyer-card h3 {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    text-transform: uppercase;
+    line-height: 1.05;
+    margin-bottom: 0.35rem;
+  }
+  .flyer-card .meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: hsl(220 25% 30%);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .flyer-1 { top: 0; left: 40px; transform: rotate(6deg) translate(var(--px, 0px), var(--py, 0px)); z-index: 3; }
+  .flyer-2 { top: 90px; left: 150px; transform: rotate(-8deg) translate(var(--px, 0px), var(--py, 0px)); z-index: 2; }
+  .flyer-3 { top: 210px; left: 10px; transform: rotate(-3deg) translate(var(--px, 0px), var(--py, 0px)); z-index: 4; }
+
+  @media (max-width: 980px) {
+    .flyer-stack { display: none; }
+    .hero-title-block { max-width: 100%; }
+  }
+
+  .torn-divider {
+    height: 28px;
+    background:
+      linear-gradient(135deg, var(--bg-darker) 25%, transparent 25%) 0 0,
+      linear-gradient(225deg, var(--bg-darker) 25%, transparent 25%) 0 0;
+    background-size: 20px 28px;
+    background-color: var(--bg);
+  }
+
+  /* Revelação ao rolar — desativada se prefers-reduced-motion */
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .reveal.is-visible { opacity: 1; transform: translateY(0); }
+  .js-reveal-disabled .reveal { opacity: 1; transform: none; }
+
+  /* Variante só-opacidade — pra elementos que já controlam o próprio transform (ex.: o tilt do draft-flyer) */
+  .fade-reveal { opacity: 0; transition: opacity 0.6s ease; }
+  .fade-reveal.is-visible { opacity: 1; }
+  .js-reveal-disabled .fade-reveal { opacity: 1; }
+
+  /* ============ SEÇÕES ============ */
+  section.block { padding: 4.5rem 1.5rem; }
+  .block-inner { max-width: 1180px; margin: 0 auto; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.25rem;
+    border-bottom: 3px solid var(--fg);
+    padding-bottom: 1rem;
+  }
+  .section-head h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: clamp(1.8rem, 4vw, 2.75rem);
+    letter-spacing: -0.01em;
+  }
+  .section-head .see-all {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--violet-glow);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+  }
+
+  .bg-darker { background: var(--bg-darker); }
+
+  /* Grade de eventos — mais cartazes, tratamento consistente com o hero */
+  .event-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.75rem;
+  }
+  .event-poster {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px hsl(220 25% 0% / 0.35);
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.35s ease;
+  }
+  .event-poster:hover {
+    transform: translateY(-8px) rotate(-1deg);
+    box-shadow: 0 24px 50px hsl(220 25% 0% / 0.55), 0 0 0 1px hsl(280 100% 50% / 0.25), 0 0 32px hsl(280 100% 50% / 0.18);
+    border-color: hsl(280 100% 50% / 0.4);
+  }
+  .event-poster .photo {
+    height: 190px;
+    position: relative;
+    overflow: hidden;
+  }
+  .event-poster .photo::before {
+    content: "";
+    position: absolute;
+    inset: -4%;
+    background-size: cover;
+    background-position: center;
+    transition: transform 0.5s ease;
+  }
+  .event-poster:hover .photo::before { transform: scale(1.08); }
+  .event-poster .photo.photo-1::before { background: radial-gradient(circle at 30% 20%, hsl(280 100% 35%), hsl(220 25% 8%) 70%); }
+  .event-poster .photo.photo-2::before { background: radial-gradient(circle at 70% 30%, hsl(200 100% 30%), hsl(220 25% 8%) 70%); }
+  .event-poster .photo.photo-3::before { background: radial-gradient(circle at 50% 20%, hsl(320 100% 40%), hsl(220 25% 8%) 70%); }
+  .event-poster .photo .tag {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 1;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--pink);
+    color: hsl(320 60% 10%);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-weight: 700;
+  }
+  .event-poster .body { padding: 1.1rem 1.25rem 1.4rem; }
+  .event-poster h3 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: 1.35rem;
+    line-height: 1.1;
+    margin-bottom: 0.6rem;
+  }
+  .event-poster .meta-row {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 1rem;
+  }
+  .event-poster .meta-row span { display: flex; gap: 0.5rem; align-items: center; }
+  .event-poster .buy {
+    display: block;
+    text-align: center;
+    background: var(--violet);
+    color: white;
+    font-weight: 700;
+    padding: 0.65rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+  }
+
+  /* Prova social — números como recortes de jornal */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .stat-cell {
+    background: var(--bg);
+    padding: 2rem 1.5rem;
+    text-align: center;
+    transition: background 0.3s ease;
+  }
+  .stat-cell:hover { background: var(--surface); }
+  .stat-cell .num {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 2.5rem;
+    color: var(--fg);
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), text-shadow 0.3s ease;
+  }
+  .stat-cell:hover .num {
+    transform: translateY(-3px);
+    text-shadow: 0 0 24px hsl(280 100% 60% / 0.6);
+  }
+  .stat-cell .label {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.35rem;
+  }
+
+  /* Blog — recorte de "clipping" de jornal */
+  .clip-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.5rem;
+  }
+  .clip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--blue);
+    padding: 1.25rem 1.4rem;
+    border-radius: 0 6px 6px 0;
+    box-shadow: 0 6px 16px hsl(220 25% 0% / 0.3);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, border-left-color 0.3s ease;
+  }
+  .clip:hover {
+    transform: translateX(4px) translateY(-3px);
+    box-shadow: 0 16px 34px hsl(220 25% 0% / 0.45);
+    border-left-color: var(--pink);
+  }
+  .clip .cat {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--blue-glow);
+  }
+  .clip h3 { font-size: 1.1rem; margin: 0.5rem 0; line-height: 1.3; }
+  .clip p { color: var(--muted); font-size: 0.9rem; line-height: 1.5; margin: 0; }
+
+  /* ============ CTA FINAL: FLYER EM ANÁLISE ============ */
+  .cta-submit {
+    position: relative;
+    border-top: 1px solid var(--border);
+    padding: 5rem 1.5rem;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 55% 65% at 80% 40%, hsl(320 100% 65% / 0.16), transparent 60%),
+      radial-gradient(ellipse 45% 55% at 10% 70%, hsl(280 100% 50% / 0.16), transparent 60%),
+      var(--bg-darker);
+  }
+  .cta-submit-inner {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 3rem;
+  }
+  @media (max-width: 860px) {
+    .cta-submit-inner { grid-template-columns: 1fr; text-align: center; }
+    .cta-submit .cta-row { justify-content: center; }
+  }
+
+  .cta-copy .eyebrow { background: hsl(320 100% 65% / 0.12); border-color: hsl(320 100% 65% / 0.4); color: var(--pink-glow); }
+  .cta-copy .eyebrow .dot { background: var(--pink-glow); box-shadow: 0 0 8px var(--pink-glow); }
+  .cta-copy h2 {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+    line-height: 1.05;
+    margin: 1rem 0 1rem;
+  }
+  .cta-copy p { color: var(--muted); max-width: 46ch; margin: 0 0 1.75rem; line-height: 1.55; }
+
+  /* Card "rascunho" — o próprio elemento de assinatura (flyer) em outro estado: em avaliação */
+  .draft-flyer {
+    position: relative;
+    width: 280px;
+    background: var(--paper);
+    color: var(--paper-ink);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px dashed hsl(220 25% 25%);
+    box-shadow: 0 24px 55px hsl(220 25% 0% / 0.5);
+    transform-style: preserve-3d;
+    will-change: transform;
+    transition: transform 0.25s ease-out, box-shadow 0.35s ease;
+    transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  }
+  .draft-flyer:hover {
+    box-shadow: 0 32px 70px hsl(220 25% 0% / 0.6), 0 0 40px hsl(320 100% 65% / 0.25);
+  }
+  .draft-photo {
+    height: 150px;
+    position: relative;
+    background:
+      repeating-linear-gradient(135deg, hsl(220 25% 82%) 0 2px, hsl(220 25% 90%) 2px 14px);
+  }
+  .draft-badge {
+    position: absolute;
+    top: 0.65rem;
+    left: 0.65rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    background: hsl(220 25% 10%);
+    color: var(--pink-glow);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    animation: badge-pulse 2s ease-in-out infinite;
+  }
+  @keyframes badge-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .draft-body { padding: 0.9rem 1rem 1.1rem; }
+  .draft-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: hsl(220 25% 82%);
+    color: hsl(220 25% 30%);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    margin-bottom: 0.5rem;
+  }
+  .draft-flyer h3 {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    line-height: 1.05;
+    margin-bottom: 0.35rem;
+    color: hsl(220 25% 35%);
+  }
+  .draft-flyer .meta {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: hsl(220 25% 45%);
+    display: flex;
+    justify-content: space-between;
+  }
+  @media (hover: none) {
+    .draft-flyer { transform: none; }
+  }
+
+  footer.site-footer {
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border);
+  }
+</style>
+
+<div class="note-banner">CONCEITO 1 — MOCKUP ESTÁTICO PARA COMPARAÇÃO · NÃO É O SITE FINAL</div>
+
+<nav class="site-nav">
+  <span class="logo">MDAccula</span>
+  <ul>
+    <li>Eventos</li>
+    <li>MDAcculaRadio</li>
+    <li>Blog</li>
+    <li>Quem Somos</li>
+    <li>Contato</li>
+  </ul>
+</nav>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-title-block">
+      <span class="eyebrow"><span class="dot"></span> Cena eletrônica do Brasil, ao vivo</span>
+      <h1 class="brand">MDAccula</h1>
+      <p class="hero-sub">
+        Todo fim de semana tem flyer novo na parede. Aqui embaixo estão os que valem a pena —
+        escolhido, datado e com ingresso a um clique.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#eventos">Ver todos os eventos</a>
+        <a class="btn btn-ghost" href="#historia">Quem somos</a>
+      </div>
+    </div>
+
+    <div class="flyer-stack">
+      <article class="flyer-card flyer-1">
+        <div class="flyer-photo photo-1"></div>
+        <div class="flyer-body">
+          <span class="genre-tag">Techno</span>
+          <h3>Warehouse 04</h3>
+          <div class="meta"><span>Sáb, 18h</span><span>Barra Funda</span></div>
+        </div>
+      </article>
+      <article class="flyer-card flyer-2">
+        <div class="flyer-photo photo-2"></div>
+        <div class="flyer-body">
+          <span class="genre-tag">House</span>
+          <h3>Terraço Vista</h3>
+          <div class="meta"><span>Dom, 14h</span><span>Vila Madalena</span></div>
+        </div>
+      </article>
+      <article class="flyer-card flyer-3">
+        <div class="flyer-photo photo-3"></div>
+        <div class="flyer-body">
+          <span class="genre-tag">Progressive</span>
+          <h3>Sunset Sessions</h3>
+          <div class="meta"><span>Sex, 22h</span><span>Florianópolis</span></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</header>
+
+<div class="torn-divider"></div>
+
+<section class="block bg-darker" id="eventos">
+  <div class="block-inner">
+    <div class="section-head">
+      <h2>Próximos eventos</h2>
+      <a class="see-all" href="#">Ver todos →</a>
+    </div>
+    <div class="event-grid">
+      <article class="event-poster reveal">
+        <div class="photo photo-1">
+          <span class="tag">Techno</span>
+        </div>
+        <div class="body">
+          <h3>Warehouse 04</h3>
+          <div class="meta-row">
+            <span>📅 Sáb, 22 fev · 22h</span>
+            <span>📍 Barra Funda, São Paulo</span>
+          </div>
+          <a class="buy" href="#">Comprar ingresso</a>
+        </div>
+      </article>
+      <article class="event-poster reveal" style="transition-delay: 0.08s">
+        <div class="photo photo-2">
+          <span class="tag">House</span>
+        </div>
+        <div class="body">
+          <h3>Terraço Vista</h3>
+          <div class="meta-row">
+            <span>📅 Dom, 23 fev · 14h</span>
+            <span>📍 Vila Madalena, São Paulo</span>
+          </div>
+          <a class="buy" href="#">Comprar ingresso</a>
+        </div>
+      </article>
+      <article class="event-poster reveal" style="transition-delay: 0.16s">
+        <div class="photo photo-3">
+          <span class="tag">Progressive</span>
+        </div>
+        <div class="body">
+          <h3>Sunset Sessions</h3>
+          <div class="meta-row">
+            <span>📅 Sex, 28 fev · 18h</span>
+            <span>📍 Florianópolis, SC</span>
+          </div>
+          <a class="buy" href="#">Comprar ingresso</a>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="historia">
+  <div class="block-inner">
+    <div class="stat-strip">
+      <div class="stat-cell reveal"><div class="num">500+</div><div class="label">Eventos promovidos</div></div>
+      <div class="stat-cell reveal" style="transition-delay: 0.08s"><div class="num">200+</div><div class="label">DJs parceiros</div></div>
+      <div class="stat-cell reveal" style="transition-delay: 0.16s"><div class="num">50k+</div><div class="label">Seguidores</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block bg-darker">
+  <div class="block-inner">
+    <div class="section-head">
+      <h2>Últimas notícias</h2>
+      <a class="see-all" href="#">Ver blog →</a>
+    </div>
+    <div class="clip-grid">
+      <article class="clip reveal">
+        <span class="cat">Cena SP</span>
+        <h3>Como nasceu o circuito de warehouse parties na Barra Funda</h3>
+        <p>Um raio-x dos galpões que viraram templo da música eletrônica na capital.</p>
+      </article>
+      <article class="clip reveal" style="transition-delay: 0.08s">
+        <span class="cat">Entrevistas</span>
+        <h3>Bate-papo com o line-up da Warehouse 04</h3>
+        <p>Três DJs, uma noite, e o processo de montar um set pra 2 mil pessoas.</p>
+      </article>
+      <article class="clip reveal" style="transition-delay: 0.16s">
+        <span class="cat">Guias</span>
+        <h3>Guia de gêneros: diferença entre house, techno e progressive</h3>
+        <p>Pra quem tá chegando agora na cena e quer saber o que vai encontrar na pista.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="cta-submit">
+  <div class="block-inner cta-submit-inner">
+    <div class="cta-copy">
+      <span class="eyebrow"><span class="dot"></span> MDAccula Radio · curadoria aberta</span>
+      <h2>Seu set pode virar o próximo flyer da parede</h2>
+      <p>
+        Envie seu material pro MDAccula Radio. A análise é 100% gratuita — nossa equipe ouve, avalia
+        e, se aprovar, seu projeto vira um flyer de verdade, divulgado em todos os nossos canais.
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="#">Enviar material para análise</a>
+      </div>
+    </div>
+
+    <div class="draft-flyer fade-reveal" id="draftFlyer">
+      <div class="draft-photo">
+        <span class="draft-badge">Em análise</span>
+      </div>
+      <div class="draft-body">
+        <span class="draft-tag">Seu gênero aqui</span>
+        <h3>Seu projeto aqui</h3>
+        <div class="meta"><span>Em breve</span><span>Sua cidade</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">MDAccula — Mural de Flyers · Conceito 1 de 2</footer>
+
+<script>
+  (function () {
+    var prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var canHover = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    if (prefersReducedMotion) {
+      document.documentElement.classList.add('js-reveal-disabled');
+      return;
+    }
+
+    // Revelação ao rolar
+    var revealTargets = document.querySelectorAll('.reveal, .fade-reveal');
+    if ('IntersectionObserver' in window && revealTargets.length) {
+      var observer = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+      );
+      revealTargets.forEach(function (el) { observer.observe(el); });
+    } else {
+      revealTargets.forEach(function (el) { el.classList.add('is-visible'); });
+    }
+
+    if (!canHover) return; // sem parallax/tilt em touch
+
+    // Parallax do mural de flyers no hero
+    var hero = document.querySelector('.hero');
+    var flyerCards = document.querySelectorAll('.flyer-card');
+    if (hero && flyerCards.length) {
+      var depths = [6, 10, 14];
+      hero.addEventListener('pointermove', function (e) {
+        var rect = hero.getBoundingClientRect();
+        var relX = (e.clientX - rect.left) / rect.width - 0.5;
+        var relY = (e.clientY - rect.top) / rect.height - 0.5;
+        flyerCards.forEach(function (card, i) {
+          var depth = depths[i] || 8;
+          card.style.setProperty('--px', (relX * depth).toFixed(2) + 'px');
+          card.style.setProperty('--py', (relY * depth).toFixed(2) + 'px');
+        });
+      });
+      hero.addEventListener('pointerleave', function () {
+        flyerCards.forEach(function (card) {
+          card.style.setProperty('--px', '0px');
+          card.style.setProperty('--py', '0px');
+        });
+      });
+    }
+
+    // Tilt 3D do card "em análise" no CTA final
+    var draftFlyer = document.getElementById('draftFlyer');
+    if (draftFlyer) {
+      draftFlyer.addEventListener('pointermove', function (e) {
+        var rect = draftFlyer.getBoundingClientRect();
+        var relX = (e.clientX - rect.left) / rect.width - 0.5;
+        var relY = (e.clientY - rect.top) / rect.height - 0.5;
+        draftFlyer.style.setProperty('--ry', (relX * 16).toFixed(2) + 'deg');
+        draftFlyer.style.setProperty('--rx', (relY * -16).toFixed(2) + 'deg');
+      });
+      draftFlyer.addEventListener('pointerleave', function () {
+        draftFlyer.style.setProperty('--rx', '0deg');
+        draftFlyer.style.setProperty('--ry', '0deg');
+      });
+    }
+  })();
+</script>
