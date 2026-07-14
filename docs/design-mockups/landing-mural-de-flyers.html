@@ -4,6 +4,14 @@
   Abra este arquivo direto no navegador para visualizar.
 -->
 <title>MDAccula — Conceito 1: Mural de Flyers</title>
+<!--
+  Fonte via Google Fonts só para pré-visualização deste mockup standalone.
+  Na produção (React), Space Grotesk/Inter/JetBrains Mono já são self-hosted via
+  @fontsource (ver src/index.css) — não usar CDN de fonte no site real.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: hsl(220 25% 5%);
@@ -19,11 +27,13 @@
     --blue-glow: hsl(200 100% 62%);
     --pink: hsl(320 100% 65%);
     --pink-glow: hsl(320 100% 75%);
-    --paper: hsl(45 30% 92%);
-    --paper-ink: hsl(220 25% 10%);
-    --font-display: "Arial Black", "Helvetica Neue", Impact, sans-serif;
-    --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
+    --shadow-neon: 0 0 20px hsl(280 100% 70% / 0.5);
+    --shadow-glow: 0 0 40px hsl(200 100% 60% / 0.3);
+    --shadow-intense: 0 0 60px hsl(320 100% 75% / 0.6);
+    --shadow-elevated: 0 8px 32px hsl(220 25% 0% / 0.35);
+    --font-display: "Space Grotesk", "Arial Black", "Helvetica Neue", sans-serif;
+    --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
   }
 
   * { box-sizing: border-box; }
@@ -135,6 +145,8 @@
     box-shadow: 0 0 8px var(--blue-glow);
   }
 
+  /* Wordmark real da marca: branco + contorno preto + relevo cinza, pulso de glow roxo
+     (mesmo tratamento .logo-gradient + keyframe logo-pulse de src/index.css e tailwind.config.ts) */
   h1.brand {
     font-family: var(--font-display);
     font-weight: 900;
@@ -142,12 +154,27 @@
     font-size: clamp(3rem, 9vw, 6rem);
     line-height: 0.92;
     letter-spacing: -0.01em;
-    background: linear-gradient(100deg, var(--fg) 30%, var(--violet-glow) 65%, var(--pink) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    transform: skewX(-3deg);
-    transform-origin: left;
+    color: white;
+    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.8);
+    paint-order: stroke fill;
+    animation: logo-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes logo-pulse {
+    0%, 100% {
+      opacity: 1;
+      filter: drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4)) drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3))
+        drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2)) drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1))
+        drop-shadow(0 0 10px hsl(280 100% 70% / 0.7));
+    }
+    50% {
+      opacity: 0.9;
+      filter: drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4)) drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3))
+        drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2)) drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1))
+        drop-shadow(0 0 22px hsl(280 100% 70% / 1));
+    }
+  }
+  @media (max-width: 768px), (prefers-reduced-motion: reduce) {
+    h1.brand { animation: none; }
   }
 
   .hero-sub {
@@ -172,13 +199,30 @@
     align-items: center;
     gap: 0.5rem;
   }
+  /* Tratamento real .btn-neon: contorno + preenchimento deslizante no hover */
   .btn-primary {
-    background: var(--violet);
-    color: white;
-    box-shadow: 0 0 0 0 transparent;
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    background: transparent;
+    border-color: var(--violet);
+    color: var(--fg);
+    box-shadow: 0 0 20px hsl(280 100% 50% / 0.3);
+    transition: box-shadow 0.3s ease, transform 0.2s ease, color 0.3s ease;
   }
-  .btn-primary:hover { box-shadow: 0 0 28px hsl(280 100% 50% / 0.55); transform: translateY(-1px); }
+  .btn-primary::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, var(--violet), var(--pink));
+    transition: transform 0.3s ease;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 40px hsl(280 100% 50% / 0.6);
+    transform: translateY(-1px);
+  }
+  .btn-primary:hover::before { transform: translateX(0); }
   .btn-ghost {
     background: transparent;
     border-color: hsl(0 0% 95% / 0.3);
@@ -198,15 +242,18 @@
     width: 280px;
     border-radius: 6px;
     overflow: hidden;
-    background: var(--paper);
-    color: var(--paper-ink);
-    box-shadow: 0 20px 45px hsl(220 25% 0% / 0.55), 0 2px 8px hsl(220 25% 0% / 0.4);
-    border: 1px solid hsl(220 25% 0% / 0.4);
+    background: hsl(220 25% 12% / 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--fg);
+    box-shadow: 0 20px 45px hsl(220 25% 0% / 0.55), 0 0 24px hsl(280 100% 50% / 0.12);
+    border: 1px solid hsl(280 100% 70% / 0.25);
     will-change: transform;
-    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.35s ease;
   }
   .flyer-stack:hover .flyer-card {
-    box-shadow: 0 28px 60px hsl(220 25% 0% / 0.6), 0 4px 12px hsl(220 25% 0% / 0.45);
+    box-shadow: 0 28px 60px hsl(220 25% 0% / 0.6), 0 0 36px hsl(280 100% 50% / 0.22);
+    border-color: hsl(280 100% 70% / 0.45);
   }
   .flyer-card .flyer-photo {
     height: 150px;
@@ -230,8 +277,9 @@
     font-size: 0.62rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    background: hsl(220 25% 10%);
-    color: white;
+    background: hsl(280 100% 50% / 0.15);
+    border: 1px solid hsl(280 100% 70% / 0.4);
+    color: var(--violet-glow);
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
     margin-bottom: 0.5rem;
@@ -246,7 +294,7 @@
   .flyer-card .meta {
     font-family: var(--font-mono);
     font-size: 0.7rem;
-    color: hsl(220 25% 30%);
+    color: var(--muted);
     display: flex;
     justify-content: space-between;
   }
@@ -260,13 +308,11 @@
     .hero-title-block { max-width: 100%; }
   }
 
+  /* Divisor neon digital (substitui a antiga textura de "papel rasgado") */
   .torn-divider {
-    height: 28px;
-    background:
-      linear-gradient(135deg, var(--bg-darker) 25%, transparent 25%) 0 0,
-      linear-gradient(225deg, var(--bg-darker) 25%, transparent 25%) 0 0;
-    background-size: 20px 28px;
-    background-color: var(--bg);
+    height: 3px;
+    background: linear-gradient(90deg, transparent, hsl(280 100% 50% / 0.6), hsl(320 100% 65% / 0.6), hsl(200 100% 45% / 0.6), transparent);
+    box-shadow: 0 0 20px hsl(280 100% 50% / 0.35);
   }
 
   /* Revelação ao rolar — desativada se prefers-reduced-motion */
@@ -287,14 +333,27 @@
   section.block { padding: 4.5rem 1.5rem; }
   .block-inner { max-width: 1180px; margin: 0 auto; }
   .section-head {
+    position: relative;
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
     margin-bottom: 2.25rem;
-    border-bottom: 3px solid var(--fg);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 1rem;
+  }
+  .section-head::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    width: 140px;
+    max-width: 40%;
+    background: linear-gradient(90deg, var(--violet), var(--pink), var(--blue));
+    box-shadow: 0 0 12px hsl(280 100% 50% / 0.5);
   }
   .section-head h2 {
     font-family: var(--font-display);
@@ -327,7 +386,7 @@
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.35s ease;
   }
   .event-poster:hover {
-    transform: translateY(-8px) rotate(-1deg);
+    transform: translateY(-8px);
     box-shadow: 0 24px 50px hsl(220 25% 0% / 0.55), 0 0 0 1px hsl(280 100% 50% / 0.25), 0 0 32px hsl(280 100% 50% / 0.18);
     border-color: hsl(280 100% 50% / 0.4);
   }
@@ -443,7 +502,7 @@
   }
   .clip:hover {
     transform: translateX(4px) translateY(-3px);
-    box-shadow: 0 16px 34px hsl(220 25% 0% / 0.45);
+    box-shadow: 0 16px 34px hsl(220 25% 0% / 0.45), 0 0 24px hsl(320 100% 65% / 0.18);
     border-left-color: var(--pink);
   }
   .clip .cat {
@@ -493,25 +552,27 @@
   .draft-flyer {
     position: relative;
     width: 280px;
-    background: var(--paper);
-    color: var(--paper-ink);
+    background: hsl(220 25% 12% / 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--fg);
     border-radius: 6px;
     overflow: hidden;
-    border: 2px dashed hsl(220 25% 25%);
-    box-shadow: 0 24px 55px hsl(220 25% 0% / 0.5);
+    border: 2px dashed hsl(320 100% 65% / 0.35);
+    box-shadow: 0 24px 55px hsl(220 25% 0% / 0.5), 0 0 20px hsl(320 100% 65% / 0.1);
     transform-style: preserve-3d;
     will-change: transform;
     transition: transform 0.25s ease-out, box-shadow 0.35s ease;
     transform: perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
   }
   .draft-flyer:hover {
-    box-shadow: 0 32px 70px hsl(220 25% 0% / 0.6), 0 0 40px hsl(320 100% 65% / 0.25);
+    box-shadow: 0 32px 70px hsl(220 25% 0% / 0.6), 0 0 40px hsl(320 100% 65% / 0.3);
   }
   .draft-photo {
     height: 150px;
     position: relative;
     background:
-      repeating-linear-gradient(135deg, hsl(220 25% 82%) 0 2px, hsl(220 25% 90%) 2px 14px);
+      repeating-linear-gradient(135deg, hsl(220 25% 14%) 0 2px, hsl(220 25% 18%) 2px 14px);
   }
   .draft-badge {
     position: absolute;
@@ -522,7 +583,8 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 700;
-    background: hsl(220 25% 10%);
+    background: hsl(320 100% 65% / 0.18);
+    border: 1px solid hsl(320 100% 75% / 0.45);
     color: var(--pink-glow);
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
@@ -539,8 +601,8 @@
     font-size: 0.62rem;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    background: hsl(220 25% 82%);
-    color: hsl(220 25% 30%);
+    background: hsl(220 25% 20%);
+    color: var(--muted);
     padding: 0.15rem 0.5rem;
     border-radius: 999px;
     margin-bottom: 0.5rem;
@@ -551,12 +613,12 @@
     text-transform: uppercase;
     line-height: 1.05;
     margin-bottom: 0.35rem;
-    color: hsl(220 25% 35%);
+    color: hsl(0 0% 95% / 0.55);
   }
   .draft-flyer .meta {
     font-family: var(--font-mono);
     font-size: 0.7rem;
-    color: hsl(220 25% 45%);
+    color: var(--muted);
     display: flex;
     justify-content: space-between;
   }
