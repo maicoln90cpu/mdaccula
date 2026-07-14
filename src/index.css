@@ -281,6 +281,25 @@ html {
     box-shadow: var(--shadow-glow);
   }
 
+  /* Cartão de vidro escuro com borda de luz neon — mural de flyers do Hero e card de CTA */
+  .glass-card {
+    @apply rounded-md overflow-hidden backdrop-blur-md;
+    background: hsl(var(--card) / 0.75);
+    border: 1px solid hsl(var(--primary) / 0.25);
+    box-shadow: var(--shadow-elevated), 0 0 24px hsl(var(--primary) / 0.12);
+    transition: box-shadow 0.35s ease, border-color 0.35s ease, transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Variante "rascunho": mesmo vidro, borda tracejada na cor do accent */
+  .glass-card-dashed {
+    @apply rounded-md overflow-hidden backdrop-blur-md border-dashed;
+    background: hsl(var(--card) / 0.75);
+    border-width: 2px;
+    border-color: hsl(var(--accent) / 0.35);
+    box-shadow: var(--shadow-elevated), 0 0 20px hsl(var(--accent) / 0.1);
+    transition: box-shadow 0.35s ease;
+  }
+
   /* Logo Gradient (White with Black Outline and Gray Shadow) */
   .logo-gradient {
     @apply font-display;

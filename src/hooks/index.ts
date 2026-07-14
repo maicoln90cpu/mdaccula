@@ -8,3 +8,4 @@ export { useSiteSettings } from './useSiteSettings';
 export type { SiteSettings } from './useSiteSettings';
 export { useToastQueue } from './useToastQueue';
 export { useDebouncedValue } from './useDebouncedValue';
+export { useScrollReveal } from './useScrollReveal';
