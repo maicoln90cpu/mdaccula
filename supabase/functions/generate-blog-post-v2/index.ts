@@ -292,6 +292,24 @@ const FAKE_DOMAINS = [
   'sympla.fake',
 ];
 
+// Restringe um link a UMA única ocorrência no artigo — usado pro link de
+// VIP/camarote, que o modelo tende a mencionar em 2-3 seções diferentes
+// mesmo com a instrução de prompt pedindo menção única (regra de prompt
+// sozinha se mostrou inconsistente; isso garante o resultado).
+function restrictLinkToFirstMention(content: string, url: string): string {
+  if (!url) return content;
+  const escapedUrl = url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const linkRegex = new RegExp(`<a[^>]*href=["']${escapedUrl}["'][^>]*>([^<]*)</a>`, 'gi');
+  let firstSeen = false;
+  return content.replace(linkRegex, (match, innerText) => {
+    if (!firstSeen) {
+      firstSeen = true;
+      return match;
+    }
+    return innerText;
+  });
+}
+
 // Função para remover links com domínios inventados pela IA
 function removeFakeLinks(content: string): string {
   let cleaned = content;
@@ -511,12 +529,23 @@ Deno.serve(async (req) => {
     }
 
     // Compor eventLocation se não vier pronto (fallback)
+    // Dedup case-insensitive: evita "São Paulo - São Paulo - SP" quando o
+    // venue foi cadastrado com o nome da cidade em vez de um local específico.
     if (!formFields.eventLocation && (formFields.venue || formFields.locationCity)) {
+      const seenParts = new Set<string>();
       formFields.eventLocation = [
         formFields.venue,
         formFields.locationCity,
         formFields.locationState
-      ].filter(Boolean).join(' - ');
+      ]
+        .filter((part): part is string => {
+          if (!part) return false;
+          const key = String(part).trim().toLowerCase();
+          if (seenParts.has(key)) return false;
+          seenParts.add(key);
+          return true;
+        })
+        .join(' - ');
       console.log('[generate-blog-post-v2] eventLocation composto:', formFields.eventLocation);
     }
 
@@ -708,9 +737,19 @@ Deno.serve(async (req) => {
       pushIf('Horário de início', formFields.eventTime);
       pushIf('Horário de término', formFields.endTime);
       pushIf('Local', formFields.eventLocation);
+      // Se venue e cidade forem a mesma string (evento cadastrado sem venue
+      // real, só a cidade), não empurra "Cidade" separadamente — evita o
+      // modelo tratar isso como dois fatos distintos ("em São Paulo, na
+      // cidade de São Paulo").
+      const venueEqualsCity = Boolean(
+        formFields.venue && formFields.locationCity &&
+        String(formFields.venue).trim().toLowerCase() === String(formFields.locationCity).trim().toLowerCase()
+      );
       pushIf('Casa/Venue', formFields.venue);
       pushIf('Endereço', formFields.address);
-      pushIf('Cidade', formFields.locationCity);
+      if (!venueEqualsCity) {
+        pushIf('Cidade', formFields.locationCity);
+      }
       pushIf('Estado', formFields.locationState);
       pushIf('Gêneros musicais', formFields.genres);
       pushIf('Lineup confirmado', formFields.lineup);
@@ -752,7 +791,7 @@ ${formFields.endTime ? '- Horário de término foi fornecido: mencione-o ("até 
 ${formFields.eventTime ? '- Horário de início foi fornecido: mencione-o.' : ''}
 ${formFields.address ? '- Endereço completo foi fornecido: inclua-o.' : ''}
 ${formFields.subtitle ? '- Subtítulo/promoção foi fornecido: incorpore essa informação no artigo.' : ''}
-${formFields.vipLink ? '- Link VIP foi fornecido: mencione área VIP/camarote com link.' : ''}
+${formFields.vipLink ? '- Link VIP foi fornecido: mencione a opção de camarote/VIP em UM ÚNICO ponto do artigo — nunca repita a mesma menção em duas seções diferentes (ex: não repita na conclusão se já mencionou na seção de ingressos). Use um texto de link natural e curto (ex: "reserve sua área VIP", "fale sobre o camarote"). NUNCA copie a frase "área VIP/camarote" literalmente como texto do link.' : ''}
 ${formFields.weekday ? `- Dia da semana CORRETO é "${formFields.weekday}". NUNCA escreva outro dia da semana.` : ''}
 
 🚨 PRIORIDADE DOS CAMPOS ESTRUTURADOS:
@@ -968,6 +1007,11 @@ ${aiContextBlock}${ticketsBlock}`;
     const contentAfter = eventData.content.length;
     if (contentBefore !== contentAfter) {
       console.log(`[generate-blog-post-v2] Links fake removidos: ${contentBefore - contentAfter} caracteres`);
+    }
+
+    // PÓS-PROCESSAMENTO: garantir que o link de VIP/camarote apareça só uma vez
+    if (formFields.vipLink) {
+      eventData.content = restrictLinkToFirstMention(eventData.content, formFields.vipLink);
     }
 
     console.log('[generate-blog-post-v2] Título após pós-processamento:', eventData.title);

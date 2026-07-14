@@ -87,13 +87,29 @@ export interface ArticlePayload {
   generateImage: boolean;
 }
 
+/**
+ * Remove partes duplicadas (comparação case-insensitive/trim) preservando a
+ * ordem — evita "São Paulo - São Paulo - SP" quando o venue foi cadastrado
+ * com o nome da cidade em vez de um local específico.
+ */
+function dedupeParts(parts: Array<string | null | undefined>): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  for (const part of parts) {
+    if (!part) continue;
+    const key = part.trim().toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(part);
+  }
+  return result;
+}
+
 export function buildArticlePayload(
   event: EventLike,
   opts: { generateImage?: boolean; aiContextOverride?: string } = {},
 ): ArticlePayload {
-  const eventLocation = [event.venue, event.location_city, event.location_state]
-    .filter(Boolean)
-    .join(" - ");
+  const eventLocation = dedupeParts([event.venue, event.location_city, event.location_state]).join(" - ");
 
   return {
     eventId: event.id,
