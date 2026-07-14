@@ -8,6 +8,36 @@
 
 **Tech Stack:** Supabase (Postgres + Deno Edge Functions + pg_cron), React 18 + TypeScript + TanStack Query + React Hook Form, Vitest (contract/unit tests), Deno test runner (edge function unit tests).
 
+## Nota de reverificação (14/07/2026, antes de iniciar a execução)
+
+Entre a escrita deste plano e o início da execução, outros commits entraram na `main`
+(redesign da landing, correções de e-mail/E-goi, melhorias de qualidade editorial dos
+artigos gerados). Reconferimos as partes deste plano que dependiam de código já existente:
+
+- **`src/lib/eventArticlePayload.ts`** e a resposta de `generate-blog-post-v2` (usados na
+  Task 9): assinatura de `buildArticlePayload`, campos de `EventLike`/`ArticlePayload` e o
+  formato de resposta `{ post: { id, title, ... } }` continuam idênticos — só mudou lógica
+  interna (dedupe de local/cidade, restrição do link VIP), sem impacto no plano.
+- **`supabase/functions/generate-blog-suggestions/index.ts`** (padrão copiado nas Tasks 1 e
+  6 para Firecrawl + AI Gateway com tool-call): inalterado.
+- **`supabase/functions/_shared/`** ganhou dois arquivos novos desde então
+  (`editorialQuality.ts`, `scrapeGate.ts`) — nenhum dos dois faz dedup, validação ou
+  scraping reutilizável para este plano (são um bloco de prompt estático e um gate
+  booleano de orçamento de tempo, respectivamente); não há `index.ts` compartilhado ainda,
+  então a Task 1 continua necessária como planejada.
+- **`src/App.tsx`/`AdminSidebar.tsx`** (pontos de inserção da Task 10): conferidos linha a
+  linha, sem mudança.
+- **Única correção necessária:** o nome de arquivo da migration da Task 2 colidia com uma
+  migration já aplicada nesse meio tempo (`20260714120000_a3c1f9e2-...sql`, sem relação com
+  este plano — ajusta constraint de `event_email_campaigns`). Já corrigido em todo o plano
+  para `20260714210000_event_watcher_schema.sql`.
+- **Confirmado com o usuário:** a integração oficial com a API do Instagram (Fase C/parte 2)
+  só entra depois que o piloto de sites (esta parte 1) rodar 4 semanas em produção 100%
+  funcional — reforça a decisão de escopo já tomada na seção abaixo, sem mudar nada aqui.
+
+Nenhuma outra alteração de código foi necessária — o restante do plano abaixo é o mesmo já
+aprovado.
+
 ## Global Constraints
 
 - Nunca editar `src/integrations/supabase/types.ts` ou `src/integrations/supabase/client.ts` à mão — regenerar via `mcp__supabase-mdaccula__generate_typescript_types` (ou `supabase gen types typescript`) depois de aplicar a migration.
@@ -28,7 +58,7 @@ Também fica fora desta parte 1, por ora: painel de configuração do intervalo 
 ## File Structure
 
 - `supabase/functions/_shared/index.ts` — **novo**. Helpers HTTP compartilhados (CORS, envelope JSON, timeout, rate limit, scraping Firecrawl, guarda admin-ou-cron) — hoje esse módulo não existe apesar de `CLAUDE.md`/`docs/CODE_STYLE.md` documentarem esse padrão; cada função duplica isso localmente. Criamos o módulo real aqui.
-- `supabase/migrations/20260714120000_event_watcher_schema.sql` — **novo**. Tabelas `event_sources`, `event_watch_drafts`, RLS, triggers, índices, e libera o job `scan-event-sources-cron` na RPC `manage_digest_schedule`.
+- `supabase/migrations/20260714210000_event_watcher_schema.sql` — **novo**. Tabelas `event_sources`, `event_watch_drafts`, RLS, triggers, índices, e libera o job `scan-event-sources-cron` na RPC `manage_digest_schedule`.
 - `src/types/index.ts` — **modificado**. Novos tipos `EventSourceType`, `EventSource`, `EventSourceInsert`, `EventWatchDraftStatus`, `EventWatchDraft`.
 - `supabase/functions/scan-event-sources/dedupe.ts` + `dedupe_test.ts` — **novo**. Lógica pura de deduplicação (testável sem rede/DB).
 - `supabase/functions/scan-event-sources/extract.ts` + `extract_test.ts` — **novo**. Construção do tool-call de extração + parsing da resposta da IA (puro, testável).
@@ -259,7 +289,7 @@ git commit -m "feat(edge): add shared CORS/response/timeout/rate-limit helpers"
 ### Task 2: Schema do banco (`event_sources`, `event_watch_drafts`)
 
 **Files:**
-- Create: `supabase/migrations/20260714120000_event_watcher_schema.sql`
+- Create: `supabase/migrations/20260714210000_event_watcher_schema.sql`
 
 **Interfaces:**
 - Produces: tabelas `public.event_sources` e `public.event_watch_drafts` (colunas exatas abaixo), função `public.manage_digest_schedule` atualizada para aceitar o job `scan-event-sources-cron`.
@@ -267,7 +297,7 @@ git commit -m "feat(edge): add shared CORS/response/timeout/rate-limit helpers"
 - [ ] **Step 1: Escrever a migration**
 
 ```sql
--- supabase/migrations/20260714120000_event_watcher_schema.sql
+-- supabase/migrations/20260714210000_event_watcher_schema.sql
 -- Event Watcher: fontes de eventos (Fase A, parte 1 — sites via Firecrawl) e fila de rascunhos.
 
 CREATE TABLE public.event_sources (
@@ -417,7 +447,7 @@ Expected: nenhum novo warning relacionado a `event_sources`/`event_watch_drafts`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/20260714120000_event_watcher_schema.sql src/integrations/supabase/types.ts
+git add supabase/migrations/20260714210000_event_watcher_schema.sql src/integrations/supabase/types.ts
 git commit -m "feat(db): add event_sources and event_watch_drafts tables"
 ```
 
