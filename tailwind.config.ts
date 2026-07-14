@@ -111,6 +111,18 @@ export default {
             filter: "drop-shadow(0 0 20px hsl(var(--neon-purple) / 1))",
           },
         },
+        "logo-pulse": {
+          "0%, 100%": {
+            opacity: "1",
+            filter:
+              "drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4)) drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3)) drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2)) drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1)) drop-shadow(0 0 10px hsl(var(--neon-purple) / 0.7))",
+          },
+          "50%": {
+            opacity: "0.9",
+            filter:
+              "drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4)) drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3)) drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2)) drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1)) drop-shadow(0 0 22px hsl(var(--neon-purple) / 1))",
+          },
+        },
         "float": {
           "0%, 100%": {
             transform: "translateY(0px)",
@@ -142,6 +154,7 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-neon": "pulse-neon 2s ease-in-out infinite",
+        "logo-pulse": "logo-pulse 2.5s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
         "slide-in-up": "slide-in-up 0.5s ease-out",

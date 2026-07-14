@@ -184,6 +184,7 @@ html {
   /* Disable complex animations */
   .animate-float,
   .animate-pulse-neon,
+  .animate-logo-pulse,
   .animate-glow {
     animation: none;
   }

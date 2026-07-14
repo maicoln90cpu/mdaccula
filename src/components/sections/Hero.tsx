@@ -22,7 +22,7 @@ const Hero = () => {
       <div className="relative z-10 container mx-auto px-4 text-center">
         <div className="max-w-4xl mx-auto animate-slide-in-up">
           {/* Main Logo/Title */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 logo-gradient animate-pulse-neon leading-tight">MDAccula</h1>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 logo-gradient animate-logo-pulse leading-tight">MDAccula</h1>
 
           {/* Subtitle */}
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-3 sm:mb-4 text-foreground/90 max-w-2xl mx-auto leading-relaxed px-4 font-medium">
