@@ -1,3 +1,12 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/700.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -142,8 +151,7 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    @apply bg-background text-foreground antialiased font-sans;
   }
 
 html {
@@ -191,7 +199,7 @@ html {
 @layer components {
   /* Hero section styles */
   .hero-text {
-    @apply bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent font-display;
   }
 
   .neon-glow {
@@ -274,6 +282,7 @@ html {
 
   /* Logo Gradient (White with Black Outline and Gray Shadow) */
   .logo-gradient {
+    @apply font-display;
     color: white;
     -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.8);
     text-stroke: 1.5px rgba(0, 0, 0, 0.8);
@@ -461,15 +470,15 @@ html {
      TYPOGRAPHY SYSTEM - Hierarchical Text Styles
      ============================================ */
   .text-display {
-    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight;
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight font-display;
   }
 
   .text-headline {
-    @apply text-2xl md:text-3xl font-bold;
+    @apply text-2xl md:text-3xl font-bold font-display;
   }
 
   .text-title {
-    @apply text-xl font-semibold;
+    @apply text-xl font-semibold font-display;
   }
 
   .text-subtitle {
@@ -494,7 +503,7 @@ html {
 
   /* Text with gradient neon effect */
   .text-gradient {
-    @apply bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-accent to-secondary bg-clip-text text-transparent font-display;
   }
 
   .text-gradient-subtle {

@@ -1,4 +1,4 @@
-import { Instagram, MessageCircle, Music, Link2 } from "lucide-react";
+import { Instagram, MessageCircle, Music, Link2, Mic } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,15 @@ const Footer = () => {
               <li>
                 <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">
                   Blog
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/MDAcculaRadio"
+                  className="text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  <Mic className="w-3 h-3" />
+                  MDAccula Radio
                 </Link>
               </li>
               <li>
@@ -125,7 +134,8 @@ const Footer = () => {
 
         <div className="border-t border-border mt-8 pt-8 text-center">
           <p className="text-muted-foreground">
-            © 2017 MDAccula. Todos os direitos reservados. Agência especializada em música eletrônica em São Paulo.
+            © {new Date().getFullYear()} MDAccula. Todos os direitos reservados. Agência especializada em música
+            eletrônica em São Paulo.
           </p>
         </div>
       </div>

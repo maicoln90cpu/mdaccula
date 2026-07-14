@@ -293,7 +293,7 @@ const Blog = () => {
       <div className="min-h-screen">
         <Navigation />
 
-        <main className="pt-16">
+        <main id="main-content" className="pt-16">
           {/* Breadcrumb */}
           <div className="container mx-auto px-4 pt-4">
             <Breadcrumb>

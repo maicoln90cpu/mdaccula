@@ -112,7 +112,7 @@ const BlogPost = () => {
     return (
       <div className="min-h-screen">
         <Navigation />
-        <main className="pt-16 flex items-center justify-center min-h-[60vh]">
+        <main id="main-content" className="pt-16 flex items-center justify-center min-h-[60vh]">
           <p className="text-muted-foreground">Carregando...</p>
         </main>
         <Footer />
@@ -124,7 +124,7 @@ const BlogPost = () => {
     return (
       <div className="min-h-screen">
         <Navigation />
-        <main className="pt-16 container mx-auto px-4 py-20 text-center">
+        <main id="main-content" className="pt-16 container mx-auto px-4 py-20 text-center">
           <h1 className="text-4xl font-bold mb-4">Post não encontrado</h1>
           <p className="text-muted-foreground mb-8">O post que você está procurando não existe ou foi removido.</p>
           <Button asChild>
@@ -170,7 +170,7 @@ const BlogPost = () => {
       />
       <Navigation />
 
-      <main className="pt-16">
+      <main id="main-content" className="pt-16">
         {/* Header */}
         <section className="py-8 sm:py-12 bg-gradient-to-r from-primary/20 to-accent/20">
           <div className="container mx-auto px-4">

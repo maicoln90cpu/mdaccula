@@ -40,9 +40,16 @@ const Navigation = () => {
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <>
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary focus:text-primary-foreground focus:px-4 focus:py-2 focus:rounded-md focus:font-medium"
+      >
+        Pular para o conteúdo
+      </a>
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 sm:h-14">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <NavLink to="/" className="flex items-center space-x-2">
             <div className="text-xl font-bold logo-gradient">MDAccula</div>
@@ -57,8 +64,8 @@ const Navigation = () => {
                 onMouseEnter={item.prefetch}
                 onFocus={item.prefetch}
                 className={({ isActive }) =>
-                  `nav-link flex items-center space-x-1 px-2 py-1 text-sm font-medium ${
-                    isActive ? "text-primary active" : "text-foreground"
+                  `flex items-center space-x-1 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    isActive ? "text-primary bg-primary/10" : "text-foreground hover:bg-muted"
                   }`
                 }
               >
@@ -108,12 +115,14 @@ const Navigation = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="min-h-[48px] min-w-[48px]"
               aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-menu"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </Button>
@@ -122,14 +131,14 @@ const Navigation = () => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden">
+          <div id="mobile-menu" className="md:hidden">
             <div className="px-2 pt-2 pb-3 space-y-2 bg-card/95 backdrop-blur-md rounded-lg mt-2 border border-border shadow-lg">
               {navigationItems.map((item) => (
                 <NavLink
                   key={item.name}
                   to={item.href}
                   className={({ isActive }) =>
-                    `nav-link flex items-center space-x-3 px-4 py-3 text-base font-medium rounded-md min-h-[48px] transition-all ${
+                    `flex items-center space-x-3 px-4 py-3 text-base font-medium rounded-md min-h-[48px] transition-colors ${
                       isActive ? "text-primary bg-primary/10" : "text-foreground hover:bg-muted"
                     }`
                   }
@@ -195,7 +204,8 @@ const Navigation = () => {
           </div>
         )}
       </div>
-    </nav>
+      </nav>
+    </>
   );
 };
 

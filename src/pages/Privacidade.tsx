@@ -77,7 +77,7 @@ const Privacidade = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
 
-        <main className="container mx-auto px-4 py-12 pt-24">
+        <main id="main-content" className="container mx-auto px-4 py-12 pt-24">
           <div className="max-w-4xl mx-auto">
             {/* Header */}
             <div className="text-center mb-12">

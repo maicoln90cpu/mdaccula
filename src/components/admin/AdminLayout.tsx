@@ -16,7 +16,7 @@ export default function AdminLayout() {
               <SidebarTrigger />
               <span className="text-sm text-muted-foreground">Painel Administrativo</span>
             </header>
-            <main className="flex-1 w-full">
+            <main id="main-content" className="flex-1 w-full">
               <Outlet />
             </main>
           </div>

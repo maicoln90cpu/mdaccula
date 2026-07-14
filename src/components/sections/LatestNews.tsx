@@ -118,15 +118,15 @@ const LatestNews = () => {
                           <Badge variant="secondary" className="text-xs sm:text-sm">{item.category}</Badge>
                           <div className="flex items-center text-xs sm:text-sm text-muted-foreground">
                             <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 flex-shrink-0" />
-                            <span className="truncate">
-                              {item.published_at 
+                            <span className="truncate font-mono">
+                              {item.published_at
                                 ? new Date(item.published_at).toLocaleDateString('pt-BR')
                                 : new Date(item.created_at).toLocaleDateString('pt-BR')
                               }
                             </span>
                           </div>
                         </div>
-                        <CardTitle className="text-lg sm:text-xl line-clamp-2 hover:text-primary transition-colors break-words">
+                        <CardTitle className="text-lg sm:text-xl font-display line-clamp-2 hover:text-primary transition-colors break-words">
                           {item.title}
                         </CardTitle>
                       </CardHeader>

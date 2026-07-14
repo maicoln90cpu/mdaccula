@@ -25,14 +25,13 @@ const Hero = () => {
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 sm:mb-6 logo-gradient animate-pulse-neon leading-tight">MDAccula</h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-3 sm:mb-4 text-foreground/90 max-w-2xl mx-auto leading-relaxed px-4">
-            A maior agência de divulgação de música eletrônica do Brasil!
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-3 sm:mb-4 text-foreground/90 max-w-2xl mx-auto leading-relaxed px-4 font-medium">
+            A maior agência de divulgação de música eletrônica do Brasil.
           </p>
 
           {/* Description */}
           <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 text-muted-foreground max-w-3xl mx-auto leading-relaxed px-4">
-            Conectamos artistas, promoters e a cena eletrônica de São Paulo. Descubra os melhores eventos, DJs e festas
-            da capital paulista.
+            Encontre os próximos eventos, descubra novos line-ups e garanta seu ingresso antes que esgote.
           </p>
 
           {/* CTA Buttons */}
@@ -62,15 +61,15 @@ const Hero = () => {
           {/* Social Proof */}
           <div className="mt-4 sm:mt-10 grid grid-cols-3 gap-2 sm:gap-6 text-center px-4">
             <div className="animate-float">
-              <div className="text-2xl sm:text-3xl font-bold text-primary">500+</div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-primary">500+</div>
               <div className="text-sm sm:text-base text-muted-foreground">Eventos Promovidos</div>
             </div>
             <div className="animate-float" style={{ animationDelay: "1s" }}>
-              <div className="text-2xl sm:text-3xl font-bold text-secondary">200+</div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-secondary">200+</div>
               <div className="text-sm sm:text-base text-muted-foreground">DJs Parceiros</div>
             </div>
             <div className="animate-float" style={{ animationDelay: "2s" }}>
-              <div className="text-2xl sm:text-3xl font-bold text-accent">50k+</div>
+              <div className="text-2xl sm:text-3xl font-bold font-mono text-accent">50k+</div>
               <div className="text-sm sm:text-base text-muted-foreground">Seguidores</div>
             </div>
           </div>

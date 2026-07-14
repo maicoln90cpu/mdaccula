@@ -22,7 +22,7 @@ const Login = () => {
       />
       <Navigation />
 
-      <main className="pt-16 min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10">
+      <main id="main-content" className="pt-16 min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10">
         <div className="container mx-auto px-4 py-20">
           <div className="max-w-md mx-auto">
             {/* Header */}

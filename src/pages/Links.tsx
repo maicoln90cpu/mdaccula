@@ -117,7 +117,7 @@ export default function Links() {
       <div className={cn("min-h-screen relative", theme.background)}>
         <Navigation />
 
-        <div className="w-full max-w-[650px] mx-auto px-4 py-24 pb-12">
+        <div id="main-content" className="w-full max-w-[650px] mx-auto px-4 py-24 pb-12">
           {/* Header */}
           <div className="text-center mb-8 animate-fade-in">
             {avatarUrl ? (

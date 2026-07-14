@@ -75,7 +75,7 @@ const QuemSomos = () => {
 
       <div className="min-h-screen">
         <Navigation />
-        <main>
+        <main id="main-content">
           {/* Breadcrumb */}
           <div className="container mx-auto px-4 pt-20">
             <Breadcrumb>

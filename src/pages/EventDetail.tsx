@@ -200,7 +200,7 @@ const EventDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="pt-20 container mx-auto px-4">
+        <div id="main-content" className="pt-20 container mx-auto px-4">
           <div className="animate-pulse space-y-4">
             <div className="h-96 bg-muted rounded-lg"></div>
             <div className="h-8 bg-muted rounded w-3/4"></div>
@@ -278,7 +278,7 @@ const EventDetail = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
 
-        <main className="pt-20 pb-16">
+        <main id="main-content" className="pt-20 pb-16">
           <div className="container mx-auto px-4">
             {/* Breadcrumb */}
             <Breadcrumb className="mb-6">

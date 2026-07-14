@@ -8,6 +8,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { parseLocalDate } from "@/lib/utils";
 import { formatEventDateRange } from "@/lib/dateUtils";
 import { useEvents } from "@/hooks/useEvents";
+import { StructuredData } from "@/components/StructuredData";
 
 const FeaturedEvents = () => {
   const { events, isLoading, isError } = useEvents();
@@ -76,6 +77,23 @@ const FeaturedEvents = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {featuredEvents.map((event, index) => (
                 <Card key={event.id} className="card-hover overflow-hidden">
+                  <StructuredData
+                    type="event"
+                    data={{
+                      title: event.title,
+                      description: event.description ?? undefined,
+                      date: event.date,
+                      end_date: event.end_date,
+                      time: event.time,
+                      end_time: event.end_time,
+                      venue: event.venue,
+                      location_city: event.location_city,
+                      location_state: event.location_state,
+                      image_url: event.image_url ?? undefined,
+                      ticket_link: event.ticket_link ?? undefined,
+                      lineup: event.lineup ?? undefined,
+                    }}
+                  />
                   <div className="relative aspect-video overflow-hidden">
                     <OptimizedImage
                       src={event.image_url || '/placeholder.svg'}
@@ -94,12 +112,12 @@ const FeaturedEvents = () => {
                   </div>
 
                   <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary line-clamp-2">{event.title ?? 'Evento sem título'}</h3>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold font-display text-primary line-clamp-2">{event.title ?? 'Evento sem título'}</h3>
 
                     <div className="space-y-2 text-sm sm:text-base text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">
+                        <span className="truncate font-mono">
                           {formatEventDateRange(event.date, (event as any).end_date)}{event.time ? ` - ${event.time.slice(0, 5)}` : ''}
                         </span>
                       </div>

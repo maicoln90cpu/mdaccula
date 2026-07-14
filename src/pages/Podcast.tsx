@@ -202,7 +202,7 @@ const Podcast = () => {
 
       <Navigation />
 
-      <main className="min-h-screen pt-16">
+      <main id="main-content" className="min-h-screen pt-16">
         {/* ============= HERO SECTION ============= */}
         <section className="relative py-16 md:py-24 overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />

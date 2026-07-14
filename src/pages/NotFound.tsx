@@ -1,6 +1,9 @@
 import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { SEOHead } from "@/components/SEOHead";
+import Navigation from "@/components/ui/navigation";
+import Footer from "@/components/ui/footer";
+import { Button } from "@/components/ui/button";
 
 const NotFound = () => {
   const location = useLocation();
@@ -10,22 +13,26 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <>
+    <div className="min-h-screen">
       <SEOHead
         title="Página não encontrada"
         description="A página que você procura não existe."
         noindex
       />
-      <div className="flex min-h-screen items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <h1 className="mb-4 text-4xl font-bold">404</h1>
-          <p className="mb-4 text-xl text-gray-600">Oops! Page not found</p>
-          <Link to="/" className="text-blue-500 underline hover:text-blue-700">
-            Return to Home
-          </Link>
+      <Navigation />
+      <main id="main-content" className="pt-16 flex min-h-[70vh] items-center justify-center">
+        <div className="text-center px-4">
+          <h1 className="mb-4 text-6xl sm:text-7xl font-bold font-display hero-text">404</h1>
+          <p className="mb-8 text-lg sm:text-xl text-muted-foreground">
+            Essa página não existe ou foi movida.
+          </p>
+          <Button asChild size="lg" className="btn-neon">
+            <Link to="/">Voltar para o início</Link>
+          </Button>
         </div>
-      </div>
-    </>
+      </main>
+      <Footer />
+    </div>
   );
 };
 
