@@ -17,6 +17,7 @@ import {
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SEOHead } from "@/components/SEOHead";
+import { PageHeader } from "@/components/ui/page-header";
 
 const CATEGORIES = [
   "Cena SP",
@@ -67,16 +68,15 @@ export default function Search() {
           url={`/busca?q=${query}`}
         />
         <Navigation />
-        <main id="main-content" className="pt-24 pb-20">
-          <div className="container mx-auto px-4">
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold mb-2">
-                Resultados para "{query}"
-              </h1>
-              <p className="text-muted-foreground">
-                {results?.length || 0} resultados encontrados
-              </p>
-            </div>
+        <main id="main-content" className="pt-16">
+          <PageHeader
+            title={`Resultados para "${query}"`}
+            subtitle={`${results?.length || 0} resultados encontrados`}
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Busca" }]}
+            variant="plain"
+            align="center"
+          />
+          <div className="container mx-auto px-4 py-8">
 
             {/* Filtros */}
             <div className="mb-6 flex gap-4">

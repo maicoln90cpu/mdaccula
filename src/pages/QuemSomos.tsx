@@ -11,14 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SEOHead } from "@/components/SEOHead";
 import { StructuredData } from "@/components/StructuredData";
 import { OptimizedImage } from "@/components/OptimizedImage";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 
 const QuemSomos = () => {
   const { data: teamMembers, isLoading: loadingMembers } = useQuery({
@@ -75,38 +68,15 @@ const QuemSomos = () => {
 
       <div className="min-h-screen">
         <Navigation />
-        <main id="main-content">
-          {/* Breadcrumb */}
-          <div className="container mx-auto px-4 pt-20">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Home</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Quem Somos</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          {/* Hero Section */}
-          <section
-            className="relative h-[30vh] md:h-[40vh] flex items-center justify-center"
-            style={{
-              backgroundImage: `url(${heroImage})`,
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-            }}
-          >
-            <div className="absolute inset-0 bg-black/60" />
-            <div className="relative z-10 text-center px-4">
-              <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6 hero-text">Quem Somos</h1>
-              <p className="text-lg md:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto">
-                A paixão pela música eletrônica que move São Paulo
-              </p>
-            </div>
-          </section>
+        <main id="main-content" className="pt-16">
+          <PageHeader
+            title="Quem Somos"
+            subtitle="A paixão pela música eletrônica que move São Paulo"
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Quem Somos" }]}
+            variant="photo"
+            backgroundImage={heroImage}
+            align="center"
+          />
 
           {/* Nossa História */}
           <section className="py-20">

@@ -14,6 +14,14 @@ import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { ShareButtons } from "@/components/ShareButtons";
 import { LikeButton } from "@/components/blog/LikeButton";
 import { StructuredData } from "@/components/StructuredData";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface BlogPostData {
   id: string;
@@ -174,6 +182,26 @@ const BlogPost = () => {
         {/* Header */}
         <section className="py-8 sm:py-12 bg-gradient-to-r from-primary/20 to-accent/20">
           <div className="container mx-auto px-4">
+            <Breadcrumb className="mb-4 sm:mb-6">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/">Home</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/blog">Blog</Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbPage className="line-clamp-1">{post.title}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+
             <Button asChild variant="ghost" className="mb-4 sm:mb-6 min-h-[44px]">
               <Link to="/blog">
                 <ArrowLeft className="w-4 h-4 mr-2" />

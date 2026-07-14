@@ -5,14 +5,7 @@ import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import { SEOHead } from "@/components/SEOHead";
 import { StructuredData } from "@/components/StructuredData";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator } from
-"@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -294,41 +287,25 @@ const Blog = () => {
         <Navigation />
 
         <main id="main-content" className="pt-16">
-          {/* Breadcrumb */}
-          <div className="container mx-auto px-4 pt-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Home</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Blog</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          {/* Hero Section */}
-          <section className="py-20 bg-gradient-to-r from-primary/20 to-accent/20">
-            <div className="container mx-auto px-4 text-center">
-              <h1 className="text-5xl md:text-6xl font-bold mb-6 hero-text">Blog</h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-6">
-                Fique por dentro de tudo que rola na cena eletrônica brasileira e mundial
-              </p>
-              <div className="flex justify-center">
+          <PageHeader
+            title="Blog"
+            subtitle="Fique por dentro de tudo que rola na cena eletrônica brasileira e mundial"
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Blog" }]}
+            extra={
+              <div className="mt-6">
                 <Button variant="outline" asChild className="gap-2">
                   <a
                     href={`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blog-rss`}
                     target="_blank"
-                    rel="noopener noreferrer">
-                    
+                    rel="noopener noreferrer"
+                  >
                     <Rss className="w-4 h-4" />
                     Feed RSS
                   </a>
                 </Button>
               </div>
-            </div>
-          </section>
+            }
+          />
 
           {/* Search and Filters */}
           <section className="py-8 bg-card/50">

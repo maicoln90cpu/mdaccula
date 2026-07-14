@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SEOHead } from "@/components/SEOHead";
+import { PageHeader } from "@/components/ui/page-header";
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
@@ -108,16 +109,16 @@ export default function Analytics() {
           url="/analytics"
         />
         <Navigation />
-        <main id="main-content" className="pt-24 pb-20">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                📊 Analytics Público
-              </h1>
-              <p className="text-xl text-muted-foreground">
-                Transparência total sobre o desempenho do site
-              </p>
-            </div>
+        <main id="main-content" className="pt-16">
+          <PageHeader
+            title="Analytics Público"
+            subtitle="Transparência total sobre o desempenho do site"
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Analytics" }]}
+            variant="plain"
+            align="center"
+            icon={TrendingUp}
+          />
+          <div className="container mx-auto px-4 py-8">
 
             {/* Cards de métricas */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">

@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import { SEOHead } from "@/components/SEOHead";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,19 +78,17 @@ const Privacidade = () => {
       <div className="min-h-screen bg-background">
         <Navigation />
 
-        <main id="main-content" className="container mx-auto px-4 py-12 pt-24">
+        <main id="main-content" className="pt-16">
+          <PageHeader
+            title="Privacidade e Proteção de Dados"
+            subtitle="Respeitamos sua privacidade e estamos comprometidos com a proteção dos seus dados pessoais conforme a LGPD e GDPR."
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Privacidade" }]}
+            variant="plain"
+            align="center"
+            icon={Shield}
+          />
+          <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto">
-            {/* Header */}
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
-                <Shield className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-4xl font-bold mb-4">Privacidade e Proteção de Dados</h1>
-              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Respeitamos sua privacidade e estamos comprometidos com a proteção dos seus dados
-                pessoais conforme a LGPD e GDPR.
-              </p>
-            </div>
 
             {/* Seus Direitos */}
             <Card className="mb-8">
@@ -308,6 +307,7 @@ const Privacidade = () => {
                 Última atualização desta política: Janeiro de 2026
               </p>
             </div>
+          </div>
           </div>
         </main>
 

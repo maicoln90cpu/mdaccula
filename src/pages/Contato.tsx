@@ -6,14 +6,7 @@ import { StructuredData } from "@/components/StructuredData";
 import { useToast } from "@/hooks/useToast";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,31 +141,11 @@ const Contato = () => {
         <Navigation />
         
         <main id="main-content" className="pt-16">
-          {/* Breadcrumb */}
-          <div className="container mx-auto px-4 pt-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Home</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Contato</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        {/* Hero Section */}
-        <section className="py-20 bg-gradient-to-r from-primary/20 to-accent/20">
-          <div className="container mx-auto px-4 text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 hero-text">
-              Contato
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Entre em contato conosco e faça parte da cena eletrônica de São Paulo
-            </p>
-          </div>
-        </section>
+          <PageHeader
+            title="Contato"
+            subtitle="Entre em contato conosco e faça parte da cena eletrônica de São Paulo"
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Contato" }]}
+          />
 
         {/* Contact Info Cards */}
         <section className="py-12 sm:py-20 bg-background">

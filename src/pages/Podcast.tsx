@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/useToast";
 import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import { SEOHead } from "@/components/SEOHead";
+import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -204,44 +205,41 @@ const Podcast = () => {
 
       <main id="main-content" className="min-h-screen pt-16">
         {/* ============= HERO SECTION ============= */}
-        <section className="relative py-16 md:py-24 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-accent/20" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,hsl(var(--primary)/0.15),transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_70%,hsl(var(--accent)/0.15),transparent_50%)]" />
-
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="max-w-4xl mx-auto text-center">
-              <div className="inline-flex flex-wrap items-center justify-center gap-2 mb-6">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
-                  <Mic className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-medium text-primary">MDAccula Radio</span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/30">
-                  <CheckCircle className="w-4 h-4 text-secondary" />
-                  <span className="text-sm font-medium text-secondary">Análise do material é gratuita</span>
-                </div>
+        <PageHeader
+          variant="radial"
+          breadcrumb={[{ label: "Home", href: "/" }, { label: "MDAccula Radio" }]}
+        >
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex flex-wrap items-center justify-center gap-2 mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/30">
+                <Mic className="w-5 h-5 text-primary" />
+                <span className="text-sm font-medium text-primary">MDAccula Radio</span>
               </div>
-
-              <h1 className="text-display text-gradient mb-6">
-                Participe do MDAccula Radio
-              </h1>
-
-              <p className="text-xl md:text-2xl text-foreground mb-4 font-medium">
-                Aqui você tem o seu projeto divulgado como merece!
-              </p>
-
-              <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-                Com o formato de "social live" nosso canal tem como objetivo trazer novos talentos
-                para a cena eletrônica. Se você quer fazer parte e ter seu projeto divulgado por
-                todos os canais e redes do MDAccula, sua chance está aqui!
-              </p>
-
-              <p className="mt-6 text-accent font-semibold text-lg">
-                Envie seu material — a análise é 100% gratuita. Se aprovado, você grava seu set exclusivo! 🚀
-              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/30">
+                <CheckCircle className="w-4 h-4 text-secondary" />
+                <span className="text-sm font-medium text-secondary">Análise do material é gratuita</span>
+              </div>
             </div>
+
+            <h1 className="text-display text-gradient mb-6">
+              Participe do MDAccula Radio
+            </h1>
+
+            <p className="text-xl md:text-2xl text-foreground mb-4 font-medium">
+              Aqui você tem o seu projeto divulgado como merece!
+            </p>
+
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+              Com o formato de "social live" nosso canal tem como objetivo trazer novos talentos
+              para a cena eletrônica. Se você quer fazer parte e ter seu projeto divulgado por
+              todos os canais e redes do MDAccula, sua chance está aqui!
+            </p>
+
+            <p className="mt-6 text-accent font-semibold text-lg">
+              Envie seu material — a análise é 100% gratuita. Se aprovado, você grava seu set exclusivo! 🚀
+            </p>
           </div>
-        </section>
+        </PageHeader>
 
         {/* ============= COMO FUNCIONA ============= */}
         <section className="py-16 bg-muted/30">

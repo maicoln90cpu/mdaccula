@@ -4,14 +4,7 @@ import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import { SEOHead } from "@/components/SEOHead";
 import { StructuredData } from "@/components/StructuredData";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -298,41 +291,19 @@ const Eventos = () => {
         <Navigation />
         
         <main id="main-content" className="pt-16">
-          {/* Breadcrumb */}
-          <div className="container mx-auto px-4 pt-4">
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem>
-                  <BreadcrumbLink href="/">Home</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Eventos</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        {/* Header */}
-        <section className="py-20 bg-gradient-to-r from-primary/20 to-accent/20">
-          <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-5xl md:text-6xl font-bold mb-6 hero-text">
-                  Eventos
-                </h1>
-                <p className="text-xl text-muted-foreground max-w-2xl">
-                  Descubra os melhores eventos de música eletrônica
-                </p>
-              </div>
-              {isAdmin && (
+          <PageHeader
+            title="Eventos"
+            subtitle="Descubra os melhores eventos de música eletrônica"
+            breadcrumb={[{ label: "Home", href: "/" }, { label: "Eventos" }]}
+            actions={
+              isAdmin && (
                 <Button onClick={() => setShowEventForm(true)} size="lg">
                   <Plus className="w-5 h-5 mr-2" />
                   Novo Evento
                 </Button>
-              )}
-            </div>
-          </div>
-        </section>
+              )
+            }
+          />
 
         {/* Mobile Events Carousel */}
         <section className="md:hidden py-6 bg-background">
