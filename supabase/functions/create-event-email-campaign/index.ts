@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
         const sendRes = await egoiRequest(
           `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
           apiKey,
-          { method: 'POST', body: JSON.stringify({}) },
+          { method: 'POST', body: JSON.stringify({ list_id: Number(cfg.list_id) }) },
         );
         if (sendRes.ok) {
           campaignStatus = 'sent';
