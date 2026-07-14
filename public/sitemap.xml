@@ -53,7 +53,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-freakchic-9nnbiw</loc>
-    <lastmod>2026-07-12</lastmod>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -71,7 +71,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-frwyde</loc>
-    <lastmod>2026-07-12</lastmod>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -406,6 +406,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/keinemusik-em-sao-paulo-sabado-17-de-outubro-de-2026-pista-e-backstage-mrl2076z</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/surreal-apres-trotamundo-bells-surreal-park-camboriu-16-01-2026</loc>
     <lastmod>2026-06-27</lastmod>
     <changefreq>monthly</changefreq>
@@ -732,12 +738,6 @@
   <url>
     <loc>https://mdaccula.com/blog/le-yora-radiohead-releituras-e-a-maestria-dos-produtores-na-cena-eletronica</loc>
     <lastmod>2026-06-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
-    <lastmod>2026-07-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1084,12 +1084,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/clubes-sustentaveis-redesenham-a-noite-como-praticas-verdes-transformam-a-cena-eletronica</loc>
-    <lastmod>2026-07-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/clubes-de-periferia-redesenham-a-noite-com-diversidade-e-resistencia</loc>
     <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
@@ -1122,6 +1116,12 @@
   <url>
     <loc>https://mdaccula.com/blog/caos-apres-adam-sellouk-caos-club-campinas-25-abr-2026</loc>
     <lastmod>2026-06-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/keinemusik-em-sao-paulo-sabado-17-de-outubro-de-2026-pista-e-backstage</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1194,12 +1194,6 @@
   <url>
     <loc>https://mdaccula.com/blog/hey-hoy-apres-dubdogz-no-espaco-taal-em-barueri-sexta-feira</loc>
     <lastmod>2026-06-11</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026</loc>
-    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1450,12 +1444,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
-    <lastmod>2026-07-11</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira</loc>
     <lastmod>2026-07-12</lastmod>
     <changefreq>monthly</changefreq>
@@ -1494,6 +1482,12 @@
   <url>
     <loc>https://mdaccula.com/blog/winter-days-campos-do-jordao-eletronica-quente-no-frio-do-prana-park</loc>
     <lastmod>2026-06-21</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/clubes-sustentaveis-redesenham-a-noite-como-praticas-verdes-transformam-a-cena-eletronica</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1576,12 +1570,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/music-on-no-vale-do-anhangabau-em-sao-paulo-sabado-7-de-novembro</loc>
-    <lastmod>2026-07-14</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/surreal-apres-carnaval-surreal-park-camboriu-25-fev-2026</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
@@ -1612,7 +1600,43 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/keinemusik-em-sao-paulo-sabado-17-de-outubro-no-sao-paulo</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/music-on-no-vale-do-anhangabau-em-sao-paulo-sabado-7-de-novembro</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/keinemusik-em-sao-paulo-festa-sabado-17-de-outubro-ao-meio-dia</loc>
     <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
