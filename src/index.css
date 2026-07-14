@@ -162,11 +162,7 @@ html {
 /* Mobile optimizations */
 @media (max-width: 768px) {
   /* Prevent zoom on iOS */
-  input[type="text"],
-  input[type="email"],
-  input[type="tel"],
-  input[type="date"],
-  input[type="time"],
+  input,
   textarea,
   select {
     font-size: 16px !important;
