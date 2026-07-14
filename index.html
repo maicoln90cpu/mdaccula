@@ -2,7 +2,19 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    
+
+    <!--
+      Content-Security-Policy via <meta> — a hospedagem do Lovable não suporta headers HTTP
+      customizados (nem arquivo de config tipo _headers/vercel.json), então esta é a única forma
+      possível de aplicar CSP aqui. Limitações conhecidas: `frame-ancestors` não funciona via meta
+      (por isso X-Frame-Options/Permissions-Policy ficam sem solução nesta plataforma — ver
+      docs/LOVABLE-PLATFORM-CAPABILITIES.md); `'unsafe-inline'` em script-src é necessário porque
+      GTM/Hotjar/Facebook injetam <script> inline via JS, não há como usar nonce sem um servidor
+      gerando a policy por request. Testar em mdaccula.lovable.app antes de qualquer mudança nesta
+      lista, verificando o console do navegador por violações.
+    -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://static.hotjar.com https://*.hotjar.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://xfvpuzlspvvsmmunznxw.supabase.co wss://xfvpuzlspvvsmmunznxw.supabase.co https://cdn.mdaccula.com https://mdaccula.b-cdn.net https://www.google-analytics.com https://analytics.google.com https://region1.google-analytics.com https://*.hotjar.com https://*.hotjar.io wss://*.hotjar.com https://www.googletagmanager.com; frame-src 'self' https://www.google.com https://open.spotify.com https://www.googletagmanager.com; object-src 'none'; base-uri 'self'; form-action 'self';" />
+
     <!-- Preconnect to critical origins for faster loading -->
     
     <link rel="preconnect" href="https://cdn.mdaccula.com" crossorigin>
