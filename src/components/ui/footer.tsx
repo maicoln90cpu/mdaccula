@@ -103,14 +103,16 @@ const Footer = () => {
               </Button>
             </div>
             <div className="mt-4 space-y-2">
-              <a 
-                href={settings.whatsapp_link || "https://wa.me/5511999999999"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors block"
-              >
-                WhatsApp: {settings.whatsapp_number || "(11) 99999-9999"}
-              </a>
+              {settings.whatsapp_number && (
+                <a
+                  href={settings.whatsapp_link || `https://wa.me/55${settings.whatsapp_number.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-muted-foreground hover:text-primary transition-colors block"
+                >
+                  WhatsApp: {settings.whatsapp_number}
+                </a>
+              )}
               <a 
                 href={`mailto:${settings.contact_email || "contato@mdaccula.com"}`}
                 className="text-sm text-muted-foreground hover:text-primary transition-colors block"

@@ -292,6 +292,8 @@ html {
      ============================================ */
   .prose {
     @apply text-foreground leading-relaxed;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* Headings */

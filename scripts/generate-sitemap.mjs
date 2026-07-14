@@ -77,10 +77,11 @@ function urlBlock({ path, lastmod, changefreq, priority }) {
 async function main() {
   let events = [];
   let posts = [];
+  const today = new Date().toISOString().slice(0, 10);
   try {
     [events, posts] = await Promise.all([
       fetchRows(
-        "events?select=slug,updated_at,date&status=eq.active&slug=not.is.null&limit=5000"
+        `events?select=slug,updated_at,date&status=eq.active&date=gte.${today}&slug=not.is.null&limit=5000`
       ),
       fetchRows(
         "blog_posts?select=slug,updated_at,published_at&published=eq.true&slug=not.is.null&limit=5000"

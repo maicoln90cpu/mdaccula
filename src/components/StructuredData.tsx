@@ -50,7 +50,7 @@ type StructuredDataPayload =
   | undefined;
 
 interface StructuredDataProps {
-  type: 'website' | 'article' | 'event' | 'organization' | 'breadcrumb' | 'musicgroup' | 'localbusiness';
+  type: 'website' | 'article' | 'event' | 'organization' | 'breadcrumb';
   data?: StructuredDataPayload;
 }
 
@@ -98,61 +98,6 @@ export const StructuredData = ({ type, data }: StructuredDataProps) => {
             "contactType": "Customer Service",
             "availableLanguage": ["Portuguese", "English"]
           }
-        };
-      }
-
-      case 'musicgroup': {
-        const musicData = data as OrganizationData | undefined;
-        return {
-          "@context": "https://schema.org",
-          "@type": "MusicGroup",
-          "name": "MDAccula",
-          "url": "https://mdaccula.com",
-          "genre": ["Electronic", "Techno", "House", "Underground"],
-          "description": "DJ e promoter de música eletrônica em São Paulo, especializado em techno e house",
-          "sameAs": [
-            musicData?.instagram_link || "https://instagram.com/mdaccula",
-            musicData?.soundcloud_link || "https://soundcloud.com/mdaccula"
-          ],
-          "location": {
-            "@type": "Place",
-            "name": "São Paulo",
-            "address": {
-              "@type": "PostalAddress",
-              "addressLocality": "São Paulo",
-              "addressRegion": "SP",
-              "addressCountry": "BR"
-            }
-          }
-        };
-      }
-
-      case 'localbusiness': {
-        const localData = data as OrganizationData | undefined;
-        return {
-          "@context": "https://schema.org",
-          "@type": "LocalBusiness",
-          "name": "MDAccula",
-          "url": "https://mdaccula.com",
-          "description": "Maior agência de música eletrônica de São Paulo - Eventos, festas techno e house",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "São Paulo",
-            "addressRegion": "SP",
-            "addressCountry": "BR"
-          },
-          "geo": {
-            "@type": "GeoCoordinates",
-            "latitude": "-23.550520",
-            "longitude": "-46.633308"
-          },
-          "priceRange": "$$",
-          "telephone": localData?.whatsapp_number || "+55 11 99999-9999",
-          "openingHours": "Mo-Fr 09:00-18:00, Sa 10:00-16:00",
-          "sameAs": [
-            localData?.instagram_link || "https://instagram.com/mdaccula",
-            localData?.soundcloud_link || "https://soundcloud.com/mdaccula"
-          ]
         };
       }
 

@@ -484,12 +484,6 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/boma2208</loc>
-    <lastmod>2026-07-13</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/corona-apres-malive-476938</loc>
     <lastmod>2026-06-27</lastmod>
     <changefreq>weekly</changefreq>
@@ -498,6 +492,12 @@
   <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-moving-dllw8r</loc>
     <lastmod>2026-04-12</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/eventos/boma2208</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -904,14 +904,14 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
-    <lastmod>2026-06-28</lastmod>
+    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
-    <lastmod>2026-07-14</lastmod>
+    <loc>https://mdaccula.com/eventos/d-nox-on-board-441582</loc>
+    <lastmod>2026-06-28</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1685,7 +1685,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/sirius2908</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1973,7 +1973,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/vintage-culture-sp-no-komplexo-tempo-sao-paulo-sexta-feira</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

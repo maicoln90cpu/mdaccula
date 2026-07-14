@@ -4,17 +4,25 @@
 
 MDAccula conecta artistas, promoters e o público da cena eletrônica paulistana, divulgando os principais eventos, lançamentos e notícias do universo techno e house.
 
+## Fatos-chave
+
+- Sede: São Paulo, SP, Brasil.
+- Mais de 7 anos de atuação e mais de 500 eventos organizados/divulgados por ano.
+- Fundada por Maicoln Douglas, Guilherme Accula e Carina Goes.
+- Organiza festas recorrentes semanais/mensais, incluindo D.EDGE: Moving, FreakChic, Nave e SuperAfter.
+- Mantém um programa de podcast para DJs, o MDAccula Radio, com submissão de sets e gravações.
+
 ## Pages
 
-- [Home](/): Visão geral da agência e destaques.
-- [Eventos](/eventos): Agenda de festas e eventos de música eletrônica em São Paulo.
-- [Blog](/blog): Notícias, entrevistas e cultura techno/house.
-- [MDAccula Radio](/MDAcculaRadio): Podcast e sets exclusivos.
-- [Quem Somos](/quem-somos): Sobre a agência MDAccula.
-- [Contato](/contato): Fale com a equipe.
-- [Links](/links): Links úteis e parceiros.
-- [Busca](/busca): Pesquisar eventos e posts.
+- [Home](/): Visão geral da agência, próximos eventos em destaque e últimas notícias.
+- [Eventos](/eventos): Agenda de festas e eventos de música eletrônica em São Paulo, com filtro por gênero, cidade, estado e data.
+- [Blog](/blog): Notícias, entrevistas e cultura techno/house sobre a cena eletrônica de São Paulo e do Brasil.
+- [MDAccula Radio](/MDAcculaRadio): Podcast e sets exclusivos; informações sobre como DJs podem participar.
+- [Quem Somos](/quem-somos): História da agência, fundadores e equipe.
+- [Contato](/contato): Canais de contato da equipe (WhatsApp, email, redes sociais).
+- [Links](/links): Página de links (estilo Linktree) com eventos e redes sociais.
+- [Busca](/busca): Pesquisar eventos e posts do blog por texto livre.
 
 ## Optional
 
-- [Política de Privacidade](/privacidade): Termos e tratamento de dados.
+- [Política de Privacidade](/privacidade): Termos e tratamento de dados (LGPD).

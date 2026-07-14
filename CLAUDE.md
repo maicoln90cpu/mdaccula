@@ -1,0 +1,61 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project
+
+MDAccula — web platform for a Brazilian electronic-music agency: events (incl. automated recurring events), an AI-generated blog, a Linktree-style links page, a UTM link redirector, and a DJ podcast submission program. React SPA frontend + Supabase (Lovable Cloud) backend. Full architecture reference: `README.md` (very detailed — read it before large changes). Deeper docs live in `docs/` (`SYSTEM-DESIGN.md`, `CODE_STYLE.md`, `SECURITY-AUDIT.md`, `TESTING.md`, `PRD.md`, `ROADMAP.md`) and `tabelas.md` (full DB DDL).
+
+## Commands
+
+```bash
+npm run dev                    # Vite dev server (localhost:8080)
+npm run build                  # production build
+npm run build:dev              # dev-mode build
+npm run lint                   # ESLint (no lint:fix / format script exists — fix by hand)
+npm test                       # vitest run — all unit/integration/contract tests
+npm run test:watch             # vitest watch mode
+npx vitest run path/to.test.ts # run a single test file
+npm run test:coverage          # vitest with coverage report (coverage/)
+npm run test:coverage:ratchet  # coverage + enforce .coverage-ratchet.json floor (what CI runs)
+npm run test:edge              # Deno tests for supabase/functions/ (needs Deno installed)
+npm run e2e                    # Playwright E2E (boots vite dev server itself)
+npm run e2e:ui                 # Playwright UI mode
+npx tsc --noEmit                # typecheck (part of the pre-merge checklist)
+```
+
+`predev`/`prebuild` auto-run `scripts/generate-sitemap.mjs` and `scripts/generate-indexnow-keyfile.mjs` — don't invoke build steps out of order expecting those to be skipped.
+
+Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:coverage:ratchet` green (coverage must not drop >0.5pp — it's a versioned ratchet in `.coverage-ratchet.json`, only ever rises), `npx tsc --noEmit` green, and any production bug fix gets a new entry under "Regressões cobertas" in `docs/TESTING.md` plus a test in `src/__tests__/regression/`.
+
+## Architecture
+
+**Frontend**: React 18 + TypeScript + Vite + Tailwind + Shadcn/UI, React Router with every page lazy-loaded in `src/App.tsx`, TanStack Query for server state. Path aliases: `@/*` → `src/*`, `@shared/*` → `supabase/functions/_shared/*` (same aliases in both `tsconfig.json` and `vitest.config.ts`).
+
+**Backend**: Supabase/Lovable Cloud — PostgreSQL (25 tables, RLS everywhere), 20+ Deno Edge Functions in `supabase/functions/`, Storage for images, pg_cron for scheduled jobs (recurring events, AI article generation, log cleanup). `supabase/config.toml`, `src/integrations/supabase/client.ts`, and `src/integrations/supabase/types.ts` are auto-managed/generated — never hand-edit them.
+
+**Barrel exports**: `src/hooks/index.ts`, `src/lib/index.ts`, `src/types/index.ts` — import from these (`@/hooks`, `@/lib`, `@/types`), not from individual files, matching the import order convention in `docs/CODE_STYLE.md` (React → external libs → UI components → hooks → lib/utils → supabase client → types → local assets).
+
+**Images**: three-layer fallback chain — Bunny CDN (`cdn.mdaccula.com`) → Supabase Storage direct → static placeholder. Rewriting logic lives in `src/lib/imageUtils.ts` (`getOptimizedImageUrl` / `getOriginalSupabaseUrl`). Never hardcode a CDN or Supabase storage URL — always go through these helpers.
+
+**Dates**: always parse `YYYY-MM-DD` strings with `parseLocalDate()` from `src/lib/utils.ts`, never `new Date("2025-12-25")` — the latter is UTC-interpreted and renders as the previous day in negative-offset timezones. Event visibility (recurring/scheduled events disappearing at the wrong time) is computed via `isEventVisible()` in `src/lib/eventDateHelper.ts` against `site_settings.timezone_offset` / `event_grace_hours`.
+
+**Logging**: use the centralized `logger` from `@/lib` (`logger.debug/info/warn/error`, or a scoped logger via `logger.scope({...})`) — not `console.log`. ESLint warns on bare `console.log` (allows `console.warn`/`console.error`).
+
+**Click/view tracking**: anonymous writes (link clicks, redirect clicks, post/event views, shares) must go through the corresponding Edge Function (`track-link-click`, `track-redirect-click`, `track-view`, `track-share`) because RLS blocks anonymous direct writes to those tables.
+
+**Edge Functions**: every function should import shared CORS/rate-limit/timeout/response helpers from `supabase/functions/_shared/index.ts` rather than reimplementing them — see the template in `docs/CODE_STYLE.md`. ESLint does not lint `supabase/functions/` (separate Deno runtime); `npm run test:edge` runs Deno's own test runner against it.
+
+**Auth**: `useAuth` (Context) exposes `user`, `session`, `profile`, `isAdmin`. `isAdmin` is derived from the `user_roles` table via `has_role()`/`is_admin()` SQL functions (SECURITY DEFINER, avoids RLS recursion) — never trust or derive admin status from localStorage. `/admin/*` routes are gated by `ProtectedRoute` checking `isAdmin`.
+
+## Testing layout
+
+`src/__tests__/` is organized by kind, not by feature: `architecture/` (static guards over source code, e.g. banning inline field-list string literals that caused past regressions), `components/`, `hooks/`, `lib/`, `pages/`, `contracts/` (HTTP contract tests per Edge Function — skip automatically without `VITE_SUPABASE_URL`), `database/` (live RLS-policy proofs against real Supabase — skip without env vars, never write data), `regression/` (named after specific production bugs), `seo/`. E2E specs are in `e2e/` (Playwright, separate from Vitest). When touching `supabase/functions/`, also check for a matching file in `contracts/`.
+
+## Conventions
+
+- Never import `@supabase/supabase-js` directly in frontend code — always use the pre-configured client from `@/integrations/supabase/client`.
+- Prefer Tailwind semantic tokens (`bg-background`, `text-primary`, etc.) over hardcoded colors — the dark neon design system is defined in `src/index.css`.
+- Avoid `any`; in catch blocks type the error as `unknown` and narrow with `error instanceof Error`.
+- New pages: add under `src/pages/`, then register a lazy-loaded route in `src/App.tsx` wrapped in `<PageWithError>`.
+- New tables: write RLS policies, document in `tabelas.md`, and regenerate `src/integrations/supabase/types.ts` (auto-generated, don't hand-edit).

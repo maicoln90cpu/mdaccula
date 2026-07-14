@@ -28,20 +28,12 @@ const Index = () => {
         url="https://mdaccula.com"
       />
       <StructuredData type="website" />
-      <StructuredData 
-        type="musicgroup" 
+      <StructuredData
+        type="organization"
         data={{
           instagram_link: settings.instagram_link,
           soundcloud_link: settings.soundcloud_link
-        }} 
-      />
-      <StructuredData 
-        type="localbusiness" 
-        data={{
-          instagram_link: settings.instagram_link,
-          soundcloud_link: settings.soundcloud_link,
-          whatsapp_number: settings.whatsapp_number
-        }} 
+        }}
       />
       
       <div className="min-h-screen">

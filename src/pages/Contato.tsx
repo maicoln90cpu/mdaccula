@@ -84,11 +84,11 @@ const Contato = () => {
   };
 
   const contactInfo = [
-    {
+    settings.whatsapp_number && {
       icon: MessageCircle,
       title: "WhatsApp",
-      value: settings.whatsapp_number || "(11) 99999-9999",
-      link: settings.whatsapp_link || "https://wa.me/5511999999999",
+      value: settings.whatsapp_number,
+      link: settings.whatsapp_link || `https://wa.me/55${settings.whatsapp_number.replace(/\D/g, '')}`,
       color: "text-secondary"
     },
     {
@@ -112,7 +112,7 @@ const Contato = () => {
       link: settings.soundcloud_link || "https://soundcloud.com/mdaccula",
       color: "text-primary"
     }
-  ];
+  ].filter((info): info is Exclude<typeof info, false | ""> => Boolean(info));
 
   const workingHours = [
     { day: "Segunda - Sexta", hours: "09:00 - 18:00" },
