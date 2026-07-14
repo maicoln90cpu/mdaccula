@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
+import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
+import { shouldScrapeForContext } from "../_shared/scrapeGate.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -553,15 +555,20 @@ Deno.serve(async (req) => {
     const remainingMs = FUNCTION_TIMEOUT_MS - elapsedMs;
 
     // Buscar fontes de notícias para contexto adicional (scraping)
+    // Nota: a geração de imagem roda em background (EdgeRuntime.waitUntil,
+    // ver generateAndAttachImage) e não bloqueia mais a resposta de texto,
+    // então não há motivo para pular o scraping quando generateImage=true
+    // (ver _shared/scrapeGate.ts para o histórico dessa regressão).
     let scrapedContext = '';
-    if (FIRECRAWL_API_KEY && remainingMs > 15000 && !generateImage) {
+    const scrapedSourceUrls: string[] = [];
+    if (FIRECRAWL_API_KEY && shouldScrapeForContext({ hasApiKey: true, remainingMs })) {
       try {
         const { data: sources } = await supabase
           .from('news_sources')
           .select('name, url')
           .eq('enabled', true)
           .limit(maxScrapeSources);
-        
+
         if (sources && sources.length > 0) {
           logEgress(supabase, 'news_sources', sources);
           console.log('Scraping fontes para contexto adicional...');
@@ -571,11 +578,12 @@ Deno.serve(async (req) => {
               console.log('Skipping remaining sources due to time constraints');
               break;
             }
-            
+
             const result = await scrapeWithFirecrawl(source.url, FIRECRAWL_API_KEY);
             if (result.success && result.markdown) {
               const truncated = result.markdown.substring(0, 1500);
               scrapedContext += `\n\n### Contexto de ${source.name}:\n${truncated}`;
+              scrapedSourceUrls.push(source.url);
               console.log(`✓ Contexto obtido de ${source.name}`);
             }
           }
@@ -797,6 +805,7 @@ IMPORTANTE:
 - NUNCA use placeholders como {{eventName}}, {{eventDate}}, {{lineup}}, etc. no texto gerado.
 - ${isEventMode ? 'Use os valores REAIS fornecidos no bloco "DADOS OFICIAIS".' : 'Baseie-se no título e resumo fornecidos.'}
 - Se um campo NÃO existe nos dados fornecidos, omita — NUNCA invente.${eventAntiHedgingBlock}${editorialModeBlock}
+${EDITORIAL_QUALITY_BLOCK}
 
 🎬 REGRAS OBRIGATÓRIAS PARA O TÍTULO (campo "title" do JSON):
 O título precisa ser EDITORIAL, envolvente e chamativo — como manchete de revista de música eletrônica.
@@ -854,8 +863,15 @@ ${aiContextBlock}${ticketsBlock}`;
     if (selectedModel.startsWith('google/gemini') && !selectedModel.includes('image')) {
       requestBody.temperature = temperature;
       console.log(`Usando temperature ${temperature} para modelo Gemini`);
+    } else if (isOpenAIModel && modelName.startsWith('gpt-5')) {
+      // Modelos gpt-5* são "reasoning models" e não aceitam temperature customizada.
+      // reasoning_effort baixo + verbosity alta reduzem o "achatamento" da prosa
+      // em tarefas criativas/editoriais sem custo extra relevante.
+      requestBody.reasoning_effort = 'minimal';
+      requestBody.verbosity = 'high';
+      console.log('Usando reasoning_effort=minimal, verbosity=high para modelo gpt-5*');
     }
-    
+
     // Imagem agora é gerada em BACKGROUND (após resposta), então o texto pode usar quase
     // todo o budget. Cap fixo em 110s independente de generateImage.
     const elapsedBeforeAI = Date.now() - startTime;
@@ -1073,6 +1089,7 @@ ${aiContextBlock}${ticketsBlock}`;
         output_tokens: usage.completion_tokens || null,
         total_tokens: usage.total_tokens || null,
         image_tokens: imageTokensUsed > 0 ? imageTokensUsed : null,
+        source_urls: scrapedSourceUrls.length > 0 ? scrapedSourceUrls : null,
       });
 
     if (aiLogError) {

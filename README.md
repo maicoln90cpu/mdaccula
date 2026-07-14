@@ -538,7 +538,7 @@ Placeholder genérico (dj-performance.jpg ou gradiente CSS)
 - Geração de sugestões via scraping de news_sources (Firecrawl)
 - Roteamento dual IA: OpenAI direto ou Gemini via Lovable AI Gateway
 - Geração automática de imagens (Nano Banana, 6 variáveis de prompt)
-- Agendamento automático via pg_cron (a cada 6h, configurável)
+- Agendamento automático via pg_cron: job roda a cada hora, mas só dispara geração quando `ai_auto_generate_interval_hours` já passou desde a última execução (configurável em `site_settings`, hoje 48h em produção — não "a cada 6h" fixo)
 - Filtro de links fake no conteúdo gerado
 - Analytics de tokens e custos por artigo
 - Regeneração de imagens individuais
@@ -600,15 +600,18 @@ Placeholder genérico (dj-performance.jpg ou gradiente CSS)
 
 | Key | Descrição | Exemplo |
 |-----|-----------|---------|
-| `ai_blog_model` | Modelo IA para artigos | `google/gemini-2.5-flash` |
-| `ai_temperature` | Temperatura do modelo | `0.9` |
-| `ai_history_limit` | Limite de histórico | `15` |
+| `ai_blog_model` | Modelo IA para artigos | `openai/gpt-5-mini` (produção) |
+| `ai_temperature` | Temperatura do modelo — **só tem efeito em modelos Gemini**; modelos `openai/gpt-5*` são "reasoning models" e ignoram este valor (a API rejeita/ignora temperature customizada). Para esses modelos usamos `reasoning_effort: 'minimal'` + `verbosity: 'high'` em vez de temperature. | `1.2` |
+| `ai_history_limit` | Limite de histórico | `10` |
 | `ai_auto_generate_enabled` | Geração automática | `true` |
-| `ai_auto_generate_interval_hours` | Intervalo em horas | `6` |
+| `ai_auto_generate_interval_hours` | Intervalo em horas entre gerações automáticas | `48` (produção) |
+| `ai_max_article_length` | Teto de caracteres do artigo gerado (aplicado só em `generate-blog-post-v2`) | `8000` |
 | `timezone_offset` | Offset do fuso | `-3` |
 | `event_grace_hours` | Tolerância visibilidade | `6` |
 | `links_page_theme` | Tema da página links | `neonPurple` |
 | `links_page_card_default_height` | Altura padrão cards | `100` |
+
+> **Escolha de modelo para geração de artigo:** `openai/gpt-5-mini` é um modelo de raciocínio — bom em seguir instruções/estrutura, mas historicamente mais "seco"/hedged em prosa criativa do que modelos não-raciocínio, e não aceita `temperature`. Se a qualidade de prosa ainda incomodar após os ajustes de `reasoning_effort`/`verbosity`, considere trocar `ai_blog_model` (só um valor em `site_settings`, sem deploy) para `openai/gpt-4.1-mini` (respeita `temperature`, bom em prosa estilizada, custo intermediário) ou `google/gemini-2.5-flash` (via Lovable AI Gateway, já suportado, sem custo de key própria da OpenAI) para comparar qualidade lado a lado.
 
 ---
 

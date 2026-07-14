@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Sparkles, Lightbulb, Clock } from "lucide-react";
+import { ArrowLeft, Sparkles, Lightbulb, Clock, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { GenerateForm } from "@/components/admin/ai-content/GenerateForm";
 import type { GenerationProgress } from "@/components/admin/ai-content/SuggestionsList";
 import { SuggestionsList } from "@/components/admin/ai-content/SuggestionsList";
 import { PostsHistory } from "@/components/admin/ai-content/PostsHistory";
+import { TopicSearchForm } from "@/components/admin/ai-content/TopicSearchForm";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { logger } from "@/lib/logger";
 
@@ -35,6 +36,7 @@ interface BlogPost {
     total_tokens?: number;
     image_tokens?: number;
     generated_at?: string;
+    source_urls?: string[] | null;
   };
 }
 
@@ -63,6 +65,8 @@ export default function AIContent2() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [topicQuery, setTopicQuery] = useState("");
+  const [isGeneratingFromTopic, setIsGeneratingFromTopic] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
@@ -133,7 +137,7 @@ export default function AIContent2() {
       const postIds = posts?.map((p) => p.id) || [];
       const { data: aiData, error: aiError } = await supabase
         .from("ai_generated_posts")
-        .select("blog_post_id, model_used, total_tokens, image_tokens, generated_at")
+        .select("blog_post_id, model_used, total_tokens, image_tokens, generated_at, source_urls")
         .in("blog_post_id", postIds);
 
       if (aiError) throw aiError;
@@ -149,6 +153,7 @@ export default function AIContent2() {
                 total_tokens: ai.total_tokens || undefined,
                 image_tokens: ai.image_tokens || undefined,
                 generated_at: ai.generated_at || undefined,
+                source_urls: ai.source_urls || undefined,
               }
             : undefined,
         };
@@ -262,6 +267,40 @@ export default function AIContent2() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateFromTopic = async () => {
+    if (!topicQuery.trim()) return;
+
+    setIsGeneratingFromTopic(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-blog-post-from-topic", {
+        body: {
+          query: topicQuery.trim(),
+          generateImage: generateWithImage,
+        },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Artigo gerado a partir da busca!",
+        description: `"${data.post?.title}" foi criado com base em ${data.sourcesUsed?.length ?? 0} fontes.`,
+      });
+
+      fetchGeneratedPosts();
+      setTopicQuery("");
+    } catch (error: any) {
+      logger.error("Error generating from topic:", error);
+      toast({
+        title: "Erro ao gerar artigo por tema",
+        description: error.message || "Ocorreu um erro durante a busca/geração.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingFromTopic(false);
     }
   };
 
@@ -564,7 +603,7 @@ export default function AIContent2() {
 
           {/* Tabs */}
           <Tabs defaultValue="generate" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6">
+            <TabsList className="grid w-full grid-cols-4 mb-6">
               <TabsTrigger value="generate" className="gap-2">
                 <Sparkles className="h-4 w-4" />
                 Gerar
@@ -572,6 +611,10 @@ export default function AIContent2() {
               <TabsTrigger value="suggestions" className="gap-2">
                 <Lightbulb className="h-4 w-4" />
                 Sugestões
+              </TabsTrigger>
+              <TabsTrigger value="topic" className="gap-2">
+                <Search className="h-4 w-4" />
+                Por Tema
               </TabsTrigger>
               <TabsTrigger value="history" className="gap-2">
                 <Clock className="h-4 w-4" />
@@ -609,6 +652,19 @@ export default function AIContent2() {
                   onGenerateWithImageChange={setGenerateWithImage}
                   onGenerateFromSuggestion={handleGenerateFromSuggestion}
                   onGenerateSelected={handleGenerateSelected}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="topic">
+              <div className="w-full">
+                <TopicSearchForm
+                  topicQuery={topicQuery}
+                  generateWithImage={generateWithImage}
+                  isGenerating={isGeneratingFromTopic}
+                  onTopicQueryChange={setTopicQuery}
+                  onGenerateWithImageChange={setGenerateWithImage}
+                  onGenerate={handleGenerateFromTopic}
                 />
               </div>
             </TabsContent>

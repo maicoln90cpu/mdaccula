@@ -1,10 +1,18 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon, RefreshCw } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon, RefreshCw, Globe } from "lucide-react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -22,6 +30,7 @@ interface BlogPost {
     total_tokens?: number;
     image_tokens?: number;
     generated_at?: string;
+    source_urls?: string[] | null;
   };
 }
 
@@ -33,6 +42,8 @@ interface PostsHistoryProps {
 }
 
 export function PostsHistory({ posts, isLoading, onRegenerateImage, regeneratingId }: PostsHistoryProps) {
+  const [sourcesDialogPost, setSourcesDialogPost] = useState<BlogPost | null>(null);
+
   if (isLoading) {
     return (
       <Card>
@@ -187,6 +198,17 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
                           {regeneratingId === post.id ? "Gerando..." : "Regerar imagem"}
                         </Button>
                       )}
+                      {!!post.ai_data?.source_urls?.length && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSourcesDialogPost(post)}
+                          title="Ver fontes usadas pelo Firecrawl"
+                        >
+                          <Globe className="h-3 w-3 mr-1" />
+                          Fontes ({post.ai_data.source_urls.length})
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -195,6 +217,34 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
           )}
         </ScrollArea>
       </CardContent>
+
+      <Dialog open={!!sourcesDialogPost} onOpenChange={(open) => !open && setSourcesDialogPost(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Fontes usadas
+            </DialogTitle>
+            <DialogDescription>
+              Sites raspados pelo Firecrawl e usados como base para "{sourcesDialogPost?.title}".
+            </DialogDescription>
+          </DialogHeader>
+          <ul className="space-y-2">
+            {sourcesDialogPost?.ai_data?.source_urls?.map((url) => (
+              <li key={url}>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary underline break-all"
+                >
+                  {url}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

@@ -83,7 +83,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/caos250726</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -190,6 +190,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/eventos/keinemusiksp</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/eventos/solomunsp</loc>
     <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
@@ -215,7 +221,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/mp190926</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1078,6 +1084,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/clubes-sustentaveis-redesenham-a-noite-como-praticas-verdes-transformam-a-cena-eletronica</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/clubes-de-periferia-redesenham-a-noite-com-diversidade-e-resistencia</loc>
     <lastmod>2026-06-25</lastmod>
     <changefreq>monthly</changefreq>
@@ -1186,6 +1198,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/winter-sessions-pousada-c-turismo-campos-do-jordao-04-06-2026</loc>
     <lastmod>2026-06-09</lastmod>
     <changefreq>monthly</changefreq>
@@ -1230,6 +1248,12 @@
   <url>
     <loc>https://mdaccula.com/blog/coletivos-em-ascensao-como-redes-independentes-estao-redesenhando-o-mapa-das-pistas</loc>
     <lastmod>2026-06-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1312,6 +1336,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/como-a-inteligencia-artificial-esta-remodelando-o-trabalho-dos-djs</loc>
     <lastmod>2026-06-18</lastmod>
     <changefreq>monthly</changefreq>
@@ -1374,12 +1404,6 @@
   <url>
     <loc>https://mdaccula.com/blog/por-que-festivais-europeus-apostam-em-artistas-brasileiros</loc>
     <lastmod>2026-06-02</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro</loc>
-    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1552,6 +1576,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/music-on-no-vale-do-anhangabau-em-sao-paulo-sabado-7-de-novembro</loc>
+    <lastmod>2026-07-14</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/surreal-apres-carnaval-surreal-park-camboriu-25-fev-2026</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
@@ -1578,12 +1608,6 @@
   <url>
     <loc>https://mdaccula.com/blog/produtores-independentes-adotam-sets-hibridos-por-que-isso-importa</loc>
     <lastmod>2026-07-13</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/music-on-no-vale-do-anhangabau-em-sao-paulo-sabado-7-de-novembro</loc>
-    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

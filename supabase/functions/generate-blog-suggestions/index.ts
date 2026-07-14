@@ -316,6 +316,11 @@ DIVERSIFIQUE as categorias.`;
     console.log(`Chamando IA (${modelName} via ${isOpenAIModel ? 'OpenAI direto' : 'Lovable Gateway'})...`);
     const aiStartTime = Date.now();
 
+    // gpt-5* são "reasoning models": não aceitam temperature customizada, mas
+    // reasoning_effort baixo + verbosity alta reduzem o achatamento da prosa
+    // criativa em tarefas de ideação sem custo extra relevante.
+    const isGpt5 = isOpenAIModel && modelName.startsWith('gpt-5');
+
     // Preparar body da requisição
     const requestBody: Record<string, unknown> = {
       model: modelName,
@@ -324,6 +329,7 @@ DIVERSIFIQUE as categorias.`;
         { role: 'user', content: userPrompt }
       ],
       ...(isOpenAIModel ? {} : { temperature }),
+      ...(isGpt5 ? { reasoning_effort: 'minimal', verbosity: 'high' } : {}),
       tools: [
         {
           type: 'function',

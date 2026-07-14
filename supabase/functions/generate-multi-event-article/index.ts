@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
+import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -431,6 +432,7 @@ OBRIGATÓRIO:
 
 ❌ EXEMPLOS RUINS: "Eventos | 15/05, 16/05, 17/05 | SP", "Confira a agenda da semana"
 ✅ EXEMPLOS BONS: "Cinco noites que tomam São Paulo neste fim de semana", "Agenda eletrônica de maio: do techno ao psytrance em SP"
+${EDITORIAL_QUALITY_BLOCK}
 `;
 
     console.log('[generate-multi-event-article] Usando template:', template ? 'do banco' : 'fallback padrão', '| isCourtesy:', isCourtesy);
@@ -459,6 +461,11 @@ OBRIGATÓRIO:
 
     console.log(`[generate-multi-event-article] Enviando para IA (${modelName} via ${isOpenAIModel ? 'OpenAI direto' : 'Lovable Gateway'})...`);
 
+    // gpt-5* são "reasoning models": não aceitam temperature customizada, mas
+    // reasoning_effort baixo + verbosity alta reduzem o achatamento da prosa
+    // criativa/editorial sem custo extra relevante.
+    const isGpt5 = isOpenAIModel && modelName.startsWith('gpt-5');
+
     // Call AI API with longer timeout for multi-event
     const aiResponse = await fetchWithTimeout(apiEndpoint, {
       method: 'POST',
@@ -473,6 +480,7 @@ OBRIGATÓRIO:
           { role: 'user', content: userPrompt }
         ],
         ...(isOpenAIModel ? {} : { temperature }),
+        ...(isGpt5 ? { reasoning_effort: 'minimal', verbosity: 'high' } : {}),
       }),
     }, 90000);
 
