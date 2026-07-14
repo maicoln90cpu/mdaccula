@@ -54,6 +54,49 @@ function generateSlug(title: string): string {
   return `${base}-${random}`;
 }
 
+// ============= CONTEÚDO ÚNICO POR INSTÂNCIA =============
+// Sem isso, toda semana o campo `description` era copiado 1:1 do template
+// (config.description), gerando conteúdo praticamente duplicado entre as
+// edições de um mesmo evento recorrente (achado de SEO, ver PENDENCIAS.MD).
+// Aqui a gente insere uma abertura variável (data por extenso + frase
+// rotativa) antes do texto fixo do config, sem custo de IA extra.
+const WEEKDAYS_PT = [
+  "domingo", "segunda-feira", "terça-feira", "quarta-feira",
+  "quinta-feira", "sexta-feira", "sábado",
+];
+const MONTHS_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+const OPENING_VARIANTS = [
+  (title: string) => `Mais uma edição do ${title} está chegando.`,
+  (title: string) => `Chegou a hora de outra noite do ${title}.`,
+  (title: string) => `O ${title} volta para agitar mais um fim de semana.`,
+  (title: string) => `Nova edição confirmada: ${title} não para.`,
+];
+
+function formatDatePtBr(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const weekday = WEEKDAYS_PT[date.getUTCDay()];
+  const monthName = MONTHS_PT[date.getUTCMonth()];
+  return `${weekday}, ${day} de ${monthName}`;
+}
+
+function buildUniqueDescription(config: RecurringConfig, nextDate: string): string {
+  // Índice determinístico (não aleatório) baseado na data, pra girar entre
+  // as variações sem repetir a mesma abertura toda semana.
+  const dayOfYear = Math.floor(
+    (new Date(nextDate).getTime() - new Date(`${nextDate.slice(0, 4)}-01-01`).getTime()) /
+      86_400_000
+  );
+  const variant = OPENING_VARIANTS[dayOfYear % OPENING_VARIANTS.length];
+  const opening = `${variant(config.title)} Neste(a) ${formatDatePtBr(nextDate)}, o ${config.venue} recebe a galera para mais uma noite de ${(config.genres ?? []).join(", ") || "música eletrônica"}.`;
+
+  return config.description ? `${opening}\n\n${config.description}` : opening;
+}
+
 function getNextDateForWeekday(weekday: number, referenceDate: Date): string {
   const result = new Date(referenceDate);
   const currentDay = result.getDay();
@@ -175,7 +218,7 @@ Deno.serve(async (req) => {
       
       // Create new event
       const slug = generateSlug(config.title);
-      
+
       const { data: newEvent, error: insertError } = await supabase
         .from("events")
         .insert({
@@ -188,7 +231,7 @@ Deno.serve(async (req) => {
           address: config.address,
           location_city: config.location_city,
           location_state: config.location_state,
-          description: config.description,
+          description: buildUniqueDescription(config, nextDate),
           genres: config.genres,
           ticket_link: config.ticket_link,
           vip_link: config.vip_link,

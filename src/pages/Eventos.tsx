@@ -48,6 +48,24 @@ const eventOccursOnDate = (event: Pick<Event, 'date'> & { end_date?: string | nu
 const formatDateKey = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+// Sexta a domingo do fim de semana mais próximo — se hoje já é sex/sáb/dom,
+// usa o fim de semana em curso (a partir de hoje) em vez de pular pro próximo.
+const getThisWeekendDates = (): string[] => {
+  const today = new Date();
+  const day = today.getDay(); // 0=dom ... 6=sáb
+  const daysUntilFriday = day <= 5 ? 5 - day : 0; // já é sex/sáb/dom -> 0
+  const friday = new Date(today);
+  friday.setDate(today.getDate() + daysUntilFriday);
+
+  return [0, 1, 2]
+    .map((offset) => {
+      const d = new Date(friday);
+      d.setDate(friday.getDate() + offset);
+      return formatDateKey(d);
+    })
+    .filter((dateKey) => dateKey >= formatDateKey(today));
+};
+
 const Eventos = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -67,6 +85,7 @@ const Eventos = () => {
   const [genreFilter, setGenreFilter] = useState('Todos');
   const [stateFilter, setStateFilter] = useState('Todos');
   const [dateFilter, setDateFilter] = useState<string>('');
+  const [weekendDates, setWeekendDates] = useState<string[]>([]);
   
   // UI states
   const [showEventForm, setShowEventForm] = useState(false);
@@ -112,6 +131,14 @@ const Eventos = () => {
       filtered = filtered.filter(event => eventOccursOnDate(event, dateFilter));
     }
 
+    // Atalho "este fim de semana" — evento aparece se ocorrer em qualquer
+    // um dos dias sex/sáb/dom do fim de semana mais próximo
+    if (weekendDates.length > 0) {
+      filtered = filtered.filter(event =>
+        weekendDates.some(weekendDate => eventOccursOnDate(event, weekendDate))
+      );
+    }
+
     if (genreFilter !== 'Todos') {
       filtered = filtered.filter(event => 
         event.genres && event.genres.includes(genreFilter)
@@ -128,7 +155,7 @@ const Eventos = () => {
     }
 
     return filtered;
-  }, [events, debouncedSearchTerm, dateFilter, genreFilter, stateFilter, debouncedCityFilter]);
+  }, [events, debouncedSearchTerm, dateFilter, weekendDates, genreFilter, stateFilter, debouncedCityFilter]);
 
   // Reset city filter when state changes and city is not in new state
   useEffect(() => {
@@ -331,8 +358,8 @@ const Eventos = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 {dateFilter && (
-                  <Badge 
-                    variant="secondary" 
+                  <Badge
+                    variant="secondary"
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 gap-1 cursor-pointer hover:bg-destructive/20"
                     onClick={() => setDateFilter('')}
                   >
@@ -342,7 +369,32 @@ const Eventos = () => {
                   </Badge>
                 )}
               </div>
-              
+
+              {/* Atalho fim de semana */}
+              <div>
+                {weekendDates.length > 0 ? (
+                  <Badge
+                    variant="secondary"
+                    className="gap-1 cursor-pointer hover:bg-destructive/20 h-9 px-3"
+                    onClick={() => setWeekendDates([])}
+                  >
+                    <CalendarIcon className="w-3 h-3" />
+                    Este fim de semana
+                    <X className="w-3 h-3" />
+                  </Badge>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setWeekendDates(getThisWeekendDates()); setDateFilter(''); }}
+                  >
+                    <CalendarIcon className="w-3.5 h-3.5 mr-2" />
+                    Este fim de semana
+                  </Button>
+                )}
+              </div>
+
               {/* Dropdown filters */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="flex flex-col gap-2">
@@ -397,6 +449,7 @@ const Eventos = () => {
                     onClick={() => {
                       setSearchTerm('');
                       setDateFilter('');
+                      setWeekendDates([]);
                       setGenreFilter('Todos');
                       setStateFilter('Todos');
                       setCityFilter('Todos');
@@ -479,7 +532,7 @@ const Eventos = () => {
                           <div
                             key={index}
                             className="text-center p-2 sm:p-3 border rounded bg-primary/10 hover:bg-primary/20 cursor-pointer transition-colors active:scale-95"
-                            onClick={() => setDateFilter(eventDate.date)}
+                            onClick={() => { setDateFilter(eventDate.date); setWeekendDates([]); }}
                           >
                             <div className="text-xs sm:text-sm font-medium text-primary">
                               {formatDate(eventDate.date)}
@@ -510,6 +563,7 @@ const Eventos = () => {
                       onDayClick={(date) => {
                         const dateStr = date.toISOString().split('T')[0];
                         setDateFilter(dateStr);
+                        setWeekendDates([]);
                       }}
                     />
                   </div>

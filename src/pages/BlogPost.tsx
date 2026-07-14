@@ -189,7 +189,9 @@ const BlogPost = () => {
               <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center">
                   <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
-                  <span>MDAccula</span>
+                  <Link to="/quem-somos" className="hover:text-primary transition-colors">
+                    Por Equipe Editorial MDAccula
+                  </Link>
                 </div>
                 <div className="flex items-center">
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
@@ -204,6 +206,10 @@ const BlogPost = () => {
                   <span>{post.likes} curtidas</span>
                 </div>
               </div>
+
+              <p className="mt-3 sm:mt-4 text-[11px] sm:text-xs text-muted-foreground/80 italic">
+                Conteúdo com apoio de inteligência artificial, revisado pela equipe editorial da MDAccula.
+              </p>
             </div>
           </div>
         </section>

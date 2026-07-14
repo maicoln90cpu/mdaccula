@@ -1278,6 +1278,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               placeholder="Descrição do evento..."
               rows={4}
             />
+            {(watch('description')?.trim().length ?? 0) > 0 &&
+              (watch('description')?.trim().length ?? 0) < 80 && (
+                <p className="text-xs text-amber-500">
+                  Descrição curta — eventos com um texto único e mais detalhado (line-up, o que
+                  esperar da noite, diferenciais do local) tendem a se sair melhor no Google.
+                  Não é obrigatório, só uma sugestão.
+                </p>
+              )}
           </div>
 
           <div className="space-y-2">
