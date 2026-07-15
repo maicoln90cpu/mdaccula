@@ -243,7 +243,13 @@ export default function AIContent2() {
       const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
         body: {
           templateId: selectedTemplate.id,
-          formData,
+          ...formData,
+          eventName:
+            formData.eventName ||
+            formData.title ||
+            formData.festivalName ||
+            formData.labelName ||
+            Object.values(formData).find((value) => value?.trim()),
           generateImage: generateWithImage,
         },
       });
