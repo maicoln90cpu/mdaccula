@@ -71,3 +71,14 @@ Deno.test("parseExtractionResponse retorna null quando o JSON dos argumentos é 
   };
   assertEquals(parseExtractionResponse(aiData), null);
 });
+
+Deno.test("parseExtractionResponse retorna null quando os argumentos são o literal JSON null", () => {
+  const aiData = {
+    choices: [{
+      message: {
+        tool_calls: [{ function: { arguments: "null" } }],
+      },
+    }],
+  };
+  assertEquals(parseExtractionResponse(aiData), null);
+});

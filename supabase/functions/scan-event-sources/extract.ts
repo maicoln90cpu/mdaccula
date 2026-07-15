@@ -75,6 +75,8 @@ export function parseExtractionResponse(aiData: unknown): ExtractedEvent | null 
     return null;
   }
 
+  if (typeof args !== "object" || args === null) return null;
+
   if (args.has_event !== true) return null;
   if (typeof args.title !== "string" || typeof args.date !== "string") return null;
 
