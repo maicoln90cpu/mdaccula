@@ -346,7 +346,7 @@ export default function AutoGenerationDashboard() {
       <div className="w-full">
         <div className="w-full px-4 md:px-6 py-6">
           {/* Header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
                 <ArrowLeft className="h-5 w-5" />

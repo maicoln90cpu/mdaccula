@@ -264,7 +264,7 @@ const EventTemplates = () => {
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
           <div className="w-full">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
               <div>
                 <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
                   <ArrowLeft className="w-4 h-4 mr-2" />

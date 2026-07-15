@@ -163,7 +163,7 @@ export default function EventWatchReview() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Revisão de Eventos (IA)</h1>
         <Button onClick={handleScanNow} disabled={scanning}>
           {scanning ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}

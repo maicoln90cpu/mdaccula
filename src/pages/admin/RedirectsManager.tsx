@@ -276,7 +276,7 @@ const RedirectsManager = () => {
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
           <div className="w-full">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
               <div>
                 <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -448,11 +448,11 @@ const RedirectsManager = () => {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <code className="text-sm font-mono text-primary">
+                          <div className="flex items-center gap-2 mb-1 min-w-0">
+                            <code className="text-sm font-mono text-primary truncate">
                               {siteUrl}/r/{link.slug}
                             </code>
-                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyLink(link.slug)}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyLink(link.slug)}>
                               <Copy className="w-3 h-3" />
                             </Button>
                           </div>

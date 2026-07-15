@@ -7,7 +7,10 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    // Playwright's webServer overrides this (own port, strict) so E2E never
+    // collides with — or silently reuses — an unrelated dev server on :8080.
+    port: Number(process.env.VITE_DEV_SERVER_PORT) || 8080,
+    strictPort: Boolean(process.env.VITE_DEV_SERVER_PORT),
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

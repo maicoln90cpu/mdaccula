@@ -13,6 +13,11 @@ try {
  * Playwright E2E configuration.
  * Boots the Vite dev server on :8080 and runs smoke specs against it.
  */
+// Dedicated port for the Vite dev server Playwright spawns — deliberately not
+// 8080 (Vite's default), so E2E never silently reuses/collides with some
+// unrelated project's dev server already listening on the common port.
+const E2E_PORT = 8091;
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -23,7 +28,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['html', { open: 'never' }], ['list']] : 'list',
   use: {
-    baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL || `http://localhost:${E2E_PORT}`,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
@@ -57,8 +62,9 @@ export default defineConfig({
     ? undefined
     : {
         command: 'bun run dev',
-        url: 'http://localhost:8080',
+        url: `http://localhost:${E2E_PORT}`,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
+        env: { VITE_DEV_SERVER_PORT: String(E2E_PORT) },
       },
 });

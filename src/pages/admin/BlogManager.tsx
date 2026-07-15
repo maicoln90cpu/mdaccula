@@ -251,7 +251,7 @@ const BlogManager = () => {
               </NavLink>
             </div>
             
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
               <h1 className="text-4xl font-bold hero-text">Gerenciar Blog</h1>
               <Button onClick={handleNew} className="btn-neon">
                 <Plus className="w-4 h-4 mr-2" />

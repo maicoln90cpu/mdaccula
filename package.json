@@ -21,7 +21,7 @@
     "test:edge": "deno test --allow-net --allow-env --allow-read supabase/functions/",
     "e2e": "playwright test --project=chromium",
     "e2e:ui": "playwright test --ui",
-    "e2e:full": "playwright test --project=viewport-mobile --project=viewport-tablet --project=viewport-desktop",
+    "e2e:full": "playwright test --project=viewport-mobile --project=viewport-tablet --project=viewport-desktop --workers=1",
     "preview": "vite preview",
     "start": "node server.js"
   },

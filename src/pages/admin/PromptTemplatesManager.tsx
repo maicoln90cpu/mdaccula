@@ -331,7 +331,7 @@ const PromptTemplatesManager = () => {
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
           <div className="w-full">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
               <div className="flex items-center gap-4">
                 <NavLink to="/admin">
                   <Button variant="ghost" size="icon">
