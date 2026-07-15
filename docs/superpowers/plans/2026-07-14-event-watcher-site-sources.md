@@ -1388,6 +1388,8 @@ git commit -m "feat(admin): add EventSourcesManager page"
 **Interfaces:**
 - Consumes: `EventWatchDraft` (Task 3), `buildArticlePayload`/`EventLike` de `@/lib/eventArticlePayload` (já existe), `supabase.functions.invoke('generate-blog-post-v2', ...)` (já existe, contrato confirmado em `EventsManager.tsx:234-249`), `supabase.functions.invoke('scan-event-sources', ...)` (Task 6).
 
+**Nota (15/07/2026 — mudança de escopo confirmada pelo usuário):** o fluxo de aprovação cria **apenas o post de blog**, não cria uma linha em `events`. Confirmado: `generate-blog-post-v2` (`supabase/functions/generate-blog-post-v2/index.ts:1094-1112`) faz `insert` direto em `blog_posts` sem nenhuma referência a `event_id`/`eventId` — a vinculação `events.blog_post_id` que aparece em `EventsManager.tsx` é feita pelo *chamador*, não pela function. Como `EventLike` (`@/lib/eventArticlePayload.ts:7-25`) trata `id` como campo opcional, `buildArticlePayload` pode ser chamado com um objeto montado diretamente a partir dos campos editados do rascunho, sem precisar inserir em `events` primeiro. `event_watch_drafts.published_event_id` fica `null` (coluna já é nullable); só `published_blog_post_id` é preenchido.
+
 - [ ] **Step 1: Implementar a página**
 
 ```tsx
@@ -1419,16 +1421,6 @@ interface EditedFields {
   lineup: string;
   ticketLink: string;
   description: string;
-}
-
-function slugify(title: string): string {
-  const base = title
-    .normalize("NFD")
-    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
-    .replace(/[^a-zA-Z0-9_]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-  const timestamp = Date.now().toString().slice(-6);
-  return `${base}-${timestamp}`;
 }
 
 function toEditedFields(draft: EventWatchDraft): EditedFields {
@@ -1502,9 +1494,8 @@ export default function EventWatchReview() {
 
   const approveMutation = useMutation({
     mutationFn: async ({ draft, fields }: { draft: EventWatchDraft; fields: EditedFields }) => {
-      const eventInsert = {
+      const eventLike: EventLike = {
         title: fields.title,
-        slug: slugify(fields.title),
         date: fields.date,
         time: fields.time || null,
         venue: fields.venue,
@@ -1516,27 +1507,12 @@ export default function EventWatchReview() {
         description: fields.description || null,
       };
 
-      const { data: insertedEvent, error: eventError } = await supabase
-        .from("events")
-        .insert([eventInsert])
-        .select()
-        .single();
-      if (eventError) throw eventError;
-
-      const payload = buildArticlePayload(insertedEvent as unknown as EventLike, {
-        generateImage: !insertedEvent.image_url,
-      });
+      const payload = buildArticlePayload(eventLike, { generateImage: true });
       const { data: blogData, error: blogError } = await supabase.functions.invoke("generate-blog-post-v2", {
         body: payload,
       });
       if (blogError) throw blogError;
       if (!blogData?.post?.id) throw new Error("Resposta inválida do gerador de artigo");
-
-      const { error: linkError } = await supabase
-        .from("events")
-        .update({ blog_post_id: blogData.post.id })
-        .eq("id", insertedEvent.id);
-      if (linkError) throw linkError;
 
       const { data: userData } = await supabase.auth.getUser();
       const { error: draftError } = await supabase
@@ -1545,7 +1521,6 @@ export default function EventWatchReview() {
           status: "published",
           reviewed_by: userData.user?.id ?? null,
           reviewed_at: new Date().toISOString(),
-          published_event_id: insertedEvent.id,
           published_blog_post_id: blogData.post.id,
         })
         .eq("id", draft.id);
@@ -1553,7 +1528,7 @@ export default function EventWatchReview() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-watch-drafts"] });
-      toast({ title: "Publicado!", description: "Evento e artigo criados com sucesso." });
+      toast({ title: "Publicado!", description: "Artigo criado com sucesso." });
       setSelected(null);
     },
     onError: (error: Error) => {
@@ -1807,7 +1782,7 @@ Expected: os testes de `_shared`, `dedupe` e `extract` passam (11 testes novos).
 2. Clicar "Executar Agora" em `/admin/event-watch-review`.
 3. Confirmar que um rascunho aparece (ou que `skippedNoEvent`/`scrapeErrors` explica por que não).
 4. Abrir o rascunho, revisar/editar os campos, clicar "Aprovar e publicar".
-5. Confirmar em `/admin/events` que o evento foi criado, e em `/admin/blog` que o artigo foi gerado e vinculado (`blog_post_id` preenchido).
+5. Confirmar em `/admin/blog` que o artigo foi gerado e que o rascunho em `event_watch_drafts` ficou `status='published'` com `published_blog_post_id` preenchido (`published_event_id` fica `null` — este fluxo não cria evento em `/admin/events`, por decisão explícita do usuário em 15/07/2026).
 
 - [ ] **Step 3 (opcional): Ligar o cron automático a cada 48h**
 

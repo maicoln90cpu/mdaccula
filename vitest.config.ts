@@ -20,14 +20,10 @@ export default defineConfig({
         'src/main.tsx',
         'src/vite-env.d.ts',
       ],
-      // Thresholds = baseline atual (mede 2026-06). Apenas trava regressão;
-      // o ratchet (scripts/check-coverage-ratchet.mjs) sobe o piso com o tempo.
-      thresholds: {
-        lines: 8,
-        functions: 6,
-        branches: 6,
-        statements: 8,
-      },
+      // Gate de regressão fica só em scripts/check-coverage-ratchet.mjs (compara
+      // contra .coverage-ratchet.json com tolerância de 0.5pp e sobe o piso sozinho).
+      // Não duplicar thresholds fixos aqui — eles dessincronizam do ratchet e
+      // bloqueiam builds que o ratchet consideraria aceitáveis.
     },
     testTimeout: 10000,
     hookTimeout: 10000,

@@ -1,5 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Loads .env.local (gitignored) into process.env for local runs, e.g.
+// E2E_ADMIN_EMAIL/E2E_ADMIN_PASSWORD — see e2e/helpers/adminAuth.ts.
+// CI sets these via secrets instead, so a missing file here is expected.
+try {
+  process.loadEnvFile('.env.local');
+} catch {
+  // no .env.local — fine, admin-gated specs just skip themselves.
+}
+
 /**
  * Playwright E2E configuration.
  * Boots the Vite dev server on :8080 and runs smoke specs against it.

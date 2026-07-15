@@ -17,9 +17,13 @@ test.describe('Smoke', () => {
   test('/eventos lists event cards', async ({ page }) => {
     const response = await page.goto('/eventos', { waitUntil: 'domcontentloaded' });
     expect(response?.status() ?? 0).toBeLessThan(400);
-    // EventDetail links use /eventos/:slug pattern
-    await page.waitForSelector('a[href^="/eventos/"]', { timeout: 15_000 });
-    expect(await page.locator('a[href^="/eventos/"]').count()).toBeGreaterThan(0);
+    // Event cards navigate via onClick + useNavigate (Eventos.tsx), not <a href> —
+    // there's no anchor to wait for; assert the cards themselves and that clicking
+    // one actually routes to /eventos/:slug.
+    await page.waitForSelector('.event-card', { timeout: 15_000 });
+    expect(await page.locator('.event-card').count()).toBeGreaterThan(0);
+    await page.locator('.event-card').first().click();
+    await page.waitForURL(/\/eventos\/.+/, { timeout: 10_000 });
   });
 
   test('/blog renders post links', async ({ page }) => {
