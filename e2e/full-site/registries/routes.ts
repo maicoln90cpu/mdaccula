@@ -48,7 +48,7 @@ const ADMIN_SEGMENTS = [
   'events-dashboard',
   'event-templates',
   'blog',
-  'news-sources',
+  'fontes',
   'ai-content2',
   'ai-prompt-templates',
   'team',

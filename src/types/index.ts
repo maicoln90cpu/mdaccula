@@ -170,6 +170,23 @@ export interface EventSourceInsert {
   enabled?: boolean;
 }
 
+export interface NewsSource {
+  id: string;
+  name: string;
+  url: string;
+  description: string | null;
+  enabled: boolean;
+  last_checked_at?: string | null;
+  created_at: string;
+}
+
+export interface NewsSourceInsert {
+  name: string;
+  url: string;
+  description?: string | null;
+  enabled?: boolean;
+}
+
 export type EventWatchDraftStatus = 'pending_review' | 'approved' | 'rejected' | 'published';
 
 export interface EventWatchDraft {

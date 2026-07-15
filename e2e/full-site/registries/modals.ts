@@ -68,9 +68,9 @@ export const MODALS: ModalEntry[] = [
     close: { kind: 'escape' },
   },
   {
-    id: 'admin-news-sources-create-dialog',
+    id: 'admin-fontes-create-dialog',
     requiresAdmin: true,
-    navigate: async (page) => page.goto('/admin/news-sources', { waitUntil: 'domcontentloaded' }),
+    navigate: async (page) => page.goto('/admin/fontes', { waitUntil: 'domcontentloaded' }),
     open: async (page) => page.getByRole('button', { name: 'Nova Fonte' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },

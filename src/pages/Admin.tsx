@@ -60,7 +60,7 @@ const sections: AdminSection[] = [
     cards: [
       { title: "Gerador de Conteúdo", description: "Gerar artigos com IA", icon: Sparkles, href: "/admin/ai-content2", color: "text-purple-500" },
       { title: "Templates de Prompts", description: "Editar prompts da IA", icon: Bot, href: "/admin/ai-prompt-templates", color: "text-indigo-500" },
-      { title: "Fontes de Notícias", description: "Sites onde a IA pesquisa", icon: Globe, href: "/admin/news-sources", color: "text-yellow-500" },
+      { title: "Fontes", description: "Fontes de notícias e eventos monitoradas pela IA", icon: Globe, href: "/admin/fontes", color: "text-yellow-500" },
       { title: "Geração Automática", description: "Cron e fila de auto-geração", icon: Wand2, href: "/admin/auto-generation", color: "text-emerald-500" },
     ],
   },
