@@ -770,6 +770,42 @@ export type Database = {
           },
         ]
       }
+      event_sources: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          last_scanned_at: string | null
+          last_seen_post_id: string | null
+          name: string
+          type: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_scanned_at?: string | null
+          last_seen_post_id?: string | null
+          name: string
+          type?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          last_scanned_at?: string | null
+          last_seen_post_id?: string | null
+          name?: string
+          type?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       event_templates: {
         Row: {
           address: string | null
@@ -852,6 +888,107 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_watch_drafts: {
+        Row: {
+          created_at: string
+          extracted_address: string | null
+          extracted_city: string | null
+          extracted_confidence: string
+          extracted_date: string
+          extracted_description: string | null
+          extracted_lineup: string[] | null
+          extracted_state: string | null
+          extracted_ticket_link: string | null
+          extracted_time: string | null
+          extracted_title: string
+          extracted_venue: string | null
+          id: string
+          published_blog_post_id: string | null
+          published_event_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string | null
+          source_raw_excerpt: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_address?: string | null
+          extracted_city?: string | null
+          extracted_confidence?: string
+          extracted_date: string
+          extracted_description?: string | null
+          extracted_lineup?: string[] | null
+          extracted_state?: string | null
+          extracted_ticket_link?: string | null
+          extracted_time?: string | null
+          extracted_title: string
+          extracted_venue?: string | null
+          id?: string
+          published_blog_post_id?: string | null
+          published_event_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_raw_excerpt?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          extracted_address?: string | null
+          extracted_city?: string | null
+          extracted_confidence?: string
+          extracted_date?: string
+          extracted_description?: string | null
+          extracted_lineup?: string[] | null
+          extracted_state?: string | null
+          extracted_ticket_link?: string | null
+          extracted_time?: string | null
+          extracted_title?: string
+          extracted_venue?: string | null
+          id?: string
+          published_blog_post_id?: string | null
+          published_event_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string | null
+          source_raw_excerpt?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_watch_drafts_published_blog_post_id_fkey"
+            columns: ["published_blog_post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_watch_drafts_published_event_id_fkey"
+            columns: ["published_event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_watch_drafts_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_watch_drafts_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "event_sources"
             referencedColumns: ["id"]
           },
         ]
