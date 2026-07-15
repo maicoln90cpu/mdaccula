@@ -72,25 +72,25 @@ Deno.serve(async (req) => {
       const truncated = scrape.markdown.slice(0, MAX_CONTENT_LENGTH);
       const requestBody = buildExtractionRequest("google/gemini-2.5-flash", source, truncated);
 
-      const aiResponse = await fetchWithTimeout(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${lovableKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestBody),
-        },
-        AI_TIMEOUT_MS,
-      );
-
-      if (!aiResponse.ok) {
-        scrapeErrors++;
-        continue;
-      }
-
       try {
+        const aiResponse = await fetchWithTimeout(
+          "https://ai.gateway.lovable.dev/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${lovableKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(requestBody),
+          },
+          AI_TIMEOUT_MS,
+        );
+
+        if (!aiResponse.ok) {
+          scrapeErrors++;
+          continue;
+        }
+
         const aiData = await aiResponse.json();
         const extracted = parseExtractionResponse(aiData);
 
