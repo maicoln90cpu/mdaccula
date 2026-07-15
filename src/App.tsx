@@ -48,6 +48,8 @@ const EventsDashboard = lazy(() => import("./pages/admin/EventsDashboard"));
 const EventTemplates = lazy(() => import("./pages/admin/EventTemplates"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
 const NewsSourcesManager = lazy(() => import("./pages/admin/NewsSourcesManager"));
+const EventSourcesManager = lazy(() => import("./pages/admin/EventSourcesManager"));
+const EventWatchReview = lazy(() => import("./pages/admin/EventWatchReview"));
 const AIContent2 = lazy(() => import("./pages/admin/AIContent2"));
 const PromptTemplatesManager = lazy(() => import("./pages/admin/PromptTemplatesManager"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
@@ -134,6 +136,8 @@ const App = () => (
                         <Route path="event-templates" element={<PageWithError name="Templates de Eventos"><EventTemplates /></PageWithError>} />
                         <Route path="blog" element={<PageWithError name="Gerenciar Blog"><BlogManager /></PageWithError>} />
                         <Route path="news-sources" element={<PageWithError name="Fontes de Notícias"><NewsSourcesManager /></PageWithError>} />
+                        <Route path="event-sources" element={<PageWithError name="Fontes de Eventos"><EventSourcesManager /></PageWithError>} />
+                        <Route path="event-watch-review" element={<PageWithError name="Revisão de Eventos"><EventWatchReview /></PageWithError>} />
                         <Route path="ai-content2" element={<PageWithError name="Gerador de Conteúdo IA"><AIContent2 /></PageWithError>} />
                         <Route path="ai-prompt-templates" element={<PageWithError name="Templates de Prompts"><PromptTemplatesManager /></PageWithError>} />
                         <Route path="team" element={<PageWithError name="Gerenciar Equipe"><TeamManager /></PageWithError>} />

@@ -22,6 +22,8 @@ import {
   HeartPulse,
   Database,
   Home,
+  Radar,
+  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,6 +65,8 @@ const groups: Group[] = [
       { title: "Gerador de Conteúdo", url: "/admin/ai-content2", icon: Sparkles },
       { title: "Templates de Prompts", url: "/admin/ai-prompt-templates", icon: Bot },
       { title: "Fontes de Notícias", url: "/admin/news-sources", icon: Globe },
+      { title: "Fontes de Eventos", url: "/admin/event-sources", icon: Radar },
+      { title: "Revisão de Eventos (IA)", url: "/admin/event-watch-review", icon: ClipboardCheck },
       { title: "Geração Automática", url: "/admin/auto-generation", icon: Wand2 },
     ],
   },
