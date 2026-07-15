@@ -7,9 +7,6 @@ import {
   RefreshCw,
   Users,
   Sparkles,
-  Bot,
-  Globe,
-  Wand2,
   Link as LinkIcon,
   Mail,
   TestTube2,
@@ -62,12 +59,9 @@ const groups: Group[] = [
   {
     label: "Inteligência Artificial",
     items: [
-      { title: "Gerador de Conteúdo", url: "/admin/ai-content2", icon: Sparkles },
-      { title: "Templates de Prompts", url: "/admin/ai-prompt-templates", icon: Bot },
-      { title: "Fontes de Notícias", url: "/admin/news-sources", icon: Globe },
-      { title: "Fontes de Eventos", url: "/admin/event-sources", icon: Radar },
+      { title: "Conteúdo por IA", url: "/admin/ai-content2", icon: Sparkles },
+      { title: "Fontes", url: "/admin/fontes", icon: Radar },
       { title: "Revisão de Eventos (IA)", url: "/admin/event-watch-review", icon: ClipboardCheck },
-      { title: "Geração Automática", url: "/admin/auto-generation", icon: Wand2 },
     ],
   },
   {

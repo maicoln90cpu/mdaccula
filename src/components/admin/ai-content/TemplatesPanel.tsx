@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
@@ -14,8 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, Plus, Edit2, Trash2, Star, StarOff, CheckCircle2, XCircle, Eye } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Plus, Edit2, Trash2, Star, StarOff, CheckCircle2, XCircle, Eye } from "lucide-react";
 import type { Json } from "@/integrations/supabase/types";
 
 interface PromptTemplate {
@@ -32,7 +31,7 @@ interface PromptTemplate {
   updated_at: string | null;
 }
 
-const PromptTemplatesManager = () => {
+export function TemplatesPanel() {
   const { toast } = useToast();
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,12 +85,12 @@ const PromptTemplatesManager = () => {
   // Helper to normalize required_fields from array to object
   const normalizeRequiredFields = (fields: unknown): Record<string, boolean> => {
     if (!fields) return {};
-    
+
     // If it's already an object, use it directly
     if (typeof fields === 'object' && !Array.isArray(fields)) {
       return fields as Record<string, boolean>;
     }
-    
+
     // If it's an array, convert to object
     if (Array.isArray(fields)) {
       return fields.reduce((acc, field) => {
@@ -101,7 +100,7 @@ const PromptTemplatesManager = () => {
         return acc;
       }, {} as Record<string, boolean>);
     }
-    
+
     return {};
   };
 
@@ -314,158 +313,141 @@ const PromptTemplatesManager = () => {
 
   if (loading) {
     return (
-      <>
-        <div className="w-full">
-          <main className="w-full px-4 md:px-6 py-6">
-            <div className="flex items-center justify-center h-64">
-              <p className="text-muted-foreground">Carregando templates...</p>
-            </div>
-          </main>
-        </div>
-      </>
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando templates...</p>
+      </div>
     );
   }
 
   return (
     <>
       <div className="w-full">
-        <main className="w-full px-4 md:px-6 py-6">
-          <div className="w-full">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
-              <div className="flex items-center gap-4">
-                <NavLink to="/admin">
-                  <Button variant="ghost" size="icon">
-                    <ArrowLeft className="h-5 w-5" />
-                  </Button>
-                </NavLink>
-                <div>
-                  <h1 className="text-4xl font-bold hero-text">Templates de Prompts</h1>
-                  <p className="text-muted-foreground mt-1">
-                    Gerencie templates de IA para diferentes tipos de conteúdo
-                  </p>
-                </div>
-              </div>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Novo Template
-              </Button>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Templates Disponíveis</CardTitle>
-                <CardDescription>
-                  {templates.length} template{templates.length !== 1 ? "s" : ""} cadastrado
-                  {templates.length !== 1 ? "s" : ""}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {templates.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Nenhum template encontrado. Crie seu primeiro template!
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Padrão</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {templates.map((template) => (
-                        <TableRow key={template.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{template.name}</div>
-                              {template.description && (
-                                <div className="text-sm text-muted-foreground">
-                                  {template.description}
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{template.category}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            {template.enabled ? (
-                              <Badge variant="default" className="gap-1">
-                                <CheckCircle2 className="w-3 h-3" />
-                                Ativo
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary" className="gap-1">
-                                <XCircle className="w-3 h-3" />
-                                Inativo
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {template.is_default && (
-                              <Badge variant="default" className="gap-1">
-                                <Star className="w-3 h-3 fill-current" />
-                                Padrão
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleOpenDialog(template)}
-                                title="Editar"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleToggleEnabled(template)}
-                                title={template.enabled ? "Desativar" : "Ativar"}
-                              >
-                                {template.enabled ? (
-                                  <XCircle className="w-4 h-4" />
-                                ) : (
-                                  <CheckCircle2 className="w-4 h-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleSetDefault(template)}
-                                title="Definir como padrão"
-                                disabled={template.is_default}
-                              >
-                                {template.is_default ? (
-                                  <Star className="w-4 h-4 fill-current" />
-                                ) : (
-                                  <StarOff className="w-4 h-4" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setDeleteConfirmId(template.id)}
-                                title="Deletar"
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-6">
+          <div>
+            <h2 className="text-xl font-semibold">Templates de Prompts</h2>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Gerencie templates de IA para diferentes tipos de conteúdo
+            </p>
           </div>
-        </main>
+          <Button onClick={() => handleOpenDialog()}>
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Template
+          </Button>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Templates Disponíveis</CardTitle>
+            <CardDescription>
+              {templates.length} template{templates.length !== 1 ? "s" : ""} cadastrado
+              {templates.length !== 1 ? "s" : ""}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {templates.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum template encontrado. Crie seu primeiro template!
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Padrão</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {templates.map((template) => (
+                    <TableRow key={template.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{template.name}</div>
+                          {template.description && (
+                            <div className="text-sm text-muted-foreground">
+                              {template.description}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{template.category}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {template.enabled ? (
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            <XCircle className="w-3 h-3" />
+                            Inativo
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {template.is_default && (
+                          <Badge variant="default" className="gap-1">
+                            <Star className="w-3 h-3 fill-current" />
+                            Padrão
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleOpenDialog(template)}
+                            title="Editar"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleEnabled(template)}
+                            title={template.enabled ? "Desativar" : "Ativar"}
+                          >
+                            {template.enabled ? (
+                              <XCircle className="w-4 h-4" />
+                            ) : (
+                              <CheckCircle2 className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleSetDefault(template)}
+                            title="Definir como padrão"
+                            disabled={template.is_default}
+                          >
+                            {template.is_default ? (
+                              <Star className="w-4 h-4 fill-current" />
+                            ) : (
+                              <StarOff className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteConfirmId(template.id)}
+                            title="Deletar"
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {/* Create/Edit Dialog */}
@@ -539,9 +521,9 @@ const PromptTemplatesManager = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="user_prompt_template">User Prompt Template *</Label>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   type="button"
                   onClick={() => setPreviewOpen(true)}
                   className="h-8 text-xs"
@@ -734,6 +716,4 @@ const PromptTemplatesManager = () => {
       </Dialog>
     </>
   );
-};
-
-export default PromptTemplatesManager;
+}

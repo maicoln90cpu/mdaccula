@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Sparkles, Lightbulb, Clock, Search } from "lucide-react";
+import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { GenerateForm } from "@/components/admin/ai-content/GenerateForm";
@@ -11,6 +11,8 @@ import type { GenerationProgress } from "@/components/admin/ai-content/Suggestio
 import { SuggestionsList } from "@/components/admin/ai-content/SuggestionsList";
 import { PostsHistory } from "@/components/admin/ai-content/PostsHistory";
 import { TopicSearchForm } from "@/components/admin/ai-content/TopicSearchForm";
+import { TemplatesPanel } from "@/components/admin/ai-content/TemplatesPanel";
+import { AutoGenerationPanel } from "@/components/admin/ai-content/AutoGenerationPanel";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { logger } from "@/lib/logger";
 
@@ -603,7 +605,7 @@ export default function AIContent2() {
 
           {/* Tabs */}
           <Tabs defaultValue="generate" className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6">
+            <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="generate" className="gap-2">
                 <Sparkles className="h-4 w-4" />
                 Gerar
@@ -619,6 +621,14 @@ export default function AIContent2() {
               <TabsTrigger value="history" className="gap-2">
                 <Clock className="h-4 w-4" />
                 Histórico
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="gap-2">
+                <Bot className="h-4 w-4" />
+                Templates
+              </TabsTrigger>
+              <TabsTrigger value="auto-generation" className="gap-2">
+                <Wand2 className="h-4 w-4" />
+                Automático
               </TabsTrigger>
             </TabsList>
 
@@ -678,6 +688,14 @@ export default function AIContent2() {
                   regeneratingId={regeneratingId}
                 />
               </div>
+            </TabsContent>
+
+            <TabsContent value="templates">
+              <TemplatesPanel />
+            </TabsContent>
+
+            <TabsContent value="auto-generation">
+              <AutoGenerationPanel />
             </TabsContent>
           </Tabs>
         </div>

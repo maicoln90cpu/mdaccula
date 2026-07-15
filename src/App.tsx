@@ -47,11 +47,9 @@ const EventsManager = lazy(() => import("./pages/admin/EventsManager"));
 const EventsDashboard = lazy(() => import("./pages/admin/EventsDashboard"));
 const EventTemplates = lazy(() => import("./pages/admin/EventTemplates"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
-const NewsSourcesManager = lazy(() => import("./pages/admin/NewsSourcesManager"));
-const EventSourcesManager = lazy(() => import("./pages/admin/EventSourcesManager"));
+const FontesManager = lazy(() => import("./pages/admin/FontesManager"));
 const EventWatchReview = lazy(() => import("./pages/admin/EventWatchReview"));
 const AIContent2 = lazy(() => import("./pages/admin/AIContent2"));
-const PromptTemplatesManager = lazy(() => import("./pages/admin/PromptTemplatesManager"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
 const LinksManager = lazy(() => import("./pages/admin/LinksManager"));
@@ -61,7 +59,6 @@ const NewsletterManager = lazy(() => import("./pages/admin/NewsletterManager"));
 
 const SystemHealth = lazy(() => import("./pages/admin/SystemHealth"));
 const RecurringEventsManager = lazy(() => import("./pages/admin/RecurringEventsManager"));
-const AutoGenerationDashboard = lazy(() => import("./pages/admin/AutoGenerationDashboard"));
 const PodcastManager = lazy(() => import("./pages/admin/PodcastManager"));
 const RedirectsManager = lazy(() => import("./pages/admin/RedirectsManager"));
 const DataImport = lazy(() => import("./pages/admin/DataImport"));
@@ -135,11 +132,9 @@ const App = () => (
                         <Route path="events-dashboard" element={<PageWithError name="Dashboard de Eventos"><EventsDashboard /></PageWithError>} />
                         <Route path="event-templates" element={<PageWithError name="Templates de Eventos"><EventTemplates /></PageWithError>} />
                         <Route path="blog" element={<PageWithError name="Gerenciar Blog"><BlogManager /></PageWithError>} />
-                        <Route path="news-sources" element={<PageWithError name="Fontes de Notícias"><NewsSourcesManager /></PageWithError>} />
-                        <Route path="event-sources" element={<PageWithError name="Fontes de Eventos"><EventSourcesManager /></PageWithError>} />
+                        <Route path="fontes" element={<PageWithError name="Fontes"><FontesManager /></PageWithError>} />
                         <Route path="event-watch-review" element={<PageWithError name="Revisão de Eventos"><EventWatchReview /></PageWithError>} />
-                        <Route path="ai-content2" element={<PageWithError name="Gerador de Conteúdo IA"><AIContent2 /></PageWithError>} />
-                        <Route path="ai-prompt-templates" element={<PageWithError name="Templates de Prompts"><PromptTemplatesManager /></PageWithError>} />
+                        <Route path="ai-content2" element={<PageWithError name="Conteúdo por IA"><AIContent2 /></PageWithError>} />
                         <Route path="team" element={<PageWithError name="Gerenciar Equipe"><TeamManager /></PageWithError>} />
                         <Route path="settings" element={<PageWithError name="Configurações"><Settings /></PageWithError>} />
                         <Route path="links-manager" element={<PageWithError name="Gerenciar Links"><LinksManager /></PageWithError>} />
@@ -148,7 +143,6 @@ const App = () => (
                         <Route path="newsletter" element={<PageWithError name="Gerenciar Newsletter"><NewsletterManager /></PageWithError>} />
                         <Route path="system-health" element={<PageWithError name="Status do Sistema"><SystemHealth /></PageWithError>} />
                         <Route path="recurring-events" element={<PageWithError name="Eventos Recorrentes"><RecurringEventsManager /></PageWithError>} />
-                        <Route path="auto-generation" element={<PageWithError name="Geração Automática"><AutoGenerationDashboard /></PageWithError>} />
                         <Route path="mdaccula-radio" element={<PageWithError name="Inscrições MDAccula Radio"><PodcastManager /></PageWithError>} />
                         <Route path="podcast" element={<Navigate to="/admin/mdaccula-radio" replace />} />
                         <Route path="redirects" element={<PageWithError name="Redirecionador de Links"><RedirectsManager /></PageWithError>} />
