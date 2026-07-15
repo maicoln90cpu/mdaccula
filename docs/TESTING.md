@@ -11,7 +11,8 @@ Este projeto usa **Vitest** (unitários, integração, contratos), **Playwright*
 | `npm run test:coverage` | Gera relatório de cobertura em `coverage/`. | Antes de PR grande. |
 | `npm run test:coverage:ratchet` | Coverage + verifica que cobertura não caiu. | Igual ao que o CI roda. |
 | `npm run test:ratchet` | Só o ratchet, assume coverage já gerado. | Debug do ratchet. |
-| `npm run e2e` | Playwright (precisa do app rodando). | Antes de release. |
+| `npm run e2e` | Playwright, projeto `chromium` (precisa do app rodando). | Antes de release. |
+| `npm run e2e:full` | Playwright full-site crawl (3 viewports, rotas + modais). | Manual / nightly, não bloqueante — ver seção abaixo. |
 | `npm run test:edge` | Testes Deno das Edge Functions. | Após mexer em `supabase/functions/`. |
 
 ## Estrutura
@@ -53,6 +54,54 @@ Em `src/__tests__/database/`. Cada arquivo prova as políticas de Row-Level Secu
 - Não escrevem dados — só tentam e validam que a RLS bloqueia.
 - Hoje cobertos: `events` (4 testes: SELECT permitido, INSERT/UPDATE/DELETE bloqueados pra anônimo).
 - A esteira: replicar para `blog_posts`, `custom_links`, `user_roles`, `profiles`.
+
+## Full-site crawl (viewport + modal), E2E
+
+Suíte em `e2e/full-site/`, com 3 projetos Playwright dedicados em `playwright.config.ts`:
+`viewport-mobile` (390×844), `viewport-tablet` (768×1024), `viewport-desktop` (1440×900).
+Roda via `npm run e2e:full`, em job separado do CI (`e2e-full-site`, disparado por
+`workflow_dispatch` ou cron noturno) — **não bloqueia PR/push**, ao contrário do job
+`e2e` (que continua rodando só o projeto `chromium` em todo push/PR).
+
+**Escopo:** cobertura abrangente, **guiada por registro**, de toda rota e todo modal
+atualmente catalogados em `e2e/full-site/registries/{routes,modals}.ts`, nos 3
+breakpoints acima. **Não é uma garantia permanente de "100% do site"** — se uma rota
+ou modal novo não for adicionado ao registro, ele simplesmente não é testado.
+
+**Convenção de manutenção:**
+- Rota nova em `src/App.tsx` → adicionar uma entrada em `registries/routes.ts`.
+- Dialog/AlertDialog/Sheet/Popover novo → adicionar em `registries/modals.ts`, ou
+  documentar a exclusão em `SKIPPED_MODALS` com o motivo.
+
+**Regra de segurança (mesmo banco de produção):** o login admin do E2E autentica no
+MESMO projeto Supabase de produção (não há staging dedicado). Por isso, toda entrada
+de admin em `modals.ts` abre o dialog e fecha via **Escape** — nunca clica em
+Salvar/Confirmar/Excluir.
+
+**Gaps conhecidos (documentados no próprio código, não omitidos silenciosamente):**
+- Os 11 `AlertDialog` de confirmação destrutiva (excluir evento/post/link/membro/etc.)
+  ficam fora do crawl — exigiriam uma linha de dado descartável em produção. Só
+  reabilitar com uma fixture claramente nomeada por tabela.
+- `EventModal` (`src/components/events/EventModal.tsx`) parece inalcançável hoje via
+  UI pública: `Eventos.tsx` nunca chama `setShowEventModal(true)`, só navega para
+  `/eventos/:slug`. Achado durante a implementação desta suíte — não corrigido aqui
+  (fora do escopo), só documentado em `SKIPPED_MODALS`.
+- `NewsletterPopup` é opcional/best-effort: depende de
+  `site_settings.newsletter_popup_enabled` e o teste simula scroll >50% da página em
+  vez de esperar os 30s reais do `setTimeout`; se o popup estiver desabilitado no
+  ambiente, o teste pula (não falha).
+- `TicketDayPickerModal` só existe quando o evento fixture tem `tickets_per_day=true`
+  e é multi-dia — também opcional/best-effort.
+- `/blog/:slug` não tem slug fixo: descoberto em runtime visitando `/blog` e clicando
+  no primeiro link de post. `/links/:slug` e `/r/:slug` ficam fora do crawl (sem
+  fixture documentada).
+- "Novo Post" (BlogManager) e "Novo Template" (EventTemplates) renderizam o formulário
+  inline na própria página, não em um Dialog — não entram no registro de modais (a
+  página em si já é coberta pelo `route-crawl.spec.ts`).
+- PodcastManager (detalhe de inscrição), NewsletterABResults (editar variante) e o
+  dialog de "Enviar Email em Massa" do NewsletterManager só abrem com dado existente
+  (linha selecionada ou lista de inscritos confirmados não-vazia) — fora do registro
+  para não depender de estado de dados de produção.
 
 ## Regressões cobertas
 

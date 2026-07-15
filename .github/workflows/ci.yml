@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 6 * * *'
 
 env:
   NODE_VERSION: '20'
@@ -16,7 +19,8 @@ jobs:
   quality:
     name: Quality Checks
     runs-on: ubuntu-latest
-    
+    if: github.event_name != 'schedule'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -81,7 +85,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     needs: quality
-    
+    if: github.event_name != 'schedule'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -169,6 +174,7 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: quality
+    if: github.event_name != 'schedule'
 
     steps:
       - name: Checkout code
@@ -187,7 +193,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test --project=chromium
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
@@ -213,12 +219,55 @@ jobs:
           if-no-files-found: ignore
 
   # ============================================
-  # Job 6: Security Audit
+  # Job 6: Full-Site Crawl (viewport + modal), on-demand / nightly
+  # ============================================
+  e2e-full-site:
+    name: Full-Site Crawl (viewports + modals)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full-site crawl (3 viewports)
+        run: npm run e2e:full
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-full-site-report
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ============================================
+  # Job 7: Security Audit
   # ============================================
   security:
     name: Security Audit
     runs-on: ubuntu-latest
-    
+    if: github.event_name != 'schedule'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

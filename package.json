@@ -19,8 +19,9 @@
     "test:ratchet": "node scripts/check-coverage-ratchet.mjs",
     "test:coverage:ratchet": "vitest run --coverage && node scripts/check-coverage-ratchet.mjs",
     "test:edge": "deno test --allow-net --allow-env --allow-read supabase/functions/",
-    "e2e": "playwright test",
+    "e2e": "playwright test --project=chromium",
     "e2e:ui": "playwright test --ui",
+    "e2e:full": "playwright test --project=viewport-mobile --project=viewport-tablet --project=viewport-desktop",
     "preview": "vite preview",
     "start": "node server.js"
   },

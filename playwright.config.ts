@@ -19,7 +19,30 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      testDir: './e2e',
+      testIgnore: ['full-site/**'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'viewport-mobile',
+      testDir: './e2e/full-site',
+      timeout: 60_000,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 390, height: 844 } },
+    },
+    {
+      name: 'viewport-tablet',
+      testDir: './e2e/full-site',
+      timeout: 60_000,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 768, height: 1024 } },
+    },
+    {
+      name: 'viewport-desktop',
+      testDir: './e2e/full-site',
+      timeout: 60_000,
+      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } },
+    },
   ],
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
