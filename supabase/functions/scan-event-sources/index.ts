@@ -90,44 +90,53 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const aiData = await aiResponse.json();
-      const extracted = parseExtractionResponse(aiData);
+      try {
+        const aiData = await aiResponse.json();
+        const extracted = parseExtractionResponse(aiData);
 
-      if (!extracted) {
-        skippedNoEvent++;
+        if (!extracted) {
+          skippedNoEvent++;
+          continue;
+        }
+
+        if (isDuplicateEvent(extracted, existing)) {
+          skippedDuplicate++;
+          continue;
+        }
+
+        const { error: insertError } = await admin.from("event_watch_drafts").insert({
+          source_id: source.id,
+          status: "pending_review",
+          extracted_title: extracted.title,
+          extracted_date: extracted.date,
+          extracted_time: extracted.time,
+          extracted_venue: extracted.venue,
+          extracted_address: extracted.address,
+          extracted_city: extracted.location_city,
+          extracted_state: extracted.location_state,
+          extracted_lineup: extracted.lineup,
+          extracted_ticket_link: extracted.ticket_link,
+          extracted_description: extracted.description,
+          extracted_confidence: extracted.confidence,
+          source_raw_excerpt: truncated.slice(0, 1500),
+        });
+        if (insertError) throw insertError;
+
+        existing.push({ title: extracted.title, date: extracted.date });
+        created++;
+
+        await admin
+          .from("event_sources")
+          .update({ last_scanned_at: new Date().toISOString() })
+          .eq("id", source.id);
+      } catch (perSourceError) {
+        console.error(
+          `scan-event-sources: failed processing source ${source.id} (${source.url}):`,
+          perSourceError,
+        );
+        scrapeErrors++;
         continue;
       }
-
-      if (isDuplicateEvent(extracted, existing)) {
-        skippedDuplicate++;
-        continue;
-      }
-
-      const { error: insertError } = await admin.from("event_watch_drafts").insert({
-        source_id: source.id,
-        status: "pending_review",
-        extracted_title: extracted.title,
-        extracted_date: extracted.date,
-        extracted_time: extracted.time,
-        extracted_venue: extracted.venue,
-        extracted_address: extracted.address,
-        extracted_city: extracted.location_city,
-        extracted_state: extracted.location_state,
-        extracted_lineup: extracted.lineup,
-        extracted_ticket_link: extracted.ticket_link,
-        extracted_description: extracted.description,
-        extracted_confidence: extracted.confidence,
-        source_raw_excerpt: truncated.slice(0, 1500),
-      });
-      if (insertError) throw insertError;
-
-      existing.push({ title: extracted.title, date: extracted.date });
-      created++;
-
-      await admin
-        .from("event_sources")
-        .update({ last_scanned_at: new Date().toISOString() })
-        .eq("id", source.id);
     }
 
     return jsonSuccess({

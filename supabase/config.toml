@@ -29,3 +29,6 @@ verify_jwt = false
 [functions.geocode-event]
 verify_jwt = false
 
+[functions.scan-event-sources]
+verify_jwt = false
+
