@@ -146,6 +146,58 @@ export interface PodcastSubmissionInsert {
 }
 
 // ============================================
+// Tipos de Event Watcher
+// ============================================
+
+export type EventSourceType = 'site' | 'instagram';
+
+export interface EventSource {
+  id: string;
+  type: EventSourceType;
+  name: string;
+  url: string;
+  enabled: boolean;
+  last_scanned_at?: string | null;
+  last_seen_post_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EventSourceInsert {
+  type?: EventSourceType;
+  name: string;
+  url: string;
+  enabled?: boolean;
+}
+
+export type EventWatchDraftStatus = 'pending_review' | 'approved' | 'rejected' | 'published';
+
+export interface EventWatchDraft {
+  id: string;
+  source_id?: string | null;
+  status: EventWatchDraftStatus;
+  extracted_title: string;
+  extracted_date: string;
+  extracted_time?: string | null;
+  extracted_venue?: string | null;
+  extracted_address?: string | null;
+  extracted_city?: string | null;
+  extracted_state?: string | null;
+  extracted_lineup?: string[] | null;
+  extracted_ticket_link?: string | null;
+  extracted_description?: string | null;
+  extracted_confidence: 'high' | 'medium' | 'low';
+  source_raw_excerpt?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
+  published_event_id?: string | null;
+  published_blog_post_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  event_sources?: { name: string; url: string } | null;
+}
+
+// ============================================
 // Re-export de tipos do Supabase para conveniência
 // ============================================
 
