@@ -50,7 +50,8 @@ Deno.test("withTimeout rejeita quando a promise demora demais", async () => {
     await withTimeout(slow, 10, "teste-lento");
   } catch (e) {
     threw = true;
-    assert(String((e as Error).message).includes("teste-lento"));
+    assert(e instanceof Error);
+    assert(e.message.includes("teste-lento"));
   }
   assert(threw);
 });
