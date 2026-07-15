@@ -154,7 +154,7 @@ export default function EmailPreview() {
           </Card>
 
           {/* Preview iframe — fixo em 600px para refletir largura real do e-mail */}
-          <Card>
+          <Card className="min-w-0">
             <CardHeader>
               <CardTitle className="text-base">
                 Preview (600px — largura real na caixa de entrada)

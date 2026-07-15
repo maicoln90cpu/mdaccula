@@ -322,14 +322,14 @@ const BlogManager = () => {
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <div className="flex justify-between items-center">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
                             <div className="flex gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center">
                                 <Eye className="w-4 h-4 mr-1" />
                                 {post.views}
                               </div>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                               <Button
                                 variant="outline"
                                 size="sm"

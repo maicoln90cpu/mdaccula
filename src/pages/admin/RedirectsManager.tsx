@@ -532,7 +532,7 @@ const RedirectsManager = () => {
                 <p className="text-xs text-muted-foreground mb-3">
                   Defina os valores padrão que serão preenchidos ao criar novos links.
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <Label className="text-xs">utm_source padrão</Label>
                     <Select value={defaultSource} onValueChange={setDefaultSource}>
@@ -614,7 +614,7 @@ const RedirectsManager = () => {
                   <div>
                     <Label>Slug (identificador curto)</Label>
                     <div className="flex items-center gap-1 mt-1">
-                      <span className="text-xs text-muted-foreground">{siteUrl}/r/</span>
+                      <span className="min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{siteUrl}/r/</span>
                       <Input
                         value={form.slug}
                         onChange={(e) => setForm({ ...form, slug: e.target.value.replace(/[^a-zA-Z0-9_-]/g, "") })}
@@ -641,7 +641,7 @@ const RedirectsManager = () => {
                       className="mt-1"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                       <Label className="text-xs">UTM Source</Label>
                       {customSource ? (

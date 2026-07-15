@@ -56,7 +56,7 @@ const Navigation = () => {
           </NavLink>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-2">
             {navigationItems.map((item) => (
               <NavLink
                 key={item.name}
@@ -88,7 +88,7 @@ const Navigation = () => {
             </Button>
 
             {user ? (
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                 {isAdmin && (
                   <Button variant="outline" size="sm" asChild>
                     <NavLink to="/admin" className="flex items-center space-x-2">
@@ -97,7 +97,7 @@ const Navigation = () => {
                     </NavLink>
                   </Button>
                 )}
-                <span className="text-sm text-muted-foreground">{user.email}</span>
+                <span className="max-w-[160px] truncate text-sm text-muted-foreground">{user.email}</span>
                 <Button variant="outline" size="sm" onClick={signOut}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Sair

@@ -204,20 +204,25 @@ export default function Analytics() {
                   <Skeleton className="h-64" />
                 ) : (
                   <>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={topPosts?.slice(0, 10)}>
-                        <XAxis
-                          dataKey="title"
-                          angle={-45}
-                          textAnchor="end"
-                          height={120}
-                          fontSize={12}
-                        />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="views" fill="#8b5cf6" />
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="overflow-hidden">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={topPosts?.slice(0, 10)}>
+                          <XAxis
+                            dataKey="title"
+                            angle={-45}
+                            textAnchor="end"
+                            height={120}
+                            fontSize={12}
+                            tickFormatter={(title: string) =>
+                              title.length > 14 ? `${title.slice(0, 14)}…` : title
+                            }
+                          />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="views" fill="#8b5cf6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
 
                     {/* Lista com links */}
                     <div className="mt-6 space-y-3">
@@ -277,27 +282,29 @@ export default function Analytics() {
                   {loadingShares ? (
                     <Skeleton className="h-64" />
                   ) : shareStats && shareStats.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <PieChart>
-                        <Pie
-                          data={shareStats}
-                          dataKey="value"
-                          nameKey="name"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          label
-                        >
-                          {shareStats.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="overflow-hidden">
+                      <ResponsiveContainer width="100%" height={300}>
+                        <PieChart>
+                          <Pie
+                            data={shareStats}
+                            dataKey="value"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label
+                          >
+                            {shareStats.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
                   ) : (
                     <div className="h-64 flex items-center justify-center text-muted-foreground">
                       Nenhum compartilhamento registrado

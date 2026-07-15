@@ -57,6 +57,13 @@ test.describe('Full-site modal crawl', () => {
         throw err;
       }
 
+      if (modal.settleMs) {
+        // Radix Sheet/Dialog entrance transitions animate position/transform; measuring
+        // the bounding box mid-animation gives a false "off-screen" reading. Wait for
+        // the known transition duration to settle before asserting geometry.
+        await page.waitForTimeout(modal.settleMs);
+      }
+
       await elementFitsViewport(page, surface);
       await assertNoHorizontalOverflow(page);
 

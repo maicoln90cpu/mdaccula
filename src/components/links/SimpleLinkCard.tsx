@@ -100,7 +100,7 @@ export const SimpleLinkCard = ({
         )}
         {link.subtitle && <div className="text-sm opacity-80">{link.subtitle}</div>}
         {link.events && (
-          <div className="text-xs opacity-70">
+          <div className="text-xs opacity-70 truncate">
             {link.events.venue}, {link.events.location_city}/{link.events.location_state}
           </div>
         )}
@@ -138,7 +138,7 @@ export const SimpleLinkCard = ({
       <button
         onClick={() => onLinkClick(link)}
         className={cn(
-          "flex-1 bg-gradient-to-r",
+          "flex-1 min-w-0 bg-gradient-to-r",
           getCardColor(),
           link.is_featured
             ? "border-4 border-primary shadow-[0_0_20px_rgba(156,39,176,0.5)] ring-2 ring-primary/30"

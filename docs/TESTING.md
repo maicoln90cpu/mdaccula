@@ -138,6 +138,18 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** o corpo da chamada de send passa a incluir `list_id: Number(cfg.list_id)`.
 - **Proteção:** `src/__tests__/regression/egoi-send-missing-list-id.test.ts` — garante que a chamada `.../actions/send` nunca mais seja feita com corpo vazio.
 
+### R-005 — Overflow horizontal em várias páginas/dialogs do admin em mobile/tablet
+- **Quando:** julho/2026
+- **Sintoma:** descoberto pela primeira execução real da suíte `e2e/full-site/` (ver seção acima) em 390px/768px: `document.documentElement.scrollWidth` excedia `clientWidth` em até 603px em `/admin/email-config`, além de `/admin/email-preview`, `/admin/egress-monitor`, `/admin/redirects`, `/admin/ai-prompt-templates`, `/admin/newsletter`, `/admin/blog`, e nas páginas públicas `/analytics` e `/links`. O dialog "Novo Link" (RedirectsManager) e "Novo Template" (PromptTemplatesManager) também vazavam horizontalmente.
+- **Causa:** 3 componentes compartilhados sem tratamento responsivo:
+  1. `TabsList` (`src/components/ui/tabs.tsx`) sem `overflow-x-auto`/`max-w-full` — `EmailConfig` (8 abas) e `EgressMonitor` (2 `TabsList`) estouravam a largura sozinhos.
+  2. `Navigation` desktop (`src/components/ui/navigation.tsx`) sem `flex-wrap`, email do usuário sem truncar — vira `md:flex` exatamente em 768px (o breakpoint de tablet testado) e não cabia com todos os itens + email.
+  3. `DialogContent` (`src/components/ui/dialog.tsx`) usava `w-full` sem margem de segurança nem `overflow-x-hidden` — qualquer `grid-cols-2` não-responsivo dentro do dialog vazava.
+  Mais bugs pontuais: grid de 2 colunas fixo nos dialogs de UTM (RedirectsManager/PromptTemplatesManager), iframe de preview com largura fixa de 600px sem `min-w-0` no `Card` pai (EmailPreview), linhas de botão sem `flex-wrap` (NewsletterManager/BlogManager), eixo de gráfico Recharts sem `overflow-hidden` no wrapper (Analytics), card destacado sem `truncate` (SimpleLinkCard/Links).
+- **Correção:** fix na raiz dos 3 componentes compartilhados (tabs.tsx, navigation.tsx, dialog.tsx) + fix pontual em cada página listada acima (grids `grid-cols-1 sm:grid-cols-2`, `flex-wrap`, `truncate`, `min-w-0`).
+- **Proteção:** a própria suíte `e2e/full-site/route-crawl.spec.ts` e `modal-crawl.spec.ts` — que foi o que encontrou o bug — é a proteção permanente: qualquer regressão de overflow nessas páginas/dialogs (ou em qualquer rota/modal já registrado) volta a falhar `npm run e2e:full` nos 3 viewports. Não há teste Vitest separado porque overflow de layout real depende de renderização de browser, que jsdom não reproduz de forma confiável — E2E é a ferramenta correta aqui, não um substituto de conveniência.
+- **Nota:** um item ficou em aberto — `admin-events-create-dialog` trava tentando clicar em "Adicionar Evento" nos 3 viewports, sem overflow detectado. Ainda não diagnosticado (precisa de uma execução real com credencial de admin); o clique agora tem timeout explícito (8s) para que a próxima falha traga o erro exato do Playwright em vez de um timeout genérico.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

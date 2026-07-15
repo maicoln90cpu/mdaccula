@@ -203,9 +203,9 @@ export default function NewsletterManager() {
 
           <Card className="mb-8">
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle>Ações</CardTitle>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button onClick={exportToCSV} variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2" />
                     Exportar CSV

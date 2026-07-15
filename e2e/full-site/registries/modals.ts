@@ -20,6 +20,12 @@ export interface ModalEntry {
    */
   optional?: boolean;
   skipReason?: string;
+  /**
+   * Milliseconds to wait after the surface becomes visible before measuring its
+   * geometry — needed for surfaces with a CSS entrance transition (e.g. the Radix
+   * Sheet slide-in), where an immediate boundingBox() read would catch it mid-animation.
+   */
+  settleMs?: number;
 }
 
 export const MODALS: ModalEntry[] = [
@@ -49,7 +55,7 @@ export const MODALS: ModalEntry[] = [
     optional: true,
     skipReason: 'Only rendered when the known event fixture has tickets_per_day=true and a multi-day date range.',
     navigate: async (page) => page.goto(`/eventos/${E2E_KNOWN_EVENT_SLUG}`, { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: /comprar ingresso|ingresso/i }).first().click(),
+    open: async (page) => page.getByRole('button', { name: /comprar ingresso|ingresso/i }).first().click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -57,7 +63,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-events-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/events', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Adicionar Evento' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Adicionar Evento' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -65,7 +71,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-news-sources-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/news-sources', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Nova Fonte' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Nova Fonte' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -73,7 +79,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-team-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/team', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Adicionar Membro' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Adicionar Membro' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -81,7 +87,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-links-group-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/links-manager', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Novo Grupo' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Novo Grupo' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -89,7 +95,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-links-link-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/links-manager', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Novo Link' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Novo Link' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -97,7 +103,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-redirects-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/redirects', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Novo Link' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Novo Link' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -105,7 +111,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-prompt-templates-create-dialog',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/ai-prompt-templates', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Novo Template' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Novo Template' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -114,8 +120,11 @@ export const MODALS: ModalEntry[] = [
     requiresAdmin: true,
     optional: true,
     skipReason: 'SidebarTrigger only opens a Sheet on mobile viewports (<768px) — on tablet/desktop it just toggles collapse, no dialog surface.',
+    // Sheet slide-in transition is data-[state=open]:duration-500 (sheet.tsx) — wait
+    // for it to settle before measuring geometry, or boundingBox() catches it mid-slide.
+    settleMs: 600,
     navigate: async (page) => page.goto('/admin', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.locator('[data-sidebar="trigger"]').click(),
+    open: async (page) => page.locator('[data-sidebar="trigger"]').click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
   },
@@ -123,7 +132,7 @@ export const MODALS: ModalEntry[] = [
     id: 'admin-redirects-date-range-popover',
     requiresAdmin: true,
     navigate: async (page) => page.goto('/admin/redirects', { waitUntil: 'domcontentloaded' }),
-    open: async (page) => page.getByRole('button', { name: 'Todo período' }).click(),
+    open: async (page) => page.getByRole('button', { name: 'Todo período' }).click({ timeout: 8_000 }),
     surface: (page) => page.locator('[data-radix-popper-content-wrapper]'),
     close: { kind: 'escape' },
   },
