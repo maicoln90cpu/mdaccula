@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Play, Check, X } from "lucide-react";
+import { Loader2, Play, X, Sparkles, Send } from "lucide-react";
 
 interface EditedFields {
   title: string;
@@ -48,12 +48,20 @@ const confidenceColor: Record<string, string> = {
   low: "bg-red-500/20 text-red-400 border-red-500/40",
 };
 
+interface GeneratedArticle {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+}
+
 export default function EventWatchReview() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState<EventWatchDraft | null>(null);
   const [edited, setEdited] = useState<EditedFields | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [generatedArticle, setGeneratedArticle] = useState<GeneratedArticle | null>(null);
 
   const { data: drafts = [], isLoading } = useQuery({
     queryKey: ["event-watch-drafts"],
@@ -61,16 +69,31 @@ export default function EventWatchReview() {
       const { data, error } = await supabase
         .from("event_watch_drafts")
         .select("*, event_sources(name, url)")
-        .eq("status", "pending_review")
+        .in("status", ["pending_review", "approved"])
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as unknown as EventWatchDraft[];
     },
   });
 
-  const openDraft = (draft: EventWatchDraft) => {
+  const openDraft = async (draft: EventWatchDraft) => {
     setSelected(draft);
     setEdited(toEditedFields(draft));
+    setGeneratedArticle(null);
+
+    if (draft.status === "approved" && draft.published_blog_post_id) {
+      const { data: post } = await supabase
+        .from("blog_posts")
+        .select("id, title, excerpt, content")
+        .eq("id", draft.published_blog_post_id)
+        .maybeSingle();
+      if (post) setGeneratedArticle(post);
+    }
+  };
+
+  const closeDialog = () => {
+    setSelected(null);
+    setGeneratedArticle(null);
   };
 
   const rejectMutation = useMutation({
@@ -89,14 +112,14 @@ export default function EventWatchReview() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-watch-drafts"] });
       toast({ title: "Rascunho rejeitado" });
-      setSelected(null);
+      closeDialog();
     },
     onError: (error: Error) => {
       toast({ title: "Erro ao rejeitar", description: error.message, variant: "destructive" });
     },
   });
 
-  const approveMutation = useMutation({
+  const generateMutation = useMutation({
     mutationFn: async ({ draft, fields }: { draft: EventWatchDraft; fields: EditedFields }) => {
       const eventLike: EventLike = {
         title: fields.title,
@@ -113,7 +136,11 @@ export default function EventWatchReview() {
 
       const payload = buildArticlePayload(eventLike, { generateImage: true });
       const { data: blogData, error: blogError } = await supabase.functions.invoke("generate-blog-post-v2", {
-        body: payload,
+        body: {
+          ...payload,
+          publishImmediately: false,
+          ...(generatedArticle ? { existingPostId: generatedArticle.id } : {}),
+        },
       });
       if (blogError) throw blogError;
       if (!blogData?.post?.id) throw new Error("Resposta inválida do gerador de artigo");
@@ -122,21 +149,47 @@ export default function EventWatchReview() {
       const { error: draftError } = await supabase
         .from("event_watch_drafts")
         .update({
-          status: "published",
+          status: "approved",
           reviewed_by: userData.user?.id ?? null,
           reviewed_at: new Date().toISOString(),
           published_blog_post_id: blogData.post.id,
         })
         .eq("id", draft.id);
       if (draftError) throw draftError;
+
+      return blogData.post as GeneratedArticle;
+    },
+    onSuccess: (post) => {
+      setGeneratedArticle(post);
+      queryClient.invalidateQueries({ queryKey: ["event-watch-drafts"] });
+      toast({ title: "Prévia gerada", description: "Leia o artigo antes de publicar." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao gerar artigo", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: async ({ draft, article }: { draft: EventWatchDraft; article: GeneratedArticle }) => {
+      const { error: postError } = await supabase
+        .from("blog_posts")
+        .update({ published: true, published_at: new Date().toISOString() })
+        .eq("id", article.id);
+      if (postError) throw postError;
+
+      const { error: draftError } = await supabase
+        .from("event_watch_drafts")
+        .update({ status: "published" })
+        .eq("id", draft.id);
+      if (draftError) throw draftError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["event-watch-drafts"] });
-      toast({ title: "Publicado!", description: "Artigo criado com sucesso." });
-      setSelected(null);
+      toast({ title: "Publicado!", description: "Artigo publicado no blog com sucesso." });
+      closeDialog();
     },
     onError: (error: Error) => {
-      toast({ title: "Erro ao aprovar rascunho", description: error.message, variant: "destructive" });
+      toast({ title: "Erro ao publicar", description: error.message, variant: "destructive" });
     },
   });
 
@@ -188,6 +241,7 @@ export default function EventWatchReview() {
                   <TableHead>Data</TableHead>
                   <TableHead>Fonte</TableHead>
                   <TableHead>Confiança</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -201,6 +255,17 @@ export default function EventWatchReview() {
                         {draft.extracted_confidence}
                       </Badge>
                     </TableCell>
+                    <TableCell>
+                      {draft.status === "approved" ? (
+                        <Badge variant="outline" className="bg-blue-500/20 text-blue-400 border-blue-500/40">
+                          Aguardando publicação
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground">
+                          Pendente
+                        </Badge>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -209,7 +274,7 @@ export default function EventWatchReview() {
         </CardContent>
       </Card>
 
-      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+      <Dialog open={!!selected} onOpenChange={(open) => !open && closeDialog()}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           {selected && edited && (
             <>
@@ -269,26 +334,53 @@ export default function EventWatchReview() {
                     </p>
                   </div>
                 )}
+                {generatedArticle && (
+                  <div className="space-y-2 border-t pt-4">
+                    <Label className="text-muted-foreground">Prévia do artigo gerado</Label>
+                    <div className="border rounded p-3 max-h-80 overflow-y-auto space-y-2 bg-muted/30">
+                      <h3 className="font-semibold text-base">{generatedArticle.title}</h3>
+                      <p className="text-sm text-muted-foreground italic">{generatedArticle.excerpt}</p>
+                      <div
+                        className="prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: generatedArticle.content }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <DialogFooter className="gap-2">
                 <Button
                   variant="destructive"
                   onClick={() => rejectMutation.mutate(selected)}
-                  disabled={rejectMutation.isPending || approveMutation.isPending}
+                  disabled={rejectMutation.isPending || generateMutation.isPending || publishMutation.isPending}
                 >
                   <X className="w-4 h-4 mr-2" /> Rejeitar
                 </Button>
                 <Button
-                  onClick={() => approveMutation.mutate({ draft: selected, fields: edited })}
-                  disabled={rejectMutation.isPending || approveMutation.isPending}
+                  variant="secondary"
+                  onClick={() => generateMutation.mutate({ draft: selected, fields: edited })}
+                  disabled={rejectMutation.isPending || generateMutation.isPending || publishMutation.isPending}
                 >
-                  {approveMutation.isPending ? (
+                  {generateMutation.isPending ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   ) : (
-                    <Check className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-4 h-4 mr-2" />
                   )}
-                  Aprovar e publicar
+                  {generatedArticle ? "Gerar novamente" : "Gerar artigo"}
                 </Button>
+                {generatedArticle && (
+                  <Button
+                    onClick={() => publishMutation.mutate({ draft: selected, article: generatedArticle })}
+                    disabled={rejectMutation.isPending || generateMutation.isPending || publishMutation.isPending}
+                  >
+                    {publishMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="w-4 h-4 mr-2" />
+                    )}
+                    Publicar
+                  </Button>
+                )}
               </DialogFooter>
             </>
           )}
