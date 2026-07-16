@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,7 +52,13 @@ interface PromptTemplate {
 
 export default function AIContent2() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const validTabs = ["generate", "suggestions", "topic", "history", "templates", "auto-generation"];
+  const activeTab = validTabs.includes(searchParams.get("tab") || "")
+    ? (searchParams.get("tab") as string)
+    : "generate";
 
   // States
   const [isLoading, setIsLoading] = useState(true);
@@ -610,7 +616,7 @@ export default function AIContent2() {
           </div>
 
           {/* Tabs */}
-          <Tabs defaultValue="generate" className="w-full">
+          <Tabs value={activeTab} onValueChange={(value) => setSearchParams(prev => { prev.set("tab", value); return prev; })} className="w-full">
             <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="generate" className="gap-2">
                 <Sparkles className="h-4 w-4" />
