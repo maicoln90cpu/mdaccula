@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import { TicketDayPickerModal } from "@/components/events/TicketDayPickerModal";
+import { EventCountdown } from "@/components/events/EventCountdown";
+import { SpotlightCard } from "@/components/effects/SpotlightCard";
 import { safeExternalUrl } from "@/lib/safeExternalUrl";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -71,6 +74,7 @@ const EventDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   // Main event query (com fallback para slug antigo via event_slug_redirects)
   const { data: event, isLoading, error } = useQuery({
@@ -309,8 +313,21 @@ const EventDetail = () => {
 
             {/* Hero Image */}
             {event.image_url && (
-              <div className="w-full h-[40vh] sm:h-[50vh] md:h-[60vh] rounded-xl overflow-hidden mb-6 sm:mb-8 shadow-lg bg-muted/20">
-                <img src={getOptimizedImageUrl(event.image_url)} alt={event.title} className="w-full h-full object-contain" loading="lazy" onError={(e) => handleImageFallback(e)} />
+              <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] rounded-xl overflow-hidden mb-6 sm:mb-8 shadow-lg bg-muted/20">
+                <img
+                  src={getOptimizedImageUrl(event.image_url)}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+                />
+                <img
+                  src={getOptimizedImageUrl(event.image_url)}
+                  alt={event.title}
+                  className="relative w-full h-full object-contain"
+                  loading="lazy"
+                  onError={(e) => handleImageFallback(e)}
+                />
+                <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
               </div>
             )}
 
@@ -339,6 +356,9 @@ const EventDetail = () => {
                       <Badge variant="outline">Gênero não especificado</Badge>
                     )}
                   </div>
+                  <div className="mt-4 flex justify-center sm:justify-start">
+                    <EventCountdown date={event.date} time={event.time} end_date={event.end_date} />
+                  </div>
                 </div>
 
                 {/* Mobile Ticket Card */}
@@ -350,12 +370,16 @@ const EventDetail = () => {
                     <CardContent className="space-y-3">
                       {event.ticket_link && (
                         useDayPicker ? (
-                          <Button className="w-full" size="lg" onClick={() => setDayPickerOpen(true)}>
+                          <Button
+                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
+                            size="lg"
+                            onClick={() => setDayPickerOpen(true)}
+                          >
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
                           </Button>
                         ) : (
-                          <Button asChild className="w-full" size="lg">
+                          <Button asChild className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift" size="lg">
                             <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {ticketButtonText}
@@ -473,13 +497,20 @@ const EventDetail = () => {
                                 {dayLineup.length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
                                     {dayLineup.map((artist, i) => (
-                                      <Badge
+                                      <motion.span
                                         key={i}
-                                        variant="outline"
-                                        className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full"
+                                        initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+                                        whileInView={{ opacity: 1, y: 0 }}
+                                        viewport={{ once: true }}
+                                        transition={{ duration: 0.3, delay: Math.min(i, 10) * 0.04, ease: "easeOut" }}
                                       >
-                                        {artist}
-                                      </Badge>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full"
+                                        >
+                                          {artist}
+                                        </Badge>
+                                      </motion.span>
                                     ))}
                                   </div>
                                 ) : (
@@ -507,13 +538,20 @@ const EventDetail = () => {
                         <CardContent>
                           <div className="flex flex-wrap gap-2.5">
                             {cleanLineup.map((artist, index) => (
-                              <Badge
+                              <motion.span
                                 key={index}
-                                variant="outline"
-                                className="text-sm md:text-base px-3.5 py-1.5 leading-relaxed whitespace-normal break-words max-w-full"
+                                initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.3, delay: Math.min(index, 10) * 0.04, ease: "easeOut" }}
                               >
-                                {artist}
-                              </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="text-sm md:text-base px-3.5 py-1.5 leading-relaxed whitespace-normal break-words max-w-full"
+                                >
+                                  {artist}
+                                </Badge>
+                              </motion.span>
                             ))}
                           </div>
                         </CardContent>
@@ -581,12 +619,16 @@ const EventDetail = () => {
                     <CardContent className="space-y-3">
                       {event.ticket_link && (
                         useDayPicker ? (
-                          <Button className="w-full" size="lg" onClick={() => setDayPickerOpen(true)}>
+                          <Button
+                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
+                            size="lg"
+                            onClick={() => setDayPickerOpen(true)}
+                          >
                             <ExternalLink className="w-4 h-4 mr-2" />
                             {ticketButtonText}
                           </Button>
                         ) : (
-                          <Button asChild className="w-full" size="lg">
+                          <Button asChild className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift" size="lg">
                             <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {ticketButtonText}
@@ -642,27 +684,29 @@ const EventDetail = () => {
                     <CardContent className="space-y-4">
                       {relatedEvents.map((relatedEvent) => (
                         <Link key={relatedEvent.id} to={`/eventos/${relatedEvent.slug}`} className="block group">
-                          <div className="flex gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                            {relatedEvent.image_url && (
-                              <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-                                <img
-                                  src={getOptimizedImageUrl(relatedEvent.image_url)}
-                                  alt={relatedEvent.title}
-                                  className="w-full h-full object-cover"
-                                  loading="lazy"
-                                  onError={(e) => handleImageFallback(e)}
-                                />
+                          <SpotlightCard className="rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex gap-3 p-3">
+                              {relatedEvent.image_url && (
+                                <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                                  <img
+                                    src={getOptimizedImageUrl(relatedEvent.image_url)}
+                                    alt={relatedEvent.title}
+                                    className="w-full h-full object-cover"
+                                    loading="lazy"
+                                    onError={(e) => handleImageFallback(e)}
+                                  />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <h4 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-2">
+                                  {relatedEvent.title}
+                                </h4>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {parseLocalDate(relatedEvent.date).toLocaleDateString("pt-BR")} • {relatedEvent.venue}
+                                </p>
                               </div>
-                            )}
-                            <div className="min-w-0">
-                              <h4 className="font-medium text-sm group-hover:text-primary transition-colors line-clamp-2">
-                                {relatedEvent.title}
-                              </h4>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {parseLocalDate(relatedEvent.date).toLocaleDateString("pt-BR")} • {relatedEvent.venue}
-                              </p>
                             </div>
-                          </div>
+                          </SpotlightCard>
                         </Link>
                       ))}
                     </CardContent>

@@ -152,6 +152,22 @@ export default {
             transform: "translateY(0)",
           },
         },
+        "ticket-glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 16px hsl(var(--primary) / 0.4)",
+          },
+          "50%": {
+            boxShadow: "0 0 32px hsl(var(--primary) / 0.7), 0 0 20px hsl(var(--accent) / 0.4)",
+          },
+        },
+        "ticket-glow-shift": {
+          "0%": {
+            backgroundPosition: "0% 50%",
+          },
+          "100%": {
+            backgroundPosition: "200% 50%",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -161,6 +177,8 @@ export default {
         "float": "float 3s ease-in-out infinite",
         "glow": "glow 2s ease-in-out infinite",
         "slide-in-up": "slide-in-up 0.5s ease-out",
+        "ticket-glow-pulse": "ticket-glow-pulse 2.5s ease-in-out infinite",
+        "ticket-glow-shift": "ticket-glow-shift 6s linear infinite",
       },
       screens: {
         'xs': '375px',

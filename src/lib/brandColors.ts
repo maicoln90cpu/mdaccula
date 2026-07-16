@@ -10,6 +10,8 @@ const brandColors: Record<string, string> = {
   "message-circle": "#25D366",
   soundcloud: "#FF5500",
   music: "#FF5500",
+  telegram: "#0088CC",
+  send: "#0088CC",
 };
 
 export function getBrandColor(name: string): string | undefined {

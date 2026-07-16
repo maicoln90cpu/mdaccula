@@ -1,12 +1,7 @@
-import { Share2, Twitter, Facebook, Linkedin, Link2, MessageCircle, Send } from "lucide-react";
-import { Button } from "./ui/button";
+import { Twitter, Facebook, Linkedin, Link2, MessageCircle, Send, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover";
 import { supabase } from "@/integrations/supabase/client";
+import { getBrandColor } from "@/lib";
 
 interface ShareButtonsProps {
   url: string;
@@ -14,7 +9,14 @@ interface ShareButtonsProps {
   description?: string;
 }
 
-export const ShareButtons = ({ url, title, description }: ShareButtonsProps) => {
+interface SharePlatform {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  action: () => void;
+}
+
+export const ShareButtons = ({ url, title }: ShareButtonsProps) => {
   const fullUrl = `${window.location.origin}${url}`;
 
   const shareLinks = {
@@ -40,7 +42,7 @@ export const ShareButtons = ({ url, title, description }: ShareButtonsProps) => 
       await navigator.clipboard.writeText(fullUrl);
       toast.success("Link copiado!");
       trackShare("copy");
-    } catch (err) {
+    } catch {
       toast.error("Erro ao copiar link");
     }
   };
@@ -50,75 +52,40 @@ export const ShareButtons = ({ url, title, description }: ShareButtonsProps) => 
     trackShare(platform);
   };
 
+  const platforms: SharePlatform[] = [
+    { key: "whatsapp", label: "WhatsApp", icon: MessageCircle, action: () => handleShare("whatsapp", shareLinks.whatsapp) },
+    { key: "twitter", label: "Twitter", icon: Twitter, action: () => handleShare("twitter", shareLinks.twitter) },
+    { key: "facebook", label: "Facebook", icon: Facebook, action: () => handleShare("facebook", shareLinks.facebook) },
+    { key: "linkedin", label: "LinkedIn", icon: Linkedin, action: () => handleShare("linkedin", shareLinks.linkedin) },
+    { key: "telegram", label: "Telegram", icon: Send, action: () => handleShare("telegram", shareLinks.telegram) },
+  ];
+
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Share2 className="w-4 h-4 mr-2" />
-          Compartilhar
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="space-y-2">
-          <h4 className="font-semibold mb-3">Compartilhar</h4>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => handleShare("whatsapp", shareLinks.whatsapp)}
+    <div className="flex flex-wrap items-center gap-2">
+      {platforms.map((p) => {
+        const Icon = p.icon;
+        const color = getBrandColor(p.key);
+        return (
+          <button
+            key={p.key}
+            onClick={p.action}
+            aria-label={`Compartilhar no ${p.label}`}
+            title={p.label}
+            className="share-icon-btn w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all duration-300 hover:scale-110"
+            style={{ color, ["--glow-color" as string]: color }}
           >
-            <MessageCircle className="w-4 h-4 mr-2 text-green-600" />
-            WhatsApp
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => handleShare("twitter", shareLinks.twitter)}
-          >
-            <Twitter className="w-4 h-4 mr-2 text-blue-400" />
-            Twitter
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => handleShare("facebook", shareLinks.facebook)}
-          >
-            <Facebook className="w-4 h-4 mr-2 text-blue-600" />
-            Facebook
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => handleShare("linkedin", shareLinks.linkedin)}
-          >
-            <Linkedin className="w-4 h-4 mr-2 text-blue-700" />
-            LinkedIn
-          </Button>
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => handleShare("telegram", shareLinks.telegram)}
-          >
-            <Send className="w-4 h-4 mr-2 text-blue-500" />
-            Telegram
-          </Button>
-
-          <hr className="my-2" />
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={copyToClipboard}
-          >
-            <Link2 className="w-4 h-4 mr-2" />
-            Copiar link
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+            <Icon className="w-4 h-4" />
+          </button>
+        );
+      })}
+      <button
+        onClick={copyToClipboard}
+        aria-label="Copiar link"
+        title="Copiar link"
+        className="share-icon-btn w-10 h-10 rounded-full border border-border flex items-center justify-center transition-all duration-300 hover:scale-110"
+      >
+        <Link2 className="w-4 h-4" />
+      </button>
+    </div>
   );
 };

@@ -182,7 +182,9 @@ All colors MUST be HSL.
   .animate-float,
   .animate-pulse-neon,
   .animate-logo-pulse,
-  .animate-glow {
+  .animate-glow,
+  .animate-ticket-glow-pulse,
+  .animate-ticket-glow-shift {
     animation: none;
   }
 
@@ -190,6 +192,13 @@ All colors MUST be HSL.
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-ticket-glow-pulse,
+  .animate-ticket-glow-shift {
+    animation: none;
   }
 }
 
@@ -252,6 +261,20 @@ All colors MUST be HSL.
 
   .btn-neon span {
     @apply relative z-10;
+  }
+
+  /* CTA de ingresso em destaque — fundo em gradiente; o pulso/deslocamento vem das
+     utilities animate-ticket-glow-pulse/animate-ticket-glow-shift aplicadas junto no JSX,
+     único elemento "chamativo" da página de evento */
+  .btn-ticket-glow {
+    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--accent)), hsl(var(--primary)));
+    background-size: 200% 100%;
+  }
+
+  /* Ícones de compartilhamento — glow na cor da marca ao passar o mouse */
+  .share-icon-btn:hover {
+    box-shadow: 0 0 16px var(--glow-color, hsl(var(--primary)));
+    border-color: var(--glow-color, hsl(var(--primary)));
   }
 
   /* Event card animations */
