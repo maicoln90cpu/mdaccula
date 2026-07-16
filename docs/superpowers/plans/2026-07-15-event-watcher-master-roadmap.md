@@ -256,6 +256,43 @@ Rascunho em /admin/blog, com imagem composta — revisão manual como hoje (ou j
   Fase A).
 - Testes de contrato em `src/__tests__/contracts/` pras Edge Functions novas.
 
+## Pendência relacionada, fora do escopo do Event Watcher: "Sugestões Aleatórias" deveria ancorar em matéria real
+
+**Origem (17/07/2026, rodada 2)**: usuário perguntou por que artigos do template
+"Sugestões Aleatórias - Cena Eletrônica" não mostram fontes no modal — resposta
+investigada e confirmada: não é bug, é o comportamento correto pós-correção do item 8. O
+fluxo real hoje (`auto-article-cron` → `generate-blog-suggestions` → `generate-blog-post-v2`)
+nunca gerou artigo ancorado em fatos verificáveis — `generate-blog-suggestions` raspa 2
+sites só pra *inspirar* um título/resumo/categoria, e `generate-blog-post-v2` escreve o
+texto final sem citar nada específico (é editorial/opinativo, tipo coluna de revista).
+**Decisão do usuário**: isso deveria mudar — "Sugestões Aleatórias" deve sempre usar um
+artigo/matéria REAL como base, nunca inventar ou só se inspirar vagamente.
+
+**Escopo confirmado com o usuário**: isso é uma mudança de *tipo de conteúdo*, não só de
+citação — o artigo passa a ser ancorado 100% nos fatos de uma matéria específica
+encontrada por busca real, no mesmo espírito de `generate-blog-post-from-topic` (que já
+faz Firecrawl `/v1/search` + gera texto só com os fatos das fontes encontradas, com
+`source_urls` genuíno). Não é mais uma coluna de opinião livre.
+
+**Não implementado ainda** — só documentado como pendência confirmada. Esboço de
+abordagem pra quando for retomado:
+- `generate-blog-suggestions` (ou uma etapa nova antes dele) precisaria localizar uma
+  matéria/notícia real específica (via Firecrawl `/v1/search`, mesmo padrão de
+  `generate-blog-post-from-topic`), não só "inspirar" um tema a partir de scraping
+  genérico de 2 fontes fixas.
+- `auto-article-cron` passaria a chamar algo equivalente a `generate-blog-post-from-topic`
+  (ou uma variante) em vez de `generate-blog-post-v2` puro — precisa decidir se
+  `generate-blog-post-from-topic` vira o gerador direto (ela já publica sempre,
+  `published:true` — hoje não aceita `publishImmediately:false`, precisaria desse ajuste
+  pra manter o padrão de rascunho revisável) ou se um novo fluxo é criado.
+- O template "Sugestões" (`ai_prompt_templates`, categoria "Sugestões") teria que mudar de
+  tom: hoje pede artigo editorial/opinativo; passaria a pedir jornalismo ancorado em
+  fatos, no mesmo padrão do prompt de `generate-blog-post-from-topic`.
+- Vale conferir se ainda faz sentido manter `generate-blog-suggestions` como está (raspa
+  fontes só pra achar um *tema*) ou se ele devia já entregar a matéria de origem
+  encontrada, evitando raspar duas vezes (uma pra achar o tema, outra pra achar a
+  matéria).
+
 ## Fase C e D — a replanejar
 
 Escopo original, só como referência — sujeito a revisão completa quando a Fase B
@@ -290,4 +327,9 @@ estiver testada na prática:
   evento (re-hospedada no Bunny) adiantada do escopo da Fase B, com fallback silencioso
   pra geração por IA; descoberto e documentado um bug do deploy tool (`EdgeRuntime.waitUntil`
   + payload multi-arquivo = `BOOT_ERROR`) que causou ~40min de indisponibilidade de
-  `scan-event-sources` durante o deploy — resolvido com deploy single-file pra essa função.
+  `scan-event-sources` durante o deploy — resolvido com deploy single-file pra essa função;
+  `DROP TABLE news_sources` executado (confirmado pelo usuário); token `APIFY_API_TOKEN`
+  fornecido pelo usuário (configuração como secret pendente — nenhum tool disponível pra
+  configurar secret de Edge Function diretamente, usuário vai configurar via Dashboard);
+  documentada pendência de "Sugestões Aleatórias" passar a ancorar em matéria real (fora
+  do escopo do Event Watcher, ver seção própria acima).
