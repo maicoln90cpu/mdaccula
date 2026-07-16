@@ -1266,36 +1266,6 @@ export type Database = {
         }
         Relationships: []
       }
-      news_sources: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          enabled: boolean | null
-          id: string
-          last_checked_at: string | null
-          name: string
-          url: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          enabled?: boolean | null
-          id?: string
-          last_checked_at?: string | null
-          name: string
-          url: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          enabled?: boolean | null
-          id?: string
-          last_checked_at?: string | null
-          name?: string
-          url?: string
-        }
-        Relationships: []
-      }
       newsletter_popup_analytics: {
         Row: {
           created_at: string | null
