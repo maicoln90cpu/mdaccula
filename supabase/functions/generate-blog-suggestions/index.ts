@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
 
     // Buscar fontes de notícias ativas
     const { data: sources, error: sourcesError } = await supabase
-      .from('news_sources')
+      .from('event_sources')
       .select('name, url, description')
       .eq('enabled', true);
 
@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Fontes encontradas: ${sources?.length || 0}`);
-    logEgress(supabase, 'news_sources', sources);
+    logEgress(supabase, 'event_sources', sources);
 
     // Buscar últimos N artigos publicados para evitar repetição
     const { data: recentPosts } = await supabase

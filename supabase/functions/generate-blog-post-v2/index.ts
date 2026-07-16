@@ -509,7 +509,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { templateId, generateImage, ...formFields } = body;
+    const { templateId, generateImage, publishImmediately, ...formFields } = body;
 
     // Logging dos campos recebidos para debug
     console.log('[generate-blog-post-v2] Campos recebidos:', JSON.stringify(Object.keys(formFields)));
@@ -593,13 +593,13 @@ Deno.serve(async (req) => {
     if (FIRECRAWL_API_KEY && shouldScrapeForContext({ hasApiKey: true, remainingMs })) {
       try {
         const { data: sources } = await supabase
-          .from('news_sources')
+          .from('event_sources')
           .select('name, url')
           .eq('enabled', true)
           .limit(maxScrapeSources);
 
         if (sources && sources.length > 0) {
-          logEgress(supabase, 'news_sources', sources);
+          logEgress(supabase, 'event_sources', sources);
           console.log('Scraping fontes para contexto adicional...');
           for (const source of sources) {
             // Check if we still have time
@@ -1100,8 +1100,8 @@ ${aiContextBlock}${ticketsBlock}`;
           excerpt: eventData.excerpt,
           content: eventData.content,
           category: finalCategory,
-          published: true,
-          published_at: new Date().toISOString(),
+          published: publishImmediately === false ? false : true,
+          published_at: publishImmediately === false ? null : new Date().toISOString(),
           image_url: generatedImageUrl
         })
         .select()
