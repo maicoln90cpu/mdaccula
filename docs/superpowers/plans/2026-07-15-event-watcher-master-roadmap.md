@@ -2,11 +2,8 @@
 
 > Plano mestre de viabilidade e fases. O detalhamento tarefa-a-tarefa de cada fase vive
 > em planos próprios na mesma pasta (ver seção "Ordem de construção" abaixo). Este
-> arquivo é a fonte de verdade sobre o que já foi decidido para Fase A/B/C/D — antes
-> desta cópia, ele só existia como plano de sessão local
-> (`C:\Users\<usuário>\.claude\plans\veja-quais-as-chances-dazzling-babbage.md`), fora do
-> repositório e não versionado. Copiado para cá em 16/07/2026 para não se perder entre
-> sessões.
+> arquivo é a fonte de verdade sobre o que já foi decidido e o que falta para Fase
+> A/B/C/D. Atualizado por último em 17/07/2026 — ver "Histórico de revisões" no fim.
 
 ## Contexto
 
@@ -41,139 +38,175 @@ Como o usuário optou por **aprovação manual obrigatória em tudo** na v1, ess
 principal fator que torna o plano seguro de executar mesmo com fontes de dados
 imperfeitas ou um scraper que eventualmente falha/quebra.
 
-## O que já existe e será reaproveitado (achado pela investigação no código)
+## Status atual em uma frase
 
-| Necessidade | Já existe em | Reaproveitar como |
+**Fase A está 100% concluída e em produção.** O pipeline roda de ponta a ponta sem
+nenhum clique manual entre a descoberta do evento e o rascunho aparecer em
+`/admin/blog`: varredura → extração → geração do artigo (template dedicado, sem citar a
+fonte, sem link de concorrente) → rascunho pronto pra edição/publicação manual. Fase B
+(Apify + composição de imagem) ainda não foi iniciada.
+
+## O que já existe e é reaproveitado (achado pela investigação no código)
+
+| Necessidade | Já existe em | Reaproveitado como |
 |---|---|---|
-| Raspagem de sites cadastrados | `generate-blog-suggestions` usa **Firecrawl** sobre a tabela `event_sources` (antes `news_sources`, unificada em 15/07/2026) | Mesmo padrão, já em produção via `scan-event-sources` |
-| Extração estruturada por IA | `generate-blog-suggestions` já usa tool-call/JSON estruturado no AI Gateway (`ai.gateway.lovable.dev`, Gemini) | Novo prompt em `ai_prompt_templates`, extração de evento — já implementado (Fase A) |
-| Redação de artigo por IA | `generate-blog-post-v2` já tem um **modo "evento"** no prompt ("DADOS OFICIAIS", anti-alucinação) | Reaproveitado quase 1:1 na Fase A |
-| Upload/otimização de imagem | `EventForm.tsx` → `ImageUploadWithCrop` → `webpConverter.ts` → `bunnyUploader.ts` → `upload-to-bunny` Edge Function (crop, compressão, WebP, dedupe por hash, CDN Bunny + backup Supabase Storage) | Usar tal e qual para imagem enviada pelo organizador/admin |
-| Geração de imagem por IA (fallback) | `generate-blog-post-v2`/`regenerate-blog-image` já chamam Gemini `gemini-2.5-flash-image` e processam com **`imagescript`** (lib Deno) | Fallback quando não houver foto; `imagescript` também serve para desenhar o overlay |
-| Cron dinâmico configurável pelo admin + botão manual | Padrão dos digests: `update-digest-schedule` + RPC `manage_digest_schedule` (unschedule/schedule + `net.http_post` com secret); `RecurringEventsManager.tsx` tem botão "Executar agora" | Copiado para `scan-event-sources-cron` (job liberado na migration, ainda não ativado — ver Fase A) |
-| Tela de revisão/aprovação | `BlogManager.tsx` (lista + toggle publicado/rascunho) | Modelo de UI usado em `EventWatchReview.tsx` |
-| Publicação no site | `EventForm.tsx` (insert em `events`) e `generate-blog-post-v2` (insert em `blog_posts`) | Fase A usa só o insert em `blog_posts` (rascunho → publicado), sem criar linha em `events` — ver nota de escopo no plano detalhado da Fase A |
+| Raspagem de sites cadastrados | Firecrawl (`scrapeWithFirecrawl`, já era usado por `generate-blog-suggestions`) | `scan-event-sources`, produção |
+| Extração estruturada por IA | AI Gateway (Gemini) com tool-call estruturado | `supabase/functions/scan-event-sources/extract.ts`, produção |
+| Redação de artigo por IA | `generate-blog-post-v2`, modo "evento" (bloco DADOS OFICIAIS, anti-alucinação) | Reaproveitado com um template dedicado pra artigos raspados (ver abaixo) |
+| Upload/otimização de imagem | `EventForm.tsx` → `ImageUploadWithCrop` → `webpConverter.ts` → `bunnyUploader.ts` | Reaproveitável tal e qual quando a Fase B precisar de composição de imagem |
+| Geração de imagem por IA (fallback) | `generate-blog-post-v2` chama Gemini `gemini-2.5-flash-image` + `imagescript` (lib Deno) | Já gera a imagem de capa de todo artigo do Event Watcher, em background |
+| Cron dinâmico configurável | Padrão dos digests (`update-digest-schedule` + `manage_digest_schedule`) | Job `scan-event-sources-cron` liberado na RPC desde a Fase A, **ainda não ativado** (ver pendências) |
+| Publicação no site | `blog_posts` (insert/update) | Rascunho nasce direto em `blog_posts` (`published: false`), sem tela de aprovação própria — revisão acontece em `/admin/blog` como qualquer outro post |
 
-**O que NÃO existe e é trabalho novo real:**
+**O que NÃO existe e continua sendo trabalho novo real (Fase B em diante):**
 - Composição de imagem (logo + título sobre a foto) — nenhum código de overlay/watermark hoje.
 - Qualquer integração com Instagram/Meta (Graph API) — zero hoje, nem para ler nem para postar.
-- Fluxo de rascunho/aprovação com status (`pending_review/approved/rejected/published`) — implementado na Fase A, incluindo o passo intermediário "prévia gerada, aguardando publicação" (dois cliques: "Gerar artigo" → "Publicar").
 
-## Desenho do fluxo completo (visão de produto final, Fases A+B+C)
+## Fase A — o que foi entregue (concluída)
+
+Ordem cronológica real (não é mais o desenho original — o fluxo mudou de forma
+significativa no meio do caminho, ver "Histórico de revisões"):
+
+1. **Pipeline base** (`docs/superpowers/plans/2026-07-14-event-watcher-site-sources.md`,
+   11 tasks) — `event_sources`, `scan-event-sources`, extração por IA,
+   `event_watch_drafts`, template "Evento Padrão" reaproveitado.
+2. **Unificação de Fontes + fluxo de 2 passos**
+   (`docs/superpowers/plans/2026-07-15-fontes-unificacao-e-fluxo-2-passos.md`) —
+   `news_sources`+`event_sources` unificados numa tabela só; tela `EventWatchReview.tsx`
+   ganhou um fluxo "Gerar artigo" (prévia) → "Publicar" em vez de aprovar às cegas.
+3. **Remoção da tela de revisão dedicada, unificação em `/admin/blog`** (17/07/2026,
+   mudança de arquitetura pedida pelo usuário depois de testar o fluxo de 2 passos na
+   prática) — `scan-event-sources` passou a chamar `generate-blog-post-v2` sozinho
+   (`EdgeRuntime.waitUntil`, sem bloquear a resposta do scan), o rascunho já nasce em
+   `blog_posts` (`published: false`) e a revisão passa a ser feita como qualquer outro
+   post do blog (editar, trocar foto, publicar, deletar). `EventWatchReview.tsx` foi
+   deletado; o botão "Executar Agora" migrou pra `/admin/fontes`.
+4. **Botão "Ver fontes e origem" em cada post de `/admin/blog`** — mostra qual
+   função/template de IA gerou o artigo e quais fontes foram usadas (fonte de origem +
+   contexto adicional), com URL completa e clicável — não só o nome do site.
+5. **Correção de segurança de marca (urgente, 17/07/2026)** — um artigo raspado citou o
+   nome e o link de checkout de um concorrente (WeGoOut) como se fosse oferta oficial da
+   MDAccula. Corrigido em 3 camadas: (a) `ticket_link` extraído nunca mais é enviado pro
+   gerador de artigo; (b) novo template **"Raspagem de Eventos"** (separado de "Evento
+   Padrão", que fica exclusivo pros eventos cadastrados manualmente) proíbe
+   explicitamente citar a fonte, linkar pra terceiros ou usar o cupom MDACCULA; (c)
+   prompt de extração reforçado pra nunca incluir o nome da fonte no campo `description`.
+6. **Link exato da fonte (17/07/2026)** — antes só a URL raiz da fonte era mostrada no
+   modal de fontes. Agora: (a) a extração de evento identifica a página específica da
+   notícia quando existe um link no markdown raspado (`event_watch_drafts.source_page_url`);
+   (b) o scraping de contexto genérico (usado por *toda* geração do site, não só Event
+   Watcher) também tenta achar um link de artigo real em vez de sempre cair na raiz do
+   domínio, com uma heurística que filtra âncoras/assets estáticos.
+7. **Fontes ampliadas** — 3 novos sites editoriais cadastrados (Wonderland in Rave, DJ
+   News Brasil, Central DJ — todos com matérias/entrevistas reais, não só listagem de
+   ingresso); `ai_max_scrape_sources` (contexto extra em toda geração do site) subido de
+   3 para 7, dentro da margem folgada do plano grátis do Firecrawl (1.000 créditos/mês, 1
+   crédito por página raspada).
+
+### Pendências da Fase A (não bloqueiam uso — são decisões operacionais do usuário)
+
+- **Cron automático**: ainda não ligado. Hoje o scan só roda via botão "Executar
+  Varredura Agora" em `/admin/fontes`. Ativar é 1 chamada SQL
+  (`manage_digest_schedule('scan-event-sources-cron', ...)`) — só falta o usuário decidir
+  a cadência (sugestão original: 48h).
+- **`DROP TABLE news_sources`**: a tabela antiga continua existindo no banco (vazia de
+  uso — nada mais lê dela desde a unificação), só não foi apagada porque essa é uma ação
+  irreversível que fica deliberadamente pra confirmação explícita e separada do usuário.
+- **Task #20 (débito técnico, não relacionado à Fase A)**: extrair a lógica de seleção/
+  renderização de template de `generate-blog-post-v2` pra um módulo testável com testes
+  Deno — pendente desde antes da Fase A, baixa prioridade.
+
+## Fase B — Apify (Instagram) + composição de imagem (não iniciada)
+
+**Escopo (confirmado com o usuário em 15/07/2026)**: as duas peças andam juntas nesta
+fase, pra permitir teste prático real do pipeline completo antes de decidir qualquer
+coisa sobre publicação automática no Instagram (isso fica pra Fase C).
 
 ```
-[event_sources]                         (sites de parceiros via Firecrawl
-     │                                    E perfis Instagram via Apify —
-     ▼                                    ambos read-only, desde o piloto)
-scan-event-sources  (Edge Function, cron a cada N horas OU botão "Executar agora")
-     │  ├─ type='site'      → Firecrawl (implementado, Fase A)
-     │  └─ type='instagram' → Apify (ator instagram-post-monitor ou instagram-scraper,
-     │                         chamado via APIFY_API_TOKEN; disparo assíncrono +
-     │                         webhook de retorno, para não travar o cron) — Fase B
+[event_sources, type='instagram']
      ▼
-Extração por IA  (AI Gateway + template em ai_prompt_templates,
-                   tool-call estruturado: nome, data, local, lineup, imagem/fonte)
-     │  de-dupe contra events/drafts existentes (título+data aproximados)
+scan-event-sources (estendido) — dispara ator Apify de forma ASSÍNCRONA
+  (instaprism/instagram-post-monitor ou similar; não espera terminar dentro do cron,
+  evita estourar timeout de Edge Function)
      ▼
-event_watch_drafts  (status: pending_review → approved → published)
-     │
-     ├─► compose-event-image (Edge Function, imagescript): logo + barra de marca +
-     │     título sobre a foto (enviada pelo organizador, extraída da fonte, ou
-     │     gerada por IA como fallback) → WebP → upload-to-bunny — Fase B
-     │
-     └─► geração de texto: matéria (modo evento do generate-blog-post-v2, com
-           publishImmediately:false) + legenda curta para Instagram (novo
-           prompt, mais curto, com hashtags) — Fase B para a legenda
-     │
+apify-instagram-webhook (Edge Function NOVA) — recebe o retorno da Apify quando o
+  scraping termina, roda a extração por IA (mesmo padrão de scan-event-sources/extract.ts),
+  grava em event_watch_drafts
      ▼
-Tela de revisão (admin) — EventWatchReview.tsx (implementada, Fase A)
-   mostra: fonte, dados extraídos (editáveis), preview da imagem composta (Fase B),
-   texto da matéria (editável, já implementado), legenda do Instagram (Fase B)
-   ações: Gerar artigo (prévia) → Publicar / Rejeitar (implementado, Fase A)
-     │
-     ▼ (Publicar)
-   ├─ Site: update em `blog_posts` (published: true) — implementado, Fase A
-   └─ Instagram: Content Publishing API oficial (conta própria da agência) —
-       requer conta Business + app Meta aprovado — Fase C
+compose-event-image (Edge Function NOVA, usa imagescript) — logo + barra de marca +
+  título sobre a foto (enviada, extraída da fonte, ou gerada por IA como fallback)
+  → WebP → upload-to-bunny
+     ▼
+generate-blog-post-v2 (já pronto) — gera o texto da matéria, publishImmediately:false
+     ▼
+Rascunho em /admin/blog, com imagem composta — revisão manual como hoje
 ```
 
-## Placar de viabilidade por peça
+### Peças concretas a criar
 
-- **Raspagem de sites cadastrados (Firecrawl)** — Alta. Concluído na Fase A.
-- **Extração e redação por IA** — Alta. Concluído na Fase A.
-- **Publicação no site (blog, fluxo de 2 passos)** — Alta. Concluído na Fase A (16/07/2026).
-- **Tela de aprovação manual** — Alta. Concluído na Fase A.
-- **Agendamento configurável (cron a cada X horas + disparo manual)** — Alta. Disparo manual concluído; cron automático pronto para ligar (1 chamada SQL), aguardando aprovação do piloto pelo usuário.
-- **Composição de imagem (template + título sobre a foto)** — Média. Trabalho novo, mas sem bloqueio técnico: `imagescript` (já é dependência do projeto) suporta desenho/composição; falta só montar a arte-base (logo, gradiente) e uma fonte embutida. **Fase B.**
-- **Monitorar Instagram de terceiros (Apify)** — Média-Alta. Tecnicamente resolvido (ator pronto pra "novo post", API REST simples, sem precisar de login/senha de nenhuma conta Instagram). O que traz risco é operacional/legal, não técnico: é pago (baixo custo na escala do piloto — dezenas de perfis a cada 48h), quebra periodicamente quando a Meta muda a estrutura do site (a manutenção fica a cargo da Apify, mas o `scan-event-sources` precisa tratar isso como "fonte falhou, pula" e não como erro fatal do cron), e tecnicamente contraria os Termos de Uso da Meta (mitigado, não eliminado, pelo precedente *Meta v. Bright Data*). **Mitigado pela aprovação manual obrigatória** — um rascunho ruim é só descartado, nunca vai ao ar sozinho. **Fase B.**
-- **Publicar automaticamente no Instagram (conta própria)** — Média-Alta tecnicamente (é API oficial, suportada), mas com **prazo real**: exige conta Instagram Business vinculada a uma Página do Facebook, um App na Meta com a permissão `instagram_content_publish`, e passar pelo **App Review da Meta** (normalmente 1 a 4 semanas, precisa de vídeo/demonstração do caso de uso). Esse é o maior gargalo de cronograma do projeto inteiro. **Fase C.**
+- **Schema**: nenhuma migração nova necessária — `event_sources.type` já suporta
+  `'instagram'` desde a Fase A.
+- **Secret novo**: `APIFY_API_TOKEN`.
+- **`scan-event-sources` estendido**: branch novo pra `type='instagram'`, dispara o ator
+  Apify via API REST, sem aguardar conclusão síncrona.
+- **`apify-instagram-webhook`** (Edge Function nova): recebe o callback da Apify,
+  reaproveita a lógica de extração já existente, grava em `event_watch_drafts` com
+  `source_page_url` = link do post do Instagram.
+- **`compose-event-image`** (Edge Function nova): overlay de logo/template — trabalho
+  visual novo, sem bloqueio técnico (`imagescript` já é dependência do projeto).
+- **`/admin/blog`**: modal "Ver fontes e origem" ganha um preview da imagem composta;
+  possivelmente uma legenda curta de Instagram (novo prompt, mais curto, com hashtags) —
+  a decidir se isso vira um campo novo em `ai_generated_posts` ou fica só no rascunho.
 
-## Riscos a observar
+### Riscos já mapeados (do plano original)
 
-- **Direitos autorais de imagem**: repostar o flyer/foto de outra página sem permissão é risco jurídico. Mitigado pela escolha do usuário (imagem preferencialmente enviada pelo organizador/admin — foto, arte ou até vídeo — com a extração da fonte como alternativa secundária, sempre revisada antes de publicar).
-- **Alucinação de dados** (data/local errados): mitigado reaproveitando a técnica "DADOS OFICIAIS"/anti-alucinação já usada em `generate-blog-post-v2`, e mantendo a revisão manual como gate final.
-- **Custo e fragilidade do scraper de Instagram (Apify)**: rodar só na cadência definida (ex. 48h), tratar falha/sem-resultado de uma fonte como skip silencioso (log + segue pras próximas), nunca como erro fatal do cron inteiro. Monitorar consumo de créditos Apify pra não estourar orçamento se o número de perfis cadastrados crescer.
-- **Lead time do Instagram (publicação)**: iniciar o processo de verificação de negócio/App Review da Meta o quanto antes, em paralelo ao resto — é o item que mais atrasa, e não bloqueia as outras entregas (a leitura via Apify não depende disso).
+- **Direitos autorais de imagem**: mitigado — prioridade pra imagem enviada pelo
+  organizador/admin; extração de foto da fonte é alternativa secundária, sempre revisada
+  antes de publicar (mesmo gate manual que já existe hoje pro texto).
+- **Custo/fragilidade do scraper de Instagram**: tratar falha de uma fonte como skip
+  silencioso (mesmo padrão já usado em `scan-event-sources` pros sites), nunca como erro
+  fatal do cron inteiro. Monitorar consumo de créditos Apify.
+- **Citação de fonte/link de concorrente**: o mesmo problema corrigido nesta sessão pros
+  sites (Fase A, item 5) vale igualmente pra Instagram — o template "Raspagem de
+  Eventos" e a regra de nunca enviar link extraído já cobrem isso por padrão, mas vale
+  reconfirmar com um teste real assim que a Fase B estiver rodando.
 
-## Ordem de construção (revisado em 15-16/07/2026, confirmado com o usuário)
+### Verificação (quando implementada)
 
-1. **Fase A (piloto — CONCLUÍDA em 16/07/2026)** — site-only: `event_sources`
-   (`type='site'`, Firecrawl) + `scan-event-sources` + extração IA + `event_watch_drafts`
-   + tela de revisão com fluxo de 2 passos (gerar prévia → publicar) + publicação só no
-   blog (sem criar linha em `events`).
-   Plano detalhado e progresso: `docs/superpowers/plans/2026-07-14-event-watcher-site-sources.md`
-   (11 tasks, execução via subagent-driven-development) +
-   `docs/superpowers/plans/2026-07-15-fontes-unificacao-e-fluxo-2-passos.md` (unificação
-   de `news_sources`/`event_sources`, `publishImmediately`, fluxo de 2 passos).
-   **Pendente antes de considerar 100% fechada**: rodar `npm test` +
-   `npm run test:coverage:ratchet` completos (bloqueado nesta sessão por sobrecarga da
-   máquina do usuário, não por problema de código); teste manual do rascunho real do
-   Parador Maresias pelo usuário; decidir se liga o cron automático (opcional); DROP da
-   tabela `news_sources` (cleanup final, feito só depois do usuário confirmar que está
-   tudo certo).
-2. **Fase B (próxima, escopo ampliado em 15/07/2026)** — Apify (fontes `type='instagram'`:
-   scan assíncrono via ator `instaprism/instagram-post-monitor` ou similar + webhook de retorno
-   `apify-instagram-webhook`) integrado já **para teste end-to-end**, junto com
-   `compose-event-image` (overlay de template/logo/título sobre a foto). Objetivo: validar o
-   pipeline completo de leitura de Instagram + composição de imagem, com aprovação manual,
-   antes de decidir qualquer coisa sobre publicação automática. As duas peças (Apify +
-   composição) andam juntas nesta fase, para permitir teste prático real do fluxo.
-   **Ainda não iniciada.**
-3. **Fase C e D — a replanejar** depois que A e B estiverem concluídas e testadas na prática.
-   Escopo original abaixo é só referência, sujeito a revisão nesse momento:
-   - C = publicação oficial no Instagram (Content Publishing API, requer App Review da Meta).
-   - D = provedor de scraping redundante (fallback caso a Apify saia do ar/seja bloqueada),
-     suporte a vídeo/Reels, fallback de imagem gerada por IA.
-
-## Peças concretas a criar na Fase B (quando for para implementação)
-
-- Colunas/tabelas: `event_sources` já suporta `type='instagram'` desde a Fase A (schema
-  pronto, sem migração nova necessária para isso).
-- Secret novo: `APIFY_API_TOKEN` (via `Deno.env.get`, mesmo padrão de secrets já usado no projeto).
-- Edge Functions novas:
-  - Estender `scan-event-sources`: para fontes `type='instagram'`, disparar o ator Apify
-    (`instaprism/instagram-post-monitor` ou `apify/instagram-scraper`) de forma
-    **assíncrona** (não espera o scraping terminar dentro do cron, evitando estourar
-    timeout de Edge Function).
-  - `apify-instagram-webhook`: endpoint que a Apify chama quando o scraping termina,
-    recebe os posts novos, roda a extração por IA e grava em `event_watch_drafts` (mesmo
-    `_shared` de CORS/rate-limit/response usado nas demais funções).
-  - `compose-event-image`: overlay de logo/template sobre a foto extraída ou enviada.
-- Reaproveitar diretamente: `src/lib/imageUtils.ts`, `src/lib/bunnyUploader.ts`,
-  `src/lib/webpConverter.ts`.
-- Estender `src/pages/admin/EventWatchReview.tsx`: mostrar preview da imagem composta e
-  a legenda de Instagram (editável), no mesmo padrão do texto de matéria já implementado.
-
-## Verificação (Fase B, quando implementada)
-
-- Disparo manual de `scan-event-sources` contra uma fonte Instagram de teste em ambiente
-  de dev/staging → confirmar criação de linha em `event_watch_drafts` com dados
-  extraídos corretos após o webhook retornar.
+- Disparo manual de `scan-event-sources` contra uma fonte Instagram de teste →
+  confirmar criação de linha em `event_watch_drafts` com dados corretos após o webhook
+  retornar.
 - Confirmar que `compose-event-image` gera a imagem com overlay correto e sobe pro
   Bunny/Storage.
-- Confirmar que a tela de revisão mostra a imagem composta e a legenda de Instagram, e
-  que o fluxo de 2 passos (gerar prévia → publicar) continua funcionando com esses campos
-  novos.
-- Adicionar testes de contrato em `src/__tests__/contracts/` para as novas Edge Functions
-  (convenção do projeto) e, se algum bug for encontrado depois, registrar em
-  `docs/TESTING.md` + teste em `src/__tests__/regression/`, conforme `CLAUDE.md`.
+- Confirmar que o rascunho resultante aparece em `/admin/blog` com imagem composta,
+  sem citar a fonte, sem link de concorrente (mesmo teste manual de leitura feito na
+  Fase A).
+- Testes de contrato em `src/__tests__/contracts/` pras Edge Functions novas.
+
+## Fase C e D — a replanejar
+
+Escopo original, só como referência — sujeito a revisão completa quando a Fase B
+estiver testada na prática:
+
+- **C** = publicação oficial no Instagram (Content Publishing API). Maior gargalo de
+  cronograma do projeto: exige conta Instagram Business + Página do Facebook + App na
+  Meta com permissão `instagram_content_publish` + **App Review da Meta** (1-4 semanas,
+  precisa de vídeo/demonstração). Não bloqueia as outras fases — pode começar o processo
+  de verificação em paralelo, quando o usuário decidir.
+- **D** = provedor de scraping redundante (fallback caso a Apify saia do ar/seja
+  bloqueada), suporte a vídeo/Reels, fallback de imagem gerada por IA quando não houver
+  foto do organizador.
+
+## Histórico de revisões
+
+- **14/07/2026** — plano original aprovado, Fase A (site-only) desenhada como fatia 1.
+- **15/07/2026** — escopo da Fase B ampliado (Apify + composição de imagem juntos, em
+  vez de composição isolada); Fontes (`news_sources`/`event_sources`) unificadas; fluxo
+  de aprovação virou 2 passos (gerar prévia → publicar).
+- **16/07/2026** — Fase A declarada concluída; suíte de testes completa validada;
+  roadmap copiado do plano de sessão local pro repositório (este arquivo).
+- **17/07/2026** — mudança de arquitetura: tela de revisão dedicada removida, geração
+  de artigo passou a ser 100% automática (sem clique "Gerar artigo"), revisão unificada
+  em `/admin/blog`; correção de segurança de marca (nunca citar fonte/linkar
+  concorrente); extração de link exato da notícia; 3 fontes editoriais novas
+  cadastradas; `ai_max_scrape_sources` 3→7.
