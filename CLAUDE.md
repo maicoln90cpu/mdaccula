@@ -59,3 +59,35 @@ Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:co
 - Avoid `any`; in catch blocks type the error as `unknown` and narrow with `error instanceof Error`.
 - New pages: add under `src/pages/`, then register a lazy-loaded route in `src/App.tsx` wrapped in `<PageWithError>`.
 - New tables: write RLS policies, document in `tabelas.md`, and regenerate `src/integrations/supabase/types.ts` (auto-generated, don't hand-edit).
+
+
+## Relatório Obrigatório ao Final de Cada Tarefa
+
+Toda resposta de implementação DEVE seguir esta estrutura:
+
+### 1) Antes vs Depois
+Tabela ou lista clara comparando os 2 estados.
+
+### 2) O que melhorou
+Bullets curtos focados em ganho prático.
+
+### 3) Vantagens / Desvantagens
++ Vantagens em bullets.
+− Desvantagens / trade-offs em bullets.
+
+### 4) Checklist manual de validação
+- [ ] Itens acionáveis para testar no localhost:8080
+
+### 5) Pendências
+O que ficou pra depois ou sugestões futuras.
+
+### 6) Prevenção de regressão
+O que garante que isso não volte a quebrar.
+
+REGRAS:
+- Linguagem leiga, sem jargão técnico.
+- Nunca executar múltiplos itens de alto risco de uma vez.
+- Itens de baixo risco podem ser agrupados (máximo 3).
+- Sempre validar no localhost antes de sugerir o push.
+- Sugerir melhorias só do que foi implementado.
+- EM TODAS ALTERAÇÕES DE CODIGO, RODAR OS TESTES NOS ARQUIVOS EDITADOS, CASO REPROVE, CORRIGIR ANTES DE ENTREGAR COMO CONCLUIDO
