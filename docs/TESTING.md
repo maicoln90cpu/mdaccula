@@ -194,6 +194,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Proteção:** `src/__tests__/regression/send-test-email-recipient.test.ts`.
 - **Nota:** remetente `onboarding@resend.dev` (sandbox da Resend) só entrega pro e-mail dono da conta Resend — configurar um domínio próprio verificado é pendência operacional, fora do escopo desta correção de código.
 
+### R-010 — Landing/site inteiro carregando ~991KB desnecessários sempre, em toda página
+- **Quando:** julho/2026
+- **Sintoma:** usuário reportou a landing "demorando uma vida para carregar", tanto publicada quanto em localhost.
+- **Causa:** `manualChunks` em `vite.config.ts` agrupava TODO o pacote `lucide-react` (`'icons'`) e TODO o `recharts` (`'charts'`) em dois chunks únicos. Como `ErrorBoundary`/`Toast` (montados eager na raiz do `App.tsx`) importam alguns ícones, o Rollup tratava o chunk `'icons'` INTEIRO — usado em qualquer página, inclusive admin — como dependência estática de toda rota. Resultado: ~574KB (icons) + ~417KB (charts) sempre em `<link rel="modulepreload">` no `index.html` raiz, mesmo em páginas que não usam nada disso. (Parte da lentidão relatada também era um processo de dev server duplicado no ambiente local, sem relação com o código.)
+- **Correção:** removidos os agrupamentos `'icons'`/`'charts'` de `manualChunks` — o Rollup volta a fazer chunking automático por uso real (cada ícone/gráfico vira um chunk pequeno, carregado só pela página que o importa). Chunk principal cresceu ~9KB (ícones que o `ErrorBoundary`/`Toast` usam diretamente ficam inline) em troca de remover ~991KB do carregamento eager de toda página.
+- **Proteção:** `src/__tests__/regression/vite-bundle-eager-preload.test.ts` — lê `vite.config.ts` e garante que `'icons'`/`'charts'`/`lucide-react`/`recharts` nunca mais apareçam dentro de `manualChunks`.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
