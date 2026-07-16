@@ -616,7 +616,7 @@ export default function AIContent2() {
           </div>
 
           {/* Tabs */}
-          <Tabs defaultValue="generate" className="w-full">
+          <Tabs value={activeTab} onValueChange={(value) => setSearchParams(prev => { prev.set("tab", value); return prev; })} className="w-full">
             <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="generate" className="gap-2">
                 <Sparkles className="h-4 w-4" />
