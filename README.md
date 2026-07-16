@@ -11,9 +11,9 @@
 **URL do Projeto:** https://lovable.dev/projects/5fbf20d7-2f06-4b9e-8486-f99fd516e773  
 **Domínio:** https://mdaccula.com  
 **CDN:** https://cdn.mdaccula.com (Bunny CDN → Supabase Storage)  
-**Versão:** 1.4.0 | **Última atualização:** 13/07/2026
+**Versão:** 1.5.0 | **Última atualização:** 16/07/2026
 
-> **Novidades 07/2026:** renderer de e-mails unificado (fonte única frontend↔edge com snapshot bilateral), slim-down de `EmailConfig`/`EventForm`/`LinksManager`, AbortController em telas com busca, roteamento de template por automação, e Google Maps funcionando em `mdaccula.com` via edge `public-maps-config` + chave própria com referrer allowlist e **Maps Embed API** ativa.
+> **Novidades 07/2026:** microinterações premium com Framer Motion na landing, evento e /links — fundo Aurora animado, parallax no mural de flyers, botão magnético, countdown de evento, spotlight cards, CTA em destaque, cores de marca nos ícones (ver `docs/CODE_STYLE.md` → Animações); correção de performance no build removendo o agrupamento `manualChunks` de ícones/gráficos que forçava ~991KB de preload eager em toda página; renderer de e-mails unificado (fonte única frontend↔edge com snapshot bilateral), slim-down de `EmailConfig`/`EventForm`/`LinksManager`, AbortController em telas com busca, roteamento de template por automação, e Google Maps funcionando em `mdaccula.com` via edge `public-maps-config` + chave própria com referrer allowlist e **Maps Embed API** ativa.
 
 ---
 
@@ -122,6 +122,7 @@ O projeto inclui um servidor Express mínimo (`server.js`) que serve a build est
 | React Router DOM | ^6.30 | Roteamento com lazy loading |
 | TanStack Query | ^5.83 | Gerenciamento de estado servidor |
 | TanStack Virtual | ^3.13 | Virtualização de listas longas |
+| Framer Motion | ^12.42 | Animações e microinterações (landing, evento, /links) |
 | React Hook Form | ^7.61 | Formulários |
 | Zod | ^3.25 | Validação de schemas |
 | Recharts | ^2.15 | Gráficos |
@@ -214,9 +215,10 @@ O projeto inclui um servidor Express mínimo (`server.js`) que serve a build est
 │   │   │   ├── TechDebtDashboard.tsx
 │   │   │   └── VirtualizedLinkList.tsx  # Lista virtualizada (>20 itens)
 │   │   ├── blog/            # BlogForm, LikeButton
-│   │   ├── events/          # EventForm, EventModal, EventsCarousel
+│   │   ├── events/          # EventForm, EventModal, EventsCarousel, EventCountdown
+│   │   ├── effects/         # AuroraBackground, SpotlightCard (Framer Motion)
 │   │   ├── links/           # LinkCard, SortableItem, ThemeSelector, StaticIcon
-│   │   ├── sections/        # Hero, FeaturedEvents, LatestNews
+│   │   ├── sections/        # Hero, FeaturedEvents, LatestNews, SectionHeading, CuradoriaCta
 │   │   ├── OptimizedImage.tsx  # Imagem com CDN fallback inteligente
 │   │   ├── SEOHead.tsx         # Meta tags por página
 │   │   ├── ShareButtons.tsx    # Compartilhamento social
@@ -228,6 +230,8 @@ O projeto inclui um servidor Express mínimo (`server.js`) que serve a build est
 │   │   ├── useLinks.ts      # React Query para links
 │   │   ├── useSiteSettings.tsx # Configurações do site (via Context)
 │   │   ├── useDebouncedValue.ts # Debounce genérico
+│   │   ├── useTiltParallax.ts   # Tilt/parallax por ponteiro (Framer Motion)
+│   │   ├── useMagneticHover.ts  # Botão "ímã" que segue o cursor
 │   │   └── useToast.ts      # Sistema de notificações
 │   ├── contexts/
 │   │   └── SiteSettingsContext.tsx  # Provider global com cache localStorage
@@ -243,6 +247,7 @@ O projeto inclui um servidor Express mínimo (`server.js`) que serve a build est
 │   │   ├── linkThemes.ts    # 13+ temas para página de links
 │   │   ├── linkSortHelper.ts # Ordenação de links por data de evento
 │   │   ├── eventGroupHelper.ts # Nome de grupo de links
+│   │   ├── brandColors.ts   # Cor real de marca por plataforma (só no ícone)
 │   │   ├── webpConverter.ts # Conversão client-side para WebP
 │   │   └── logger.ts        # Logger centralizado (debug/info/warn/error)
 │   ├── types/
@@ -793,4 +798,4 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 
 ---
 
-*Última atualização: 13/07/2026*
+*Última atualização: 16/07/2026*

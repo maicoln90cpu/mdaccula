@@ -2,8 +2,8 @@
 
 > Arquitetura técnica, fluxos de dados, APIs e interfaces do sistema
 
-**Versão:** 1.1  
-**Data:** 15/03/2026  
+**Versão:** 1.2  
+**Data:** 16/07/2026  
 **Status:** Ativo
 
 ---
@@ -32,7 +32,7 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              CLIENTE (Browser)                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  React SPA │ React Router │ TanStack Query │ Tailwind │ Service Worker      │
+│  React SPA │ React Router │ TanStack Query │ Tailwind │ Framer Motion │ SW  │
 │  (lazy loading de todas as páginas via React.lazy + Suspense)               │
 └─────────────────────────────────────────────────────────────────────────────┘
                           │                    │
@@ -99,13 +99,14 @@ src/
 │   ├── ui/                   # ~50 componentes Shadcn/UI
 │   │   ├── ImageUploadWithCrop.tsx  # Upload + crop + WebP
 │   │   └── RichTextEditor.tsx       # TipTap editor
-│   ├── sections/             # Hero, FeaturedEvents, LatestNews
-│   ├── events/               # EventForm, EventModal, EventsCarousel
+│   ├── sections/             # Hero, FeaturedEvents, LatestNews, SectionHeading, CuradoriaCta
+│   ├── events/                # EventForm, EventModal, EventsCarousel, EventCountdown
+│   ├── effects/               # AuroraBackground, SpotlightCard (Framer Motion, reutilizáveis)
 │   ├── blog/                 # BlogForm, LikeButton
 │   ├── links/                # LinkCard, SortableItem, StaticIcon, DndWrapper
 │   ├── OptimizedImage.tsx    # CDN fallback inteligente
 │   ├── SEOHead.tsx           # Meta tags dinâmicas
-│   ├── ShareButtons.tsx      # Share social
+│   ├── ShareButtons.tsx      # Share social (linha de ícones inline, cor de marca) — compartilhado entre evento e blog
 │   └── NewsletterPopup.tsx   # A/B testing popup
 │
 ├── hooks/
@@ -114,6 +115,8 @@ src/
 │   ├── useLinks.ts           # React Query: links + grupos
 │   ├── useSiteSettings.tsx   # Re-export do SiteSettingsContext
 │   ├── useDebouncedValue.ts  # Debounce genérico
+│   ├── useTiltParallax.ts    # Tilt 3D (useTiltRotate) + parallax de mural (useMuralParallax), Framer Motion
+│   ├── useMagneticHover.ts   # Botão que "puxa" na direção do cursor (Framer Motion)
 │   └── useToast.ts           # Notificações toast
 │
 ├── contexts/
@@ -125,6 +128,7 @@ src/
 │   ├── eventDateHelper.ts    # isEventVisible(), filterVisibleEvents()
 │   ├── linkThemes.ts         # 13+ temas (neonPurple, etc)
 │   ├── linkSortHelper.ts     # sortByEventDate()
+│   ├── brandColors.ts        # getBrandColor() — cor real por plataforma (Instagram, WhatsApp, etc), só no ícone
 │   ├── webpConverter.ts      # convertToWebP() client-side
 │   └── logger.ts             # Logger com níveis e scoped logging
 │
@@ -566,6 +570,15 @@ Provider global com cache em localStorage. Carrega uma vez, revalida em backgrou
 - VirtualizedLinkList: virtualização para >20 links
 - LightningCSS: minificação de CSS
 - Terser: minificação de JS com múltiplos passes
+- `manualChunks` (`vite.config.ts`) agrupa só dependências genuinamente globais (react-vendor,
+  query, supabase, ui-vendor/ui-forms — usadas pelos providers raiz do `App.tsx`). **`icons`
+  (lucide-react) e `charts` (recharts) não são mais agrupados manualmente** (16/07/2026): como
+  `ErrorBoundary`/`Toast` (montados eager na raiz) importavam alguns ícones, o agrupamento forçava
+  o Rollup a tratar o pacote INTEIRO de ícones — usado em qualquer página, inclusive admin — como
+  dependência estática de toda rota, resultando em ~991KB sempre pré-carregados via
+  `<link rel="modulepreload">` no `index.html`, mesmo em páginas que não usam nada disso. Sem esse
+  agrupamento, o Rollup faz chunking automático por uso real (cada ícone/gráfico vira um chunk
+  minúsculo carregado só pela página que o importa).
 
 ---
 
@@ -603,4 +616,4 @@ Provider global com cache em localStorage. Carrega uma vez, revalida em backgrou
 
 ---
 
-*Última atualização: 15/03/2026*
+*Última atualização: 16/07/2026*

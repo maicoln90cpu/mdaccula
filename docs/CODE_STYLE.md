@@ -14,11 +14,12 @@
 6. [Componentes React](#componentes-react)
 7. [TypeScript](#typescript)
 8. [Estilização](#estilização)
-9. [Hooks Personalizados](#hooks-personalizados)
-10. [Edge Functions](#edge-functions)
-11. [Logging](#logging)
-12. [Tratamento de Erros](#tratamento-de-erros)
-13. [Testes e Validação](#testes-e-validação)
+9. [Animações](#animações)
+10. [Hooks Personalizados](#hooks-personalizados)
+11. [Edge Functions](#edge-functions)
+12. [Logging](#logging)
+13. [Tratamento de Erros](#tratamento-de-erros)
+14. [Testes e Validação](#testes-e-validação)
 
 ---
 
@@ -366,6 +367,60 @@ import { cn } from "@/lib";
 
 ---
 
+## Animações
+
+O projeto usa **Framer Motion** (adicionado em 16/07/2026) para animações mais ricas — stagger,
+tilt/parallax, glow que segue o mouse — mantendo os keyframes CSS existentes (`tailwind-animate`,
+`index.css`) para os casos simples que já funcionavam (`animate-logo-pulse`, `animate-glow`, etc).
+
+### Toda animação nova precisa respeitar `prefers-reduced-motion`
+
+```typescript
+import { useReducedMotion } from "framer-motion";
+
+const prefersReducedMotion = useReducedMotion();
+
+<motion.div
+  initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
+  animate={{ opacity: 1, y: 0 }}
+/>
+```
+
+### Efeitos de ponteiro (tilt, magnetic, parallax) só ativam com mouse de verdade
+
+```typescript
+const onPointerMove = (e: React.PointerEvent) => {
+  if (prefersReducedMotion || e.pointerType !== "mouse") return;
+  // ...
+};
+```
+
+### Toda `@keyframes`/`animate-*` nova entra nos DOIS blocos de desativação em `index.css`
+
+```css
+/* Desliga em mobile (perf) */
+@media (max-width: 768px) {
+  .animate-minha-animacao-nova { animation: none; }
+}
+
+/* Desliga se o usuário pediu reduzir movimento */
+@media (prefers-reduced-motion: reduce) {
+  .animate-minha-animacao-nova { animation: none; }
+}
+```
+
+### Building blocks reutilizáveis (não recriar do zero)
+
+| Peça | Arquivo | Uso |
+|------|---------|-----|
+| `useTiltRotate` / `useMuralParallax` | `src/hooks/useTiltParallax.ts` | Tilt 3D em card único / parallax de múltiplos cards a partir de um container |
+| `useMagneticHover` | `src/hooks/useMagneticHover.ts` | Botão que se desloca sutilmente na direção do cursor |
+| `SpotlightCard` | `src/components/effects/SpotlightCard.tsx` | Glow radial que segue o mouse dentro de um card |
+| `AuroraBackground` | `src/components/effects/AuroraBackground.tsx` | Fundo ambiente com blobs animados usando os tokens neon do tema |
+| `getBrandColor()` | `src/lib/brandColors.ts` | Cor real de marca (Instagram, WhatsApp, etc) aplicada só ao ícone, nunca ao chrome do card |
+
+---
+
 ## Hooks Personalizados
 
 ### Estrutura Padrão
@@ -591,4 +646,4 @@ Antes de submeter código, verifique:
 
 ---
 
-*Última atualização: Janeiro 2026*
+*Última atualização: 16/07/2026*

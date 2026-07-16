@@ -2,9 +2,9 @@
 
 ## MDAccula - Plataforma de Agência de Música Eletrônica
 
-**Versão:** 1.4  
-**Data:** 13/07/2026  
-**Status:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 em Andamento
+**Versão:** 1.5  
+**Data:** 16/07/2026  
+**Status:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 em Andamento (microinterações premium concluídas)
 
 ---
 
@@ -145,10 +145,11 @@ Uma plataforma all-in-one que oferece:
 
 ### Fase 3 - Expansão (Em Andamento 🔄)
 
+- [x] Microinterações premium (Framer Motion) na landing, página de evento e /links: fundos animados, parallax no mural de flyers, botão magnético, spotlight cards, countdown de evento, CTA em destaque, entrada em stagger
+- [x] Compartilhamento social em eventos e blog (ShareButtons promovido para linha de ícones com cor de marca — componente compartilhado entre `/eventos/:slug` e `/blog/:slug`)
 - [ ] Botão flutuante de WhatsApp global com deep links
 - [ ] Newsletter inline (Hero + Blog) sem depender de popup
 - [ ] Botão "Adicionar ao Calendário" nos eventos
-- [ ] Compartilhamento social em eventos e blog
 - [ ] PWA com push notifications
 - [ ] Integrações Instagram/Spotify
 - [ ] Dashboard de analytics avançado
@@ -258,7 +259,8 @@ Uma plataforma all-in-one que oferece:
 | 1.2 | 23/01/2026 | Programa de Podcast completo |
 | 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, importação CSV, CDN fallback, otimização custos, dual IA routing. Backlog atualizado para Fase 3 |
 | 1.4 | 13/07/2026 | Higiene técnica concluída: renderer de e-mails com fonte única frontend↔edge (`_shared/emailBlocks.ts`) + snapshot bilateral de contrato; slim-down de `EmailConfig`, `EventForm` e `LinksManager`; AbortController em telas com busca; roteamento de template por automação (weekly/weekend/blog) com validação de bloco dinâmico; mapa em domínio customizado via edge `public-maps-config` + Maps Embed API |
+| 1.5 | 16/07/2026 | Microinterações premium com Framer Motion na landing, evento e /links (fundos animados, parallax, spotlight cards, countdown, CTA em destaque, stagger); compartilhamento social promovido (evento + blog); correção de performance no build (bundle inicial ~991KB menor em toda página) |
 
 ---
 
-*Última atualização: 13/07/2026*
+*Última atualização: 16/07/2026*
