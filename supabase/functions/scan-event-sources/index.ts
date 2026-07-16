@@ -26,8 +26,13 @@ async function generateDraftArticle(
   serviceKey: string,
   draftId: string,
   extracted: ExtractedEvent,
+  templateId: string | null,
 ): Promise<void> {
   try {
+    // NUNCA envia ticket_link: é sempre o link da página raspada de terceiros (ex:
+    // um concorrente), nunca um link oficial da MDAccula. Enviá-lo faria o gerador
+    // promover o checkout de outra marca sob o nome da MDAccula (bug de segurança de
+    // marca corrigido em 17/07/2026 — ver docs/superpowers/plans do dia).
     const response = await fetchWithTimeout(
       `${supabaseUrl}/functions/v1/generate-blog-post-v2`,
       {
@@ -37,6 +42,7 @@ async function generateDraftArticle(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          templateId,
           eventName: extracted.title,
           title: extracted.title,
           eventDate: extracted.date,
@@ -46,7 +52,6 @@ async function generateDraftArticle(
           locationCity: extracted.location_city ?? "",
           locationState: extracted.location_state ?? "",
           lineup: extracted.lineup.join(", "),
-          ticketLink: extracted.ticket_link ?? "",
           description: extracted.description ?? "",
           generateImage: true,
           publishImmediately: false,
@@ -101,6 +106,17 @@ Deno.serve(async (req) => {
 
     if (!firecrawlKey) return jsonError("FIRECRAWL_API_KEY não configurada", 500);
     if (!lovableKey) return jsonError("LOVABLE_API_KEY não configurada", 500);
+
+    // Template dedicado pra artigos raspados — nunca cita a fonte nem promove links/
+    // cupom de terceiros. Buscado por nome (não hardcoded) pra sobreviver a uma
+    // recriação do registro. "Evento Padrão" (is_default) fica reservado só pros
+    // eventos cadastrados manualmente pelo próprio site.
+    const { data: scrapedTemplate } = await admin
+      .from("ai_prompt_templates")
+      .select("id")
+      .eq("name", "Raspagem de Eventos")
+      .maybeSingle();
+    const scrapedTemplateId = scrapedTemplate?.id ?? null;
 
     const { data: sources, error: sourcesError } = await admin
       .from("event_sources")
@@ -196,7 +212,7 @@ Deno.serve(async (req) => {
         // scan, que pode processar várias fontes/eventos no mesmo run.
         // @ts-ignore — EdgeRuntime existe no runtime do Supabase
         EdgeRuntime.waitUntil(
-          generateDraftArticle(admin, supabaseUrl, serviceKey, insertedDraft.id, extracted),
+          generateDraftArticle(admin, supabaseUrl, serviceKey, insertedDraft.id, extracted, scrapedTemplateId),
         );
 
         await admin

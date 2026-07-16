@@ -57,7 +57,7 @@ const BlogManager = () => {
   const [sourcesPostId, setSourcesPostId] = useState<string | null>(null);
   const [sourcesInfo, setSourcesInfo] = useState<{
     functionLabel: string | null;
-    sources: { label: string; url: string }[];
+    sources: { name: string; url: string; kind: "origin" | "context" }[];
   } | null>(null);
 
   const fetchPosts = async () => {
@@ -272,10 +272,10 @@ const BlogManager = () => {
       if (gen?.template_id) {
         const { data: template } = await supabase
           .from("ai_prompt_templates")
-          .select("name, category")
+          .select("name")
           .eq("id", gen.template_id)
           .maybeSingle();
-        functionLabel = template ? `${template.name} (${template.category})` : "Geração por IA";
+        functionLabel = template?.name ?? "Geração por IA";
       } else if (gen?.prompt_used?.startsWith("Multi-Event Article")) {
         functionLabel = "Geração de Multi-Eventos";
       } else if (gen?.prompt_used?.startsWith("Busca por tema")) {
@@ -284,16 +284,35 @@ const BlogManager = () => {
         functionLabel = "Geração por IA";
       }
 
-      const sources: { label: string; url: string }[] = [];
+      const sources: { name: string; url: string; kind: "origin" | "context" }[] = [];
       if (draft?.event_sources) {
         sources.push({
-          label: `Fonte de origem — ${draft.event_sources.name}`,
+          name: draft.event_sources.name,
           url: draft.event_sources.url,
+          kind: "origin",
         });
       }
-      (gen?.source_urls ?? []).forEach((url: string, i: number) =>
-        sources.push({ label: `Contexto adicional ${i + 1}`, url })
-      );
+
+      const contextUrls: string[] = gen?.source_urls ?? [];
+      if (contextUrls.length > 0) {
+        const { data: matchedSources } = await supabase
+          .from("event_sources")
+          .select("name, url")
+          .in("url", contextUrls);
+
+        contextUrls.forEach((url) => {
+          const match = matchedSources?.find((s) => s.url === url);
+          let name = match?.name ?? url;
+          if (!match) {
+            try {
+              name = new URL(url).hostname;
+            } catch {
+              // mantém a URL crua se não for parseável
+            }
+          }
+          sources.push({ name, url, kind: "context" });
+        });
+      }
 
       setSourcesInfo({ functionLabel, sources });
     } catch (error) {
@@ -518,16 +537,20 @@ const BlogManager = () => {
                   {sourcesInfo.sources.length === 0 ? (
                     <p className="text-muted-foreground">Nenhuma fonte registrada.</p>
                   ) : (
-                    <ul className="space-y-1">
+                    <ul className="space-y-3">
                       {sourcesInfo.sources.map((source, i) => (
-                        <li key={i}>
+                        <li key={i} className="space-y-0.5">
+                          <p className="text-xs text-muted-foreground">
+                            {source.kind === "origin" ? "Fonte de origem" : "Contexto adicional"}
+                          </p>
+                          <p className="font-medium">{source.name}</p>
                           <a
                             href={source.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-primary hover:underline break-all"
+                            className="text-sm text-primary hover:underline break-all"
                           >
-                            {source.label}
+                            {source.url}
                           </a>
                         </li>
                       ))}

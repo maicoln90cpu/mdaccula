@@ -18,7 +18,8 @@ Regras:
 - Extraia apenas informações EXPLICITAMENTE presentes no texto. NUNCA invente data, local, horário ou lineup.
 - Se o conteúdo não anuncia nenhum evento (ex: página institucional, notícia genérica, index de blog), retorne has_event=false.
 - Se um campo não está claro no texto, deixe-o nulo/vazio — nunca adivinhe.
-- confidence="high" só quando data, local e nome do evento estão todos claramente presentes; "medium" quando falta 1 desses; "low" caso contrário.`;
+- confidence="high" só quando data, local e nome do evento estão todos claramente presentes; "medium" quando falta 1 desses; "low" caso contrário.
+- No campo "description", NUNCA inclua o nome do site/veículo/marca de onde este texto foi raspado (ex: não escreva "segundo o [nome do site]" ou repita o nome da fonte) — extraia só o fato sobre o evento em si.`;
 
 export function buildExtractionRequest(
   modelName: string,
