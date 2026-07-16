@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Eye, Loader2, Plus, Pencil, Trash2, ArrowLeft, ImagePlus, Image, RefreshCw } from "lucide-react";
+import { Eye, Loader2, Plus, Pencil, Trash2, ArrowLeft, ImagePlus, Image, RefreshCw, FileSearch } from "lucide-react";
 import { BlogForm } from "@/components/blog/BlogForm";
 import { NavLink } from "react-router-dom";
 import {
@@ -18,6 +18,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -48,6 +54,11 @@ const BlogManager = () => {
   const [editingPost, setEditingPost] = useState<BlogPost | undefined>();
   const [regeneratingImageId, setRegeneratingImageId] = useState<string | null>(null);
   const [regeneratingPostId, setRegeneratingPostId] = useState<string | null>(null);
+  const [sourcesPostId, setSourcesPostId] = useState<string | null>(null);
+  const [sourcesInfo, setSourcesInfo] = useState<{
+    functionLabel: string | null;
+    sources: { label: string; url: string }[];
+  } | null>(null);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -239,6 +250,59 @@ const BlogManager = () => {
     }
   };
 
+  const handleShowSources = async (postId: string) => {
+    setSourcesPostId(postId);
+    setSourcesInfo(null);
+
+    try {
+      const [{ data: gen }, { data: draft }] = await Promise.all([
+        supabase
+          .from("ai_generated_posts")
+          .select("template_id, prompt_used, source_urls")
+          .eq("blog_post_id", postId)
+          .maybeSingle(),
+        supabase
+          .from("event_watch_drafts")
+          .select("event_sources(name, url)")
+          .eq("published_blog_post_id", postId)
+          .maybeSingle(),
+      ]);
+
+      let functionLabel: string | null = null;
+      if (gen?.template_id) {
+        const { data: template } = await supabase
+          .from("ai_prompt_templates")
+          .select("name, category")
+          .eq("id", gen.template_id)
+          .maybeSingle();
+        functionLabel = template ? `${template.name} (${template.category})` : "Geração por IA";
+      } else if (gen?.prompt_used?.startsWith("Multi-Event Article")) {
+        functionLabel = "Geração de Multi-Eventos";
+      } else if (gen?.prompt_used?.startsWith("Busca por tema")) {
+        functionLabel = "Geração por Tema";
+      } else if (gen) {
+        functionLabel = "Geração por IA";
+      }
+
+      const sources: { label: string; url: string }[] = [];
+      if (draft?.event_sources) {
+        sources.push({
+          label: `Fonte de origem — ${draft.event_sources.name}`,
+          url: draft.event_sources.url,
+        });
+      }
+      (gen?.source_urls ?? []).forEach((url: string, i: number) =>
+        sources.push({ label: `Contexto adicional ${i + 1}`, url })
+      );
+
+      setSourcesInfo({ functionLabel, sources });
+    } catch (error) {
+      logger.error("Error fetching sources info:", error);
+      toast.error("Erro ao carregar fontes e origem do artigo");
+      setSourcesPostId(null);
+    }
+  };
+
   return (
     <>
       <div className="w-full">
@@ -376,6 +440,20 @@ const BlogManager = () => {
                                   <p>{post.image_url ? 'Regenerar imagem' : 'Gerar imagem'}</p>
                                 </TooltipContent>
                               </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleShowSources(post.id)}
+                                  >
+                                    <FileSearch className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Ver fontes e origem</p>
+                                </TooltipContent>
+                              </Tooltip>
                               <Button
                                 variant={post.published ? "outline" : "default"}
                                 size="sm"
@@ -420,6 +498,46 @@ const BlogManager = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <Dialog open={!!sourcesPostId} onOpenChange={(open) => !open && setSourcesPostId(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Fontes e origem do artigo</DialogTitle>
+            </DialogHeader>
+            {!sourcesInfo ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Gerado por</p>
+                  <p>{sourcesInfo.functionLabel ?? "Criado manualmente, sem dados de geração por IA."}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Fontes usadas</p>
+                  {sourcesInfo.sources.length === 0 ? (
+                    <p className="text-muted-foreground">Nenhuma fonte registrada.</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {sourcesInfo.sources.map((source, i) => (
+                        <li key={i}>
+                          <a
+                            href={source.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline break-all"
+                          >
+                            {source.label}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );

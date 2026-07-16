@@ -48,7 +48,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Radar } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Radar, Play } from "lucide-react";
 
 interface SourceFormValues {
   name: string;
@@ -74,6 +74,7 @@ const FontesManager = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<SourceFormValues>(emptyForm);
+  const [scanning, setScanning] = useState(false);
 
   const { data: sources = [], isLoading } = useQuery({
     queryKey,
@@ -90,6 +91,28 @@ const FontesManager = () => {
   // Realtime: reflete mudanças feitas em background (ex: scan-event-sources
   // atualizando last_scanned_at) sem exigir refresh manual.
   useRealtimeTable("event_sources", () => queryClient.invalidateQueries({ queryKey }));
+
+  const handleScanNow = async () => {
+    setScanning(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("scan-event-sources", { body: {} });
+      if (error) throw error;
+      toast({
+        title: "Varredura concluída",
+        description: `${data.created} rascunho(s) de evento encontrados de ${data.sourcesScanned} fonte(s). Os artigos estão sendo gerados em segundo plano e vão aparecer como rascunho em Gerenciar Blog.`,
+      });
+      queryClient.invalidateQueries({ queryKey });
+    } catch (error) {
+      logger.error("Erro na varredura", error, { component: "FontesManager" });
+      toast({
+        title: "Erro na varredura",
+        description: error instanceof Error ? error.message : "Erro desconhecido",
+        variant: "destructive",
+      });
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -222,12 +245,21 @@ const FontesManager = () => {
               </p>
             </div>
 
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={openNewDialog}>
-                  <Plus className="w-4 h-4 mr-2" /> Nova Fonte
-                </Button>
-              </DialogTrigger>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={handleScanNow} disabled={scanning}>
+                {scanning ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                Executar Varredura Agora
+              </Button>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button onClick={openNewDialog}>
+                    <Plus className="w-4 h-4 mr-2" /> Nova Fonte
+                  </Button>
+                </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>{isEditing ? "Editar Fonte" : "Adicionar Nova Fonte"}</DialogTitle>
@@ -297,6 +329,7 @@ const FontesManager = () => {
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+            </div>
           </div>
 
           <Card>

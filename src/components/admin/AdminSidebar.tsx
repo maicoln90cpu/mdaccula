@@ -20,7 +20,6 @@ import {
   Database,
   Home,
   Radar,
-  ClipboardCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -61,7 +60,6 @@ const groups: Group[] = [
     items: [
       { title: "Conteúdo por IA", url: "/admin/ai-content2", icon: Sparkles },
       { title: "Fontes", url: "/admin/fontes", icon: Radar },
-      { title: "Revisão de Eventos (IA)", url: "/admin/event-watch-review", icon: ClipboardCheck },
     ],
   },
   {

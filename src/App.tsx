@@ -48,7 +48,6 @@ const EventsDashboard = lazy(() => import("./pages/admin/EventsDashboard"));
 const EventTemplates = lazy(() => import("./pages/admin/EventTemplates"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
 const FontesManager = lazy(() => import("./pages/admin/FontesManager"));
-const EventWatchReview = lazy(() => import("./pages/admin/EventWatchReview"));
 const AIContent2 = lazy(() => import("./pages/admin/AIContent2"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
@@ -133,7 +132,6 @@ const App = () => (
                         <Route path="event-templates" element={<PageWithError name="Templates de Eventos"><EventTemplates /></PageWithError>} />
                         <Route path="blog" element={<PageWithError name="Gerenciar Blog"><BlogManager /></PageWithError>} />
                         <Route path="fontes" element={<PageWithError name="Fontes"><FontesManager /></PageWithError>} />
-                        <Route path="event-watch-review" element={<PageWithError name="Revisão de Eventos"><EventWatchReview /></PageWithError>} />
                         <Route path="ai-content2" element={<PageWithError name="Conteúdo por IA"><AIContent2 /></PageWithError>} />
                         <Route path="team" element={<PageWithError name="Gerenciar Equipe"><TeamManager /></PageWithError>} />
                         <Route path="settings" element={<PageWithError name="Configurações"><Settings /></PageWithError>} />

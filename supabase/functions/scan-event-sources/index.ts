@@ -10,11 +10,74 @@ import {
   authorizeAdminOrCron,
 } from "../_shared/index.ts";
 import { isDuplicateEvent } from "./dedupe.ts";
-import { buildExtractionRequest, parseExtractionResponse } from "./extract.ts";
+import { buildExtractionRequest, parseExtractionResponse, type ExtractedEvent } from "./extract.ts";
 
 const SCRAPE_TIMEOUT_MS = 10000;
 const AI_TIMEOUT_MS = 60000;
 const MAX_CONTENT_LENGTH = 4000;
+const GENERATE_TIMEOUT_MS = 120000;
+
+// Dispara a geração do artigo (modo rascunho) pro rascunho recém-extraído, em
+// background — não bloqueia a resposta principal do scan, que pode ter achado
+// vários eventos novos no mesmo run (cada geração leva até ~140s).
+async function generateDraftArticle(
+  admin: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  serviceKey: string,
+  draftId: string,
+  extracted: ExtractedEvent,
+): Promise<void> {
+  try {
+    const response = await fetchWithTimeout(
+      `${supabaseUrl}/functions/v1/generate-blog-post-v2`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          eventName: extracted.title,
+          title: extracted.title,
+          eventDate: extracted.date,
+          eventTime: extracted.time ?? "",
+          venue: extracted.venue ?? "",
+          address: extracted.address ?? "",
+          locationCity: extracted.location_city ?? "",
+          locationState: extracted.location_state ?? "",
+          lineup: extracted.lineup.join(", "),
+          ticketLink: extracted.ticket_link ?? "",
+          description: extracted.description ?? "",
+          generateImage: true,
+          publishImmediately: false,
+        }),
+      },
+      GENERATE_TIMEOUT_MS,
+    );
+
+    if (!response.ok) {
+      console.error(`[scan-event-sources] Geração falhou para draft ${draftId}: HTTP ${response.status}`);
+      return;
+    }
+
+    const data = await response.json();
+    if (!data?.post?.id) {
+      console.error(`[scan-event-sources] Geração sem post.id para draft ${draftId}:`, data);
+      return;
+    }
+
+    const { error: updateError } = await admin
+      .from("event_watch_drafts")
+      .update({ status: "published", published_blog_post_id: data.post.id })
+      .eq("id", draftId);
+
+    if (updateError) {
+      console.error(`[scan-event-sources] Falha ao atualizar draft ${draftId} após geração:`, updateError);
+    }
+  } catch (error) {
+    console.error(`[scan-event-sources] Erro gerando artigo para draft ${draftId}:`, error);
+  }
+}
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreFlight(req);
@@ -104,26 +167,37 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const { error: insertError } = await admin.from("event_watch_drafts").insert({
-          source_id: source.id,
-          status: "pending_review",
-          extracted_title: extracted.title,
-          extracted_date: extracted.date,
-          extracted_time: extracted.time,
-          extracted_venue: extracted.venue,
-          extracted_address: extracted.address,
-          extracted_city: extracted.location_city,
-          extracted_state: extracted.location_state,
-          extracted_lineup: extracted.lineup,
-          extracted_ticket_link: extracted.ticket_link,
-          extracted_description: extracted.description,
-          extracted_confidence: extracted.confidence,
-          source_raw_excerpt: truncated.slice(0, 1500),
-        });
+        const { data: insertedDraft, error: insertError } = await admin
+          .from("event_watch_drafts")
+          .insert({
+            source_id: source.id,
+            status: "pending_review",
+            extracted_title: extracted.title,
+            extracted_date: extracted.date,
+            extracted_time: extracted.time,
+            extracted_venue: extracted.venue,
+            extracted_address: extracted.address,
+            extracted_city: extracted.location_city,
+            extracted_state: extracted.location_state,
+            extracted_lineup: extracted.lineup,
+            extracted_ticket_link: extracted.ticket_link,
+            extracted_description: extracted.description,
+            extracted_confidence: extracted.confidence,
+            source_raw_excerpt: truncated.slice(0, 1500),
+          })
+          .select("id")
+          .single();
         if (insertError) throw insertError;
 
         existing.push({ title: extracted.title, date: extracted.date });
         created++;
+
+        // Gera o artigo (modo rascunho) em background — não bloqueia o loop de
+        // scan, que pode processar várias fontes/eventos no mesmo run.
+        // @ts-ignore — EdgeRuntime existe no runtime do Supabase
+        EdgeRuntime.waitUntil(
+          generateDraftArticle(admin, supabaseUrl, serviceKey, insertedDraft.id, extracted),
+        );
 
         await admin
           .from("event_sources")
