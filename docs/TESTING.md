@@ -148,7 +148,22 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
   Mais bugs pontuais: grid de 2 colunas fixo nos dialogs de UTM (RedirectsManager/PromptTemplatesManager), iframe de preview com largura fixa de 600px sem `min-w-0` no `Card` pai (EmailPreview), linhas de botão sem `flex-wrap` (NewsletterManager/BlogManager), eixo de gráfico Recharts sem `overflow-hidden` no wrapper (Analytics), card destacado sem `truncate` (SimpleLinkCard/Links).
 - **Correção:** fix na raiz dos 3 componentes compartilhados (tabs.tsx, navigation.tsx, dialog.tsx) + fix pontual em cada página listada acima (grids `grid-cols-1 sm:grid-cols-2`, `flex-wrap`, `truncate`, `min-w-0`).
 - **Proteção:** a própria suíte `e2e/full-site/route-crawl.spec.ts` e `modal-crawl.spec.ts` — que foi o que encontrou o bug — é a proteção permanente: qualquer regressão de overflow nessas páginas/dialogs (ou em qualquer rota/modal já registrado) volta a falhar `npm run e2e:full` nos 3 viewports. Não há teste Vitest separado porque overflow de layout real depende de renderização de browser, que jsdom não reproduz de forma confiável — E2E é a ferramenta correta aqui, não um substituto de conveniência.
-- **Nota:** um item ficou em aberto — `admin-events-create-dialog` trava tentando clicar em "Adicionar Evento" nos 3 viewports, sem overflow detectado. Ainda não diagnosticado (precisa de uma execução real com credencial de admin); o clique agora tem timeout explícito (8s) para que a próxima falha traga o erro exato do Playwright em vez de um timeout genérico.
+- **Nota:** o timeout de `admin-events-create-dialog` (e as demais falhas de timeout de 60s vistas numa primeira execução real com credencial de admin) foram causadas por contenção de workers em paralelo local contra o mesmo Vite dev server + dados reais de produção — confirmado via logs do Supabase Auth (0 rate-limit, 100% login OK) e reprodução controlada com `--workers=1`. `npm run e2e:full` agora roda com `--workers=1` (ver `package.json`); os 6 overflows reais encontrados nessa execução (páginas de admin sem `flex-wrap` no cabeçalho, botão sem quebra em `EmailDashboard`, URL sem `truncate` em `RedirectsManager`) foram corrigidos e a suíte fechou 100% verde nos 3 viewports.
+
+### R-006 — Bloco de mapa estático vazio no primeiro e-mail de um evento
+- **Quando:** julho/2026
+- **Sintoma:** o bloco `static_map` do template de e-mail aparecia vazio (ou mostrava o placeholder "mapa aparecerá aqui..." — visível só no preview do admin) porque `events.latitude/longitude` ainda não tinham sido preenchidos.
+- **Causa:** a geocodificação só acontecia reativamente, via `EventLocationMap` (componente da página pública `/eventos/:slug`), na primeira visita ao evento. O disparo do e-mail de anúncio normalmente acontece antes de qualquer visita à página, então o evento ainda não tinha coordenadas nesse momento.
+- **Correção:** `dispatchEventDraftEmail` (`src/lib/emailTemplates/dispatchEventDraft.ts`) agora chama a edge function `geocode-event` sob demanda, antes de montar os dados do e-mail, quando o evento ainda não tem lat/lng — reaproveitando a função de geocodificação já existente (idempotente, via Google Maps Geocoding API).
+- **Proteção:** `src/__tests__/regression/email-map-geocode-on-dispatch.test.ts` — garante que a chamada a `geocode-event` continua presente e posicionada antes de `buildEventData`.
+- **Backfill:** eventos ativos já existentes sem coordenadas precisam ser geocodificados uma vez (retroativo) — não é coberto automaticamente pela correção acima, que só age no momento do disparo.
+
+### R-007 — Preview mostrava line-up, mas teste e rascunho E-goi não
+- **Quando:** julho/2026
+- **Sintoma:** o bloco de line-up aparecia corretamente no editor, mas desaparecia do e-mail de teste e do rascunho criado na E-goi. Outros blocos também podiam divergir porque cada fluxo montava o HTML separadamente.
+- **Causa:** o preview carregava `lineup`, enquanto o disparo não selecionava esse campo nem o enviava ao renderizador. Preview, teste, rascunho, envio imediato e automações tinham caminhos paralelos de composição.
+- **Correção:** `emailComposer.ts` passou a ser a fonte única de assunto, preheader, HTML, dados resolvidos e erros. O mesmo resultado pronto é reaproveitado pelos botões de teste, rascunho e envio, sem remontar o e-mail no clique.
+- **Proteção:** `emailComposer.test.ts` cobre blocos visíveis, ocultos e globais; `email-flow-parity.test.ts` prova a igualdade do HTML entre preview e payloads; `email-composer-guard.test.ts` impede novas chamadas diretas aos renderizadores fora do compositor oficial.
 
 ## Checklist antes de mergear
 
