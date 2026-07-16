@@ -139,10 +139,13 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<{ succe
   }
 }
 
-// Acha o primeiro link de artigo (não imagem, diferente da própria URL raiz da
-// fonte) no markdown raspado — usado pra mostrar o link exato no modal "Ver
-// fontes e origem" do Blog Manager, em vez de só o domínio da fonte. Heurística
-// simples (sem chamada de IA extra) porque roda em toda geração do site.
+// Acha o primeiro link de artigo (não imagem, não âncora da própria página,
+// não asset estático, diferente da própria URL raiz da fonte) no markdown
+// raspado — usado pra mostrar o link exato no modal "Ver fontes e origem" do
+// Blog Manager, em vez de só o domínio da fonte. Heurística simples (sem
+// chamada de IA extra) porque roda em toda geração do site.
+const ASSET_EXTENSION_REGEX = /\.(svg|png|jpe?g|gif|webp|css|js|ico|pdf)(\?|#|$)/i;
+
 function findFirstArticleLink(markdown: string, rootUrl: string): string | null {
   const normalizedRoot = rootUrl.replace(/\/$/, '');
   const linkRegex = /(?<!!)\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/g;
@@ -150,7 +153,11 @@ function findFirstArticleLink(markdown: string, rootUrl: string): string | null 
   while ((match = linkRegex.exec(markdown)) !== null) {
     const url = match[1];
     const normalizedUrl = url.replace(/\/$/, '');
-    if (normalizedUrl !== normalizedRoot && !normalizedUrl.startsWith(`${normalizedRoot}#`)) {
+    const isRoot = normalizedUrl === normalizedRoot;
+    const isRootAnchor =
+      normalizedUrl.startsWith(`${normalizedRoot}#`) || normalizedUrl.startsWith(`${normalizedRoot}/#`);
+    const isAsset = ASSET_EXTENSION_REGEX.test(url);
+    if (!isRoot && !isRootAnchor && !isAsset) {
       return url;
     }
   }
