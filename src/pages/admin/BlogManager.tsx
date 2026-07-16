@@ -302,22 +302,26 @@ const BlogManager = () => {
 
       const contextUrls: string[] = gen?.source_urls ?? [];
       if (contextUrls.length > 0) {
-        const { data: matchedSources } = await supabase
-          .from("event_sources")
-          .select("name, url")
-          .in("url", contextUrls);
+        // A URL de contexto pode ser um link de artigo específico (não a URL
+        // raiz cadastrada em event_sources), então casa por hostname em vez
+        // de igualdade exata pra achar o nome amigável da fonte.
+        const { data: allSources } = await supabase.from("event_sources").select("name, url");
 
         contextUrls.forEach((url) => {
-          const match = matchedSources?.find((s) => s.url === url);
-          let name = match?.name ?? url;
-          if (!match) {
-            try {
-              name = new URL(url).hostname;
-            } catch {
-              // mantém a URL crua se não for parseável
-            }
+          let hostname = url;
+          try {
+            hostname = new URL(url).hostname;
+          } catch {
+            // mantém a URL crua se não for parseável
           }
-          sources.push({ name, url, kind: "context" });
+          const match = allSources?.find((s) => {
+            try {
+              return new URL(s.url).hostname === hostname;
+            } catch {
+              return false;
+            }
+          });
+          sources.push({ name: match?.name ?? hostname, url, kind: "context" });
         });
       }
 

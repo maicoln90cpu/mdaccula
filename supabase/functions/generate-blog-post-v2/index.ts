@@ -139,6 +139,24 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<{ succe
   }
 }
 
+// Acha o primeiro link de artigo (não imagem, diferente da própria URL raiz da
+// fonte) no markdown raspado — usado pra mostrar o link exato no modal "Ver
+// fontes e origem" do Blog Manager, em vez de só o domínio da fonte. Heurística
+// simples (sem chamada de IA extra) porque roda em toda geração do site.
+function findFirstArticleLink(markdown: string, rootUrl: string): string | null {
+  const normalizedRoot = rootUrl.replace(/\/$/, '');
+  const linkRegex = /(?<!!)\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/g;
+  let match: RegExpExecArray | null;
+  while ((match = linkRegex.exec(markdown)) !== null) {
+    const url = match[1];
+    const normalizedUrl = url.replace(/\/$/, '');
+    if (normalizedUrl !== normalizedRoot && !normalizedUrl.startsWith(`${normalizedRoot}#`)) {
+      return url;
+    }
+  }
+  return null;
+}
+
 // ============= IMAGE STYLE PROMPTS =============
 const IMAGE_STYLE_PROMPTS = [
   // Estilo 0: Fotorrealista cinematográfico
@@ -612,7 +630,8 @@ Deno.serve(async (req) => {
             if (result.success && result.markdown) {
               const truncated = result.markdown.substring(0, 1500);
               scrapedContext += `\n\n### Contexto de ${source.name}:\n${truncated}`;
-              scrapedSourceUrls.push(source.url);
+              const articleLink = findFirstArticleLink(result.markdown, source.url);
+              scrapedSourceUrls.push(articleLink ?? source.url);
               console.log(`✓ Contexto obtido de ${source.name}`);
             }
           }
