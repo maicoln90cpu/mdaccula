@@ -47,8 +47,6 @@ export default defineConfig(({ mode }) => ({
           'ui-forms': ['@radix-ui/react-checkbox', '@radix-ui/react-select', '@radix-ui/react-switch', '@radix-ui/react-label'],
           'ui-extras': ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar', '@radix-ui/react-collapsible'],
           'supabase': ['@supabase/supabase-js'],
-          'icons': ['lucide-react'],
-          'charts': ['recharts'],
           'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'date-utils': ['date-fns'],
           'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-placeholder'],
@@ -56,6 +54,12 @@ export default defineConfig(({ mode }) => ({
           'dnd': ['@dnd-kit/core', '@dnd-kit/sortable'],
           'virtual': ['@tanstack/react-virtual'],
         },
+        // 'icons' (lucide-react) and 'charts' (recharts) were previously forced into single
+        // shared chunks. Because ErrorBoundary — mounted eagerly at the app root — imports a
+        // handful of icons, that grouping made Rollup treat the ENTIRE icon set (every icon
+        // used anywhere, including admin-only pages) as a static, eagerly-modulepreloaded
+        // dependency of every route (~574KB, always). Leaving them out lets Rollup's default
+        // per-usage chunking scope icons/charts to the routes that actually need them.
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
