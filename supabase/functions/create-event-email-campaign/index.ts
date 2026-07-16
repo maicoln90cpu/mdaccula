@@ -213,6 +213,7 @@ Deno.serve(async (req) => {
       tags,
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
+    if (cfg.segment_id) createPayload.segment_id = Number(cfg.segment_id);
 
     const created = await egoiRequest('/campaigns/email', apiKey, {
       method: 'POST',
@@ -223,6 +224,8 @@ Deno.serve(async (req) => {
     let campaignStatus: 'draft' | 'failed' | 'sent' = 'failed';
     let errorMessage: string | null = null;
     let sentAt: string | null = null;
+    let egoiSendStatus: number | null = null;
+    let egoiSendBody: unknown = null;
 
     if (created.ok) {
       campaignHash =
@@ -234,13 +237,29 @@ Deno.serve(async (req) => {
       campaignStatus = 'draft';
 
       // B.7 — Envio imediato (opcional).
-      if (sendNow && campaignHash) {
+      if (sendNow && !campaignHash) {
+        // Campanha foi criada (created.ok) mas nenhum dos campos esperados de hash
+        // veio na resposta — sem hash não há como chamar actions/send. Isso NÃO pode
+        // ficar silencioso: sem isso, o envio é pulado e a UI mostrava "enviado" mesmo
+        // assim (regressão R-007).
+        errorMessage =
+          'Campanha criada na E-goi, mas não foi possível extrair o hash pra confirmar o envio ' +
+          `(campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
+      } else if (sendNow && campaignHash) {
         const sendRes = await egoiRequest(
           `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
           apiKey,
           { method: 'POST', body: JSON.stringify({ list_id: Number(cfg.list_id) }) },
         );
-        if (sendRes.ok) {
+        egoiSendStatus = sendRes.status;
+        egoiSendBody = sendRes.body;
+        // status 2xx sozinho não é suficiente — algumas APIs REST respondem 2xx com um
+        // corpo que ainda indica erro/pendência. Confirma sucesso real inspecionando o
+        // corpo também (R-007).
+        const bodyIndicatesError =
+          sendRes.body && typeof sendRes.body === 'object' &&
+          (sendRes.body.error || sendRes.body.errors || sendRes.body.status === 'error');
+        if (sendRes.ok && !bodyIndicatesError) {
           campaignStatus = 'sent';
           sentAt = new Date().toISOString();
         } else {
@@ -288,7 +307,7 @@ Deno.serve(async (req) => {
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
       error: errorMessage,
-      _debug: { egoi_status: created.status },
+      _debug: { egoi_status: created.status, egoi_send_status: egoiSendStatus, egoi_send_body: egoiSendBody },
     });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

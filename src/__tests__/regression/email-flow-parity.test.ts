@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import fs from "fs";
 import path from "path";
 
-const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "utf8");
+// Normaliza CRLF -> LF: checkouts Windows (core.autocrlf) devolvem \r\n, e as
+// asserções abaixo usam \n literal — sem isso, toContain nunca bate no Windows.
+const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "utf8").replace(/\r\n/g, "\n");
 
 describe("regressao - fidelidade entre preview, teste, rascunho e envio", () => {
   it("o disparo de evento carrega todos os dados dinamicos dos blocos", () => {

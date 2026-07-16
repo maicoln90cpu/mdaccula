@@ -165,6 +165,22 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `emailComposer.ts` passou a ser a fonte única de assunto, preheader, HTML, dados resolvidos e erros. O mesmo resultado pronto é reaproveitado pelos botões de teste, rascunho e envio, sem remontar o e-mail no clique.
 - **Proteção:** `emailComposer.test.ts` cobre blocos visíveis, ocultos e globais; `email-flow-parity.test.ts` prova a igualdade do HTML entre preview e payloads; `email-composer-guard.test.ts` impede novas chamadas diretas aos renderizadores fora do compositor oficial.
 
+### R-008 — "Enviar agora" reportava sucesso mesmo quando a E-goi mantinha rascunho
+- **Quando:** julho/2026
+- **Sintoma:** o botão "Enviar agora" (E-goi) mostrava "E-mail enviado!" mas a campanha continuava como rascunho na própria E-goi — nunca saía do estado draft.
+- **Causa:** `create-event-email-campaign/index.ts` julgava sucesso só pelo status HTTP (`created.ok`/`sendRes.ok`), sem inspecionar o corpo da resposta da E-goi. Se `send_now=true` mas a extração do `campaignHash` da resposta de criação falhasse, o envio era pulado silenciosamente — a função retornava `status:'draft', ok:true, error:null` como se tudo tivesse dado certo. No frontend, `EmailConfig.tsx` (`dispatchBatch`/`dispatchAbTest`) decidia o toast pela flag local `sendNow` + `res.ok`, nunca por `res.status === 'sent'`.
+- **Correção:** `sendNow && !campaignHash` vira erro explícito; a resposta de `actions/send` é inspecionada além do `.ok` (corpo com `error`/`errors`/`status:'error'` conta como falha); `egoi_config.segment_id` passa a ser incluído no payload; `_debug` agora expõe `egoi_send_status`/`egoi_send_body` para diagnóstico. `EmailConfig.tsx` só mostra "E-mail enviado!" quando `res.status === 'sent'` (idem por variante em `dispatchAbTest`), e mostra "Campanha criada, mas não enviada" quando fica em draft.
+- **Proteção:** `src/__tests__/regression/egoi-false-success-on-draft.test.ts`.
+- **Nota:** não tive acesso ao schema oficial de resposta da E-goi para `actions/send` (doc é uma SPA que WebFetch não renderiza) — a checagem de corpo é defensiva (padrão comum de erro em APIs REST), não baseada no contrato oficial. Validar com uma campanha real controlada; se ainda mostrar falso-positivo, usar `_debug.egoi_send_body` para decidir se é necessária uma segunda chamada `GET /campaigns/email/{hash}` de confirmação.
+
+### R-009 — "Enviar teste" não chegava mais ao destino esperado
+- **Quando:** julho/2026
+- **Sintoma:** o botão "Enviar teste" não gerava erro, mas o e-mail nunca chegava (antes chegava).
+- **Causa:** `send-test-email/index.ts` usava `to_email` do corpo da requisição, com fallback pro e-mail do admin logado. `EmailConfig.tsx` declarava um state `testEmail` sem nenhum `<Input>` vinculado — sempre vazio — então o destino real virava o e-mail de autenticação de quem clicou, não `contato@mdaccula.com`. O sucesso também era decidido só por `resp.ok` do fetch pra Resend, sem checar se ela retornou um ID de mensagem confirmando o envio.
+- **Correção:** `send-test-email/index.ts` fixa o destino em `contato@mdaccula.com` (`TEST_RECIPIENT`, mesmo valor de `AUTOMATION_TEST_RECIPIENT` em `useEmailAutomation.ts`), ignorando qualquer entrada do client; sucesso passa a exigir `body.id` na resposta da Resend. `EmailConfig.tsx`/`sendTestEmail` não envia mais `to_email`, valida `data.id` e mostra destinatário + ID na tela. State morto `testEmail`/`setTestEmail` removido.
+- **Proteção:** `src/__tests__/regression/send-test-email-recipient.test.ts`.
+- **Nota:** remetente `onboarding@resend.dev` (sandbox da Resend) só entrega pro e-mail dono da conta Resend — configurar um domínio próprio verificado é pendência operacional, fora do escopo desta correção de código.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

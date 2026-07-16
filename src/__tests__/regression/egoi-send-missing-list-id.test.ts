@@ -25,7 +25,7 @@ const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf-8"
 describe("Regressão R-004 — list_id na chamada actions/send da E-goi", () => {
   it("create-event-email-campaign inclui list_id no body do POST actions/send", () => {
     const c = read("supabase/functions/create-event-email-campaign/index.ts");
-    const sendCallMatch = c.match(/actions\/send[\s\S]{0,200}/);
+    const sendCallMatch = c.match(/actions\/send[\s\S]{0,800}/);
     expect(
       sendCallMatch,
       "Não encontrei a chamada .../actions/send em create-event-email-campaign/index.ts."

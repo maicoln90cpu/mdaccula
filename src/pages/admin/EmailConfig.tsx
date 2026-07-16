@@ -103,7 +103,6 @@ const EmailConfig = () => {
   const [digestPreviewMeta, setDigestPreviewMeta] = useState<{ subject?: string; preheader?: string; events_count?: number; posts_count?: number; range?: string; render_source?: string; template_name?: string | null } | null>(null);
   const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
-  const [testEmail, setTestEmail] = useState("");
   const [editorDirty, setEditorDirty] = useState(false);
   // B.8 — Virada de lote
   const [batchEventId, setBatchEventId] = useState<string>("");
@@ -373,18 +372,29 @@ const EmailConfig = () => {
         ...params,
         templateIdOverride: defaultTemplate?.id,
       });
-      const okA = res.variantA.ok;
-      const okB = res.variantB.ok;
-      if (okA && okB) {
+      // Checar status real (não só .ok) — mesma regra de dispatchBatch (R-007): uma
+      // variante criada mas não enviada pela E-goi nunca pode ser reportada como sucesso.
+      const sentA = res.variantA.ok && res.variantA.status === "sent";
+      const sentB = res.variantB.ok && res.variantB.status === "sent";
+      const draftA = res.variantA.ok && res.variantA.status === "draft";
+      const draftB = res.variantB.ok && res.variantB.status === "draft";
+      if (sentA && sentB) {
         toast({
           title: params.sendNow ? "Teste A/B enviado!" : "Rascunhos A e B criados",
           description: `Grupo ${res.groupId.slice(0, 8)} • A #${res.variantA.egoi_campaign_id ?? "?"} • B #${res.variantB.egoi_campaign_id ?? "?"}`,
         });
+      } else if (params.sendNow && (draftA || draftB) && !res.variantA.error && !res.variantB.error) {
+        toast({
+          variant: "destructive",
+          title: "Teste A/B criado, mas não enviado",
+          description: `A: ${res.variantA.status ?? "?"} • B: ${res.variantB.status ?? "?"} — a E-goi manteve como rascunho`,
+        });
       } else {
+        const describe = (v: typeof res.variantA, sent: boolean) => (sent ? "ok" : v.error || v.reason || v.status || "falhou");
         toast({
           variant: "destructive",
           title: "Teste A/B com falhas",
-          description: `A: ${okA ? "ok" : res.variantA.error || res.variantA.reason || "falhou"} • B: ${okB ? "ok" : res.variantB.error || res.variantB.reason || "falhou"}`,
+          description: `A: ${describe(res.variantA, sentA)} • B: ${describe(res.variantB, sentB)}`,
         });
       }
       void loadAll();
@@ -710,10 +720,13 @@ const EmailConfig = () => {
     setSendingTest(true);
     try {
       const { data, error } = await supabase.functions.invoke("send-test-email", {
-        body: { html, subject, to_email: testEmail || undefined },
+        body: { html, subject },
       });
       if (error) throw error;
-      toast({ title: "E-mail de teste enviado", description: `Enviado para ${data?.sent_to || testEmail || "seu e-mail"}` });
+      if (!data?.ok || !data?.id) {
+        throw new Error(data?.error || "Resend não confirmou o envio (sem ID de mensagem)");
+      }
+      toast({ title: "E-mail de teste enviado", description: `Enviado para ${data.sent_to} (Resend #${data.id})` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Falha no envio de teste", description: e.message });
     } finally {
@@ -773,10 +786,19 @@ const EmailConfig = () => {
           preheader: manualComposition.preheader,
         },
       });
-      if (res.ok) {
+      if (res.ok && res.status === "sent") {
         toast({
-          title: sendNow ? "E-mail enviado!" : "Rascunho criado na E-goi",
+          title: "E-mail enviado!",
           description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
+        });
+        void loadAll();
+      } else if (res.ok && res.status === "draft") {
+        toast({
+          // Ainda que sendNow tenha sido pedido, a E-goi manteve a campanha em rascunho
+          // (envio não confirmado) — nunca comemorar isso como "enviado" (regressão R-007).
+          variant: sendNow ? "destructive" : "default",
+          title: sendNow ? "Campanha criada, mas não enviada" : "Rascunho criado na E-goi",
+          description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}${res.error ? ` — ${res.error}` : ""}` : res.error,
         });
         void loadAll();
       } else {

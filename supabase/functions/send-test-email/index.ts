@@ -7,6 +7,11 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Fixo no backend — nunca aceitar destino vindo do client (regressão R-008). Mesmo
+// valor de AUTOMATION_TEST_RECIPIENT em src/components/admin/emailConfig/useEmailAutomation.ts;
+// mantenha os dois em sincronia se este endereço mudar.
+const TEST_RECIPIENT = "contato@mdaccula.com";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -26,7 +31,7 @@ Deno.serve(async (req) => {
     if (!isAdmin) return new Response(JSON.stringify({ error: "Apenas admins" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const body = await req.json();
-    const { html, subject, to_email } = body || {};
+    const { html, subject } = body || {};
     if (!html || typeof html !== "string") {
       return new Response(JSON.stringify({ error: "html obrigatório" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -39,10 +44,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY não configurada" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    const destination = (typeof to_email === "string" && to_email.includes("@")) ? to_email : userData.user.email;
-    if (!destination) {
-      return new Response(JSON.stringify({ error: "Sem e-mail de destino" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
+    const destination = TEST_RECIPIENT;
 
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -67,7 +69,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    return new Response(JSON.stringify({ ok: true, sent_to: destination }), {
+    // Resend pode responder 2xx sem de fato ter enfileirado a mensagem — o `id` no
+    // corpo é a única confirmação real de que uma mensagem foi criada (regressão R-008).
+    const respBody = await resp.json().catch(() => null);
+    if (!respBody?.id) {
+      console.error(`Resend accepted but no id returned: ${JSON.stringify(respBody)}`);
+      return new Response(
+        JSON.stringify({
+          error: "Resend aceitou a requisição mas não retornou um ID de mensagem — envio não confirmado.",
+          details: respBody,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    return new Response(JSON.stringify({ ok: true, sent_to: destination, id: respBody.id }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
