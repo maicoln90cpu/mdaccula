@@ -170,11 +170,9 @@ futuro dessa função específica.
   Varredura Agora" em `/admin/fontes`. Ativar é 1 chamada SQL
   (`manage_digest_schedule('scan-event-sources-cron', ...)`) — só falta o usuário decidir
   a cadência (sugestão original: 48h).
-- **`DROP TABLE news_sources`**: a tabela antiga continua existindo no banco (vazia de
-  uso — nada mais lê dela desde a unificação), só não foi apagada porque essa é uma ação
-  irreversível que fica deliberadamente pra confirmação explícita e separada do usuário.
-  Usuário já confirmou o "pode" duas vezes em conversas diferentes; falta só a
-  confirmação final no momento exato de rodar a migration `DROP TABLE`.
+- ~~**`DROP TABLE news_sources`**~~ — **feito em 17/07/2026** (migration
+  `20260717130000_drop_news_sources_table.sql`), confirmado explicitamente pelo usuário
+  no momento da execução.
 - **Task #20 (débito técnico, não relacionado à Fase A)**: extrair a lógica de seleção/
   renderização de template de `generate-blog-post-v2` pra um módulo testável com testes
   Deno — pendente desde antes da Fase A, baixa prioridade.
