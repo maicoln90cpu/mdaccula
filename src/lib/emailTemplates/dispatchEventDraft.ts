@@ -12,16 +12,19 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import {
-  renderBlockedTemplate,
   type Template,
   type Block,
 } from "./blocks";
 import {
-  renderEventAnnouncementEmail,
-  type EventAnnouncementData,
+  buildEventAnnouncementData,
+  applyEmailBlockOverrides,
+  composeEmail,
+  type EmailCompositionIssue,
+  type EmailEventRow,
+} from "./emailComposer";
+import {
   type EmailTemplateSettings,
 } from "./eventAnnouncement";
-import { buildEmailMeta } from "./emailMeta";
 
 export type DispatchEventDraftResult = {
   ok: boolean;
@@ -30,57 +33,17 @@ export type DispatchEventDraftResult = {
   status?: string;
   egoi_campaign_id?: string | null;
   error?: string | null;
+  validation_issues?: EmailCompositionIssue[];
 };
 
-type EventRow = {
-  id: string;
-  title: string;
-  subtitle?: string | null;
-  slug: string;
-  date: string;
-  time?: string | null;
-  venue: string;
-  location_city: string;
-  location_state: string;
-  image_url?: string | null;
-  description?: string | null;
-  ticket_link?: string | null;
-  vip_link?: string | null;
+type EventRow = EmailEventRow & {
   blog_post_id?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
 };
 
 const BASE_URL = "https://mdaccula.com";
 
-async function buildEventData(ev: EventRow): Promise<EventAnnouncementData> {
-  const dateObj = new Date(`${ev.date}T${ev.time || "00:00"}`);
-  const dateLabel = dateObj.toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-  });
-  const timeLabel = (ev.time || "").slice(0, 5) || "22h";
-
-  return {
-    eventTitle: ev.title,
-    eventSubtitle: ev.subtitle ?? undefined,
-    flyerUrl: ev.image_url || `${BASE_URL}/placeholder.svg`,
-    dateLabel,
-    timeLabel,
-    venueName: ev.venue,
-    cityState: `${ev.location_city}-${ev.location_state}`,
-    venueLat: ev.latitude != null ? Number(ev.latitude) : undefined,
-    venueLng: ev.longitude != null ? Number(ev.longitude) : undefined,
-    description: ev.description || "",
-    ticketUrl: ev.ticket_link || `${BASE_URL}/eventos/${ev.slug}`,
-    eventUrl: `${BASE_URL}/eventos/${ev.slug}`,
-    agendaUrl: `${BASE_URL}/eventos`,
-    instagramUrl: "https://instagram.com/mdaccula",
-    youtubeUrl: "https://youtube.com/@mdaccula",
-    tiktokUrl: "https://tiktok.com/@mdaccula",
-    unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
-  };
+async function buildEventData(event: EventRow) {
+  return buildEventAnnouncementData(event, { baseUrl: BASE_URL });
 }
 
 export async function dispatchEventDraftEmail(
@@ -94,6 +57,8 @@ export async function dispatchEventDraftEmail(
     flyerOverrideUrl?: string;
     /** B.8 — sobrescreve o assunto do e-mail (ex.: "ÚLTIMAS HORAS — {evento}"). */
     subjectOverride?: string;
+    /** Snapshot já exibido ao admin. Evita remontar HTML entre preview e clique. */
+    preparedComposition?: { html: string; subject: string; preheader: string };
     /** B.10 — marca este disparo como uma variante de teste A/B. */
     abTest?: {
       groupId: string;
@@ -106,6 +71,9 @@ export async function dispatchEventDraftEmail(
     };
   } = {},
 ): Promise<DispatchEventDraftResult> {
+  if (opts.preparedComposition && !opts.templateIdOverride) {
+    return { ok: false, error: "Envio manual exige um template selecionado" };
+  }
   // 1. Config + template padrão + settings de marca
   const [cfgRes, tplSettingsRes, evRes] = await Promise.all([
     (supabase.from as any)("egoi_config").select("*").maybeSingle(),
@@ -113,7 +81,7 @@ export async function dispatchEventDraftEmail(
     supabase
       .from("events")
       .select(
-        "id,title,subtitle,slug,date,time,venue,location_city,location_state,image_url,description,ticket_link,vip_link,blog_post_id,latitude,longitude",
+        "id,title,subtitle,slug,date,time,venue,location_city,location_state,image_url,description,ticket_link,vip_link,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng",
       )
       .eq("id", eventId)
       .maybeSingle(),
@@ -128,6 +96,21 @@ export async function dispatchEventDraftEmail(
 
   const event = evRes.data as EventRow | null;
   if (!event) return { ok: false, error: "Evento não encontrado" };
+
+  // O bloco de mapa do e-mail depende de latitude/longitude, que hoje só é
+  // preenchido reativamente quando alguém visita /eventos/:slug (EventLocationMap) —
+  // o disparo de e-mail costuma acontecer antes disso. Geocodifica aqui, sob
+  // demanda, para o mapa já sair correto no primeiro envio (silenciosamente
+  // vazio por design se a geocodificação falhar — ver emailBlocks.ts).
+  if (event.latitude == null || event.longitude == null) {
+    const { data: geo } = await supabase.functions.invoke("geocode-event", {
+      body: { event_id: eventId },
+    });
+    if (geo?.ok && geo.lat != null && geo.lng != null) {
+      event.latitude = geo.lat;
+      event.longitude = geo.lng;
+    }
+  }
 
   // 2. Template — override tem prioridade; senão template padrão de evento por tipo.
   let template: Template | null = null;
@@ -162,10 +145,8 @@ export async function dispatchEventDraftEmail(
   const settings = (tplSettingsRes?.data ?? {}) as EmailTemplateSettings;
 
   // 3. Dados do evento + resumo da matéria (se houver)
+  if (opts.flyerOverrideUrl) event.image_url = opts.flyerOverrideUrl;
   const eventData = await buildEventData(event);
-  if (opts.flyerOverrideUrl) {
-    eventData.flyerUrl = opts.flyerOverrideUrl;
-  }
   let article: { title: string; excerpt: string; url: string; image_url?: string } | null = null;
   if (event.blog_post_id) {
     const { data: post } = await supabase
@@ -186,19 +167,9 @@ export async function dispatchEventDraftEmail(
   // B.8 — se veio arte específica, preenche blocos image_with_link vazios
   // (útil no preset "ticket_batch" que já tem esse bloco pronto).
   const resolvedBlocks: Block[] | null = template && Array.isArray(template.blocks)
-    ? (template.blocks as Block[]).map((b) => {
-        if (
-          opts.flyerOverrideUrl &&
-          b.kind === "image_with_link" &&
-          !(b as any).image_url
-        ) {
-          return {
-            ...b,
-            image_url: opts.flyerOverrideUrl,
-            link_url: (b as any).link_url || eventData.ticketUrl,
-          } as Block;
-        }
-        return b;
+    ? applyEmailBlockOverrides(template.blocks as Block[], {
+        artworkUrl: opts.flyerOverrideUrl || eventData.flyerUrl,
+        defaultLink: eventData.ticketUrl,
       })
     : null;
 
@@ -215,34 +186,32 @@ export async function dispatchEventDraftEmail(
     // segue sem globals; global_refs serão renderizados como placeholder
   }
 
-  const phData = {
-    eventTitle: event.title,
-    dateLabel: eventData.dateLabel,
-    timeLabel: eventData.timeLabel,
-    venueName: event.venue,
-    cityState: `${event.location_city}-${event.location_state}`,
-  };
-  const meta = buildEmailMeta(
-    opts.subjectOverride || template.subject_template,
-    template.preheader_template,
-    phData,
-  );
-  if (!meta.subject) {
-    return { ok: false, error: "Assunto do template está vazio" };
+  const composition = composeEmail({
+    template: {
+      blocks: resolvedBlocks ?? [],
+      subject_template: opts.subjectOverride || template.subject_template,
+      preheader_template: template.preheader_template,
+    },
+    event: eventData,
+    settings,
+    article,
+    globals: globalsMap,
+  });
+  if (composition.issues.length > 0) {
+    return {
+      ok: false,
+      error: composition.issues.map((item) => item.message).join(" "),
+      validation_issues: composition.issues,
+    };
   }
-
-  // 5. Render HTML com o mesmo preheader salvo/resolvido que será enviado.
-  const html =
-    resolvedBlocks && resolvedBlocks.length > 0
-      ? renderBlockedTemplate(resolvedBlocks, eventData, settings, article, { globals: globalsMap, preheader: meta.preheader })
-      : renderEventAnnouncementEmail(eventData, settings, { preheader: meta.preheader });
+  const finalComposition = opts.preparedComposition ?? composition;
 
   // 5. Chama edge function
   const invokeBody: Record<string, unknown> = {
     event_id: eventId,
-    html,
-    subject: meta.subject,
-    preheader: meta.preheader,
+    html: finalComposition.html,
+    subject: finalComposition.subject,
+    preheader: finalComposition.preheader,
     template_type: template.type,
     force_resend: opts.forceResend === true,
     send_now: opts.sendNow === true,

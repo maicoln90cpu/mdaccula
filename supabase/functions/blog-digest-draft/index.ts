@@ -8,7 +8,6 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
-  renderBlockedTemplate,
   renderBlockedTemplateText,
   expandGlobalRefs,
   type Block,
@@ -16,6 +15,7 @@ import {
   type EmailTemplateSettings,
   type BlogPostItem,
 } from '../_shared/emailBlocks.ts';
+import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
 
 const corsHeaders = {
@@ -317,13 +317,19 @@ Deno.serve(async (req) => {
     const internalName = `MDAccula • Blog news • ${todayIso}`;
 
     if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
-      html = renderBlockedTemplate(
-        resolvedTplBlocks,
-        renderedEventPayload,
-        settings as EmailTemplateSettings,
-        null,
-        { preview: false, globals: globalsMap, preheader: preheaderFromTpl },
-      );
+      const composition = composeEmail({
+        template: {
+          blocks: resolvedTplBlocks,
+          subject_template: (activeTpl as any)?.subject_template,
+          preheader_template: (activeTpl as any)?.preheader_template,
+        },
+        event: renderedEventPayload,
+        settings: settings as EmailTemplateSettings,
+        globals: globalsMap,
+        metaData: { rangeLabel, weekRange: rangeLabel, weekendRange: rangeLabel, eventsCount: pts.length },
+      });
+      if (composition.issues.length > 0) return json({ ok: false, error: 'Template incompleto', validation_issues: composition.issues }, 400);
+      html = composition.html;
     } else if (html && preheaderFromTpl) {
       html = injectEmailPreheader(html, preheaderFromTpl);
     }

@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import {
-  renderEventAnnouncementEmail,
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
 } from "@/lib/emailTemplates/eventAnnouncement";
+import { buildPresetBlocks } from "@/lib/emailTemplates/blocks";
+import { composeEmail } from "@/lib/emailTemplates/emailComposer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +21,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export default function EmailPreview() {
   const [data, setData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
 
-  const html = useMemo(() => renderEventAnnouncementEmail(data), [data]);
+  const blocks = useMemo(() => buildPresetBlocks("event_new"), []);
+  const html = useMemo(() => composeEmail({
+    template: { blocks, subject_template: "{{event_title}}" },
+    event: data,
+  }).html, [blocks, data]);
 
   const update = (patch: Partial<EventAnnouncementData>) =>
     setData((prev) => ({ ...prev, ...patch }));

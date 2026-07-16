@@ -28,7 +28,6 @@ import {
 import { RefreshCw, Send } from "lucide-react";
 import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 import type { Template } from "@/lib/emailTemplates/blocks";
-import { SendNowButton } from "./SendNowButton";
 import { AbTestButton } from "./AbTestButton";
 import type {
   AbTestParams,
@@ -52,10 +51,7 @@ interface HistoryTabProps {
   refreshingStatsId: string | null;
   masterEnabled: boolean;
   defaultEventTemplate: Template | null;
-  dispatchNow: (
-    eventId: string,
-    opts?: { forceResend?: boolean; sendNow?: boolean },
-  ) => void | Promise<void>;
+  prepareManualSend: (eventId: string) => void;
   dispatchAbTest: (eventId: string, params: AbTestParams) => void | Promise<void>;
   resendEvent: (eventId: string) => void | Promise<void>;
   refreshCampaignStats: (campaignId: string) => void | Promise<void>;
@@ -78,7 +74,7 @@ export const HistoryTab = ({
   refreshingStatsId,
   masterEnabled,
   defaultEventTemplate,
-  dispatchNow,
+  prepareManualSend,
   dispatchAbTest,
   resendEvent,
   refreshCampaignStats,
@@ -139,17 +135,11 @@ export const HistoryTab = ({
                       <Button
                         size="sm"
                         variant="outline"
-                        disabled={dispatchingId === ev.id}
-                        onClick={() => dispatchNow(ev.id)}
+                        onClick={() => prepareManualSend(ev.id)}
                       >
                         <Send className="w-4 h-4 mr-2" />
-                        {dispatchingId === ev.id ? "Criando..." : "Criar rascunho"}
+                        Preparar envio
                       </Button>
-                      <SendNowButton
-                        eventTitle={ev.title}
-                        disabled={dispatchingId === ev.id}
-                        onConfirm={() => dispatchNow(ev.id, { sendNow: true, forceResend: true })}
-                      />
                     </div>
                   </div>
                 ))}
@@ -302,17 +292,11 @@ export const HistoryTab = ({
                           <Button
                             size="sm"
                             variant="secondary"
-                            disabled={dispatchingId === g.event_id}
-                            onClick={() => dispatchNow(g.event_id, { forceResend: true })}
+                            onClick={() => prepareManualSend(g.event_id)}
                           >
                             <Send className="w-4 h-4 mr-2" />
-                            {dispatchingId === g.event_id ? "Criando..." : "Criar rascunho agora"}
+                            Preparar novo envio
                           </Button>
-                          <SendNowButton
-                            eventTitle={g.title}
-                            disabled={dispatchingId === g.event_id}
-                            onConfirm={() => dispatchNow(g.event_id, { sendNow: true, forceResend: true })}
-                          />
                           <AbTestButton
                             eventTitle={g.title}
                             defaultSubject={

@@ -20,13 +20,13 @@ import { NavLink } from "react-router-dom";
 import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon, LayoutGrid, Mail, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
-  renderEventAnnouncementEmail,
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
   type EmailTemplateSettings,
 } from "@/lib/emailTemplates/eventAnnouncement";
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
-import { renderBlockedTemplate, type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
+import { type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
+import { applyEmailBlockOverrides, buildEventAnnouncementData, composeEmail, type EmailEventRow } from "@/lib/emailTemplates/emailComposer";
 import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTemplates/dispatchEventDraft";
 import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
@@ -95,7 +95,7 @@ const EmailConfig = () => {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [realEvents, setRealEvents] = useState<Array<{ id: string; title: string; slug: string; date: string; time: string; venue: string; location_city: string; location_state: string; image_url: string | null; description: string | null; subtitle: string | null; ticket_link: string | null; vip_link: string | null; blog_post_id: string | null; lineup: string[] | null; venue_lat: number | null; venue_lng: number | null }>>([]);
+  const [realEvents, setRealEvents] = useState<Array<EmailEventRow & { blog_post_id: string | null }>>([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>("mock");
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [digestTemplateId, setDigestTemplateId] = useState<string>("");
@@ -104,11 +104,13 @@ const EmailConfig = () => {
   const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
   const [testEmail, setTestEmail] = useState("");
+  const [editorDirty, setEditorDirty] = useState(false);
   // B.8 — Virada de lote
   const [batchEventId, setBatchEventId] = useState<string>("");
   const [batchTemplateId, setBatchTemplateId] = useState<string>("");
   const [batchArtworkUrl, setBatchArtworkUrl] = useState<string>("");
   const [batchSubject, setBatchSubject] = useState<string>("");
+  const [batchArticle, setBatchArticle] = useState<ArticleSummary | null>(null);
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
   // Automações (Digest semanal + Agenda FDS + Blog news)
@@ -159,7 +161,7 @@ const EmailConfig = () => {
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
         (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
         supabase.from("events")
-          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup,venue_lat,venue_lng")
+          .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng")
           .order("date", { ascending: false })
           .limit(30),
         supabase.from("site_settings").select("key, value").in("key", [
@@ -356,36 +358,6 @@ const EmailConfig = () => {
   };
 
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
-  const dispatchNow = async (eventId: string, opts: { forceResend?: boolean; sendNow?: boolean } = {}) => {
-    setDispatchingId(eventId);
-    try {
-      const res = await dispatchEventDraftEmail(eventId, opts);
-      if (res.ok) {
-        toast({
-          title: res.status === "sent" ? "E-mail enviado!" : "Rascunho criado na E-goi",
-          description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
-        });
-      } else if (res.skipped) {
-        const reasons: Record<string, string> = {
-          master_off: "Master switch está OFF.",
-          config_disabled_or_incomplete: "Configuração da agência incompleta ou desligada.",
-          already_dispatched: "Este evento já teve rascunho criado. Use \"Reenviar\" para forçar um novo.",
-          event_not_active: "O evento não está com status ativo.",
-          no_egoi_config: "Nenhuma configuração da E-goi encontrada.",
-          agency_disabled: "Toggle da agência está OFF.",
-          list_or_sender_missing: "Lista ou remetente ainda não configurados.",
-        };
-        toast({ variant: "destructive", title: "Não disparado", description: reasons[res.reason || ""] || res.reason || "Motivo desconhecido" });
-      } else {
-        toast({ variant: "destructive", title: "Falha ao criar rascunho", description: res.error || "Erro desconhecido" });
-      }
-      void loadAll();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
-    } finally {
-      setDispatchingId(null);
-    }
-  };
 
   // B.10 — dispara teste A/B de assunto (duas campanhas na E-goi).
   const dispatchAbTest = async (
@@ -394,7 +366,13 @@ const EmailConfig = () => {
   ) => {
     setDispatchingId(eventId);
     try {
-      const res = await dispatchAbSubjectTest(eventId, params);
+      const defaultTemplate = templates.find((template) => template.type === "event_new" && template.is_default)
+        ?? templates.find((template) => template.type === "event_new");
+      if (!defaultTemplate?.id) throw new Error("Nenhum template padrão de Evento está disponível para o teste A/B.");
+      const res = await dispatchAbSubjectTest(eventId, {
+        ...params,
+        templateIdOverride: defaultTemplate?.id,
+      });
       const okA = res.variantA.ok;
       const okB = res.variantB.ok;
       if (okA && okB) {
@@ -483,40 +461,84 @@ const EmailConfig = () => {
   //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
   //   weekend_agenda    → "weekend"     (mesma função, range weekend)
   //   demais            → "event"       (mock/real do evento selecionado)
-  const previewSource: "event" | "digest" | "weekend" = useMemo(() => {
+  const previewSource: "event" | "digest" | "weekend" | "blog" = useMemo(() => {
     const t = activeTemplate?.type;
     if (t === "weekly_digest" || t === "weekly_digest_editorial") return "digest";
     if (t === "weekend_agenda") return "weekend";
+    if (t === "blog_digest") return "blog";
     return "event";
   }, [activeTemplate?.type]);
 
-  const eventPreviewMeta = useMemo(
-    () => buildEmailMeta(activeTemplate?.subject_template, activeTemplate?.preheader_template, {
-      eventTitle: previewData.eventTitle,
-      dateLabel: previewData.dateLabel,
-      timeLabel: previewData.timeLabel,
-      venueName: previewData.venueName,
-      cityState: previewData.cityState,
-    }),
-    [activeTemplate?.subject_template, activeTemplate?.preheader_template, previewData],
+  const eventPreviewComposition = useMemo(() => composeEmail({
+    template: {
+      blocks: (activeTemplate?.blocks as Block[] | undefined) ?? [],
+      subject_template: activeTemplate?.subject_template,
+      preheader_template: activeTemplate?.preheader_template,
+    },
+    event: previewData,
+    settings: tpl,
+    article: previewArticle,
+    globals: globalsMap,
+  }), [activeTemplate, previewData, tpl, previewArticle, globalsMap]);
+  const eventPreviewMeta = useMemo(() => ({
+    subject: eventPreviewComposition.subject,
+    preheader: eventPreviewComposition.preheader,
+  }), [eventPreviewComposition]);
+  const previewHtml = eventPreviewComposition.html;
+
+  const manualTemplates = useMemo(
+    () => templates.filter((template) => ["event_new", "courtesy", "ticket_batch", "custom"].includes(template.type)),
+    [templates],
   );
+  const selectedManualTemplate = useMemo(
+    () => manualTemplates.find((template) => template.id === batchTemplateId) ?? null,
+    [manualTemplates, batchTemplateId],
+  );
+  const selectedManualEvent = useMemo(
+    () => realEvents.find((event) => event.id === batchEventId) ?? null,
+    [realEvents, batchEventId],
+  );
+  const manualComposition = useMemo(() => {
+    if (!selectedManualTemplate || !selectedManualEvent) return null;
+    const deadline = new Date();
+    deadline.setHours(23, 59, 0, 0);
+    const event = buildEventAnnouncementData(selectedManualEvent, {
+      flyerOverrideUrl: selectedManualTemplate.type === "ticket_batch" ? batchArtworkUrl || undefined : undefined,
+      ticketBatchDeadlineIso: deadline.toISOString(),
+    });
+    const blocks = applyEmailBlockOverrides(selectedManualTemplate.blocks as Block[], {
+      artworkUrl: selectedManualTemplate.type === "ticket_batch" ? batchArtworkUrl || event.flyerUrl || undefined : undefined,
+      defaultLink: event.ticketUrl,
+    });
+    return composeEmail({
+      template: {
+        blocks,
+        subject_template: selectedManualTemplate.type === "ticket_batch"
+          ? batchSubject || selectedManualTemplate.subject_template
+          : selectedManualTemplate.subject_template,
+        preheader_template: selectedManualTemplate.preheader_template,
+      },
+      event,
+      settings: tpl,
+      article: batchArticle,
+      globals: globalsMap,
+    });
+  }, [selectedManualTemplate, selectedManualEvent, batchArtworkUrl, batchSubject, tpl, batchArticle, globalsMap]);
 
-  const previewHtml = useMemo(() => {
-    if (activeTemplate && Array.isArray(activeTemplate.blocks) && activeTemplate.blocks.length > 0) {
-      return renderBlockedTemplate(activeTemplate.blocks as Block[], previewData, tpl, previewArticle, { preview: true, globals: globalsMap, preheader: eventPreviewMeta.preheader });
-    }
-    return renderEventAnnouncementEmail(previewData, tpl, { preheader: eventPreviewMeta.preheader });
-  }, [activeTemplate, previewData, tpl, previewArticle, globalsMap, eventPreviewMeta.preheader]);
-
-  const loadDigestPreview = async (opts?: { source?: "digest" | "weekend"; templateId?: string }) => {
-    const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : "digest");
+  const loadDigestPreview = async (opts?: { source?: "digest" | "weekend" | "blog"; templateId?: string }) => {
+    const src = opts?.source ?? (previewSource === "weekend" ? "weekend" : previewSource === "blog" ? "blog" : "digest");
     const tplId = opts?.templateId ?? digestTemplateId;
     setDigestPreviewLoading(true);
     try {
       const body: Record<string, unknown> = { dry_run: true, force: true };
       if (src === "weekend") body.range = "weekend";
       if (tplId) body.template_id = tplId;
-      const { data, error } = await supabase.functions.invoke("weekly-digest-draft", { body });
+      const functionName = src === "weekend"
+        ? "weekend-agenda-draft"
+        : src === "blog"
+        ? "blog-digest-draft"
+        : "weekly-digest-draft";
+      const { data, error } = await supabase.functions.invoke(functionName, { body });
       if (error) throw error;
       if ((data as any)?.skipped) {
         toast({ title: "Preview indisponível", description: `Motivo: ${(data as any).reason}`, variant: "destructive" });
@@ -549,6 +571,9 @@ const EmailConfig = () => {
     }
     if (previewSource === "weekend") {
       return templates.filter((t) => t.type === "weekend_agenda");
+    }
+    if (previewSource === "blog") {
+      return templates.filter((t) => t.type === "blog_digest");
     }
     return [];
   }, [templates, previewSource]);
@@ -619,9 +644,32 @@ const EmailConfig = () => {
   // B.8 — quando templates carregarem, pré-seleciona o primeiro ticket_batch
   useEffect(() => {
     if (batchTemplateId) return;
-    const tb = templates.find((t) => (t as any).type === "ticket_batch");
+    const tb = templates.find((t) => t.type === "ticket_batch");
     if (tb?.id) setBatchTemplateId(tb.id);
   }, [templates, batchTemplateId]);
+
+  useEffect(() => {
+    const event = realEvents.find((item) => item.id === batchEventId);
+    if (!event?.blog_post_id) {
+      setBatchArticle(null);
+      return;
+    }
+    let cancelled = false;
+    void supabase.from("blog_posts")
+      .select("title,excerpt,slug,image_url")
+      .eq("id", event.blog_post_id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        setBatchArticle(data ? {
+          title: data.title,
+          excerpt: data.excerpt || "",
+          url: `https://mdaccula.com/blog/${data.slug}`,
+          image_url: data.image_url || undefined,
+        } : null);
+      });
+    return () => { cancelled = true; };
+  }, [batchEventId, realEvents]);
 
   // Aplica dados de um evento real ao previewData quando seleciona no dropdown.
   useEffect(() => {
@@ -633,34 +681,13 @@ const EmailConfig = () => {
       }
       const ev = realEvents.find((e) => e.id === selectedRealEventId);
       if (!ev) return;
-      const dateObj = new Date(`${ev.date}T${ev.time || "00:00"}`);
-      const dateLabel = dateObj.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
-      const timeLabel = (ev.time || "").slice(0, 5);
       const baseUrl = "https://mdaccula.com";
       const batchDeadline = new Date();
       batchDeadline.setHours(23, 59, 0, 0);
-      setPreviewData({
-        eventTitle: ev.title,
-        eventSubtitle: ev.subtitle ?? undefined,
-        flyerUrl: ev.image_url || MOCK_EVENT_DATA.flyerUrl,
-        dateLabel,
-        timeLabel: timeLabel ? `${timeLabel}` : "22h",
-        venueName: ev.venue,
-        cityState: `${ev.location_city}-${ev.location_state}`,
-        description: ev.description || "",
-        ticketUrl: ev.ticket_link || `${baseUrl}/eventos/${ev.slug}`,
-        eventUrl: `${baseUrl}/eventos/${ev.slug}`,
-        agendaUrl: `${baseUrl}/eventos`,
-        instagramUrl: MOCK_EVENT_DATA.instagramUrl,
-        youtubeUrl: MOCK_EVENT_DATA.youtubeUrl,
-        tiktokUrl: MOCK_EVENT_DATA.tiktokUrl,
-        unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
-        lineup: Array.isArray(ev.lineup) ? ev.lineup : undefined,
-        eventStartIso: dateObj.toISOString(),
+      setPreviewData(buildEventAnnouncementData(ev, {
+        baseUrl,
         ticketBatchDeadlineIso: batchDeadline.toISOString(),
-        venueLat: typeof ev.venue_lat === "number" ? ev.venue_lat : undefined,
-        venueLng: typeof ev.venue_lng === "number" ? ev.venue_lng : undefined,
-      });
+      }));
       // Se o evento tem matéria vinculada, busca o resumo
       if (ev.blog_post_id) {
         const { data: post } = await supabase.from("blog_posts")
@@ -720,8 +747,16 @@ const EmailConfig = () => {
 
   // B.8 — Dispara virada de lote (rascunho ou envio real)
   const dispatchBatch = async (sendNow: boolean) => {
-    if (!batchEventId) {
-      toast({ variant: "destructive", title: "Selecione um evento" });
+    if (!batchEventId || !batchTemplateId || !manualComposition) {
+      toast({ variant: "destructive", title: "Selecione o evento e o template" });
+      return;
+    }
+    if (manualComposition.issues.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Envio bloqueado",
+        description: manualComposition.issues.map((item) => item.message).join(" "),
+      });
       return;
     }
     setBatchDispatching(true);
@@ -730,12 +765,17 @@ const EmailConfig = () => {
         forceResend: true,
         sendNow,
         templateIdOverride: batchTemplateId || undefined,
-        flyerOverrideUrl: batchArtworkUrl || undefined,
-        subjectOverride: batchSubject || undefined,
+        flyerOverrideUrl: selectedManualTemplate?.type === "ticket_batch" ? batchArtworkUrl || undefined : undefined,
+        subjectOverride: selectedManualTemplate?.type === "ticket_batch" ? batchSubject || undefined : undefined,
+        preparedComposition: {
+          html: manualComposition.html,
+          subject: manualComposition.subject,
+          preheader: manualComposition.preheader,
+        },
       });
       if (res.ok) {
         toast({
-          title: sendNow ? "E-mail de virada enviado!" : "Rascunho de virada criado",
+          title: sendNow ? "E-mail enviado!" : "Rascunho criado na E-goi",
           description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
         });
         void loadAll();
@@ -780,7 +820,7 @@ const EmailConfig = () => {
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="template">Template (marca)</TabsTrigger>
           <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor + Preview</TabsTrigger>
-          <TabsTrigger value="batch">Virada de lote</TabsTrigger>
+          <TabsTrigger value="batch"><Send className="w-3.5 h-3.5 mr-1" />Envio manual</TabsTrigger>
           <TabsTrigger value="digest">Automações</TabsTrigger>
           <TabsTrigger value="controle">Controle pessoal</TabsTrigger>
           <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -1009,13 +1049,13 @@ const EmailConfig = () => {
             <CardContent className="p-3">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/30 whitespace-nowrap">
-                  Fonte do preview: {previewSource === "digest" ? "Digest semanal real (7 dias)" : previewSource === "weekend" ? "Agenda FDS real (próximo FDS)" : "Evento individual (mock/real)"}
+                  Fonte do preview: {previewSource === "digest" ? "Digest semanal real (7 dias)" : previewSource === "weekend" ? "Agenda FDS real (próximo FDS)" : previewSource === "blog" ? "Blog news real" : "Evento individual (mock/real)"}
                 </span>
                 <span className="text-[11px] text-muted-foreground whitespace-nowrap">
                   determinada pelo tipo do template selecionado no editor abaixo
                 </span>
 
-                {(previewSource === "digest" || previewSource === "weekend") && (
+                {previewSource !== "event" && (
                   <>
                     <Button size="sm" variant="outline" onClick={() => loadDigestPreview()} disabled={digestPreviewLoading}>
                       {digestPreviewLoading ? "Carregando…" : "Atualizar preview"}
@@ -1068,7 +1108,7 @@ const EmailConfig = () => {
                   </Button>
                   <Button
                     size="sm"
-                    disabled={sendingTest}
+                    disabled={sendingTest || editorDirty || (previewSource === "event" && eventPreviewComposition.issues.length > 0)}
                     onClick={() => {
                       const html = previewSource !== "event" ? (digestPreviewHtml || previewHtml) : previewHtml;
                       const subject = previewSource !== "event" ? (digestPreviewMeta?.subject || "") : eventPreviewMeta.subject;
@@ -1084,6 +1124,19 @@ const EmailConfig = () => {
                   </Button>
                 </div>
               </div>
+              {editorDirty && (
+                <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+                  Salve as alterações do template para liberar o envio de teste. Somente a versão salva pode ser enviada.
+                </div>
+              )}
+              {!editorDirty && previewSource === "event" && eventPreviewComposition.issues.length > 0 && (
+                <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+                  <div className="font-semibold">Envio bloqueado:</div>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                    {eventPreviewComposition.issues.map((item) => <li key={`${item.blockId}-${item.code}`}>{item.message}</li>)}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -1096,6 +1149,7 @@ const EmailConfig = () => {
             previewEvent={previewData}
             previewArticle={previewArticle}
             overrideHtml={previewSource !== "event" ? digestPreviewHtml : null}
+            onDirtyChange={setEditorDirty}
           />
         </TabsContent>
 
@@ -1105,9 +1159,9 @@ const EmailConfig = () => {
         <TabsContent value="batch" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Virada de lote — disparo pontual</CardTitle>
+              <CardTitle>Envio manual</CardTitle>
               <CardDescription>
-                Envia um e-mail de urgência ("lote atual acabando") para um evento específico, com opção de <b>arte diferente</b> do flyer padrão. Usa por padrão o template do tipo "ticket_batch".
+                Escolha um evento e um modelo salvo. A prévia abaixo é exatamente o HTML usado no teste, no rascunho e no envio pela E-goi.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1135,66 +1189,107 @@ const EmailConfig = () => {
 
                 <div>
                   <Label>Template</Label>
-                  <Select value={batchTemplateId} onValueChange={setBatchTemplateId}>
+                  <Select value={batchTemplateId} onValueChange={(id) => {
+                    setBatchTemplateId(id);
+                    setBatchSubject("");
+                    setBatchArtworkUrl("");
+                  }}>
                     <SelectTrigger><SelectValue placeholder="Selecione template" /></SelectTrigger>
                     <SelectContent>
-                      {templates.map((t) => (
+                      {manualTemplates.map((t) => (
                         <SelectItem key={t.id!} value={t.id!}>
-                          {t.name}{(t as any).type === "ticket_batch" ? " · recomendado" : ""}
+                          {t.name} · {t.type === "event_new" ? "Evento" : t.type === "courtesy" ? "Cortesia" : t.type === "ticket_batch" ? "Virada" : "Custom"}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Dica: crie um template do preset "Virada de lote" na aba "Editor de blocos" para reaproveitar.
+                    Digest, Agenda FDS e Blog news ficam exclusivamente na aba Automações.
                   </p>
                 </div>
 
-                <div className="md:col-span-2">
-                  <Label>Assunto do e-mail (opcional)</Label>
-                  <Input
-                    value={batchSubject}
-                    placeholder="Ex.: ÚLTIMAS HORAS — lote 2 acabando"
-                    onChange={(e) => setBatchSubject(e.target.value)}
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Se vazio, usa o assunto padrão do template.
-                  </p>
-                </div>
+                {selectedManualTemplate?.type === "ticket_batch" && (
+                  <>
+                    <div className="md:col-span-2">
+                      <Label>Assunto desta virada (opcional)</Label>
+                      <Input
+                        value={batchSubject}
+                        placeholder="Ex.: ÚLTIMAS HORAS — lote 2 acabando"
+                        onChange={(e) => setBatchSubject(e.target.value)}
+                      />
+                      <p className="text-[11px] text-muted-foreground mt-1">Se vazio, usa o assunto salvo no template.</p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>Arte específica da virada (opcional)</Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          disabled={batchUploadingArt}
+                          onChange={(e) => {
+                            const f = e.target.files?.[0];
+                            if (f) void uploadBatchArtwork(f);
+                          }}
+                        />
+                        {batchArtworkUrl && <Button size="sm" variant="ghost" onClick={() => setBatchArtworkUrl("")}>Remover</Button>}
+                      </div>
+                      {batchArtworkUrl && (
+                        <div className="mt-2 flex items-center gap-3">
+                          <img src={batchArtworkUrl} alt="Preview arte virada" className="w-32 h-32 object-contain rounded border bg-muted/30" />
+                          <p className="text-[11px] text-muted-foreground">Esta arte substitui o flyer padrão somente neste disparo.</p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
 
-                <div className="md:col-span-2">
-                  <Label>Arte específica da virada (opcional)</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      disabled={batchUploadingArt}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) void uploadBatchArtwork(f);
-                      }}
-                    />
-                    {batchArtworkUrl && (
-                      <Button size="sm" variant="ghost" onClick={() => setBatchArtworkUrl("")}>
-                        Remover
-                      </Button>
+              {manualComposition && (
+                <div className="grid gap-4 border-t pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,600px)]">
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Revisão final</div>
+                      <div className="mt-1 text-sm font-medium">{manualComposition.subject || "Assunto não preenchido"}</div>
+                      {manualComposition.preheader && <div className="mt-1 text-xs text-muted-foreground">{manualComposition.preheader}</div>}
+                    </div>
+                    {manualComposition.issues.length > 0 ? (
+                      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300">
+                        <div className="font-semibold">Corrija antes de enviar:</div>
+                        <ul className="mt-1 list-disc space-y-1 pl-4">
+                          {manualComposition.issues.map((item) => <li key={`${item.blockId}-${item.code}`}>{item.message}</li>)}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300">
+                        Modelo validado. Teste, rascunho e envio usarão exatamente esta prévia.
+                      </div>
                     )}
                   </div>
-                  {batchArtworkUrl && (
-                    <div className="mt-2 flex items-center gap-3">
-                      <img src={batchArtworkUrl} alt="Preview arte virada" className="w-32 h-32 object-contain rounded border bg-muted/30" />
-                      <p className="text-[11px] text-muted-foreground">
-                        Esta arte substitui o flyer padrão neste disparo. Se não enviar nada, o flyer atual do evento é usado.
-                      </p>
-                    </div>
-                  )}
+                  <div className="overflow-x-auto rounded-lg border bg-[#050505] p-2">
+                    <iframe
+                      title="Prévia final do envio manual"
+                      srcDoc={manualComposition.html}
+                      sandbox=""
+                      width={600}
+                      className="mx-auto block h-[720px] bg-white"
+                      style={{ width: 600, minWidth: 600, border: 0 }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
                 <Button
+                  variant="secondary"
+                  disabled={!manualComposition || manualComposition.issues.length > 0 || sendingTest}
+                  onClick={() => manualComposition && void sendTestEmail(manualComposition.html, manualComposition.subject)}
+                >
+                  <Mail className="w-4 h-4 mr-2" />
+                  {sendingTest ? "Enviando..." : "Enviar teste"}
+                </Button>
+                <Button
                   variant="outline"
-                  disabled={!batchEventId || batchDispatching}
+                  disabled={!manualComposition || manualComposition.issues.length > 0 || batchDispatching}
                   onClick={() => dispatchBatch(false)}
                 >
                   <Send className="w-4 h-4 mr-2" />
@@ -1202,7 +1297,7 @@ const EmailConfig = () => {
                 </Button>
                 <SendNowButton
                   eventTitle={realEvents.find((e) => e.id === batchEventId)?.title || "(selecione)"}
-                  disabled={!batchEventId || batchDispatching}
+                  disabled={!manualComposition || manualComposition.issues.length > 0 || batchDispatching}
                   onConfirm={() => dispatchBatch(true)}
                 />
               </div>
@@ -1275,7 +1370,10 @@ const EmailConfig = () => {
             refreshingStatsId={refreshingStatsId}
             masterEnabled={masterEnabled}
             defaultEventTemplate={defaultEventTemplate}
-            dispatchNow={dispatchNow}
+            prepareManualSend={(eventId) => {
+              setBatchEventId(eventId);
+              setActiveTab("batch");
+            }}
             dispatchAbTest={dispatchAbTest}
             resendEvent={resendEvent}
             refreshCampaignStats={refreshCampaignStats}

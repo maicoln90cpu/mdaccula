@@ -29,9 +29,10 @@ import { GripVertical, Plus, Trash2, Copy, Save, Eye, EyeOff, Library, Unlink } 
 import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
-  renderBlockedTemplate, type ArticleSummary,
+  type ArticleSummary,
   TEMPLATE_PRESETS, buildPresetBlocks, type PresetKey,
 } from "@/lib/emailTemplates/blocks";
+import { composeEmail } from "@/lib/emailTemplates/emailComposer";
 import { MOCK_EVENT_DATA, type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
@@ -53,6 +54,7 @@ interface Props {
   previewArticle: ArticleSummary | null;
   /** Quando não-nulo, o preview usa este HTML (ex.: digest/agenda FDS reais) em vez de calcular do mock. */
   overrideHtml?: string | null;
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const defaultForKind = (kind: Block["kind"]): Block => {
@@ -201,7 +203,7 @@ const normalizeType = (t: Template["type"] | undefined): TypeFilterKey => {
 };
 
 export function EmailTemplateEditor({
-  templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml,
+  templates, activeId, onActiveChange, onReload, settings, previewEvent, previewArticle, overrideHtml, onDirtyChange,
 }: Props) {
   const { toast } = useToast();
   const { globalsMap, updateGlobal } = useEmailGlobalBlocks();
@@ -382,9 +384,15 @@ export function EmailTemplateEditor({
     [currentSubject, currentPreheader, previewEvent],
   );
 
-  const previewHtml = useMemo(
-    () => renderBlockedTemplate(blocks, previewEvent, settings, previewArticle, { preview: true, globals: globalsMap, preheader: previewMeta.preheader }),
-    [blocks, previewEvent, settings, previewArticle, globalsMap, previewMeta.preheader],
+  const previewComposition = useMemo(
+    () => composeEmail({
+      template: { blocks, subject_template: currentSubject, preheader_template: currentPreheader },
+      event: previewEvent,
+      settings,
+      article: previewArticle,
+      globals: globalsMap,
+    }),
+    [blocks, currentSubject, currentPreheader, previewEvent, settings, previewArticle, globalsMap],
   );
 
   // ============================================================
@@ -399,6 +407,11 @@ export function EmailTemplateEditor({
     (localName !== "" && localName !== activeTpl?.name) ||
     (localSubject !== null && localSubject !== (activeTpl?.subject_template ?? "")) ||
     (localPreheader !== null && localPreheader !== (activeTpl?.preheader_template ?? ""));
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty, onDirtyChange]);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -683,6 +696,14 @@ export function EmailTemplateEditor({
                 ⚠ Alterações não salvas — o preview real usa o template já salvo. Mostrando <b>render local</b> com os blocos atuais. Salve para atualizar o preview real.
               </div>
             )}
+            {previewComposition.issues.length > 0 && (
+              <div className="mx-1 mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-700 dark:text-red-300">
+                <div className="font-semibold">Este modelo ainda não pode ser enviado:</div>
+                <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                  {previewComposition.issues.map((item) => <li key={`${item.blockId}-${item.code}`}>{item.message}</li>)}
+                </ul>
+              </div>
+            )}
             <div className="px-1">
               <InboxPreviewHeader
                 subjectTemplate={currentSubject}
@@ -699,7 +720,7 @@ export function EmailTemplateEditor({
             <div className="overflow-x-auto rounded border bg-[#050505] p-2">
               <iframe
                 title="preview"
-                srcDoc={overrideHtml && !isDirty ? overrideHtml : previewHtml}
+                srcDoc={overrideHtml && !isDirty ? overrideHtml : previewComposition.html}
                 width={600}
                 className="block mx-auto h-[900px] bg-white"
                 style={{ width: 600, minWidth: 600, border: 0 }}
