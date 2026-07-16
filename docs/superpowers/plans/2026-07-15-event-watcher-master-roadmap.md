@@ -3,7 +3,7 @@
 > Plano mestre de viabilidade e fases. O detalhamento tarefa-a-tarefa de cada fase vive
 > em planos próprios na mesma pasta (ver seção "Ordem de construção" abaixo). Este
 > arquivo é a fonte de verdade sobre o que já foi decidido e o que falta para Fase
-> A/B/C/D. Atualizado por último em 17/07/2026 — ver "Histórico de revisões" no fim.
+> A/B/C/D. Atualizado por último em 17/07/2026 (rodada 2) — ver "Histórico de revisões" no fim.
 
 ## Contexto
 
@@ -40,11 +40,15 @@ imperfeitas ou um scraper que eventualmente falha/quebra.
 
 ## Status atual em uma frase
 
-**Fase A está 100% concluída e em produção.** O pipeline roda de ponta a ponta sem
-nenhum clique manual entre a descoberta do evento e o rascunho aparecer em
-`/admin/blog`: varredura → extração → geração do artigo (template dedicado, sem citar a
-fonte, sem link de concorrente) → rascunho pronto pra edição/publicação manual. Fase B
-(Apify + composição de imagem) ainda não foi iniciada.
+**Fase A está 100% concluída e em produção**, com uma rodada extra de acertos (modal de
+fontes, publicação automática opcional, imagem real em vez de sempre IA). O pipeline roda
+de ponta a ponta sem nenhum clique manual entre a descoberta do evento e o rascunho
+aparecer em `/admin/blog`: varredura → extração (incl. imagem real, se houver) → geração
+do artigo (template dedicado, sem citar a fonte, sem link de concorrente) → rascunho
+pronto pra edição/publicação manual (ou publicação automática, se o toggle estiver
+ligado). Fase B (Apify/Instagram + composição de logo sobre a imagem) ainda não foi
+iniciada — mas a parte de "imagem real" que originalmente estava no escopo da Fase B já
+foi entregue como extensão da Fase A (ver item 10 abaixo).
 
 ## O que já existe e é reaproveitado (achado pela investigação no código)
 
@@ -55,6 +59,7 @@ fonte, sem link de concorrente) → rascunho pronto pra edição/publicação ma
 | Redação de artigo por IA | `generate-blog-post-v2`, modo "evento" (bloco DADOS OFICIAIS, anti-alucinação) | Reaproveitado com um template dedicado pra artigos raspados (ver abaixo) |
 | Upload/otimização de imagem | `EventForm.tsx` → `ImageUploadWithCrop` → `webpConverter.ts` → `bunnyUploader.ts` | Reaproveitável tal e qual quando a Fase B precisar de composição de imagem |
 | Geração de imagem por IA (fallback) | `generate-blog-post-v2` chama Gemini `gemini-2.5-flash-image` + `imagescript` (lib Deno) | Já gera a imagem de capa de todo artigo do Event Watcher, em background |
+| Re-host de imagem real no Bunny | `rehostImageToBunny` em `scan-event-sources` (novo, 17/07/2026 rodada 2), mesmo pipeline decode/resize/WebP de `generateAndAttachImage` | Reaproveitável tal e qual pra `compose-event-image` (Fase B) receber a imagem já pronta no Bunny antes de aplicar o overlay do logo |
 | Cron dinâmico configurável | Padrão dos digests (`update-digest-schedule` + `manage_digest_schedule`) | Job `scan-event-sources-cron` liberado na RPC desde a Fase A, **ainda não ativado** (ver pendências) |
 | Publicação no site | `blog_posts` (insert/update) | Rascunho nasce direto em `blog_posts` (`published: false`), sem tela de aprovação própria — revisão acontece em `/admin/blog` como qualquer outro post |
 
@@ -102,6 +107,62 @@ significativa no meio do caminho, ver "Histórico de revisões"):
    ingresso); `ai_max_scrape_sources` (contexto extra em toda geração do site) subido de
    3 para 7, dentro da margem folgada do plano grátis do Firecrawl (1.000 créditos/mês, 1
    crédito por página raspada).
+8. **Modal "Ver fontes e origem" parou de mentir (17/07/2026, rodada 2)** — causa raiz:
+   `generate-blog-post-v2` faz *dois* tipos de scraping bem diferentes que estavam sendo
+   gravados no mesmo campo (`ai_generated_posts.source_urls`): (a) a extração factual do
+   Event Watcher (`event_watch_drafts.source_page_url`, genuinamente ligada ao artigo) e
+   (b) um scraping genérico de "tom/estilo" que já existia antes desta sessão, usado por
+   *toda* geração de artigo do site (Event Watcher, "Evento Padrão", "Sugestões
+   Aleatórias") só pra dar inspiração de prosa ao prompt — pega fontes aleatórias sem
+   nenhuma relação com o tema do artigo específico. Misturar os dois fazia o modal mostrar
+   coisas como uma matéria do Rock in Rio como "fonte" de um artigo do Tomorrowland.
+   Corrigido: `generate-blog-post-v2` agora sempre grava `source_urls: null` (o texto
+   raspado continua enriquecendo o prompt normalmente, só para de ser reportado como
+   citação). `generate-blog-post-from-topic` (busca real por tema via Firecrawl
+   `/v1/search`) não muda — continua sendo a única função que grava citações genuínas
+   nesse campo. Limpeza retroativa: 105 linhas antigas de `ai_generated_posts` (todas
+   as que tinham `template_id` preenchido, ou seja, vieram de `generate-blog-post-v2`)
+   tiveram `source_urls` zerado; as 16 linhas genuínas de busca por tema
+   (`template_id IS NULL`) ficaram intactas. Também corrigido: 7 registros de
+   `event_sources` tinham `name` cadastrado como a própria URL (ex: nome="wegoout.com.br"
+   em vez de "WeGoOut"), causando nome e link idênticos no modal.
+9. **Toggle "Publicar automaticamente" em `/admin/blog` (17/07/2026, rodada 2)** — nova
+   chave `site_settings.event_watcher_auto_publish` (`'true'`/`'false'`, desligado por
+   padrão). Quando ligado, `scan-event-sources` publica o post direto (`published: true`)
+   assim que `generate-blog-post-v2` termina, pulando a revisão manual em `/admin/blog`.
+   **Decisão explícita do usuário**: isso é deliberadamente mais arriscado que o
+   comportamento padrão (rascunho sempre aguarda revisão) — a única proteção nesse modo
+   continua sendo o template "Raspagem de Eventos" (nunca citar fonte, nunca linkar
+   concorrente). Rótulo da UI deixa esse risco explícito.
+10. **Imagem real do evento em vez de sempre gerar por IA (17/07/2026, rodada 2)** — parte
+    do escopo original da Fase B ("composição de imagem") foi adiantada: `extract.ts`
+    ganhou um campo `image_url` (a IA de extração identifica um flyer/foto real no
+    markdown raspado, nunca ícones/logos genéricos); nova função `rehostImageToBunny` em
+    `scan-event-sources` baixa essa imagem e re-hospeda no Bunny (nunca hotlink direto pro
+    CDN de terceiros), reaproveitando o mesmo pipeline decode/resize/WebP de
+    `generate-blog-post-v2`. Se não achar imagem clara ou o re-host falhar por qualquer
+    motivo, cai silenciosamente no fallback de sempre (gerar por IA) — sem regressão
+    possível. **O que falta pra Fase B não é mais "imagem real" — é só o overlay do logo
+    da MDAccula sobre essa imagem** (`compose-event-image`, ainda não iniciado, aguardando
+    o usuário providenciar o arquivo do logo).
+
+### Descoberta operacional: bug do deploy tool com `EdgeRuntime.waitUntil` (17/07/2026)
+
+Durante o deploy do item 9, `scan-event-sources` ficou fora do ar (`503 BOOT_ERROR`) por
+~40 minutos. Causa raiz isolada por bissecção extensa (não é bug do código do projeto):
+a ferramenta de deploy usada nesta sessão (`mcp__supabase-mdaccula__deploy_edge_function`)
+falha ao "bootar" a função sempre que o payload de deploy é **multi-arquivo** (`index.ts`
++ arquivos extras, não importa se `./mesmo-diretório.ts` ou `../_shared/x.ts`) **e** o
+código contém uma chamada real a `EdgeRuntime.waitUntil(...)`. Cada peça isolada
+(extração, rehost de imagem, geração de rascunho) funciona perfeitamente sozinha em
+builds multi-arquivo — só quebra quando o loop principal com `EdgeRuntime.waitUntil` está
+presente num deploy que não é um único arquivo. **Fix**: deploy de `scan-event-sources`
+agora é sempre um único arquivo com tudo inlinado (dedupe.ts + extract.ts + as funções de
+`_shared/index.ts` usadas) — documentado como comentário no topo do próprio
+`supabase/functions/scan-event-sources/index.ts`. O repo continua com os arquivos
+separados (`dedupe.ts`, `extract.ts`) pra manter os testes unitários; só o payload que vai
+pro deploy tool precisa ser montado à mão combinando os arquivos antes de cada deploy
+futuro dessa função específica.
 
 ### Pendências da Fase A (não bloqueiam uso — são decisões operacionais do usuário)
 
@@ -112,15 +173,23 @@ significativa no meio do caminho, ver "Histórico de revisões"):
 - **`DROP TABLE news_sources`**: a tabela antiga continua existindo no banco (vazia de
   uso — nada mais lê dela desde a unificação), só não foi apagada porque essa é uma ação
   irreversível que fica deliberadamente pra confirmação explícita e separada do usuário.
+  Usuário já confirmou o "pode" duas vezes em conversas diferentes; falta só a
+  confirmação final no momento exato de rodar a migration `DROP TABLE`.
 - **Task #20 (débito técnico, não relacionado à Fase A)**: extrair a lógica de seleção/
   renderização de template de `generate-blog-post-v2` pra um módulo testável com testes
   Deno — pendente desde antes da Fase A, baixa prioridade.
 
-## Fase B — Apify (Instagram) + composição de imagem (não iniciada)
+## Fase B — Apify (Instagram) + composição de imagem (parcialmente entregue)
 
 **Escopo (confirmado com o usuário em 15/07/2026)**: as duas peças andam juntas nesta
 fase, pra permitir teste prático real do pipeline completo antes de decidir qualquer
 coisa sobre publicação automática no Instagram (isso fica pra Fase C).
+
+**Atualização 17/07/2026 (rodada 2)**: a etapa de "imagem real" (extrair do site, se
+houver, em vez de sempre gerar por IA) já foi entregue como extensão da Fase A — ver item
+10 acima. O que falta da Fase B agora é só: (1) Apify/Instagram e (2) o overlay de
+logo/marca sobre a imagem (`compose-event-image`), que se aplica tanto à imagem extraída
+de sites quanto à mídia nativa de posts do Instagram.
 
 ```
 [event_sources, type='instagram']
@@ -131,15 +200,17 @@ scan-event-sources (estendido) — dispara ator Apify de forma ASSÍNCRONA
      ▼
 apify-instagram-webhook (Edge Function NOVA) — recebe o retorno da Apify quando o
   scraping termina, roda a extração por IA (mesmo padrão de scan-event-sources/extract.ts),
-  grava em event_watch_drafts
+  grava em event_watch_drafts (a imagem já vem pronta — é a própria mídia do post)
      ▼
 compose-event-image (Edge Function NOVA, usa imagescript) — logo + barra de marca +
-  título sobre a foto (enviada, extraída da fonte, ou gerada por IA como fallback)
-  → WebP → upload-to-bunny
+  título sobre a foto (real, extraída de site ou vinda do Instagram; só cai pra imagem
+  gerada por IA se nenhuma imagem real existir) → WebP → upload-to-bunny
      ▼
 generate-blog-post-v2 (já pronto) — gera o texto da matéria, publishImmediately:false
+  (ou publica direto se o toggle de publicação automática, item 9, estiver ligado)
      ▼
-Rascunho em /admin/blog, com imagem composta — revisão manual como hoje
+Rascunho em /admin/blog, com imagem composta — revisão manual como hoje (ou já publicado,
+  se o toggle estiver ligado)
 ```
 
 ### Peças concretas a criar
@@ -152,8 +223,12 @@ Rascunho em /admin/blog, com imagem composta — revisão manual como hoje
 - **`apify-instagram-webhook`** (Edge Function nova): recebe o callback da Apify,
   reaproveita a lógica de extração já existente, grava em `event_watch_drafts` com
   `source_page_url` = link do post do Instagram.
-- **`compose-event-image`** (Edge Function nova): overlay de logo/template — trabalho
-  visual novo, sem bloqueio técnico (`imagescript` já é dependência do projeto).
+- **`compose-event-image`** (Edge Function nova): overlay de logo/template sobre a imagem
+  real (já resolvida — ver item 10 da Fase A) — trabalho visual novo, sem bloqueio
+  técnico (`imagescript` já é dependência do projeto). **Bloqueado**: precisa do arquivo
+  do logo da MDAccula em PNG, fundo transparente, alta resolução (usuário vai
+  providenciar). Sequenciado como último item da Fase B — o resto (Apify, webhook,
+  extração de Instagram) pode ser implementado e testado sem o logo.
 - **`/admin/blog`**: modal "Ver fontes e origem" ganha um preview da imagem composta;
   possivelmente uma legenda curta de Instagram (novo prompt, mais curto, com hashtags) —
   a decidir se isso vira um campo novo em `ai_generated_posts` ou fica só no rascunho.
@@ -210,3 +285,11 @@ estiver testada na prática:
   em `/admin/blog`; correção de segurança de marca (nunca citar fonte/linkar
   concorrente); extração de link exato da notícia; 3 fontes editoriais novas
   cadastradas; `ai_max_scrape_sources` 3→7.
+- **17/07/2026 (rodada 2)** — modal "Ver fontes e origem" corrigido na raiz (parou de
+  misturar scraping genérico de tom com citação factual; limpeza retroativa de 105
+  registros + 7 nomes de fonte incorretos); toggle de publicação automática
+  (`event_watcher_auto_publish`) adicionado em `/admin/blog`; extração de imagem real do
+  evento (re-hospedada no Bunny) adiantada do escopo da Fase B, com fallback silencioso
+  pra geração por IA; descoberto e documentado um bug do deploy tool (`EdgeRuntime.waitUntil`
+  + payload multi-arquivo = `BOOT_ERROR`) que causou ~40min de indisponibilidade de
+  `scan-event-sources` durante o deploy — resolvido com deploy single-file pra essa função.

@@ -3,6 +3,8 @@ import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Eye, Loader2, Plus, Pencil, Trash2, ArrowLeft, ImagePlus, Image, RefreshCw, FileSearch } from "lucide-react";
@@ -59,6 +61,8 @@ const BlogManager = () => {
     functionLabel: string | null;
     sources: { name: string; url: string; kind: "origin" | "context" }[];
   } | null>(null);
+  const [autoPublish, setAutoPublish] = useState(false);
+  const [savingAutoPublish, setSavingAutoPublish] = useState(false);
 
   const fetchPosts = async () => {
     setLoading(true);
@@ -78,13 +82,49 @@ const BlogManager = () => {
     }
   };
 
+  const fetchAutoPublishSetting = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "event_watcher_auto_publish")
+        .maybeSingle();
+      if (error) throw error;
+      setAutoPublish(data?.value === "true");
+    } catch (error) {
+      logger.error("Error fetching auto-publish setting:", error);
+    }
+  };
+
   useEffect(() => {
     fetchPosts();
+    fetchAutoPublishSetting();
   }, []);
 
   // Realtime: lista atualiza automaticamente em qualquer INSERT/UPDATE/DELETE
   // (inclui mudanças vindas de outras abas, edge functions e regenerate-image).
   useRealtimeTable("blog_posts", () => fetchPosts());
+
+  const handleToggleAutoPublish = async (checked: boolean) => {
+    setSavingAutoPublish(true);
+    try {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "event_watcher_auto_publish", value: String(checked) }, { onConflict: "key" });
+      if (error) throw error;
+      setAutoPublish(checked);
+      toast.success(
+        checked
+          ? "Publicação automática ativada: novos rascunhos do Event Watcher vão ao ar sem revisão manual."
+          : "Publicação automática desativada: novos rascunhos do Event Watcher voltam a aguardar revisão manual."
+      );
+    } catch (error) {
+      logger.error("Error updating auto-publish setting:", error);
+      toast.error("Erro ao atualizar configuração de publicação automática");
+    } finally {
+      setSavingAutoPublish(false);
+    }
+  };
 
   const handleEdit = (post: BlogPost) => {
     setEditingPost(post);
@@ -345,13 +385,34 @@ const BlogManager = () => {
               </NavLink>
             </div>
             
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <h1 className="text-4xl font-bold hero-text">Gerenciar Blog</h1>
               <Button onClick={handleNew} className="btn-neon">
                 <Plus className="w-4 h-4 mr-2" />
                 Novo Post
               </Button>
             </div>
+
+            <Card className="mb-8">
+              <CardContent className="flex flex-wrap items-start justify-between gap-4 py-4">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id="auto-publish-toggle"
+                    checked={autoPublish}
+                    onCheckedChange={handleToggleAutoPublish}
+                    disabled={savingAutoPublish}
+                  />
+                  <Label htmlFor="auto-publish-toggle" className="cursor-pointer">
+                    Publicar automaticamente artigos do Event Watcher
+                  </Label>
+                </div>
+                <p className="text-xs text-muted-foreground max-w-md">
+                  Quando ativado, rascunhos gerados pelo Event Watcher (raspagem de sites/Instagram)
+                  vão direto ao ar, <strong>sem revisão manual</strong>. Não afeta posts criados
+                  manualmente. Deixe desativado se preferir revisar cada artigo antes de publicar.
+                </p>
+              </CardContent>
+            </Card>
 
             {showForm ? (
               <BlogForm

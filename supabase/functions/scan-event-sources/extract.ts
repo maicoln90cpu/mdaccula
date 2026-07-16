@@ -11,6 +11,7 @@ export interface ExtractedEvent {
   description: string | null;
   confidence: "high" | "medium" | "low";
   source_page_url: string | null;
+  image_url: string | null;
 }
 
 const EXTRACTION_SYSTEM_PROMPT = `Você é um assistente que extrai dados estruturados de anúncios de eventos de música eletrônica a partir de texto raspado de sites de terceiros.
@@ -21,7 +22,8 @@ Regras:
 - Se um campo não está claro no texto, deixe-o nulo/vazio — nunca adivinhe.
 - confidence="high" só quando data, local e nome do evento estão todos claramente presentes; "medium" quando falta 1 desses; "low" caso contrário.
 - No campo "description", NUNCA inclua o nome do site/veículo/marca de onde este texto foi raspado (ex: não escreva "segundo o [nome do site]" ou repita o nome da fonte) — extraia só o fato sobre o evento em si.
-- O conteúdo raspado está em markdown e pode conter links no formato [texto](url). Se houver um link específico apontando para a página de detalhe/notícia DESTE evento em particular (ex: "saiba mais", "ver evento", o próprio título do evento como link, "leia a matéria completa") — diferente da URL raiz da fonte —, extraia essa URL em "source_page_url". Se não houver um link assim identificável (ex: o evento está descrito só em texto corrido, sem link próprio), deixe "source_page_url" vazio/nulo — NUNCA invente ou reutilize a URL raiz da fonte como se fosse a página específica.`;
+- O conteúdo raspado está em markdown e pode conter links no formato [texto](url). Se houver um link específico apontando para a página de detalhe/notícia DESTE evento em particular (ex: "saiba mais", "ver evento", o próprio título do evento como link, "leia a matéria completa") — diferente da URL raiz da fonte —, extraia essa URL em "source_page_url". Se não houver um link assim identificável (ex: o evento está descrito só em texto corrido, sem link próprio), deixe "source_page_url" vazio/nulo — NUNCA invente ou reutilize a URL raiz da fonte como se fosse a página específica.
+- O conteúdo também pode conter imagens no formato markdown ![alt](url). Se houver uma imagem claramente associada a ESTE evento específico (ex: flyer, cartaz, foto de divulgação — geralmente perto do título/descrição do evento), extraia sua URL em "image_url". IGNORE ícones pequenos, logos do site, avatares, imagens genéricas de navegação ou banners de outros eventos. Se não houver uma imagem claramente ligada a este evento, deixe "image_url" vazio/nulo — NUNCA invente uma URL de imagem.`;
 
 export function buildExtractionRequest(
   modelName: string,
@@ -60,6 +62,10 @@ export function buildExtractionRequest(
               source_page_url: {
                 type: "string",
                 description: "URL exata da página/notícia deste evento específico, extraída de um link markdown presente no conteúdo — nunca a URL raiz da fonte, deixe vazio se não houver link específico",
+              },
+              image_url: {
+                type: "string",
+                description: "URL de uma imagem (flyer/cartaz/foto) claramente associada a este evento específico, extraída de um ![alt](url) presente no conteúdo — nunca ícones/logos/imagens genéricas, deixe vazio se não houver imagem clara",
               },
             },
             required: ["has_event", "confidence"],
@@ -102,6 +108,10 @@ export function parseExtractionResponse(aiData: unknown): ExtractedEvent | null 
     source_page_url:
       typeof args.source_page_url === "string" && /^https?:\/\//.test(args.source_page_url)
         ? args.source_page_url
+        : null,
+    image_url:
+      typeof args.image_url === "string" && /^https?:\/\//.test(args.image_url)
+        ? args.image_url
         : null,
   };
 }

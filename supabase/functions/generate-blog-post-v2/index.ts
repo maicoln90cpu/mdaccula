@@ -139,31 +139,6 @@ async function scrapeWithFirecrawl(url: string, apiKey: string): Promise<{ succe
   }
 }
 
-// Acha o primeiro link de artigo (não imagem, não âncora da própria página,
-// não asset estático, diferente da própria URL raiz da fonte) no markdown
-// raspado — usado pra mostrar o link exato no modal "Ver fontes e origem" do
-// Blog Manager, em vez de só o domínio da fonte. Heurística simples (sem
-// chamada de IA extra) porque roda em toda geração do site.
-const ASSET_EXTENSION_REGEX = /\.(svg|png|jpe?g|gif|webp|css|js|ico|pdf)(\?|#|$)/i;
-
-function findFirstArticleLink(markdown: string, rootUrl: string): string | null {
-  const normalizedRoot = rootUrl.replace(/\/$/, '');
-  const linkRegex = /(?<!!)\[[^\]]+\]\((https?:\/\/[^\s)]+)\)/g;
-  let match: RegExpExecArray | null;
-  while ((match = linkRegex.exec(markdown)) !== null) {
-    const url = match[1];
-    const normalizedUrl = url.replace(/\/$/, '');
-    const isRoot = normalizedUrl === normalizedRoot;
-    const isRootAnchor =
-      normalizedUrl.startsWith(`${normalizedRoot}#`) || normalizedUrl.startsWith(`${normalizedRoot}/#`);
-    const isAsset = ASSET_EXTENSION_REGEX.test(url);
-    if (!isRoot && !isRootAnchor && !isAsset) {
-      return url;
-    }
-  }
-  return null;
-}
-
 // ============= IMAGE STYLE PROMPTS =============
 const IMAGE_STYLE_PROMPTS = [
   // Estilo 0: Fotorrealista cinematográfico
@@ -614,7 +589,6 @@ Deno.serve(async (req) => {
     // então não há motivo para pular o scraping quando generateImage=true
     // (ver _shared/scrapeGate.ts para o histórico dessa regressão).
     let scrapedContext = '';
-    const scrapedSourceUrls: string[] = [];
     if (FIRECRAWL_API_KEY && shouldScrapeForContext({ hasApiKey: true, remainingMs })) {
       try {
         const { data: sources } = await supabase
@@ -637,8 +611,6 @@ Deno.serve(async (req) => {
             if (result.success && result.markdown) {
               const truncated = result.markdown.substring(0, 1500);
               scrapedContext += `\n\n### Contexto de ${source.name}:\n${truncated}`;
-              const articleLink = findFirstArticleLink(result.markdown, source.url);
-              scrapedSourceUrls.push(articleLink ?? source.url);
               console.log(`✓ Contexto obtido de ${source.name}`);
             }
           }
@@ -1159,7 +1131,12 @@ ${aiContextBlock}${ticketsBlock}`;
         output_tokens: usage.completion_tokens || null,
         total_tokens: usage.total_tokens || null,
         image_tokens: imageTokensUsed > 0 ? imageTokensUsed : null,
-        source_urls: scrapedSourceUrls.length > 0 ? scrapedSourceUrls : null,
+        // scrapedSourceUrls vem do scraping de CONTEXTO/TOM genérico (fontes aleatórias,
+        // sem relação com o tema do artigo) — nunca são citações factuais, então nunca
+        // são gravadas aqui. O modal "Ver fontes e origem" só deve mostrar fontes
+        // genuinamente ligadas ao artigo (origem do Event Watcher, ou busca real por
+        // tema em generate-blog-post-from-topic, que grava esse campo separadamente).
+        source_urls: null,
       });
 
     if (aiLogError) {

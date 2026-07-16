@@ -1,5 +1,20 @@
 // supabase/functions/scan-event-sources/index.ts
+//
+// DEPLOY NOTE (17/07/2026): esta estrutura multi-arquivo (dedupe.ts/extract.ts
+// locais + ../_shared/index.ts) é a correta para desenvolvimento local, lint e
+// testes (dedupe_test.ts/extract_test.ts importam essas funções como módulos
+// puros testáveis). PORÉM: ao fazer deploy via mcp__supabase-mdaccula__deploy_edge_function,
+// esse tool falha com BOOT_ERROR sempre que o arquivo contém uma chamada real a
+// `EdgeRuntime.waitUntil(...)` E o deploy é multi-arquivo (não importa se os
+// arquivos extras são same-dir "./x.ts" ou "../_shared/x.ts") — confirmado por
+// bissecção extensa. A única combinação que funciona é um único arquivo com
+// TUDO inlinado (dedupe.ts + extract.ts + as funções de _shared usadas), sem
+// nenhum import relativo. Antes de rodar esse deploy tool para esta função,
+// construa manualmente essa versão inlinada a partir deste arquivo + dedupe.ts
+// + extract.ts + _shared/index.ts. Funções puras continuam vivendo nos arquivos
+// separados abaixo — só o payload de deploy precisa ser combinado à mão.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 import {
   handleCorsPreFlight,
   jsonSuccess,
@@ -16,6 +31,58 @@ const SCRAPE_TIMEOUT_MS = 10000;
 const AI_TIMEOUT_MS = 60000;
 const MAX_CONTENT_LENGTH = 4000;
 const GENERATE_TIMEOUT_MS = 120000;
+const IMAGE_FETCH_TIMEOUT_MS = 10000;
+
+// Baixa uma imagem real encontrada na página raspada e re-hospeda no Bunny (nunca
+// hotlink direto pro CDN de terceiros — evita quebrar se a fonte remover/mover o
+// arquivo, e não consome banda do site original). Reaproveita o mesmo pipeline de
+// decode/resize/encode WebP usado em generate-blog-post-v2's generateAndAttachImage.
+// Qualquer falha (download, decode, upload) retorna null silenciosamente — o caller
+// cai no fallback de geração de imagem por IA que já existe, sem regressão possível.
+async function rehostImageToBunny(imageUrl: string): Promise<string | null> {
+  try {
+    const bunnyKey = Deno.env
+      .get("BUNNY_STORAGE_API_KEY")
+      ?.trim()
+      ?.replace(/^["']|["']$/g, "")
+      ?.replace(/[^\x20-\x7E]/g, "");
+    if (!bunnyKey) return null;
+
+    const imgResp = await fetchWithTimeout(imageUrl, {}, IMAGE_FETCH_TIMEOUT_MS);
+    if (!imgResp.ok) return null;
+
+    const rawBuffer = new Uint8Array(await imgResp.arrayBuffer());
+    // Buffer minúsculo é quase sempre ícone/pixel de rastreamento, não um flyer real.
+    if (rawBuffer.length < 2048) return null;
+
+    let finalBuffer: Uint8Array;
+    try {
+      const image = await Image.decode(rawBuffer);
+      const maxDimension = 1024;
+      if (image.width > maxDimension || image.height > maxDimension) {
+        const scale = maxDimension / Math.max(image.width, image.height);
+        image.resize(Math.round(image.width * scale), Math.round(image.height * scale));
+      }
+      finalBuffer = await image.encodeWEBP(85);
+    } catch {
+      return null;
+    }
+
+    const fileName = `event-scraped-${Date.now()}.webp`;
+    const bunnyHostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME") || "storage.bunnycdn.com";
+    const uploadResp = await fetch(`https://${bunnyHostname}/mdaccula/event-images/${fileName}`, {
+      method: "PUT",
+      headers: { AccessKey: bunnyKey, "Content-Type": "image/webp" },
+      body: finalBuffer,
+    });
+    if (!uploadResp.ok) return null;
+
+    return `https://mdaccula.b-cdn.net/event-images/${fileName}`;
+  } catch (error) {
+    console.error("[scan-event-sources] rehostImageToBunny falhou:", error);
+    return null;
+  }
+}
 
 // Dispara a geração do artigo (modo rascunho) pro rascunho recém-extraído, em
 // background — não bloqueia a resposta principal do scan, que pode ter achado
@@ -27,8 +94,15 @@ async function generateDraftArticle(
   draftId: string,
   extracted: ExtractedEvent,
   templateId: string | null,
+  autoPublish: boolean,
 ): Promise<void> {
   try {
+    // Se a extração achou uma imagem real do evento (flyer/cartaz), tenta re-hospedar
+    // no Bunny antes de gerar o artigo. Se falhar por qualquer motivo, segue sem
+    // eventImageUrl — generate-blog-post-v2 cai no fallback de geração por IA
+    // (generateImage:true) automaticamente, sem nenhuma mudança necessária lá.
+    const rehostedImageUrl = extracted.image_url ? await rehostImageToBunny(extracted.image_url) : null;
+
     // NUNCA envia ticket_link: é sempre o link da página raspada de terceiros (ex:
     // um concorrente), nunca um link oficial da MDAccula. Enviá-lo faria o gerador
     // promover o checkout de outra marca sob o nome da MDAccula (bug de segurança de
@@ -53,6 +127,7 @@ async function generateDraftArticle(
           locationState: extracted.location_state ?? "",
           lineup: extracted.lineup.join(", "),
           description: extracted.description ?? "",
+          ...(rehostedImageUrl ? { eventImageUrl: rehostedImageUrl } : {}),
           generateImage: true,
           publishImmediately: false,
         }),
@@ -78,6 +153,21 @@ async function generateDraftArticle(
 
     if (updateError) {
       console.error(`[scan-event-sources] Falha ao atualizar draft ${draftId} após geração:`, updateError);
+    }
+
+    // Publicação automática (opt-in, site_settings.event_watcher_auto_publish) — pula
+    // a revisão manual em /admin/blog. Post nasce sempre como rascunho (published:false)
+    // em generate-blog-post-v2; este update extra é o único jeito de ir ao ar sem alguém
+    // clicar "Publicar".
+    if (autoPublish) {
+      const { error: publishError } = await admin
+        .from("blog_posts")
+        .update({ published: true, published_at: new Date().toISOString() })
+        .eq("id", data.post.id);
+
+      if (publishError) {
+        console.error(`[scan-event-sources] Falha ao auto-publicar post ${data.post.id}:`, publishError);
+      }
     }
   } catch (error) {
     console.error(`[scan-event-sources] Erro gerando artigo para draft ${draftId}:`, error);
@@ -117,6 +207,13 @@ Deno.serve(async (req) => {
       .eq("name", "Raspagem de Eventos")
       .maybeSingle();
     const scrapedTemplateId = scrapedTemplate?.id ?? null;
+
+    const { data: autoPublishSetting } = await admin
+      .from("site_settings")
+      .select("value")
+      .eq("key", "event_watcher_auto_publish")
+      .maybeSingle();
+    const autoPublish = autoPublishSetting?.value === "true";
 
     const { data: sources, error: sourcesError } = await admin
       .from("event_sources")
@@ -221,7 +318,7 @@ Deno.serve(async (req) => {
         // scan, que pode processar várias fontes/eventos no mesmo run.
         // @ts-ignore — EdgeRuntime existe no runtime do Supabase
         EdgeRuntime.waitUntil(
-          generateDraftArticle(admin, supabaseUrl, serviceKey, insertedDraft.id, extracted, scrapedTemplateId),
+          generateDraftArticle(admin, supabaseUrl, serviceKey, insertedDraft.id, extracted, scrapedTemplateId, autoPublish),
         );
 
         await admin

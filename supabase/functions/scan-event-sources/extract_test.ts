@@ -82,3 +82,47 @@ Deno.test("parseExtractionResponse retorna null quando os argumentos são o lite
   };
   assertEquals(parseExtractionResponse(aiData), null);
 });
+
+Deno.test("parseExtractionResponse extrai image_url quando é uma URL http(s) válida", () => {
+  const aiData = {
+    choices: [{
+      message: {
+        tool_calls: [{
+          function: {
+            arguments: JSON.stringify({
+              has_event: true,
+              confidence: "medium",
+              title: "Sun Festival",
+              date: "2026-09-19",
+              image_url: "https://site.test/flyers/sun-festival.jpg",
+            }),
+          },
+        }],
+      },
+    }],
+  };
+  const result = parseExtractionResponse(aiData);
+  assertEquals(result!.image_url, "https://site.test/flyers/sun-festival.jpg");
+});
+
+Deno.test("parseExtractionResponse descarta image_url que não é http(s) (nunca inventa)", () => {
+  const aiData = {
+    choices: [{
+      message: {
+        tool_calls: [{
+          function: {
+            arguments: JSON.stringify({
+              has_event: true,
+              confidence: "medium",
+              title: "Sun Festival",
+              date: "2026-09-19",
+              image_url: "data:image/png;base64,abc123",
+            }),
+          },
+        }],
+      },
+    }],
+  };
+  const result = parseExtractionResponse(aiData);
+  assertEquals(result!.image_url, null);
+});
