@@ -183,6 +183,14 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Defesa extra: se a IA de extração ignorou a instrução e devolveu a própria
+        // URL raiz da fonte como "página específica", trata como se não tivesse
+        // encontrado link específico nenhum.
+        const sourcePageUrl =
+          extracted.source_page_url && extracted.source_page_url !== source.url
+            ? extracted.source_page_url
+            : null;
+
         const { data: insertedDraft, error: insertError } = await admin
           .from("event_watch_drafts")
           .insert({
@@ -200,6 +208,7 @@ Deno.serve(async (req) => {
             extracted_description: extracted.description,
             extracted_confidence: extracted.confidence,
             source_raw_excerpt: truncated.slice(0, 1500),
+            source_page_url: sourcePageUrl,
           })
           .select("id")
           .single();

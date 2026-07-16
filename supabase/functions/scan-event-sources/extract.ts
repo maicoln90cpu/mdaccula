@@ -10,6 +10,7 @@ export interface ExtractedEvent {
   ticket_link: string | null;
   description: string | null;
   confidence: "high" | "medium" | "low";
+  source_page_url: string | null;
 }
 
 const EXTRACTION_SYSTEM_PROMPT = `Você é um assistente que extrai dados estruturados de anúncios de eventos de música eletrônica a partir de texto raspado de sites de terceiros.
@@ -19,7 +20,8 @@ Regras:
 - Se o conteúdo não anuncia nenhum evento (ex: página institucional, notícia genérica, index de blog), retorne has_event=false.
 - Se um campo não está claro no texto, deixe-o nulo/vazio — nunca adivinhe.
 - confidence="high" só quando data, local e nome do evento estão todos claramente presentes; "medium" quando falta 1 desses; "low" caso contrário.
-- No campo "description", NUNCA inclua o nome do site/veículo/marca de onde este texto foi raspado (ex: não escreva "segundo o [nome do site]" ou repita o nome da fonte) — extraia só o fato sobre o evento em si.`;
+- No campo "description", NUNCA inclua o nome do site/veículo/marca de onde este texto foi raspado (ex: não escreva "segundo o [nome do site]" ou repita o nome da fonte) — extraia só o fato sobre o evento em si.
+- O conteúdo raspado está em markdown e pode conter links no formato [texto](url). Se houver um link específico apontando para a página de detalhe/notícia DESTE evento em particular (ex: "saiba mais", "ver evento", o próprio título do evento como link, "leia a matéria completa") — diferente da URL raiz da fonte —, extraia essa URL em "source_page_url". Se não houver um link assim identificável (ex: o evento está descrito só em texto corrido, sem link próprio), deixe "source_page_url" vazio/nulo — NUNCA invente ou reutilize a URL raiz da fonte como se fosse a página específica.`;
 
 export function buildExtractionRequest(
   modelName: string,
@@ -55,6 +57,10 @@ export function buildExtractionRequest(
               lineup: { type: "array", items: { type: "string" } },
               ticket_link: { type: "string" },
               description: { type: "string" },
+              source_page_url: {
+                type: "string",
+                description: "URL exata da página/notícia deste evento específico, extraída de um link markdown presente no conteúdo — nunca a URL raiz da fonte, deixe vazio se não houver link específico",
+              },
             },
             required: ["has_event", "confidence"],
           },
@@ -93,5 +99,9 @@ export function parseExtractionResponse(aiData: unknown): ExtractedEvent | null 
     ticket_link: typeof args.ticket_link === "string" && args.ticket_link ? args.ticket_link : null,
     description: typeof args.description === "string" && args.description ? args.description : null,
     confidence: (["high", "medium", "low"].includes(args.confidence as string) ? args.confidence : "low") as "high" | "medium" | "low",
+    source_page_url:
+      typeof args.source_page_url === "string" && /^https?:\/\//.test(args.source_page_url)
+        ? args.source_page_url
+        : null,
   };
 }

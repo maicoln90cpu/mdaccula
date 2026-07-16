@@ -190,6 +190,7 @@ export interface EventWatchDraft {
   extracted_description?: string | null;
   extracted_confidence: 'high' | 'medium' | 'low';
   source_raw_excerpt?: string | null;
+  source_page_url?: string | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
   published_event_id?: string | null;

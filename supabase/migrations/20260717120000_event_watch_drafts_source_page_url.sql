@@ -1,0 +1,2 @@
+alter table public.event_watch_drafts add column source_page_url text;
+comment on column public.event_watch_drafts.source_page_url is 'URL exata da página/artigo onde este evento específico foi anunciado, quando identificável no conteúdo raspado (diferente da URL raiz cadastrada em event_sources.url) — usada no modal "Ver fontes e origem" do Blog Manager para mostrar o link exato, não apenas o domínio.';

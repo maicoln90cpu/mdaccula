@@ -255,18 +255,23 @@ const BlogManager = () => {
     setSourcesInfo(null);
 
     try {
-      const [{ data: gen }, { data: draft }] = await Promise.all([
+      const [{ data: genRows }, { data: draft }] = await Promise.all([
+        // Regenerar um artigo insere uma NOVA linha em ai_generated_posts (nunca
+        // atualiza a existente) — pega sempre a mais recente pra refletir a última
+        // geração de fato usada.
         supabase
           .from("ai_generated_posts")
           .select("template_id, prompt_used, source_urls")
           .eq("blog_post_id", postId)
-          .maybeSingle(),
+          .order("generated_at", { ascending: false })
+          .limit(1),
         supabase
           .from("event_watch_drafts")
-          .select("event_sources(name, url)")
+          .select("source_page_url, event_sources(name, url)")
           .eq("published_blog_post_id", postId)
           .maybeSingle(),
       ]);
+      const gen = genRows?.[0] ?? null;
 
       let functionLabel: string | null = null;
       if (gen?.template_id) {
@@ -288,7 +293,9 @@ const BlogManager = () => {
       if (draft?.event_sources) {
         sources.push({
           name: draft.event_sources.name,
-          url: draft.event_sources.url,
+          // Prefere a página exata da notícia (extraída do conteúdo raspado) e só
+          // cai pra URL raiz da fonte quando a IA não identificou um link específico.
+          url: draft.source_page_url || draft.event_sources.url,
           kind: "origin",
         });
       }

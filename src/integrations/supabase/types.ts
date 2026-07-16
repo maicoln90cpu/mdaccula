@@ -915,6 +915,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           source_id: string | null
+          source_page_url: string | null
           source_raw_excerpt: string | null
           status: string
           updated_at: string
@@ -938,6 +939,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_id?: string | null
+          source_page_url?: string | null
           source_raw_excerpt?: string | null
           status?: string
           updated_at?: string
@@ -961,6 +963,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           source_id?: string | null
+          source_page_url?: string | null
           source_raw_excerpt?: string | null
           status?: string
           updated_at?: string
