@@ -1,44 +1,23 @@
-import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useTiltRotate } from "@/hooks/useTiltParallax";
 
 const DraftSetCard = () => {
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const card = cardRef.current;
-    if (!canHover || prefersReducedMotion || !card) return;
-
-    const handleMove = (e: PointerEvent) => {
-      const rect = card.getBoundingClientRect();
-      const relX = (e.clientX - rect.left) / rect.width - 0.5;
-      const relY = (e.clientY - rect.top) / rect.height - 0.5;
-      card.style.setProperty("--ry", `${(relX * 16).toFixed(2)}deg`);
-      card.style.setProperty("--rx", `${(relY * -16).toFixed(2)}deg`);
-    };
-    const handleLeave = () => {
-      card.style.setProperty("--rx", "0deg");
-      card.style.setProperty("--ry", "0deg");
-    };
-
-    card.addEventListener("pointermove", handleMove);
-    card.addEventListener("pointerleave", handleLeave);
-    return () => {
-      card.removeEventListener("pointermove", handleMove);
-      card.removeEventListener("pointerleave", handleLeave);
-    };
-  }, []);
+  const { ref, rotateX, rotateY, onPointerMove, onPointerLeave } = useTiltRotate<HTMLDivElement>(16);
 
   return (
-    <div
-      ref={cardRef}
+    <motion.div
+      ref={ref}
       className="glass-card-dashed w-64 shrink-0"
       style={{
-        transform: "perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg))",
+        rotateX,
+        rotateY,
+        transformPerspective: 700,
         transformStyle: "preserve-3d",
       }}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
     >
       <div
         className="relative h-36"
@@ -63,7 +42,7 @@ const DraftSetCard = () => {
           <span>Sua cidade</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 };
 

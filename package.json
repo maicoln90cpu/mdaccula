@@ -81,6 +81,7 @@
     "embla-carousel-react": "^8.6.0",
     "eslint-config-prettier": "^10.1.8",
     "express": "^5.2.1",
+    "framer-motion": "^12.42.2",
     "input-otp": "^1.4.2",
     "jsdom": "^27.4.0",
     "lightningcss": "^1.30.2",
