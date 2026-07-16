@@ -52,7 +52,13 @@ interface PromptTemplate {
 
 export default function AIContent2() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
+
+  const validTabs = ["generate", "suggestions", "topic", "history", "templates", "auto-generation"];
+  const activeTab = validTabs.includes(searchParams.get("tab") || "")
+    ? (searchParams.get("tab") as string)
+    : "generate";
 
   // States
   const [isLoading, setIsLoading] = useState(true);
