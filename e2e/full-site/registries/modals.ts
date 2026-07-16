@@ -110,7 +110,7 @@ export const MODALS: ModalEntry[] = [
   {
     id: 'admin-prompt-templates-create-dialog',
     requiresAdmin: true,
-    navigate: async (page) => page.goto('/admin/ai-prompt-templates', { waitUntil: 'domcontentloaded' }),
+    navigate: async (page) => page.goto('/admin/ai-content2?tab=templates', { waitUntil: 'domcontentloaded' }),
     open: async (page) => page.getByRole('button', { name: 'Novo Template' }).click({ timeout: 8_000 }),
     surface: (page) => page.getByRole('dialog'),
     close: { kind: 'escape' },
