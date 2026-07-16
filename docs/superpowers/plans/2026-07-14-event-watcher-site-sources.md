@@ -51,7 +51,7 @@ aprovado.
 
 ## Escopo desta parte 1 (e o que fica para depois)
 
-Esta é a fatia **site-only** da Fase A já aprovada (`veja-quais-as-chances-dazzling-babbage.md`). Ela entrega valor sozinha: varredura de sites, extração por IA, fila de revisão, publicação no site + blog. Ficam para um plano seguinte (`event-watcher-instagram-apify`, mesma pasta): fontes `type='instagram'` via Apify, o webhook assíncrono de retorno (padrão inédito neste código, sem precedente hoje) e a composição de imagem com template/logo. O schema já inclui a coluna `type` pronta para `'instagram'`, então a parte 2 não vai exigir migração de schema nova para isso.
+Esta é a fatia **site-only** da Fase A já aprovada (`docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md`, mesma pasta — roadmap mestre com Fase A/B/C/D). Ela entrega valor sozinha: varredura de sites, extração por IA, fila de revisão, publicação no blog em 2 passos (gerar prévia → publicar, ver `docs/superpowers/plans/2026-07-15-fontes-unificacao-e-fluxo-2-passos.md`). Fica para a Fase B (mesmo roadmap mestre): fontes `type='instagram'` via Apify, o webhook assíncrono de retorno (padrão inédito neste código, sem precedente hoje) e a composição de imagem com template/logo. O schema já inclui a coluna `type` pronta para `'instagram'`, então a Fase B não vai exigir migração de schema nova para isso.
 
 Também fica fora desta parte 1, por ora: painel de configuração do intervalo de cron (a la `update-digest-schedule`). A migration já libera o nome do job `scan-event-sources-cron` na RPC `manage_digest_schedule`, então ligar o cron automático é uma chamada SQL de uma linha quando o piloto for aprovado (documentado na seção de Verificação) — o gatilho manual ("Executar agora") já cobre o uso imediato.
 
