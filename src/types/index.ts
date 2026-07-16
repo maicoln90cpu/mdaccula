@@ -156,6 +156,7 @@ export interface EventSource {
   type: EventSourceType;
   name: string;
   url: string;
+  description?: string | null;
   enabled: boolean;
   last_scanned_at?: string | null;
   last_seen_post_id?: string | null;
@@ -165,22 +166,6 @@ export interface EventSource {
 
 export interface EventSourceInsert {
   type?: EventSourceType;
-  name: string;
-  url: string;
-  enabled?: boolean;
-}
-
-export interface NewsSource {
-  id: string;
-  name: string;
-  url: string;
-  description: string | null;
-  enabled: boolean;
-  last_checked_at?: string | null;
-  created_at: string;
-}
-
-export interface NewsSourceInsert {
   name: string;
   url: string;
   description?: string | null;

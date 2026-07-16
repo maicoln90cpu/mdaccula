@@ -773,6 +773,7 @@ export type Database = {
       event_sources: {
         Row: {
           created_at: string
+          description: string | null
           enabled: boolean
           id: string
           last_scanned_at: string | null
@@ -784,6 +785,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           enabled?: boolean
           id?: string
           last_scanned_at?: string | null
@@ -795,6 +797,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           enabled?: boolean
           id?: string
           last_scanned_at?: string | null

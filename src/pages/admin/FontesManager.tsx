@@ -6,14 +6,21 @@ import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { useToast } from "@/hooks";
 import { logger } from "@/lib";
 import { supabase } from "@/integrations/supabase/client";
-import type { NewsSource, NewsSourceInsert, EventSource, EventSourceInsert } from "@/types";
+import type { EventSource, EventSourceInsert, EventSourceType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -41,41 +48,36 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Globe, Radar } from "lucide-react";
-
-type SourceKind = "news" | "events";
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Radar } from "lucide-react";
 
 interface SourceFormValues {
   name: string;
   url: string;
   description: string;
+  type: EventSourceType;
   enabled: boolean;
 }
 
-const emptyForm: SourceFormValues = { name: "", url: "", description: "", enabled: true };
+const emptyForm: SourceFormValues = {
+  name: "",
+  url: "",
+  description: "",
+  type: "site",
+  enabled: true,
+};
+
+const queryKey = ["event-sources"];
 
 const FontesManager = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<SourceKind>("news");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<SourceFormValues>(emptyForm);
 
-  const table = activeTab === "news" ? "news_sources" : "event_sources";
-  const queryKey = [activeTab === "news" ? "news-sources" : "event-sources"];
-
   const { data: sources = [], isLoading } = useQuery({
     queryKey,
     queryFn: async () => {
-      if (activeTab === "news") {
-        const { data, error } = await supabase
-          .from("news_sources")
-          .select("*")
-          .order("created_at", { ascending: false });
-        if (error) throw error;
-        return data as NewsSource[];
-      }
       const { data, error } = await supabase
         .from("event_sources")
         .select("*")
@@ -87,7 +89,7 @@ const FontesManager = () => {
 
   // Realtime: reflete mudanças feitas em background (ex: scan-event-sources
   // atualizando last_scanned_at) sem exigir refresh manual.
-  useRealtimeTable(table, () => queryClient.invalidateQueries({ queryKey }));
+  useRealtimeTable("event_sources", () => queryClient.invalidateQueries({ queryKey }));
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -99,12 +101,13 @@ const FontesManager = () => {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (source: NewsSource | EventSource) => {
+  const openEditDialog = (source: EventSource) => {
     setEditingId(source.id);
     setForm({
       name: source.name,
       url: source.url,
-      description: activeTab === "news" ? (source as NewsSource).description || "" : "",
+      description: source.description || "",
+      type: source.type,
       enabled: source.enabled,
     });
     setDialogOpen(true);
@@ -112,25 +115,15 @@ const FontesManager = () => {
 
   const createMutation = useMutation({
     mutationFn: async (values: SourceFormValues) => {
-      if (activeTab === "news") {
-        const payload: NewsSourceInsert = {
-          name: values.name,
-          url: values.url,
-          description: values.description || null,
-          enabled: values.enabled,
-        };
-        const { error } = await supabase.from("news_sources").insert([payload]);
-        if (error) throw error;
-      } else {
-        const payload: EventSourceInsert = {
-          name: values.name,
-          url: values.url,
-          type: "site",
-          enabled: values.enabled,
-        };
-        const { error } = await supabase.from("event_sources").insert([payload]);
-        if (error) throw error;
-      }
+      const payload: EventSourceInsert = {
+        name: values.name,
+        url: values.url,
+        description: values.description || null,
+        type: values.type,
+        enabled: values.enabled,
+      };
+      const { error } = await supabase.from("event_sources").insert([payload]);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -147,22 +140,15 @@ const FontesManager = () => {
   const updateMutation = useMutation({
     mutationFn: async (values: SourceFormValues) => {
       if (!editingId) return;
-      if (activeTab === "news") {
-        const payload: NewsSourceInsert = {
-          name: values.name,
-          url: values.url,
-          description: values.description || null,
-          enabled: values.enabled,
-        };
-        const { error } = await supabase.from("news_sources").update(payload).eq("id", editingId);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("event_sources")
-          .update({ name: values.name, url: values.url, enabled: values.enabled })
-          .eq("id", editingId);
-        if (error) throw error;
-      }
+      const payload: EventSourceInsert = {
+        name: values.name,
+        url: values.url,
+        description: values.description || null,
+        type: values.type,
+        enabled: values.enabled,
+      };
+      const { error } = await supabase.from("event_sources").update(payload).eq("id", editingId);
+      if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
@@ -178,7 +164,7 @@ const FontesManager = () => {
 
   const toggleEnabledMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const { error } = await supabase.from(table).update({ enabled }).eq("id", id);
+      const { error } = await supabase.from("event_sources").update({ enabled }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
@@ -190,7 +176,7 @@ const FontesManager = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from(table).delete().eq("id", id);
+      const { error } = await supabase.from("event_sources").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -214,12 +200,6 @@ const FontesManager = () => {
     }
   };
 
-  const handleTabChange = (value: string) => {
-    setActiveTab(value as SourceKind);
-    setDialogOpen(false);
-    resetForm();
-  };
-
   return (
     <div className="w-full">
       <main className="w-full px-4 md:px-6 py-6">
@@ -238,9 +218,7 @@ const FontesManager = () => {
                 Fontes
               </h1>
               <p className="text-muted-foreground mt-1">
-                {activeTab === "news"
-                  ? "Sites que a IA usa como referência para gerar posts do blog"
-                  : "Sites monitorados pelo Event Watcher para extração automática de eventos"}
+                Sites e perfis monitorados pelo Event Watcher e usados pela IA como referência para gerar posts do blog
               </p>
             </div>
 
@@ -274,18 +252,31 @@ const FontesManager = () => {
                       placeholder="https://..."
                     />
                   </div>
-                  {activeTab === "news" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="source-description">Descrição (opcional)</Label>
-                      <Textarea
-                        id="source-description"
-                        value={form.description}
-                        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                        placeholder="Breve descrição da fonte"
-                        rows={3}
-                      />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="source-description">Descrição (opcional)</Label>
+                    <Textarea
+                      id="source-description"
+                      value={form.description}
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                      placeholder="Breve descrição da fonte"
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="source-type">Tipo</Label>
+                    <Select
+                      value={form.type}
+                      onValueChange={(value) => setForm((f) => ({ ...f, type: value as EventSourceType }))}
+                    >
+                      <SelectTrigger id="source-type">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="site">Site</SelectItem>
+                        <SelectItem value="instagram">Instagram</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="source-enabled"
@@ -308,17 +299,6 @@ const FontesManager = () => {
             </Dialog>
           </div>
 
-          <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-6">
-            <TabsList>
-              <TabsTrigger value="news">
-                <Globe className="w-4 h-4 mr-2" /> Notícias
-              </TabsTrigger>
-              <TabsTrigger value="events">
-                <Radar className="w-4 h-4 mr-2" /> Eventos
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           <Card>
             <CardHeader>
               <CardTitle>Fontes cadastradas</CardTitle>
@@ -330,11 +310,7 @@ const FontesManager = () => {
                 </div>
               ) : sources.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  {activeTab === "news" ? (
-                    <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  ) : (
-                    <Radar className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  )}
+                  <Radar className="w-12 h-12 mx-auto mb-4 opacity-50" />
                   <p>Nenhuma fonte cadastrada ainda.</p>
                 </div>
               ) : (
@@ -344,9 +320,10 @@ const FontesManager = () => {
                       <TableRow>
                         <TableHead>Nome</TableHead>
                         <TableHead>URL</TableHead>
-                        {activeTab === "news" && <TableHead>Descrição</TableHead>}
+                        <TableHead>Descrição</TableHead>
+                        <TableHead>Tipo</TableHead>
                         <TableHead>Ativa</TableHead>
-                        {activeTab === "events" && <TableHead>Última varredura</TableHead>}
+                        <TableHead>Última varredura</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -357,11 +334,14 @@ const FontesManager = () => {
                           <TableCell className="text-muted-foreground truncate max-w-xs">
                             {source.url}
                           </TableCell>
-                          {activeTab === "news" && (
-                            <TableCell className="text-muted-foreground truncate max-w-xs">
-                              {(source as NewsSource).description || "—"}
-                            </TableCell>
-                          )}
+                          <TableCell className="text-muted-foreground truncate max-w-xs">
+                            {source.description || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="capitalize">
+                              {source.type}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             <Switch
                               checked={source.enabled}
@@ -370,15 +350,11 @@ const FontesManager = () => {
                               }
                             />
                           </TableCell>
-                          {activeTab === "events" && (
-                            <TableCell className="text-sm text-muted-foreground">
-                              {(source as EventSource).last_scanned_at
-                                ? new Date((source as EventSource).last_scanned_at as string).toLocaleString(
-                                    "pt-BR",
-                                  )
-                                : "Nunca"}
-                            </TableCell>
-                          )}
+                          <TableCell className="text-sm text-muted-foreground">
+                            {source.last_scanned_at
+                              ? new Date(source.last_scanned_at).toLocaleString("pt-BR")
+                              : "Nunca"}
+                          </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
                               <Button
@@ -398,10 +374,8 @@ const FontesManager = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Remover fonte?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      A fonte <strong>{source.name}</strong> será removida permanentemente
-                                      {activeTab === "events"
-                                        ? " e não será mais varrida pelo Event Watcher."
-                                        : "."}
+                                      A fonte <strong>{source.name}</strong> será removida permanentemente e não
+                                      será mais varrida pelo Event Watcher.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
