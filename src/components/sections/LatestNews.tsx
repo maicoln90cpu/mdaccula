@@ -1,14 +1,25 @@
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Calendar } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { OptimizedImage } from "@/components/OptimizedImage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselPrevious,
+  CarouselNext,
+  type CarouselApi,
+} from "@/components/ui/carousel";
 import { useScrollReveal } from "@/hooks";
 import { cn } from "@/lib";
 import SectionHeading from "@/components/sections/SectionHeading";
+
+const AUTOPLAY_INTERVAL_MS = 4500;
 
 interface LatestPost {
   id: string;
@@ -73,6 +84,25 @@ const NewsClip = ({ post, index }: { post: LatestPost; index: number }) => {
 };
 
 const LatestNews = () => {
+  const [api, setApi] = useState<CarouselApi>();
+  const isHovering = useRef(false);
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (!api || prefersReducedMotion) return;
+
+    const interval = window.setInterval(() => {
+      if (isHovering.current) return;
+      if (api.canScrollNext()) {
+        api.scrollNext();
+      } else {
+        api.scrollTo(0);
+      }
+    }, AUTOPLAY_INTERVAL_MS);
+
+    return () => window.clearInterval(interval);
+  }, [api, prefersReducedMotion]);
+
   const { data: posts, isLoading, error } = useQuery({
     queryKey: ["latest-news"],
     queryFn: async (): Promise<LatestPost[]> => {
@@ -143,7 +173,17 @@ const LatestNews = () => {
               </p>
             </div>
           ) : (
-            <Carousel opts={{ align: "start", loop: false }} className="relative">
+            <Carousel
+              opts={{ align: "start", loop: false }}
+              setApi={setApi}
+              className="relative"
+              onMouseEnter={() => {
+                isHovering.current = true;
+              }}
+              onMouseLeave={() => {
+                isHovering.current = false;
+              }}
+            >
               <CarouselContent className="-ml-6">
                 {posts.map((post, index) => (
                   <CarouselItem key={post.id} className="pl-6 basis-full sm:basis-1/2 lg:basis-1/3">

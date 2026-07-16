@@ -9,7 +9,7 @@ const DraftSetCard = () => {
   return (
     <motion.div
       ref={ref}
-      className="glass-card-dashed w-64 shrink-0"
+      className="glass-card-dashed shine-border w-64 shrink-0"
       style={{
         rotateX,
         rotateY,

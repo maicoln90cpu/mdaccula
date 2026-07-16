@@ -11,6 +11,7 @@ import { useScrollReveal } from "@/hooks";
 import { cn } from "@/lib";
 import type { Event } from "@/types";
 import SectionHeading from "@/components/sections/SectionHeading";
+import { SpotlightCard } from "@/components/effects/SpotlightCard";
 
 const EventCard = ({ event, index }: { event: Event; index: number }) => {
   const { ref, isVisible } = useScrollReveal<HTMLElement>();
@@ -43,50 +44,52 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
         }}
       />
 
-      <div className="relative aspect-square overflow-hidden">
-        <OptimizedImage
-          src={event.image_url || "/placeholder.svg"}
-          alt={event.title ?? "Evento"}
-          className="w-full h-full transition-transform duration-500 group-hover:scale-105"
-          objectFit="cover"
-          priority={index === 0}
-        />
-        {event.genres && event.genres.length > 0 && (
-          <div className="absolute top-2 left-2 flex flex-wrap gap-1">
-            {event.genres.slice(0, 1).map((genre) => (
-              <span
-                key={genre}
-                className="text-[0.65rem] font-mono font-bold uppercase tracking-wide bg-accent text-accent-foreground px-2 py-0.5 rounded-full"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="p-3">
-        <h3 className="font-display font-bold uppercase text-sm leading-tight mb-2 line-clamp-2">
-          {event.title ?? "Evento sem título"}
-        </h3>
-
-        <div className="space-y-1 text-xs font-mono text-muted-foreground mb-3">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{formatEventDateRange(event.date, event.end_date)}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">{event.location_city}</span>
-          </div>
+      <SpotlightCard>
+        <div className="relative aspect-square overflow-hidden">
+          <OptimizedImage
+            src={event.image_url || "/placeholder.svg"}
+            alt={event.title ?? "Evento"}
+            className="w-full h-full transition-transform duration-500 group-hover:scale-105"
+            objectFit="cover"
+            priority={index === 0}
+          />
+          {event.genres && event.genres.length > 0 && (
+            <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+              {event.genres.slice(0, 1).map((genre) => (
+                <span
+                  key={genre}
+                  className="text-[0.65rem] font-mono font-bold uppercase tracking-wide bg-accent text-accent-foreground px-2 py-0.5 rounded-full"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        <Button size="sm" className="w-full min-h-[40px] text-sm" asChild>
-          <a href={event.ticket_link || "#"} target="_blank" rel="noopener noreferrer">
-            Comprar Ingressos
-          </a>
-        </Button>
-      </div>
+        <div className="p-3">
+          <h3 className="font-display font-bold uppercase text-sm leading-tight mb-2 line-clamp-2">
+            {event.title ?? "Evento sem título"}
+          </h3>
+
+          <div className="space-y-1 text-xs font-mono text-muted-foreground mb-3">
+            <div className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{formatEventDateRange(event.date, event.end_date)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">{event.location_city}</span>
+            </div>
+          </div>
+
+          <Button size="sm" className="w-full min-h-[40px] text-sm" asChild>
+            <a href={event.ticket_link || "#"} target="_blank" rel="noopener noreferrer">
+              Comprar Ingressos
+            </a>
+          </Button>
+        </div>
+      </SpotlightCard>
     </article>
   );
 };

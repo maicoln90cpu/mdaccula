@@ -149,10 +149,10 @@ export const SimpleLinkCard = ({
       <button
         onClick={() => onLinkClick(link)}
         className={cn(
-          "flex-1 min-w-0 bg-gradient-to-r",
+          "relative overflow-hidden link-card-shine flex-1 min-w-0 bg-gradient-to-r",
           getCardColor(),
           link.is_featured
-            ? "border-4 border-primary shadow-[0_0_20px_rgba(156,39,176,0.5)] ring-2 ring-primary/30"
+            ? "border-4 border-primary animate-featured-glow-pulse ring-2 ring-primary/30"
             : getCardBorder(),
           link.is_featured ? "shadow-2xl" : theme.cardShadow,
           theme.cardRoundedness,

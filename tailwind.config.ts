@@ -168,6 +168,14 @@ export default {
             backgroundPosition: "200% 50%",
           },
         },
+        "featured-glow-pulse": {
+          "0%, 100%": {
+            boxShadow: "0 0 20px rgba(156,39,176,0.5)",
+          },
+          "50%": {
+            boxShadow: "0 0 36px rgba(156,39,176,0.85)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -179,6 +187,7 @@ export default {
         "slide-in-up": "slide-in-up 0.5s ease-out",
         "ticket-glow-pulse": "ticket-glow-pulse 2.5s ease-in-out infinite",
         "ticket-glow-shift": "ticket-glow-shift 6s linear infinite",
+        "featured-glow-pulse": "featured-glow-pulse 2.5s ease-in-out infinite",
       },
       screens: {
         'xs': '375px',

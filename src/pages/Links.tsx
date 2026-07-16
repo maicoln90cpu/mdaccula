@@ -13,7 +13,7 @@ import { SimpleLinkCard } from "@/components/links/SimpleLinkCard";
 import { LinksSkeleton } from "@/components/links/LinksSkeleton";
 import { getTheme } from "@/lib/linkThemes";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { Copy, User } from "lucide-react";
+import { Copy, Check, User } from "lucide-react";
 import Navigation from "@/components/ui/navigation";
 import { toast } from "sonner";
 import type { DragEndEvent } from "@dnd-kit/core";
@@ -85,10 +85,14 @@ export default function Links() {
     await updateLinkOrder(activeId, overId, activeGroup.id, overGroup.id);
   }, [isAdmin, groups, updateLinkOrder]);
 
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
   const copyGroupLink = useCallback((groupSlug: string) => {
     const link = `${window.location.origin}/links/${groupSlug}`;
     navigator.clipboard.writeText(link);
     toast.success("Link copiado!");
+    setCopiedSlug(groupSlug);
+    window.setTimeout(() => setCopiedSlug((current) => (current === groupSlug ? null : current)), 1500);
   }, []);
 
   if (loading) {
@@ -106,7 +110,11 @@ export default function Links() {
         className={cn("p-1 rounded hover:bg-white/10 transition-colors", theme.textSecondary)}
         title="Copiar link do grupo"
       >
-        <Copy className="w-4 h-4" />
+        {copiedSlug === group.slug ? (
+          <Check className="w-4 h-4 text-green-400" />
+        ) : (
+          <Copy className="w-4 h-4" />
+        )}
       </button>
     </div>
   );
@@ -136,10 +144,10 @@ export default function Links() {
                 fetchPriority="high"
                 width={128}
                 height={128}
-                className="w-28 h-28 md:w-32 md:h-32 rounded-full mx-auto mb-4 border-4 border-white/30 shadow-2xl object-cover"
+                className="w-28 h-28 md:w-32 md:h-32 rounded-full mx-auto mb-4 border-4 border-white/30 shadow-2xl object-cover animate-glow"
               />
             ) : (
-              <div className="w-28 h-28 md:w-32 md:h-32 rounded-full mx-auto mb-4 border-4 border-white/30 shadow-2xl bg-white/10 flex items-center justify-center">
+              <div className="w-28 h-28 md:w-32 md:h-32 rounded-full mx-auto mb-4 border-4 border-white/30 shadow-2xl bg-white/10 flex items-center justify-center animate-glow">
                 <User className="w-16 h-16 text-white/50" />
               </div>
             )}
