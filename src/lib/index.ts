@@ -22,3 +22,4 @@ export {
   type LinkTheme
 } from './linkThemes';
 export { logger, useLogger, type LogLevel, type LogContext, type LogEntry } from './logger';
+export { getBrandColor } from './brandColors';

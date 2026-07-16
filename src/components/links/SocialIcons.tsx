@@ -1,4 +1,5 @@
 import { Instagram, Music, MessageCircle, Mail } from "lucide-react";
+import { getBrandColor } from "@/lib";
 
 interface SocialIconsProps {
   instagramUrl?: string;
@@ -18,16 +19,19 @@ export const SocialIcons = ({
       icon: Instagram,
       url: instagramUrl,
       label: "Instagram",
+      color: getBrandColor("instagram"),
     },
     {
       icon: Music,
       url: soundcloudUrl,
       label: "SoundCloud",
+      color: getBrandColor("soundcloud"),
     },
     {
       icon: MessageCircle,
       url: whatsappUrl,
       label: "WhatsApp",
+      color: getBrandColor("whatsapp"),
     },
     {
       icon: Mail,
@@ -53,7 +57,7 @@ export const SocialIcons = ({
             className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-all hover:scale-110"
             aria-label={item.label}
           >
-            <Icon className="w-6 h-6" />
+            <Icon className="w-6 h-6" style={item.color ? { color: item.color } : undefined} />
           </a>
         );
       })}

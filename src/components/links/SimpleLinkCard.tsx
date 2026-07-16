@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from "framer-motion";
 import { cn, parseLocalDate } from "@/lib/utils";
 import { LinkCardImage } from "./LinkCardImage";
 
@@ -52,6 +53,8 @@ interface SimpleLinkCardProps {
   templateCardColor: string;
   templateBorderColor: string;
   templateCardHeight: number;
+  /** Position within its list — drives the entrance stagger delay. */
+  index?: number;
 }
 
 export const SimpleLinkCard = ({
@@ -63,7 +66,9 @@ export const SimpleLinkCard = ({
   templateCardColor,
   templateBorderColor,
   templateCardHeight,
+  index = 0,
 }: SimpleLinkCardProps) => {
+  const prefersReducedMotion = useReducedMotion();
   const style = {
     maxWidth: link.card_width ? `${Math.min(Math.max(link.card_width, 200), 650)}px` : '650px',
     width: '100%',
@@ -134,7 +139,13 @@ export const SimpleLinkCard = ({
   );
 
   return (
-    <div style={style} className="flex items-center gap-2 w-full">
+    <motion.div
+      style={style}
+      className="flex items-center gap-2 w-full"
+      initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: prefersReducedMotion ? 0 : Math.min(index, 10) * 0.04, ease: "easeOut" }}
+    >
       <button
         onClick={() => onLinkClick(link)}
         className={cn(
@@ -156,6 +167,6 @@ export const SimpleLinkCard = ({
       >
         {link.is_featured ? renderFeaturedCard() : renderStandardCard()}
       </button>
-    </div>
+    </motion.div>
   );
 };

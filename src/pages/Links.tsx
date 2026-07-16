@@ -1,5 +1,6 @@
 import { useState, lazy, Suspense, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,6 +24,7 @@ const LinksAdminControls = lazy(() => import("@/components/links/LinksAdminContr
 export default function Links() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const { settings } = useSiteSettings();
   const { isAdmin } = useAuth();
   const { groups, loading, fetchError, refetchLinks, duplicateLink, updateLinkOrder } = useLinks({
@@ -114,7 +116,12 @@ export default function Links() {
       <SEOHead title="Links - MD Accula" description="Todos os nossos links importantes em um só lugar" />
       <StructuredData type="organization" data={{ name: "MD Accula", url: window.location.href }} />
 
-      <div className={cn("min-h-screen relative", theme.background)}>
+      <motion.div
+        className={cn("min-h-screen relative", theme.background)}
+        style={{ backgroundSize: "200% 200%" }}
+        animate={prefersReducedMotion ? undefined : { backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"] }}
+        transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+      >
         <Navigation />
 
         <div id="main-content" className="w-full max-w-[650px] mx-auto px-4 py-24 pb-12">
@@ -155,7 +162,7 @@ export default function Links() {
                       <>
                         {renderGroupHeader(group)}
                         <div className="space-y-3 w-full mx-auto">
-                          {group.custom_links.map((link) => (
+                          {group.custom_links.map((link, index) => (
                             <SimpleLinkCard
                               key={link.id}
                               link={link}
@@ -166,6 +173,7 @@ export default function Links() {
                               templateCardColor={templateCardColor}
                               templateBorderColor={templateBorderColor}
                               templateCardHeight={templateCardHeight}
+                              index={index}
                             />
                           ))}
                         </div>
@@ -211,7 +219,7 @@ export default function Links() {
                       <>
                         {renderGroupHeader(group)}
                         <div className="space-y-3 w-full mx-auto">
-                          {group.custom_links.map((link) => (
+                          {group.custom_links.map((link, index) => (
                             <SimpleLinkCard
                               key={link.id}
                               link={link}
@@ -222,6 +230,7 @@ export default function Links() {
                               templateCardColor={templateCardColor}
                               templateBorderColor={templateBorderColor}
                               templateCardHeight={templateCardHeight}
+                              index={index}
                             />
                           ))}
                         </div>
@@ -238,7 +247,7 @@ export default function Links() {
             <p className={cn("text-sm", theme.textSecondary)}>© {new Date().getFullYear()} MD Accula</p>
           </div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }

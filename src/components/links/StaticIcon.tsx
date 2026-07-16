@@ -32,6 +32,7 @@ import {
   type LucideProps 
 } from "lucide-react";
 import type { ComponentType } from "react";
+import { getBrandColor } from "@/lib";
 
 /**
  * Static icon map for common icons used in link cards
@@ -126,12 +127,15 @@ interface StaticIconProps extends Omit<LucideProps, 'ref'> {
  * Static icon component that renders Lucide icons without lazy loading
  * Provides instant rendering for the ~30 most common icons
  */
-export const StaticIcon = ({ name, ...props }: StaticIconProps) => {
+export const StaticIcon = ({ name, style, ...props }: StaticIconProps) => {
   // Normalize icon name for lookup
   const normalizedName = name?.toLowerCase().replace(/\s+/g, '') || 'externallink';
-  
+
   // Try exact match first, then normalized match
   const Icon = iconMap[name] || iconMap[normalizedName] || ExternalLink;
-  
-  return <Icon {...props} />;
+
+  // Recognizable platforms render in their real brand color; everything else keeps the inherited/theme color.
+  const brandColor = getBrandColor(normalizedName);
+
+  return <Icon style={brandColor ? { color: brandColor, ...style } : style} {...props} />;
 };
