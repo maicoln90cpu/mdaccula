@@ -1,0 +1,31 @@
+name: Deploy Supabase Edge Functions
+
+# Roda sozinho toda vez que algo em supabase/functions/ muda em main.
+# Usa o CLI oficial da Supabase — diferente do deployer do Lovable, ele
+# empacota supabase/functions/_shared/ corretamente em qualquer função
+# que importe de lá (era esse o bug que travava 9 funções).
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/deploy-edge-functions.yml"
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Instalar o CLI da Supabase
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy de todas as Edge Functions
+        run: supabase functions deploy --project-ref xfvpuzlspvvsmmunznxw
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

@@ -35,3 +35,131 @@ verify_jwt = false
 [functions.apify-instagram-webhook]
 verify_jwt = false
 
+# As entradas abaixo foram adicionadas em 17/07/2026 para manter em sincronia
+# com o que já estava configurado em produção (verify_jwt = false na maioria
+# das funções, porque elas fazem sua própria autenticação via header
+# Authorization + has_role, ou via x-cron-secret para chamadas de cron/webhook).
+# Sem essas entradas, um deploy via `supabase functions deploy` (CLI oficial)
+# reverteria essas funções para o padrão verify_jwt = true, quebrando cron
+# jobs, webhooks e chamadas públicas do site.
+
+[functions.import-csv-data]
+verify_jwt = false
+
+[functions.batch-convert-webp]
+verify_jwt = false
+
+[functions.blog-rss]
+verify_jwt = false
+
+[functions.cleanup-storage]
+verify_jwt = false
+
+[functions.cleanup-sync-logs]
+verify_jwt = false
+
+[functions.convert-to-webp]
+verify_jwt = false
+
+[functions.auto-article-cron]
+verify_jwt = false
+
+[functions.create-recurring-events]
+verify_jwt = false
+
+[functions.fetch-link-metadata]
+verify_jwt = false
+
+[functions.generate-blog-suggestions]
+verify_jwt = false
+
+[functions.generate-multi-event-article]
+verify_jwt = false
+
+[functions.persist-logs]
+verify_jwt = false
+
+[functions.regenerate-blog-image]
+verify_jwt = false
+
+[functions.generate-blog-post-v2]
+verify_jwt = false
+
+[functions.request-data-deletion]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
+
+[functions.send-mass-newsletter]
+verify_jwt = false
+
+[functions.send-podcast-notification]
+verify_jwt = false
+
+[functions.sitemap]
+verify_jwt = false
+
+[functions.systemhealth]
+verify_jwt = false
+
+[functions.track-link-click]
+verify_jwt = false
+
+[functions.track-share]
+verify_jwt = false
+
+[functions.track-view]
+verify_jwt = false
+
+[functions.upload-csv]
+verify_jwt = false
+
+[functions.diagnose-media]
+verify_jwt = false
+
+[functions.indexnow-notify]
+verify_jwt = false
+
+[functions.egoi-resources]
+verify_jwt = false
+
+[functions.send-test-email]
+verify_jwt = false
+
+[functions.create-event-email-campaign]
+verify_jwt = false
+
+[functions.egoi-campaign-stats]
+verify_jwt = false
+
+[functions.weekly-digest-draft]
+verify_jwt = false
+
+[functions.render-static-map]
+verify_jwt = false
+
+[functions.weekend-agenda-draft]
+verify_jwt = false
+
+[functions.update-digest-schedule]
+verify_jwt = false
+
+[functions.egress-alert-cron]
+verify_jwt = false
+
+[functions.blog-digest-draft]
+verify_jwt = false
+
+[functions.public-maps-config]
+verify_jwt = false
+
+[functions.generate-blog-post-from-topic]
+verify_jwt = false
+
+[functions.send-scheduled-email-campaigns]
+verify_jwt = false
+
+# compose-event-image é a única função que exige login (verify_jwt = true,
+# que é o padrão) — por isso não precisa de entrada aqui.
+
