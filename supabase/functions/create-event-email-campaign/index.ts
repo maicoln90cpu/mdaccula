@@ -7,31 +7,14 @@
 // Idempotência: se existe campanha 'sent' → cria nova; 'draft/failed/scheduled' → atualiza a existente.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { egoiRequest } from '../_shared/egoiClient.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const BASE = 'https://api.egoiapp.com';
-
 type Mode = 'draft' | 'immediate' | 'scheduled';
-
-async function egoiRequest(path: string, apiKey: string, init: RequestInit = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      Apikey: apiKey,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-  const text = await res.text();
-  let body: any = text;
-  try { body = JSON.parse(text); } catch { /* keep raw */ }
-  return { status: res.status, ok: res.ok, body };
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -76,12 +59,29 @@ Deno.serve(async (req) => {
     const abVariant = (body?.ab_variant as string | undefined) || null; // 'A' | 'B'
     const abTestConfig = (body?.ab_test_config as Record<string, unknown> | undefined) || null;
     const isAbTest = !!abGroupId && !!abVariant;
+    // Agendamento — cria o rascunho na E-goi agora, mas o envio real fica
+    // para o poller send-scheduled-email-campaigns quando scheduled_at vencer.
+    const scheduleAtRaw = (body?.schedule_at as string | undefined) || undefined;
 
     if (!eventId || !html) {
       return json({ error: 'event_id e html são obrigatórios' }, 400);
     }
     if (isAbTest && !['A', 'B'].includes(abVariant!)) {
       return json({ error: 'ab_variant deve ser A ou B' }, 400);
+    }
+    if (scheduleAtRaw && sendNow) {
+      return json({ error: 'schedule_at e send_now são mutuamente exclusivos' }, 400);
+    }
+    let scheduleAtIso: string | null = null;
+    if (scheduleAtRaw) {
+      const scheduleAtMs = Date.parse(scheduleAtRaw);
+      if (Number.isNaN(scheduleAtMs)) {
+        return json({ error: 'schedule_at inválido' }, 400);
+      }
+      if (scheduleAtMs < Date.now() + 60_000) {
+        return json({ error: 'schedule_at precisa ser pelo menos 1 minuto no futuro' }, 400);
+      }
+      scheduleAtIso = new Date(scheduleAtMs).toISOString();
     }
 
 
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
       reuseRow = lastCampaign && lastCampaign.status !== 'sent' ? lastCampaign : null;
     }
 
-    const mode: Mode = sendNow ? 'immediate' : ((cfg.mode as Mode) || 'draft');
+    const mode: Mode = sendNow ? 'immediate' : scheduleAtIso ? 'scheduled' : ((cfg.mode as Mode) || 'draft');
     const abSuffix = isAbTest ? ` • A/B ${abVariant}` : '';
     const internalName = `MDAccula • ${claimedTitle || 'Evento'} • ${now.slice(0, 10)}${abSuffix}`;
     const finalSubject = subject?.trim();
@@ -221,7 +221,7 @@ Deno.serve(async (req) => {
     });
 
     let campaignHash: string | null = null;
-    let campaignStatus: 'draft' | 'failed' | 'sent' = 'failed';
+    let campaignStatus: 'draft' | 'failed' | 'sent' | 'scheduled' = 'failed';
     let errorMessage: string | null = null;
     let sentAt: string | null = null;
     let egoiSendStatus: number | null = null;
@@ -235,6 +235,18 @@ Deno.serve(async (req) => {
         (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
         (created.body?.id != null ? String(created.body.id) : null);
       campaignStatus = 'draft';
+
+      // Agendamento — a campanha já foi criada como rascunho na E-goi acima;
+      // o disparo real fica para o poller send-scheduled-email-campaigns
+      // quando scheduled_at vencer. Mesma exigência de hash que o envio imediato:
+      // sem hash, não há como o poller confirmar o envio depois (R-007).
+      if (scheduleAtIso && !campaignHash) {
+        errorMessage =
+          'Campanha criada na E-goi, mas não foi possível extrair o hash pra agendar o envio ' +
+          `(campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
+      } else if (scheduleAtIso && campaignHash) {
+        campaignStatus = 'scheduled';
+      }
 
       // B.7 — Envio imediato (opcional).
       if (sendNow && !campaignHash) {
@@ -291,6 +303,12 @@ Deno.serve(async (req) => {
       ab_group_id: abGroupId,
       ab_variant: abVariant,
       ab_test_config: abTestConfig,
+      // Reseta o estado de agendamento a cada (re)criação — inclusive quando
+      // NÃO é um agendamento (scheduleAtIso null), para limpar um agendamento
+      // anterior caso esta linha esteja sendo reaproveitada (reuseRow).
+      scheduled_at: scheduleAtIso,
+      scheduled_send_claimed_at: null,
+      scheduled_send_attempts: 0,
     };
 
     if (reuseRow) {
@@ -307,6 +325,7 @@ Deno.serve(async (req) => {
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
       error: errorMessage,
+      scheduled_at: campaignStatus === 'scheduled' ? scheduleAtIso : null,
       _debug: { egoi_status: created.status, egoi_send_status: egoiSendStatus, egoi_send_body: egoiSendBody },
     });
   } catch (e) {

@@ -3,8 +3,10 @@
  * erro de constraint (relatado inicialmente como "erro de RLS").
  *
  * Bug original (julho/2026):
- *   `EmailPersonalControl.markManual()` grava mode: "manual" em
- *   event_email_campaigns, mas a CHECK constraint da coluna `mode`
+ *   `markManual()` (então em EmailPersonalControl.tsx, hoje em
+ *   EmailEventsTab.tsx após a unificação das abas "Controle pessoal" e
+ *   "Histórico") grava mode: "manual" em event_email_campaigns, mas a
+ *   CHECK constraint da coluna `mode`
  *   só permitia ('draft','immediate','scheduled') desde a criação da
  *   tabela — toda marcação manual falhava com
  *   "violates check constraint event_email_campaigns_mode_check".
@@ -39,8 +41,8 @@ function latestModeCheckConstraint(): string | null {
 }
 
 describe("Regressão R-003 — mode 'manual' em event_email_campaigns", () => {
-  it("EmailPersonalControl.markManual continua gravando mode: \"manual\"", () => {
-    const c = read("src/components/admin/EmailPersonalControl.tsx");
+  it("EmailEventsTab.markManual continua gravando mode: \"manual\"", () => {
+    const c = read("src/components/admin/emailConfig/EmailEventsTab.tsx");
     expect(c).toMatch(/mode:\s*"manual"/);
   });
 

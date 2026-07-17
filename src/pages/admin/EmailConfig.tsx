@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,15 +28,13 @@ import {
 import { EmailTemplateEditor } from "@/components/admin/EmailTemplateEditor";
 import { type Template, type Block, type ArticleSummary } from "@/lib/emailTemplates/blocks";
 import { applyEmailBlockOverrides, buildEventAnnouncementData, composeEmail, type EmailEventRow } from "@/lib/emailTemplates/emailComposer";
-import { dispatchEventDraftEmail, dispatchAbSubjectTest } from "@/lib/emailTemplates/dispatchEventDraft";
-import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
+import { dispatchEventDraftEmail } from "@/lib/emailTemplates/dispatchEventDraft";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { InboxPreviewHeader } from "@/components/admin/InboxPreviewHeader";
 import { EmailDashboard } from "@/components/admin/EmailDashboard";
-import { EmailPersonalControl } from "@/components/admin/EmailPersonalControl";
 import { SendNowButton } from "@/components/admin/emailConfig/SendNowButton";
-import { AbTestButton } from "@/components/admin/emailConfig/AbTestButton";
-import { HistoryTab } from "@/components/admin/emailConfig/HistoryTab";
+import { ScheduleSendPanel } from "@/components/admin/emailConfig/ScheduleSendPanel";
+import { EmailEventsTab } from "@/components/admin/emailConfig/EmailEventsTab";
 import { AutomationsTab } from "@/components/admin/emailConfig/AutomationsTab";
 import { ConfigTab } from "@/components/admin/emailConfig/ConfigTab";
 import {
@@ -49,15 +48,14 @@ import type {
   ListItem,
   SenderItem,
   SegmentItem,
-  Campaign,
-  EventGroup,
 } from "@/components/admin/emailConfig/types";
 
-import { formatCount } from "@/lib/formatters";
+import { formatCount, formatDateTimeBR } from "@/lib/formatters";
 
 
 const EmailConfig = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { globalsMap } = useEmailGlobalBlocks();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -78,16 +76,6 @@ const EmailConfig = () => {
   const [fetchingResources, setFetchingResources] = useState(false);
   const [fetchingSegments, setFetchingSegments] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [historySearch, setHistorySearch] = useState("");
-  // B.9 — métricas E-goi por campaign_id
-  const [campaignStats, setCampaignStats] = useState<Record<string, {
-    sent: number; delivered: number; opens_unique: number; clicks_unique: number;
-    bounces: number; unsubscribes: number; open_rate: number; click_rate: number;
-    fetched_at?: string;
-  }>>({});
-  const [refreshingStatsId, setRefreshingStatsId] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
   const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
   const [tplLoading, setTplLoading] = useState(false);
@@ -112,6 +100,8 @@ const EmailConfig = () => {
   const [batchArticle, setBatchArticle] = useState<ArticleSummary | null>(null);
   const [batchUploadingArt, setBatchUploadingArt] = useState(false);
   const [batchDispatching, setBatchDispatching] = useState(false);
+  const [batchScheduleAt, setBatchScheduleAt] = useState<string>("");
+  const [batchScheduling, setBatchScheduling] = useState(false);
   // Automações (Digest semanal + Agenda FDS + Blog news)
   // Automações (Digest semanal + Agenda FDS + Blog news) — estado + handlers
   // encapsulados no hook `useEmailAutomation` (Fase C).
@@ -148,14 +138,9 @@ const EmailConfig = () => {
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [master, config, hist, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
+      const [master, config, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
-        supabase
-          .from("event_email_campaigns")
-          .select("*, events(title)")
-          .order("created_at", { ascending: false })
-          .limit(200),
         (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
         (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
         (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
@@ -216,24 +201,6 @@ const EmailConfig = () => {
           scheduled_days_before: config.data.scheduled_days_before ?? 3,
         });
       }
-      setCampaigns((hist.data as Campaign[]) ?? []);
-
-      // B.9 — carrega estatísticas persistidas
-      const sentIds = ((hist.data as Campaign[]) ?? [])
-        .filter((c) => c.status === "sent")
-        .map((c) => c.id);
-      if (sentIds.length > 0) {
-        const { data: statsRows } = await (supabase.from as any)("event_email_campaign_stats")
-          .select("campaign_id, stats_json, fetched_at")
-          .in("campaign_id", sentIds);
-        if (Array.isArray(statsRows)) {
-          const map: Record<string, any> = {};
-          for (const r of statsRows) {
-            map[r.campaign_id] = { ...(r.stats_json || {}), fetched_at: r.fetched_at };
-          }
-          setCampaignStats(map);
-        }
-      }
     } catch (e: any) {
       toast({ variant: "destructive", title: "Erro ao carregar", description: e.message });
     } finally {
@@ -245,30 +212,6 @@ const EmailConfig = () => {
     const { data } = await (supabase.from as any)("email_templates")
       .select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true });
     setTemplates((data as Template[]) ?? []);
-  };
-
-  // B.9 — Atualiza métricas de uma campanha específica na E-goi
-  const refreshCampaignStats = async (campaignId: string) => {
-    setRefreshingStatsId(campaignId);
-    try {
-      const { data, error } = await supabase.functions.invoke("egoi-campaign-stats", {
-        body: { campaign_id: campaignId },
-      });
-      if (error) throw error;
-      const res = data as { ok?: boolean; stats?: any; error?: string };
-      if (!res?.ok || !res.stats) {
-        throw new Error(res?.error || "Resposta inválida da E-goi");
-      }
-      setCampaignStats((prev) => ({
-        ...prev,
-        [campaignId]: { ...res.stats, fetched_at: new Date().toISOString() },
-      }));
-      toast({ title: "Métricas atualizadas" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao atualizar métricas", description: e.message });
-    } finally {
-      setRefreshingStatsId(null);
-    }
   };
 
   const fetchEgoiResources = async () => {
@@ -340,73 +283,6 @@ const EmailConfig = () => {
     }
   };
 
-  const resendEvent = async (eventId: string) => {
-    try {
-      const { error } = await supabase
-        .from("events")
-        .update({ email_campaign_dispatched_at: null })
-        .eq("id", eventId);
-      if (error) throw error;
-      toast({
-        title: "Evento liberado para reenvio",
-        description: "Na próxima ação de disparo, será gerada uma nova campanha.",
-      });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
-    }
-  };
-
-  const [dispatchingId, setDispatchingId] = useState<string | null>(null);
-
-  // B.10 — dispara teste A/B de assunto (duas campanhas na E-goi).
-  const dispatchAbTest = async (
-    eventId: string,
-    params: { subjectA: string; subjectB: string; winnerMetric: "opens" | "clicks"; sendNow: boolean },
-  ) => {
-    setDispatchingId(eventId);
-    try {
-      const defaultTemplate = templates.find((template) => template.type === "event_new" && template.is_default)
-        ?? templates.find((template) => template.type === "event_new");
-      if (!defaultTemplate?.id) throw new Error("Nenhum template padrão de Evento está disponível para o teste A/B.");
-      const res = await dispatchAbSubjectTest(eventId, {
-        ...params,
-        templateIdOverride: defaultTemplate?.id,
-      });
-      // Checar status real (não só .ok) — mesma regra de dispatchBatch (R-007): uma
-      // variante criada mas não enviada pela E-goi nunca pode ser reportada como sucesso.
-      const sentA = res.variantA.ok && res.variantA.status === "sent";
-      const sentB = res.variantB.ok && res.variantB.status === "sent";
-      const draftA = res.variantA.ok && res.variantA.status === "draft";
-      const draftB = res.variantB.ok && res.variantB.status === "draft";
-      if (sentA && sentB) {
-        toast({
-          title: params.sendNow ? "Teste A/B enviado!" : "Rascunhos A e B criados",
-          description: `Grupo ${res.groupId.slice(0, 8)} • A #${res.variantA.egoi_campaign_id ?? "?"} • B #${res.variantB.egoi_campaign_id ?? "?"}`,
-        });
-      } else if (params.sendNow && (draftA || draftB) && !res.variantA.error && !res.variantB.error) {
-        toast({
-          variant: "destructive",
-          title: "Teste A/B criado, mas não enviado",
-          description: `A: ${res.variantA.status ?? "?"} • B: ${res.variantB.status ?? "?"} — a E-goi manteve como rascunho`,
-        });
-      } else {
-        const describe = (v: typeof res.variantA, sent: boolean) => (sent ? "ok" : v.error || v.reason || v.status || "falhou");
-        toast({
-          variant: "destructive",
-          title: "Teste A/B com falhas",
-          description: `A: ${describe(res.variantA, sentA)} • B: ${describe(res.variantB, sentB)}`,
-        });
-      }
-      void loadAll();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro no teste A/B", description: e.message });
-    } finally {
-      setDispatchingId(null);
-    }
-  };
-
-
-
   const toggleMaster = async (v: boolean) => {
     try {
       const { error } = await supabase
@@ -427,45 +303,8 @@ const EmailConfig = () => {
 
 
 
-  // Agrupamento por evento
-  const groups: EventGroup[] = useMemo(() => {
-    const map = new Map<string, EventGroup>();
-    for (const c of campaigns) {
-      const g = map.get(c.event_id);
-      if (!g) {
-        map.set(c.event_id, {
-          event_id: c.event_id,
-          title: c.events?.title || "(evento sem título)",
-          total: 1,
-          last: c,
-          items: [c],
-        });
-      } else {
-        g.total += 1;
-        g.items.push(c);
-      }
-    }
-    return [...map.values()].sort(
-      (a, b) => new Date(b.last.created_at).getTime() - new Date(a.last.created_at).getTime(),
-    );
-  }, [campaigns]);
-
-  const statusBadge = (s: Campaign["status"]) => {
-    const map: Record<Campaign["status"], string> = {
-      draft: "bg-muted text-muted-foreground",
-      scheduled: "bg-blue-500/15 text-blue-600 dark:text-blue-400",
-      sent: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
-      failed: "bg-red-500/15 text-red-600 dark:text-red-400",
-    };
-    return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[s]}`}>{s}</span>;
-  };
-
   // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
   const activeTemplate = useMemo(() => templates.find((t) => t.id === activeTemplateId) || null, [templates, activeTemplateId]);
-  const defaultEventTemplate = useMemo(
-    () => templates.find((t) => t.type === "event_new" && t.is_default) || templates.find((t) => t.type === "event_new") || null,
-    [templates],
-  );
 
   // Fonte do preview é derivada do TIPO do template ativo (evita 2 seletores conflitantes).
   //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
@@ -811,6 +650,54 @@ const EmailConfig = () => {
     }
   };
 
+  // Agenda o disparo do envio manual para uma data/hora futura em vez de
+  // enviar agora — o poller send-scheduled-email-campaigns dispara depois.
+  const scheduleBatch = async () => {
+    if (!batchEventId || !batchTemplateId || !manualComposition || !batchScheduleAt) {
+      toast({ variant: "destructive", title: "Selecione o evento, o template e a data/hora" });
+      return;
+    }
+    if (manualComposition.issues.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Agendamento bloqueado",
+        description: manualComposition.issues.map((item) => item.message).join(" "),
+      });
+      return;
+    }
+    setBatchScheduling(true);
+    try {
+      const scheduleAtIso = new Date(batchScheduleAt).toISOString();
+      const res = await dispatchEventDraftEmail(batchEventId, {
+        forceResend: true,
+        scheduleAt: scheduleAtIso,
+        templateIdOverride: batchTemplateId || undefined,
+        flyerOverrideUrl: selectedManualTemplate?.type === "ticket_batch" ? batchArtworkUrl || undefined : undefined,
+        subjectOverride: selectedManualTemplate?.type === "ticket_batch" ? batchSubject || undefined : undefined,
+        preparedComposition: {
+          html: manualComposition.html,
+          subject: manualComposition.subject,
+          preheader: manualComposition.preheader,
+        },
+      });
+      if (res.ok && res.status === "scheduled") {
+        toast({
+          title: "Disparo agendado!",
+          description: `Será enviado em ${formatDateTimeBR(res.scheduled_at ?? scheduleAtIso)}.`,
+        });
+        setBatchScheduleAt("");
+        queryClient.invalidateQueries({ queryKey: ["scheduled-sends", batchEventId] });
+        void loadAll();
+      } else {
+        toast({ variant: "destructive", title: "Falha ao agendar", description: res.error || res.reason || "Erro desconhecido" });
+      }
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } finally {
+      setBatchScheduling(false);
+    }
+  };
+
 
 
   // Nota: não retornamos mais uma tela de loading que desmonta os Tabs. O
@@ -844,8 +731,7 @@ const EmailConfig = () => {
           <TabsTrigger value="editor"><LayoutGrid className="w-3.5 h-3.5 mr-1" />Editor + Preview</TabsTrigger>
           <TabsTrigger value="batch"><Send className="w-3.5 h-3.5 mr-1" />Envio manual</TabsTrigger>
           <TabsTrigger value="digest">Automações</TabsTrigger>
-          <TabsTrigger value="controle">Controle pessoal</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
+          <TabsTrigger value="eventos">Histórico e controle</TabsTrigger>
         </TabsList>
 
         {/* ================= DASHBOARD ================= */}
@@ -1324,6 +1210,17 @@ const EmailConfig = () => {
                 />
               </div>
 
+              {batchEventId && (
+                <ScheduleSendPanel
+                  eventId={batchEventId}
+                  scheduleAt={batchScheduleAt}
+                  onScheduleAtChange={setBatchScheduleAt}
+                  disabled={!masterEnabled || !manualComposition || manualComposition.issues.length > 0}
+                  scheduling={batchScheduling}
+                  onSchedule={scheduleBatch}
+                />
+              )}
+
               <p className="text-[11px] text-muted-foreground">
                 O disparo é registrado no <b>Histórico</b> como uma nova campanha (o histórico anterior do evento é preservado).
               </p>
@@ -1372,34 +1269,15 @@ const EmailConfig = () => {
         </TabsContent>
 
 
-        {/* ================= HISTÓRICO ================= */}
-        {/* ================= CONTROLE PESSOAL ================= */}
-        <TabsContent value="controle" className="space-y-4">
-          <EmailPersonalControl />
-        </TabsContent>
-
-        <TabsContent value="history">
-          <HistoryTab
-            historySearch={historySearch}
-            setHistorySearch={setHistorySearch}
-            campaigns={campaigns}
-            realEvents={realEvents}
-            groups={groups}
-            campaignStats={campaignStats}
-            expanded={expanded}
-            setExpanded={setExpanded}
-            dispatchingId={dispatchingId}
-            refreshingStatsId={refreshingStatsId}
+        {/* ================= HISTÓRICO E CONTROLE (unificado) ================= */}
+        <TabsContent value="eventos" className="space-y-4">
+          <EmailEventsTab
+            templates={templates}
             masterEnabled={masterEnabled}
-            defaultEventTemplate={defaultEventTemplate}
             prepareManualSend={(eventId) => {
               setBatchEventId(eventId);
               setActiveTab("batch");
             }}
-            dispatchAbTest={dispatchAbTest}
-            resendEvent={resendEvent}
-            refreshCampaignStats={refreshCampaignStats}
-            statusBadge={statusBadge}
           />
         </TabsContent>
       </Tabs>

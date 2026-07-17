@@ -1,6 +1,6 @@
 /**
  * Tipos compartilhados entre `EmailConfig.tsx` e componentes filhos
- * (HistoryTab, SendNowButton, AbTestButton, …).
+ * (EmailEventsTab, SendNowButton, AbTestButton, …).
  *
  * Extraído do topo de `src/pages/admin/EmailConfig.tsx` para permitir o
  * slim-down por responsabilidade (Fase C do plano).
@@ -22,14 +22,9 @@ export type Campaign = {
   ab_variant?: string | null;
   ab_test_config?: Record<string, unknown> | null;
   events?: { title: string | null } | null;
-};
-
-export type EventGroup = {
-  event_id: string;
-  title: string;
-  total: number;
-  last: Campaign;
-  items: Campaign[];
+  /** Agendamento de disparo (aba "Envio manual" → "Agendar"). */
+  scheduled_at?: string | null;
+  scheduled_send_attempts?: number;
 };
 
 export type CampaignStats = {
@@ -45,33 +40,6 @@ export type CampaignStats = {
 };
 
 export type CampaignStatsMap = Record<string, CampaignStats>;
-
-export type RealEventLite = {
-  id: string;
-  title: string;
-  slug: string;
-  date: string;
-  time: string;
-  venue: string;
-  location_city: string;
-  location_state: string;
-  image_url: string | null;
-  description: string | null;
-  subtitle: string | null;
-  ticket_link: string | null;
-  vip_link: string | null;
-  blog_post_id: string | null;
-  lineup: string[] | null;
-  venue_lat: number | null;
-  venue_lng: number | null;
-};
-
-export type AbTestParams = {
-  subjectA: string;
-  subjectB: string;
-  winnerMetric: "opens" | "clicks";
-  sendNow: boolean;
-};
 
 export type AutomationCfg = {
   enabled: boolean;

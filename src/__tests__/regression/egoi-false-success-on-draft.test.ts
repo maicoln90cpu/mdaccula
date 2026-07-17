@@ -8,18 +8,19 @@
  *   Se `send_now=true` mas a extração do `campaignHash` da resposta de criação
  *   falhasse, o envio era silenciosamente pulado — a função retornava
  *   `status: 'draft', ok: true, error: null` como se tudo tivesse dado certo.
- *   No frontend, `EmailConfig.tsx` (`dispatchBatch`/`dispatchAbTest`) decidia o
- *   toast de sucesso pela flag local `sendNow` + `res.ok`, nunca por
- *   `res.status === 'sent'` — então mesmo um `status: 'draft'` correto do
- *   backend aparecia como "E-mail enviado!" na tela.
+ *   No frontend, `dispatchBatch` (EmailConfig.tsx) e `dispatchAbTest` (hoje em
+ *   EmailEventsTab.tsx, após a unificação das abas "Controle pessoal" e
+ *   "Histórico") decidiam o toast de sucesso pela flag local `sendNow` +
+ *   `res.ok`, nunca por `res.status === 'sent'` — então mesmo um
+ *   `status: 'draft'` correto do backend aparecia como "E-mail enviado!" na tela.
  *
  * Correção:
  *   - `sendNow && !campaignHash` vira erro explícito (não silencioso).
  *   - Resposta de `actions/send` é inspecionada além do `.ok` (corpo com
  *     `error`/`errors`/`status:'error'` também conta como falha).
  *   - `egoi_config.segment_id` passa a ser incluído no payload de criação.
- *   - `EmailConfig.tsx` só mostra "E-mail enviado!" quando `res.status === 'sent'`
- *     (idem por variante em `dispatchAbTest`).
+ *   - `dispatchBatch`/`dispatchAbTest` só mostram "E-mail enviado!" quando
+ *     `res.status === 'sent'`.
  *
  * Este teste é estático (sem rede): lê o código-fonte e garante que essas
  * checagens continuam presentes.
@@ -76,10 +77,10 @@ describe("Regressão R-008 — status real da E-goi antes de reportar sucesso", 
     expect(fnSrc).toMatch(/res\.status\s*===\s*["']draft["']/);
   });
 
-  it("dispatchAbTest (EmailConfig.tsx) checa status por variante, não só .ok", () => {
-    const src = read("src/pages/admin/EmailConfig.tsx");
-    const fnMatch = src.match(/const dispatchAbTest[\s\S]*?\n  };/);
-    expect(fnMatch, "Não encontrei a função dispatchAbTest em EmailConfig.tsx.").toBeTruthy();
+  it("dispatchAbTest (EmailEventsTab.tsx) checa status por variante, não só .ok", () => {
+    const src = read("src/components/admin/emailConfig/EmailEventsTab.tsx");
+    const fnMatch = src.match(/async function dispatchAbTest[\s\S]*?\n  \}/);
+    expect(fnMatch, "Não encontrei a função dispatchAbTest em EmailEventsTab.tsx.").toBeTruthy();
     const fnSrc = fnMatch![0];
     expect(
       fnSrc,

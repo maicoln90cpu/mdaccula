@@ -34,6 +34,7 @@ export type DispatchEventDraftResult = {
   egoi_campaign_id?: string | null;
   error?: string | null;
   validation_issues?: EmailCompositionIssue[];
+  scheduled_at?: string | null;
 };
 
 type EventRow = EmailEventRow & {
@@ -51,6 +52,8 @@ export async function dispatchEventDraftEmail(
   opts: {
     forceResend?: boolean;
     sendNow?: boolean;
+    /** Agenda o disparo para uma data/hora futura (ISO) em vez de enviar agora. */
+    scheduleAt?: string;
     /** B.8 — força usar um template específico (ex.: ticket_batch). */
     templateIdOverride?: string;
     /** B.8 — substitui a arte principal (flyer) por uma imagem específica do disparo. */
@@ -73,6 +76,9 @@ export async function dispatchEventDraftEmail(
 ): Promise<DispatchEventDraftResult> {
   if (opts.preparedComposition && !opts.templateIdOverride) {
     return { ok: false, error: "Envio manual exige um template selecionado" };
+  }
+  if (opts.scheduleAt && opts.sendNow) {
+    return { ok: false, error: "Agendar e enviar agora são mutuamente exclusivos" };
   }
   // 1. Config + template padrão + settings de marca
   const [cfgRes, tplSettingsRes, evRes] = await Promise.all([
@@ -216,6 +222,9 @@ export async function dispatchEventDraftEmail(
     force_resend: opts.forceResend === true,
     send_now: opts.sendNow === true,
   };
+  if (opts.scheduleAt) {
+    invokeBody.schedule_at = opts.scheduleAt;
+  }
   if (opts.abTest) {
     invokeBody.ab_group_id = opts.abTest.groupId;
     invokeBody.ab_variant = opts.abTest.variant;
