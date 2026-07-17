@@ -123,6 +123,9 @@ CREATE TABLE public.blog_posts (
 -- ============================================
 -- TABELA: events
 -- ============================================
+-- Atualizado em 17/07/2026 a partir do schema real (information_schema.columns) —
+-- a versão anterior deste arquivo estava desatualizada há vários meses (faltavam
+-- pix_button_enabled, tickets_per_day, status, merge de festivais, geocoding, etc.).
 CREATE TABLE public.events (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
@@ -133,16 +136,34 @@ CREATE TABLE public.events (
   location_state TEXT NOT NULL,
   location_city TEXT NOT NULL,
   date DATE NOT NULL,
-  time TIME NOT NULL,
+  end_date DATE,
+  time TIME,
   end_time TIME,
   genres TEXT[] NOT NULL DEFAULT '{}',
   lineup TEXT[] DEFAULT '{}',
+  description TEXT,
+  schedule JSONB, -- programação por dia (festivais multi-dia), ver src/lib/eventScheduleHelper.ts
   ticket_link TEXT,
   vip_link TEXT,
-  description TEXT,
+  pix_button_enabled BOOLEAN NOT NULL DEFAULT false, -- botão "Pix sem taxa" via WhatsApp
+  tickets_per_day BOOLEAN NOT NULL DEFAULT false, -- festival com 1 link de venda por dia
+  cta_type TEXT NOT NULL DEFAULT 'buy_ticket'
+    CHECK (cta_type IN ('buy_ticket', 'buy_ticket_discount', 'guest_list', 'courtesy')),
+    -- tipo de botão/CTA do evento (site + e-mails) — ver supabase/functions/_shared/eventCta.ts
   image_url TEXT,
   views INTEGER DEFAULT 0,
-  blog_post_id UUID,
+  blog_post_id UUID REFERENCES public.blog_posts(id),
+  status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'merged_inactive' (evento mesclado num festival)
+  ai_context TEXT, -- instruções extras pro admin injetar na geração de artigo por IA
+  dispatch_email_on_save BOOLEAN NOT NULL DEFAULT false,
+  email_campaign_dispatched_at TIMESTAMP WITH TIME ZONE, -- anti-race do disparo de e-mail (B.6)
+  merged_into_id UUID REFERENCES public.events(id), -- evento "guarda-chuva" quando este foi mesclado
+  merged_at TIMESTAMP WITH TIME ZONE,
+  venue_lat NUMERIC,
+  venue_lng NUMERIC,
+  latitude NUMERIC, -- coordenadas geocodificadas (podem divergir de venue_lat/lng)
+  longitude NUMERIC,
+  geocoded_at TIMESTAMP WITH TIME ZONE,
   created_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()

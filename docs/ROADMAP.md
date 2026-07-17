@@ -4,8 +4,8 @@
 
 > Planejamento de fases, prioridades e cronograma para evolução da plataforma.
 
-**Versão:** 1.5  
-**Data:** 16/07/2026  
+**Versão:** 1.6  
+**Data:** 17/07/2026  
 **Status Atual:** Fase 2 Concluída, Higiene técnica (B2 + pendências A–F) 100% concluída, Fase 3 Iniciando (UI/UX Premium concluído)
 
 ---
@@ -159,6 +159,9 @@
 | Roteamento de template por automação (weekly/weekend/blog) + validação de bloco dinâmico | ✅ | 07/2026 |
 | Google Maps em domínio customizado (`public-maps-config` + chave própria com referrer allowlist + Maps Embed API) | ✅ | 13/07/2026 |
 | Sitemap regenerado | ✅ | 13/07/2026 |
+| CTA configurável por evento (`events.cta_type`: ingresso/desconto/lista/cortesia), refletindo em site + e-mails | ✅ | 17/07/2026 |
+| Deploy automático de Edge Functions via GitHub Actions (`supabase functions deploy` oficial) — substitui o deployer do Lovable, que não empacotava `_shared/` corretamente | ✅ | 17/07/2026 |
+| `supabase/config.toml` completado com `verify_jwt = false` para as ~38 funções que faltavam (lacuna que quebraria cron/webhooks no primeiro deploy via CLI) | ✅ | 17/07/2026 |
 
 ---
 
@@ -324,6 +327,7 @@ removendo esse agrupamento — Rollup volta a fazer chunking automático por uso
 | 1.3 | 15/03/2026 | Fase 2 concluída. Adicionados: redirects UTM, CDN fallback, importação CSV, otimização custos, performance. Fase 3 planejada com foco em engajamento |
 | 1.4 | 13/07/2026 | Higiene técnica finalizada: renderer de e-mails unificado (frontend↔edge byte-idêntico), slim-down de EmailConfig/EventForm/LinksManager, AbortController em telas com busca, roteamento de template por automação e Google Maps operando em `mdaccula.com` via chave própria + Maps Embed API |
 | 1.5 | 16/07/2026 | UI/UX Premium: microinterações com Framer Motion em 8 rodadas (D1/L1/E1/E2/L2/L3/D2/D3) na landing, evento e /links; correção de performance de build (manualChunks de icons/charts removido, ~991KB a menos de preload eager por página) |
+| 1.6 | 17/07/2026 | CTA configurável por evento (`cta_type`) refletindo em Home/eventos/e-mails; deploy de Edge Functions passa a ser automático via GitHub Actions + Supabase CLI oficial (corrige bug do deployer do Lovable com `_shared/`); `supabase/config.toml` e `tabelas.md` (tabela `events`) atualizados para refletir o schema real |
 
 ---
 

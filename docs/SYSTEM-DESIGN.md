@@ -2,8 +2,8 @@
 
 > Arquitetura técnica, fluxos de dados, APIs e interfaces do sistema
 
-**Versão:** 1.2  
-**Data:** 16/07/2026  
+**Versão:** 1.3  
+**Data:** 17/07/2026  
 **Status:** Ativo
 
 ---
@@ -15,7 +15,7 @@
 3. [Fluxos de Dados](#fluxos-de-dados)
 4. [APIs e Endpoints](#apis-e-endpoints)
 5. [Banco de Dados](#banco-de-dados)
-6. [Edge Functions](#edge-functions)
+6. [Edge Functions](#backend-edge-functions)
 7. [CDN e Imagens](#cdn-e-imagens)
 8. [Autenticação e Autorização](#autenticação-e-autorização)
 9. [Integrações Externas](#integrações-externas)
@@ -138,52 +138,116 @@ src/
 
 ### Backend (Edge Functions)
 
+> Lista completa das 51 functions (`supabase/functions/*/`) atualizada em 17/07/2026.
+> Deploy automático via GitHub Actions a cada push em `main` — ver seção
+> [Deploy de Edge Functions](#deploy-de-edge-functions) logo abaixo.
+
 ```
 supabase/functions/
-├── _shared/                       # Módulos compartilhados
-│   ├── cors.ts                   # handleCorsPreFlight()
-│   ├── rate-limit.ts             # isRateLimited(), getClientIP()
-│   ├── response.ts               # jsonSuccess(), jsonError(), badRequestResponse()
-│   ├── timeout.ts                # fetchWithTimeout(), withTimeout()
-│   └── index.ts                  # Barrel export
+├── _shared/                        # Módulos compartilhados (importados via "../_shared/x.ts")
+│   ├── index.ts                    # CORS, jsonSuccess/jsonError, fetchWithTimeout, rate limit,
+│   │                                # scrapeWithFirecrawl, authorizeAdminOrCron
+│   ├── emailBlocks.ts              # Renderer canônico dos blocos de e-mail (HTML + texto)
+│   ├── emailComposer.ts            # composeEmail(), buildEventAnnouncementData(), validação
+│   ├── emailMeta.ts                # Placeholders de assunto/preheader ({{event_title}} etc.)
+│   ├── emailBlocksLimits.ts        # Limites/defaults numéricos dos blocos de e-mail
+│   ├── eventCta.ts                 # Fonte única do tipo de botão/CTA do evento (cta_type)
+│   ├── egoiClient.ts               # Cliente HTTP da API v3 da E-goi (egoiRequest)
+│   ├── titleSanitizer.ts           # Sanitização/validação de títulos de artigos
+│   ├── editorialQuality.ts         # Bloco de regras editoriais injetado nos prompts de IA
+│   └── scrapeGate.ts               # Decide se roda scraping de contexto antes de gerar artigo
 │
-├── Geração IA/
-│   ├── generate-blog-suggestions/ # Scrape news_sources + gera sugestões
-│   ├── generate-blog-post-v2/     # Gera artigo + imagem (dual routing)
-│   ├── generate-multi-event-article/ # Artigo multi-datas
-│   ├── regenerate-blog-image/     # Regenera imagem existente
-│   └── auto-article-cron/         # Cron job (sem JWT)
+├── Geração de conteúdo IA/
+│   ├── generate-blog-suggestions/  # Scrape de fontes + gera sugestões de pauta
+│   ├── generate-blog-post-v2/      # Gera artigo de evento + imagem (dual routing OpenAI/Gemini)
+│   ├── generate-blog-post-from-topic/ # Artigo editorial a partir de busca real (Firecrawl /search)
+│   ├── generate-multi-event-article/  # Artigo consolidado multi-datas (festival/série)
+│   ├── regenerate-blog-image/      # Regenera só a imagem de um post existente
+│   ├── compose-event-image/        # Aplica marca MDAccula sobre uma imagem já hospedada
+│   └── auto-article-cron/          # Cron job de geração automática (sem JWT)
 │
-├── Automação/
-│   ├── create-recurring-events/   # Eventos semanais D.EDGE
-│   ├── cleanup-storage/           # Remove imagens órfãs
-│   └── cleanup-sync-logs/         # Limpa logs antigos
+├── Event Watcher (Fase B)/
+│   ├── scan-event-sources/         # Raspa fontes (site/Instagram) e cria rascunhos de evento
+│   └── apify-instagram-webhook/    # Recebe posts novos do monitor Apify do Instagram
 │
-├── Email/
-│   ├── send-contact-email/        # Formulário de contato
-│   ├── send-mass-newsletter/      # Newsletter em batch
-│   └── send-podcast-notification/ # Email artista + agência
+├── Automação de eventos/
+│   ├── create-recurring-events/    # Eventos semanais recorrentes (cron)
+│   ├── geocode-event/              # Geocodifica venue → latitude/longitude
+│   ├── render-static-map/          # Gera imagem estática do mapa (usada no e-mail)
+│   └── public-maps-config/         # Chave pública do Google Maps (domínio próprio)
+│
+├── Email (E-goi)/
+│   ├── create-event-email-campaign/    # Cria/reaproveita rascunho de campanha por evento
+│   ├── send-scheduled-email-campaigns/ # Poller (5 min) que dispara envios agendados
+│   ├── weekend-agenda-draft/       # Rascunho da Agenda do FDS
+│   ├── weekly-digest-draft/        # Rascunho do Resumo Semanal
+│   ├── blog-digest-draft/          # Rascunho de novidades do blog
+│   ├── update-digest-schedule/     # Atualiza o pg_cron dos digests
+│   ├── egoi-resources/             # Lista listas/remetentes da conta E-goi
+│   ├── egoi-campaign-stats/        # Estatísticas de campanha (abertura/clique)
+│   ├── egoi-curl-probe/            # Diagnóstico bruto de conectividade com a E-goi
+│   └── send-test-email/            # Envia HTML de teste pro e-mail admin fixo (via Resend)
+│
+├── Email (outros)/
+│   ├── send-contact-email/         # Formulário de contato
+│   ├── send-mass-newsletter/       # Newsletter em batch
+│   └── send-podcast-notification/  # Email artista + agência (inscrição no podcast)
 │
 ├── Tracking/
-│   ├── track-link-click/          # Clique em link
-│   ├── track-redirect-click/      # Clique em redirect
-│   ├── track-view/                # View de post/evento
-│   └── track-share/               # Compartilhamento
+│   ├── track-link-click/           # Clique em link (Links page)
+│   ├── track-redirect-click/       # Clique em redirect UTM
+│   ├── track-view/                 # View de post/evento
+│   ├── track-share/                # Compartilhamento
+│   └── track-egress/               # Amostragem de egress por rota (custos)
+│
+├── Observabilidade/
+│   ├── systemhealth/               # Health check
+│   ├── persist-logs/               # Persistência de logs
+│   ├── metrics-snapshot/           # Snapshot diário de métricas (Bunny + Supabase)
+│   ├── bunny-stats/                # Estatísticas de uso do Bunny CDN
+│   ├── supabase-usage/             # Uso/quota do projeto Supabase
+│   └── egress-alert-cron/          # Alerta por e-mail se egress disparar
+│
+├── Mídia/
+│   ├── convert-to-webp/            # Conversão individual
+│   ├── batch-convert-webp/         # Conversão em lote
+│   ├── upload-to-bunny/            # Upload direto pro Bunny Storage
+│   ├── migrate-to-bunny/           # Migração em lote pro Bunny
+│   └── diagnose-media/             # Diagnóstico de imagens quebradas/órfãs
 │
 ├── Dados/
-│   ├── import-csv-data/           # Processa CSV importado
-│   └── upload-csv/                # Upload de CSV
+│   ├── import-csv-data/            # Processa CSV importado
+│   ├── upload-csv/                 # Upload de CSV
+│   ├── import-storage/             # Importa arquivos de Storage
+│   └── cleanup-storage/            # Remove imagens órfãs
 │
 └── Utilitários/
-    ├── sitemap/                   # Sitemap XML dinâmico
-    ├── blog-rss/                  # Feed RSS
-    ├── systemhealth/              # Health check
-    ├── convert-to-webp/           # Conversão individual
-    ├── batch-convert-webp/        # Conversão em lote
-    ├── fetch-link-metadata/       # Metadados de URL
-    ├── persist-logs/              # Persistência de logs (desativado)
-    └── request-data-deletion/     # LGPD: exclusão de dados
+    ├── sitemap/                    # Sitemap XML dinâmico
+    ├── blog-rss/                   # Feed RSS
+    ├── fetch-link-metadata/        # Metadados de URL (Links page)
+    ├── indexnow-notify/            # Notifica IndexNow (Bing/Yandex) em mudanças
+    ├── cleanup-sync-logs/          # Limpa logs antigos de sincronização
+    └── request-data-deletion/      # LGPD: exclusão de dados
 ```
+
+### Deploy de Edge Functions
+
+Desde 17/07/2026, o deploy é automático: `.github/workflows/deploy-edge-functions.yml` roda
+`supabase functions deploy` (CLI oficial da Supabase) a cada push em `main` que toque
+`supabase/functions/**`, usando o secret `SUPABASE_ACCESS_TOKEN`. O CLI oficial empacota
+`_shared/` corretamente em qualquer função que a importe — **não usar** o deployer visual do
+Lovable nem a tool `mcp__supabase-mdaccula__deploy_edge_function` como caminho normal de deploy;
+ambos têm bugs conhecidos de empacotamento (ver comentário "DEPLOY NOTE" no topo de
+`scan-event-sources/index.ts` para o caso mais grave — funções com `EdgeRuntime.waitUntil()` real
++ deploy multi-arquivo por essas duas vias quebram com `BOOT_ERROR`; o CLI oficial não tem esse
+problema).
+
+`supabase/config.toml` define `verify_jwt = false` por função — **quase todas** precisam disso,
+porque fazem sua própria autenticação (header `Authorization` + `has_role`, ou `x-cron-secret`
+para cron/webhook) em vez de depender do gate de JWT da plataforma. Ao criar uma função nova que
+não deva exigir um usuário logado do Supabase Auth, adicionar a entrada correspondente em
+`config.toml` — sem isso, o próximo deploy via CLI reverte pro padrão (`verify_jwt = true`) e
+quebra cron jobs/webhooks/chamadas públicas silenciosamente.
 
 ---
 
