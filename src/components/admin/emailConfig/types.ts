@@ -6,7 +6,7 @@
  * slim-down por responsabilidade (Fase C do plano).
  */
 
-export type Mode = "draft" | "immediate" | "scheduled";
+export type Mode = "draft" | "immediate" | "scheduled" | "manual";
 
 export type Campaign = {
   id: string;
