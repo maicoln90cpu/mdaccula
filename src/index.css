@@ -46,6 +46,12 @@ All colors MUST be HSL.
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 25% 10%;
+
     --border: 220 25% 20%;
     --input: 220 25% 15%;
     --ring: 280 100% 70%;
@@ -129,6 +135,12 @@ All colors MUST be HSL.
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 38%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 42%;
+    --warning-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -367,17 +379,17 @@ All colors MUST be HSL.
     transition: box-shadow 0.35s ease;
   }
 
-  /* Logo Gradient (White with Black Outline and Gray Shadow) */
+  /* Logo Gradient (White with Black Outline and Neon Glow) */
   .logo-gradient {
     @apply font-display;
     color: white;
     -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.8);
     text-stroke: 1.5px rgba(0, 0, 0, 0.8);
     paint-order: stroke fill;
-    filter: drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4))
-            drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3))
-            drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2))
-            drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1));
+    filter: drop-shadow(0 2px 4px hsl(var(--neon-purple) / 0.25))
+            drop-shadow(0 4px 8px hsl(var(--neon-purple) / 0.2))
+            drop-shadow(0 6px 12px hsl(var(--neon-purple) / 0.15))
+            drop-shadow(0 8px 16px hsl(var(--neon-purple) / 0.1));
     font-weight: 900;
     letter-spacing: 0.5px;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);

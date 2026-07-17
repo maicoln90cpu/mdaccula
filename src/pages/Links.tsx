@@ -111,7 +111,7 @@ export default function Links() {
         title="Copiar link do grupo"
       >
         {copiedSlug === group.slug ? (
-          <Check className="w-4 h-4 text-green-400" />
+          <Check className="w-4 h-4 text-success" />
         ) : (
           <Copy className="w-4 h-4" />
         )}
@@ -210,7 +210,7 @@ export default function Links() {
           ) : (
             <div className="space-y-8">
               {fetchError && groups.length > 0 && (
-                <div className="text-center py-3 px-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg mb-4">
+                <div className="text-center py-3 px-4 bg-warning/10 border border-warning/30 rounded-lg mb-4">
                   <p className={cn("text-sm", theme.textSecondary)}>⚠️ Modo offline — exibindo última versão salva</p>
                 </div>
               )}

@@ -38,6 +38,14 @@ export default {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -118,12 +126,12 @@ export default {
           "0%, 100%": {
             opacity: "1",
             filter:
-              "drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4)) drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3)) drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2)) drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1)) drop-shadow(0 0 10px hsl(var(--neon-purple) / 0.7))",
+              "drop-shadow(0 2px 4px hsl(var(--neon-purple) / 0.25)) drop-shadow(0 4px 8px hsl(var(--neon-purple) / 0.2)) drop-shadow(0 6px 12px hsl(var(--neon-purple) / 0.15)) drop-shadow(0 8px 16px hsl(var(--neon-purple) / 0.1)) drop-shadow(0 0 10px hsl(var(--neon-purple) / 0.7))",
           },
           "50%": {
             opacity: "0.9",
             filter:
-              "drop-shadow(0 2px 4px rgba(100, 100, 100, 0.4)) drop-shadow(0 4px 8px rgba(150, 150, 150, 0.3)) drop-shadow(0 6px 12px rgba(180, 180, 180, 0.2)) drop-shadow(0 8px 16px rgba(200, 200, 200, 0.1)) drop-shadow(0 0 22px hsl(var(--neon-purple) / 1))",
+              "drop-shadow(0 2px 4px hsl(var(--neon-purple) / 0.25)) drop-shadow(0 4px 8px hsl(var(--neon-purple) / 0.2)) drop-shadow(0 6px 12px hsl(var(--neon-purple) / 0.15)) drop-shadow(0 8px 16px hsl(var(--neon-purple) / 0.1)) drop-shadow(0 0 22px hsl(var(--neon-purple) / 1))",
           },
         },
         "float": {
@@ -170,10 +178,10 @@ export default {
         },
         "featured-glow-pulse": {
           "0%, 100%": {
-            boxShadow: "0 0 20px rgba(156,39,176,0.5)",
+            boxShadow: "0 0 20px hsl(var(--neon-purple) / 0.5)",
           },
           "50%": {
-            boxShadow: "0 0 36px rgba(156,39,176,0.85)",
+            boxShadow: "0 0 36px hsl(var(--neon-purple) / 0.85)",
           },
         },
       },

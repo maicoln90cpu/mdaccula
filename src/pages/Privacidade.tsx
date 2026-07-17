@@ -200,8 +200,8 @@ const Privacidade = () => {
               <CardContent>
                 {submitted ? (
                   <div className="text-center py-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-500/10 mb-4">
-                      <Shield className="w-8 h-8 text-green-500" />
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-success/10 mb-4">
+                      <Shield className="w-8 h-8 text-success" />
                     </div>
                     <h3 className="text-xl font-semibold mb-2">Solicitação Enviada!</h3>
                     <p className="text-muted-foreground mb-4">
@@ -215,9 +215,9 @@ const Privacidade = () => {
                 ) : (
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 flex gap-3">
-                        <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-amber-200">
+                      <div className="p-4 rounded-lg bg-warning/10 border border-warning/20 flex gap-3">
+                        <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-warning/90">
                           <strong>Atenção:</strong> A exclusão de dados é permanente e inclui:
                           cancelamento da newsletter, remoção de dados de analytics e exclusão de
                           mensagens de contato associadas ao seu email.
