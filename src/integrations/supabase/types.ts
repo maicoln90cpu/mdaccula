@@ -1006,6 +1006,7 @@ export type Database = {
           blog_post_id: string | null
           created_at: string
           created_by: string | null
+          cta_type: string
           date: string
           description: string | null
           dispatch_email_on_save: boolean
@@ -1045,6 +1046,7 @@ export type Database = {
           blog_post_id?: string | null
           created_at?: string
           created_by?: string | null
+          cta_type?: string
           date: string
           description?: string | null
           dispatch_email_on_save?: boolean
@@ -1084,6 +1086,7 @@ export type Database = {
           blog_post_id?: string | null
           created_at?: string
           created_by?: string | null
+          cta_type?: string
           date?: string
           description?: string | null
           dispatch_email_on_save?: boolean

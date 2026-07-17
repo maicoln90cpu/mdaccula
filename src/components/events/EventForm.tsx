@@ -22,6 +22,7 @@ import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
 import { logger } from "@/lib/logger";
+import { EVENT_CTA_TYPES, EVENT_CTA_CONFIG, DEFAULT_EVENT_CTA_TYPE, type EventCtaType } from '@shared/eventCta.ts';
 
 interface EventFormData {
   title: string;
@@ -39,6 +40,7 @@ interface EventFormData {
   vip_link?: string;
   pix_button_enabled?: boolean;
   tickets_per_day?: boolean;
+  cta_type?: EventCtaType;
   description?: string;
   slug?: string;
   blog_post_id?: string;
@@ -153,11 +155,13 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       vip_link: event.vip_link,
       pix_button_enabled: event.pix_button_enabled ?? false,
       tickets_per_day: event.tickets_per_day ?? false,
+      cta_type: (event.cta_type as EventCtaType) ?? DEFAULT_EVENT_CTA_TYPE,
       description: event.description,
       subtitle: event.subtitle,
       blog_post_id: event.blog_post_id,
     } : {
-      location_state: 'SP'
+      location_state: 'SP',
+      cta_type: DEFAULT_EVENT_CTA_TYPE,
     }
   });
 
@@ -444,6 +448,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         // Fase 5: só faz sentido p/ multi-dia; força false se não houver end_date posterior.
         tickets_per_day:
           data.tickets_per_day === true && !!data.end_date && data.end_date > data.date,
+        // Garante envio explícito do tipo de CTA (evita perda caso react-hook-form não inclua no spread)
+        cta_type: data.cta_type ?? DEFAULT_EVENT_CTA_TYPE,
       };
 
       logger.debug('[EventForm] 📦 Dados do evento preparados:', {
@@ -1195,6 +1201,31 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 )}
               />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cta_type">Botão do evento (site e e-mail)</Label>
+            <Controller
+              name="cta_type"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value ?? DEFAULT_EVENT_CTA_TYPE} onValueChange={field.onChange}>
+                  <SelectTrigger id="cta_type">
+                    <SelectValue placeholder="Selecione uma opção" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EVENT_CTA_TYPES.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {EVENT_CTA_CONFIG[type].buttonLabel}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            <p className="text-xs text-muted-foreground">
+              Define o texto do botão principal na Home, em /eventos, na página do evento e nos e-mails deste evento (disparo único e resumos semanais).
+            </p>
           </div>
 
           {(() => {

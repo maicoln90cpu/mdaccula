@@ -34,6 +34,10 @@ describe('EVENT_PUBLIC_FIELDS — fonte única de campos do SELECT de events', (
     expect(fields).toContain('tickets_per_day');
   });
 
+  it('inclui cta_type (regressão: botão do evento não configurável)', () => {
+    expect(fields).toContain('cta_type');
+  });
+
   it('não tem campos duplicados', () => {
     const unique = new Set(fields);
     expect(unique.size).toBe(fields.length);

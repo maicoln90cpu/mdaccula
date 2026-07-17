@@ -20,6 +20,7 @@ const row: EmailEventRow = {
   description: "Uma noite especial.",
   ticket_link: "https://tickets.example.com/krush",
   vip_link: "https://wa.me/5511999999999",
+  cta_type: "courtesy",
   lineup: ["BARJA", "DRE GUAZZELLI"],
   latitude: -23.5,
   longitude: -46.6,
@@ -69,6 +70,17 @@ describe("compositor canonico de e-mail", () => {
     expect(data.eventStartIso).toBe(new Date("2026-07-17T21:00:00").toISOString());
     expect(data.venueLat).toBe(row.latitude);
     expect(data.venueLng).toBe(row.longitude);
+  });
+
+  it("deriva ctaLabel do cta_type quando nao-padrao (regressao: botao fixo por URL)", () => {
+    const courtesy = buildEventAnnouncementData(row);
+    expect(courtesy.ctaLabel).toBe("Emitir Cortesia");
+
+    const defaultType = buildEventAnnouncementData({ ...row, cta_type: "buy_ticket" });
+    expect(defaultType.ctaLabel).toBeUndefined();
+
+    const guestList = buildEventAnnouncementData({ ...row, cta_type: "guest_list" });
+    expect(guestList.ctaLabel).toBe("Enviar Nomes para Lista");
   });
 
   it("usa venue_lat/venue_lng quando latitude/longitude ainda nao existem", () => {

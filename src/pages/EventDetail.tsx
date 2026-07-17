@@ -17,6 +17,7 @@ import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/
 import { parseSchedule } from "@/lib/eventScheduleHelper";
 import { normalizeLineup } from "@/lib/lineupNormalizer";
 import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
+import { getEventCtaButtonLabel, getEventCtaCardTitle } from "@shared/eventCta.ts";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -51,6 +52,7 @@ interface Event {
   image_url: string;
   ticket_link: string;
   vip_link: string;
+  cta_type?: string | null;
   pix_button_enabled?: boolean;
   tickets_per_day?: boolean;
   blog_post_id: string | null;
@@ -220,9 +222,8 @@ const EventDetail = () => {
     return null;
   }
 
-  const isListaVIP = event.ticket_link?.includes('postcontrol.com.br/mdaccula/lista');
-  const ticketCardTitle = isListaVIP ? "Lista VIP/Social" : "Ingressos com Desconto";
-  const ticketButtonText = isListaVIP ? "Enviar Nome para Lista" : "Comprar Ingresso";
+  const ticketCardTitle = getEventCtaCardTitle(event.cta_type);
+  const ticketButtonText = getEventCtaButtonLabel(event.cta_type);
   const currentUrl = `https://mdaccula.com/eventos/${event.slug}`;
 
   // Fase 5: quando evento é multi-dia e admin marcou "um link por dia",

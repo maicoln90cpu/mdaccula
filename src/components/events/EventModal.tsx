@@ -8,6 +8,7 @@ import { formatEventDateRange } from '@/lib/dateUtils';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
+import { getEventCtaButtonLabel } from '@shared/eventCta.ts';
 
 interface EventModalProps {
   event: any;
@@ -137,7 +138,7 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
               <Button asChild className="flex-1 min-h-[48px] text-base">
                 <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="w-5 h-5 mr-2" />
-                  Comprar Ingresso
+                  {getEventCtaButtonLabel(event.cta_type)}
                 </a>
               </Button>
             )}

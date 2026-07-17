@@ -4,6 +4,7 @@
  */
 
 import type { Json } from '@/integrations/supabase/types';
+import type { EventCtaType } from '@shared/eventCta.ts';
 
 // ============================================
 // Tipos de Erro
@@ -57,6 +58,7 @@ export interface Event {
   image_url?: string | null;
   ticket_link?: string | null;
   vip_link?: string | null;
+  cta_type?: EventCtaType | string | null;
   views?: number | null;
   blog_post_id?: string | null;
   created_by?: string | null;

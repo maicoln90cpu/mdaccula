@@ -12,6 +12,7 @@ import { cn } from "@/lib";
 import type { Event } from "@/types";
 import SectionHeading from "@/components/sections/SectionHeading";
 import { SpotlightCard } from "@/components/effects/SpotlightCard";
+import { getEventCtaButtonLabel } from "@shared/eventCta.ts";
 
 const EventCard = ({ event, index }: { event: Event; index: number }) => {
   const { ref, isVisible } = useScrollReveal<HTMLElement>();
@@ -85,7 +86,7 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
 
           <Button size="sm" className="w-full min-h-[40px] text-sm" asChild>
             <a href={event.ticket_link || "#"} target="_blank" rel="noopener noreferrer">
-              Comprar Ingressos
+              {getEventCtaButtonLabel(event.cta_type)}
             </a>
           </Button>
         </div>

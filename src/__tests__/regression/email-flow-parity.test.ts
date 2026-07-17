@@ -9,7 +9,7 @@ const read = (file: string) => fs.readFileSync(path.join(process.cwd(), file), "
 describe("regressao - fidelidade entre preview, teste, rascunho e envio", () => {
   it("o disparo de evento carrega todos os dados dinamicos dos blocos", () => {
     const source = read("src/lib/emailTemplates/dispatchEventDraft.ts");
-    for (const field of ["lineup", "vip_link", "latitude", "longitude", "venue_lat", "venue_lng", "blog_post_id"]) {
+    for (const field of ["lineup", "vip_link", "latitude", "longitude", "venue_lat", "venue_lng", "blog_post_id", "cta_type"]) {
       expect(source, `Campo ausente no disparo: ${field}`).toContain(field);
     }
     expect(source).toContain("composeEmail({");

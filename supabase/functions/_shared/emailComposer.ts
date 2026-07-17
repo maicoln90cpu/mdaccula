@@ -7,6 +7,7 @@ import {
   type GlobalBlock,
 } from "./emailBlocks.ts";
 import { buildEmailMeta, type EmailMetaPlaceholderData } from "./emailMeta.ts";
+import { DEFAULT_EVENT_CTA_TYPE, getEventCtaButtonLabel } from "./eventCta.ts";
 
 export type EmailTemplateInput = {
   blocks: Block[];
@@ -43,6 +44,7 @@ export type EmailEventRow = {
   description: string | null;
   ticket_link: string | null;
   vip_link: string | null;
+  cta_type: string | null;
   lineup: string[] | null;
   latitude: number | null;
   longitude: number | null;
@@ -87,6 +89,11 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
   const baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL;
   const date = new Date(`${event.date}T${event.time || "00:00"}`);
   const eventUrl = `${baseUrl}/eventos/${event.slug}`;
+  // Só define ctaLabel quando o evento usa um tipo de CTA não-padrão, para não
+  // sobrescrever o fallback global (settings.cta_label) nos eventos comuns.
+  const ctaLabel = event.cta_type && event.cta_type !== DEFAULT_EVENT_CTA_TYPE
+    ? getEventCtaButtonLabel(event.cta_type)
+    : undefined;
   return {
     eventTitle: event.title,
     eventSubtitle: event.subtitle?.trim() || undefined,
@@ -109,6 +116,7 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
     ticketBatchDeadlineIso: opts.ticketBatchDeadlineIso,
     venueLat: toFiniteNumber(event.latitude, event.venue_lat),
     venueLng: toFiniteNumber(event.longitude, event.venue_lng),
+    ctaLabel,
   };
 }
 

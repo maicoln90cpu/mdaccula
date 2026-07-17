@@ -85,6 +85,8 @@ export interface EventAnnouncementData {
   blogPosts?: BlogPostItem[];
   dedge?: DedgeBlockData;
   vipLink?: string;
+  /** Rótulo do botão CTA definido pelo `cta_type` do evento (ex.: "Emitir Cortesia"). Só é setado quando o evento não usa o tipo padrão — ver `_shared/eventCta.ts`. */
+  ctaLabel?: string;
 }
 
 export interface EmailTemplateSettings {
@@ -384,7 +386,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
     case "cta_button": {
       const url = resolveCtaUrl(block, event);
-      const label = escape(block.label || settings.cta_label || "Garantir ingresso");
+      const label = escape(block.label || event.ctaLabel || settings.cta_label || "Garantir ingresso");
       const align = block.align ?? "center";
       const fullWidth = block.full_width !== false;
       const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
@@ -1049,7 +1051,7 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
         block.url_field === "event_url" ? event.eventUrl :
         block.url_field === "custom" ? (block.custom_url || event.ticketUrl) :
         event.ticketUrl;
-      const label = block.label || settings.cta_label || "Garantir ingresso";
+      const label = block.label || event.ctaLabel || settings.cta_label || "Garantir ingresso";
       return `>> ${label.toUpperCase()}: ${url}`;
     }
     case "secondary_link": {

@@ -18,6 +18,7 @@ import {
   type WeekendEventItem,
   type BlogPostItem,
 } from '../_shared/emailBlocks.ts';
+import { DEFAULT_EVENT_CTA_TYPE, getEventCtaButtonLabel } from '../_shared/eventCta.ts';
 import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
 
@@ -64,7 +65,7 @@ function formatDatePt(dateStr: string, timeStr?: string | null) {
 type EventRow = {
   id: string; title: string; slug: string; date: string; end_date: string | null; time: string | null;
   venue: string; location_city: string; location_state: string;
-  image_url: string | null; ticket_link: string | null;
+  image_url: string | null; ticket_link: string | null; cta_type: string | null;
 };
 
 type PostRow = {
@@ -273,7 +274,7 @@ Deno.serve(async (req) => {
 
     const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }, { data: globalBlocksRows }] = await Promise.all([
       admin.from('events')
-        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,status')
+        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,cta_type,status')
         .eq('status', 'active')
         .lte('date', endIso)
         .or(`date.gte.${startIso},end_date.gte.${startIso}`)
@@ -370,6 +371,7 @@ Deno.serve(async (req) => {
             imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
             eventUrl: `${SITE_URL}/eventos/${e.slug}`,
             ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
+            ctaLabel: e.cta_type && e.cta_type !== DEFAULT_EVENT_CTA_TYPE ? getEventCtaButtonLabel(e.cta_type) : undefined,
           };
         });
         const dedgeHead = dedgeGroup[0];
