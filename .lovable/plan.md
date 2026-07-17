@@ -1,63 +1,56 @@
-# Alinhar Vite ↔ Vitest e fechar vulnerabilidades
+## Resposta rápida à sua dúvida sobre o fluxo
 
-## Contexto (antes)
-- `vite: ^5.4.19` (raiz) + `vitest: ^4.0.16` (que exige vite `^6 || ^7`)
-- npm resolve com **duas cópias de vite** instaladas simultaneamente (v5 na raiz, v7 aninhada dentro do vitest) → warnings ERESOLVE.
-- 4 vulnerabilidades abertas em `esbuild`/`vitest` (2 críticas, 1 alta, 1 moderada), incluindo GHSA-5xrq-8626-4rwp (arbitrary file read via UI server do vitest).
-- Peers atuais já compatíveis com Vite 6/7:
-  - `@vitejs/plugin-react ^5.1.2` → aceita Vite 5/6/7
-  - `@vitejs/plugin-react-swc ^3.11.0` → aceita Vite 5/6/7
-  - `lovable-tagger ^1.1.9` → aceita Vite 5+
+**Não, o Publish do Lovable NÃO faz deploy das edge functions.** São dois fluxos independentes:
 
-## Depois (objetivo)
-- Uma única versão de vite instalada (v7), alinhada com o que vitest 4 já usa internamente.
-- `npm audit` sem vulnerabilidades high/critical.
-- Build e testes passando.
-
-## Caminho escolhido: subir Vite para v7
-Motivo: vitest 4 já **exige** vite 6/7 internamente. Descer vitest para 3.x seria retroceder e ainda deixaria vulnerabilidades sem patch. Todos os plugins do projeto já suportam vite 7.
-
-## Passos de execução (em build mode)
-
-1. **Editar `package.json`**
-   - `"vite": "^5.4.19"` → `"vite": "^7.0.0"`
-   - Manter `@vitejs/plugin-react`, `@vitejs/plugin-react-swc`, `lovable-tagger`, `vitest` e `@vitest/coverage-v8` nas versões atuais.
-
-2. **Reinstalar dependências**
-   - `rm -rf node_modules package-lock.json && npm install`
-   - Confirmar que só há **1** entrada de `vite` em `npm ls vite`.
-
-3. **Aplicar patches de segurança**
-   - `npm audit fix` (sem `--force` primeiro — evita downgrades surpresa).
-   - Se persistirem críticas, `npm audit fix --force` e revalidar versões.
-   - Rodar `npm audit --audit-level=high` e confirmar 0 findings high/critical.
-
-4. **Validação (obrigatória antes de fechar)**
-   - `npx tsc --noEmit` → sem erros de tipo.
-   - `npm run build` → build de produção OK.
-   - `npm test` → suíte Vitest verde.
-   - Abrir `npm run dev` mentalmente via smoke: garantir que `vite.config.ts` (não muda) segue válido em Vite 7.
-
-5. **Registro**
-   - `package.json` e `package-lock.json` ficam atualizados no working tree.
-   - Não mexer em código de aplicação. Não tocar `vite.config.ts` a menos que a validação acuse breaking change (Vite 7 mantém a API do `defineConfig` usada aqui).
-
-## Riscos e mitigação
-
-| Risco | Mitigação |
+| Fluxo | O que dispara deploy de edge function |
 |---|---|
-| Vite 7 quebrar `vite.config.ts` (manualChunks, terser, lightningcss) | API usada é estável entre 5→7. Se falhar, ajuste pontual no config; sem impacto em runtime da app. |
-| `lovable-tagger` recusar Vite 7 em peer | Se aparecer ERESOLVE, cair para Vite 6 (`^6.0.0`) que também satisfaz vitest 4 e resolve o conflito. |
-| `npm audit fix --force` subir vitest para major novo | Só usar `--force` se `npm audit fix` normal deixar críticas. Revalidar suíte imediatamente. |
-| Testes quebrarem por mudança em `@vitest/coverage-v8` | Versão já está em 4.0.16, alinhada com vitest 4. Sem mudança prevista. |
+| **Publish (frontend)** | Só sobe o `dist/` (React build) para o CDN do Lovable. **Não toca em `supabase/functions/`**. |
+| **Push no GitHub (VS Code)** | Sobe o código pro repo, mas **também não deploya** funções automaticamente — o Lovable só sincroniza funções quando o agente (eu) roda o deploy via ferramenta interna, ou quando você edita a função dentro do próprio chat do Lovable. |
+| **Edição via chat Lovable** | Deploya automaticamente a função editada. |
 
-## Protocolo de resposta (o que reporto ao final)
-- Antes vs depois de versões e nº de vulnerabilidades.
-- Melhorias: 1 só vite instalado, CVEs fechadas, alinhamento oficial vite↔vitest.
-- Vantagens: menos warnings, segurança em dia. Desvantagens: Vite 7 é recente — monitorar por 1-2 dias.
-- Checklist manual: rodar `/`, `/eventos`, `/admin` no preview após deploy e confirmar sem regressão visual.
-- Pendências: nenhuma prevista; se `--force` for necessário, reportar antes de aplicar.
-- Prevenção de regressão: manter job `security` no CI (`.github/workflows/ci.yml` já roda `npm audit --audit-level=high`) — considerar remover `continue-on-error: true` desse step num PR futuro para travar regressões de vulnerabilidade.
+Ou seja: se você edita `supabase/functions/xxx/index.ts` no VS Code e dá `git push`, o código chega no repo do Lovable, **mas a versão em produção no Supabase continua a antiga** até alguém rodar o deploy explicitamente. É exatamente o que aconteceu.
 
-## Aprovação necessária
-Confirma que posso executar em build mode? Se preferir a rota conservadora (Vite 6 em vez de 7), me avise antes.
+**Como resolver de forma definitiva:** sempre que mexer em edge functions pelo VS Code, me pedir "deploya as functions X, Y, Z" (ou "todas") depois do push. Não tem como automatizar 100% pelo seu lado sem configurar um workflow do GitHub Actions com Supabase CLI + token (mudança maior, pode entrar como pendência futura).
+
+---
+
+## Plano para agora
+
+**Passo único:** rodar `supabase--deploy_edge_functions` com a lista das 52 funções do projeto (todas exceto `_shared`, que é biblioteca compartilhada e não é deployável).
+
+Funções que vão ser deployadas (52):
+
+```
+apify-instagram-webhook, auto-article-cron, batch-convert-webp, blog-digest-draft,
+blog-rss, bunny-stats, cleanup-storage, cleanup-sync-logs, compose-event-image,
+convert-to-webp, create-event-email-campaign, create-recurring-events, diagnose-media,
+egoi-campaign-stats, egoi-curl-probe, egoi-resources, egress-alert-cron,
+fetch-link-metadata, generate-blog-post-from-topic, generate-blog-post-v2,
+generate-blog-suggestions, generate-multi-event-article, geocode-event,
+import-csv-data, import-storage, indexnow-notify, metrics-snapshot, migrate-to-bunny,
+persist-logs, public-maps-config, regenerate-blog-image, render-static-map,
+request-data-deletion, scan-event-sources, send-contact-email, send-mass-newsletter,
+send-podcast-notification, send-scheduled-email-campaigns, send-test-email, sitemap,
+supabase-usage, systemhealth, track-egress, track-link-click, track-redirect-click,
+track-share, track-view, update-digest-schedule, upload-csv, upload-to-bunny,
+weekend-agenda-draft, weekly-digest-draft
+```
+
+## Riscos
+
+- **Baixo:** o deploy sobrescreve a versão atual em produção pela versão que está no repo (que é a mais nova, do VS Code). É exatamente o que você quer.
+- Se alguma função tiver erro de sintaxe/import que passou batido, o deploy dela falha isoladamente — as outras 51 continuam subindo. Vou reportar quais falharam, se houver.
+- Cada função individual leva ~5–15s pra subir. 52 funções = pode levar 2–5 min no total.
+
+## Checklist manual pós-deploy
+
+- [ ] Testar 1 função crítica que você sabia estar desatualizada (me diga qual — assim confirmamos que a nova versão está no ar).
+- [ ] Ver logs de qualquer função que você suspeite que estava velha (via link do dashboard) e confirmar que o comportamento novo apareceu.
+
+## Prevenção de regressão (opcional, futuro)
+
+Se quiser blindagem permanente, dá pra criar um workflow em `.github/workflows/deploy-edge-functions.yml` que roda `supabase functions deploy --project-ref xfvpuzlspvvsmmunznxw` a cada push em `main`, usando um `SUPABASE_ACCESS_TOKEN` como secret do GitHub. É trabalho de ~30 min e some com essa dor pra sempre. Não faço agora — fica como pendência se você aprovar.
+
+## Confirmação
+
+Aprova rodar o deploy das 52 funções agora?
