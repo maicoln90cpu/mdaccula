@@ -57,6 +57,8 @@ export function AutoGenerationPanel() {
   const [isForcing, setIsForcing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSavingAutoPublish, setIsSavingAutoPublish] = useState(false);
+  const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
   const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const [settings, setSettings] = useState<AutoGenSettings>({
@@ -92,7 +94,8 @@ export function AutoGenerationPanel() {
           'ai_auto_generate_enabled',
           'ai_auto_generate_interval_hours',
           'ai_auto_generate_last_run',
-          'ai_auto_generate_fail_count'
+          'ai_auto_generate_fail_count',
+          'suggestions_auto_publish'
         ]);
 
       if (settingsError) throw settingsError;
@@ -106,6 +109,7 @@ export function AutoGenerationPanel() {
         ? new Date(settingsMap['ai_auto_generate_last_run'])
         : null;
       const failCount = parseInt(settingsMap['ai_auto_generate_fail_count'] || '0');
+      setSuggestionsAutoPublish(settingsMap['suggestions_auto_publish'] === 'true');
 
       // Calculate next run
       let nextRunAt: Date | null = null;
@@ -189,6 +193,33 @@ export function AutoGenerationPanel() {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleToggleSuggestionsAutoPublish = async (enabled: boolean) => {
+    setIsSavingAutoPublish(true);
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ key: 'suggestions_auto_publish', value: String(enabled) }, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      setSuggestionsAutoPublish(enabled);
+      toast({
+        title: enabled ? "Publicação automática ligada" : "Publicação automática desligada",
+        description: enabled
+          ? "Artigos de Sugestões (automáticos ou gerados manualmente na aba Sugestões) nascem publicados direto."
+          : "Artigos de Sugestões nascem como rascunho, aguardando revisão em /admin/blog.",
+      });
+    } catch (error) {
+      logger.error('Error toggling suggestions_auto_publish:', error);
+      toast({
+        title: "Erro ao salvar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingAutoPublish(false);
     }
   };
 
@@ -381,6 +412,21 @@ export function AutoGenerationPanel() {
                 checked={settings.enabled}
                 onCheckedChange={handleToggleEnabled}
                 disabled={isSaving}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label>Publicar Sugestões automaticamente</Label>
+                <p className="text-xs text-muted-foreground">
+                  Vale pro cron e pra geração manual na aba Sugestões. Desligado = artigo
+                  nasce como rascunho em /admin/blog pra revisão.
+                </p>
+              </div>
+              <Switch
+                checked={suggestionsAutoPublish}
+                onCheckedChange={handleToggleSuggestionsAutoPublish}
+                disabled={isSavingAutoPublish}
               />
             </div>
 

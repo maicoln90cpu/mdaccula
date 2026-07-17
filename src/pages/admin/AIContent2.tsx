@@ -23,6 +23,19 @@ interface Suggestion {
   keywords?: string[];
   mood?: string;
   visualElements?: string[];
+  searchQuery?: string;
+}
+
+// Categorias que já têm sinais reais próprios (event_sources/scan) e continuam
+// usando generate-blog-post-v2 + template dedicado — fora do escopo desta correção.
+const TEMPLATE_ROUTED_CATEGORIES = ["eventos", "festivais", "entrevistas", "labels", "lançamentos", "lancamentos"];
+
+// "Sugestões" (e qualquer categoria não mapeada) passou a ser ancorada em
+// matéria real via generate-blog-post-from-topic, em vez do antigo template
+// editorial sem fonte.
+function isSugestoesCatchAll(category: string): boolean {
+  const cat = (category || "").toLowerCase().trim();
+  return !TEMPLATE_ROUTED_CATEGORIES.includes(cat);
 }
 
 interface BlogPost {
@@ -75,12 +88,28 @@ export default function AIContent2() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [topicQuery, setTopicQuery] = useState("");
   const [isGeneratingFromTopic, setIsGeneratingFromTopic] = useState(false);
+  const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
 
   // Fetch initial data
   useEffect(() => {
     fetchTemplates();
     fetchGeneratedPosts();
+    fetchSuggestionsAutoPublish();
   }, []);
+
+  const fetchSuggestionsAutoPublish = async () => {
+    try {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "suggestions_auto_publish")
+        .maybeSingle();
+
+      setSuggestionsAutoPublish(data?.value === "true");
+    } catch (error) {
+      logger.error("Error fetching suggestions_auto_publish:", error);
+    }
+  };
 
 
   const fetchTemplates = async () => {
@@ -389,41 +418,63 @@ export default function AIContent2() {
     setGeneratingIndex(index);
 
     try {
-      // Escolhe template editorial / evento conforme a categoria da sugestão.
-      const template = pickTemplateForSuggestion(suggestion);
+      if (isSugestoesCatchAll(suggestion.category)) {
+        // Sugestões (e categorias não mapeadas) agora são ancoradas em matéria
+        // real via busca, em vez do template editorial antigo sem fonte.
+        const query = suggestion.searchQuery || suggestion.title;
+        logger.debug(`[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → busca real: "${query}"`);
 
-      if (!template) {
-        throw new Error("Nenhum template disponível");
-      }
-      logger.debug(`[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → template "${template.name}"`);
+        const { data, error } = await supabase.functions.invoke("generate-blog-post-from-topic", {
+          body: {
+            query,
+            generateImage: generateWithImage,
+            publishImmediately: suggestionsAutoPublish,
+          },
+        });
 
-      const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
-        body: {
-          templateId: template.id,
-          // Campos no root level que a edge function espera
-          title: suggestion.title,
-          eventName: suggestion.title,
-          summary: suggestion.summary,
-          category: suggestion.category,
-          keywords: Array.isArray(suggestion.keywords) ? suggestion.keywords.join(", ") : (suggestion.keywords || ""),
-          mood: suggestion.mood || "",
-          visualElements: Array.isArray(suggestion.visualElements) ? suggestion.visualElements.join(", ") : (suggestion.visualElements || ""),
-          generateImage: generateWithImage,
-          // Manter formData para compatibilidade
-          formData: {
-            topic: suggestion.title,
+        if (error) throw error;
+
+        toast({
+          title: "Artigo gerado!",
+          description: `"${data.post?.title}" foi criado a partir de ${data.sourcesUsed?.length ?? 0} fontes reais.`,
+        });
+      } else {
+        // Eventos/Festivais/Entrevistas/Labels continuam no fluxo de template dedicado.
+        const template = pickTemplateForSuggestion(suggestion);
+
+        if (!template) {
+          throw new Error("Nenhum template disponível");
+        }
+        logger.debug(`[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → template "${template.name}"`);
+
+        const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
+          body: {
+            templateId: template.id,
+            // Campos no root level que a edge function espera
+            title: suggestion.title,
+            eventName: suggestion.title,
             summary: suggestion.summary,
             category: suggestion.category,
+            keywords: Array.isArray(suggestion.keywords) ? suggestion.keywords.join(", ") : (suggestion.keywords || ""),
+            mood: suggestion.mood || "",
+            visualElements: Array.isArray(suggestion.visualElements) ? suggestion.visualElements.join(", ") : (suggestion.visualElements || ""),
+            generateImage: generateWithImage,
+            // Manter formData para compatibilidade
+            formData: {
+              topic: suggestion.title,
+              summary: suggestion.summary,
+              category: suggestion.category,
+            },
           },
-        },
-      });
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      toast({
-        title: "Artigo gerado!",
-        description: `"${data.title}" foi criado a partir da sugestão.`,
-      });
+        toast({
+          title: "Artigo gerado!",
+          description: `"${data.title}" foi criado a partir da sugestão.`,
+        });
+      }
 
       // Remove from suggestions
       setSuggestions((prev) => prev.filter((_, i) => i !== index));
@@ -498,34 +549,49 @@ export default function AIContent2() {
         setGenerationProgress({ ...progress });
         setGeneratingIndex(originalIndex);
 
-        const template = pickTemplateForSuggestion(suggestion);
-        logger.debug(`[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → template "${template?.name}"`);
+        const useRealSearch = isSugestoesCatchAll(suggestion.category);
+        const template = useRealSearch ? null : pickTemplateForSuggestion(suggestion);
 
-        if (!template) {
+        if (!useRealSearch && !template) {
+          logger.debug(`[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → nenhum template disponível`);
           progress.failed.push(suggestion.title);
           setGenerationProgress({ ...progress });
           continue;
         }
 
+        logger.debug(
+          `[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → ${
+            useRealSearch ? `busca real: "${suggestion.searchQuery || suggestion.title}"` : `template "${template?.name}"`
+          }`
+        );
+
         try {
-          const { data, error } = await supabase.functions.invoke("generate-blog-post-v2", {
-            body: {
-              templateId: template.id,
-              title: suggestion.title,
-              eventName: suggestion.title,
-              summary: suggestion.summary,
-              category: suggestion.category,
-              keywords: Array.isArray(suggestion.keywords) ? suggestion.keywords.join(", ") : (suggestion.keywords || ""),
-              mood: suggestion.mood || "",
-              visualElements: Array.isArray(suggestion.visualElements) ? suggestion.visualElements.join(", ") : (suggestion.visualElements || ""),
-              generateImage: generateWithImage,
-              formData: {
-                topic: suggestion.title,
-                summary: suggestion.summary,
-                category: suggestion.category,
-              },
-            },
-          });
+          const { data, error } = useRealSearch
+            ? await supabase.functions.invoke("generate-blog-post-from-topic", {
+                body: {
+                  query: suggestion.searchQuery || suggestion.title,
+                  generateImage: generateWithImage,
+                  publishImmediately: suggestionsAutoPublish,
+                },
+              })
+            : await supabase.functions.invoke("generate-blog-post-v2", {
+                body: {
+                  templateId: template!.id,
+                  title: suggestion.title,
+                  eventName: suggestion.title,
+                  summary: suggestion.summary,
+                  category: suggestion.category,
+                  keywords: Array.isArray(suggestion.keywords) ? suggestion.keywords.join(", ") : (suggestion.keywords || ""),
+                  mood: suggestion.mood || "",
+                  visualElements: Array.isArray(suggestion.visualElements) ? suggestion.visualElements.join(", ") : (suggestion.visualElements || ""),
+                  generateImage: generateWithImage,
+                  formData: {
+                    topic: suggestion.title,
+                    summary: suggestion.summary,
+                    category: suggestion.category,
+                  },
+                },
+              });
 
           if (error) {
             logger.error(`Error generating "${suggestion.title}":`, error);
@@ -544,8 +610,9 @@ export default function AIContent2() {
             // Remove generated suggestion
             setSuggestions((prev) => prev.filter((s) => s.title !== suggestion.title));
             
+            const generatedTitle = data.post?.title || data.title || suggestion.title;
             toast({
-              title: `Gerado: ${(data.title || suggestion.title).slice(0, 30)}...`,
+              title: `Gerado: ${generatedTitle.slice(0, 30)}...`,
               description: "Artigo criado com sucesso!",
             });
           }

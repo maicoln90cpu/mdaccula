@@ -201,6 +201,12 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** removidos os agrupamentos `'icons'`/`'charts'` de `manualChunks` — o Rollup volta a fazer chunking automático por uso real (cada ícone/gráfico vira um chunk pequeno, carregado só pela página que o importa). Chunk principal cresceu ~9KB (ícones que o `ErrorBoundary`/`Toast` usam diretamente ficam inline) em troca de remover ~991KB do carregamento eager de toda página.
 - **Proteção:** `src/__tests__/regression/vite-bundle-eager-preload.test.ts` — lê `vite.config.ts` e garante que `'icons'`/`'charts'`/`lucide-react`/`recharts` nunca mais apareçam dentro de `manualChunks`.
 
+### R-011 — "Sugestões Aleatórias" gerava artigos de opinião sem nenhuma fonte real
+- **Quando:** julho/2026
+- **Sintoma:** artigos da categoria "Sugestões" (e do fallback genérico Cultura/Tecnologia/Produtores/Cena) eram 100% inventados — `generate-blog-suggestions` só raspava 2 fontes aleatórias pra dar "clima", e `generate-blog-post-v2` escrevia opinião sem citar nada verificável (`source_urls` sempre `null`).
+- **Correção:** `generate-blog-suggestions` passou a exigir um `searchQuery` real (nome próprio rastreável na fonte scrapeada) por sugestão; `auto-article-cron` e o admin (`AIContent2.tsx`, geração individual e em lote) passaram a chamar `generate-blog-post-from-topic` (busca real via Firecrawl `/v1/search` + `source_urls` genuíno) em vez de `generate-blog-post-v2` pras categorias catch-all de Sugestões. Novo toggle `site_settings.suggestions_auto_publish` (nasce desligado) controla se o artigo publica direto ou nasce como rascunho. "Sem fonte encontrada" (404) é tratado como skip, não como falha, pro contador de falhas consecutivas do cron.
+- **Proteção:** `src/__tests__/contracts/edge-sugestoes-real-source-routing.test.ts` (guard estático da nova rota em todos os arquivos envolvidos) + `src/__tests__/regression/generate-from-topic-publish-backcompat.test.ts` (garante que o chamador antigo de `generate-blog-post-from-topic`, a aba "Por Tema", continua sempre publicando).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

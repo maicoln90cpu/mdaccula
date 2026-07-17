@@ -15,6 +15,7 @@ interface Suggestion {
   keywords?: string[];
   mood?: string;
   visualElements?: string[];
+  searchQuery?: string;
 }
 
 export interface GenerationProgress {
@@ -265,6 +266,13 @@ export function SuggestionsList({
                           {suggestion.mood && (
                             <p className="text-xs text-muted-foreground">
                               <span className="font-medium">Mood:</span> {suggestion.mood}
+                            </p>
+                          )}
+                          {suggestion.searchQuery && (
+                            <p className="text-xs text-muted-foreground border-t pt-2 mt-2">
+                              <span className="font-medium">Busca real:</span>{" "}
+                              <code className="text-xs">{suggestion.searchQuery}</code>
+                              {" — o artigo final será escrito a partir de fontes encontradas para este termo, não do resumo acima."}
                             </p>
                           )}
                           <Button

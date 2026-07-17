@@ -106,6 +106,10 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const query = typeof body?.query === 'string' ? body.query.trim() : '';
     const generateImage = Boolean(body?.generateImage);
+    // Omitido (undefined) preserva o comportamento histórico de sempre publicar,
+    // pro chamador original desta function (busca por tema manual no admin).
+    // Só `false` explícito nasce como rascunho — mesma convenção de generate-blog-post-v2.
+    const publishImmediately = body?.publishImmediately;
 
     if (!query) {
       return jsonError('Informe um termo de busca (ex: "Solomun São Paulo")', 400);
@@ -180,7 +184,7 @@ ESTRUTURA OBRIGATÓRIA (retorne APENAS JSON válido):
   "title": "Título editorial chamativo (50-80 caracteres, sem emoji, sem data literal)",
   "excerpt": "Resumo de 1-2 frases (máx 200 caracteres)",
   "content": "HTML do artigo completo, 900 a 1300 palavras",
-  "category": "uma de: Produtores, Tecnologia, Cultura, Lançamentos, Festivais"
+  "category": "uma de: Produtores, Tecnologia, Cultura, Lançamentos, Festivais, Cena"
 }
 
 FORMATAÇÃO HTML: <h2>/<h3> para seções, <p> para parágrafos, <strong> para destaques.
@@ -283,7 +287,7 @@ TAMANHO: 900 a 1300 palavras. Retorne APENAS o JSON válido conforme system prom
     }
     articleData.title = sanitizeTitle(titleCheck.cleaned);
 
-    const allowedCategories = ['Produtores', 'Tecnologia', 'Cultura', 'Lançamentos', 'Festivais'];
+    const allowedCategories = ['Produtores', 'Tecnologia', 'Cultura', 'Lançamentos', 'Festivais', 'Cena'];
     const finalCategory = allowedCategories.includes(articleData.category) ? articleData.category : 'Cultura';
 
     // 5) Slug único
@@ -319,8 +323,8 @@ TAMANHO: 900 a 1300 palavras. Retorne APENAS o JSON válido conforme system prom
         excerpt: articleData.excerpt,
         content: articleData.content,
         category: finalCategory,
-        published: true,
-        published_at: new Date().toISOString(),
+        published: publishImmediately === false ? false : true,
+        published_at: publishImmediately === false ? null : new Date().toISOString(),
       })
       .select()
       .single();

@@ -133,10 +133,11 @@ async function runAutoGeneration() {
       .from('site_settings')
       .select('key, value')
       .in('key', [
-        'ai_auto_generate_enabled', 
-        'ai_auto_generate_interval_hours', 
+        'ai_auto_generate_enabled',
+        'ai_auto_generate_interval_hours',
         'ai_auto_generate_last_run',
-        'ai_auto_generate_fail_count'
+        'ai_auto_generate_fail_count',
+        'suggestions_auto_publish'
       ]);
 
     const settingsMap: Record<string, string> = {};
@@ -147,6 +148,10 @@ async function runAutoGeneration() {
     const intervalHours = parseInt(settingsMap['ai_auto_generate_interval_hours'] || '24');
     const lastRun = settingsMap['ai_auto_generate_last_run'] ? new Date(settingsMap['ai_auto_generate_last_run']) : null;
     const failCount = parseInt(settingsMap['ai_auto_generate_fail_count'] || '0');
+    // Ausente -> false: artigos de Sugestões nascem como rascunho até o usuário
+    // ganhar confiança e ligar a publicação automática (mesmo padrão de
+    // event_watcher_auto_publish).
+    const suggestionsAutoPublish = settingsMap['suggestions_auto_publish'] === 'true';
 
     console.log('Configurações:', { autoGenerateEnabled, intervalHours, lastRun: lastRun?.toISOString(), failCount });
 
@@ -244,23 +249,15 @@ async function runAutoGeneration() {
     console.log(`[Etapa 1] SUCESSO em ${suggestionsElapsed}ms: Selecionada sugestão "${selectedSuggestion.title}"`);
     console.log(`[Etapa 1] Breakdown: scrape=${suggestionsData.breakdown?.scrapeMs || 'N/A'}ms, ai=${suggestionsData.breakdown?.aiMs || 'N/A'}ms`);
 
-    // Buscar template
-    const { data: template } = await supabase
-      .from('ai_prompt_templates')
-      .select('id')
-      .eq('category', 'Sugestões')
-      .eq('enabled', true)
-      .limit(1)
-      .single();
-
-    // ========== ETAPA 2: GERAR ARTIGO ==========
-    console.log(`[Etapa 2] Chamando generate-blog-post-v2 (timeout: ${GENERATE_TIMEOUT_MS}ms = ${GENERATE_TIMEOUT_MS/1000}s)...`);
+    // ========== ETAPA 2: GERAR ARTIGO (ancorado em busca real, não mais opinativo) ==========
+    console.log(`[Etapa 2] Chamando generate-blog-post-from-topic (timeout: ${GENERATE_TIMEOUT_MS}ms = ${GENERATE_TIMEOUT_MS/1000}s)...`);
     const generateStartTime = Date.now();
+    const searchQuery = selectedSuggestion.searchQuery || selectedSuggestion.title;
 
     let generateResponse: Response;
     try {
       generateResponse = await fetchWithTimeout(
-        `${SUPABASE_URL}/functions/v1/generate-blog-post-v2`,
+        `${SUPABASE_URL}/functions/v1/generate-blog-post-from-topic`,
         {
           method: 'POST',
           headers: {
@@ -268,18 +265,9 @@ async function runAutoGeneration() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            templateId: template?.id || null,
-            title: selectedSuggestion.title,
-            summary: selectedSuggestion.summary,
-            category: selectedSuggestion.category,
-            keywords: Array.isArray(selectedSuggestion.keywords) 
-              ? selectedSuggestion.keywords.join(', ') 
-              : (selectedSuggestion.keywords || ''),
-            mood: selectedSuggestion.mood || '',
-            visualElements: Array.isArray(selectedSuggestion.visualElements) 
-              ? selectedSuggestion.visualElements.join(', ') 
-              : (selectedSuggestion.visualElements || ''),
+            query: searchQuery,
             generateImage: true,
+            publishImmediately: suggestionsAutoPublish,
           }),
         },
         GENERATE_TIMEOUT_MS
@@ -296,6 +284,16 @@ async function runAutoGeneration() {
 
     const generateElapsed = Date.now() - generateStartTime;
     console.log(`[Etapa 2] Resposta recebida em ${generateElapsed}ms`);
+
+    // "Nenhuma fonte encontrada" não é uma falha do sistema — é um dia sem
+    // notícia real ancorável para essa sugestão. Não conta pro contador de
+    // falhas consecutivas (que pausaria o auto-generate por 24h à toa).
+    if (generateResponse.status === 404) {
+      const errorText = await generateResponse.text();
+      console.log('[Etapa 2] SKIP (sem fontes reais):', errorText.substring(0, 300));
+      await logToDb(supabase, 'info', 'skipped-no-sources', { query: searchQuery, suggestion: selectedSuggestion.title, elapsedMs: generateElapsed });
+      return;
+    }
 
     if (!generateResponse.ok) {
       const errorText = await generateResponse.text();

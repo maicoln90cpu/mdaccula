@@ -277,9 +277,9 @@ Deno.serve(async (req) => {
       return `### ${s.name} (${s.url})\nDescrição: ${s.content}\n`;
     }).join('\n---\n');
 
-    // Prompt para gerar 5 sugestões
+    // Prompt para gerar até 5 sugestões
     const systemPrompt = `Você é um jornalista especializado em música eletrônica e cultura de clubes brasileira e internacional.
-Sua tarefa é analisar as notícias e tendências reais das fontes fornecidas e gerar 5 sugestões de artigos COMPLETAMENTE NOVOS e DIFERENTES.
+Sua tarefa é analisar as notícias e tendências reais das fontes fornecidas e gerar até 5 sugestões de artigos COMPLETAMENTE NOVOS e DIFERENTES.
 
 ⚠️ REGRA CRÍTICA - EVITE REPETIÇÃO:
 Os seguintes artigos JÁ FORAM PUBLICADOS recentemente no nosso site. VOCÊ NÃO PODE sugerir temas similares:
@@ -290,12 +290,23 @@ ${recentTitlesAndTopics}
 
 ✅ VOCÊ DEVE buscar assuntos COMPLETAMENTE NOVOS nas fontes.
 
-${scrapedCount > 0 ? 
-  `FONTES DE REFERÊNCIA (${scrapedCount} fontes scrapeadas):\n${sourcesWithContent}` : 
+🚨 REGRA CRÍTICA — ÂNCORA REAL OBRIGATÓRIA:
+Cada sugestão será usada depois para uma busca real na web (Firecrawl) e o artigo final
+só poderá citar fatos encontrados nessa busca. Por isso, cada sugestão só é válida se
+tiver uma "searchQuery" concreta e rastreável — um nome próprio (artista, evento, label,
+tecnologia, cidade) que realmente aparece no conteúdo scrapeado abaixo. NUNCA invente uma
+"searchQuery" genérica ou uma manchete de lista (ex: "5 tendências de house music") — isso
+não retorna fontes reais. Se você não conseguir extrair uma âncora real e específica para
+uma ideia, DESCARTE essa ideia e não a inclua na resposta — é preferível devolver menos de
+5 sugestões do que incluir uma sem âncora real.
+
+${scrapedCount > 0 ?
+  `FONTES DE REFERÊNCIA (${scrapedCount} fontes scrapeadas):\n${sourcesWithContent}` :
   `FONTES DE REFERÊNCIA:\n${sourcesWithContent}`
 }`;
 
-    const userPrompt = `Analise as fontes e gere 5 sugestões INÉDITAS de artigos sobre a cena eletrônica.
+    const userPrompt = `Analise as fontes e gere até 5 sugestões INÉDITAS de artigos sobre a cena eletrônica —
+apenas ideias com uma âncora real e específica nas fontes acima.
 
 Cada sugestão deve incluir:
 - título: Título ÚNICO e atraente (máximo 80 caracteres)
@@ -304,6 +315,10 @@ Cada sugestão deve incluir:
 - keywords: Palavras-chave separadas por vírgula
 - mood: Atmosfera visual (energético, introspectivo, celebratório, underground, futurista)
 - visualElements: Elementos visuais sugeridos para imagem
+- searchQuery: Termo de busca REAL e específico (nomes próprios: artista, evento, label,
+  tecnologia) extraído literalmente do conteúdo scrapeado — NUNCA uma manchete inventada
+  ou lista genérica. Será usado para buscar fontes reais na web e escrever o artigo
+  final ancorado nelas.
 
 REGRAS OBRIGATÓRIAS PARA OS TÍTULOS:
 1. Cada título DEVE usar uma estrutura gramatical DIFERENTE dos demais. NUNCA repita o formato "Tema: como X faz Y" mais de uma vez.
@@ -335,7 +350,7 @@ DIVERSIFIQUE as categorias.`;
           type: 'function',
           function: {
             name: 'generate_suggestions',
-            description: 'Gera 5 sugestões ÚNICAS de artigos sobre música eletrônica',
+            description: 'Gera até 5 sugestões ÚNICAS de artigos sobre música eletrônica, cada uma com uma âncora real e específica pesquisável',
             parameters: {
               type: 'object',
               properties: {
@@ -349,11 +364,15 @@ DIVERSIFIQUE as categorias.`;
                       category: { type: 'string', description: 'Categoria do artigo' },
                       keywords: { type: 'string', description: 'Palavras-chave separadas por vírgula' },
                       mood: { type: 'string', description: 'Atmosfera visual sugerida' },
-                      visualElements: { type: 'string', description: 'Elementos visuais sugeridos' }
+                      visualElements: { type: 'string', description: 'Elementos visuais sugeridos' },
+                      searchQuery: {
+                        type: 'string',
+                        description: 'Termo de busca REAL e específico (nomes próprios: artista, evento, label, tecnologia) extraído literalmente do conteúdo scrapeado — NUNCA uma manchete inventada ou lista genérica. Usado depois para buscar fontes reais na web.'
+                      }
                     },
-                    required: ['title', 'summary', 'category', 'keywords', 'mood', 'visualElements']
+                    required: ['title', 'summary', 'category', 'keywords', 'mood', 'visualElements', 'searchQuery']
                   },
-                  minItems: 5,
+                  minItems: 1,
                   maxItems: 5
                 }
               },
