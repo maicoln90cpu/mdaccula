@@ -33,6 +33,23 @@ const MAX_CONTENT_LENGTH = 4000;
 const GENERATE_TIMEOUT_MS = 120000;
 const IMAGE_FETCH_TIMEOUT_MS = 10000;
 
+// Fase B: fontes de Instagram guardam uma URL de perfil (ex:
+// "https://instagram.com/somehandle/" ou variações com www/query string) — a API
+// da Apify espera só o username puro.
+function extractInstagramUsername(rawUrl: string): string | null {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    const segments = url.pathname.split("/").filter(Boolean);
+    return segments[0] || null;
+  } catch {
+    // Não é uma URL válida — trata como se já fosse um username puro (aceita
+    // "@handle" ou "handle" cru).
+    return trimmed.replace(/^@/, "") || null;
+  }
+}
+
 // Baixa uma imagem real encontrada na página raspada e re-hospeda no Bunny (nunca
 // hotlink direto pro CDN de terceiros — evita quebrar se a fonte remover/mover o
 // arquivo, e não consome banda do site original). Reaproveita o mesmo pipeline de
@@ -84,6 +101,41 @@ async function rehostImageToBunny(imageUrl: string): Promise<string | null> {
   }
 }
 
+const COMPOSE_IMAGE_TIMEOUT_MS = 30000;
+
+// Fase B: pede pra compose-event-image aplicar a marca MDAccula (barra de título +
+// logo) sobre a imagem já re-hospedada. compose-event-image nunca lança e sempre
+// devolve alguma imageUrl (composta ou a original, se algo falhar) — mas por
+// segurança extra, qualquer erro de rede/timeout aqui também cai de volta na URL
+// original recebida, nunca bloqueia o resto do pipeline.
+async function composeEventImage(
+  supabaseUrl: string,
+  serviceKey: string,
+  imageUrl: string,
+  title: string,
+): Promise<string> {
+  try {
+    const response = await fetchWithTimeout(
+      `${supabaseUrl}/functions/v1/compose-event-image`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ imageUrl, title }),
+      },
+      COMPOSE_IMAGE_TIMEOUT_MS,
+    );
+    if (!response.ok) return imageUrl;
+    const data = await response.json();
+    return typeof data?.imageUrl === "string" ? data.imageUrl : imageUrl;
+  } catch (error) {
+    console.error("[scan-event-sources] composeEventImage falhou, usando imagem sem marca:", error);
+    return imageUrl;
+  }
+}
+
 // Dispara a geração do artigo (modo rascunho) pro rascunho recém-extraído, em
 // background — não bloqueia a resposta principal do scan, que pode ter achado
 // vários eventos novos no mesmo run (cada geração leva até ~140s).
@@ -102,6 +154,13 @@ async function generateDraftArticle(
     // eventImageUrl — generate-blog-post-v2 cai no fallback de geração por IA
     // (generateImage:true) automaticamente, sem nenhuma mudança necessária lá.
     const rehostedImageUrl = extracted.image_url ? await rehostImageToBunny(extracted.image_url) : null;
+
+    // Fase B: aplica a marca MDAccula (barra de título + logo) sobre a imagem real
+    // antes de gerar o artigo. compose-event-image nunca lança — em qualquer falha
+    // devolve a própria URL recebida, então este bloco nunca piora o que já tínhamos.
+    const finalImageUrl = rehostedImageUrl
+      ? await composeEventImage(supabaseUrl, serviceKey, rehostedImageUrl, extracted.title)
+      : null;
 
     // NUNCA envia ticket_link: é sempre o link da página raspada de terceiros (ex:
     // um concorrente), nunca um link oficial da MDAccula. Enviá-lo faria o gerador
@@ -127,7 +186,7 @@ async function generateDraftArticle(
           locationState: extracted.location_state ?? "",
           lineup: extracted.lineup.join(", "),
           description: extracted.description ?? "",
-          ...(rehostedImageUrl ? { eventImageUrl: rehostedImageUrl } : {}),
+          ...(finalImageUrl ? { eventImageUrl: finalImageUrl } : {}),
           generateImage: true,
           publishImmediately: false,
         }),
@@ -217,10 +276,23 @@ Deno.serve(async (req) => {
 
     const { data: sources, error: sourcesError } = await admin
       .from("event_sources")
-      .select("id, name, url")
-      .eq("type", "site")
+      .select("id, name, url, type")
       .eq("enabled", true);
     if (sourcesError) throw sourcesError;
+
+    // Fase B: secret dedicado que a Apify vai devolver na query string do webhook,
+    // pra provar que a chamada é legítima (a Apify não manda JWT do Supabase).
+    const apifyApiKey = Deno.env
+      .get("APIFY_API_TOKEN")
+      ?.trim()
+      ?.replace(/^["']|["']$/g, "")
+      ?.replace(/[^\x20-\x7E]/g, "");
+    const { data: apifyWebhookSecretRow } = await admin
+      .from("internal_cron_secrets")
+      .select("secret")
+      .eq("name", "apify_instagram_webhook")
+      .maybeSingle();
+    const apifyWebhookSecret = apifyWebhookSecretRow?.secret ?? null;
 
     const { data: existingEvents } = await admin.from("events").select("title, date");
     const { data: existingDrafts } = await admin
@@ -237,8 +309,61 @@ Deno.serve(async (req) => {
     let skippedDuplicate = 0;
     let skippedNoEvent = 0;
     let scrapeErrors = 0;
+    let instagramTriggered = 0;
+    let instagramSkipped = 0;
 
     for (const source of sources ?? []) {
+      // Fase B: fontes do Instagram não são raspadas por Firecrawl — disparamos um
+      // run assíncrono do ator de monitoramento na Apify e seguimos pra próxima
+      // fonte. O resultado chega depois via apify-instagram-webhook (o próprio
+      // ator chama esse webhook quando encontra post novo); nenhum rascunho nasce
+      // aqui nesta mesma requisição.
+      if (source.type === "instagram") {
+        if (!apifyApiKey || !apifyWebhookSecret) {
+          instagramSkipped++;
+          continue;
+        }
+        const username = extractInstagramUsername(source.url);
+        if (!username) {
+          instagramSkipped++;
+          continue;
+        }
+        try {
+          const webhookUrl =
+            `${supabaseUrl}/functions/v1/apify-instagram-webhook` +
+            `?source_id=${encodeURIComponent(source.id)}&secret=${encodeURIComponent(apifyWebhookSecret)}`;
+          const apifyResponse = await fetchWithTimeout(
+            "https://api.apify.com/v2/acts/instaprism~instagram-post-monitor/runs",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${apifyApiKey}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                usernames: [username],
+                webhookUrl,
+                includeEngagement: false,
+              }),
+            },
+            SCRAPE_TIMEOUT_MS,
+          );
+          if (!apifyResponse.ok) {
+            instagramSkipped++;
+            continue;
+          }
+          instagramTriggered++;
+          await admin
+            .from("event_sources")
+            .update({ last_scanned_at: new Date().toISOString() })
+            .eq("id", source.id);
+        } catch (apifyError) {
+          console.error(`scan-event-sources: falha ao disparar Apify pra fonte ${source.id}:`, apifyError);
+          instagramSkipped++;
+        }
+        continue;
+      }
+
       const scrape = await scrapeWithFirecrawl(source.url, firecrawlKey, SCRAPE_TIMEOUT_MS);
       if (!scrape.success || !scrape.markdown) {
         scrapeErrors++;
@@ -342,6 +467,8 @@ Deno.serve(async (req) => {
       skippedDuplicate,
       skippedNoEvent,
       scrapeErrors,
+      instagramTriggered,
+      instagramSkipped,
     });
   } catch (error) {
     return handleError(error, "scan-event-sources");

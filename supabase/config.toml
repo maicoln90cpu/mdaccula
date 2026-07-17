@@ -32,3 +32,6 @@ verify_jwt = false
 [functions.scan-event-sources]
 verify_jwt = false
 
+[functions.apify-instagram-webhook]
+verify_jwt = false
+
