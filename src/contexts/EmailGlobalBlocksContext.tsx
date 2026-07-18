@@ -8,25 +8,10 @@
  * Agora todos consomem o MESMO cache via este contexto, e qualquer
  * save/update/delete recarrega uma única fonte de verdade.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Block, GlobalBlock } from "@/lib/emailTemplates/blocks";
-
-type Ctx = {
-  globals: GlobalBlock[];
-  globalsMap: Map<string, GlobalBlock>;
-  loading: boolean;
-  error: string | null;
-  reload: () => Promise<void>;
-  saveAsGlobal: (
-    block: Block,
-    meta: { name: string; description?: string; category?: string },
-  ) => Promise<GlobalBlock | null>;
-  updateGlobal: (id: string, patch: Partial<Omit<GlobalBlock, "id">>) => Promise<void>;
-  deleteGlobal: (id: string) => Promise<void>;
-};
-
-const EmailGlobalBlocksContext = createContext<Ctx | null>(null);
+import { EmailGlobalBlocksContext, type EmailGlobalBlocksCtx as Ctx } from "./emailGlobalBlocksContextValue";
 
 export function EmailGlobalBlocksProvider({ children }: { children: ReactNode }) {
   const [globals, setGlobals] = useState<GlobalBlock[]>([]);
@@ -127,32 +112,4 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
       {children}
     </EmailGlobalBlocksContext.Provider>
   );
-}
-
-/**
- * Hook que consome o contexto. Fora do Provider, cai em um fallback local
- * (mantém compatibilidade com testes/isolados), mas dentro do Provider
- * TODOS os componentes compartilham o mesmo cache — evita o bug do
- * "[Bloco global indisponível]" no preview logo após salvar.
- */
-export function useEmailGlobalBlocksContext(): Ctx {
-  const ctx = useContext(EmailGlobalBlocksContext);
-  if (ctx) return ctx;
-  // Fallback silencioso: sem Provider, retorna cache vazio inerte.
-  return {
-    globals: [],
-    globalsMap: new Map(),
-    loading: false,
-    error: null,
-    reload: async () => {},
-    saveAsGlobal: async () => {
-      throw new Error("EmailGlobalBlocksProvider não montado — envolva a página com o Provider.");
-    },
-    updateGlobal: async () => {
-      throw new Error("EmailGlobalBlocksProvider não montado.");
-    },
-    deleteGlobal: async () => {
-      throw new Error("EmailGlobalBlocksProvider não montado.");
-    },
-  };
 }

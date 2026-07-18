@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   type Template,
   type Block,
+  type GlobalBlock,
 } from "./blocks";
 import {
   buildEventAnnouncementData,
@@ -180,13 +181,13 @@ export async function dispatchEventDraftEmail(
     : null;
 
   // 4. Carrega blocos globais (Fase C) e expande refs antes do render
-  let globalsMap: Map<string, import("./blocks").GlobalBlock> | undefined;
+  let globalsMap: Map<string, GlobalBlock> | undefined;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
     const { data } = await (supabase.from as any)("email_global_blocks")
       .select("id, name, description, category, block");
     if (data && Array.isArray(data)) {
-      globalsMap = new Map(data.map((g: any) => [g.id, g as import("./blocks").GlobalBlock]));
+      globalsMap = new Map(data.map((g: any) => [g.id, g as GlobalBlock]));
     }
   } catch {
     // segue sem globals; global_refs serão renderizados como placeholder

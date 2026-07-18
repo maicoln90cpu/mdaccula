@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { getQualityMetrics, TECH_DEBT_ITEMS, type QualityMetric } from '@/lib/qualityMetrics';
+import { getQualityMetrics, TECH_DEBT_ITEMS } from '@/lib/qualityMetrics';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Bug,
   ShieldCheck,
-  Gauge,
   FileCode,
   AlertTriangle,
   CheckCircle2,

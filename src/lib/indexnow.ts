@@ -3,6 +3,7 @@
  * mudou. Falha em silêncio: nunca quebra o fluxo do usuário.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "./logger";
 
 const SITE_ORIGIN = "https://mdaccula.com";
 
@@ -30,7 +31,7 @@ export async function notifyIndexNow(paths: string[]): Promise<void> {
     if (error) {
       console.warn("[indexnow] falha (ignorada):", error.message);
     } else {
-      console.log("[indexnow] notificadas:", normalized.length, "URLs");
+      logger.debug("[indexnow] notificadas:", { count: normalized.length });
     }
   } catch (err) {
     console.warn("[indexnow] erro (ignorado):", err);

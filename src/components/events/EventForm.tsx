@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Plus, X, Upload, Loader2, Search } from 'lucide-react';
+import { Plus, X, Loader2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { generateEventGroupName } from '@/lib/eventGroupHelper';
@@ -126,7 +126,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [linkUrlType, setLinkUrlType] = useState<'ticket' | 'slug'>('ticket');
   const [generateBlogPost, setGenerateBlogPost] = useState(false);
   const [aiContext, setAiContext] = useState<string>(event?.ai_context || '');
-  const [linkGroups, setLinkGroups] = useState<any[]>([]);
+  const [, setLinkGroups] = useState<any[]>([]);
   const [eventTemplates, setEventTemplates] = useState<any[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   // B.6 — Toggle para criar rascunho automático de e-mail na E-goi ao salvar.
@@ -519,11 +519,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         
         // Invalidar cache de eventos para refletir mudanças imediatamente
         try {
-          const { QueryClient } = await import('@tanstack/react-query');
           // Clear localStorage cache
           localStorage.removeItem('mdaccula-events-cache');
           logger.debug('[EventForm] 🗑️ Cache localStorage de eventos limpo');
-        } catch {}
+        } catch {
+          // localStorage indisponível — limpeza de cache é best-effort
+        }
         
         toast({
           title: "Evento atualizado com sucesso!",
@@ -657,7 +658,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             
             
             // Check if group exists, if not create it
-            const { data: existingGroup, error: groupError } = await supabase
+            const { data: existingGroup, error: _groupError } = await supabase
               .from('link_groups')
               .select('id')
               .eq('name', groupName)

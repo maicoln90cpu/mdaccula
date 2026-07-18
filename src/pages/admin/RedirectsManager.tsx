@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { useToast } from "@/hooks/useToast";
-import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar as CalendarIcon, ArrowDownWideNarrow, CalendarDays, ArrowLeft } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar as CalendarIcon, CalendarDays, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { format, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";

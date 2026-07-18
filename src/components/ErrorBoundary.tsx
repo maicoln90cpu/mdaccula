@@ -48,7 +48,6 @@ export class ErrorBoundary extends Component<Props, State> {
         const last = Number(sessionStorage.getItem(KEY) || "0");
         if (Date.now() - last >= 10_000) {
           sessionStorage.setItem(KEY, String(Date.now()));
-          // eslint-disable-next-line no-console
           console.warn("[ErrorBoundary] Chunk obsoleto detectado — recarregando.");
           window.location.reload();
           return;
@@ -192,23 +191,6 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return this.props.children;
   }
-}
-
-/**
- * HOC to wrap a page component with ErrorBoundary
- */
-export function withErrorBoundary<P extends object>(
-  Component: React.ComponentType<P>,
-  pageName?: string,
-  minimal?: boolean
-) {
-  return function WrappedComponent(props: P) {
-    return (
-      <ErrorBoundary pageName={pageName} minimal={minimal}>
-        <Component {...props} />
-      </ErrorBoundary>
-    );
-  };
 }
 
 /**

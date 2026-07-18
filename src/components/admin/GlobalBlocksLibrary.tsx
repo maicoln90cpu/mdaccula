@@ -10,12 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import {
   Plus, Save, Trash2, Library, Pencil,
   Image as ImageIcon, Type, AlignLeft, MousePointerClick, Minus,
-  Share2, LayoutGrid, Clock, Map, FileText, Link as LinkIcon, Package,
+  Share2, LayoutGrid, Clock, FileText, Link as LinkIcon, Package,
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";

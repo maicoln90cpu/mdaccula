@@ -20,7 +20,9 @@ const getCachedEvents = (): Event[] | null => {
 const setCachedEvents = (data: Event[]) => {
   try {
     localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch {}
+  } catch {
+    // localStorage indisponível ou cheio — cache é best-effort
+  }
 };
 
 export function useEvents() {

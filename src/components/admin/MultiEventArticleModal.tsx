@@ -12,9 +12,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
+import { logger } from "@/lib";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 import { uploadImageWithThumb } from "@/lib/bunnyUploader";
-import { Search, Calendar, MapPin, Music, Loader2, FileText, X, ImageIcon, Upload, Link } from "lucide-react";
+import { Search, Calendar, MapPin, Loader2, FileText, X, ImageIcon, Upload, Link } from "lucide-react";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -207,7 +208,7 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
         setUploadingImage(false);
       }
 
-      console.log('[MultiEventArticleModal] Iniciando geração multi-evento:', {
+      logger.debug('[MultiEventArticleModal] Iniciando geração multi-evento:', {
         seriesName,
         eventCount: selectedEvents.length,
         eventIds: selectedEvents.map(e => e.id),

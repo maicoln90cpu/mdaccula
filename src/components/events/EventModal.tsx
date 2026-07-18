@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, ExternalLink, Edit } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { parseLocalDate } from '@/lib/utils';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl, getThumbnailUrl } from '@/lib/imageUtils';
@@ -21,14 +20,6 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
   const { isAdmin } = useAuth();
 
   if (!event) return null;
-
-  const formatDate = (dateStr: string) => {
-    return parseLocalDate(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
 
   const formatTime = (timeStr?: string | null) => {
     if (!timeStr) return 'Horário a confirmar';

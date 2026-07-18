@@ -188,15 +188,6 @@ const EventDetail = () => {
     }
   }, [isLoading, event, error, navigate]);
 
-  const formatDate = (dateStr: string) => {
-    return parseLocalDate(dateStr).toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-      weekday: "long",
-    });
-  };
-
   const formatTime = (timeStr?: string | null) => {
     if (!timeStr) return 'Horário a confirmar';
     return timeStr.slice(0, 5);

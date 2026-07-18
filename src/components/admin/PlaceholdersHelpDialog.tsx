@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,
 } from "@/components/ui/dialog";
-import { KNOWN_PLACEHOLDERS } from "./InboxPreviewHeader";
+import { KNOWN_PLACEHOLDERS } from "./inboxPreviewPlaceholders";
 
 export function PlaceholdersHelpDialog() {
   const [copied, setCopied] = useState<string | null>(null);

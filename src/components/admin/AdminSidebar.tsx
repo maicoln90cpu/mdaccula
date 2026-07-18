@@ -32,8 +32,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
+import { useSidebar } from "@/components/ui/sidebar-context";
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 type Group = { label: string; items: Item[] };

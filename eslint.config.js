@@ -6,7 +6,7 @@ import tseslint from "typescript-eslint";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default tseslint.config(
-  { ignores: ["dist", "node_modules", "supabase/functions", "src/__tests__"] },
+  { ignores: ["dist", "node_modules", "coverage", "supabase/functions", "src/__tests__"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

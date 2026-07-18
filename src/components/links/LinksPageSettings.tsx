@@ -12,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
 import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 import { Upload, Loader2 } from "lucide-react";
 import { ThemeSelector } from "./ThemeSelector";
@@ -63,7 +62,6 @@ export const LinksPageSettings = ({
   currentCardBorderColor,
 }: LinksPageSettingsProps) => {
   const [handle, setHandle] = useState(currentHandle || "@MDAccula");
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(currentAvatar || null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState(currentTheme || "sunset");

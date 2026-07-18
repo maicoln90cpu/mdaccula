@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, FileText, Upload } from "lucide-react";
+import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, Upload } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 

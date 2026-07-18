@@ -23,7 +23,7 @@ const contactSchema = z.object({
 });
 
 const Contato = () => {
-  const { settings, isLoading } = useSiteSettings();
+  const { settings } = useSiteSettings();
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: "",

@@ -290,7 +290,7 @@ export function AutoGenerationPanel() {
         }, { onConflict: 'key' });
 
       // Call the function
-      const { data, error } = await supabase.functions.invoke('auto-article-cron', {
+      const { error } = await supabase.functions.invoke('auto-article-cron', {
         body: {},
       });
 

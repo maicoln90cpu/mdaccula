@@ -12,7 +12,6 @@ import {
   XCircle,
   MessageCircle,
   Users,
-  TrendingUp,
   ExternalLink,
   Mail,
   Phone,

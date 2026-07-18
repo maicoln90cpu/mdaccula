@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from "recharts";
 import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -49,9 +49,6 @@ const ESTIMATED_COST_PER_ARTICLE: Record<string, number> = {
   "openai/o3-mini": 0.0105,
   "openai/o4-mini": 0.0105,
 };
-
-// Custo estimado por imagem gerada (Nano Banana)
-const ESTIMATED_COST_PER_IMAGE = 0.04;
 
 interface AIPost {
   id: string;
@@ -181,7 +178,6 @@ export const AIAnalyticsDashboard = () => {
     });
 
     // Add Nano Banana (image generation) separately - usando APENAS dados reais
-    const nanoBananaData = modelData["google/gemini-2.5-flash-image-preview"];
     const realImageCount = posts.filter(p => p.image_tokens && p.image_tokens > 0).length;
     const totalImageTokens = posts.reduce((acc, p) => acc + (p.image_tokens || 0), 0);
     

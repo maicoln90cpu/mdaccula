@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
-import AISettings, { DEFAULT_IMAGE_PROMPT } from "@/components/admin/settings/AISettings";
+import AISettings from "@/components/admin/settings/AISettings";
+import { DEFAULT_IMAGE_PROMPT } from "@/components/admin/settings/aiSettingsConstants";
 
 const AISettingsPage = () => {
   const [aiModel, setAiModel] = useState("google/gemini-2.5-flash");

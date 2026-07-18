@@ -28,10 +28,6 @@ import { useEvents } from "@/hooks/useEvents";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import type { Event } from "@/types";
 
-const BRAZILIAN_STATES = [
-  'SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE', 'PA', 'MA', 'PB', 'ES', 'PI', 'AL', 'RN', 'MT', 'MS', 'DF', 'SE', 'RO', 'TO', 'AC', 'AM', 'RR', 'AP'
-];
-
 const getEffectiveEventEndDate = (event: Pick<Event, 'date'> & { end_date?: string | null }) =>
   event.end_date && event.end_date >= event.date ? event.end_date : event.date;
 

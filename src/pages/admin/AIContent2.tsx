@@ -497,7 +497,7 @@ export default function AIContent2() {
   const handleRegenerateImage = async (postId: string) => {
     setRegeneratingId(postId);
     try {
-      const { data, error } = await supabase.functions.invoke("regenerate-blog-image", {
+      const { error } = await supabase.functions.invoke("regenerate-blog-image", {
         body: { postId },
       });
 

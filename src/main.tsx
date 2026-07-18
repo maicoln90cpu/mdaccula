@@ -16,7 +16,6 @@ function reloadForChunkError(reason: string) {
     const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || "0");
     if (Date.now() - last < 10_000) return; // já tentou recentemente
     sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
-    // eslint-disable-next-line no-console
     console.warn(`[chunk-reload] Recarregando após chunk obsoleto: ${reason}`);
     window.location.reload();
   } catch {
@@ -69,7 +68,7 @@ logger.info('MDAccula app initializing', {
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ErrorBoundary
-      onError={(error, errorInfo) => {
+      onError={(error, _errorInfo) => {
         logger.error('Root ErrorBoundary caught error', error, {
           component: 'Root',
           action: 'errorBoundary',

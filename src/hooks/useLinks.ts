@@ -67,7 +67,9 @@ const getCachedLinks = (): LinkGroup[] | null => {
 const setCachedLinks = (data: LinkGroup[]) => {
   try {
     localStorage.setItem(LINKS_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
-  } catch {}
+  } catch {
+    // localStorage indisponível ou cheio — cache é best-effort
+  }
 };
 
 export interface ProcessLinksOptions {

@@ -29,11 +29,11 @@ import { GripVertical, Plus, Trash2, Copy, Save, Eye, EyeOff, Library, Unlink } 
 import { useToast } from "@/hooks/useToast";
 import {
   type Block, type Template, BLOCK_LABELS, AVAILABLE_BLOCKS, newBlockId,
-  type ArticleSummary,
+  type ArticleSummary, type GlobalBlock,
   TEMPLATE_PRESETS, buildPresetBlocks, type PresetKey,
 } from "@/lib/emailTemplates/blocks";
 import { composeEmail } from "@/lib/emailTemplates/emailComposer";
-import { MOCK_EVENT_DATA, type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
+import { type EventAnnouncementData, type EmailTemplateSettings } from "@/lib/emailTemplates/eventAnnouncement";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -42,7 +42,6 @@ import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
 import { GlobalBlocksLibrary } from "./GlobalBlocksLibrary";
 import { InboxPreviewHeader } from "./InboxPreviewHeader";
 import { PlaceholdersHelpDialog } from "./PlaceholdersHelpDialog";
-import { buildEmailMeta } from "@/lib/emailTemplates/emailMeta";
 
 interface Props {
   templates: Template[];
@@ -373,16 +372,6 @@ export function EmailTemplateEditor({
   };
 
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) || null;
-  const previewMeta = useMemo(
-    () => buildEmailMeta(currentSubject, currentPreheader, {
-      eventTitle: previewEvent.eventTitle,
-      dateLabel: previewEvent.dateLabel,
-      timeLabel: previewEvent.timeLabel,
-      venueName: previewEvent.venueName,
-      cityState: previewEvent.cityState,
-    }),
-    [currentSubject, currentPreheader, previewEvent],
-  );
 
   const previewComposition = useMemo(
     () => composeEmail({
@@ -1415,8 +1404,8 @@ function GlobalRefPropsPanel({
 }: {
   refBlock: Extract<Block, { kind: "global_ref" }>;
   templates: Template[];
-  globalsMap: Map<string, import("@/lib/emailTemplates/blocks").GlobalBlock>;
-  updateGlobal: (id: string, patch: Partial<Omit<import("@/lib/emailTemplates/blocks").GlobalBlock, "id">>) => Promise<void>;
+  globalsMap: Map<string, GlobalBlock>;
+  updateGlobal: (id: string, patch: Partial<Omit<GlobalBlock, "id">>) => Promise<void>;
   onUnlink: (expanded: Block) => void;
   onToast: (t: { title: string; description?: string; variant?: "default" | "destructive" }) => void;
 }) {

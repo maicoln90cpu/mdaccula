@@ -91,9 +91,6 @@ export function renderEventAnnouncementEmail(
     ticketUrl,
     eventUrl,
     agendaUrl,
-    instagramUrl,
-    youtubeUrl,
-    tiktokUrl,
     unsubscribeUrl,
   } = data;
 

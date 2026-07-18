@@ -115,6 +115,7 @@ const persistLogs = async () => {
     });
   } catch (error) {
     // Silently fail - don't want logging to break the app
+    // eslint-disable-next-line no-console -- internal to logger impl, can't call logger.* recursively
     console.debug('Failed to persist logs:', error);
     // Re-add logs to pending (best effort)
     pendingLogs.push(...logsToSend.slice(0, 20));
@@ -228,6 +229,7 @@ export const logger = {
     if (shouldLog('debug')) {
       storeLog(entry);
       if (LOG_CONFIG.enableConsole) {
+        // eslint-disable-next-line no-console -- internal to logger impl, can't call logger.* recursively
         console.debug(formatLogMessage(entry));
       }
     }
@@ -238,6 +240,7 @@ export const logger = {
     if (shouldLog('info')) {
       storeLog(entry);
       if (LOG_CONFIG.enableConsole) {
+        // eslint-disable-next-line no-console -- internal to logger impl, can't call logger.* recursively
         console.info(formatLogMessage(entry));
       }
     }

@@ -55,7 +55,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
   const [content, setContent] = useState(post?.content || '');
   const { toast } = useToast();
 
-  const { register, handleSubmit, setValue, control, formState: { errors } } = useForm<BlogFormData>({
+  const { register, handleSubmit, control, formState: { errors } } = useForm<BlogFormData>({
     defaultValues: post ? {
       title: post.title,
       excerpt: post.excerpt || '',

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, ExternalLink, TrendingUp, MousePointerClick, BarChart3, Eye, Heart, FileText, Link as LinkIcon, ChevronDown, ChevronRight, Calendar, Share2 } from "lucide-react";
+import { ArrowLeft, TrendingUp, MousePointerClick, Eye, Heart, FileText, Link as LinkIcon, ChevronDown, ChevronRight, Calendar, Share2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 

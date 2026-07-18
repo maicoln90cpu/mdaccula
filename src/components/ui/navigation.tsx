@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Calendar, Users, MessageCircle, LogIn, LogOut, BookOpen, User, Settings, Link, Moon, Sun, Mic } from "lucide-react";
+import { Menu, X, Calendar, Users, MessageCircle, LogOut, BookOpen, User, Settings, Link, Moon, Sun, Mic } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SearchBar } from "./SearchBar";
 import { useTheme } from "next-themes";

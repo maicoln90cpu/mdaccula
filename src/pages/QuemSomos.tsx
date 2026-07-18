@@ -2,7 +2,7 @@ import Navigation from "@/components/ui/navigation";
 import Footer from "@/components/ui/footer";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Music, Users, Calendar, Award, Instagram, Loader2 } from "lucide-react";
+import { Music, Users, Calendar, Award, Instagram } from "lucide-react";
 import heroImage from "@/assets/sao-paulo-night.jpg";
 import logoImage from "@/assets/logo-mdaccula.jpeg";
 import { useQuery } from "@tanstack/react-query";

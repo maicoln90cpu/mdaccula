@@ -5,20 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { NavLink } from "react-router-dom";
-import { ArrowLeft, RefreshCw, Save, ShieldAlert, ShieldCheck, Send, Users, Palette, Image as ImageIcon, LayoutGrid, Mail, BarChart3 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Save, ShieldAlert, Send, Palette, Image as ImageIcon, LayoutGrid, Mail, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import {
   MOCK_EVENT_DATA,
@@ -78,7 +71,6 @@ const EmailConfig = () => {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
   const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
-  const [tplLoading, setTplLoading] = useState(false);
   const [tplSaving, setTplSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -412,20 +404,6 @@ const EmailConfig = () => {
       setDigestPreviewLoading(false);
     }
   };
-
-  // Templates filtrados pela fonte selecionada
-  const digestTemplateOptions = useMemo(() => {
-    if (previewSource === "digest") {
-      return templates.filter((t) => t.type === "weekly_digest" || t.type === "weekly_digest_editorial");
-    }
-    if (previewSource === "weekend") {
-      return templates.filter((t) => t.type === "weekend_agenda");
-    }
-    if (previewSource === "blog") {
-      return templates.filter((t) => t.type === "blog_digest");
-    }
-    return [];
-  }, [templates, previewSource]);
 
   useEffect(() => {
     if (previewSource === "event") return;
