@@ -2,15 +2,13 @@ import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Image, Thermometer, History, Clock, Sparkles, Eye, RotateCcw } from "lucide-react";
+import { Bot, Image, Thermometer, History, Sparkles, Eye, RotateCcw } from "lucide-react";
 
 interface AIModel {
   id: string;
@@ -246,10 +244,6 @@ interface AISettingsProps {
   setAiImagePrompt: (value: string) => void;
   aiHistoryLimit: number;
   setAiHistoryLimit: (value: number) => void;
-  aiAutoGenerateEnabled: boolean;
-  setAiAutoGenerateEnabled: (value: boolean) => void;
-  aiAutoGenerateInterval: string;
-  setAiAutoGenerateInterval: (value: string) => void;
   aiMaxArticleLength: number;
   setAiMaxArticleLength: (value: number) => void;
   aiMaxScrapeSources: number;
@@ -265,10 +259,6 @@ const AISettings = ({
   setAiImagePrompt,
   aiHistoryLimit,
   setAiHistoryLimit,
-  aiAutoGenerateEnabled,
-  setAiAutoGenerateEnabled,
-  aiAutoGenerateInterval,
-  setAiAutoGenerateInterval,
   aiMaxArticleLength,
   setAiMaxArticleLength,
   aiMaxScrapeSources,
@@ -431,44 +421,10 @@ const AISettings = ({
             </p>
           </div>
 
-          <div className="space-y-4 p-4 rounded-lg bg-muted/30 border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <div>
-                  <Label className="text-sm font-medium">Geração Automática de Artigos</Label>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Gera artigos automaticamente em intervalos regulares
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={aiAutoGenerateEnabled}
-                onCheckedChange={setAiAutoGenerateEnabled}
-              />
-            </div>
-            
-            {aiAutoGenerateEnabled && (
-              <div className="space-y-3 pt-2">
-                <Label className="text-sm">Intervalo de Geração</Label>
-                <Select value={aiAutoGenerateInterval} onValueChange={setAiAutoGenerateInterval}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="6">A cada 6 horas</SelectItem>
-                    <SelectItem value="12">A cada 12 horas</SelectItem>
-                    <SelectItem value="24">A cada 24 horas (1 por dia)</SelectItem>
-                    <SelectItem value="48">A cada 48 horas (1 a cada 2 dias)</SelectItem>
-                    <SelectItem value="72">A cada 72 horas (1 a cada 3 dias)</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  O sistema irá gerar automaticamente um artigo aleatório baseado nas fontes de notícias configuradas.
-                </p>
-              </div>
-            )}
-          </div>
+          <p className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/30 border">
+            A geração automática de artigos (ligar/desligar, intervalo e logs de execução) fica em{" "}
+            <strong>Conteúdo por IA → aba Automação</strong>.
+          </p>
         </CardContent>
       </Card>
     </div>

@@ -20,6 +20,7 @@ import {
   Database,
   Home,
   Radar,
+  Bot,
 } from "lucide-react";
 import {
   Sidebar,
@@ -60,6 +61,7 @@ const groups: Group[] = [
     items: [
       { title: "Conteúdo por IA", url: "/admin/ai-content2", icon: Sparkles },
       { title: "Fontes", url: "/admin/fontes", icon: Radar },
+      { title: "Configuração de IA", url: "/admin/ai-settings", icon: Bot },
     ],
   },
   {

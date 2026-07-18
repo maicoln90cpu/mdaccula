@@ -8,7 +8,6 @@ import {
   Sparkles,
   Bot,
   Globe,
-  Wand2,
   Link as LinkIcon,
   ExternalLink,
   Mail,
@@ -58,10 +57,9 @@ const sections: AdminSection[] = [
     title: "Inteligência Artificial",
     icon: Cpu,
     cards: [
-      { title: "Gerador de Conteúdo", description: "Gerar artigos com IA", icon: Sparkles, href: "/admin/ai-content2", color: "text-purple-500" },
-      { title: "Templates de Prompts", description: "Editar prompts da IA", icon: Bot, href: "/admin/ai-content2?tab=templates", color: "text-indigo-500" },
+      { title: "Conteúdo por IA", description: "Gerar, sugerir e agendar artigos com IA", icon: Sparkles, href: "/admin/ai-content2", color: "text-purple-500" },
       { title: "Fontes", description: "Fontes de notícias e eventos monitoradas pela IA", icon: Globe, href: "/admin/fontes", color: "text-yellow-500" },
-      { title: "Geração Automática", description: "Cron e fila de auto-geração", icon: Wand2, href: "/admin/ai-content2?tab=auto-generation", color: "text-emerald-500" },
+      { title: "Configuração de IA", description: "Modelo, prompt de imagem e limites de geração", icon: Bot, href: "/admin/ai-settings", color: "text-indigo-500" },
     ],
   },
   {

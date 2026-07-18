@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Settings2, Users, ImageIcon, Clock, Bot, BarChart3 } from "lucide-react";
+import { ArrowLeft, Save, Settings2, Users, ImageIcon, Clock, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
 import AIAnalyticsDashboard from "@/components/admin/AIAnalyticsDashboard";
@@ -11,7 +11,6 @@ import GeneralSettings from "@/components/admin/settings/GeneralSettings";
 import SocialSettings from "@/components/admin/settings/SocialSettings";
 import MediaSettings from "@/components/admin/settings/MediaSettings";
 import TimezoneSettings from "@/components/admin/settings/TimezoneSettings";
-import AISettings, { DEFAULT_IMAGE_PROMPT } from "@/components/admin/settings/AISettings";
 
 const Settings = () => {
   // General settings
@@ -24,16 +23,6 @@ const Settings = () => {
   const [instagramLink, setInstagramLink] = useState("");
   const [soundcloudLink, setSoundcloudLink] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  
-  // AI settings
-  const [aiModel, setAiModel] = useState("google/gemini-2.5-flash");
-  const [aiTemperature, setAiTemperature] = useState(0.9);
-  const [aiImagePrompt, setAiImagePrompt] = useState(DEFAULT_IMAGE_PROMPT);
-  const [aiHistoryLimit, setAiHistoryLimit] = useState(15);
-  const [aiAutoGenerateEnabled, setAiAutoGenerateEnabled] = useState(false);
-  const [aiAutoGenerateInterval, setAiAutoGenerateInterval] = useState("24");
-  const [aiMaxArticleLength, setAiMaxArticleLength] = useState(5000);
-  const [aiMaxScrapeSources, setAiMaxScrapeSources] = useState(3);
   
   // Timezone settings
   const [timezoneOffset, setTimezoneOffset] = useState("-3");
@@ -81,30 +70,6 @@ const Settings = () => {
           case "newsletter_popup_enabled":
             setNewsletterPopupEnabled(setting.value === "true");
             break;
-          case "ai_blog_model":
-            setAiModel(setting.value || "google/gemini-2.5-flash");
-            break;
-          case "ai_temperature":
-            setAiTemperature(parseFloat(setting.value || "0.9"));
-            break;
-          case "ai_image_prompt_template":
-            setAiImagePrompt(setting.value || DEFAULT_IMAGE_PROMPT);
-            break;
-          case "ai_history_limit":
-            setAiHistoryLimit(parseInt(setting.value || "15"));
-            break;
-          case "ai_auto_generate_enabled":
-            setAiAutoGenerateEnabled(setting.value === "true");
-            break;
-          case "ai_auto_generate_interval_hours":
-            setAiAutoGenerateInterval(setting.value || "24");
-            break;
-          case "ai_max_article_length":
-            setAiMaxArticleLength(parseInt(setting.value || "5000"));
-            break;
-          case "ai_max_scrape_sources":
-            setAiMaxScrapeSources(parseInt(setting.value || "3"));
-            break;
           case "timezone_offset":
             setTimezoneOffset(setting.value || "-3");
             break;
@@ -145,14 +110,6 @@ const Settings = () => {
         { key: "soundcloud_link", value: soundcloudLink },
         { key: "contact_email", value: contactEmail },
         { key: "newsletter_popup_enabled", value: newsletterPopupEnabled.toString() },
-        { key: "ai_blog_model", value: aiModel },
-        { key: "ai_temperature", value: aiTemperature.toString() },
-        { key: "ai_image_prompt_template", value: aiImagePrompt },
-        { key: "ai_history_limit", value: aiHistoryLimit.toString() },
-        { key: "ai_auto_generate_enabled", value: aiAutoGenerateEnabled.toString() },
-        { key: "ai_auto_generate_interval_hours", value: aiAutoGenerateInterval },
-        { key: "ai_max_article_length", value: aiMaxArticleLength.toString() },
-        { key: "ai_max_scrape_sources", value: aiMaxScrapeSources.toString() },
         { key: "timezone_offset", value: timezoneOffset },
         { key: "timezone_name", value: timezoneName },
         { key: "event_hours_after_start", value: eventHoursAfterStart.toString() },
@@ -205,7 +162,7 @@ const Settings = () => {
             </div>
 
             <Tabs defaultValue="geral" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto gap-1 bg-muted/50 p-1">
+              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 h-auto gap-1 bg-muted/50 p-1">
                 <TabsTrigger value="geral" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <Settings2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Geral</span>
@@ -221,10 +178,6 @@ const Settings = () => {
                 <TabsTrigger value="horario" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <Clock className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Horário</span>
-                </TabsTrigger>
-                <TabsTrigger value="ia" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
-                  <Bot className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">IA</span>
                 </TabsTrigger>
                 <TabsTrigger value="custos" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <BarChart3 className="w-3.5 h-3.5" />
@@ -272,27 +225,6 @@ const Settings = () => {
                   setEventHoursWithoutTime={setEventHoursWithoutTime}
                   linksShowEventDate={linksShowEventDate}
                   setLinksShowEventDate={setLinksShowEventDate}
-                />
-              </TabsContent>
-
-              <TabsContent value="ia">
-                <AISettings
-                  aiModel={aiModel}
-                  setAiModel={setAiModel}
-                  aiTemperature={aiTemperature}
-                  setAiTemperature={setAiTemperature}
-                  aiImagePrompt={aiImagePrompt}
-                  setAiImagePrompt={setAiImagePrompt}
-                  aiHistoryLimit={aiHistoryLimit}
-                  setAiHistoryLimit={setAiHistoryLimit}
-                  aiAutoGenerateEnabled={aiAutoGenerateEnabled}
-                  setAiAutoGenerateEnabled={setAiAutoGenerateEnabled}
-                  aiAutoGenerateInterval={aiAutoGenerateInterval}
-                  setAiAutoGenerateInterval={setAiAutoGenerateInterval}
-                  aiMaxArticleLength={aiMaxArticleLength}
-                  setAiMaxArticleLength={setAiMaxArticleLength}
-                  aiMaxScrapeSources={aiMaxScrapeSources}
-                  setAiMaxScrapeSources={setAiMaxScrapeSources}
                 />
               </TabsContent>
 

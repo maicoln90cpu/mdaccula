@@ -49,6 +49,7 @@ const EventTemplates = lazy(() => import("./pages/admin/EventTemplates"));
 const BlogManager = lazy(() => import("./pages/admin/BlogManager"));
 const FontesManager = lazy(() => import("./pages/admin/FontesManager"));
 const AIContent2 = lazy(() => import("./pages/admin/AIContent2"));
+const AISettingsPage = lazy(() => import("./pages/admin/AISettingsPage"));
 const TeamManager = lazy(() => import("./pages/admin/TeamManager"));
 const Settings = lazy(() => import("./pages/admin/Settings"));
 const LinksManager = lazy(() => import("./pages/admin/LinksManager"));
@@ -132,6 +133,7 @@ const App = () => (
                         <Route path="blog" element={<PageWithError name="Gerenciar Blog"><BlogManager /></PageWithError>} />
                         <Route path="fontes" element={<PageWithError name="Fontes"><FontesManager /></PageWithError>} />
                         <Route path="ai-content2" element={<PageWithError name="Conteúdo por IA"><AIContent2 /></PageWithError>} />
+                        <Route path="ai-settings" element={<PageWithError name="Configuração de IA"><AISettingsPage /></PageWithError>} />
                         <Route path="team" element={<PageWithError name="Gerenciar Equipe"><TeamManager /></PageWithError>} />
                         <Route path="settings" element={<PageWithError name="Configurações"><Settings /></PageWithError>} />
                         <Route path="links-manager" element={<PageWithError name="Gerenciar Links"><LinksManager /></PageWithError>} />
