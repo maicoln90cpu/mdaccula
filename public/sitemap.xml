@@ -832,12 +832,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/ketzal-em-punta-del-este-o-resgate-da-sofisticacao-na-musica-eletronica</loc>
-    <lastmod>2026-06-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>monthly</changefreq>
@@ -1366,12 +1360,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas</loc>
-    <lastmod>2026-07-18</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/klandestine-invade-a-fabriketa-com-tiga-e-acraze-em-14-de-marco</loc>
     <lastmod>2026-07-06</lastmod>
     <changefreq>monthly</changefreq>
@@ -1445,6 +1433,12 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/clubes-sustentaveis-redesenham-a-noite-como-praticas-verdes-transformam-a-cena-eletronica</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/a-liga-no-sonora-garden-sao-paulo-sabado-10-de-outubro-de-2026</loc>
     <lastmod>2026-07-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -1552,14 +1546,20 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026</loc>
-    <lastmod>2026-07-14</lastmod>
+    <loc>https://mdaccula.com/blog/ketzal-em-punta-del-este-o-resgate-da-sofisticacao-na-musica-eletronica</loc>
+    <lastmod>2026-07-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/blog/keinemusik-em-sao-paulo-festa-sabado-17-de-outubro-ao-meio-dia</loc>
-    <lastmod>2026-07-15</lastmod>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026</loc>
+    <lastmod>2026-07-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1576,8 +1576,14 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas</loc>
+    <lastmod>2026-07-18</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026</loc>
-    <lastmod>2026-07-17</lastmod>
+    <lastmod>2026-07-18</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
