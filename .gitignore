@@ -31,3 +31,9 @@ blob-report/
 
 # Vitest coverage (gerado; baseline ratchet é versionada)
 coverage/
+
+# Opção B — Fallback local de deploy de Edge Functions (bundle-edge-functions.mjs)
+# Artefatos gerados; NUNCA commitar. O deploy oficial (Opção C / GitHub Actions)
+# usa o index.ts original, que resolve _shared/ pelo CLI da Supabase.
+supabase/functions/*/index.bundled.ts
+supabase/functions/*/index.original.ts
