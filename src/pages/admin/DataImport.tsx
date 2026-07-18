@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CheckCircle, Loader2, AlertCircle, Upload, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
+import LegacyMediaImport from "@/components/admin/data-import/LegacyMediaImport";
 /** RFC 4180 compliant CSV parser that handles quoted fields with commas, newlines, etc. */
 function parseCSV(text: string): Record<string, string>[] {
   const rows: string[][] = [];
@@ -238,6 +239,10 @@ export default function DataImport() {
       <Button onClick={runAll} disabled={running} size="lg" className="w-full">
         {running ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importando...</> : "🚀 Importar Tudo Sequencialmente"}
       </Button>
+
+      <div className="mt-8">
+        <LegacyMediaImport />
+      </div>
     </div>
   );
 }
