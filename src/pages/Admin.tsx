@@ -71,6 +71,7 @@ const sections: AdminSection[] = [
       { title: "Linktree", description: "Links públicos e grupos", icon: LinkIcon, href: "/admin/links-manager", color: "text-teal-500" },
       { title: "Redirecionador", description: "Links curtos com UTM", icon: ExternalLink, href: "/admin/redirects", color: "text-orange-500" },
       { title: "Newsletter", description: "Inscritos e campanhas", icon: Mail, href: "/admin/newsletter", color: "text-pink-500" },
+      { title: "Gestão de E-mails", description: "Templates, envio manual, automações e histórico", icon: Mail, href: "/admin/email-config", color: "text-rose-500" },
       { title: "A/B Newsletter", description: "Resultados de variantes", icon: TestTube2, href: "/admin/newsletter-ab-results", color: "text-emerald-500" },
       { title: "MDAccula Radio", description: "Inscrições para sets", icon: Mic, href: "/admin/mdaccula-radio", color: "text-purple-500" },
     ],

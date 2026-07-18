@@ -62,7 +62,6 @@ const ADMIN_SEGMENTS = [
   'redirects',
   'data-import',
   'egress-monitor',
-  'email-preview',
   'email-config',
 ];
 
