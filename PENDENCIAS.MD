@@ -39,17 +39,9 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🗳️ Decisões Pendentes do Usuário
 
-### SEO: Decidir se RSS volta como arquivo estático
-**Contexto:** O feed RSS dinâmico (edge function `blog-rss`) ficou inacessível pelo domínio próprio porque a hospedagem do Lovable não suporta redirects/rewrites customizados (confirmado em `docs/LOVABLE-PLATFORM-CAPABILITIES.md`, pergunta 4). A tag `<link rel="alternate" ... blog-rss>` foi removida do `index.html`.
-**Decisão necessária:** gerar `public/rss.xml` como arquivo estático (mesmo esquema do `sitemap.xml`, atualizado a cada build) ou deixar o RSS de fora por enquanto — não fazia parte dos achados críticos da auditoria de SEO original.
-**Impacto se ignorado:** baixo
-**Desde:** 14/07/2026
-
----
-
 ### SEO: Pipeline de prerender via GitHub Actions (Fase 4 da auditoria)
 **Contexto:** Achado **crítico #1** da auditoria de SEO (nota geral 42/100): hoje toda rota (`/`, `/eventos/:slug`, `/blog/:slug`) devolve o mesmo HTML genérico pra qualquer crawler que não execute JavaScript — redes sociais mostram sempre o preview da home ao compartilhar um evento/post específico, e JSON-LD não chega ao Google/IA sem a página hidratar primeiro. Confirmado com o Lovable (`docs/LOVABLE-PLATFORM-CAPABILITIES.md`, perguntas 2 e 3): sem SSR/prerender nativo, sem build customizado com Chromium.
-**Decisão necessária:** sinal verde pra iniciar. Solução: gerar HTML pré-renderizado fora do Lovable (GitHub Actions + Playwright) e commitar de volta no repo — maior mudança de todo o plano de correções (workflow de CI novo + risco de loop com o auto-sync do Lovable, precisa ser desenhado com cuidado). Detalhamento técnico completo no plano de correções da sessão de auditoria SEO.
+**Decisão necessária:** sinal verde pra iniciar. Solução: gerar HTML pré-renderizado fora do Lovable (GitHub Actions + Playwright) e commitar de volta no repo — maior mudança de todo o plano de correções (workflow de CI novo + risco de loop com o auto-sync do Lovable, precisa ser desenhado com cuidado). **Spec técnica completa entregue em 18/07/2026** (componentes, por que é seguro no Lovable, riscos operacionais reais) — registrada na seção "Fase 4 SEO" do plano de execução da sessão; segue aguardando sinal verde do usuário.
 **Impacto se ignorado:** crítico (SEO/compartilhamento social)
 **Desde:** 14/07/2026
 

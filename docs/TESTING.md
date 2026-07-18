@@ -229,6 +229,27 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Proteção:** ⚠️ **nenhuma ainda** — corrigido mas sem teste de regressão dedicado em `__tests__/regression/`. Um teste cobriria: montar o componente, chamar `startPolling()` (ou simular o clique), desmontar, avançar os fake timers e confirmar que `fetchData`/`clearInterval` não são chamados após o unmount.
 - **Nota:** o efeito prático do bug era baixo (o timeout de 5min e a detecção de conclusão já limitavam o dano na maioria dos casos), mas o padrão (id de timer/interval em `useState` em vez de `useRef`) vale procurar em outros lugares do código que façam polling.
 
+### R-015 — Campo opcional do template de IA bloqueava a geração como se fosse obrigatório
+- **Quando:** julho/2026
+- **Sintoma:** em `/admin/ai-content2` → aba Templates, marcar um campo como opcional (switch "Obrigatório" desligado) não tinha efeito nenhum — na aba Gerar, esse campo continuava bloqueando a geração se ficasse vazio, junto com os campos realmente marcados como obrigatórios.
+- **Causa:** `AIContent2.tsx` normalizava `ai_prompt_templates.required_fields` (JSON `{campo: boolean}`) com `Object.keys(...)`, que pega todas as chaves configuradas e descarta o valor `true`/`false`. Todo campo cadastrado no template virava obrigatório na prática.
+- **Correção:** `normalizePromptTemplateFields` (`src/lib/promptTemplateFields.ts`) separa `allFields` (todas as chaves, usadas pra renderizar o formulário em `GenerateForm.tsx`) de `requiredFields` (só as marcadas `true`, usadas pro bloqueio em `handleGenerate`). `GenerateForm.tsx` agora também indica visualmente qual campo é obrigatório (`*`) e qual é opcional.
+- **Proteção:** `src/__tests__/lib/promptTemplateFields.test.ts` + `src/__tests__/regression/prompt-template-required-fields.test.ts`.
+
+### R-016 — KPIs da analytics de links travavam em 1000 quando um filtro de data era aplicado
+- **Quando:** julho/2026
+- **Sintoma:** em `/admin` → Links Analytics, os cards de "Cliques em Links"/"Views em Eventos"/etc. paravam de crescer em 1000, mas só quando um filtro de período (hoje/7d/30d) estava ativo — "Todo período" sempre mostrava o número certo.
+- **Causa:** `LinksAnalytics.tsx` buscava `link_click_events`/`blog_view_events`/`event_view_events`/`redirect_click_events` com um `select()` simples filtrado por data, sem paginação e sem `count: 'exact'`. O PostgREST tem um teto padrão de 1000 linhas por requisição (sem override em `supabase/config.toml`), então qualquer período com mais eventos que isso truncava silenciosamente — e a contagem por entidade era feita como `data.length` via `forEach`, propagando o teto pros cards. "Todo período" não sofria o problema por usar colunas de contador pré-agregadas (`link.clicks`, `event.views`), não as tabelas de tracking.
+- **Correção:** `fetchAllPaginated` (`src/lib/supabasePagination.ts`) pagina em blocos de 1000 via `.range()` até esgotar o resultado real, aplicado aos 4 blocos de busca por período.
+- **Proteção:** `src/__tests__/lib/supabasePagination.test.ts` + `src/__tests__/regression/links-analytics-1000-cap.test.ts`.
+
+### R-017 — Sugestões de Eventos/Festivais/Lançamentos podiam inventar lineup/local/horário
+- **Quando:** julho/2026 (gap deixado por R-011, encontrado numa auditoria de acompanhamento)
+- **Sintoma:** ao gerar manualmente (aba Sugestões) uma sugestão dessas 3 categorias, o artigo saía pelo template de evento (`generate-blog-post-v2`) sem nenhuma busca de fonte real — diferente do fluxo automático (cron), que já ancorava toda categoria em busca real desde a correção de R-011.
+- **Causa:** `TEMPLATE_ROUTED_CATEGORIES` em `AIContent2.tsx` incluía `eventos`/`festivais`/`lançamentos`/`lancamentos`, mandando essas categorias pro template dedicado em vez do catch-all ancorado. A sugestão gerada em `generate-blog-suggestions` não carrega nenhum dado estruturado real (lineup/data/venue) pra essas categorias — só título/resumo/categoria, todos gerados por IA — então o template de evento escrevia essas seções sem fonte nenhuma.
+- **Correção:** removidas `eventos`/`festivais`/`lançamentos`/`lancamentos` de `TEMPLATE_ROUTED_CATEGORIES`, caindo automaticamente no catch-all que já chama `generate-blog-post-from-topic` (busca real via Firecrawl, `source_urls` preenchido). `entrevistas`/`labels` ficam de fora por ora — podem ter sinal real próprio via `event_sources`/scan, fora do escopo desta investigação.
+- **Proteção:** teste estendido em `src/__tests__/contracts/edge-sugestoes-real-source-routing.test.ts` (guarda que essas 4 strings não voltam pra `TEMPLATE_ROUTED_CATEGORIES`).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

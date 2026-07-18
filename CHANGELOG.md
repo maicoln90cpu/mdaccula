@@ -18,6 +18,25 @@
 
 ## Entradas Detalhadas
 
+### Lapidações: KPIs travados em 1000, template com campo opcional bloqueando geração, raspagem sem fonte real, RSS estático e fundo de ondas
+**Descrição:** Lote de 6 pendências levantadas numa auditoria rápida do site, cada uma investigada com causa raiz confirmada antes de corrigir (ver R-015, R-016, R-017 em `docs/TESTING.md`):
+1. **Bug:** campo marcado como opcional num template de IA (`ai_prompt_templates.required_fields`) bloqueava a geração de conteúdo como se fosse obrigatório — `AIContent2.tsx` normalizava com `Object.keys()`, descartando o `true`/`false`. Corrigido com `normalizePromptTemplateFields` (nova, em `src/lib/promptTemplateFields.ts`), que separa `allFields` (formulário) de `requiredFields` (bloqueio real).
+2. **Bug:** KPIs de "Cliques em Links"/"Views em Eventos"/etc. em `/admin` → Links Analytics travavam em 1000 quando um filtro de data (hoje/7d/30d) estava ativo — `select()` sem paginação batia no teto padrão de 1000 linhas do PostgREST. Corrigido com `fetchAllPaginated` (nova, em `src/lib/supabasePagination.ts`), que pagina em blocos de 1000 até esgotar o resultado real.
+3. **Bug de risco de conteúdo:** sugestões das categorias Eventos/Festivais/Lançamentos, quando geradas manualmente na aba Sugestões, caíam no template de evento sem nenhuma busca de fonte real (diferente do cron automático, que já ancorava toda categoria desde a correção de R-011) — risco de lineup/local/horário inventado. Corrigido removendo essas 3 categorias de `TEMPLATE_ROUTED_CATEGORIES`, caindo no catch-all já ancorado em busca real via `generate-blog-post-from-topic`.
+4. **RSS estático:** `scripts/generate-rss.mjs` (novo, modelado em `generate-sitemap.mjs`) gera `public/rss.xml` a cada build — resolve a pendência aberta desde 14/07 do feed dinâmico (`blog-rss`) inacessível no domínio próprio.
+5. **Fundo visual (teste):** `SoundWaveBackground.tsx` (novo componente, SVG/CSS puro, sem imagem/lib nova) aplicado isoladamente no hero de `EventDetail.tsx` como teste antes de considerar outras páginas — respeita `prefers-reduced-motion`.
+6. **Sem mudança de código:** confirmado que "aplicar template da marca a um evento novo" já existe (`EventForm.tsx`, dropdown manual "Usar Template (opcional)" na criação) — é opcional, não automático.
+
+**Data:** 18/07/2026
+**Responsável:** IA
+**Impacto:** médio (dois bugs de produção corrigidos com risco real — obrigatoriedade de template e risco de conteúdo inventado — mais duas melhorias aditivas de baixo risco)
+
+**Arquivos alterados:** `src/pages/admin/AIContent2.tsx`, `src/components/admin/ai-content/GenerateForm.tsx`, `src/pages/admin/LinksAnalytics.tsx`, `src/pages/EventDetail.tsx`, `src/lib/promptTemplateFields.ts` (novo), `src/lib/supabasePagination.ts` (novo), `src/components/SoundWaveBackground.tsx` (novo), `scripts/generate-rss.mjs` (novo), `tailwind.config.ts`, `src/index.css`, `package.json`.
+
+**Pendência derivada (não executada nesta rodada):** pipeline de prerender via GitHub Actions (Fase 4 da auditoria SEO) segue como decisão pendente em `PENDENCIAS.MD` — usuário pediu a especificação técnica completa antes de decidir, entregue mas ainda aguardando sinal verde.
+
+---
+
 ### Zerar warnings do ESLint (392 → 0) e travar regras como error
 **Descrição:** Limpeza completa da dívida de lint acumulada, feita em 6 fases sequenciais (cada uma commitada e validada separadamente com `tsc --noEmit` + `npm test` + coverage ratchet antes de avançar):
 1. Regras triviais (consistent-type-imports, no-require-imports, no-empty, no-param-reassign, no-misleading-character-class, no-return-await, eslint-disable obsoletos) + `no-unused-vars` (66 ocorrências) + `no-console` (6, migrados pro `logger`) + `react-refresh/only-export-components` (17 de 18 — variantes `cva`, hooks de contexto e constantes extraídas pro padrão oficial shadcn/ui de arquivos irmãos).
