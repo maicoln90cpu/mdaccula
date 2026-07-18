@@ -348,6 +348,30 @@ export type Database = {
           },
         ]
       }
+      daily_metrics_email_log: {
+        Row: {
+          email_error: string | null
+          email_sent: boolean
+          id: string
+          metrics: Json
+          sent_at: string
+        }
+        Insert: {
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          metrics?: Json
+          sent_at?: string
+        }
+        Update: {
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          metrics?: Json
+          sent_at?: string
+        }
+        Relationships: []
+      }
       egoi_config: {
         Row: {
           created_at: string
