@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Settings2, Users, ImageIcon, Clock, BarChart3 } from "lucide-react";
+import { ArrowLeft, Save, Settings2, Users, ImageIcon, Clock } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
-import AIAnalyticsDashboard from "@/components/admin/AIAnalyticsDashboard";
 import GeneralSettings from "@/components/admin/settings/GeneralSettings";
 import SocialSettings from "@/components/admin/settings/SocialSettings";
 import MediaSettings from "@/components/admin/settings/MediaSettings";
@@ -162,7 +160,7 @@ const Settings = () => {
             </div>
 
             <Tabs defaultValue="geral" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 h-auto gap-1 bg-muted/50 p-1">
+              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto gap-1 bg-muted/50 p-1">
                 <TabsTrigger value="geral" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <Settings2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Geral</span>
@@ -178,10 +176,6 @@ const Settings = () => {
                 <TabsTrigger value="horario" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <Clock className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Horário</span>
-                </TabsTrigger>
-                <TabsTrigger value="custos" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
-                  <BarChart3 className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Custos</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -226,20 +220,6 @@ const Settings = () => {
                   linksShowEventDate={linksShowEventDate}
                   setLinksShowEventDate={setLinksShowEventDate}
                 />
-              </TabsContent>
-
-              <TabsContent value="custos">
-                <Card>
-                  <CardHeader className="px-4 sm:px-6">
-                    <CardTitle className="text-lg sm:text-xl">Dashboard de Custos IA</CardTitle>
-                    <CardDescription className="text-sm">
-                      Análise detalhada de custos, tokens e comparativo por modelo
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="px-4 sm:px-6">
-                    <AIAnalyticsDashboard />
-                  </CardContent>
-                </Card>
               </TabsContent>
             </Tabs>
 

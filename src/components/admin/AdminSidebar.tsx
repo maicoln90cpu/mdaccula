@@ -62,6 +62,7 @@ const groups: Group[] = [
       { title: "Conteúdo por IA", url: "/admin/ai-content2", icon: Sparkles },
       { title: "Fontes", url: "/admin/fontes", icon: Radar },
       { title: "Configuração de IA", url: "/admin/ai-settings", icon: Bot },
+      { title: "Custos de IA", url: "/admin/ai-costs", icon: BarChart3 },
     ],
   },
   {
