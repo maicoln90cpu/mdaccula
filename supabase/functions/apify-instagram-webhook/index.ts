@@ -15,7 +15,7 @@
 // A Apify não manda JWT do Supabase — a única proteção é o secret embutido na
 // query string da webhookUrl (ver scan-event-sources, tabela internal_cron_secrets,
 // linha 'apify_instagram_webhook'), validado ANTES de qualquer outro processamento.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

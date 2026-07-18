@@ -5,7 +5,7 @@
 //
 // Segurança: mesmo padrão de authorizeAdminOrCron usado em scan-event-sources —
 // aceita cron (internal_cron_secrets/CRON_SHARED_SECRET) OU admin autenticado.
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { handleCorsPreFlight, jsonSuccess, jsonError, authorizeAdminOrCron } from "../_shared/index.ts";
 import { getBRTDayWindowUTC, computeVariancePct, buildEmailHtml, type MetricResult } from "./metrics.ts";
 

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
