@@ -1,5 +1,5 @@
 // Daily metrics snapshot — chamada pelo pg_cron, busca Supabase + Bunny e grava em metrics_snapshots
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

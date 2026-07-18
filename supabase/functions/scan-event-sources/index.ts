@@ -13,7 +13,7 @@
 // construa manualmente essa versão inlinada a partir deste arquivo + dedupe.ts
 // + extract.ts + _shared/index.ts. Funções puras continuam vivendo nos arquivos
 // separados abaixo — só o payload de deploy precisa ser combinado à mão.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 import {
   handleCorsPreFlight,

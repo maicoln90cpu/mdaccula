@@ -8,7 +8,7 @@
  * x-cron-secret validado contra internal_cron_secrets (name='egress_alert_cron'),
  * OU Authorization Bearer de um admin autenticado (botão "Executar agora").
  */
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
