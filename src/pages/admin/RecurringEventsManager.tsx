@@ -15,8 +15,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, FileText, Upload } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { convertToWebP } from "@/lib/webpConverter";
-import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 
 interface RecurringConfig {
   id: string;
@@ -557,8 +556,9 @@ const RecurringEventsManager = () => {
                         if (!file) return;
                         setUploadingImage(true);
                         try {
-                          const webpFile = await convertToWebP(file, 0.5, 1200);
-                          const publicUrl = await uploadImageToBunny(webpFile, 'event-images');
+                          const publicUrl = await uploadImageWithThumb(file, 'event-images', {
+                            fullOpts: { maxSizeMB: 0.5, maxDimension: 1200 },
+                          });
                           setEditingConfig({ ...editingConfig, image_url: publicUrl });
                           toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });
                         } catch (err: any) {

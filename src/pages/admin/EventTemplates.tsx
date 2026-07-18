@@ -13,8 +13,7 @@ import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
-import { convertToWebP } from "@/lib/webpConverter";
-import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 
 interface EventTemplate {
   id: string;
@@ -96,8 +95,7 @@ const EventTemplates = () => {
     if (!imageFile) return null;
     
     try {
-      const webpFile = await convertToWebP(imageFile);
-      return await uploadImageToBunny(webpFile, 'event-images');
+      return await uploadImageWithThumb(imageFile, 'event-images');
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error("Erro ao fazer upload da imagem");

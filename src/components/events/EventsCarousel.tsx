@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MapPin, Clock } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getThumbnailUrl } from "@/lib/imageUtils";
 import { Badge } from "@/components/ui/badge";
 import {
   Carousel,
@@ -42,8 +42,11 @@ const LazyEventImage = ({
 }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [triedFull, setTriedFull] = useState(false);
 
   const showGradient = !src || hasError;
+  const fullSrc = src ? getOptimizedImageUrl(src) : null;
+  const thumbSrc = src ? getThumbnailUrl(src) : null;
 
   return (
     <>
@@ -56,16 +59,24 @@ const LazyEventImage = ({
           background: "linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%)",
         }}
       />
-      
+
       {/* Actual image with lazy loading */}
       {src && !hasError && (
         <img
-          src={getOptimizedImageUrl(src)}
+          src={thumbSrc || fullSrc || undefined}
           alt={alt}
           loading="lazy"
           decoding="async"
           onLoad={() => setIsLoaded(true)}
-          onError={() => setHasError(true)}
+          onError={(e) => {
+            // thumb pode não existir pra imagens antigas -> tenta a full antes de desistir
+            if (!triedFull && fullSrc && e.currentTarget.src !== fullSrc) {
+              setTriedFull(true);
+              e.currentTarget.src = fullSrc;
+              return;
+            }
+            setHasError(true);
+          }}
           className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-300 ${
             isLoaded ? "opacity-100" : "opacity-0"
           }`}

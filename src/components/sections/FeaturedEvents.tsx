@@ -53,6 +53,7 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
             className="w-full h-full transition-transform duration-500 group-hover:scale-105"
             objectFit="cover"
             priority={index === 0}
+            variant="thumb"
           />
           {event.genres && event.genres.length > 0 && (
             <div className="absolute top-2 left-2 flex flex-wrap gap-1">

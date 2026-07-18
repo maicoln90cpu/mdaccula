@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Skeleton } from './ui/skeleton';
-import { getOptimizedImageUrl, getOriginalSupabaseUrl } from '@/lib/imageUtils';
+import { getOptimizedImageUrl, getThumbnailUrl, getOriginalSupabaseUrl } from '@/lib/imageUtils';
 
 interface OptimizedImageProps {
   src: string;
@@ -11,6 +11,8 @@ interface OptimizedImageProps {
   sizes?: string;
   /** Local fallback image when both CDN and Supabase fail */
   fallbackImage?: string;
+  /** 'thumb' pede a variante reduzida do Bunny (cards/ícones pequenos); default 'full' */
+  variant?: 'thumb' | 'full';
 }
 
 /**
@@ -21,33 +23,47 @@ interface OptimizedImageProps {
  * 2. On error → try original Supabase Storage URL
  * 3. On second error → show fallbackImage or gradient placeholder
  */
-export const OptimizedImage = ({ 
-  src, 
-  alt, 
+export const OptimizedImage = ({
+  src,
+  alt,
   className = '',
   priority = false,
   objectFit = 'contain',
   fallbackImage,
+  variant = 'full',
 }: OptimizedImageProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [triedFull, setTriedFull] = useState(false);
   const [triedSupabase, setTriedSupabase] = useState(false);
 
-  const optimizedSrc = useMemo(() => {
+  const fullSrc = useMemo(() => {
     if (!src) return src;
     return getOptimizedImageUrl(src);
   }, [src]);
 
+  const initialSrc = useMemo(() => {
+    if (!src) return src;
+    return variant === 'thumb' ? getThumbnailUrl(src) : fullSrc;
+  }, [src, variant, fullSrc]);
+
   const supabaseFallbackSrc = useMemo(() => {
-    if (!optimizedSrc) return null;
-    const supabaseUrl = getOriginalSupabaseUrl(optimizedSrc);
-    // Only use as fallback if it's actually different from optimizedSrc
-    return supabaseUrl !== optimizedSrc ? supabaseUrl : null;
-  }, [optimizedSrc]);
+    if (!fullSrc) return null;
+    const supabaseUrl = getOriginalSupabaseUrl(fullSrc);
+    // Only use as fallback if it's actually different from fullSrc
+    return supabaseUrl !== fullSrc ? supabaseUrl : null;
+  }, [fullSrc]);
 
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const currentSrc = e.currentTarget.src;
     console.warn(`[IMG_ERROR] OptimizedImage falha: ${currentSrc}`);
+
+    // Se pedimos a variante thumb e ela falhou (ex: imagem antiga sem thumb), tenta a full antes de tudo
+    if (variant === 'thumb' && !triedFull && fullSrc && currentSrc !== fullSrc) {
+      setTriedFull(true);
+      e.currentTarget.src = fullSrc;
+      return;
+    }
 
     // If we haven't tried Supabase yet and there's a Supabase fallback URL
     if (!triedSupabase && supabaseFallbackSrc) {
@@ -81,7 +97,7 @@ export const OptimizedImage = ({
         </div>
       ) : (
         <img
-          src={optimizedSrc || src}
+          src={initialSrc || src}
           alt={alt || 'MDAccula - Música Eletrônica'}
           className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
           style={{ objectFit }}

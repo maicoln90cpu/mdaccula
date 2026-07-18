@@ -21,7 +21,7 @@ import EventsCarousel from "@/components/events/EventsCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getThumbnailUrl, handleThumbImageFallback } from "@/lib/imageUtils";
 import { parseLocalDate } from "@/lib/utils";
 import { formatEventDateRange } from "@/lib/dateUtils";
 import { useEvents } from "@/hooks/useEvents";
@@ -608,11 +608,13 @@ const Eventos = () => {
                     onClick={() => handleEventClick(event)}
                   >
                     <div className="relative overflow-hidden rounded-t-lg aspect-[3/4] bg-muted/20">
-                      <img 
-                        src={getOptimizedImageUrl(event.image_url) || djImage} 
+                      <img
+                        src={getThumbnailUrl(event.image_url) || djImage}
                         alt={event.title}
                         className="w-full h-full object-contain"
-                        onError={(e) => handleImageFallback(e, djImage)}
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(event.image_url) || djImage, djImage)}
                       />
                       <div className="absolute top-4 left-4 flex flex-wrap gap-1">
                         {event.genres && event.genres.length > 0 && event.genres.slice(0, 2).map((genre: string, idx: number) => (
