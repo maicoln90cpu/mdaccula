@@ -27,9 +27,14 @@ interface Suggestion {
   searchQuery?: string;
 }
 
-// Categorias que já têm sinais reais próprios (event_sources/scan) e continuam
-// usando generate-blog-post-v2 + template dedicado — fora do escopo desta correção.
-const TEMPLATE_ROUTED_CATEGORIES = ["eventos", "festivais", "entrevistas", "labels", "lançamentos", "lancamentos"];
+// Categorias que têm sinais reais próprios vindos de event_sources/scan (não da
+// sugestão gerada por IA em generate-blog-suggestions) e continuam usando
+// generate-blog-post-v2 + template dedicado.
+// "eventos"/"festivais"/"lançamentos" saíram daqui: quando a sugestão vem da aba
+// Sugestões, essas categorias não carregam nenhum dado estruturado real (lineup,
+// data, venue) — iam pro template de evento sem fonte, com risco de inventar
+// esses detalhes. Agora caem no catch-all abaixo, igual ao cron automático já fazia.
+const TEMPLATE_ROUTED_CATEGORIES = ["entrevistas", "labels"];
 
 // "Sugestões" (e qualquer categoria não mapeada) passou a ser ancorada em
 // matéria real via generate-blog-post-from-topic, em vez do antigo template
@@ -403,16 +408,10 @@ export default function AIContent2() {
     const findByCategory = (catName: string) =>
       templates.find((t) => t.category?.toLowerCase() === catName.toLowerCase());
 
-    if (cat === "eventos") {
-      return findByCategory("Eventos") || templates[0] || null;
-    }
-    if (cat === "festivais") {
-      return findByCategory("Festivais") || findByCategory("Eventos") || templates[0] || null;
-    }
     if (cat === "entrevistas") {
       return findByCategory("Entrevistas") || findByCategory("Sugestões") || templates[0] || null;
     }
-    if (cat === "labels" || cat === "lançamentos" || cat === "lancamentos") {
+    if (cat === "labels") {
       return findByCategory("Labels") || findByCategory("Sugestões") || templates[0] || null;
     }
     // Cultura, Tecnologia, Produtores, Cena e qualquer outra → template editorial "Sugestões"

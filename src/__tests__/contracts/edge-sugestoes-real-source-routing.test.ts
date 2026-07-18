@@ -58,4 +58,20 @@ describe("Contract: Sugestões ancoradas em matéria real", () => {
     expect(content).toContain("generate-blog-post-from-topic");
     expect(content).toContain("suggestionsAutoPublish");
   });
+
+  it("eventos/festivais/lançamentos não ficam mais presos ao template sem fonte real", () => {
+    // Regressão: sugestões dessas categorias (geradas por IA em generate-blog-suggestions,
+    // sem lineup/data/venue reais) caíam em generate-blog-post-v2 sem busca de fontes,
+    // com risco de inventar detalhes de evento. Devem cair no catch-all ancorado em
+    // busca real, igual ao cron automático já faz para toda categoria.
+    const content = read("src/pages/admin/AIContent2.tsx");
+    const match = content.match(/const TEMPLATE_ROUTED_CATEGORIES = (\[[^\]]*\]);/);
+    expect(match).not.toBeNull();
+
+    const routedCategories = JSON.parse(match![1].replace(/'/g, '"')) as string[];
+    expect(routedCategories).not.toContain("eventos");
+    expect(routedCategories).not.toContain("festivais");
+    expect(routedCategories).not.toContain("lançamentos");
+    expect(routedCategories).not.toContain("lancamentos");
+  });
 });
