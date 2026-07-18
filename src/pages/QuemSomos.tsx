@@ -149,6 +149,7 @@ const QuemSomos = () => {
                             alt={member.name}
                             className="rounded-full w-full h-full object-cover border-4 border-primary/20"
                             objectFit="cover"
+                            variant="thumb"
                           />
                         </div>
                         <div>

@@ -15,8 +15,7 @@ import { useToast } from "@/hooks/useToast";
 import { Loader2, Plus, Edit, Trash2, Instagram, ArrowLeft } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
-import { convertToWebP } from "@/lib/webpConverter";
-import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 
 interface TeamMember {
   id: string;
@@ -95,8 +94,7 @@ const TeamManager = () => {
 
       // Upload da imagem se houver arquivo selecionado
       if (uploadedFile) {
-        const webpFile = await convertToWebP(uploadedFile);
-        imageUrl = await uploadImageToBunny(webpFile, 'team-images');
+        imageUrl = await uploadImageWithThumb(uploadedFile, 'team-images');
       }
 
       const dataToSave = {

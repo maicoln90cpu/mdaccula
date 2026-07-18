@@ -124,6 +124,7 @@ export default function Search() {
                             alt={result.title}
                             className="max-w-full max-h-full"
                             objectFit="contain"
+                            variant="thumb"
                           />
                         </div>
                       )}
