@@ -64,6 +64,20 @@ export interface Event {
   created_by?: string | null;
   created_at?: string;
   updated_at?: string;
+  ai_context?: string | null;
+  status?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  venue_lat?: number | null;
+  venue_lng?: number | null;
+  schedule?: unknown;
+  pix_button_enabled?: boolean;
+  tickets_per_day?: boolean;
+  dispatch_email_on_save?: boolean;
+  email_campaign_dispatched_at?: string | null;
+  geocoded_at?: string | null;
+  merged_at?: string | null;
+  merged_into_id?: string | null;
 }
 
 // ============================================

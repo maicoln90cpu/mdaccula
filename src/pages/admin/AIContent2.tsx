@@ -352,14 +352,19 @@ export default function AIContent2() {
     setIsLoadingSuggestions(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("generate-blog-suggestions", {
+      interface RawSuggestion {
+        keywords?: string | string[];
+        visualElements?: string | string[];
+        [key: string]: unknown;
+      }
+      const { data, error } = await supabase.functions.invoke<{ suggestions?: RawSuggestion[] }>("generate-blog-suggestions", {
         body: { count: 5 },
       });
 
       if (error) throw error;
 
       // Normalizar keywords e visualElements (podem vir como string ou array)
-      const normalizedSuggestions = (data.suggestions || []).map((s: any) => ({
+      const normalizedSuggestions = (data.suggestions || []).map((s) => ({
         ...s,
         keywords: typeof s.keywords === 'string' 
           ? s.keywords.split(',').map((k: string) => k.trim()).filter(Boolean)

@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Undo2, GitMerge, Loader2 } from "lucide-react";
-import { UndoMergeDialog } from "@/components/admin/UndoMergeDialog";
+import { UndoMergeDialog, type MergeLog } from "@/components/admin/UndoMergeDialog";
 import { formatDateTimeBR } from "@/lib/formatters";
 
 interface MergedEventRow {
@@ -27,7 +27,7 @@ interface MergeGroup {
   primary: PrimaryRow;
   merged: MergedEventRow[];
   latestMergedAt: string | null;
-  log: any | null; // application_logs row (se existir) com snapshot p/ desfazer
+  log: MergeLog | null; // application_logs row (se existir) com snapshot p/ desfazer
 }
 
 /**
@@ -40,7 +40,7 @@ interface MergeGroup {
 export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
   const [groups, setGroups] = useState<MergeGroup[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedLog, setSelectedLog] = useState<any | null>(null);
+  const [selectedLog, setSelectedLog] = useState<MergeLog | null>(null);
 
   const fetchGroups = async () => {
     setLoading(true);
@@ -82,14 +82,14 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
         .order("logged_at", { ascending: false })
         .limit(500);
 
-      const allLogs = (logs || []) as Array<{ id: string; logged_at: string; context: any }>;
+      const allLogs = (logs || []) as unknown as MergeLog[];
       const undoneSourceIds = new Set(
         allLogs
           .filter((l) => l.context?.action === "undo_merge")
           .map((l) => l.context?.source_log_id)
           .filter(Boolean),
       );
-      const logsByPrimary = new Map<string, any>();
+      const logsByPrimary = new Map<string, MergeLog>();
       for (const l of allLogs) {
         if (l.context?.action !== "merge_events") continue;
         if (undoneSourceIds.has(l.id)) continue;
@@ -209,7 +209,7 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
       <UndoMergeDialog
         open={!!selectedLog}
         onOpenChange={(o) => !o && setSelectedLog(null)}
-        log={selectedLog as any}
+        log={selectedLog}
         onSuccess={() => {
           setSelectedLog(null);
           fetchGroups();

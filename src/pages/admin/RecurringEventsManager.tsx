@@ -139,13 +139,13 @@ const RecurringEventsManager = () => {
   const handleExecuteNow = async () => {
     setExecuting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-recurring-events", {
+      const { data, error } = await supabase.functions.invoke<{ created: number; results?: { linkCreated?: boolean }[] }>("create-recurring-events", {
         body: { force: true }
       });
 
       if (error) throw error;
 
-      const linksCreated = data?.results?.filter((r: any) => r.linkCreated)?.length || 0;
+      const linksCreated = data?.results?.filter((r) => r.linkCreated)?.length || 0;
 
       toast({
         title: "Execução concluída",

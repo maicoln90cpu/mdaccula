@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/useToast";
 
 const LegacyMediaImport = () => {
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<Record<string, any> | null>(null);
+  const [importResult, setImportResult] = useState<Record<string, unknown> | null>(null);
   const { toast } = useToast();
 
   const handleImportStorage = async () => {

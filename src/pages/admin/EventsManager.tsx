@@ -16,6 +16,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MergedEventsTab } from "@/components/admin/MergedEventsTab";
 import EventVisibilitySettings from "@/components/admin/events/EventVisibilitySettings";
+import type { MergeLog } from "@/components/admin/UndoMergeDialog";
 import { buildArticlePayload } from "@/lib/eventArticlePayload";
 import { addHours } from "date-fns";
 import { parseLocalDateTime } from "@/lib/dateUtils";
@@ -63,7 +64,7 @@ const EventsManager = () => {
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
-  const [lastMergeLog, setLastMergeLog] = useState<any | null>(null);
+  const [lastMergeLog, setLastMergeLog] = useState<MergeLog | null>(null);
   const [showUndoDialog, setShowUndoDialog] = useState(false);
   const [showMerged, setShowMerged] = useState(false);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
@@ -80,11 +81,12 @@ const EventsManager = () => {
       .order("logged_at", { ascending: false })
       .limit(50);
     if (!merges) { setLastMergeLog(null); return; }
-    const lastMerge = merges.find((l: any) => l.context?.action === "merge_events");
+    const typedMerges = merges as unknown as MergeLog[];
+    const lastMerge = typedMerges.find((l) => l.context?.action === "merge_events");
     if (!lastMerge) { setLastMergeLog(null); return; }
     // Verifica se já foi desfeita
-    const undone = merges.find(
-      (l: any) => l.context?.action === "undo_merge" && l.context?.source_log_id === lastMerge.id,
+    const undone = typedMerges.find(
+      (l) => l.context?.action === "undo_merge" && l.context?.source_log_id === lastMerge.id,
     );
     setLastMergeLog(undone ? null : lastMerge);
   };
@@ -108,7 +110,7 @@ const EventsManager = () => {
       if (primaryIds.length > 0) {
         const { data: primaries } = await supabase.from("events").select("id, title").in("id", primaryIds);
         const map: Record<string, string> = {};
-        (primaries || []).forEach((p: any) => { map[p.id] = p.title; });
+        (primaries || []).forEach((p) => { map[p.id] = p.title; });
         setMergedPrimaryTitles(map);
       } else {
         setMergedPrimaryTitles({});
@@ -167,7 +169,7 @@ const EventsManager = () => {
           merged_into_id: null,
           merged_at: null,
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq("id", event.id);
       if (error) throw error;
       toast({
@@ -230,7 +232,7 @@ const EventsManager = () => {
     try {
       logger.debug('[EventsManager] Iniciando geração de artigo para evento', { title: event.title });
       
-      const payload = buildArticlePayload(event as any, { generateImage: !event.image_url });
+      const payload = buildArticlePayload(event, { generateImage: !event.image_url });
       
       logger.debug('[EventsManager] Payload para generate-blog-post-v2', { payload });
       

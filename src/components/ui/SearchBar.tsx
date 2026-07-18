@@ -95,7 +95,7 @@ export const SearchBar = () => {
             <>
               {quickResults && quickResults.length > 0 ? (
                 <CommandGroup heading="Resultados">
-                  {quickResults.map((result: any) => (
+                  {quickResults.map((result) => (
                     <CommandItem
                       key={result.id}
                       onSelect={() => handleSelect(result.slug)}

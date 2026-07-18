@@ -22,6 +22,14 @@ import { notifyEventChange } from '@/lib/indexnow';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
 import { logger } from "@/lib/logger";
 import { EVENT_CTA_TYPES, EVENT_CTA_CONFIG, DEFAULT_EVENT_CTA_TYPE, type EventCtaType } from '@shared/eventCta.ts';
+import type { Event } from '@/types';
+import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
+
+interface BlogPostOption {
+  id: string;
+  title: string;
+  category: string;
+}
 
 interface EventFormData {
   title: string;
@@ -47,7 +55,7 @@ interface EventFormData {
 }
 
 interface EventFormProps {
-  event?: any;
+  event?: Partial<Event>;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -115,10 +123,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPostOption[]>([]);
   const [blogSearchTerm, setBlogSearchTerm] = useState('');
-  const [blogSearchResults, setBlogSearchResults] = useState<any[]>([]);
-  const [selectedBlogPost, setSelectedBlogPost] = useState<any>(null);
+  const [blogSearchResults, setBlogSearchResults] = useState<BlogPostOption[]>([]);
+  const [selectedBlogPost, setSelectedBlogPost] = useState<BlogPostOption | null>(null);
   const [showBlogDropdown, setShowBlogDropdown] = useState(false);
   const [manualSlug, setManualSlug] = useState(event?.slug || '');
   const [selectedGenres, setSelectedGenres] = useState<string[]>(event?.genres || []);
@@ -126,8 +134,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [linkUrlType, setLinkUrlType] = useState<'ticket' | 'slug'>('ticket');
   const [generateBlogPost, setGenerateBlogPost] = useState(false);
   const [aiContext, setAiContext] = useState<string>(event?.ai_context || '');
-  const [, setLinkGroups] = useState<any[]>([]);
-  const [eventTemplates, setEventTemplates] = useState<any[]>([]);
+  const [, setLinkGroups] = useState<Tables<'link_groups'>[]>([]);
+  const [eventTemplates, setEventTemplates] = useState<Tables<'event_templates'>[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   // B.6 — Toggle para criar rascunho automático de e-mail na E-goi ao salvar.
   // Default OFF (nunca dispara sem intent explícito do admin).
@@ -144,8 +152,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       address: event.address,
       location_state: event.location_state,
       location_city: event.location_city,
-      venue_lat: (event as any).venue_lat ?? null,
-      venue_lng: (event as any).venue_lng ?? null,
+      venue_lat: event.venue_lat ?? null,
+      venue_lng: event.venue_lng ?? null,
       date: event.date,
       end_date: event.end_date || '',
       time: event.time,
@@ -326,10 +334,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     setValue('location_state', template.location_state);
     setValue('ticket_link', template.ticket_link || '');
     setValue('vip_link', template.vip_link || '');
-    setValue('title', (template as any).title || '');
-    setValue('subtitle', (template as any).subtitle || '');
-    setValue('time', (template as any).time || '');
-    setValue('description', (template as any).description || '');
+    setValue('title', template.title || '');
+    setValue('subtitle', template.subtitle || '');
+    setValue('time', template.time || '');
+    setValue('description', template.description || '');
     setSelectedGenres(template.genres || []);
 
     toast({
@@ -429,8 +437,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         ticket_link: normalizedTicketLink,
         vip_link: normalizedVipLink,
         lineup: normalizedLineup,
-        venue_lat: data.venue_lat === undefined || data.venue_lat === null || Number.isNaN(data.venue_lat as any) ? null : Number(data.venue_lat),
-        venue_lng: data.venue_lng === undefined || data.venue_lng === null || Number.isNaN(data.venue_lng as any) ? null : Number(data.venue_lng),
+        venue_lat: data.venue_lat === undefined || data.venue_lat === null || Number.isNaN(data.venue_lat) ? null : Number(data.venue_lat),
+        venue_lng: data.venue_lng === undefined || data.venue_lng === null || Number.isNaN(data.venue_lng) ? null : Number(data.venue_lng),
         genres: selectedGenres,
         image_url: imageUrl,
         slug: eventSlug,
@@ -440,7 +448,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
-        schedule: finalSchedule as any,
+        schedule: finalSchedule,
         // Garante envio explícito do toggle Pix (evita perda caso react-hook-form não inclua no spread)
         pix_button_enabled: data.pix_button_enabled === true,
         // Fase 5: só faz sentido p/ multi-dia; força false se não houver end_date posterior.
@@ -486,7 +494,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         
         // 🔗 Sincronizar TODOS os campos com links vinculados
         logger.debug('[EventForm] 🔗 Sincronizando campos com links vinculados...');
-        const linkUpdateData: Record<string, any> = {
+        const linkUpdateData: TablesUpdate<'custom_links'> = {
           title: data.title,
           subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
           override_date: data.date,

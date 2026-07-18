@@ -37,7 +37,7 @@ interface LogEntry {
   id: string;
   level: string;
   message: string;
-  context: Record<string, any>;
+  context: Record<string, unknown>;
   logged_at: string;
 }
 

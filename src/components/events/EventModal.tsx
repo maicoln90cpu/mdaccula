@@ -8,9 +8,10 @@ import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl, getThumbnailUrl } from '@/lib/imageUtils';
 import { safeExternalUrl } from '@/lib/safeExternalUrl';
 import { getEventCtaButtonLabel } from '@shared/eventCta.ts';
+import type { Event } from '@/types';
 
 interface EventModalProps {
-  event: any;
+  event: Event | null;
   isOpen: boolean;
   onClose: () => void;
   onEdit?: () => void;

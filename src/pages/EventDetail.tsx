@@ -90,11 +90,11 @@ const EventDetail = () => {
       if (error) throw error;
 
       // Fase 6.2: se o evento existe mas foi inativado por mesclagem, segue p/ o principal.
-      if (data && (data as any).status === "merged_inactive" && (data as any).merged_into_id) {
+      if (data && data.status === "merged_inactive" && data.merged_into_id) {
         const { data: target, error: targetErr } = await supabase
           .from("events")
           .select("*")
-          .eq("id", (data as any).merged_into_id)
+          .eq("id", data.merged_into_id)
           .maybeSingle();
         if (targetErr) throw targetErr;
         if (target) return target as Event | null;

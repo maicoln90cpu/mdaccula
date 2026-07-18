@@ -395,7 +395,7 @@ export const AIAnalyticsDashboard = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Gráficos de Uso</CardTitle>
-          <Tabs value={period} onValueChange={(v) => setPeriod(v as any)}>
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as "daily" | "weekly" | "monthly")}>
             <TabsList>
               <TabsTrigger value="daily">Diário</TabsTrigger>
               <TabsTrigger value="weekly">Semanal</TabsTrigger>

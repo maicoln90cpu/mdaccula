@@ -661,7 +661,7 @@ const Eventos = () => {
                       </CardTitle>
                       <div className="flex items-center text-base font-semibold text-white mt-2">
                         <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
-                        {formatEventDateRange(event.date, (event as any).end_date)}
+                        {formatEventDateRange(event.date, event.end_date)}
                       </div>
                       {event.subtitle && (
                         <p className="text-sm text-muted-foreground mt-2">

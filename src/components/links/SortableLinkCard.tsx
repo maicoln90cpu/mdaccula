@@ -35,7 +35,7 @@ interface CustomLink {
   events?: LinkEvent | null;
 }
 
-interface Theme {
+export interface Theme {
   cardEvent: string;
   cardNavigation: string;
   cardDefault: string;

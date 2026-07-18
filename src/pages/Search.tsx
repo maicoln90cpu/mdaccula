@@ -108,7 +108,7 @@ export default function Search() {
                   </p>
                 </Card>
               ) : results && results.length > 0 ? (
-                results.map((result: any) => (
+                results.map((result) => (
                   <Card
                     key={result.id}
                     className="overflow-hidden hover:shadow-lg transition"

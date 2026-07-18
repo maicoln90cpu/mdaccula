@@ -106,7 +106,7 @@ const RedirectsManager = () => {
       if (!dateRange?.from) return {};
       
       let query = supabase
-        .from("redirect_click_events" as any)
+        .from("redirect_click_events")
         .select("redirect_link_id")
         .gte("clicked_at", dateRange.from.toISOString());
       
@@ -124,7 +124,7 @@ const RedirectsManager = () => {
 
       // Count clicks per redirect_link_id
       const counts: Record<string, number> = {};
-      (data as any[])?.forEach((row: any) => {
+      data?.forEach((row) => {
         const id = row.redirect_link_id;
         counts[id] = (counts[id] || 0) + 1;
       });

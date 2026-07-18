@@ -6,8 +6,9 @@ import { AlertTriangle, Loader2, Undo2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 import { formatDateTimeBR } from "@/lib/formatters";
+import type { Tables, Json } from "@/integrations/supabase/types";
 
-interface MergeLog {
+export interface MergeLog {
   id: string;
   logged_at: string;
   context: {
@@ -15,14 +16,14 @@ interface MergeLog {
     primary_id: string;
     primary_title: string;
     merged_event_ids: string[];
-    merged_snapshot: any[];
+    merged_snapshot: Tables<'events'>[];
     primary_pre_merge?: {
       id: string;
       date: string;
       end_date: string | null;
       views: number;
       blog_post_id: string | null;
-      schedule: any;
+      schedule: Json;
       lineup: string[];
     };
     links_repointed?: { id: string; old_event_id: string }[];
@@ -59,8 +60,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       setSlugConflicts([]);
       return;
     }
-    const slugs = snapshot.map((e: any) => e.slug).filter(Boolean);
-    const ids = snapshot.map((e: any) => e.id);
+    const slugs = snapshot.map((e) => e.slug).filter(Boolean);
+    const ids = snapshot.map((e) => e.id);
     if (!slugs.length) return;
     (async () => {
       const { data } = await supabase
@@ -87,7 +88,7 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
     setWorking(true);
     try {
       // 1. Remover redirects (FK ON DELETE CASCADE removeria se principal sumisse, mas ele continua)
-      const oldSlugs = snapshot.map((e: any) => e.slug).filter(Boolean);
+      const oldSlugs = snapshot.map((e) => e.slug).filter(Boolean);
       if (oldSlugs.length > 0) {
         const { error: redErr } = await supabase
           .from("event_slug_redirects")
@@ -99,15 +100,15 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       // 2. Reativar (soft-delete) ou Reinserir (legado) eventos.
       // Eventos mesclados via Fase 6.2 continuam existindo com status='merged_inactive'.
       // Mesclagens antigas (pré-6.2) realmente foram DELETE → precisam INSERT.
-      const snapshotIds = snapshot.map((e: any) => e.id);
+      const snapshotIds = snapshot.map((e) => e.id);
       const { data: existingRows } = await supabase
         .from("events")
         .select("id")
         .in("id", snapshotIds);
-      const existingIds = new Set((existingRows || []).map((r: any) => r.id));
+      const existingIds = new Set((existingRows || []).map((r) => r.id));
 
       const toReactivate = snapshotIds.filter((id: string) => existingIds.has(id));
-      const toInsert = snapshot.filter((e: any) => !existingIds.has(e.id));
+      const toInsert = snapshot.filter((e) => !existingIds.has(e.id));
 
       if (toReactivate.length > 0) {
         const { error: reactErr } = await supabase
@@ -117,7 +118,7 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
             merged_into_id: null,
             merged_at: null,
             updated_at: new Date().toISOString(),
-          } as any)
+          })
           .in("id", toReactivate);
         if (reactErr) throw reactErr;
       }
@@ -151,7 +152,7 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
           end_date: pre.end_date,
           views: pre.views,
           blog_post_id: pre.blog_post_id,
-          schedule: pre.schedule as any,
+          schedule: pre.schedule,
           lineup: pre.lineup,
           updated_at: new Date().toISOString(),
         })
@@ -166,8 +167,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
           action: "undo_merge",
           source_log_id: log.id,
           primary_id: pre.id,
-          restored_event_ids: snapshot.map((e: any) => e.id),
-        } as any,
+          restored_event_ids: snapshot.map((e) => e.id),
+        },
       }]);
 
       toast({

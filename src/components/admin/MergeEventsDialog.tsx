@@ -148,7 +148,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           new_start_date: dateRange.start,
           new_views: totalViews,
           new_schedule: autoSchedule,
-        } as any,
+        },
       }]);
 
       // 4. Repontar custom_links dos duplicados → principal
@@ -170,7 +170,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
           date: dateRange.start,
           views: totalViews,
           blog_post_id: inheritedBlogPostId,
-          schedule: autoSchedule as any,
+          schedule: autoSchedule,
           tickets_per_day: effectiveTicketsPerDay,
           updated_at: new Date().toISOString(),
         })
@@ -206,7 +206,7 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
             merged_into_id: primary.id,
             merged_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-          } as any)
+          })
           .in("id", duplicateIds);
         if (delErr) throw delErr;
       }

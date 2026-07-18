@@ -8,6 +8,68 @@ import { runEventImageBackfill, type BackfillResult } from "@/lib/eventImageBack
 
 type CompressionPreset = "sutil" | "media" | "severa";
 
+interface BunnyDiagnosis {
+  bunny_config?: {
+    auth_ok?: boolean;
+    hint?: string;
+    storage_host?: string;
+    storage_zone?: string;
+    hostname_secret_configured?: boolean;
+  };
+  key_diagnostics?: {
+    rawLength?: number;
+    lengthAfterSanitize?: number;
+    startsWithQuote?: boolean;
+    endsWithQuote?: boolean;
+    containsNonPrintable?: boolean;
+    firstCharCode?: number;
+  };
+  curl_test?: string;
+  region_detection?: {
+    detected?: boolean;
+    correct_region?: string;
+    correct_host?: string;
+    action_needed?: string;
+    all_results?: { host: string; region: string; status: number }[];
+  };
+  supabase_buckets?: Record<string, number>;
+  supabase_bucket_sizes?: Record<string, { sizeMB?: string }>;
+  bunny_buckets?: Record<string, number>;
+  bunny_bucket_sizes?: Record<string, { sizeMB?: string; count?: number }>;
+  unmigrated_urls?: Record<string, number>;
+  url_dedup?: { total_urls?: number; unique_files?: number; duplicate_references?: number };
+}
+
+interface MigrateFilesResult {
+  error?: string;
+  credential_hint?: string;
+  nextOffset?: number;
+  totalMigrated?: number;
+  hint?: string;
+  results?: Record<string, { migrated?: number; skipped?: number; total?: number; hasMore?: boolean; errors?: string[] }>;
+}
+
+interface CleanupResult {
+  results?: Record<string, { deleted?: number; kept?: number; errors?: string[] }>;
+}
+
+interface CheckResult {
+  totalFiles?: number;
+  totalImages?: number;
+  bunnyImages?: number;
+  totalMB?: number;
+  avgMB?: number;
+  bucketDetails?: Record<string, { images?: number; sizeMB?: number; bunnyCount?: number }>;
+  breakdown?: Record<string, { label?: string; count?: number }>;
+}
+
+interface ConvertResult {
+  preset?: { label?: string };
+  buckets?: string[];
+  summary?: { processed?: number; skipped?: number; errors?: number; totalSavedMB?: number };
+  details?: { processed?: string[]; errors?: string[] };
+}
+
 const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string; details: string }> = {
   sutil: { label: "Sutil", desc: "Qualidade alta, resize leve", details: "WebP 85% · max 1920px · ~60-70% menor que PNG (~300KB → ~100KB)" },
   media: { label: "Média", desc: "Equilíbrio qualidade/tamanho", details: "WebP 70% · max 1280px · ~75-85% menor (~300KB → ~55KB)" },
@@ -17,27 +79,27 @@ const PRESET_LABELS: Record<CompressionPreset, { label: string; desc: string; de
 const MediaSettings = () => {
   // Bunny diagnosis
   const [diagLoading, setDiagLoading] = useState(false);
-  const [diagResult, setDiagResult] = useState<Record<string, any> | null>(null);
+  const [diagResult, setDiagResult] = useState<BunnyDiagnosis | null>(null);
 
   // Bunny migration
   const [migratingFiles, setMigratingFiles] = useState(false);
-  const [migrateResult, setMigrateResult] = useState<Record<string, any> | null>(null);
+  const [migrateResult, setMigrateResult] = useState<MigrateFilesResult | null>(null);
   const [migrateOffset, setMigrateOffset] = useState(0);
   const [updatingUrls, setUpdatingUrls] = useState(false);
   const [urlResult, setUrlResult] = useState<Record<string, number> | null>(null);
 
   // Image check
   const [checkLoading, setCheckLoading] = useState(false);
-  const [checkResult, setCheckResult] = useState<Record<string, any> | null>(null);
+  const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
 
   // Conversion
   const [converting, setConverting] = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<CompressionPreset>("media");
-  const [conversionResult, setConversionResult] = useState<Record<string, any> | null>(null);
+  const [conversionResult, setConversionResult] = useState<ConvertResult | null>(null);
 
   // Cleanup
   const [cleaningUp, setCleaningUp] = useState(false);
-  const [cleanupResult, setCleanupResult] = useState<Record<string, any> | null>(null);
+  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
 
   // Backfill de variantes (eventos ativos + configs recorrentes)
   const [backfillRunning, setBackfillRunning] = useState(false);
@@ -74,7 +136,7 @@ const MediaSettings = () => {
     setDiagLoading(true);
     setDiagResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
+      const { data, error } = await supabase.functions.invoke<BunnyDiagnosis>("migrate-to-bunny", {
         body: { action: "diagnose" },
       });
       if (error) throw error;
@@ -92,7 +154,7 @@ const MediaSettings = () => {
     setMigratingFiles(true);
     setMigrateResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
+      const { data, error } = await supabase.functions.invoke<MigrateFilesResult>("migrate-to-bunny", {
         body: { action: "migrate_files", batch_size: 20, offset: migrateOffset },
       });
       if (error) throw error;
@@ -105,7 +167,7 @@ const MediaSettings = () => {
 
       setMigrateResult(data);
       setMigrateOffset(data.nextOffset || 0);
-      const hasMore = Object.values(data.results || {}).some((r: any) => r.hasMore);
+      const hasMore = Object.values(data.results || {}).some((r) => r.hasMore);
       toast({
         title: hasMore ? "Lote processado" : "Migração concluída",
         description: `${data.totalMigrated} arquivos migrados.${hasMore ? " Clique novamente." : ""}`,
@@ -123,12 +185,12 @@ const MediaSettings = () => {
     setUpdatingUrls(true);
     setUrlResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
+      const { data, error } = await supabase.functions.invoke<{ updated: Record<string, number> }>("migrate-to-bunny", {
         body: { action: "update_urls" },
       });
       if (error) throw error;
       setUrlResult(data.updated);
-      const total = Object.values(data.updated as Record<string, number>).reduce((a, b) => a + b, 0);
+      const total = Object.values(data.updated).reduce((a, b) => a + b, 0);
       toast({ title: "URLs atualizadas", description: `${total} URLs reescritas.` });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -143,12 +205,12 @@ const MediaSettings = () => {
     setCleaningUp(true);
     setCleanupResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("migrate-to-bunny", {
+      const { data, error } = await supabase.functions.invoke<CleanupResult>("migrate-to-bunny", {
         body: { action: "cleanup_supabase" },
       });
       if (error) throw error;
       setCleanupResult(data);
-      const total = Object.values(data.results || {}).reduce((a: number, r: any) => a + (r.deleted || 0), 0);
+      const total = Object.values(data.results || {}).reduce((a: number, r) => a + (r.deleted || 0), 0);
       toast({
         title: "Limpeza concluída",
         description: `${total} arquivos removidos do Supabase após verificação no Bunny.`,
@@ -166,7 +228,7 @@ const MediaSettings = () => {
     setCheckLoading(true);
     setCheckResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
+      const { data, error } = await supabase.functions.invoke<CheckResult>("batch-convert-webp", {
         body: { action: "check", bucket: "all" },
       });
       if (error) throw error;
@@ -184,14 +246,14 @@ const MediaSettings = () => {
     setConverting(true);
     setConversionResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("batch-convert-webp", {
+      const { data, error } = await supabase.functions.invoke<ConvertResult>("batch-convert-webp", {
         body: { action: "convert", bucket: "all", preset: selectedPreset, maxFiles: 2 },
       });
       if (error) throw error;
       setConversionResult(data);
       toast({
         title: "Conversão concluída",
-        description: `${data.summary.processed} imagens. ${data.summary.totalSavedMB} MB economizados.`,
+        description: `${data.summary?.processed} imagens. ${data.summary?.totalSavedMB} MB economizados.`,
       });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
@@ -205,13 +267,13 @@ const MediaSettings = () => {
 
   // Calculate economy dashboard from diagnosis data
   const supabaseTotalMB = diagResult?.supabase_bucket_sizes
-    ? Object.values(diagResult.supabase_bucket_sizes).reduce((sum: number, b: any) => sum + parseFloat(b.sizeMB || "0"), 0)
+    ? Object.values(diagResult.supabase_bucket_sizes).reduce((sum, b) => sum + parseFloat(b.sizeMB || "0"), 0)
     : 0;
   const bunnyTotalMB = diagResult?.bunny_bucket_sizes
-    ? Object.values(diagResult.bunny_bucket_sizes).reduce((sum: number, b: any) => sum + parseFloat(b.sizeMB || "0"), 0)
+    ? Object.values(diagResult.bunny_bucket_sizes).reduce((sum, b) => sum + parseFloat(b.sizeMB || "0"), 0)
     : 0;
   const bunnyTotalFiles = diagResult?.bunny_bucket_sizes
-    ? Object.values(diagResult.bunny_bucket_sizes).reduce((sum: number, b: any) => sum + (b.count || 0), 0)
+    ? Object.values(diagResult.bunny_bucket_sizes).reduce((sum, b) => sum + (b.count || 0), 0)
     : 0;
 
   return (
@@ -339,7 +401,7 @@ const MediaSettings = () => {
                     <details className="mt-2">
                       <summary className="text-xs cursor-pointer text-muted-foreground">Ver todas as regiões testadas</summary>
                       <div className="mt-1 space-y-0.5">
-                        {diagResult.region_detection.all_results.map((r: any, i: number) => (
+                        {diagResult.region_detection.all_results.map((r, i: number) => (
                           <div key={i} className={`text-[10px] font-mono ${r.status === 200 ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
                             {r.status === 200 ? "✅" : "❌"} {r.host} ({r.region}) → {r.status}
                           </div>
@@ -423,7 +485,7 @@ const MediaSettings = () => {
               {migrateResult.totalMigrated !== undefined && (
                 <p className="text-sm font-medium">Migrados neste lote: <strong>{migrateResult.totalMigrated}</strong></p>
               )}
-              {Object.entries(migrateResult.results || {}).map(([bucket, info]: [string, any]) => (
+              {Object.entries(migrateResult.results || {}).map(([bucket, info]) => (
                 <div key={bucket} className="space-y-1">
                   <p className="font-medium">{bucket}: {info.migrated} migrados, {info.skipped} existentes, {info.total} total</p>
                   {info.hasMore && <p className="text-amber-600 dark:text-amber-400">⏳ Há mais — clique novamente</p>}
@@ -471,7 +533,7 @@ const MediaSettings = () => {
           {cleanupResult && (
             <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
               <p className="text-sm font-medium">🧹 Resultado da limpeza</p>
-              {Object.entries(cleanupResult.results || {}).map(([bucket, info]: [string, any]) => (
+              {Object.entries(cleanupResult.results || {}).map(([bucket, info]) => (
                 <div key={bucket}>
                   <span className="font-medium">{bucket}:</span> {info.deleted} deletados, {info.kept} mantidos (não verificados no Bunny)
                   {info.errors?.length > 0 && (
@@ -520,7 +582,7 @@ const MediaSettings = () => {
               {checkResult.bucketDetails && (
                 <div className="space-y-1">
                   <p className="text-xs font-medium">Por bucket:</p>
-                  {Object.entries(checkResult.bucketDetails).map(([bucket, info]: [string, any]) => (
+                  {Object.entries(checkResult.bucketDetails).map(([bucket, info]) => (
                     <div key={bucket} className="flex items-center gap-2 text-xs">
                       <span className="font-mono text-muted-foreground">{bucket}:</span>
                       <span>{info.images} imagens · {info.sizeMB} MB</span>
@@ -532,7 +594,7 @@ const MediaSettings = () => {
 
               <div className="space-y-1">
                 <p className="text-xs font-medium">Distribuição por tamanho:</p>
-                {Object.entries(checkResult.breakdown || {}).map(([key, info]: [string, any]) => (
+                {Object.entries(checkResult.breakdown || {}).map(([key, info]) => (
                   <div key={key} className="flex items-center gap-2 text-xs">
                     <span className={`w-2 h-2 rounded-full ${key === "small" ? "bg-green-500" : key === "medium" ? "bg-amber-500" : "bg-red-500"}`} />
                     <span className="text-muted-foreground">{info.label}:</span>

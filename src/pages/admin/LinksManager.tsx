@@ -157,12 +157,12 @@ const LinksManager = () => {
       const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
       const visibility = { hoursAfterStart, hoursWithoutTime, timezoneOffset };
 
-      const withProcessed = (data || []).map((group: any) => ({
+      const withProcessed: LinkGroup[] = (data || []).map((group) => ({
         ...group,
         custom_links: processLinks(group.custom_links || [], visibility, { includeDisabled: true }) as unknown as CustomLink[],
       }));
 
-      setGroups(sortLinkGroups(withProcessed as any) as any);
+      setGroups(sortLinkGroups(withProcessed));
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({

@@ -55,10 +55,10 @@ export default function Analytics() {
         );
 
       // Agrupar por plataforma
-      const grouped = data?.reduce((acc: any, { platform }) => {
+      const grouped = data?.reduce((acc: Record<string, number>, { platform }) => {
         acc[platform] = (acc[platform] || 0) + 1;
         return acc;
-      }, {});
+      }, {} as Record<string, number>);
 
       return Object.entries(grouped || {}).map(([name, value]) => ({
         name: name.charAt(0).toUpperCase() + name.slice(1),

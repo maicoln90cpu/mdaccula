@@ -23,8 +23,8 @@ export function isValidSchedule(value: unknown): value is EventSchedule {
       (e) =>
         e &&
         typeof e === 'object' &&
-        typeof (e as any).date === 'string' &&
-        typeof (e as any).time === 'string',
+        typeof (e as Record<string, unknown>).date === 'string' &&
+        typeof (e as Record<string, unknown>).time === 'string',
     )
   );
 }

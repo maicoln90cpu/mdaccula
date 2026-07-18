@@ -4,7 +4,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { CustomLinkForm } from "@/components/links/CustomLinkForm";
 import type { CustomLink } from "@/hooks/useLinks";
 import type { DragEndEvent } from "@dnd-kit/core";
-import { SortableLinkCard } from "@/components/links/SortableLinkCard";
+import { SortableLinkCard, type Theme } from "@/components/links/SortableLinkCard";
 
 const DndWrapper = lazy(() => import("@/components/links/DndWrapper"));
 
@@ -19,7 +19,7 @@ interface LinksAdminControlsProps {
   groups: LinkGroup[];
   displayGroups: LinkGroup[];
   allLinkIds: string[];
-  theme: any;
+  theme: Theme;
   showEventDate: boolean;
   templateCardColor: string;
   templateBorderColor: string;
@@ -144,7 +144,7 @@ export const LinksAdminControls = ({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {editingLink && (
             <CustomLinkForm
-              link={editingLink as any}
+              link={editingLink}
               groups={groups}
               preselectedGroupId={editingLink.group_id || null}
               onSuccess={() => { setEditingLink(null); refetchLinks(); }}

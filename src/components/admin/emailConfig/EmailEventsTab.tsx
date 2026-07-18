@@ -295,7 +295,7 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
         body: { campaign_id: campaignId },
       });
       if (error) throw error;
-      const res = data as { ok?: boolean; stats?: any; error?: string };
+      const res = data as { ok?: boolean; stats?: Record<string, unknown>; error?: string };
       if (!res?.ok || !res.stats) throw new Error(res?.error || "Resposta inválida da E-goi");
       setCampaignStats((prev) => ({
         ...prev,

@@ -57,7 +57,7 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
       // Remove o id local E a flag `hidden` do bloco antes de salvar.
       // `hidden` é uma propriedade da REFERÊNCIA no template, não do bloco global em si;
       // se herdada, faria o global sempre renderizar vazio em todos os templates.
-      const { id: _localId, hidden: _localHidden, ...rest } = block as any;
+      const { id: _localId, hidden: _localHidden, ...rest } = block as Block & { hidden?: boolean };
       const cleanBlock = { id: "template", ...rest } as Block;
       const { data, error } = await supabase.from("email_global_blocks")
         .insert({

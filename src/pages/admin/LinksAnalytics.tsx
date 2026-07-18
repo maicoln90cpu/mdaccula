@@ -139,7 +139,7 @@ const LinksAnalytics = () => {
           .select("link_id")
           .gte("clicked_at", dateFilter);
         if (linkClicks) {
-          (linkClicks as any[]).forEach((row: any) => {
+          linkClicks.forEach((row) => {
             linkClicksByPeriod[row.link_id] = (linkClicksByPeriod[row.link_id] || 0) + 1;
           });
         }
@@ -150,7 +150,7 @@ const LinksAnalytics = () => {
           .select("post_id")
           .gte("viewed_at", dateFilter);
         if (blogViews) {
-          (blogViews as any[]).forEach((row: any) => {
+          blogViews.forEach((row) => {
             blogViewsByPeriod[row.post_id] = (blogViewsByPeriod[row.post_id] || 0) + 1;
           });
         }
@@ -161,7 +161,7 @@ const LinksAnalytics = () => {
           .select("event_id")
           .gte("viewed_at", dateFilter);
         if (eventViews) {
-          (eventViews as any[]).forEach((row: any) => {
+          eventViews.forEach((row) => {
             eventViewsByPeriod[row.event_id] = (eventViewsByPeriod[row.event_id] || 0) + 1;
           });
         }
@@ -172,14 +172,14 @@ const LinksAnalytics = () => {
           .select("redirect_link_id")
           .gte("clicked_at", dateFilter);
         if (clickEvents) {
-          (clickEvents as any[]).forEach((row: any) => {
+          clickEvents.forEach((row) => {
             redirectClicksByPeriod[row.redirect_link_id] = (redirectClicksByPeriod[row.redirect_link_id] || 0) + 1;
           });
         }
       }
 
       // Processar dados dos links
-      const processedLinks = linksData?.map((link: any) => ({
+      const processedLinks = linksData?.map((link) => ({
         id: link.id,
         title: link.title,
         url: link.url,
@@ -193,7 +193,7 @@ const LinksAnalytics = () => {
       setLinks(processedLinks);
 
       // Processar dados do blog
-      const processedBlog = blogData?.map((post: any) => ({
+      const processedBlog = blogData?.map((post) => ({
         id: post.id,
         title: post.title,
         slug: post.slug,
@@ -216,7 +216,7 @@ const LinksAnalytics = () => {
       setTotalLikes(likesTotal);
 
       // Processar dados dos eventos
-      const processedEvents = eventsData?.map((event: any) => ({
+      const processedEvents = eventsData?.map((event) => ({
         id: event.id,
         title: event.title,
         slug: event.slug,
@@ -231,7 +231,7 @@ const LinksAnalytics = () => {
       setTotalEventViews(eventViewsTotal);
 
       // Processar dados dos redirects
-      const processedRedirects = redirectsData?.map((r: any) => ({
+      const processedRedirects = redirectsData?.map((r) => ({
         id: r.id,
         slug: r.slug,
         destination_url: r.destination_url,

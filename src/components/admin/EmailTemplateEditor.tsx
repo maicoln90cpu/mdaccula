@@ -100,7 +100,7 @@ function AlignControl({ value, onChange }: { value?: "left" | "center" | "right"
   return (
     <div>
       <Label className="text-xs">Alinhamento</Label>
-      <Select value={value || "left"} onValueChange={(v) => onChange(v as any)}>
+      <Select value={value || "left"} onValueChange={(v) => onChange(v as "left" | "center" | "right")}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="left">Esquerda</SelectItem>
@@ -597,9 +597,9 @@ export function EmailTemplateEditor({
                 <div className="space-y-1.5">
                   {blocks.map((b) => {
                     const isGlobal = b.kind === "global_ref";
-                    const resolvedName = isGlobal
-                      ? (globalsMap.get((b as any).global_id)?.name
-                          ?? (b as any)._cached_name
+                    const resolvedName = b.kind === "global_ref"
+                      ? (globalsMap.get(b.global_id)?.name
+                          ?? b._cached_name
                           ?? "Bloco global")
                       : BLOCK_LABELS[b.kind];
                     return (
@@ -656,8 +656,8 @@ export function EmailTemplateEditor({
                 globalsMap={globalsMap}
                 updateGlobal={updateGlobal}
                 onUnlink={(expanded) => {
-                  const localCopy: Block = { ...(expanded as any), id: (selectedBlock as any).id } as Block;
-                  replaceBlock((selectedBlock as any).id, localCopy);
+                  const localCopy: Block = { ...expanded, id: selectedBlock.id } as Block;
+                  replaceBlock(selectedBlock.id, localCopy);
                   toast({ title: "Vínculo desfeito", description: "O bloco virou local neste template. Edições agora só afetam este template." });
                 }}
                 onToast={(t) => toast(t)}
@@ -732,7 +732,7 @@ export function EmailTemplateEditor({
 // ============================================
 
 function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: Partial<Block>) => void }) {
-  const patch = (p: any) => onChange(p as Partial<Block>);
+  const patch = (p: Record<string, unknown>) => onChange(p as Partial<Block>);
 
   switch (block.kind) {
     case "header":
@@ -805,7 +805,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Layout</Label>
-            <Select value={block.layout || "columns"} onValueChange={(v) => patch({ layout: v as any })}>
+            <Select value={block.layout || "columns"} onValueChange={(v) => patch({ layout: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="columns">Duas colunas (data | local)</SelectItem>
@@ -867,7 +867,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
           <div>
             <Label className="text-xs">Cor de fundo</Label>
-            <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v as any })}>
+            <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="gradient">Gradiente da marca (padrão)</SelectItem>
@@ -962,7 +962,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Estilo</Label>
-            <Select value={block.style || "text"} onValueChange={(v) => patch({ style: v as any })}>
+            <Select value={block.style || "text"} onValueChange={(v) => patch({ style: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="text">Texto colorido (padrão)</SelectItem>
@@ -1006,7 +1006,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Layout</Label>
-            <Select value={block.layout || "chips"} onValueChange={(v) => patch({ layout: v as any })}>
+            <Select value={block.layout || "chips"} onValueChange={(v) => patch({ layout: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="chips">Pílulas (compacto)</SelectItem>
@@ -1031,7 +1031,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Data-limite</Label>
-            <Select value={block.deadline_source || "today_2359"} onValueChange={(v) => patch({ deadline_source: v as any })}>
+            <Select value={block.deadline_source || "today_2359"} onValueChange={(v) => patch({ deadline_source: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="today_2359">Hoje às 23:59 (padrão virada de lote)</SelectItem>
@@ -1053,7 +1053,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           )}
           <div>
             <Label className="text-xs">Tamanho</Label>
-            <Select value={block.size || "large"} onValueChange={(v) => patch({ size: v as any })}>
+            <Select value={block.size || "large"} onValueChange={(v) => patch({ size: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="large">Grande — 3 caixas (dias/horas/min)</SelectItem>
@@ -1064,7 +1064,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Estilo de fundo</Label>
-            <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v as any })}>
+            <Select value={block.bg_style || "gradient"} onValueChange={(v) => patch({ bg_style: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="gradient">Gradiente da marca</SelectItem>
@@ -1108,7 +1108,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Ícone</Label>
-            <Select value={block.icon || "clock"} onValueChange={(v) => patch({ icon: v as any })}>
+            <Select value={block.icon || "clock"} onValueChange={(v) => patch({ icon: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhum</SelectItem>
@@ -1120,7 +1120,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Animação</Label>
-            <Select value={block.animation || "fade"} onValueChange={(v) => patch({ animation: v as any })}>
+            <Select value={block.animation || "fade"} onValueChange={(v) => patch({ animation: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="fade">Alternar mensagens (fade)</SelectItem>
@@ -1166,7 +1166,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Estilo do mapa</Label>
-            <Select value={block.map_style || "roadmap"} onValueChange={(v) => patch({ map_style: v as any })}>
+            <Select value={block.map_style || "roadmap"} onValueChange={(v) => patch({ map_style: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="roadmap">Ruas (padrão)</SelectItem>
@@ -1204,7 +1204,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </p>
           <div>
             <Label className="text-xs">Layout</Label>
-            <Select value={block.layout || "cartaz"} onValueChange={(v) => patch({ layout: v as any })}>
+            <Select value={block.layout || "cartaz"} onValueChange={(v) => patch({ layout: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="cartaz">Cartaz digital (recomendado — cards full-width)</SelectItem>
@@ -1239,7 +1239,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </p>
           <div>
             <Label className="text-xs">Fonte dos dados</Label>
-            <Select value={block.source || "first_weekend"} onValueChange={(v) => patch({ source: v as any })}>
+            <Select value={block.source || "first_weekend"} onValueChange={(v) => patch({ source: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="first_weekend">1º evento de weekendEvents (recomendado para digest)</SelectItem>
@@ -1257,7 +1257,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Intensidade do overlay sobre o flyer</Label>
-            <Select value={block.overlay_intensity || "strong"} onValueChange={(v) => patch({ overlay_intensity: v as any })}>
+            <Select value={block.overlay_intensity || "strong"} onValueChange={(v) => patch({ overlay_intensity: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="strong">Forte (recomendado — textos legíveis sobre qualquer flyer)</SelectItem>
@@ -1293,7 +1293,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </div>
           <div>
             <Label className="text-xs">Layout</Label>
-            <Select value={block.layout || "list"} onValueChange={(v) => patch({ layout: v as any })}>
+            <Select value={block.layout || "list"} onValueChange={(v) => patch({ layout: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="list">Lista compacta (miniatura + texto)</SelectItem>
@@ -1330,7 +1330,7 @@ function BlockPropsPanel({ block, onChange }: { block: Block; onChange: (patch: 
           </p>
           <div>
             <Label className="text-xs">Estilo dos botões das noites</Label>
-            <Select value={block.button_style || "dark"} onValueChange={(v) => patch({ button_style: v as any })}>
+            <Select value={block.button_style || "dark"} onValueChange={(v) => patch({ button_style: v })}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="dark">Preto minimalista (padrão — combina com layout cartaz)</SelectItem>
@@ -1420,7 +1420,7 @@ function GlobalRefPropsPanel({
     let n = 0;
     for (const t of templates) {
       for (const b of (t.blocks as Block[])) {
-        if (b.kind === "global_ref" && (b as any).global_id === refBlock.global_id) { n++; break; }
+        if (b.kind === "global_ref" && b.global_id === refBlock.global_id) { n++; break; }
       }
     }
     return n;
@@ -1493,7 +1493,7 @@ function GlobalRefPropsPanel({
           onClick={() => {
             if (!confirm("Desfazer o vínculo com a biblioteca? O bloco vira uma cópia local deste template. Outros templates continuam usando o global normalmente.")) return;
             // Passa cópia do inner com novo id local
-            onUnlink({ ...(global.block as any), id: `b${Date.now()}${Math.floor(Math.random() * 1000)}` } as Block);
+            onUnlink({ ...global.block, id: `b${Date.now()}${Math.floor(Math.random() * 1000)}` } as Block);
           }}
           className="w-full"
         >
