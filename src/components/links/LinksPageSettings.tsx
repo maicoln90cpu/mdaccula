@@ -13,8 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
-import imageCompression from "browser-image-compression";
-import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 import { Upload, Loader2 } from "lucide-react";
 import { ThemeSelector } from "./ThemeSelector";
 import {
@@ -81,13 +80,10 @@ export const LinksPageSettings = ({
   const handleAvatarUpload = async (file: File) => {
     setUploadingAvatar(true);
     try {
-      const compressed = await imageCompression(file, {
-        maxSizeMB: 0.3,
-        maxWidthOrHeight: 400,
-        useWebWorker: true,
+      const publicUrl = await uploadImageWithThumb(file, 'link-thumbnails', {
+        fullOpts: { maxSizeMB: 0.3, maxDimension: 400 },
+        thumbOpts: { maxSizeMB: 0.03, maxDimension: 150 },
       });
-      const webpFile = new File([compressed], `avatar-${Date.now()}.webp`, { type: 'image/webp' });
-      const publicUrl = await uploadImageToBunny(webpFile, 'link-thumbnails');
       setAvatarPreview(publicUrl);
       setAvatarFile(null);
       return publicUrl;

@@ -14,8 +14,7 @@ import { useToast } from '@/hooks/useToast';
 import { generateEventGroupName } from '@/lib/eventGroupHelper';
 import { useNavigate } from 'react-router-dom';
 import { parseLocalDateTime, formatEventDateRange } from '@/lib/dateUtils';
-import { convertToWebP } from '@/lib/webpConverter';
-import { uploadImageToBunny } from '@/lib/bunnyUploader';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
@@ -355,8 +354,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
     setUploading(true);
     try {
-      const webpFile = await convertToWebP(imageFile);
-      return await uploadImageToBunny(webpFile, 'event-images');
+      return await uploadImageWithThumb(imageFile, 'event-images');
     } catch (error) {
       logger.error('Error uploading image:', error);
       toast({

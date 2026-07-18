@@ -12,7 +12,7 @@ import { SocialIcons } from "@/components/links/SocialIcons";
 import { SimpleLinkCard } from "@/components/links/SimpleLinkCard";
 import { LinksSkeleton } from "@/components/links/LinksSkeleton";
 import { getTheme } from "@/lib/linkThemes";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getThumbnailUrl, handleThumbImageFallback } from "@/lib/imageUtils";
 import { Copy, Check, User } from "lucide-react";
 import Navigation from "@/components/ui/navigation";
 import { toast } from "sonner";
@@ -137,7 +137,8 @@ export default function Links() {
           <div className="text-center mb-8 animate-fade-in">
             {avatarUrl ? (
               <img
-                src={getOptimizedImageUrl(avatarUrl)}
+                src={getThumbnailUrl(avatarUrl)}
+                onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(avatarUrl))}
                 alt="Avatar"
                 loading="eager"
                 decoding="async"

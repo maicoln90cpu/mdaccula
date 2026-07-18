@@ -1,4 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib';
+import { convertToWebPWithThumb } from '@/lib/webpConverter';
 
 export interface UploadImageOpts {
   /** Nome-base compartilhado entre variantes da mesma imagem (ex: full + thumb) */
@@ -52,4 +54,39 @@ export async function uploadImageToBunny(
 
   const result = await response.json();
   return result.url;
+}
+
+export interface UploadWithThumbOpts {
+  fullOpts?: { maxSizeMB?: number; maxDimension?: number };
+  thumbOpts?: { maxSizeMB?: number; maxDimension?: number };
+}
+
+/**
+ * Converte um arquivo pra WebP (full + thumb) e envia as duas variantes
+ * pro Bunny com o mesmo nome-base, pra reduzir banda de entrega em
+ * contextos pequenos (cards, ícones). Só a URL full é retornada — a URL
+ * do thumb é derivada em tempo de exibição via getThumbnailUrl().
+ *
+ * O upload do thumb é best-effort: se falhar, a exibição cai pro full
+ * automaticamente (ver handleThumbImageFallback), então não bloqueia
+ * nem falha a operação principal.
+ */
+export async function uploadImageWithThumb(
+  file: File | Blob,
+  bucket: string = 'event-images',
+  opts: UploadWithThumbOpts = {}
+): Promise<string> {
+  const { full, thumb } = await convertToWebPWithThumb(file, opts.fullOpts, opts.thumbOpts);
+  const baseName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+
+  const fullUrl = await uploadImageToBunny(full, bucket, { baseName });
+
+  uploadImageToBunny(thumb, bucket, { baseName, variant: 'thumb' }).catch((err) => {
+    logger.warn('Falha ao enviar variante thumb (não bloqueia, exibição cai pro full)', {
+      component: 'bunnyUploader',
+      error: err instanceof Error ? err.message : String(err),
+    });
+  });
+
+  return fullUrl;
 }

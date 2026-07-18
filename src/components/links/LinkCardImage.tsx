@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getThumbnailUrl, getOriginalSupabaseUrl } from "@/lib/imageUtils";
 import { StaticIcon } from "./StaticIcon";
 
 interface LinkCardImageProps {
@@ -38,7 +38,10 @@ export const LinkCardImage = ({
   const [imgError, setImgError] = useState(false);
   const rawImage = imgError ? fallbackUrl || null : thumbnailUrl || fallbackUrl || null;
 
-  const resolvedImage = rawImage ? (skipOptimization ? rawImage : getOptimizedImageUrl(rawImage)) : null;
+  const optimizedFull = rawImage && !skipOptimization ? getOptimizedImageUrl(rawImage) : null;
+  const resolvedImage = rawImage
+    ? (skipOptimization ? rawImage : getThumbnailUrl(rawImage))
+    : null;
 
   const containerClass = featured ? "w-20 h-20 sm:w-24 sm:h-24" : "w-16 h-16";
 
@@ -58,13 +61,32 @@ export const LinkCardImage = ({
         loading="lazy"
         decoding="async"
         onError={(e) => {
-          if (!imgError) {
-            // Try Supabase fallback first via handleImageFallback
-            handleImageFallback(e);
-          } else {
-            // Already on fallbackUrl, give up
-            setImgError(true);
+          const img = e.currentTarget;
+
+          // 1) thumb (pode não existir pra imagens antigas) -> full no Bunny CDN
+          if (optimizedFull && !img.dataset.triedFull && img.src !== optimizedFull) {
+            img.dataset.triedFull = "true";
+            img.src = optimizedFull;
+            return;
           }
+
+          // 2) full no Bunny CDN -> Supabase Storage direto
+          if (!img.dataset.triedSupabase) {
+            const supabaseUrl = getOriginalSupabaseUrl(optimizedFull || img.src);
+            if (supabaseUrl !== img.src) {
+              img.dataset.triedSupabase = "true";
+              img.src = supabaseUrl;
+              return;
+            }
+          }
+
+          // 3) troca pra fallbackUrl (imagem diferente, ex: capa do evento vinculado)
+          if (!imgError && fallbackUrl && fallbackUrl !== thumbnailUrl) {
+            setImgError(true);
+            return;
+          }
+
+          // 4) esgotou tudo — navegador mostra a imagem quebrada
         }}
         className="w-full h-full object-contain rounded-md"
       />

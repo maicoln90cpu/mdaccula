@@ -9,8 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/useToast";
 import { X } from "lucide-react";
 import { z } from "zod";
-import { convertToWebP } from "@/lib/webpConverter";
-import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 import { LinkCardImage } from "./LinkCardImage";
 
 const linkSchema = z.object({
@@ -192,8 +191,7 @@ export const CustomLinkForm = ({ link, groups, preselectedGroupId, onSuccess, on
 
   const uploadThumbnail = async (file: File): Promise<string | null> => {
     try {
-      const webpFile = await convertToWebP(file);
-      return await uploadImageToBunny(webpFile, 'link-thumbnails');
+      return await uploadImageWithThumb(file, 'link-thumbnails');
     } catch (error) {
       logger.error('Error uploading thumbnail', error, { component: 'CustomLinkForm' });
       toast({
