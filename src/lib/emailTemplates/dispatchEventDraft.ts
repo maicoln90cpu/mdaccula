@@ -83,8 +83,8 @@ export async function dispatchEventDraftEmail(
   }
   // 1. Config + template padrão + settings de marca
   const [cfgRes, tplSettingsRes, evRes] = await Promise.all([
-    (supabase.from as any)("egoi_config").select("*").maybeSingle(),
-    (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
+    supabase.from("egoi_config").select("*").maybeSingle(),
+    supabase.from("email_template_settings").select("*").maybeSingle(),
     supabase
       .from("events")
       .select(
@@ -122,21 +122,21 @@ export async function dispatchEventDraftEmail(
   // 2. Template — override tem prioridade; senão template padrão de evento por tipo.
   let template: Template | null = null;
   if (opts.templateIdOverride) {
-    const { data } = await (supabase.from as any)("email_templates")
+    const { data } = await supabase.from("email_templates")
       .select("*")
       .eq("id", opts.templateIdOverride)
       .maybeSingle();
     template = data as Template | null;
   }
   if (!template && cfg.default_event_template_id) {
-    const { data } = await (supabase.from as any)("email_templates")
+    const { data } = await supabase.from("email_templates")
       .select("*")
       .eq("id", cfg.default_event_template_id)
       .maybeSingle();
     template = (data as Template | null)?.type === "event_new" ? (data as Template) : null;
   }
   if (!template) {
-    const { data } = await (supabase.from as any)("email_templates")
+    const { data } = await supabase.from("email_templates")
       .select("*")
       .eq("type", "event_new")
       .order("is_default", { ascending: false })
@@ -184,10 +184,10 @@ export async function dispatchEventDraftEmail(
   let globalsMap: Map<string, GlobalBlock> | undefined;
   try {
     const { supabase } = await import("@/integrations/supabase/client");
-    const { data } = await (supabase.from as any)("email_global_blocks")
+    const { data } = await supabase.from("email_global_blocks")
       .select("id, name, description, category, block");
     if (data && Array.isArray(data)) {
-      globalsMap = new Map(data.map((g: any) => [g.id, g as GlobalBlock]));
+      globalsMap = new Map(data.map((g) => [g.id, g as GlobalBlock]));
     }
   } catch {
     // segue sem globals; global_refs serão renderizados como placeholder

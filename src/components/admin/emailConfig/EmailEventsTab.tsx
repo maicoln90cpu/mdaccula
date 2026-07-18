@@ -168,7 +168,7 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
       if (evs.length === 0) return [];
 
       const ids = evs.map((e) => e.id);
-      const { data: campaigns, error: cErr } = await (supabase.from as any)("event_email_campaigns")
+      const { data: campaigns, error: cErr } = await supabase.from("event_email_campaigns")
         .select(
           "id, event_id, egoi_campaign_id, status, mode, error_message, sent_at, created_at, " +
           "campaign_type, ab_group_id, ab_variant, ab_test_config, scheduled_at, scheduled_send_attempts",

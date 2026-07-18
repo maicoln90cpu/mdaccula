@@ -94,10 +94,10 @@ export function EmailDashboard() {
         .limit(500);
       if (error) throw error;
 
-      const ids = (camps ?? []).map((c: any) => c.id);
+      const ids = (camps ?? []).map((c) => c.id);
       const statsMap = new Map<string, { stats: CampaignStats; fetched_at: string | null }>();
       if (ids.length > 0) {
-        const { data: stats } = await (supabase.from as any)("event_email_campaign_stats")
+        const { data: stats } = await supabase.from("event_email_campaign_stats")
           .select("campaign_id, stats_json, fetched_at")
           .in("campaign_id", ids);
         for (const s of stats ?? []) {
@@ -105,7 +105,7 @@ export function EmailDashboard() {
         }
       }
 
-      const built: Row[] = (camps ?? []).map((c: any) => ({
+      const built: Row[] = (camps ?? []).map((c) => ({
         id: c.id,
         event_id: c.event_id,
         egoi_campaign_id: c.egoi_campaign_id,

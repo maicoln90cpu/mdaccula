@@ -209,7 +209,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       try {
         const [{ data: master }, { data: cfg }] = await Promise.all([
           supabase.from('site_settings').select('value').eq('key', 'egoi_email_enabled').maybeSingle(),
-          (supabase.from as any)('egoi_config').select('is_enabled,list_id,sender_id,default_event_template_id').maybeSingle(),
+          supabase.from('egoi_config').select('is_enabled,list_id,sender_id,default_event_template_id').maybeSingle(),
         ]);
         if (master?.value !== 'true') {
           setEmailAutomationReady(false);

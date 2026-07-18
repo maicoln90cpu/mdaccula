@@ -22,7 +22,7 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await (supabase.from as any)("email_global_blocks")
+      const { data, error } = await supabase.from("email_global_blocks")
         .select("id, name, description, category, block")
         .order("category", { ascending: true })
         .order("name", { ascending: true });
@@ -59,7 +59,7 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
       // se herdada, faria o global sempre renderizar vazio em todos os templates.
       const { id: _localId, hidden: _localHidden, ...rest } = block as any;
       const cleanBlock = { id: "template", ...rest } as Block;
-      const { data, error } = await (supabase.from as any)("email_global_blocks")
+      const { data, error } = await supabase.from("email_global_blocks")
         .insert({
           name: meta.name,
           description: meta.description || null,
@@ -77,7 +77,7 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
 
   const updateGlobal = useCallback(
     async (id: string, patch: Partial<Omit<GlobalBlock, "id">>) => {
-      const { error } = await (supabase.from as any)("email_global_blocks")
+      const { error } = await supabase.from("email_global_blocks")
         .update(patch)
         .eq("id", id);
       if (error) throw error;
@@ -88,7 +88,7 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
 
   const deleteGlobal = useCallback(
     async (id: string) => {
-      const { error } = await (supabase.from as any)("email_global_blocks")
+      const { error } = await supabase.from("email_global_blocks")
         .delete()
         .eq("id", id);
       if (error) throw error;

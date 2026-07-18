@@ -51,7 +51,7 @@ export function ScheduleSendPanel({
     queryKey: ["scheduled-sends", eventId],
     queryFn: async (): Promise<ScheduledRow[]> => {
       if (!eventId) return [];
-      const { data, error } = await (supabase.from as any)("event_email_campaigns")
+      const { data, error } = await supabase.from("event_email_campaigns")
         .select("id, scheduled_at, scheduled_send_attempts, error_message")
         .eq("event_id", eventId)
         .eq("status", "scheduled")
@@ -68,7 +68,7 @@ export function ScheduleSendPanel({
   async function cancelSchedule(id: string) {
     setCancelingId(id);
     try {
-      const { error } = await (supabase.from as any)("event_email_campaigns")
+      const { error } = await supabase.from("event_email_campaigns")
         .update({
           status: "draft",
           mode: "draft",

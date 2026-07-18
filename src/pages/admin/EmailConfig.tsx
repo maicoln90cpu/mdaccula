@@ -46,6 +46,20 @@ import type {
 import { formatCount, formatDateTimeBR } from "@/lib/formatters";
 
 
+interface DigestPreviewResponse {
+  skipped?: boolean;
+  reason?: string;
+  html?: string;
+  error?: string;
+  subject?: string;
+  preheader?: string;
+  events_count?: number;
+  posts_count?: number;
+  range?: string;
+  render_source?: string;
+  template_name?: string | null;
+}
+
 const EmailConfig = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -119,9 +133,9 @@ const EmailConfig = () => {
       const [master, config, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
         supabase.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle(),
         supabase.from("egoi_config").select("*").maybeSingle(),
-        (supabase.from as any)("email_template_settings").select("*").maybeSingle(),
-        (supabase.from as any)("egoi_resources_cache").select("*").maybeSingle(),
-        (supabase.from as any)("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
+        supabase.from("email_template_settings").select("*").maybeSingle(),
+        supabase.from("egoi_resources_cache").select("*").maybeSingle(),
+        supabase.from("email_templates").select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true }),
         supabase.from("events")
           .select("id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng")
           .order("date", { ascending: false })
@@ -135,7 +149,7 @@ const EmailConfig = () => {
 
       setMasterEnabled(master.data?.value === "true");
       const settingsMap: Record<string, string> = {};
-      for (const r of ((digestRow.data as any[]) ?? [])) settingsMap[r.key] = r.value ?? "";
+      for (const r of (digestRow.data ?? [])) settingsMap[r.key] = r.value ?? "";
       const parseInt10 = (v: string | undefined, fallback: number) => {
         const n = parseInt(v ?? "", 10);
         return Number.isFinite(n) ? n : fallback;
@@ -167,13 +181,13 @@ const EmailConfig = () => {
       const tplArr = (tplList?.data as Template[]) ?? [];
       setTemplates(tplArr);
       setActiveTemplateId((prev) => prev || tplArr.find((t) => t.is_default)?.id || tplArr[0]?.id || null);
-      setRealEvents((evts.data as any) ?? []);
+      setRealEvents(evts.data ?? []);
       if (config.data) {
         setCfg({
           id: config.data.id,
           list_id: config.data.list_id,
           sender_id: config.data.sender_id,
-          segment_id: (config.data as any).segment_id ?? null,
+          segment_id: config.data.segment_id ?? null,
           mode: (config.data.mode as Mode) ?? "draft",
           is_enabled: !!config.data.is_enabled,
           scheduled_days_before: config.data.scheduled_days_before ?? 3,
@@ -202,7 +216,7 @@ const EmailConfig = () => {
   }, [cfg.list_id]);
 
   const reloadTemplates = async () => {
-    const { data } = await (supabase.from as any)("email_templates")
+    const { data } = await supabase.from("email_templates")
       .select("*").order("is_default", { ascending: false }).order("created_at", { ascending: true });
     setTemplates((data as Template[]) ?? []);
   };
@@ -384,24 +398,24 @@ const EmailConfig = () => {
         : src === "blog"
         ? "blog-digest-draft"
         : "weekly-digest-draft";
-      const { data, error } = await supabase.functions.invoke(functionName, { body });
+      const { data, error } = await supabase.functions.invoke<DigestPreviewResponse>(functionName, { body });
       if (error) throw error;
-      if ((data as any)?.skipped) {
-        toast({ title: "Preview indisponível", description: `Motivo: ${(data as any).reason}`, variant: "destructive" });
+      if (data?.skipped) {
+        toast({ title: "Preview indisponível", description: `Motivo: ${data.reason}`, variant: "destructive" });
         setDigestPreviewHtml("");
         setDigestPreviewMeta(null);
         return;
       }
-      if (!(data as any)?.html) throw new Error((data as any)?.error || "Sem HTML retornado");
-      setDigestPreviewHtml((data as any).html);
+      if (!data?.html) throw new Error(data?.error || "Sem HTML retornado");
+      setDigestPreviewHtml(data.html);
       setDigestPreviewMeta({
-        subject: (data as any).subject,
-        preheader: (data as any).preheader,
-        events_count: (data as any).events_count,
-        posts_count: (data as any).posts_count,
-        range: (data as any).range,
-        render_source: (data as any).render_source,
-        template_name: (data as any).template_name,
+        subject: data.subject,
+        preheader: data.preheader,
+        events_count: data.events_count,
+        posts_count: data.posts_count,
+        range: data.range,
+        render_source: data.render_source,
+        template_name: data.template_name,
       });
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Erro desconhecido";
@@ -424,8 +438,8 @@ const EmailConfig = () => {
   const saveTemplate = async () => {
     setTplSaving(true);
     try {
-      const { id, ...payload } = tpl as any;
-      const table = (supabase.from as any)("email_template_settings");
+      const { id, ...payload } = tpl;
+      const table = supabase.from("email_template_settings");
       const { error } = id
         ? await table.update(payload).eq("id", id)
         : await table.insert({ ...payload, singleton: true });
@@ -812,12 +826,12 @@ const EmailConfig = () => {
                       <Label className="w-40 shrink-0">{label}</Label>
                       <input
                         type="color"
-                        value={(tpl as any)[key] ?? "#000000"}
+                        value={tpl[key] ?? "#000000"}
                         onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
                         className="h-9 w-14 rounded border cursor-pointer bg-transparent"
                       />
                       <Input
-                        value={(tpl as any)[key] ?? ""}
+                        value={tpl[key] ?? ""}
                         onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
                         placeholder="#a855f7"
                         className="font-mono text-xs"

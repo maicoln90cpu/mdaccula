@@ -288,7 +288,7 @@ export function EmailTemplateEditor({
     if (!activeTpl?.id) return;
     setSaving(true);
     try {
-      const { error } = await (supabase.from as any)("email_templates")
+      const { error } = await supabase.from("email_templates")
         .update({
           blocks,
           name: currentName,
@@ -320,7 +320,7 @@ export function EmailTemplateEditor({
       const blocks = preset
         ? buildPresetBlocks(preset.key)
         : [defaultForKind("header"), defaultForKind("hero_image"), defaultForKind("title"), defaultForKind("cta_button"), defaultForKind("footer")];
-      const { data, error } = await (supabase.from as any)("email_templates")
+      const { data, error } = await supabase.from("email_templates")
         .insert({
           name,
           type: preset ? preset.template_type : "custom",
@@ -342,7 +342,7 @@ export function EmailTemplateEditor({
   const duplicateTemplate = async () => {
     if (!activeTpl) return;
     try {
-      const { data, error } = await (supabase.from as any)("email_templates")
+      const { data, error } = await supabase.from("email_templates")
         .insert({
           name: `${activeTpl.name} (cópia)`,
           type: "custom",
@@ -365,7 +365,7 @@ export function EmailTemplateEditor({
     if (!activeTpl?.id || activeTpl.is_default) return;
     if (!confirm(`Excluir "${activeTpl.name}"? Não é possível desfazer.`)) return;
     try {
-      const { error } = await (supabase.from as any)("email_templates").delete().eq("id", activeTpl.id);
+      const { error } = await supabase.from("email_templates").delete().eq("id", activeTpl.id);
       if (error) throw error;
       await onReload();
       toast({ title: "Template excluído" });

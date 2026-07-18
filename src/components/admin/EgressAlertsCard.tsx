@@ -35,7 +35,7 @@ export const EgressAlertsCard = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const { data: cfgRows } = await (supabase.from as any)("site_settings")
+    const { data: cfgRows } = await supabase.from("site_settings")
       .select("key,value")
       .in("key", [
         "egress_alert_enabled",
@@ -43,13 +43,13 @@ export const EgressAlertsCard = () => {
         "egress_alert_ratio",
         "egress_alert_email",
       ]);
-    const map = new Map((cfgRows ?? []).map((r: any) => [r.key, r.value]));
+    const map = new Map((cfgRows ?? []).map((r) => [r.key, r.value]));
     setEnabled(Boolean(map.get("egress_alert_enabled") ?? true));
     setThresholdMb(Number(map.get("egress_alert_threshold_mb") ?? 500));
     setRatio(Number(map.get("egress_alert_ratio") ?? 2));
     setEmail(String(map.get("egress_alert_email") ?? ""));
 
-    const { data: alertRows } = await (supabase.from as any)("egress_alerts")
+    const { data: alertRows } = await supabase.from("egress_alerts")
       .select("*")
       .order("triggered_at", { ascending: false })
       .limit(10);
@@ -71,7 +71,7 @@ export const EgressAlertsCard = () => {
         { key: "egress_alert_email", value: email },
       ];
       for (const u of updates) {
-        await (supabase.from as any)("site_settings").upsert(u, { onConflict: "key" });
+        await supabase.from("site_settings").upsert(u, { onConflict: "key" });
       }
       toast.success("Configurações salvas");
     } catch (err) {
