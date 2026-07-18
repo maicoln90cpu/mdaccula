@@ -185,6 +185,10 @@ const Settings = () => {
                   setGtmId={setGtmId}
                   newsletterPopupEnabled={newsletterPopupEnabled}
                   setNewsletterPopupEnabled={setNewsletterPopupEnabled}
+                  timezoneOffset={timezoneOffset}
+                  setTimezoneOffset={setTimezoneOffset}
+                  timezoneName={timezoneName}
+                  setTimezoneName={setTimezoneName}
                 />
               </TabsContent>
 
@@ -209,10 +213,6 @@ const Settings = () => {
 
               <TabsContent value="horario">
                 <TimezoneSettings
-                  timezoneOffset={timezoneOffset}
-                  setTimezoneOffset={setTimezoneOffset}
-                  timezoneName={timezoneName}
-                  setTimezoneName={setTimezoneName}
                   eventHoursAfterStart={eventHoursAfterStart}
                   setEventHoursAfterStart={setEventHoursAfterStart}
                   eventHoursWithoutTime={eventHoursWithoutTime}
