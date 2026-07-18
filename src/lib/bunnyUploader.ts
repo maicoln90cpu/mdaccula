@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/lib';
-import { convertToWebPWithThumb } from '@/lib/webpConverter';
+import { convertToWebP, convertToWebPWithThumb } from '@/lib/webpConverter';
 
 export interface UploadImageOpts {
   /** Nome-base compartilhado entre variantes da mesma imagem (ex: full + thumb) */
@@ -59,6 +59,8 @@ export async function uploadImageToBunny(
 export interface UploadWithThumbOpts {
   fullOpts?: { maxSizeMB?: number; maxDimension?: number };
   thumbOpts?: { maxSizeMB?: number; maxDimension?: number };
+  /** Também gera e sobe uma variante 'medium' (~800px), best-effort, pra heroes responsivos */
+  medium?: boolean | { maxSizeMB?: number; maxDimension?: number };
 }
 
 /**
@@ -87,6 +89,18 @@ export async function uploadImageWithThumb(
       error: err instanceof Error ? err.message : String(err),
     });
   });
+
+  if (opts.medium) {
+    const mediumOpts = typeof opts.medium === 'object' ? opts.medium : {};
+    convertToWebP(file, mediumOpts.maxSizeMB ?? 0.25, mediumOpts.maxDimension ?? 800)
+      .then((mediumFile) => uploadImageToBunny(mediumFile, bucket, { baseName, variant: 'medium' }))
+      .catch((err) => {
+        logger.warn('Falha ao enviar variante medium (não bloqueia, exibição cai pro full)', {
+          component: 'bunnyUploader',
+          error: err instanceof Error ? err.message : String(err),
+        });
+      });
+  }
 
   return fullUrl;
 }

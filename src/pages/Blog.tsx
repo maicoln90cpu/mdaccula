@@ -24,7 +24,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getThumbnailUrl, handleImageFallback, handleThumbImageFallback } from "@/lib/imageUtils";
 
 interface BlogPost {
   id: string;
@@ -462,12 +462,12 @@ const Blog = () => {
                               {/* Image lateral */}
                               <div className="relative flex-shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
-                                src={getOptimizedImageUrl(post.image_url) || djImage}
+                                src={getThumbnailUrl(post.image_url) || djImage}
                                 alt={post.title}
                                 className="w-full h-full object-contain"
                                 loading="lazy"
                                 decoding="async"
-                                onError={(e) => handleImageFallback(e, djImage)} />
+                                onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(post.image_url) || djImage, djImage)} />
                               
                                 <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
                                   <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>

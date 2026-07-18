@@ -29,7 +29,7 @@ import {
 import { ShareButtons } from "@/components/ShareButtons";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
 import { SEOHead } from "@/components/SEOHead";
-import { getOptimizedImageUrl, handleImageFallback } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getThumbnailUrl, getMediumUrl, handleImageFallback, handleThumbImageFallback } from "@/lib/imageUtils";
 import { StructuredData } from "@/components/StructuredData";
 import { EventLocationMap } from "@/components/events/EventLocationMap";
 
@@ -316,17 +316,33 @@ const EventDetail = () => {
             {event.image_url && (
               <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] rounded-xl overflow-hidden mb-6 sm:mb-8 shadow-lg bg-muted/20">
                 <img
-                  src={getOptimizedImageUrl(event.image_url)}
+                  src={getThumbnailUrl(event.image_url) || getOptimizedImageUrl(event.image_url)}
                   alt=""
                   aria-hidden="true"
                   className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-60"
+                  onError={(e) => {
+                    // fundo é desfocado — thumb pode não existir (imagem antiga), full resolve visualmente igual
+                    const full = getOptimizedImageUrl(event.image_url);
+                    if (e.currentTarget.src !== full) e.currentTarget.src = full;
+                  }}
                 />
                 <img
                   src={getOptimizedImageUrl(event.image_url)}
+                  srcSet={`${getMediumUrl(event.image_url)} 800w, ${getOptimizedImageUrl(event.image_url)} 1920w`}
+                  sizes="100vw"
                   alt={event.title}
                   className="relative w-full h-full object-contain"
                   loading="lazy"
-                  onError={(e) => handleImageFallback(e)}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    // variante medium pode não existir (imagem antiga) -> tira o srcset e força a full
+                    if (img.srcset) {
+                      img.removeAttribute("srcset");
+                      img.src = getOptimizedImageUrl(event.image_url);
+                      return;
+                    }
+                    handleImageFallback(e);
+                  }}
                 />
                 <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-background/80 to-transparent pointer-events-none" />
               </div>
@@ -587,10 +603,12 @@ const EventDetail = () => {
                           {relatedPost.image_url && (
                             <div className="w-full h-48 rounded-lg overflow-hidden mb-4">
                               <img
-                                src={getOptimizedImageUrl(relatedPost.image_url)}
+                                src={getThumbnailUrl(relatedPost.image_url)}
                                 alt={relatedPost.title}
                                 className="w-full h-full object-contain"
-                                onError={(e) => handleImageFallback(e)}
+                                loading="lazy"
+                                decoding="async"
+                                onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(relatedPost.image_url))}
                               />
                             </div>
                           )}
@@ -690,11 +708,12 @@ const EventDetail = () => {
                               {relatedEvent.image_url && (
                                 <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
                                   <img
-                                    src={getOptimizedImageUrl(relatedEvent.image_url)}
+                                    src={getThumbnailUrl(relatedEvent.image_url)}
                                     alt={relatedEvent.title}
                                     className="w-full h-full object-cover"
                                     loading="lazy"
-                                    onError={(e) => handleImageFallback(e)}
+                                    decoding="async"
+                                    onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(relatedEvent.image_url))}
                                   />
                                 </div>
                               )}

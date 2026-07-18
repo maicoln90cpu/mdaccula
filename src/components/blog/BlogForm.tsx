@@ -12,8 +12,7 @@ import { useToast } from '@/hooks/useToast';
 import { Switch } from '@/components/ui/switch';
 import { RichTextEditor } from '@/components/ui/RichTextEditor';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
-import { convertToWebP } from '@/lib/webpConverter';
-import { uploadImageToBunny } from '@/lib/bunnyUploader';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 import { notifyBlogChange } from '@/lib/indexnow';
 
 interface BlogFormData {
@@ -77,8 +76,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
 
     setUploading(true);
     try {
-      const webpFile = await convertToWebP(imageFile);
-      return await uploadImageToBunny(webpFile, 'event-images');
+      return await uploadImageWithThumb(imageFile, 'event-images', { medium: true });
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({

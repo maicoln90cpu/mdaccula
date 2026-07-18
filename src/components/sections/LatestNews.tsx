@@ -62,6 +62,7 @@ const NewsClip = ({ post, index }: { post: LatestPost; index: number }) => {
           className="w-full h-full transition-transform duration-500 group-hover:scale-105"
           objectFit="cover"
           priority={index === 0}
+          variant="thumb"
         />
       </div>
 

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, User, Eye, Heart, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
+import { getOptimizedImageUrl, getMediumUrl } from "@/lib/imageUtils";
 import { ShareButtons } from "@/components/ShareButtons";
 import { LikeButton } from "@/components/blog/LikeButton";
 import { StructuredData } from "@/components/StructuredData";
@@ -88,7 +88,7 @@ const BlogPost = () => {
       .split("\n\n")
       .map((block) => {
         // Detecta títulos (linhas com emojis ou ALL CAPS)
-        if (block.match(/^[🎶💥📍💡🔊🏁👉].+/) || block.match(/^[A-Z\s]{10,}$/)) {
+        if (block.match(/^[🎶💥📍💡🔊🏁👉].+/u) || block.match(/^[A-Z\s]{10,}$/)) {
           return `<h2 class="text-2xl font-bold mt-6 mb-4">${block}</h2>`;
         }
         // Parágrafos normais
@@ -247,12 +247,22 @@ const BlogPost = () => {
           <section className="py-6 sm:py-8 bg-background">
             <div className="container mx-auto px-4">
               <div className="max-w-xl mx-auto bg-muted/20 rounded-lg overflow-hidden">
-                <img 
-                  src={getOptimizedImageUrl(post.image_url)} 
-                  alt={post.title} 
-                  className="w-full h-auto max-h-[42vh] object-contain rounded-lg mx-auto" 
+                <img
+                  src={getOptimizedImageUrl(post.image_url)}
+                  srcSet={`${getMediumUrl(post.image_url)} 800w, ${getOptimizedImageUrl(post.image_url)} 1920w`}
+                  sizes="(min-width: 576px) 576px, 100vw"
+                  alt={post.title}
+                  className="w-full h-auto max-h-[42vh] object-contain rounded-lg mx-auto"
                   loading="eager"
                   fetchPriority="high"
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    // variante medium pode não existir (post antigo) -> tira o srcset e força a full
+                    if (img.srcset) {
+                      img.removeAttribute("srcset");
+                      img.src = getOptimizedImageUrl(post.image_url);
+                    }
+                  }}
                 />
               </div>
             </div>

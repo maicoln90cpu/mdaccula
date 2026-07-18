@@ -13,8 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/useToast";
 import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
-import { convertToWebP } from "@/lib/webpConverter";
-import { uploadImageToBunny } from "@/lib/bunnyUploader";
+import { uploadImageWithThumb } from "@/lib/bunnyUploader";
 import { Search, Calendar, MapPin, Music, Loader2, FileText, X, ImageIcon, Upload, Link } from "lucide-react";
 import { format, parseISO, isBefore, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -163,8 +162,7 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
 
   // Upload image to storage if needed
   const uploadImageToStorage = async (file: File): Promise<string> => {
-    const webpFile = await convertToWebP(file);
-    return await uploadImageToBunny(webpFile, 'event-images');
+    return uploadImageWithThumb(file, 'event-images', { medium: true });
   };
 
   const handleGenerate = async () => {
