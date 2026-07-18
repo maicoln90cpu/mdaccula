@@ -36,7 +36,6 @@ const GeneralSettings = ({
   setNewsletterPopupEnabled,
   timezoneOffset,
   setTimezoneOffset,
-  timezoneName,
   setTimezoneName,
 }: GeneralSettingsProps) => {
   return (
