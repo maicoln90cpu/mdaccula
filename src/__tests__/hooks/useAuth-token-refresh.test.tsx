@@ -2,7 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { waitFor } from '@testing-library/dom';
 import type { ReactNode } from 'react';
-import { AuthProvider, useAuth } from '@/hooks/useAuth';
+import { AuthProvider } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
 const wrapper = ({ children }: { children: ReactNode }) => (

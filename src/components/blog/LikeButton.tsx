@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuthContext";
 
 interface LikeButtonProps {
   postId: string;

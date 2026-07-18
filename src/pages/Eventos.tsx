@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuthContext";
 import { EventForm } from "@/components/events/EventForm";
 import { EventModal } from "@/components/events/EventModal";
 import EventsCarousel from "@/components/events/EventsCarousel";

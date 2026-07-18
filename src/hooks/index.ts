@@ -1,7 +1,8 @@
 // Barrel export for hooks
 export { useIsMobile } from './useMobile';
 export { useToast, toast } from './useToast';
-export { useAuth, AuthProvider } from './useAuth';
+export { AuthProvider } from './useAuth';
+export { useAuth } from './useAuthContext';
 export { useLinks } from './useLinks';
 export type { CustomLink, LinkGroup } from './useLinks';
 export { useSiteSettings } from './useSiteSettings';

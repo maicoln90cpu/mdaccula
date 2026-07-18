@@ -1,32 +1,14 @@
 import type { ReactNode } from 'react';
-import { useState, useEffect, createContext, useContext } from 'react';
-import type { User, Session, AuthError } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/integrations/supabase/types';
 import { queryClient } from '@/lib/queryClient';
 import { logger } from '@/lib/logger';
+import { AuthContext } from './useAuthContext';
 
 // Profile type from database
 type Profile = Tables<'profiles'>;
-
-// Auth response type
-interface AuthResponse {
-  error: AuthError | null;
-}
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  profile: Profile | null;
-  isAdmin: boolean;
-  isAdminLoading: boolean;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<AuthResponse>;
-  signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<AuthResponse>;
-  signOut: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -166,12 +148,4 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
 };

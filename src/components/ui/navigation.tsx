@@ -3,7 +3,7 @@ import { NavLink } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Calendar, Users, MessageCircle, LogOut, BookOpen, User, Settings, Link, Moon, Sun, Mic } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuthContext";
 import { SearchBar } from "./SearchBar";
 import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";

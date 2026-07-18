@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/hooks/useAuthContext";
 import type { CustomLink } from "@/hooks/useLinks";
 import { useLinks } from "@/hooks/useLinks";
 import { SEOHead } from "@/components/SEOHead";

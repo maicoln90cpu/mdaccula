@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, ExternalLink, Edit } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/hooks/useAuthContext';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { getOptimizedImageUrl, getThumbnailUrl } from '@/lib/imageUtils';
