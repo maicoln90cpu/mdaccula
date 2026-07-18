@@ -148,6 +148,9 @@ verify_jwt = false
 [functions.egress-alert-cron]
 verify_jwt = false
 
+[functions.daily-metrics-email]
+verify_jwt = false
+
 [functions.blog-digest-draft]
 verify_jwt = false
 
