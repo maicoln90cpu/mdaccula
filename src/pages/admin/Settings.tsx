@@ -25,8 +25,6 @@ const Settings = () => {
   // Timezone settings
   const [timezoneOffset, setTimezoneOffset] = useState("-3");
   const [timezoneName, setTimezoneName] = useState("America/Sao_Paulo");
-  const [eventHoursAfterStart, setEventHoursAfterStart] = useState(12);
-  const [eventHoursWithoutTime, setEventHoursWithoutTime] = useState(24);
   const [linksShowEventDate, setLinksShowEventDate] = useState(true);
   
   const [loading, setLoading] = useState(true);
@@ -74,12 +72,6 @@ const Settings = () => {
           case "timezone_name":
             setTimezoneName(setting.value || "America/Sao_Paulo");
             break;
-          case "event_hours_after_start":
-            setEventHoursAfterStart(parseInt(setting.value || "12"));
-            break;
-          case "event_hours_without_time":
-            setEventHoursWithoutTime(parseInt(setting.value || "24"));
-            break;
           case "links_show_event_date":
             setLinksShowEventDate(setting.value !== "false");
             break;
@@ -110,8 +102,6 @@ const Settings = () => {
         { key: "newsletter_popup_enabled", value: newsletterPopupEnabled.toString() },
         { key: "timezone_offset", value: timezoneOffset },
         { key: "timezone_name", value: timezoneName },
-        { key: "event_hours_after_start", value: eventHoursAfterStart.toString() },
-        { key: "event_hours_without_time", value: eventHoursWithoutTime.toString() },
         { key: "links_show_event_date", value: linksShowEventDate.toString() },
       ];
 
@@ -213,10 +203,6 @@ const Settings = () => {
 
               <TabsContent value="horario">
                 <TimezoneSettings
-                  eventHoursAfterStart={eventHoursAfterStart}
-                  setEventHoursAfterStart={setEventHoursAfterStart}
-                  eventHoursWithoutTime={eventHoursWithoutTime}
-                  setEventHoursWithoutTime={setEventHoursWithoutTime}
                   linksShowEventDate={linksShowEventDate}
                   setLinksShowEventDate={setLinksShowEventDate}
                 />

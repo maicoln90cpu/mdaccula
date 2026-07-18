@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { MergedEventsTab } from "@/components/admin/MergedEventsTab";
+import EventVisibilitySettings from "@/components/admin/events/EventVisibilitySettings";
 import { buildArticlePayload } from "@/lib/eventArticlePayload";
 import { addHours } from "date-fns";
 import { parseLocalDateTime } from "@/lib/dateUtils";
@@ -391,6 +392,7 @@ const EventsManager = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="ativos">Eventos</TabsTrigger>
                 <TabsTrigger value="mesclados">Eventos Mesclados</TabsTrigger>
+                <TabsTrigger value="config">Configurações</TabsTrigger>
               </TabsList>
 
               <TabsContent value="ativos">
@@ -607,6 +609,10 @@ const EventsManager = () => {
 
               <TabsContent value="mesclados">
                 <MergedEventsTab onChange={() => { fetchEvents(); fetchLastMergeLog(); }} />
+              </TabsContent>
+
+              <TabsContent value="config">
+                <EventVisibilitySettings />
               </TabsContent>
             </Tabs>
           </div>
