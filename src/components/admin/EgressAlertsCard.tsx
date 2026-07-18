@@ -84,9 +84,7 @@ export const EgressAlertsCard = () => {
   const runNow = async () => {
     setTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("egress-alert-cron", {
-        headers: {},
-      });
+      const { data, error } = await supabase.functions.invoke("egress-alert-cron");
       if (error) throw error;
       toast.success(
         data?.alerted

@@ -4,7 +4,9 @@
  *   - Total 24h > threshold_mb configurado, OU
  *   - Total 24h > média 7 dias × ratio configurado (padrão 2×)
  *
- * Segurança: exige header x-cron-secret == CRON_SHARED_SECRET.
+ * Segurança: aceita x-cron-secret == CRON_SHARED_SECRET OU
+ * x-cron-secret validado contra internal_cron_secrets (name='egress_alert_cron'),
+ * OU Authorization Bearer de um admin autenticado (botão "Executar agora").
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -23,18 +25,43 @@ const json = (body: unknown, status = 200) =>
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
-  const cronSecret = Deno.env.get("CRON_SHARED_SECRET");
-  const provided = req.headers.get("x-cron-secret");
-  if (!cronSecret || provided !== cronSecret) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+  const supabase = createClient(supabaseUrl, serviceKey);
+
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = req.headers.get("x-cron-secret");
+  const cronJobHeader = req.headers.get("x-cron-job");
+  const envCronSecret = Deno.env.get("CRON_SHARED_SECRET");
+
+  let isCron = !!(cronSecret && envCronSecret && cronSecret === envCronSecret);
+  if (!isCron && cronSecret && cronJobHeader) {
+    const { data: row } = await supabase
+      .from("internal_cron_secrets")
+      .select("secret")
+      .eq("name", "egress_alert_cron")
+      .maybeSingle();
+    if (row?.secret && row.secret === cronSecret) isCron = true;
+  }
+
+  if (!authHeader && !isCron) {
     return json({ error: "unauthorized" }, 401);
   }
 
-  try {
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+  if (!isCron && authHeader) {
+    const anonClient = createClient(supabaseUrl, anonKey);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
+    if (userErr || !userData.user) return json({ error: "unauthorized" }, 401);
+    const { data: isAdmin } = await supabase.rpc("has_role", {
+      _user_id: userData.user.id,
+      _role: "admin",
+    });
+    if (!isAdmin) return json({ error: "forbidden" }, 403);
+  }
 
+  try {
     // Config
     const { data: settingsRows } = await supabase
       .from("site_settings")
