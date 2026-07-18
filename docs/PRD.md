@@ -242,7 +242,8 @@ Uma plataforma all-in-one que oferece:
 |-----------|-----------|------|
 | README.md | Documentação técnica principal | [/README.md](/README.md) |
 | ROADMAP.md | Fases e cronograma | [/docs/ROADMAP.md](/docs/ROADMAP.md) |
-| PENDENCIAS.MD | Tarefas e histórico | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
+| CHANGELOG.md | Histórico do que já foi entregue | [/CHANGELOG.md](/CHANGELOG.md) |
+| PENDENCIAS.MD | Itens em aberto (decisões, bugs, monitoramento) | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
 | CODE_STYLE.md | Guia de estilo de código | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
 | SECURITY-AUDIT.md | Auditoria de segurança | [/docs/SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) |
 | SYSTEM-DESIGN.md | Arquitetura técnica | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |

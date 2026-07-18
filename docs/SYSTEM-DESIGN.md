@@ -676,7 +676,8 @@ Provider global com cache em localStorage. Carrega uma vez, revalida em backgrou
 | [CODE_STYLE.md](/docs/CODE_STYLE.md) | Guia de estilo |
 | [SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) | Auditoria de segurança |
 | [tabelas.md](/tabelas.md) | Schema SQL completo |
-| [PENDENCIAS.MD](/PENDENCIAS.MD) | Histórico de mudanças |
+| [CHANGELOG.md](/CHANGELOG.md) | Histórico do que já foi entregue |
+| [PENDENCIAS.MD](/PENDENCIAS.MD) | Itens em aberto (decisões, bugs, monitoramento) |
 
 ---
 

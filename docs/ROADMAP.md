@@ -275,6 +275,7 @@ removendo esse agrupamento — Rollup volta a fazer chunking automático por uso
 
 | Feature | Complexidade | Valor |
 |---------|--------------|-------|
+| Bundle Optimization (reduzir bundle size pra melhorar carregamento) | Média | Médio |
 | Suporte multi-idioma (i18n) | Média | Baixo |
 | Gamificação (badges) | Média | Baixo |
 | Chat ao vivo | Alta | Médio |
@@ -310,7 +311,8 @@ removendo esse agrupamento — Rollup volta a fazer chunking automático por uso
 |-----------|-----------|------|
 | README.md | Documentação técnica | [/README.md](/README.md) |
 | PRD.md | Requisitos do produto | [/docs/PRD.md](/docs/PRD.md) |
-| PENDENCIAS.MD | Tarefas e histórico | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
+| CHANGELOG.md | Histórico do que já foi entregue | [/CHANGELOG.md](/CHANGELOG.md) |
+| PENDENCIAS.MD | Itens em aberto (decisões, bugs, monitoramento) | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
 | CODE_STYLE.md | Guia de código | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
 | SECURITY-AUDIT.md | Auditoria segurança | [/docs/SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) |
 | SYSTEM-DESIGN.md | Arquitetura técnica | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |

@@ -23,7 +23,8 @@
 |-----------|-----------|
 | [📋 PRD.md](docs/PRD.md) | Requisitos do produto, objetivos e backlog |
 | [🗺️ ROADMAP.md](docs/ROADMAP.md) | Fases de desenvolvimento e cronograma |
-| [📝 PENDENCIAS.MD](PENDENCIAS.MD) | Tarefas pendentes e histórico de mudanças |
+| [📜 CHANGELOG.md](CHANGELOG.md) | Histórico do que já foi entregue |
+| [📝 PENDENCIAS.MD](PENDENCIAS.MD) | Itens em aberto (decisões, bugs, monitoramento) |
 | [🎨 CODE_STYLE.md](docs/CODE_STYLE.md) | Guia de estilo e convenções de código |
 | [🔒 SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) | Auditoria de segurança e políticas RLS |
 | [🏗️ SYSTEM-DESIGN.md](docs/SYSTEM-DESIGN.md) | Arquitetura técnica e fluxos de dados |
@@ -790,7 +791,8 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 |-----------|-----------|
 | [docs/PRD.md](docs/PRD.md) | Product Requirements Document |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Roadmap de desenvolvimento |
-| [PENDENCIAS.MD](PENDENCIAS.MD) | Pendências e histórico |
+| [CHANGELOG.md](CHANGELOG.md) | Histórico do que já foi entregue |
+| [PENDENCIAS.MD](PENDENCIAS.MD) | Itens em aberto (decisões, bugs, monitoramento) |
 | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) | Guia de estilo de código |
 | [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) | Auditoria de segurança |
 | [docs/SYSTEM-DESIGN.md](docs/SYSTEM-DESIGN.md) | Arquitetura técnica e fluxos de dados |
