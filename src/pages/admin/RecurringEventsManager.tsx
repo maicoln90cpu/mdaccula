@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +62,7 @@ const RecurringEventsManager = () => {
   const [cronHour, setCronHour] = useState("3");
   const [savingSchedule, setSavingSchedule] = useState(false);
 
-  const fetchConfigs = async () => {
+  const fetchConfigs = useCallback(async () => {
     setLoading(true);
     try {
       const [configsRes, groupsRes, settingsRes] = await Promise.all([
@@ -100,11 +100,11 @@ const RecurringEventsManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchConfigs();
-  }, []);
+  }, [fetchConfigs]);
 
   useRealtimeTable("recurring_event_configs", () => fetchConfigs());
 

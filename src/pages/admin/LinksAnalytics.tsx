@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,7 +77,7 @@ const LinksAnalytics = () => {
   // Filtro de período
   const [timePeriod, setTimePeriod] = useState<'today' | '7d' | '30d' | 'all'>('all');
 
-  const getDateFilter = () => {
+  const getDateFilter = useCallback(() => {
     const now = new Date();
     switch (timePeriod) {
       case 'today': return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -85,13 +85,9 @@ const LinksAnalytics = () => {
       case '30d': return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
       default: return null;
     }
-  };
-
-  useEffect(() => {
-    fetchAnalytics();
   }, [timePeriod]);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       const dateFilter = getDateFilter();
@@ -274,7 +270,11 @@ const LinksAnalytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getDateFilter]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,11 +29,7 @@ const NewsletterABResults = () => {
   const [editingVariant, setEditingVariant] = useState<VariantStats | null>(null);
   const [editForm, setEditForm] = useState({ title: '', description: '' });
 
-  useEffect(() => {
-    fetchVariantStats();
-  }, []);
-
-  const fetchVariantStats = async () => {
+  const fetchVariantStats = useCallback(async () => {
     try {
       // Fetch all variants
       const { data: variantsData, error: variantsError } = await supabase
@@ -80,7 +76,11 @@ const NewsletterABResults = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchVariantStats();
+  }, [fetchVariantStats]);
 
   const toggleVariant = async (id: string, currentEnabled: boolean) => {
     try {

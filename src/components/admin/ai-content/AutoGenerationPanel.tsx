@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -59,7 +59,7 @@ export function AutoGenerationPanel() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAutoPublish, setIsSavingAutoPublish] = useState(false);
   const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
-  const [pollingInterval, setPollingInterval] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [settings, setSettings] = useState<AutoGenSettings>({
     enabled: false,
@@ -72,18 +72,7 @@ export function AutoGenerationPanel() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [lastPost, setLastPost] = useState<LastGeneratedPost | null>(null);
 
-  useEffect(() => {
-    fetchData();
-
-    // Cleanup polling on unmount
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-      }
-    };
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Fetch settings
@@ -167,7 +156,18 @@ export function AutoGenerationPanel() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchData();
+
+    // Cleanup polling on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [fetchData]);
 
   const handleToggleEnabled = async (enabled: boolean) => {
     setIsSaving(true);
@@ -225,8 +225,8 @@ export function AutoGenerationPanel() {
 
   const startPolling = () => {
     // Clear any existing interval
-    if (pollingInterval) {
-      clearInterval(pollingInterval);
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
     }
 
     // Start polling every 10 seconds
@@ -250,7 +250,7 @@ export function AutoGenerationPanel() {
         logger.debug('Generation completed, stopping polling');
         setIsForcing(false);
         clearInterval(interval);
-        setPollingInterval(null);
+        pollingIntervalRef.current = null;
 
         if (recentLog.message.includes('success') || recentLog.message.includes('sucesso')) {
           toast({
@@ -261,13 +261,13 @@ export function AutoGenerationPanel() {
       }
     }, 10000);
 
-    setPollingInterval(interval);
+    pollingIntervalRef.current = interval;
 
     // Stop polling after 5 minutes max
     setTimeout(() => {
       if (interval) {
         clearInterval(interval);
-        setPollingInterval(null);
+        pollingIntervalRef.current = null;
         setIsForcing(false);
         toast({
           title: "Timeout",

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -134,14 +134,7 @@ const LinksManager = () => {
     });
   }, [groups, statusFilter, settings]);
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  // Realtime unificado: 1 canal cobrindo custom_links + link_groups
-  useAdminRealtime(["custom_links", "link_groups"], () => fetchGroups());
-
-  const fetchGroups = async () => {
+  const fetchGroups = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("link_groups")
@@ -180,7 +173,14 @@ const LinksManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [settings, toast]);
+
+  useEffect(() => {
+    fetchGroups();
+  }, [fetchGroups]);
+
+  // Realtime unificado: 1 canal cobrindo custom_links + link_groups
+  useAdminRealtime(["custom_links", "link_groups"], () => fetchGroups());
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;

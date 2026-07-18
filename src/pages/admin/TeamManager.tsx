@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib";
@@ -45,14 +45,7 @@ const TeamManager = () => {
   });
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchMembers();
-  }, []);
-
-  // Realtime: qualquer alteração em team_members reflete imediatamente.
-  useRealtimeTable("team_members", () => fetchMembers());
-
-  const fetchMembers = async () => {
+  const fetchMembers = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("team_members")
@@ -71,7 +64,14 @@ const TeamManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
+  // Realtime: qualquer alteração em team_members reflete imediatamente.
+  useRealtimeTable("team_members", () => fetchMembers());
 
   const resetForm = () => {
     setFormData({

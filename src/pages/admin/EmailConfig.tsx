@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -113,21 +113,7 @@ const EmailConfig = () => {
     sendAutomationTest,
   } = useEmailAutomation({ templates, toast });
 
-  useEffect(() => {
-    void loadAll();
-  }, []);
-
-  // Quando a lista muda, recarrega segmentos automaticamente
-  useEffect(() => {
-    if (cfg.list_id) void fetchSegments(cfg.list_id);
-    else {
-      setSegments([]);
-      setListTotal(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfg.list_id]);
-
-  const loadAll = async () => {
+  const loadAll = useCallback(async () => {
     setLoading(true);
     try {
       const [master, config, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
@@ -198,7 +184,21 @@ const EmailConfig = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast, setWeeklyCfg, setWeekendCfg, setBlogCfg]);
+
+  useEffect(() => {
+    void loadAll();
+  }, [loadAll]);
+
+  // Quando a lista muda, recarrega segmentos automaticamente
+  useEffect(() => {
+    if (cfg.list_id) void fetchSegments(cfg.list_id);
+    else {
+      setSegments([]);
+      setListTotal(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cfg.list_id]);
 
   const reloadTemplates = async () => {
     const { data } = await (supabase.from as any)("email_templates")

@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sortByEventDate, logger } from "@/lib";
@@ -236,7 +236,7 @@ export const useLinks = (options: UseLinksOptions = {}) => {
     placeholderData: () => getCachedLinks() ?? undefined,
   });
 
-  const groups = query.data || getCachedLinks() || [];
+  const groups = useMemo(() => query.data || getCachedLinks() || [], [query.data]);
 
   const refetchLinks = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["link-groups"] });

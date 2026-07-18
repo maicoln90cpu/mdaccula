@@ -238,7 +238,7 @@ export function EmailTemplateEditor({
   );
 
   // Sincroniza com template ativo
-  const blocks = localBlocks ?? (activeTpl?.blocks as Block[]) ?? [];
+  const blocks = useMemo(() => localBlocks ?? (activeTpl?.blocks as Block[]) ?? [], [localBlocks, activeTpl]);
   const currentName = localName || activeTpl?.name || "";
   const currentSubject = localSubject !== null ? localSubject : (activeTpl?.subject_template ?? "");
   const currentPreheader = localPreheader !== null ? localPreheader : (activeTpl?.preheader_template ?? "");

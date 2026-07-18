@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { getOptimizedImageUrl } from "@/lib/imageUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -61,24 +61,7 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
   const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
 
-  // Fetch events when modal opens
-  useEffect(() => {
-    if (open) {
-      fetchEvents();
-      // Reset state on open
-      setSelectedEventIds(new Set());
-      setSeriesName("");
-      setAdditionalContext("");
-      setSearchQuery("");
-      setEventFilter("future");
-      setCustomImageUrl("");
-      setUploadedFile(null);
-      setImageInputMode("upload");
-      setGenerateImage(true);
-    }
-  }, [open]);
-
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -98,7 +81,24 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  // Fetch events when modal opens
+  useEffect(() => {
+    if (open) {
+      fetchEvents();
+      // Reset state on open
+      setSelectedEventIds(new Set());
+      setSeriesName("");
+      setAdditionalContext("");
+      setSearchQuery("");
+      setEventFilter("future");
+      setCustomImageUrl("");
+      setUploadedFile(null);
+      setImageInputMode("upload");
+      setGenerateImage(true);
+    }
+  }, [open, fetchEvents]);
 
   // Filter events based on search query AND date filter
   const filteredEvents = useMemo(() => {

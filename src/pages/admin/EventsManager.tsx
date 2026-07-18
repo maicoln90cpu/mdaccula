@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,7 +89,7 @@ const EventsManager = () => {
     setLastMergeLog(undone ? null : lastMerge);
   };
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     try {
       let query = supabase.from("events").select("*").order("date", { ascending: true });
       if (!showMerged) {
@@ -122,13 +122,12 @@ const EventsManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showMerged, toast]);
 
   useEffect(() => {
     fetchEvents();
     fetchLastMergeLog();
-     
-  }, [showMerged]);
+  }, [fetchEvents]);
 
 
   // Realtime: lista de eventos atualiza automaticamente em qualquer mudança.

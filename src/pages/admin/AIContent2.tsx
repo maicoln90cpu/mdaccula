@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -90,13 +90,6 @@ export default function AIContent2() {
   const [isGeneratingFromTopic, setIsGeneratingFromTopic] = useState(false);
   const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
 
-  // Fetch initial data
-  useEffect(() => {
-    fetchTemplates();
-    fetchGeneratedPosts();
-    fetchSuggestionsAutoPublish();
-  }, []);
-
   const fetchSuggestionsAutoPublish = async () => {
     try {
       const { data } = await supabase
@@ -111,8 +104,15 @@ export default function AIContent2() {
     }
   };
 
+  const initializeFormData = useCallback((fields: string[]) => {
+    const initial: Record<string, string> = {};
+    fields.forEach((field) => {
+      initial[field] = "";
+    });
+    setFormData(initial);
+  }, []);
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("ai_prompt_templates")
@@ -155,9 +155,9 @@ export default function AIContent2() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast, initializeFormData]);
 
-  const fetchGeneratedPosts = async () => {
+  const fetchGeneratedPosts = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -207,20 +207,19 @@ export default function AIContent2() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchTemplates();
+    fetchGeneratedPosts();
+    fetchSuggestionsAutoPublish();
+  }, [fetchTemplates, fetchGeneratedPosts]);
 
   // Realtime: substitui o polling de 15s. Qualquer INSERT/UPDATE/DELETE em
   // blog_posts (incluindo a edge function que escreve image_url no background)
   // dispara um refresh imediato.
   useRealtimeTable("blog_posts", () => fetchGeneratedPosts());
-
-  const initializeFormData = (fields: string[]) => {
-    const initial: Record<string, string> = {};
-    fields.forEach((field) => {
-      initial[field] = "";
-    });
-    setFormData(initial);
-  };
 
   const handleTemplateChange = (templateId: string) => {
     const template = templates.find((t) => t.id === templateId);

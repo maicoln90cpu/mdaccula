@@ -233,7 +233,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       }
     };
     fetchData();
-  }, []);
+  }, [event?.blog_post_id]);
 
   // Search blog posts by title
   useEffect(() => {

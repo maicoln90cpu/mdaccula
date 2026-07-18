@@ -188,7 +188,7 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
     refetchOnWindowFocus: true,
   });
 
-  const rows = data ?? [];
+  const rows = useMemo(() => data ?? [], [data]);
 
   const counts = useMemo(() => {
     const c: Record<SummaryStatus, number> = { pending: 0, draft: 0, sent: 0, manual: 0, failed: 0 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -51,7 +51,7 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
 
   const ctx = log?.context;
   const canUndo = !!ctx?.primary_pre_merge;
-  const snapshot = ctx?.merged_snapshot || [];
+  const snapshot = useMemo(() => ctx?.merged_snapshot || [], [ctx]);
 
   // Pré-checagem: slugs dos deletados podem ter sido reutilizados por novos eventos
   useEffect(() => {

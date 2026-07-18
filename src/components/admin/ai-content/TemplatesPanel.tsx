@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
@@ -54,13 +54,7 @@ export function TemplatesPanel() {
   const [fieldKey, setFieldKey] = useState("");
   const [fieldRequired, setFieldRequired] = useState(true);
 
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
-
-  useRealtimeTable("ai_prompt_templates", () => fetchTemplates());
-
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
@@ -80,7 +74,13 @@ export function TemplatesPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
+
+  useRealtimeTable("ai_prompt_templates", () => fetchTemplates());
 
   // Helper to normalize required_fields from array to object
   const normalizeRequiredFields = (fields: unknown): Record<string, boolean> => {

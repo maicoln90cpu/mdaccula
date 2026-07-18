@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,11 +17,7 @@ export const LikeButton = ({ postId, initialLikes }: LikeButtonProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    checkIfLiked();
-  }, [postId, user]);
-
-  const checkIfLiked = async () => {
+  const checkIfLiked = useCallback(async () => {
     if (!user) return;
 
     try {
@@ -33,7 +29,11 @@ export const LikeButton = ({ postId, initialLikes }: LikeButtonProps) => {
     } catch (error) {
       console.error("Error checking like status:", error);
     }
-  };
+  }, [postId, user]);
+
+  useEffect(() => {
+    checkIfLiked();
+  }, [checkIfLiked]);
 
   const handleLike = async () => {
     if (!user) {
