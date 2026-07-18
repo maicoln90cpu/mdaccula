@@ -221,6 +221,14 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Proteção:** `src/__tests__/regression/egress-alert-cron-auth.test.ts`.
 - **Nota:** a lógica de cálculo de egress (bytes, threshold, ratio) e o envio via Resend não foram alterados — fora do escopo desta correção, que é só a causa raiz confirmada do "nunca alerta". Se as abas "Bunny CDN"/"Supabase" (não cobertas por este fix) mostrarem métricas zeradas, o próximo suspeito é secret ausente/rotacionado no ambiente live (`BUNNY_ACCOUNT_API_KEY`, `MANAGEMENT_API_PAT`), não verificável via código estático.
 
+### R-014 — Polling de "Forçar geração agora" nunca parava se o admin saísse da tela
+- **Quando:** julho/2026 (encontrado durante a limpeza de `react-hooks/exhaustive-deps`, não reportado por usuário)
+- **Sintoma:** nenhum sintoma visível direto — bug de recurso, não de UI. Ao clicar "Forçar geração agora" em `/admin/blog` → Conteúdo por IA, `AutoGenerationPanel.tsx` inicia um polling de status a cada 10s (até 5min ou até detectar conclusão). Se o admin navegasse pra outra tela do admin enquanto o polling estava ativo, o `setInterval` nunca era limpo.
+- **Causa:** o id do interval (`pollingInterval`) estava em `useState`. O `useEffect` de mount (`[]`) registra um cleanup que fecha sobre o valor de `pollingInterval` **no momento em que o efeito rodou** (sempre `null`, já que o polling só é setado depois, via `startPolling()`) — stale closure clássico. Resultado: no unmount, o cleanup checava `if (pollingInterval)` contra o `null` capturado no mount, nunca contra o valor real, e o `clearInterval` correspondente nunca disparava. O `setInterval` (que vive fora do React, no `window`) continuava chamando `fetchData()` a cada 10s contra um componente já desmontado, por até 5 minutos.
+- **Correção:** `pollingInterval` (`useState`) trocado por `pollingIntervalRef` (`useRef`) — refs não sofrem stale closure porque o cleanup lê `.current` no momento da execução, não um valor capturado. `fetchData` também foi movida para `useCallback` e adicionada ao array de deps do efeito de mount, satisfazendo `react-hooks/exhaustive-deps` sem mudar o comportamento do fetch inicial.
+- **Proteção:** ⚠️ **nenhuma ainda** — corrigido mas sem teste de regressão dedicado em `__tests__/regression/`. Um teste cobriria: montar o componente, chamar `startPolling()` (ou simular o clique), desmontar, avançar os fake timers e confirmar que `fetchData`/`clearInterval` não são chamados após o unmount.
+- **Nota:** o efeito prático do bug era baixo (o timeout de 5min e a detecção de conclusão já limitavam o dano na maioria dos casos), mas o padrão (id de timer/interval em `useState` em vez de `useRef`) vale procurar em outros lugares do código que façam polling.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

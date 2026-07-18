@@ -18,6 +18,26 @@
 
 ## Entradas Detalhadas
 
+### Zerar warnings do ESLint (392 → 0) e travar regras como error
+**Descrição:** Limpeza completa da dívida de lint acumulada, feita em 6 fases sequenciais (cada uma commitada e validada separadamente com `tsc --noEmit` + `npm test` + coverage ratchet antes de avançar):
+1. Regras triviais (consistent-type-imports, no-require-imports, no-empty, no-param-reassign, no-misleading-character-class, no-return-await, eslint-disable obsoletos) + `no-unused-vars` (66 ocorrências) + `no-console` (6, migrados pro `logger`) + `react-refresh/only-export-components` (17 de 18 — variantes `cva`, hooks de contexto e constantes extraídas pro padrão oficial shadcn/ui de arquivos irmãos).
+2. `useAuth` movido para `src/hooks/useAuthContext.ts` separado do `AuthProvider`, fechando o último warning de `react-refresh` (cuidado extra: `ProtectedRoute.test.tsx` mocka esse módulo por caminho de arquivo — mock atualizado junto).
+3. `react-hooks/exhaustive-deps` (24 ocorrências, 21 arquivos) — a maioria é o padrão "fetch-on-mount" (função envolvida em `useCallback` e adicionada ao array de deps, zero mudança de comportamento). **Bug real encontrado e corrigido:** em `AutoGenerationPanel.tsx`, o id do interval de polling ("Forçar geração agora") estava em `useState`; o cleanup do efeito de mount capturava sempre o valor inicial (`null`) por stale closure — se o admin saísse da tela enquanto o polling estava ativo, o interval nunca era limpo (chamava `fetchData` a cada 10s por até 5min contra um componente desmontado). Trocado para `useRef`.
+4. `no-explicit-any` em catch/error handlers (82 ocorrências, 28 arquivos) — `catch (e: any)` → `catch (e: unknown)` + narrowing (`instanceof Error`), via codemod one-off que localiza o bloco por profundidade de chaves (ciente de strings/comentários) e só insere a narrowing line quando `.message` é de fato acessado.
+5. `no-explicit-any` em respostas do Supabase (49 ocorrências) — os 27 casts `(supabase.from as any)("tabela")` espalhados pelo código estavam **obsoletos**: todas as tabelas já tinham tipo gerado em `types.ts` (alguém regenerou o arquivo depois que os workarounds foram escritos, mas ninguém tirou os `as any`). Confirmado removendo um por um com `tsc --noEmit` limpo a cada passo.
+6. `no-explicit-any` restante (121 ocorrências, 27 arquivos) — principalmente o editor visual de blocos de e-mail (`EmailTemplateEditor.tsx`, `EventForm.tsx`, `UndoMergeDialog.tsx` e afins), onde `Block` é uma union discriminada que só estreita corretamente quando o `switch`/`if` usa `block.kind === "x"` direto (não através de uma variável booleana intermediária). Achado colateral: `@/types` `Event` estava incompleto vs. o schema real de `events` (faltavam `venue_lat`, `venue_lng`, `schedule`, `ai_context`, `status` e mais — provável causa raiz de vários `any` espalhados em `EventForm`/`EventModal`/`EventsManager`), completado com os campos do `types.ts` gerado.
+7. Todas as regras promovidas de `"warn"` para `"error"` em `eslint.config.js` — `npm run lint` agora falha (exit 1) numa violação nova em vez de só avisar, travando o ganho contra reacúmulo de dívida técnica.
+
+**Data:** 18/07/2026
+**Responsável:** IA
+**Impacto:** médio (nenhuma mudança de comportamento visível ao usuário final; reduz risco de bug futuro por tipo incorreto e destrava o Fast Refresh em ~15 componentes de UI)
+
+**Arquivos alterados:** ~110 arquivos ao todo (a maior parte só troca de tipo/anotação), incluindo `eslint.config.js`, `@/types/index.ts` (interface `Event` completada) e novos arquivos de contexto/variante extraídos (`*-context.ts`, `*-variants.ts`) seguindo o padrão shadcn/ui.
+
+**Pendência conhecida:** o bug de stale closure no polling do `AutoGenerationPanel.tsx` (item 3 acima) foi corrigido mas **não ganhou teste de regressão** em `src/__tests__/regression/` — a política do projeto (`docs/TESTING.md`) pede um pra todo bug de produção corrigido; documentado como R-014 em `docs/TESTING.md`, teste ainda não escrito.
+
+---
+
 ### Variantes de Tamanho de Imagem (thumb/medium) — Redução de Banda do Bunny CDN
 **Descrição:** Investigação com dados reais (tabela `metrics_snapshots`, sem tocar credencial do Bunny) apontou a causa da banda alta: toda imagem era entregue no tamanho de upload (~570KB médio), não importa se aparecia como ícone de 64px ou capa de 1200px — média de ~337KB por requisição. Solução sem custo adicional (Bunny Optimizer pago foi descartado pelo usuário): cada upload agora gera também uma variante `thumb` (~400px) e, pra contextos de hero, uma `medium` (~800px), via convenção de nome de arquivo (`foo.webp` + `foo-thumb.webp` + `foo-medium.webp`) — sem migration, sem coluna nova no banco. URL da variante é derivada em tempo de exibição (`getThumbnailUrl`/`getMediumUrl` em `imageUtils.ts`) com cadeia de fallback (thumb/medium → full → Supabase → placeholder) pra não quebrar as imagens já existentes.
 **Data:** 18/07/2026
@@ -693,6 +713,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 18/07 | Qualidade | ESLint zerado (392 → 0 warnings), regras travadas como error |
 | 18/07 | Feature | Variantes de tamanho de imagem (thumb/medium) — redução de banda Bunny CDN |
 
 ### Março 2026

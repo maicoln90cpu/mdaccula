@@ -37,16 +37,29 @@ Este projeto segue padrões rigorosos de código para garantir:
 
 ### ESLint
 
-Configuração em `eslint.config.js`:
+Configuração em `eslint.config.js`. Desde 18/07/2026 o projeto roda com **zero warnings** (era 392) e todas as regras abaixo estão como `"error"`, não `"warn"` — uma violação nova falha `npm run lint` (exit 1) e trava o CI, não é mais só um aviso:
 
 ```javascript
-// Regras principais ativas
+// Regras principais ativas (todas "error")
 {
-  "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
-  "@typescript-eslint/no-explicit-any": "warn",
-  "no-console": ["warn", { allow: ["warn", "error"] }],
+  "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],
+  "@typescript-eslint/no-explicit-any": "error",
+  "@typescript-eslint/consistent-type-imports": "error",
+  "@typescript-eslint/no-empty-object-type": "error",
+  "@typescript-eslint/no-require-imports": "error",
+  "react-hooks/exhaustive-deps": "error",
+  "react-refresh/only-export-components": ["error", { allowConstantExport: true }],
+  "no-console": ["error", { allow: ["warn", "error"] }],
+  "no-param-reassign": ["error", { props: false }],
+  "no-implicit-coercion": ["error", { boolean: false }],
+  "no-return-await": "error",
+  "no-misleading-character-class": "error",
+  "no-empty": "error",
+  "prefer-rest-params": "error",
 }
 ```
+
+Ver histórico completo da limpeza (392 → 0, em 6 fases) no [`CHANGELOG.md`](../CHANGELOG.md).
 
 ### Prettier
 
@@ -117,7 +130,8 @@ Use arquivos `index.ts` para exportar múltiplos módulos:
 
 ```typescript
 // src/hooks/index.ts
-export { useAuth } from './useAuth';
+export { AuthProvider } from './useAuth';
+export { useAuth } from './useAuthContext';
 export { useToast } from './useToast';
 export { useSiteSettings } from './useSiteSettings';
 
@@ -646,4 +660,4 @@ Antes de submeter código, verifique:
 
 ---
 
-*Última atualização: 16/07/2026*
+*Última atualização: 18/07/2026*

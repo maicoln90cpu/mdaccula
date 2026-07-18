@@ -130,6 +130,7 @@
 | Testes unitários + integração (Vitest) | ✅ |
 | CI/CD GitHub Actions | ✅ |
 | ESLint + Prettier | ✅ |
+| ESLint zerado (392 → 0 warnings) e regras travadas como error (18/07/2026) | ✅ |
 | Error Boundaries em todas as páginas | ✅ |
 | Logger centralizado (info/warn/error) | ✅ |
 | Barrel exports (hooks, lib, types) | ✅ |
@@ -140,10 +141,10 @@
 |---------|--------|------|
 | README.md completo | ✅ | 13/07/2026 |
 | PRD.md atualizado | ✅ | 13/07/2026 |
-| ROADMAP.md atualizado | ✅ | 13/07/2026 |
-| PENDENCIAS.md atualizado | ✅ | 15/03/2026 |
+| ROADMAP.md atualizado | ✅ | 18/07/2026 |
+| PENDENCIAS.MD atualizado | ✅ | 18/07/2026 |
 | SYSTEM-DESIGN.md | ✅ | 15/03/2026 |
-| CODE_STYLE.md | ✅ | 06/01/2026 |
+| CODE_STYLE.md | ✅ | 18/07/2026 |
 | SECURITY-AUDIT.md | ✅ | 15/03/2026 |
 
 ### Higiene técnica e paridade frontend↔edge 🧹 (Jul/2026)
@@ -333,4 +334,4 @@ removendo esse agrupamento — Rollup volta a fazer chunking automático por uso
 
 ---
 
-*Última atualização: 16/07/2026*
+*Última atualização: 18/07/2026*
