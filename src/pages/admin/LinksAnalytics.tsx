@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchAllPaginated } from "@/lib";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -133,49 +134,53 @@ const LinksAnalytics = () => {
       const redirectClicksByPeriod: Record<string, number> = {};
 
       if (dateFilter) {
-        // Buscar cliques de links por período
-        const { data: linkClicks } = await supabase
-          .from("link_click_events")
-          .select("link_id")
-          .gte("clicked_at", dateFilter);
-        if (linkClicks) {
-          linkClicks.forEach((row) => {
-            linkClicksByPeriod[row.link_id] = (linkClicksByPeriod[row.link_id] || 0) + 1;
-          });
-        }
+        // Buscar cliques de links por período (paginado - período pode ter >1000 eventos)
+        const linkClicks = await fetchAllPaginated<{ link_id: string }>((from, to) =>
+          supabase
+            .from("link_click_events")
+            .select("link_id")
+            .gte("clicked_at", dateFilter)
+            .range(from, to)
+        );
+        linkClicks.forEach((row) => {
+          linkClicksByPeriod[row.link_id] = (linkClicksByPeriod[row.link_id] || 0) + 1;
+        });
 
-        // Buscar views de blog por período
-        const { data: blogViews } = await supabase
-          .from("blog_view_events")
-          .select("post_id")
-          .gte("viewed_at", dateFilter);
-        if (blogViews) {
-          blogViews.forEach((row) => {
-            blogViewsByPeriod[row.post_id] = (blogViewsByPeriod[row.post_id] || 0) + 1;
-          });
-        }
+        // Buscar views de blog por período (paginado)
+        const blogViews = await fetchAllPaginated<{ post_id: string }>((from, to) =>
+          supabase
+            .from("blog_view_events")
+            .select("post_id")
+            .gte("viewed_at", dateFilter)
+            .range(from, to)
+        );
+        blogViews.forEach((row) => {
+          blogViewsByPeriod[row.post_id] = (blogViewsByPeriod[row.post_id] || 0) + 1;
+        });
 
-        // Buscar views de eventos por período
-        const { data: eventViews } = await supabase
-          .from("event_view_events")
-          .select("event_id")
-          .gte("viewed_at", dateFilter);
-        if (eventViews) {
-          eventViews.forEach((row) => {
-            eventViewsByPeriod[row.event_id] = (eventViewsByPeriod[row.event_id] || 0) + 1;
-          });
-        }
+        // Buscar views de eventos por período (paginado)
+        const eventViews = await fetchAllPaginated<{ event_id: string }>((from, to) =>
+          supabase
+            .from("event_view_events")
+            .select("event_id")
+            .gte("viewed_at", dateFilter)
+            .range(from, to)
+        );
+        eventViews.forEach((row) => {
+          eventViewsByPeriod[row.event_id] = (eventViewsByPeriod[row.event_id] || 0) + 1;
+        });
 
-        // Buscar cliques de redirect por período
-        const { data: clickEvents } = await supabase
-          .from("redirect_click_events")
-          .select("redirect_link_id")
-          .gte("clicked_at", dateFilter);
-        if (clickEvents) {
-          clickEvents.forEach((row) => {
-            redirectClicksByPeriod[row.redirect_link_id] = (redirectClicksByPeriod[row.redirect_link_id] || 0) + 1;
-          });
-        }
+        // Buscar cliques de redirect por período (paginado)
+        const clickEvents = await fetchAllPaginated<{ redirect_link_id: string }>((from, to) =>
+          supabase
+            .from("redirect_click_events")
+            .select("redirect_link_id")
+            .gte("clicked_at", dateFilter)
+            .range(from, to)
+        );
+        clickEvents.forEach((row) => {
+          redirectClicksByPeriod[row.redirect_link_id] = (redirectClicksByPeriod[row.redirect_link_id] || 0) + 1;
+        });
       }
 
       // Processar dados dos links
