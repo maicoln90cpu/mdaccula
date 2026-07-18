@@ -136,7 +136,7 @@ export function EmailDashboard() {
   );
 
   const kpis = useMemo(() => {
-    let total = filtered.length;
+    const total = filtered.length;
     let sent = 0, delivered = 0, opens = 0, clicks = 0, bounces = 0, unsubs = 0;
     let withStats = 0;
     let openRateSum = 0, clickRateSum = 0;
