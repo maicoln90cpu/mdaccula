@@ -17,6 +17,8 @@ import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, us
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { SortableItem } from "@/components/links/SortableItem";
 import { LinksPageSettings } from "@/components/links/LinksPageSettings";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import LinksDisplaySettings from "@/components/admin/links/LinksDisplaySettings";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { isEventVisible } from "@/lib/eventDateHelper";
 import { processLinks, sortLinkGroups } from "@/hooks/useLinks";
@@ -549,6 +551,13 @@ const LinksManager = () => {
               </div>
             </div>
 
+            <Tabs defaultValue="links" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="links">Links</TabsTrigger>
+                <TabsTrigger value="config">Configurações</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="links">
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <div className="space-y-6">
                 <SortableContext items={filteredGroups.map(g => `group-${g.id}`)} strategy={verticalListSortingStrategy}>
@@ -726,6 +735,12 @@ const LinksManager = () => {
                 )}
               </div>
             </DndContext>
+              </TabsContent>
+
+              <TabsContent value="config">
+                <LinksDisplaySettings />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>

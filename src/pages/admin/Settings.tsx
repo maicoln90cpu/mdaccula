@@ -2,13 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Save, Settings2, Users, ImageIcon, Clock } from "lucide-react";
+import { ArrowLeft, Save, Settings2, Users, ImageIcon } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { NavLink } from "react-router-dom";
 import GeneralSettings from "@/components/admin/settings/GeneralSettings";
 import SocialSettings from "@/components/admin/settings/SocialSettings";
 import MediaSettings from "@/components/admin/settings/MediaSettings";
-import TimezoneSettings from "@/components/admin/settings/TimezoneSettings";
 
 const Settings = () => {
   // General settings
@@ -25,8 +24,7 @@ const Settings = () => {
   // Timezone settings
   const [timezoneOffset, setTimezoneOffset] = useState("-3");
   const [timezoneName, setTimezoneName] = useState("America/Sao_Paulo");
-  const [linksShowEventDate, setLinksShowEventDate] = useState(true);
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -72,9 +70,6 @@ const Settings = () => {
           case "timezone_name":
             setTimezoneName(setting.value || "America/Sao_Paulo");
             break;
-          case "links_show_event_date":
-            setLinksShowEventDate(setting.value !== "false");
-            break;
         }
       });
     } catch (error: any) {
@@ -102,7 +97,6 @@ const Settings = () => {
         { key: "newsletter_popup_enabled", value: newsletterPopupEnabled.toString() },
         { key: "timezone_offset", value: timezoneOffset },
         { key: "timezone_name", value: timezoneName },
-        { key: "links_show_event_date", value: linksShowEventDate.toString() },
       ];
 
       for (const update of updates) {
@@ -150,7 +144,7 @@ const Settings = () => {
             </div>
 
             <Tabs defaultValue="geral" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto gap-1 bg-muted/50 p-1">
+              <TabsList className="grid w-full grid-cols-3 h-auto gap-1 bg-muted/50 p-1">
                 <TabsTrigger value="geral" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <Settings2 className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Geral</span>
@@ -162,10 +156,6 @@ const Settings = () => {
                 <TabsTrigger value="midia" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
                   <ImageIcon className="w-3.5 h-3.5" />
                   <span className="hidden sm:inline">Mídia</span>
-                </TabsTrigger>
-                <TabsTrigger value="horario" className="flex items-center gap-1.5 text-xs sm:text-sm py-2">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Horário</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -199,13 +189,6 @@ const Settings = () => {
 
               <TabsContent value="midia">
                 <MediaSettings />
-              </TabsContent>
-
-              <TabsContent value="horario">
-                <TimezoneSettings
-                  linksShowEventDate={linksShowEventDate}
-                  setLinksShowEventDate={setLinksShowEventDate}
-                />
               </TabsContent>
             </Tabs>
 
