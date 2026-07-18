@@ -10,6 +10,7 @@ interface PromptTemplate {
   id: string;
   name: string;
   description: string;
+  allFields: string[];
   required_fields: string[];
   category: string;
 }
@@ -84,20 +85,26 @@ export function GenerateForm({
         </div>
 
         {/* Dynamic Fields */}
-        {selectedTemplate && selectedTemplate.required_fields.length > 0 && (
+        {selectedTemplate && selectedTemplate.allFields.length > 0 && (
           <div className="space-y-4 pt-4 border-t">
             <h4 className="font-medium">Campos do Template</h4>
-            {selectedTemplate.required_fields.map((field) => (
-              <div key={field} className="space-y-2">
-                <Label htmlFor={field}>{getFieldLabel(field)}</Label>
-                <Input
-                  id={field}
-                  value={formData[field] || ""}
-                  onChange={(e) => onFormDataChange(field, e.target.value)}
-                  placeholder={`Digite ${getFieldLabel(field).toLowerCase()}...`}
-                />
-              </div>
-            ))}
+            {selectedTemplate.allFields.map((field) => {
+              const isRequired = selectedTemplate.required_fields.includes(field);
+              return (
+                <div key={field} className="space-y-2">
+                  <Label htmlFor={field}>
+                    {getFieldLabel(field)}
+                    {isRequired ? <span className="text-destructive"> *</span> : <span className="text-muted-foreground text-xs"> (opcional)</span>}
+                  </Label>
+                  <Input
+                    id={field}
+                    value={formData[field] || ""}
+                    onChange={(e) => onFormDataChange(field, e.target.value)}
+                    placeholder={`Digite ${getFieldLabel(field).toLowerCase()}...`}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 

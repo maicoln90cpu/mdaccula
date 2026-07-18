@@ -14,6 +14,7 @@ import { TopicSearchForm } from "@/components/admin/ai-content/TopicSearchForm";
 import { TemplatesPanel } from "@/components/admin/ai-content/TemplatesPanel";
 import { AutoGenerationPanel } from "@/components/admin/ai-content/AutoGenerationPanel";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { normalizePromptTemplateFields } from "@/lib";
 import { logger } from "@/lib/logger";
 
 interface Suggestion {
@@ -59,6 +60,9 @@ interface PromptTemplate {
   id: string;
   name: string;
   description: string;
+  /** Todos os campos configurados no template (obrigatórios + opcionais) — usado para renderizar o formulário. */
+  allFields: string[];
+  /** Só os campos marcados como obrigatórios (`required_fields[campo] === true`) — usado para bloquear a geração. */
   required_fields: string[];
   category: string;
 }
@@ -126,15 +130,10 @@ export default function AIContent2() {
         id: t.id,
         name: t.name,
         description: t.description || "",
-        // Normalizar required_fields - pode ser objeto ou array
-        required_fields: (() => {
-          if (Array.isArray(t.required_fields)) {
-            return t.required_fields as string[];
-          }
-          if (typeof t.required_fields === 'object' && t.required_fields !== null) {
-            return Object.keys(t.required_fields);
-          }
-          return [];
+        // Normalizar required_fields - pode ser objeto ({campo: boolean}) ou array (legado, tudo obrigatório)
+        ...(() => {
+          const { allFields, requiredFields } = normalizePromptTemplateFields(t.required_fields);
+          return { allFields, required_fields: requiredFields };
         })(),
         category: t.category || "",
       }));
@@ -145,7 +144,7 @@ export default function AIContent2() {
       const defaultTemplate = mappedTemplates.find((t) => t.category === "default") || mappedTemplates[0];
       if (defaultTemplate) {
         setSelectedTemplate(defaultTemplate);
-        initializeFormData(defaultTemplate.required_fields);
+        initializeFormData(defaultTemplate.allFields);
       }
     } catch (error) {
       logger.error("Error fetching templates:", error);
@@ -225,7 +224,7 @@ export default function AIContent2() {
     const template = templates.find((t) => t.id === templateId);
     if (template) {
       setSelectedTemplate(template);
-      initializeFormData(template.required_fields);
+      initializeFormData(template.allFields);
     }
   };
 
@@ -299,7 +298,7 @@ export default function AIContent2() {
       fetchGeneratedPosts();
 
       // Clear form
-      initializeFormData(selectedTemplate.required_fields);
+      initializeFormData(selectedTemplate.allFields);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error generating article:", error);

@@ -27,6 +27,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { ShareButtons } from "@/components/ShareButtons";
+import { SoundWaveBackground } from "@/components/SoundWaveBackground";
 import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
 import { SEOHead } from "@/components/SEOHead";
 import { getOptimizedImageUrl, getThumbnailUrl, getMediumUrl, handleImageFallback, handleThumbImageFallback } from "@/lib/imageUtils";
@@ -271,7 +272,8 @@ const EventDetail = () => {
         }}
       />
 
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen bg-background">
+        <SoundWaveBackground />
         <Navigation />
 
         <main id="main-content" className="pt-20 pb-16">

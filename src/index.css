@@ -198,6 +198,8 @@ All colors MUST be HSL.
   .animate-ticket-glow-pulse,
   .animate-ticket-glow-shift,
   .animate-featured-glow-pulse,
+  .animate-wave-drift,
+  .animate-wave-drift-slow,
   .shine-border::before {
     animation: none;
   }
@@ -213,6 +215,8 @@ All colors MUST be HSL.
   .animate-ticket-glow-pulse,
   .animate-ticket-glow-shift,
   .animate-featured-glow-pulse,
+  .animate-wave-drift,
+  .animate-wave-drift-slow,
   .shine-border::before {
     animation: none;
   }

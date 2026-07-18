@@ -23,3 +23,4 @@ export {
 } from './linkThemes';
 export { logger, useLogger, type LogLevel, type LogContext, type LogEntry } from './logger';
 export { getBrandColor } from './brandColors';
+export { normalizePromptTemplateFields } from './promptTemplateFields';

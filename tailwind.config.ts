@@ -185,6 +185,14 @@ export default {
             boxShadow: "0 0 36px hsl(var(--neon-purple) / 0.85)",
           },
         },
+        "wave-drift": {
+          "0%": {
+            transform: "translateX(0)",
+          },
+          "100%": {
+            transform: "translateX(-50%)",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -197,6 +205,8 @@ export default {
         "ticket-glow-pulse": "ticket-glow-pulse 2.5s ease-in-out infinite",
         "ticket-glow-shift": "ticket-glow-shift 6s linear infinite",
         "featured-glow-pulse": "featured-glow-pulse 2.5s ease-in-out infinite",
+        "wave-drift": "wave-drift 18s linear infinite",
+        "wave-drift-slow": "wave-drift 28s linear infinite reverse",
       },
       screens: {
         'xs': '375px',
