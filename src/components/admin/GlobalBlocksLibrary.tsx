@@ -83,8 +83,9 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
       await saveAsGlobal(selectedBlock, form);
       toast({ title: "Bloco salvo na biblioteca" });
       setSaveDialogOpen(false);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   };
 
@@ -107,8 +108,9 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
       });
       toast({ title: "Bloco global atualizado — todos os templates refletirão a mudança" });
       setEditing(null);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   };
 
@@ -117,8 +119,9 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
     try {
       await deleteGlobal(g.id);
       toast({ title: "Bloco global excluído" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   };
 

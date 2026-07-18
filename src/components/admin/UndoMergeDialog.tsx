@@ -176,12 +176,13 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       });
       onSuccess();
       onOpenChange(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
       console.error("[UndoMergeDialog] Erro ao desfazer:", err);
       toast({
         variant: "destructive",
         title: "Erro ao desfazer",
-        description: err.message || "Nada foi alterado. Tente novamente.",
+        description: message || "Nada foi alterado. Tente novamente.",
       });
     } finally {
       setWorking(false);

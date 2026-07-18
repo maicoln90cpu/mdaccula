@@ -30,11 +30,12 @@ const EventVisibilitySettings = () => {
           setEventHoursWithoutTime(parseInt(setting.value || "24"));
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao carregar configurações",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -65,11 +66,12 @@ const EventVisibilitySettings = () => {
         title: "Configurações salvas",
         description: "As regras de visibilidade de eventos foram atualizadas.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao salvar configurações",
-        description: error.message,
+        description: message,
       });
     } finally {
       setSaving(false);

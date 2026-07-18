@@ -304,11 +304,12 @@ export function AutoGenerationPanel() {
       // Start polling for status updates
       startPolling();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error('Error forcing generation:', error);
       toast({
         title: "Erro ao forçar geração",
-        description: error.message || "Não foi possível iniciar a geração.",
+        description: message || "Não foi possível iniciar a geração.",
         variant: "destructive",
       });
       setIsForcing(false);

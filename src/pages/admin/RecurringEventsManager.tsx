@@ -91,10 +91,11 @@ const RecurringEventsManager = () => {
         if (s.key === "recurring_cron_weekday") setCronWeekday(s.value || "2");
         if (s.key === "recurring_cron_hour") setCronHour(s.value || "3");
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao carregar configurações",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -125,10 +126,11 @@ const RecurringEventsManager = () => {
         title: config.enabled ? "Desativado" : "Ativado",
         description: `${config.name} foi ${config.enabled ? "desativado" : "ativado"}`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     }
@@ -151,10 +153,11 @@ const RecurringEventsManager = () => {
       });
 
       fetchConfigs();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro na execução",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -179,10 +182,11 @@ const RecurringEventsManager = () => {
         title: "Agendamento salvo",
         description: `Eventos recorrentes serão criados toda ${WEEKDAYS[parseInt(cronWeekday)]} às ${cronHour.padStart(2, '0')}:00 (BRT)`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao salvar agendamento",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -223,10 +227,11 @@ const RecurringEventsManager = () => {
       });
 
       setEditingConfig(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao salvar",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -562,8 +567,9 @@ const RecurringEventsManager = () => {
                           });
                           setEditingConfig({ ...editingConfig, image_url: publicUrl });
                           toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });
-                        } catch (err: any) {
-                          toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+                        } catch (err: unknown) {
+                          const message = err instanceof Error ? err.message : "Erro desconhecido";
+                          toast({ title: "Erro no upload", description: message, variant: "destructive" });
                         } finally {
                           setUploadingImage(false);
                           e.target.value = '';

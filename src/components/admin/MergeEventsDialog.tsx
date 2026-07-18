@@ -227,12 +227,13 @@ export const MergeEventsDialog = ({ open, onOpenChange, events, onSuccess }: Mer
       onOpenChange(false);
       setConfirming(false);
       return;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
       logger.error("[MergeEventsDialog] Erro ao mesclar:", err);
       toast({
         variant: "destructive",
         title: "Erro ao mesclar eventos",
-        description: err.message || "Tente novamente. Nenhuma alteração foi salva.",
+        description: message || "Tente novamente. Nenhuma alteração foi salva.",
       });
       setMerging(false);
     }

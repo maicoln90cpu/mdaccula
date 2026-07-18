@@ -67,10 +67,11 @@ const NewsletterABResults = () => {
       );
 
       setVariants(variantStats);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao carregar estatísticas",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -96,10 +97,11 @@ const NewsletterABResults = () => {
       });
 
       fetchVariantStats();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao alterar status",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     }
@@ -127,10 +129,11 @@ const NewsletterABResults = () => {
       toast({ title: "Variante atualizada com sucesso!" });
       fetchVariantStats();
       setEditingVariant(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({ 
         title: "Erro ao atualizar", 
-        description: error.message, 
+        description: message, 
         variant: "destructive" 
       });
     }

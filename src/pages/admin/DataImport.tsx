@@ -178,9 +178,10 @@ export default function DataImport() {
       } else {
         toast.success(`${step.label}: ${totalInserted} registros importados!`);
       }
-    } catch (err: any) {
-      updateStep(index, { status: "error", result: err.message, progress: undefined });
-      toast.error(`${step.label}: ${err.message}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro desconhecido";
+      updateStep(index, { status: "error", result: message, progress: undefined });
+      toast.error(`${step.label}: ${message}`);
     }
   };
 

@@ -65,10 +65,11 @@ export function TemplatesPanel() {
 
       if (error) throw error;
       setTemplates(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao carregar templates",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -223,10 +224,11 @@ export function TemplatesPanel() {
 
       handleCloseDialog();
       fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao salvar template",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     }
@@ -245,10 +247,11 @@ export function TemplatesPanel() {
         title: template.enabled ? "Template desativado" : "Template ativado",
       });
       fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao alterar status",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     }
@@ -277,10 +280,11 @@ export function TemplatesPanel() {
         description: `"${template.name}" agora é o padrão para ${template.category}`,
       });
       fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao definir padrão",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     }
@@ -300,10 +304,11 @@ export function TemplatesPanel() {
         description: "Template removido com sucesso",
       });
       fetchTemplates();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao deletar template",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {

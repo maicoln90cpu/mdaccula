@@ -303,8 +303,9 @@ export function EmailTemplateEditor({
       setLocalSubject(null);
       setLocalPreheader(null);
       await onReload();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao salvar", description: message });
     } finally {
       setSaving(false);
     }
@@ -332,8 +333,9 @@ export function EmailTemplateEditor({
       await onReload();
       onActiveChange(data.id);
       toast({ title: preset ? `Template criado a partir do preset "${preset.name}"` : "Template criado" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   };
 
@@ -353,8 +355,9 @@ export function EmailTemplateEditor({
       await onReload();
       onActiveChange(data.id);
       toast({ title: "Template duplicado" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   };
 
@@ -366,8 +369,9 @@ export function EmailTemplateEditor({
       if (error) throw error;
       await onReload();
       toast({ title: "Template excluído" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   };
 
@@ -1443,8 +1447,9 @@ function GlobalRefPropsPanel({
     setSaving(true);
     try {
       await updateGlobal(global.id, { block: nextInner });
-    } catch (e: any) {
-      onToast({ variant: "destructive", title: "Erro ao salvar bloco global", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      onToast({ variant: "destructive", title: "Erro ao salvar bloco global", description: message });
     } finally {
       setSaving(false);
     }

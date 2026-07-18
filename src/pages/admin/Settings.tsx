@@ -68,12 +68,13 @@ const Settings = () => {
             break;
         }
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("[Settings] Erro ao carregar configurações:", error);
       toast({
         variant: "destructive",
         title: "Erro ao carregar configurações",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -111,11 +112,12 @@ const Settings = () => {
         title: "Configurações salvas",
         description: "As configurações foram atualizadas com sucesso.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao salvar configurações",
-        description: error.message,
+        description: message,
       });
     } finally {
       setSaving(false);

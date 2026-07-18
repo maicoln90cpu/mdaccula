@@ -90,11 +90,12 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
       }
 
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao salvar grupo",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);

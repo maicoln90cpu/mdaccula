@@ -61,10 +61,11 @@ export const LikeButton = ({ postId, initialLikes }: LikeButtonProps) => {
       toast({
         title: result.liked ? "Post curtido!" : "Curtida removida",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         title: "Erro ao curtir post",
-        description: error.message,
+        description: message,
         variant: "destructive",
       });
     } finally {

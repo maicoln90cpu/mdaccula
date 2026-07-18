@@ -197,9 +197,10 @@ const BlogManager = () => {
       } else {
         throw new Error(data?.error || 'Erro desconhecido');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error('Error regenerating image:', error);
-      toast.error(`Erro ao regenerar imagem: ${error.message || 'Erro desconhecido'}`);
+      toast.error(`Erro ao regenerar imagem: ${message || 'Erro desconhecido'}`);
     } finally {
       setRegeneratingImageId(null);
     }
@@ -282,9 +283,10 @@ const BlogManager = () => {
       }
       
       fetchPosts();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error('Error regenerating post:', error);
-      toast.error(`Erro ao regenerar: ${error.message}`);
+      toast.error(`Erro ao regenerar: ${message}`);
     } finally {
       setRegeneratingPostId(null);
     }

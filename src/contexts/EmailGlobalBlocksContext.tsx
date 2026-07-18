@@ -28,8 +28,9 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
         .order("name", { ascending: true });
       if (error) throw error;
       setGlobals((data || []) as GlobalBlock[]);
-    } catch (e: any) {
-      setError(e.message || "Erro ao carregar blocos globais");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      setError(message || "Erro ao carregar blocos globais");
       setGlobals([]);
     } finally {
       setLoading(false);

@@ -26,11 +26,12 @@ const LinksDisplaySettings = () => {
       if (data) {
         setLinksShowEventDate(data.value !== "false");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao carregar configurações",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -54,11 +55,12 @@ const LinksDisplaySettings = () => {
         title: "Configurações salvas",
         description: "As configurações de exibição foram atualizadas.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao salvar configurações",
-        description: error.message,
+        description: message,
       });
     } finally {
       setSaving(false);

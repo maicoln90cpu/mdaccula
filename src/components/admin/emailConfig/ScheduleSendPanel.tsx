@@ -80,8 +80,9 @@ export function ScheduleSendPanel({
       if (error) throw error;
       toast({ title: "Agendamento cancelado", description: "A campanha voltou para rascunho." });
       queryClient.invalidateQueries({ queryKey: ["scheduled-sends", eventId] });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao cancelar", description: e.message ?? String(e) });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao cancelar", description: message ?? String(e) });
     } finally {
       setCancelingId(null);
     }

@@ -72,11 +72,12 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
 
       if (error) throw error;
       setEvents(data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao carregar eventos",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -195,11 +196,12 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
         setUploadingImage(true);
         try {
           finalImageUrl = await uploadImageToStorage(uploadedFile);
-        } catch (uploadError: any) {
+        } catch (uploadError: unknown) {
+          const message = uploadError instanceof Error ? uploadError.message : "Erro desconhecido";
           toast({
             variant: "destructive",
             title: "Erro ao fazer upload da imagem",
-            description: uploadError.message,
+            description: message,
           });
           setGenerating(false);
           setUploadingImage(false);
@@ -238,12 +240,13 @@ export const MultiEventArticleModal = ({ open, onOpenChange, onSuccess }: MultiE
       } else {
         throw new Error(data?.error || 'Resposta inválida da API');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       console.error('[MultiEventArticleModal] Erro:', error);
       toast({
         variant: "destructive",
         title: "Erro ao gerar artigo",
-        description: error.message || 'Ocorreu um erro ao gerar o artigo consolidado.',
+        description: message || 'Ocorreu um erro ao gerar o artigo consolidado.',
       });
     } finally {
       setGenerating(false);

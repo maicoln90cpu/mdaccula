@@ -244,7 +244,7 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
       }
       toast({ title: "Marcado como enviado", description: entry.event.title });
       invalidate();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({ title: "Erro ao marcar", description: e?.message ?? String(e), variant: "destructive" });
     }
   }
@@ -265,7 +265,7 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
       }
       toast({ title: "Marcação desfeita", description: entry.event.title });
       invalidate();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({ title: "Erro ao desfazer", description: e?.message ?? String(e), variant: "destructive" });
     }
   }
@@ -282,8 +282,9 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
         description: "Na próxima ação de disparo, será gerada uma nova campanha.",
       });
       invalidate();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     }
   }
 
@@ -301,8 +302,9 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
         [campaignId]: { ...res.stats, fetched_at: new Date().toISOString() },
       }));
       toast({ title: "Métricas atualizadas" });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao atualizar métricas", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao atualizar métricas", description: message });
     } finally {
       setRefreshingStatsId(null);
     }
@@ -342,8 +344,9 @@ export function EmailEventsTab({ templates, masterEnabled, prepareManualSend }: 
         });
       }
       invalidate();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro no teste A/B", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro no teste A/B", description: message });
     } finally {
       setDispatchingId(null);
     }

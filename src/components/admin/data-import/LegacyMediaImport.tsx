@@ -21,8 +21,9 @@ const LegacyMediaImport = () => {
         title: data.complete ? "Importação completa!" : "Lote processado",
         description: data.message,
       });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na importação", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro na importação", description: message });
     } finally {
       setImporting(false);
     }

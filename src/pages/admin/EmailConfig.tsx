@@ -179,8 +179,9 @@ const EmailConfig = () => {
           scheduled_days_before: config.data.scheduled_days_before ?? 3,
         });
       }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao carregar", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao carregar", description: message });
     } finally {
       setLoading(false);
     }
@@ -218,8 +219,9 @@ const EmailConfig = () => {
         title: "Recursos E-goi atualizados",
         description: `${data?.lists?.length ?? 0} listas · ${data?.senders?.length ?? 0} remetentes.`,
       });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Falha ao buscar E-goi", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Falha ao buscar E-goi", description: message });
     } finally {
       setFetchingResources(false);
     }
@@ -240,8 +242,9 @@ const EmailConfig = () => {
       const json = await res.json();
       setSegments(Array.isArray(json?.segments) ? json.segments : []);
       setListTotal(typeof json?.list_total_contacts === "number" ? json.list_total_contacts : null);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Falha ao buscar segmentos", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Falha ao buscar segmentos", description: message });
       setSegments([]);
     } finally {
       setFetchingSegments(false);
@@ -268,8 +271,9 @@ const EmailConfig = () => {
       if (error) throw error;
       toast({ title: "Configuração salva" });
       void loadAll();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao salvar", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao salvar", description: message });
     } finally {
       setSaving(false);
     }
@@ -283,8 +287,9 @@ const EmailConfig = () => {
       if (error) throw error;
       setMasterEnabled(v);
       toast({ title: v ? "Master ligado" : "Master desligado", description: v ? "Automação de e-mail habilitada globalmente." : "Nenhum disparo automático será feito." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao alterar master switch", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao alterar master switch", description: message });
     }
   };
 
@@ -398,8 +403,9 @@ const EmailConfig = () => {
         render_source: (data as any).render_source,
         template_name: (data as any).template_name,
       });
-    } catch (e: any) {
-      toast({ title: "Erro ao carregar preview", description: e.message ?? String(e), variant: "destructive" });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ title: "Erro ao carregar preview", description: message ?? String(e), variant: "destructive" });
     } finally {
       setDigestPreviewLoading(false);
     }
@@ -426,8 +432,9 @@ const EmailConfig = () => {
       if (error) throw error;
       toast({ title: "Template salvo" });
       void loadAll();
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao salvar template", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao salvar template", description: message });
     } finally {
       setTplSaving(false);
     }
@@ -450,8 +457,9 @@ const EmailConfig = () => {
       const { data: pub } = supabase.storage.from("link-thumbnails").getPublicUrl(path);
       setTpl({ ...tpl, logo_url: pub.publicUrl });
       toast({ title: "Logo enviada", description: "Clique em Salvar para aplicar." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro no upload", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro no upload", description: message });
     } finally {
       setUploadingLogo(false);
     }
@@ -544,8 +552,9 @@ const EmailConfig = () => {
         throw new Error(data?.error || "Resend não confirmou o envio (sem ID de mensagem)");
       }
       toast({ title: "E-mail de teste enviado", description: `Enviado para ${data.sent_to} (Resend #${data.id})` });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Falha no envio de teste", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Falha no envio de teste", description: message });
     } finally {
       setSendingTest(false);
     }
@@ -568,8 +577,9 @@ const EmailConfig = () => {
       const { data: pub } = supabase.storage.from("link-thumbnails").getPublicUrl(path);
       setBatchArtworkUrl(pub.publicUrl);
       toast({ title: "Arte enviada", description: "Ela vai substituir o flyer padrão neste disparo." });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro no upload", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro no upload", description: message });
     } finally {
       setBatchUploadingArt(false);
     }
@@ -621,8 +631,9 @@ const EmailConfig = () => {
       } else {
         toast({ variant: "destructive", title: "Falha", description: res.error || res.reason || "Erro desconhecido" });
       }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     } finally {
       setBatchDispatching(false);
     }
@@ -669,8 +680,9 @@ const EmailConfig = () => {
       } else {
         toast({ variant: "destructive", title: "Falha ao agendar", description: res.error || res.reason || "Erro desconhecido" });
       }
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: message });
     } finally {
       setBatchScheduling(false);
     }

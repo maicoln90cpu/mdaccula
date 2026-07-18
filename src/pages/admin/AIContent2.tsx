@@ -300,11 +300,12 @@ export default function AIContent2() {
 
       // Clear form
       initializeFormData(selectedTemplate.required_fields);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error generating article:", error);
       toast({
         title: "Erro ao gerar artigo",
-        description: error.message || "Ocorreu um erro durante a geração.",
+        description: message || "Ocorreu um erro durante a geração.",
         variant: "destructive",
       });
     } finally {
@@ -334,11 +335,12 @@ export default function AIContent2() {
 
       fetchGeneratedPosts();
       setTopicQuery("");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error generating from topic:", error);
       toast({
         title: "Erro ao gerar artigo por tema",
-        description: error.message || "Ocorreu um erro durante a busca/geração.",
+        description: message || "Ocorreu um erro durante a busca/geração.",
         variant: "destructive",
       });
     } finally {
@@ -373,11 +375,12 @@ export default function AIContent2() {
         title: "Sugestões geradas!",
         description: `${data.suggestions?.length || 0} ideias de artigos foram geradas.`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error generating suggestions:", error);
       toast({
         title: "Erro ao gerar sugestões",
-        description: error.message || "Ocorreu um erro ao buscar sugestões.",
+        description: message || "Ocorreu um erro ao buscar sugestões.",
         variant: "destructive",
       });
     } finally {
@@ -480,11 +483,12 @@ export default function AIContent2() {
 
       // Refresh posts
       fetchGeneratedPosts();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error generating from suggestion:", error);
       toast({
         title: "Erro ao gerar artigo",
-        description: error.message || "Ocorreu um erro durante a geração.",
+        description: message || "Ocorreu um erro durante a geração.",
         variant: "destructive",
       });
     } finally {
@@ -510,11 +514,12 @@ export default function AIContent2() {
       // O realtime já vai atualizar a lista quando o image_url mudar no banco,
       // mas forçamos um refresh imediato para feedback visual.
       fetchGeneratedPosts();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error regenerating image:", error);
       toast({
         title: "Erro ao regenerar imagem",
-        description: error.message || "Ocorreu um erro ao gerar a nova capa.",
+        description: message || "Ocorreu um erro ao gerar a nova capa.",
         variant: "destructive",
       });
     } finally {
@@ -615,14 +620,15 @@ export default function AIContent2() {
               description: "Artigo criado com sucesso!",
             });
           }
-        } catch (err: any) {
+        } catch (err: unknown) {
+          const message = err instanceof Error ? err.message : "Erro desconhecido";
           logger.error(`Error generating "${suggestion.title}":`, err);
           progress.failed.push(suggestion.title);
           setGenerationProgress({ ...progress });
           
           toast({
             title: `Erro: ${suggestion.title.slice(0, 30)}...`,
-            description: err.message || "Falha ao gerar artigo",
+            description: message || "Falha ao gerar artigo",
             variant: "destructive",
           });
         }
@@ -644,11 +650,12 @@ export default function AIContent2() {
       });
 
       fetchGeneratedPosts();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error("Error in batch generation:", error);
       toast({
         title: "Erro na geração em lote",
-        description: error.message || "Alguns artigos podem não ter sido gerados.",
+        description: message || "Alguns artigos podem não ter sido gerados.",
         variant: "destructive",
       });
     } finally {

@@ -61,8 +61,9 @@ const MediaSettings = () => {
         title: "Backfill concluído",
         description: `${uploaded} imagem(ns) processada(s), ${skipped} já estavam ok${errors > 0 ? `, ${errors} com problema` : ""}.`,
       });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro no backfill", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro no backfill", description: message });
     } finally {
       setBackfillRunning(false);
     }
@@ -78,8 +79,9 @@ const MediaSettings = () => {
       });
       if (error) throw error;
       setDiagResult(data);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro no diagnóstico", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro no diagnóstico", description: message });
     } finally {
       setDiagLoading(false);
     }
@@ -108,8 +110,9 @@ const MediaSettings = () => {
         title: hasMore ? "Lote processado" : "Migração concluída",
         description: `${data.totalMigrated} arquivos migrados.${hasMore ? " Clique novamente." : ""}`,
       });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na migração", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro na migração", description: message });
     } finally {
       setMigratingFiles(false);
     }
@@ -127,8 +130,9 @@ const MediaSettings = () => {
       setUrlResult(data.updated);
       const total = Object.values(data.updated as Record<string, number>).reduce((a, b) => a + b, 0);
       toast({ title: "URLs atualizadas", description: `${total} URLs reescritas.` });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao atualizar URLs", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao atualizar URLs", description: message });
     } finally {
       setUpdatingUrls(false);
     }
@@ -149,8 +153,9 @@ const MediaSettings = () => {
         title: "Limpeza concluída",
         description: `${total} arquivos removidos do Supabase após verificação no Bunny.`,
       });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na limpeza", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro na limpeza", description: message });
     } finally {
       setCleaningUp(false);
     }
@@ -166,8 +171,9 @@ const MediaSettings = () => {
       });
       if (error) throw error;
       setCheckResult(data);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na análise", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro na análise", description: message });
     } finally {
       setCheckLoading(false);
     }
@@ -187,8 +193,9 @@ const MediaSettings = () => {
         title: "Conversão concluída",
         description: `${data.summary.processed} imagens. ${data.summary.totalSavedMB} MB economizados.`,
       });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro na conversão", description: error.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro na conversão", description: message });
     } finally {
       setConverting(false);
     }

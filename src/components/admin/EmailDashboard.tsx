@@ -119,8 +119,9 @@ export function EmailDashboard() {
         fetched_at: statsMap.get(c.id)?.fetched_at ?? null,
       }));
       setRows(built);
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao carregar dashboard", description: e.message });
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao carregar dashboard", description: message });
     } finally {
       setLoading(false);
     }

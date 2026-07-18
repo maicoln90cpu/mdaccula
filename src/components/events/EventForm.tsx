@@ -750,11 +750,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               variant: 'destructive',
             });
           }
-        } catch (dispatchErr: any) {
+        } catch (dispatchErr: unknown) {
+          const message = dispatchErr instanceof Error ? dispatchErr.message : "Erro desconhecido";
           logger.error('[EventForm] Falha no disparo de rascunho E-goi:', dispatchErr);
           toast({
             title: 'Falha no disparo de e-mail',
-            description: dispatchErr?.message || 'Erro desconhecido',
+            description: message || 'Erro desconhecido',
             variant: 'destructive',
           });
         }

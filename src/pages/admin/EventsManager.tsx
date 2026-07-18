@@ -113,11 +113,12 @@ const EventsManager = () => {
       } else {
         setMergedPrimaryTitles({});
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao carregar eventos",
-        description: error.message,
+        description: message,
       });
     } finally {
       setLoading(false);
@@ -144,11 +145,12 @@ const EventsManager = () => {
         description: "O evento foi removido com sucesso.",
       });
       fetchEvents();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao deletar evento",
-        description: error.message,
+        description: message,
       });
     } finally {
       setDeletingEventId(null);
@@ -173,11 +175,12 @@ const EventsManager = () => {
         description: `"${event.title}" voltou a ficar ativo. O evento principal não foi alterado.`,
       });
       fetchEvents();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       toast({
         variant: "destructive",
         title: "Erro ao reativar evento",
-        description: error.message,
+        description: message,
       });
     } finally {
       setReactivatingId(null);
@@ -261,12 +264,13 @@ const EventsManager = () => {
       } else {
         throw new Error('Resposta inválida da API');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
       logger.error('[EventsManager] Erro ao gerar artigo:', error);
       toast({
         variant: "destructive",
         title: "Erro ao gerar artigo",
-        description: error.message || 'Ocorreu um erro ao gerar o artigo do blog.',
+        description: message || 'Ocorreu um erro ao gerar o artigo do blog.',
       });
     } finally {
       setGeneratingArticle(null);
