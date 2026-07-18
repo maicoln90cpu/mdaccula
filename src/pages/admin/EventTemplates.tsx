@@ -95,7 +95,7 @@ const EventTemplates = () => {
     if (!imageFile) return null;
     
     try {
-      return await uploadImageWithThumb(imageFile, 'event-images');
+      return await uploadImageWithThumb(imageFile, 'event-images', { medium: true });
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error("Erro ao fazer upload da imagem");

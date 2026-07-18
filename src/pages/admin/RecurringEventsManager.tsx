@@ -558,6 +558,7 @@ const RecurringEventsManager = () => {
                         try {
                           const publicUrl = await uploadImageWithThumb(file, 'event-images', {
                             fullOpts: { maxSizeMB: 0.5, maxDimension: 1200 },
+                            medium: true,
                           });
                           setEditingConfig({ ...editingConfig, image_url: publicUrl });
                           toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });

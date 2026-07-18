@@ -354,7 +354,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
     setUploading(true);
     try {
-      return await uploadImageWithThumb(imageFile, 'event-images');
+      return await uploadImageWithThumb(imageFile, 'event-images', { medium: true });
     } catch (error) {
       logger.error('Error uploading image:', error);
       toast({

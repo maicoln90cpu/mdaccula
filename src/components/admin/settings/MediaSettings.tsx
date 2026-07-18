@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageDown, Loader2, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2, BarChart3 } from "lucide-react";
+import { ImageDown, Loader2, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2, BarChart3, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
+import { runEventImageBackfill, type BackfillResult } from "@/lib/eventImageBackfill";
 
 type CompressionPreset = "sutil" | "media" | "severa";
 
@@ -38,7 +39,34 @@ const MediaSettings = () => {
   const [cleaningUp, setCleaningUp] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<Record<string, any> | null>(null);
 
+  // Backfill de variantes (eventos ativos + configs recorrentes)
+  const [backfillRunning, setBackfillRunning] = useState(false);
+  const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
+  const [backfillResults, setBackfillResults] = useState<BackfillResult[] | null>(null);
+
   const { toast } = useToast();
+
+  // ── Backfill de Variantes ──
+  const handleBackfillEventImages = async () => {
+    setBackfillRunning(true);
+    setBackfillResults(null);
+    setBackfillProgress(null);
+    try {
+      const results = await runEventImageBackfill((done, total) => setBackfillProgress({ done, total }));
+      setBackfillResults(results);
+      const uploaded = results.filter((r) => r.status === "uploaded").length;
+      const skipped = results.filter((r) => r.status === "skipped").length;
+      const errors = results.filter((r) => r.status === "error" || r.status === "unsupported").length;
+      toast({
+        title: "Backfill concluído",
+        description: `${uploaded} imagem(ns) processada(s), ${skipped} já estavam ok${errors > 0 ? `, ${errors} com problema` : ""}.`,
+      });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro no backfill", description: error.message });
+    } finally {
+      setBackfillRunning(false);
+    }
+  };
 
   // ── Bunny Diagnose ──
   const handleDiagnose = async () => {
@@ -559,6 +587,72 @@ const MediaSettings = () => {
                 <details>
                   <summary className="cursor-pointer text-destructive">Ver erros</summary>
                   <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-24 text-[10px]">{conversionResult.details.errors.join("\n")}</pre>
+                </details>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ Backfill de Variantes (eventos ativos) ═══ */}
+      <Card className="border-blue-500/20">
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <Layers className="w-5 h-5 text-blue-500" />
+            <CardTitle className="text-lg sm:text-xl">Backfill de Variantes — Eventos Ativos</CardTitle>
+          </div>
+          <CardDescription className="text-sm">
+            Gera as variantes thumb/medium para eventos com data futura e para as configurações de
+            eventos recorrentes (a mesma imagem é reaproveitada em toda instância gerada). Eventos
+            passados avulsos ficam de fora — tráfego neles é só de admin.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 sm:px-6">
+          <Button onClick={handleBackfillEventImages} disabled={backfillRunning} variant="outline" className="w-full">
+            {backfillRunning ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processando{backfillProgress ? ` (${backfillProgress.done}/${backfillProgress.total})` : "..."}
+              </>
+            ) : (
+              <>
+                <Layers className="w-4 h-4 mr-2" />
+                Gerar Variantes para Eventos Ativos
+              </>
+            )}
+          </Button>
+
+          {backfillResults && (
+            <div className="p-4 rounded-lg bg-muted/30 border space-y-2 text-xs">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                    {backfillResults.filter((r) => r.status === "uploaded").length}
+                  </div>
+                  <div className="text-muted-foreground">Processadas</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-muted-foreground">
+                    {backfillResults.filter((r) => r.status === "skipped").length}
+                  </div>
+                  <div className="text-muted-foreground">Já ok</div>
+                </div>
+                <div>
+                  <div className="text-lg font-bold text-destructive">
+                    {backfillResults.filter((r) => r.status === "error" || r.status === "unsupported").length}
+                  </div>
+                  <div className="text-muted-foreground">Com problema</div>
+                </div>
+              </div>
+              {backfillResults.some((r) => r.status === "error" || r.status === "unsupported") && (
+                <details>
+                  <summary className="cursor-pointer text-destructive">Ver problemas</summary>
+                  <pre className="mt-1 bg-muted p-2 rounded overflow-auto max-h-32 text-[10px]">
+                    {backfillResults
+                      .filter((r) => r.status === "error" || r.status === "unsupported")
+                      .map((r) => `${r.url}: ${r.detail || r.status}`)
+                      .join("\n")}
+                  </pre>
                 </details>
               )}
             </div>

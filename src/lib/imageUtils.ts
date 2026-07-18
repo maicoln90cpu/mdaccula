@@ -6,7 +6,7 @@
 
 const SUPABASE_STORAGE_PATTERN = /\/storage\/v1\/object\/public\//;
 
-const BUNNY_CDN_HOST = 'https://mdaccula.b-cdn.net';
+export const BUNNY_CDN_HOST = 'https://mdaccula.b-cdn.net';
 const SUPABASE_ORIGIN = 'https://xfvpuzlspvvsmmunznxw.supabase.co/storage/v1/object/public';
 
 const SUPABASE_PATH_REGEX = /\/storage\/v1\/object\/public\/(.+)$/;
