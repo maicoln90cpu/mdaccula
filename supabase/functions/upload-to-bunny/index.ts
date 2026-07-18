@@ -22,6 +22,9 @@ async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
     .join("");
 }
 
+const BASE_NAME_PATTERN = /^[a-zA-Z0-9_-]{6,64}$/;
+const VARIANT_PATTERN = /^[a-zA-Z0-9_-]{1,32}$/;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -65,6 +68,10 @@ Deno.serve(async (req) => {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const bucket = (formData.get("bucket") as string) || "event-images";
+    const rawBaseName = formData.get("baseName") as string | null;
+    const rawVariant = formData.get("variant") as string | null;
+    const baseName = rawBaseName && BASE_NAME_PATTERN.test(rawBaseName) ? rawBaseName : null;
+    const variant = baseName && rawVariant && VARIANT_PATTERN.test(rawVariant) ? rawVariant : null;
 
     if (!file) {
       return new Response(JSON.stringify({ error: "No file provided" }), {
@@ -124,7 +131,8 @@ Deno.serve(async (req) => {
 
     // ── Upload to Bunny ──
     const ext = file.name?.split(".").pop() || "webp";
-    const fileName = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+    const nameBase = baseName || `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    const fileName = `${nameBase}${variant ? `-${variant}` : ""}.${ext}`;
     const storagePath = `${bucket}/${fileName}`;
 
     const bunnyUrl = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${storagePath}`;

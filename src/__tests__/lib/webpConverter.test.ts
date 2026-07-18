@@ -8,7 +8,8 @@ vi.mock("browser-image-compression", () => ({
   }),
 }));
 
-import { convertToWebP, convertToWebPWithPreview } from "@/lib/webpConverter";
+import imageCompression from "browser-image-compression";
+import { convertToWebP, convertToWebPWithPreview, convertToWebPWithThumb } from "@/lib/webpConverter";
 
 const makeFile = (sizeMB: number) =>
   new File([new Uint8Array(sizeMB * 1024 * 1024)], "in.png", {
@@ -30,5 +31,36 @@ describe("webpConverter", () => {
     const result = await convertToWebPWithPreview(makeFile(1));
     expect(result.compressedSize).toBeLessThan(result.originalSize);
     expect(result.savedPercent).toBeGreaterThan(0);
+  });
+
+  it("convertToWebPWithThumb retorna full e thumb, cada um com seu próprio alvo de tamanho", async () => {
+    vi.mocked(imageCompression).mockClear();
+
+    const { full, thumb } = await convertToWebPWithThumb(makeFile(1));
+
+    expect(full.type).toBe("image/webp");
+    expect(thumb.type).toBe("image/webp");
+
+    const calls = vi.mocked(imageCompression).mock.calls;
+    expect(calls).toHaveLength(2);
+    const maxDims = calls.map((c) => (c[1] as { maxWidthOrHeight: number }).maxWidthOrHeight);
+    expect(maxDims).toContain(1920); // full default
+    expect(maxDims).toContain(400); // thumb default
+    expect(Math.min(...maxDims)).toBeLessThan(Math.max(...maxDims));
+  });
+
+  it("convertToWebPWithThumb aceita overrides de tamanho pra full e thumb", async () => {
+    vi.mocked(imageCompression).mockClear();
+
+    await convertToWebPWithThumb(
+      makeFile(1),
+      { maxDimension: 1200 },
+      { maxDimension: 320 }
+    );
+
+    const calls = vi.mocked(imageCompression).mock.calls;
+    const maxDims = calls.map((c) => (c[1] as { maxWidthOrHeight: number }).maxWidthOrHeight);
+    expect(maxDims).toContain(1200);
+    expect(maxDims).toContain(320);
   });
 });

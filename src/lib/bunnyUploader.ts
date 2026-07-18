@@ -1,15 +1,24 @@
 import { supabase } from '@/integrations/supabase/client';
 
+export interface UploadImageOpts {
+  /** Nome-base compartilhado entre variantes da mesma imagem (ex: full + thumb) */
+  baseName?: string;
+  /** Sufixo da variante (ex: 'thumb', 'medium'). Ignorado sem baseName. */
+  variant?: string;
+}
+
 /**
  * Faz upload de uma imagem para o Bunny Storage via edge function.
- * 
+ *
  * @param file - Arquivo de imagem (preferencialmente já convertido para WebP)
  * @param bucket - "Pasta" dentro da storage zone (ex: 'event-images', 'link-thumbnails', 'team-images')
+ * @param opts - baseName/variant opcionais para gerar variantes de tamanho (ver convertToWebPWithThumb)
  * @returns URL pública no CDN do Bunny (mdaccula.b-cdn.net)
  */
 export async function uploadImageToBunny(
   file: File,
-  bucket: string = 'event-images'
+  bucket: string = 'event-images',
+  opts?: UploadImageOpts
 ): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.access_token) {
@@ -19,6 +28,10 @@ export async function uploadImageToBunny(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('bucket', bucket);
+  if (opts?.baseName) {
+    formData.append('baseName', opts.baseName);
+    if (opts.variant) formData.append('variant', opts.variant);
+  }
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const response = await fetch(

@@ -49,6 +49,48 @@ export function getOptimizedImageUrl(
   return url;
 }
 
+const VARIANT_SUFFIX_PATTERN = /-(thumb|medium)$/;
+
+/**
+ * Deriva a URL de uma variante reduzida (thumb/medium) a partir da URL
+ * "full" já otimizada, inserindo um sufixo antes da extensão.
+ * Não valida se a variante existe no CDN — caller deve tratar 404 (imagens
+ * enviadas antes desta feature não têm variante e devem cair pro full).
+ */
+function getVariantUrl(url: string | null | undefined, suffix: 'thumb' | 'medium'): string {
+  if (!url) return '';
+
+  const optimized = getOptimizedImageUrl(url);
+  if (!optimized) return optimized;
+
+  // URLs externas (ex: thumbnail auto-buscado de metadata em custom_links)
+  // não passam pelo Bunny — não há variante pra pedir, devolve como está.
+  if (!optimized.startsWith(BUNNY_CDN_HOST)) return optimized;
+
+  // Já tem sufixo de variante — idempotente, não duplica.
+  if (VARIANT_SUFFIX_PATTERN.test(optimized.replace(/\.[a-zA-Z0-9]+$/, ''))) return optimized;
+
+  const lastDot = optimized.lastIndexOf('.');
+  const lastSlash = optimized.lastIndexOf('/');
+  if (lastDot === -1 || lastDot < lastSlash) return optimized; // sem extensão, não dá pra sufixar com segurança
+
+  return `${optimized.slice(0, lastDot)}-${suffix}${optimized.slice(lastDot)}`;
+}
+
+/**
+ * URL da variante "thumb" (~400px) — usar em cards/ícones/grids pequenos.
+ */
+export function getThumbnailUrl(url: string | null | undefined): string {
+  return getVariantUrl(url, 'thumb');
+}
+
+/**
+ * URL da variante "medium" (~800px) — usar em heroes responsivos via srcset.
+ */
+export function getMediumUrl(url: string | null | undefined): string {
+  return getVariantUrl(url, 'medium');
+}
+
 /**
  * Reverte uma URL do Bunny CDN para a URL original do Supabase Storage.
  * Usado como fallback quando o CDN falha.
@@ -99,4 +141,27 @@ export function handleImageFallback(
 
   // Step 3: All failed
   console.error(`[IMG_ERROR] Todas as fontes falharam para: ${currentSrc}`);
+}
+
+/**
+ * Helper for <img> onError handlers rendering a thumb/medium variant:
+ * tries the full-size Bunny CDN URL first, then falls through to the
+ * normal handleImageFallback chain (Supabase → local fallback).
+ *
+ * Usage:
+ *   <img src={getThumbnailUrl(url)} onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(url))} />
+ */
+export function handleThumbImageFallback(
+  e: React.SyntheticEvent<HTMLImageElement>,
+  fullUrl: string,
+  localFallback?: string
+): void {
+  const img = e.currentTarget;
+  if (!img.dataset.triedFull && fullUrl && img.src !== fullUrl) {
+    img.dataset.triedFull = 'true';
+    console.warn(`[IMG_ERROR] Variante reduzida falhou, tentando full: ${img.src}`);
+    img.src = fullUrl;
+    return;
+  }
+  handleImageFallback(e, localFallback);
 }

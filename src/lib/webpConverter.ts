@@ -46,3 +46,20 @@ export async function convertToWebPWithPreview(
 
   return { file: compressed, originalSize, compressedSize, savedPercent };
 }
+
+/**
+ * Converts the original file into both a "full" and a "thumb" WebP variant.
+ * Both are encoded independently from the original source (not from each
+ * other) to avoid compounding lossy re-encode artifacts.
+ */
+export async function convertToWebPWithThumb(
+  file: File | Blob,
+  fullOpts: { maxSizeMB?: number; maxDimension?: number } = {},
+  thumbOpts: { maxSizeMB?: number; maxDimension?: number } = {}
+): Promise<{ full: File; thumb: File }> {
+  const [full, thumb] = await Promise.all([
+    convertToWebP(file, fullOpts.maxSizeMB ?? 1, fullOpts.maxDimension ?? 1920),
+    convertToWebP(file, thumbOpts.maxSizeMB ?? 0.08, thumbOpts.maxDimension ?? 400),
+  ]);
+  return { full, thumb };
+}
