@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
+import { searchWithFirecrawl, type FirecrawlSearchResult } from "../_shared/firecrawlSearch.ts";
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -33,7 +34,6 @@ function jsonError(message: string, status: number = 500): Response {
 const SEARCH_TIMEOUT_MS = 30000;
 const AI_TIMEOUT_MS = 100000;
 const MAX_SOURCES = 5;
-const MAX_CONTENT_LENGTH = 2000;
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
@@ -44,56 +44,6 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-interface SearchResult {
-  title: string;
-  url: string;
-  content: string;
-}
-
-// Busca + scraping em uma chamada só via Firecrawl /v1/search.
-// Formato de resposta documentado: { success, data: { web: [{ title, url, markdown, metadata }] } }.
-// Faz parsing defensivo (também aceita data como array puro) porque a Firecrawl já
-// mudou esse formato entre versões da API.
-async function searchWithFirecrawl(query: string, apiKey: string, limit: number): Promise<SearchResult[]> {
-  const response = await fetchWithTimeout('https://api.firecrawl.dev/v1/search', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query,
-      limit,
-      scrapeOptions: { formats: ['markdown'], onlyMainContent: true },
-    }),
-  }, SEARCH_TIMEOUT_MS);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Firecrawl search HTTP ${response.status}: ${errorText.substring(0, 200)}`);
-  }
-
-  const data = await response.json();
-  const rawResults: unknown[] = Array.isArray(data?.data?.web)
-    ? data.data.web
-    : Array.isArray(data?.data)
-      ? data.data
-      : [];
-
-  const results: SearchResult[] = [];
-  for (const item of rawResults) {
-    const r = item as Record<string, unknown>;
-    const markdown = typeof r.markdown === 'string' ? r.markdown : '';
-    const metadata = (r.metadata as Record<string, unknown>) || {};
-    const url = (typeof r.url === 'string' && r.url) || (typeof metadata.sourceURL === 'string' && metadata.sourceURL) || '';
-    const title = (typeof r.title === 'string' && r.title) || (typeof metadata.title === 'string' && metadata.title) || url;
-    if (markdown && url) {
-      results.push({ title: String(title), url: String(url), content: markdown.substring(0, MAX_CONTENT_LENGTH) });
-    }
-  }
-  return results;
 }
 
 Deno.serve(async (req) => {
@@ -135,9 +85,9 @@ Deno.serve(async (req) => {
 
     // 1) Buscar + raspar fontes reais sobre o termo
     console.log(`[generate-blog-post-from-topic] Buscando fontes para: "${query}"`);
-    let searchResults: SearchResult[] = [];
+    let searchResults: FirecrawlSearchResult[] = [];
     try {
-      searchResults = await searchWithFirecrawl(query, FIRECRAWL_API_KEY, MAX_SOURCES);
+      searchResults = await searchWithFirecrawl(query, FIRECRAWL_API_KEY, MAX_SOURCES, SEARCH_TIMEOUT_MS);
     } catch (searchError) {
       console.error('[generate-blog-post-from-topic] Erro na busca Firecrawl:', searchError);
       return jsonError('Falha ao buscar fontes para esse termo. Tente novamente em instantes.', 502);

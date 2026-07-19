@@ -14,7 +14,7 @@ import { TopicSearchForm } from "@/components/admin/ai-content/TopicSearchForm";
 import { TemplatesPanel } from "@/components/admin/ai-content/TemplatesPanel";
 import { AutoGenerationPanel } from "@/components/admin/ai-content/AutoGenerationPanel";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { normalizePromptTemplateFields } from "@/lib";
+import { normalizePromptTemplateFields, getEdgeFunctionErrorMessage } from "@/lib";
 import { logger } from "@/lib/logger";
 
 interface Suggestion {
@@ -305,7 +305,7 @@ export default function AIContent2() {
       // Clear form
       initializeFormData(selectedTemplate.allFields);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = await getEdgeFunctionErrorMessage(error);
       logger.error("Error generating article:", error);
       toast({
         title: "Erro ao gerar artigo",
@@ -340,7 +340,7 @@ export default function AIContent2() {
       fetchGeneratedPosts();
       setTopicQuery("");
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = await getEdgeFunctionErrorMessage(error);
       logger.error("Error generating from topic:", error);
       toast({
         title: "Erro ao gerar artigo por tema",
@@ -487,7 +487,7 @@ export default function AIContent2() {
       // Refresh posts
       fetchGeneratedPosts();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = await getEdgeFunctionErrorMessage(error);
       logger.error("Error generating from suggestion:", error);
       toast({
         title: "Erro ao gerar artigo",
@@ -604,10 +604,11 @@ export default function AIContent2() {
             logger.error(`Error generating "${suggestion.title}":`, error);
             progress.failed.push(suggestion.title);
             setGenerationProgress({ ...progress });
-            
+
+            const batchErrorMessage = await getEdgeFunctionErrorMessage(error);
             toast({
               title: `Erro: ${suggestion.title.slice(0, 30)}...`,
-              description: error.message || "Falha ao gerar artigo",
+              description: batchErrorMessage || "Falha ao gerar artigo",
               variant: "destructive",
             });
           } else {
@@ -624,7 +625,7 @@ export default function AIContent2() {
             });
           }
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : "Erro desconhecido";
+          const message = await getEdgeFunctionErrorMessage(err);
           logger.error(`Error generating "${suggestion.title}":`, err);
           progress.failed.push(suggestion.title);
           setGenerationProgress({ ...progress });
@@ -654,7 +655,7 @@ export default function AIContent2() {
 
       fetchGeneratedPosts();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = await getEdgeFunctionErrorMessage(error);
       logger.error("Error in batch generation:", error);
       toast({
         title: "Erro na geração em lote",

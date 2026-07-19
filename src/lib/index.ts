@@ -25,3 +25,4 @@ export { logger, useLogger, type LogLevel, type LogContext, type LogEntry } from
 export { getBrandColor } from './brandColors';
 export { normalizePromptTemplateFields } from './promptTemplateFields';
 export { fetchAllPaginated } from './supabasePagination';
+export { getEdgeFunctionErrorMessage } from './edgeFunctionErrorMessage';

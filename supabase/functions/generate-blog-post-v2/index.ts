@@ -3,6 +3,8 @@ import { Image } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 import { shouldScrapeForContext } from "../_shared/scrapeGate.ts";
+import { searchWithFirecrawl } from "../_shared/firecrawlSearch.ts";
+import { shouldRequireSourceVerification, buildGuardrailSearchQuery } from "../_shared/eventSourceGuardrail.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -720,6 +722,45 @@ Deno.serve(async (req) => {
     const isEventMode = hasEventSignals || templateIsEvent;
     console.log(`[generate-blog-post-v2] Modo: ${isEventMode ? 'EVENTO' : 'EDITORIAL'} | template="${template.name}" (${template.category}) | hasEventSignals=${hasEventSignals}`);
 
+    // ===== GUARDRAIL: modo evento sem nenhum sinal real por trás =====
+    // Acontece quando o admin escolhe manualmente um template de categoria Eventos/
+    // Festivais (ex.: "Raspagem de Eventos") na aba Gerar e digita só o nome, sem
+    // vincular um evento real do banco. Sem isso, o bloco anti-hedging mais abaixo
+    // força a IA a "confirmar" lineup/local/horário que ela não tem — e ela inventa
+    // (ver R-018 em docs/TESTING.md). Fluxos legítimos (evento real do site via
+    // buildArticlePayload, multi-evento, scan-event-sources) sempre chegam aqui com
+    // hasEventSignals=true e pulam este bloco inteiro.
+    let guardrailSourceUrls: string[] | null = null;
+    if (shouldRequireSourceVerification(isEventMode, hasEventSignals)) {
+      if (!FIRECRAWL_API_KEY) {
+        return jsonError(
+          'Este template de evento não tem dados reais associados (data, local, lineup) e a verificação de fontes (FIRECRAWL_API_KEY) não está configurada — geração bloqueada por segurança.',
+          500
+        );
+      }
+      const guardrailQuery = buildGuardrailSearchQuery(eventName, formFields.eventLocation);
+      console.log(`[generate-blog-post-v2] Modo evento sem sinal real — verificando fonte real para: "${guardrailQuery}"`);
+      let guardrailResults;
+      try {
+        guardrailResults = await searchWithFirecrawl(guardrailQuery, FIRECRAWL_API_KEY, 5, 30000);
+      } catch (searchError) {
+        console.error('[generate-blog-post-v2] Falha na busca de verificação de fonte:', searchError);
+        return jsonError('Não foi possível verificar fontes reais agora (falha na busca). Tente novamente em instantes.', 502);
+      }
+      if (guardrailResults.length === 0) {
+        return jsonError(
+          `Nenhuma fonte real encontrada para "${eventName}". Nenhum artigo foi criado — confirme os dados manualmente ou tente um termo mais específico.`,
+          404
+        );
+      }
+      guardrailSourceUrls = guardrailResults.map((r) => r.url);
+      const guardrailSourcesBlock = guardrailResults
+        .map((r, i) => `### Fonte ${i + 1}: ${r.title} (${r.url})\n${r.content}`)
+        .join('\n\n---\n\n');
+      userPrompt = `\n\n📰 FONTES REAIS ENCONTRADAS (use literalmente pra confirmar lineup/local/horário do evento, NUNCA invente além do que está aqui):\n${guardrailSourcesBlock}\n\n` + userPrompt;
+      console.log(`[generate-blog-post-v2] ${guardrailResults.length} fonte(s) real(is) encontrada(s), prosseguindo.`);
+    }
+
     // ===== BLOCO "DADOS OFICIAIS" — só injetado em MODO EVENTO =====
     if (isEventMode) {
       const officialDataLines: string[] = [];
@@ -1131,12 +1172,12 @@ ${aiContextBlock}${ticketsBlock}`;
         output_tokens: usage.completion_tokens || null,
         total_tokens: usage.total_tokens || null,
         image_tokens: imageTokensUsed > 0 ? imageTokensUsed : null,
-        // scrapedSourceUrls vem do scraping de CONTEXTO/TOM genérico (fontes aleatórias,
-        // sem relação com o tema do artigo) — nunca são citações factuais, então nunca
-        // são gravadas aqui. O modal "Ver fontes e origem" só deve mostrar fontes
-        // genuinamente ligadas ao artigo (origem do Event Watcher, ou busca real por
-        // tema em generate-blog-post-from-topic, que grava esse campo separadamente).
-        source_urls: null,
+        // scrapedContext (tom/estilo genérico) nunca é gravado aqui — não são citações
+        // factuais. guardrailSourceUrls só é não-nulo quando o guardrail acima
+        // (isEventMode && !hasEventSignals) encontrou fonte real de verdade pra esse
+        // evento específico — mesmo padrão do que generate-blog-post-from-topic já
+        // grava pra sugestões ancoradas em busca real.
+        source_urls: guardrailSourceUrls,
       });
 
     if (aiLogError) {
