@@ -18,6 +18,7 @@ import {
   expandGlobalRefs,
   type Block,
   type EventAnnouncementData,
+  type ArticleSummary,
   type GlobalBlock,
 } from "./emailBlocks.ts";
 
@@ -197,4 +198,107 @@ Deno.test("computePreheader: limita em 150 chars", () => {
   const longEvent = { ...mockEvent, eventTitle: "X".repeat(500) };
   const pre = computePreheader(longEvent);
   assertEquals(pre.length <= 150, true);
+});
+
+// ============================================
+// Etapa 3 — proxyForEmail aplicado em todo bloco com imagem (Outlook/.webp)
+// ============================================
+//
+// Bug corrigido: proxyForEmail() (converte .webp → JPG via wsrv.nl porque
+// Outlook não renderiza WebP) só era chamado em 2 dos 8 pontos que montam
+// <img src> no renderBlock — hero_image e image_with_link. Cards de evento
+// (weekend_grid, weekly_hero, dedge_block), posts do blog (blog_posts_list,
+// article_summary) e o logo do header usavam a URL crua, sem proteção. Se
+// fosse .webp (pipeline de otimização do site gera .webp), ficava quebrada/
+// ilegível no Outlook mesmo com o rascunho gerado corretamente. Ver R-021
+// em docs/TESTING.md.
+
+const WEBP_URL = "https://mdaccula.b-cdn.net/events/flyer.webp";
+
+Deno.test("proxyForEmail: weekend_grid (timeline) proxya imagem .webp do evento", () => {
+  const event: EventAnnouncementData = {
+    ...mockEvent,
+    weekendEvents: [{ title: "Evento FDS", dayLabel: "Sexta", venue: "Local", imageUrl: WEBP_URL, eventUrl: "https://x/e" }],
+  };
+  const blocks: Block[] = [{ id: "1", kind: "weekend_grid", layout: "timeline" } as any];
+  const html = renderBlockedTemplate(blocks, event, null, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: weekend_grid (cards) proxya imagem .webp do evento", () => {
+  const event: EventAnnouncementData = {
+    ...mockEvent,
+    weekendEvents: [{ title: "Evento FDS", dayLabel: "Sexta", venue: "Local", imageUrl: WEBP_URL, eventUrl: "https://x/e" }],
+  };
+  const blocks: Block[] = [{ id: "1", kind: "weekend_grid", layout: "cards" } as any];
+  const html = renderBlockedTemplate(blocks, event, null, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: blog_posts_list (cards) proxya imagem .webp do post", () => {
+  const event: EventAnnouncementData = {
+    ...mockEvent,
+    blogPosts: [{ title: "Post", imageUrl: WEBP_URL, url: "https://x/blog/post" }],
+  };
+  const blocks: Block[] = [{ id: "1", kind: "blog_posts_list", layout: "cards" } as any];
+  const html = renderBlockedTemplate(blocks, event, null, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: blog_posts_list (list) proxya imagem .webp do post", () => {
+  const event: EventAnnouncementData = {
+    ...mockEvent,
+    blogPosts: [{ title: "Post", imageUrl: WEBP_URL, url: "https://x/blog/post" }],
+  };
+  const blocks: Block[] = [{ id: "1", kind: "blog_posts_list", layout: "list" } as any];
+  const html = renderBlockedTemplate(blocks, event, null, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: dedge_block proxya imagem .webp", () => {
+  const blocks: Block[] = [
+    { id: "1", kind: "dedge_block", override_content: true, image_url: WEBP_URL } as any,
+  ];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: weekly_hero proxya flyer .webp do evento (sem FDS)", () => {
+  const event: EventAnnouncementData = { ...mockEvent, flyerUrl: WEBP_URL };
+  const blocks: Block[] = [{ id: "1", kind: "weekly_hero" } as any];
+  const html = renderBlockedTemplate(blocks, event, null, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: article_summary proxya imagem .webp da matéria vinculada", () => {
+  const blocks: Block[] = [{ id: "1", kind: "article_summary" } as any];
+  const article: ArticleSummary = { title: "Matéria", excerpt: "Resumo", url: "https://x/materia", image_url: WEBP_URL };
+  const html = renderBlockedTemplate(blocks, mockEvent, null, article);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: header proxya logo .webp das configurações", () => {
+  const blocks: Block[] = [{ id: "1", kind: "header" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, { logo_url: WEBP_URL } as any, null);
+  assertStringIncludes(html, "wsrv.nl");
+  assertEquals(html.includes(`src="${WEBP_URL}"`), false);
+});
+
+Deno.test("proxyForEmail: imagem .jpg passa intacta (sem proxy desnecessário)", () => {
+  const jpgUrl = "https://mdaccula.b-cdn.net/events/flyer.jpg";
+  const event: EventAnnouncementData = {
+    ...mockEvent,
+    weekendEvents: [{ title: "Evento", dayLabel: "Sexta", venue: "Local", imageUrl: jpgUrl, eventUrl: "https://x/e" }],
+  };
+  const blocks: Block[] = [{ id: "1", kind: "weekend_grid", layout: "cards" } as any];
+  const html = renderBlockedTemplate(blocks, event, null, null);
+  assertStringIncludes(html, `src="${jpgUrl}"`);
+  assertEquals(html.includes("wsrv.nl"), false);
 });

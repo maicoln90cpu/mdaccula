@@ -12,6 +12,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplateText,
   expandGlobalRefs,
+  proxyForEmail,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
@@ -99,7 +100,7 @@ function renderFallbackHtml(
   const footer = settings.footer_text ||
     'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de São Paulo-SP.';
   const logo = settings.logo_url
-    ? `<img src="${escapeHtml(settings.logo_url)}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
+    ? `<img src="${escapeHtml(proxyForEmail(settings.logo_url))}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
     : `<div style="font-family:Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;">${escapeHtml(brand)}</div>`;
 
   const eventCards = events.length === 0
@@ -107,7 +108,7 @@ function renderFallbackHtml(
     : events.map((e) => {
         const url = `${SITE_URL}/eventos/${escapeHtml(e.slug)}`;
         const ticket = e.ticket_link || url;
-        const img = e.image_url || `${SITE_URL}/placeholder.svg`;
+        const img = proxyForEmail(e.image_url || `${SITE_URL}/placeholder.svg`);
         return `
         <tr><td style="padding:14px 20px 6px 20px;">
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:10px;overflow:hidden;">

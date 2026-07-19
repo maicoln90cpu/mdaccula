@@ -18,6 +18,28 @@
 
 ## Entradas Detalhadas
 
+### Imagens de evento/post .webp não apareciam no Outlook nos e-mails de digest (R-021)
+**Descrição:** Usuário testou "Enviar teste agora" do e-mail Blog News e reportou que fotos de eventos não apareciam no Outlook, enquanto fotos de artigo gerado por IA apareciam normalmente. Investigação encontrou que a correção pra esse exato problema já existia (`proxyForEmail()`, converte `.webp` → JPG via wsrv.nl porque o Outlook não renderiza WebP), mas só estava conectada em 2 dos 8 pontos que montam `<img>` no template de e-mail (`hero_image` e `image_with_link`). Cards de evento, posts do blog e o logo do cabeçalho usavam a URL crua — o motivo de artigos de IA "parecerem funcionar" era só que eles normalmente não são `.webp`, não porque tivessem proteção de verdade.
+**Correção:** `proxyForEmail()` aplicada nos 7 pontos que faltavam em `supabase/functions/_shared/emailBlocks.ts` (`weekend_grid` × 2 layouts, `dedge_block`, `weekly_hero`, `blog_posts_list` × 2 layouts, `article_summary`, logo do `header`), e também nos 3 renderizadores de fallback legado (um em cada function de digest) que nunca tiveram essa proteção. Confirmado que "Gerar rascunho" e "Enviar teste" passam pela mesma função de render — a correção cobre os dois automaticamente. Não existe um terceiro caminho de "enviar pra todos" no código: o envio final é sempre manual, dentro do painel da E-goi, usando o HTML do rascunho já corrigido.
+**Data:** 19/07/2026
+**Responsável:** IA
+**Impacto:** médio-alto (imagens de evento — o conteúdo principal dos e-mails de agenda — ficavam quebradas pra usuários de Outlook, um cliente de e-mail comum)
+
+**Arquivos alterados:** `supabase/functions/_shared/emailBlocks.ts`, `supabase/functions/_shared/emailBlocks_test.ts` (9 testes novos — verificado red/green), `supabase/functions/weekly-digest-draft/index.ts`, `supabase/functions/blog-digest-draft/index.ts`, `supabase/functions/weekend-agenda-draft/index.ts`, `docs/TESTING.md` (R-021).
+
+---
+
+### E-mail diário de métricas: mais espaçamento e títulos maiores
+**Descrição:** Ajuste de layout pedido pelo usuário depois de aprovar o conteúdo do e-mail diário de métricas (fix de R-020 + destaques + cards de período) — os cards ficavam com só 4px de espaço entre eles, muito apertado.
+**Correção:** só CSS inline em `buildEmailHtml`/`buildPeriodCardHtml`/`buildHighlightsSection` (`supabase/functions/daily-metrics-email/metrics.ts`) — gap entre cards 4px→20px, padding interno maior, título principal 20px→26px, títulos de card 12px→14px. Nenhuma mudança de lógica ou dado.
+**Data:** 19/07/2026
+**Responsável:** IA
+**Impacto:** baixo (só estética)
+
+**Arquivos alterados:** `supabase/functions/daily-metrics-email/metrics.ts`.
+
+---
+
 ### E-mail diário de métricas: fundo branco/fonte branca (ilegível), destaques de ontem, cards de 7 dias/mês atual e logo
 **Descrição:** No primeiro e-mail real recebido (um dia após o rollout do e-mail diário de métricas), o usuário reportou layout quebrado — fundo branco em partes do corpo com texto na cor clara pensada pro fundo escuro, tornando várias partes ilegíveis. Causa raiz: `buildEmailHtml` (`supabase/functions/daily-metrics-email/metrics.ts`) devolvia um `<div>` solto com `background` só via CSS inline, sem nenhum wrapper `<!doctype html><html><head><body>` — Outlook desktop ignora `background` em `<div>`, e clientes com auto-dark-mode (Apple Mail/Gmail) podem inverter cores parcialmente sem um `<meta name="color-scheme">` declarado. As outras funções de e-mail do projeto já seguiam o padrão correto (HTML completo + tabelas com `bgcolor`); só essa function (nova nesta mesma sessão) tinha o gap. Junto com o fix, o usuário pediu 4 melhorias: seção com o artigo/link/evento mais acessado de ontem, um card com o total dos últimos 7 dias, um card com o total do mês atual (ambos comparando com o mesmo período anterior), e o logo da MDAccula no topo.
 **Correção:** `buildEmailHtml` reescrito com estrutura table-based completa (`<html><head>` com `color-scheme`/`supported-color-schemes` dark, `<body>`/`<table>` com `bgcolor` e `background-color` redundantes) — mesmo padrão já usado em `weekly-digest-draft/index.ts`. Novo `findMostFrequent` (`metrics.ts`) + `getTopEntity` (`index.ts`) calculam artigo/link/evento mais acessado de ontem contando ocorrências em memória (volume diário baixo, sem precisar de `GROUP BY` no banco). Novo `getBRTMonthToDateWindows` calcula a janela do mês atual (dia 1 até ontem) e a janela equivalente do mês anterior (mesmo número de dias, truncando quando o mês anterior é mais curto, ex.: 31/03 vs. até 28/02, e cruzando o ano corretamente). Novo `formatBRTDateRange` formata os rótulos "dd/mm – dd/mm" dos cards. Logo (`https://mdaccula.com/logo-mdaccula.jpeg`, mesmo asset já usado como `og:image`) adicionado no topo. Todo texto vindo de dados (rótulos, nomes de destaques) agora passa por `escapeHtml`.

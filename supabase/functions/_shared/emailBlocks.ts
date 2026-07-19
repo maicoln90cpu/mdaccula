@@ -273,7 +273,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const align = block.align ?? "center";
       const pad = Math.max(0, Math.min(80, block.padding_y ?? 32));
       const inner = settings.logo_url
-        ? `<img src="${escape(settings.logo_url)}" alt="${brand}" height="${height}" border="0" style="display:inline-block;height:${height}px;max-height:${height}px;width:auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
+        ? `<img src="${escape(proxyForEmail(settings.logo_url))}" alt="${brand}" height="${height}" border="0" style="display:inline-block;height:${height}px;max-height:${height}px;width:auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
       return `<tr><td align="${align}" style="padding:${pad}px 24px ${Math.max(8, pad - 8)}px 24px;text-align:${align};">${inner}</td></tr>`;
     }
@@ -366,7 +366,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       if (!article) return "";
       const showImage = block.show_image !== false;
       const imgHtml = showImage && article.image_url
-        ? `<img src="${escape(article.image_url)}" alt="" width="120" height="80" border="0" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
+        ? `<img src="${escape(proxyForEmail(article.image_url))}" alt="" width="120" height="80" border="0" style="display:block;width:120px;height:80px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : "";
       return `<tr><td style="padding:8px 32px 24px 32px;">
         <a href="${escape(article.url)}" style="text-decoration:none;display:block;">
@@ -689,7 +689,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
               <tr>
                 <td width="6" style="background:${barColor};"></td>
                 <td width="96" style="padding:0;">
-                  <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(ev.imageUrl)}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
+                  <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
                 </td>
                 <td style="padding:12px 14px;vertical-align:top;">
                   <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
@@ -721,7 +721,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
             <tr><td style="padding:0;position:relative;">
               <a href="${url}" style="text-decoration:none;display:block;">
-                <img src="${escape(ev.imageUrl)}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+                <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
               </a>
             </td></tr>
             <tr><td style="padding:16px 18px 18px 18px;">
@@ -765,7 +765,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
 
       return `<tr><td style="padding:20px 32px 8px 32px;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000000;border:1px solid rgba(255,255,255,0.12);border-radius:16px;overflow:hidden;">
-          ${imageUrl ? `<tr><td style="padding:0;"><img src="${escape(imageUrl)}" alt="Dedge" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></td></tr>` : ""}
+          ${imageUrl ? `<tr><td style="padding:0;"><img src="${escape(proxyForEmail(imageUrl))}" alt="Dedge" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></td></tr>` : ""}
           <tr><td style="padding:22px 22px 8px 22px;text-align:center;">
             <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:6px;">${eyebrow}</div>
             <h2 style="margin:0 0 8px 0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:900;letter-spacing:-0.01em;">${title}</h2>
@@ -815,7 +815,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000;border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;">
           <tr><td style="padding:0;position:relative;background:#000;">
             <a href="${escape(url)}" style="text-decoration:none;display:block;">
-              <img src="${escape(imageUrl)}" alt="${escape(title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+              <img src="${escape(proxyForEmail(imageUrl))}" alt="${escape(title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
             </a>
           </td></tr>
           <tr><td style="padding:20px 22px 22px 22px;text-align:${align};background-image:${overlayBg};">
@@ -861,7 +861,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
           const url = escape(p.url || "#");
           return `<tr><td style="padding:8px 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-              ${p.imageUrl ? `<tr><td style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(p.imageUrl)}" alt="${escape(p.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></a></td></tr>` : ""}
+              ${p.imageUrl ? `<tr><td style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(p.imageUrl))}" alt="${escape(p.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></a></td></tr>` : ""}
               <tr><td style="padding:14px 16px 16px 16px;">
                 ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : "")}
                 <div style="color:#ffffff;font-size:16px;font-weight:800;line-height:1.25;margin-bottom:4px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
@@ -879,7 +879,7 @@ function renderBlock(block: Block, ctx: RenderContext): string {
         return `<tr><td style="padding:8px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
             <tr>
-              ${p.imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(p.imageUrl)}" alt="${escape(p.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
+              ${p.imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(p.imageUrl))}" alt="${escape(p.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
               <td style="padding:12px 14px;vertical-align:top;">
                 ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : "")}
                 <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>

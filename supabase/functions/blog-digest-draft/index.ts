@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import {
   renderBlockedTemplateText,
   expandGlobalRefs,
+  proxyForEmail,
   type Block,
   type EventAnnouncementData,
   type EmailTemplateSettings,
@@ -73,13 +74,13 @@ function renderLegacyBlogHtml(posts: PostRow[], settings: BrandSettings, rangeLa
   const footer = settings.footer_text ||
     'Você recebeu este e-mail porque assinou a lista MDAccula.';
   const logo = settings.logo_url
-    ? `<img src="${escapeHtml(settings.logo_url)}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
+    ? `<img src="${escapeHtml(proxyForEmail(settings.logo_url))}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
     : `<div style="font-family:Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;">${escapeHtml(brand)}</div>`;
   const cards = posts.length === 0
     ? `<tr><td style="padding:12px 20px;color:#bbb;font-family:Arial,sans-serif;font-size:14px;">Nenhuma matéria nova no período.</td></tr>`
     : posts.map((p) => {
         const url = `${SITE_URL}/blog/${escapeHtml(p.slug)}`;
-        const img = p.image_url || `${SITE_URL}/placeholder.svg`;
+        const img = proxyForEmail(p.image_url || `${SITE_URL}/placeholder.svg`);
         return `
         <tr><td style="padding:8px 20px;">
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:10px;overflow:hidden;">
