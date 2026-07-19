@@ -2,10 +2,12 @@ import { test, expect } from '@playwright/test';
 import { loginAsAdmin, skipIfNoAdminCreds } from '../helpers/adminAuth';
 import { ALL_ROUTES } from './registries/routes';
 import { assertNoHorizontalOverflow } from './helpers/overflow';
+import { watchPageHealth } from '../helpers/pageHealth';
 
 /**
  * Crawls every registered route (public + admin) at the current project's viewport
- * and asserts it renders without horizontal overflow or an ErrorBoundary fallback.
+ * and asserts it renders without horizontal overflow, an ErrorBoundary fallback,
+ * an uncaught JS error, a console.error, or a failed same-origin request.
  *
  * Registry-driven: add a new page? Add one line to registries/routes.ts.
  * This is NOT an exhaustive guarantee — only routes listed there are covered.
@@ -18,6 +20,7 @@ test.describe('Full-site route crawl', () => {
         await loginAsAdmin(page);
       }
 
+      const health = watchPageHealth(page);
       const target = route.discover ? await route.discover(page) : route.path!;
       const response = await page.goto(target, { waitUntil: 'domcontentloaded' });
       expect(response?.status() ?? 0).toBeLessThan(400);
@@ -25,6 +28,11 @@ test.describe('Full-site route crawl', () => {
       await expect(page.locator('body')).not.toBeEmpty();
       await expect(page.getByText('Algo deu errado')).toHaveCount(0);
       await assertNoHorizontalOverflow(page);
+
+      // NotFound.tsx intentionally console.error's on every unmatched route (for
+      // observability) — that's the one route where a console.error is correct
+      // behavior, not a regression to catch.
+      if (route.id !== 'not-found') health.assertNoErrors();
     });
   }
 });

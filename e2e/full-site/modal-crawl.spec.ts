@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { loginAsAdmin, skipIfNoAdminCreds } from '../helpers/adminAuth';
 import { MODALS, SKIPPED_MODALS } from './registries/modals';
-import { assertNoHorizontalOverflow, elementFitsViewport } from './helpers/overflow';
+import { assertNoHorizontalOverflow, elementFitsViewport, waitForStableBoundingBox } from './helpers/overflow';
 
 /**
  * Bounds a registry entry's open() call to a fixed deadline. Without this, a locator
@@ -59,13 +59,23 @@ test.describe('Full-site modal crawl', () => {
 
       if (modal.settleMs) {
         // Radix Sheet/Dialog entrance transitions animate position/transform; measuring
-        // the bounding box mid-animation gives a false "off-screen" reading. Wait for
-        // the known transition duration to settle before asserting geometry.
-        await page.waitForTimeout(modal.settleMs);
+        // the bounding box mid-animation gives a false "off-screen" reading. Poll until
+        // geometry stops moving instead of always sleeping the full worst-case duration —
+        // settleMs is now just the upper bound, not a fixed wait.
+        await waitForStableBoundingBox(page, surface, { maxWaitMs: modal.settleMs });
       }
 
       await elementFitsViewport(page, surface);
       await assertNoHorizontalOverflow(page);
+
+      // Radix Dialog/Sheet/Popover trap focus inside the surface when it opens — if
+      // focus is left on the trigger button (or body), keyboard/screen-reader users
+      // lose context. Cheap accessibility regression net riding the same crawl.
+      const focusIsInsideModal = await surface.evaluate((el) => el.contains(document.activeElement));
+      expect(
+        focusIsInsideModal,
+        `Foco nao entrou no modal "${modal.id}" ao abrir (regressao de acessibilidade)`
+      ).toBe(true);
 
       if (modal.close.kind === 'escape') {
         await page.keyboard.press('Escape');

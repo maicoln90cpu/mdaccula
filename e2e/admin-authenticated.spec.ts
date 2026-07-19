@@ -16,5 +16,12 @@ test.describe('Authenticated /admin', () => {
   test('admin user reaches the admin panel', async ({ page }) => {
     await loginAsAdmin(page);
     expect(page.url()).toMatch(/\/admin\b/);
+
+    // A URL/título corretos não garantem que o layout carregou — o menu lateral
+    // (AdminSidebar) é o que de fato conecta o admin às outras telas. Se ele vier
+    // vazio, a navegação real está quebrada mesmo com a rota "certa" na tela.
+    const menuLinks = page.locator('[data-sidebar="menu-button"]');
+    await expect(menuLinks.first()).toBeVisible({ timeout: 10_000 });
+    expect(await menuLinks.count()).toBeGreaterThan(5);
   });
 });
