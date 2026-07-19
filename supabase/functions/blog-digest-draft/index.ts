@@ -18,6 +18,7 @@ import {
 } from '../_shared/emailBlocks.ts';
 import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
+import { filterOutPastEventPosts, type EventDateLink } from './pastEventFilter.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -235,9 +236,24 @@ Deno.serve(async (req) => {
       (admin.from as any)('email_global_blocks').select('id, name, description, category, block'),
     ]);
 
-    const pts = (posts ?? []) as PostRow[];
-    if (pts.length === 0) {
+    const rawPosts = (posts ?? []) as PostRow[];
+    if (rawPosts.length === 0) {
       return json({ skipped: true, reason: 'no_posts_in_range', range: rangeLabel });
+    }
+
+    // Não faz sentido divulgar um artigo cujo evento vinculado já aconteceu
+    // (ex.: artigo de um evento de sexta mandado no e-mail de domingo) — esse
+    // evento já está desativado no site. `events.blog_post_id` é a única
+    // forma de saber se um post está atrelado a um evento (blog_posts não
+    // guarda essa referência). Posts sem evento vinculado nunca são afetados.
+    const { data: eventLinksRaw } = await admin
+      .from('events')
+      .select('blog_post_id,date,end_date')
+      .in('blog_post_id', rawPosts.map((p) => p.id));
+    const todayBRT = new Date(now.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const pts = filterOutPastEventPosts(rawPosts, (eventLinksRaw ?? []) as EventDateLink[], todayBRT);
+    if (pts.length === 0) {
+      return json({ skipped: true, reason: 'all_posts_linked_to_past_events', range: rangeLabel });
     }
     const settings = (tplSettings ?? {}) as BrandSettings;
     const globalsMap = new Map<string, any>();

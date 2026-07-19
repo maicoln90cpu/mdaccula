@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### "Blog news" enviava artigos de eventos já encerrados (R-022)
+**Descrição:** Usuário notou no e-mail Blog News de domingo (19/07) um artigo sobre o evento Krush, que era dia 17/07 — já passado e já desativado no site. A query que monta o Blog News só olhava se o post estava publicado dentro dos últimos N dias, sem nenhuma verificação sobre eventos vinculados a esses posts.
+**Correção:** nova função pura `filterOutPastEventPosts` (`supabase/functions/blog-digest-draft/pastEventFilter.ts`) remove da lista qualquer post cujo(s) evento(s) vinculado(s) (via `events.blog_post_id`) já tenham passado — comparando a data (ou data final, em eventos de vários dias) contra hoje em BRT. Posts sem evento vinculado (a maioria) continuam normais. Escopo restrito ao Blog News, por decisão do usuário (não aplicado ao digest semanal, que também lista posts recentes mas de forma menos direta).
+**Data:** 19/07/2026
+**Responsável:** IA
+**Impacto:** médio (conteúdo desatualizado/sem sentido chegando na newsletter)
+
+**Arquivos alterados:** `supabase/functions/blog-digest-draft/pastEventFilter.ts` (novo), `supabase/functions/blog-digest-draft/pastEventFilter_test.ts` (novo, 10 testes), `supabase/functions/blog-digest-draft/index.ts`, `docs/TESTING.md` (R-022).
+
+---
+
 ### Imagens de evento/post .webp não apareciam no Outlook nos e-mails de digest (R-021)
 **Descrição:** Usuário testou "Enviar teste agora" do e-mail Blog News e reportou que fotos de eventos não apareciam no Outlook, enquanto fotos de artigo gerado por IA apareciam normalmente. Investigação encontrou que a correção pra esse exato problema já existia (`proxyForEmail()`, converte `.webp` → JPG via wsrv.nl porque o Outlook não renderiza WebP), mas só estava conectada em 2 dos 8 pontos que montam `<img>` no template de e-mail (`hero_image` e `image_with_link`). Cards de evento, posts do blog e o logo do cabeçalho usavam a URL crua — o motivo de artigos de IA "parecerem funcionar" era só que eles normalmente não são `.webp`, não porque tivessem proteção de verdade.
 **Correção:** `proxyForEmail()` aplicada nos 7 pontos que faltavam em `supabase/functions/_shared/emailBlocks.ts` (`weekend_grid` × 2 layouts, `dedge_block`, `weekly_hero`, `blog_posts_list` × 2 layouts, `article_summary`, logo do `header`), e também nos 3 renderizadores de fallback legado (um em cada function de digest) que nunca tiveram essa proteção. Confirmado que "Gerar rascunho" e "Enviar teste" passam pela mesma função de render — a correção cobre os dois automaticamente. Não existe um terceiro caminho de "enviar pra todos" no código: o envio final é sempre manual, dentro do painel da E-goi, usando o HTML do rascunho já corrigido.
