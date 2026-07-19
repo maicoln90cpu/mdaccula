@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### SEO: og:title/og:description/twitter:*/meta description/canonical nunca mudavam por rota
+**Descrição:** Achado durante o teste manual do prerender (rodada anterior): `document.title` mudava corretamente por rota, mas `og:title`/`og:description`/`twitter:title`/`twitter:description`/`meta name="description"`/`link rel="canonical"` ficavam sempre com o texto genérico do site inteiro — compartilhar um link de evento no WhatsApp/Facebook/Instagram mostrava o preview genérico, não o do evento; o Google também via a `meta description` errada em qualquer rota. Causa raiz confirmada com teste real contra o site publicado: existiam **duas** tags `og:title` no DOM final — a genérica de `index.html` (sem `data-rh`) e a correta da rota (com `data-rh="true"`, gerada por `SEOHead.tsx`/react-helmet-async). O Helmet só reconhece e substitui `<meta>`/`<link>` que já tenham esse atributo (confirmado lendo o código-fonte da lib) — sem ele nas tags estáticas, o Helmet nunca as via e só empilhava a versão real ao lado da genérica, nunca removendo a antiga.
+**Correção:** `index.html` ganhou `data-rh="true"` em todas as tags que `SEOHead.tsx` também gerencia — agora o Helmet as reconhece como próprias e as substitui de verdade no primeiro render.
+**Data:** 19/07/2026
+**Responsável:** IA
+**Impacto:** alto (afeta todo compartilhamento social e o snippet do Google em qualquer página do site, não só as cobertas pelo prerender)
+
+**Arquivos alterados:** `index.html`, `src/__tests__/regression/seohead-static-tag-duplication.test.tsx` (novo — verificado red/green que o teste falha sem o `data-rh`, provando que pega a regressão de verdade).
+
+---
+
 ### Guardrail de raspagem sem fonte real, marca automática em imagens e prerender SEO (Fase 4)
 **Descrição:** Continuação direta da rodada anterior — ao testar a correção de roteamento de sugestões (R-017), o usuário gerou manualmente dois artigos de evento ("A Liga", "Solomun") pela aba **Gerar** com o template "Raspagem de Eventos" e ambos saíram com conteúdo totalmente inventado, publicados até serem despublicados durante a investigação (ver R-018 em `docs/TESTING.md`). Três frentes:
 1. **Guardrail de conteúdo (R-018):** `generate-blog-post-v2` agora exige uma busca real via Firecrawl antes de gerar um artigo de evento sem dado real por trás (`isEventMode && !hasEventSignals`) — sem fonte encontrada, nenhum artigo é criado. `searchWithFirecrawl` foi extraída pra `supabase/functions/_shared/firecrawlSearch.ts` (compartilhada com `generate-blog-post-from-topic`). Também corrigido um gap relacionado: o frontend nunca lia a mensagem de erro real de uma Edge Function (`FunctionsHttpError.context`) — `getEdgeFunctionErrorMessage` (`src/lib/`) corrige isso em todos os handlers de geração de `AIContent2.tsx`.

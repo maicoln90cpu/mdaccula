@@ -56,11 +56,7 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🔧 Bugs Conhecidos
 
-### SEO: og:title/og:description não mudam por rota (ficam sempre o genérico do site)
-**Contexto:** Encontrado em 19/07/2026 durante o teste manual do prerender — `document.title` é corretamente atualizado por `SEOHead.tsx`/react-helmet-async em cada rota (ex.: evento mostra "🎩 Helvétia Open Bar | MDAccula"), mas as tags `og:title`/`og:description`/`twitter:title`/`twitter:description` continuam com o texto genérico do site ("MDAccula - A maior agência de música eletrônica de São Paulo...") mesmo em páginas de evento/post específicas. Compartilhar um link de evento no WhatsApp/Instagram/Facebook hoje mostra o preview genérico do site, não o do evento.
-**Impacto:** médio (mais visível agora que o prerender entrega HTML real pra crawlers — antes disso as redes sociais só viam o shell genérico de qualquer forma, então o sintoma não mudava nada; agora que o HTML é específico por rota, esse gap fica mais evidente)
-**Ação sugerida:** investigar `SEOHead.tsx` — provavelmente falta atualizar as props `og:title`/`og:description`/`twitter:*` junto com o `<title>` quando a rota muda.
-**Desde:** 19/07/2026
+*(Nenhum no momento)*
 
 ---
 

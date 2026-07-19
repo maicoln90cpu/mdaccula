@@ -27,22 +27,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     
-    <meta name="description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica.">
-    <meta name="keywords" content="música eletrônica, techno, house, são paulo, eventos, festas, dj, mdaccula">
+    <!--
+      data-rh="true" nas tags abaixo que o SEOHead.tsx também gerencia — sem isso,
+      react-helmet-async nunca as substitui (ele só troca <meta>/<link> que já tenham
+      esse atributo, ver node_modules/react-helmet-async updateTags()), então a versão
+      genérica daqui fica presa no DOM pra sempre, duplicada ao lado da versão real da
+      rota. Efeito prático: og:title/description, twitter:*, meta description e o
+      canonical nunca refletiam a página específica pra ninguém que executa JS (usuário
+      real, Googlebot, o prerender) — só valores fixos da home. Ver PENDENCIAS.MD/
+      CHANGELOG.md (bug "og:title não muda por rota").
+    -->
+    <meta name="description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica." data-rh="true">
+    <meta name="keywords" content="música eletrônica, techno, house, são paulo, eventos, festas, dj, mdaccula" data-rh="true">
     <meta name="author" content="MDAccula" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="MDAccula" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="canonical" href="https://mdaccula.com" />
+    <meta property="og:type" content="website" data-rh="true" />
+    <meta property="og:site_name" content="MDAccula" data-rh="true" />
+    <meta name="twitter:card" content="summary_large_image" data-rh="true" />
+    <link rel="canonical" href="https://mdaccula.com" data-rh="true" />
     <title>MDAccula - Música Eletrônica em São Paulo</title>
 
-  
-  <meta property="og:image" content="https://mdaccula.com/logo-mdaccula.jpeg">
-  <meta name="twitter:image" content="https://mdaccula.com/logo-mdaccula.jpeg">
-  <meta property="og:title" content="MDAccula - Música Eletrônica em São Paulo">
-  <meta name="twitter:title" content="MDAccula - Música Eletrônica em São Paulo">
-  <meta property="og:description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica.">
-  <meta name="twitter:description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica.">
+
+  <meta property="og:image" content="https://mdaccula.com/logo-mdaccula.jpeg" data-rh="true">
+  <meta name="twitter:image" content="https://mdaccula.com/logo-mdaccula.jpeg" data-rh="true">
+  <meta property="og:title" content="MDAccula - Música Eletrônica em São Paulo" data-rh="true">
+  <meta name="twitter:title" content="MDAccula - Música Eletrônica em São Paulo" data-rh="true">
+  <meta property="og:description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica." data-rh="true">
+  <meta name="twitter:description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica." data-rh="true">
 </head>
 
   <body>
