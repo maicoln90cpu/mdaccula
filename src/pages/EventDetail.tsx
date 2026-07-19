@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { TicketDayPickerModal } from '@/components/events/TicketDayPickerModal';
 import { EventCountdown } from '@/components/events/EventCountdown';
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { addHours } from 'date-fns';
+import { cn } from '@/lib';
 import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from '@/lib/dateUtils';
 import { parseSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
@@ -39,6 +40,45 @@ import {
 } from '@/lib/imageUtils';
 import { StructuredData } from '@/components/StructuredData';
 import { EventLocationMap } from '@/components/events/EventLocationMap';
+
+// CTA principal de compra — reaproveitado no card mobile, card desktop e na barra fixa mobile.
+const TICKET_CTA_CLASSES =
+  'w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift animate-ticket-scale-pulse';
+
+function TicketCtaButton({
+  useDayPicker,
+  ticketLink,
+  ticketButtonText,
+  onOpenDayPicker,
+  className,
+}: {
+  useDayPicker: boolean;
+  ticketLink: string;
+  ticketButtonText: string;
+  onOpenDayPicker: () => void;
+  className?: string;
+}) {
+  if (useDayPicker) {
+    return (
+      <Button
+        className={cn(TICKET_CTA_CLASSES, className)}
+        size="lg"
+        onClick={onOpenDayPicker}
+      >
+        <ExternalLink className="w-4 h-4 mr-2" />
+        {ticketButtonText}
+      </Button>
+    );
+  }
+  return (
+    <Button asChild className={cn(TICKET_CTA_CLASSES, className)} size="lg">
+      <a href={safeExternalUrl(ticketLink)} target="_blank" rel="noopener noreferrer">
+        <ExternalLink className="w-4 h-4 mr-2" />
+        {ticketButtonText}
+      </a>
+    </Button>
+  );
+}
 
 interface Event {
   id: string;
@@ -84,6 +124,11 @@ const EventDetail = () => {
   const navigate = useNavigate();
   const [dayPickerOpen, setDayPickerOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
+
+  // Barra de CTA fixa (mobile): aparece quando o botão principal do card
+  // inline sai da viewport, pra manter a compra sempre a um toque de distância.
+  const primaryCtaRef = useRef<HTMLDivElement>(null);
+  const [primaryCtaVisible, setPrimaryCtaVisible] = useState(true);
 
   // Main event query (com fallback para slug antigo via event_slug_redirects)
   const {
@@ -140,6 +185,17 @@ const EventDetail = () => {
       navigate(`/eventos/${event.slug}`, { replace: true });
     }
   }, [event, slug, navigate]);
+
+  useEffect(() => {
+    const node = primaryCtaRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setPrimaryCtaVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [event?.id]);
 
   // Related blog post query
   const { data: relatedPost } = useQuery({
@@ -283,7 +339,7 @@ const EventDetail = () => {
         }}
       />
 
-      <div className="relative min-h-screen bg-background">
+      <div className="relative z-0 min-h-screen bg-background">
         <SoundWaveBackground />
         <Navigation />
 
@@ -394,32 +450,16 @@ const EventDetail = () => {
                       <CardTitle>{ticketCardTitle}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {event.ticket_link &&
-                        (useDayPicker ? (
-                          <Button
-                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
-                            size="lg"
-                            onClick={() => setDayPickerOpen(true)}
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            {ticketButtonText}
-                          </Button>
-                        ) : (
-                          <Button
-                            asChild
-                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
-                            size="lg"
-                          >
-                            <a
-                              href={safeExternalUrl(event.ticket_link)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              {ticketButtonText}
-                            </a>
-                          </Button>
-                        ))}
+                      {event.ticket_link && (
+                        <div ref={primaryCtaRef}>
+                          <TicketCtaButton
+                            useDayPicker={useDayPicker}
+                            ticketLink={event.ticket_link}
+                            ticketButtonText={ticketButtonText}
+                            onOpenDayPicker={() => setDayPickerOpen(true)}
+                          />
+                        </div>
+                      )}
                       {pixWhatsAppLink && (
                         <Button
                           asChild
@@ -676,32 +716,14 @@ const EventDetail = () => {
                       <CardTitle>{ticketCardTitle}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {event.ticket_link &&
-                        (useDayPicker ? (
-                          <Button
-                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
-                            size="lg"
-                            onClick={() => setDayPickerOpen(true)}
-                          >
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            {ticketButtonText}
-                          </Button>
-                        ) : (
-                          <Button
-                            asChild
-                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
-                            size="lg"
-                          >
-                            <a
-                              href={safeExternalUrl(event.ticket_link)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              {ticketButtonText}
-                            </a>
-                          </Button>
-                        ))}
+                      {event.ticket_link && (
+                        <TicketCtaButton
+                          useDayPicker={useDayPicker}
+                          ticketLink={event.ticket_link}
+                          ticketButtonText={ticketButtonText}
+                          onOpenDayPicker={() => setDayPickerOpen(true)}
+                        />
+                      )}
                       {pixWhatsAppLink && (
                         <Button
                           asChild
@@ -800,10 +822,30 @@ const EventDetail = () => {
                 )}
               </div>
             </div>
+            {/* Reserva espaço pra barra fixa mobile não cobrir o último conteúdo */}
+            {event.ticket_link && <div className="h-20 lg:hidden" aria-hidden="true" />}
           </div>
         </main>
 
         <Footer />
+
+        {/* Barra de CTA fixa (mobile): reforça a compra enquanto o usuário rola a página */}
+        {event.ticket_link && (
+          <div
+            className={cn(
+              'lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur transition-transform duration-300',
+              primaryCtaVisible ? 'translate-y-full' : 'translate-y-0'
+            )}
+            style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
+          >
+            <TicketCtaButton
+              useDayPicker={useDayPicker}
+              ticketLink={event.ticket_link}
+              ticketButtonText={ticketButtonText}
+              onOpenDayPicker={() => setDayPickerOpen(true)}
+            />
+          </div>
+        )}
       </div>
 
       {useDayPicker && (

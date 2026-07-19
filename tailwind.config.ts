@@ -163,10 +163,10 @@ export default {
         },
         "ticket-glow-pulse": {
           "0%, 100%": {
-            boxShadow: "0 0 16px hsl(var(--primary) / 0.4)",
+            boxShadow: "0 0 20px hsl(var(--primary) / 0.5)",
           },
           "50%": {
-            boxShadow: "0 0 32px hsl(var(--primary) / 0.7), 0 0 20px hsl(var(--accent) / 0.4)",
+            boxShadow: "0 0 45px hsl(var(--primary) / 0.85), 0 0 30px hsl(var(--accent) / 0.6)",
           },
         },
         "ticket-glow-shift": {
@@ -175,6 +175,14 @@ export default {
           },
           "100%": {
             backgroundPosition: "200% 50%",
+          },
+        },
+        "ticket-scale-pulse": {
+          "0%, 100%": {
+            transform: "scale(1)",
+          },
+          "50%": {
+            transform: "scale(1.03)",
           },
         },
         "featured-glow-pulse": {
@@ -204,9 +212,11 @@ export default {
         "slide-in-up": "slide-in-up 0.5s ease-out",
         "ticket-glow-pulse": "ticket-glow-pulse 2.5s ease-in-out infinite",
         "ticket-glow-shift": "ticket-glow-shift 6s linear infinite",
+        "ticket-scale-pulse": "ticket-scale-pulse 2.8s ease-in-out infinite",
         "featured-glow-pulse": "featured-glow-pulse 2.5s ease-in-out infinite",
         "wave-drift": "wave-drift 18s linear infinite",
         "wave-drift-slow": "wave-drift 28s linear infinite reverse",
+        "wave-drift-fast": "wave-drift 12s linear infinite",
       },
       screens: {
         'xs': '375px',
