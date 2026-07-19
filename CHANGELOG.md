@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### E-mail diário de métricas: fundo branco/fonte branca (ilegível) + destaques de ontem
+**Descrição:** No primeiro e-mail real recebido (um dia após o rollout do e-mail diário de métricas), o usuário reportou layout quebrado — fundo branco em partes do corpo com texto na cor clara pensada pro fundo escuro, tornando várias partes ilegíveis. Causa raiz: `buildEmailHtml` (`supabase/functions/daily-metrics-email/metrics.ts`) devolvia um `<div>` solto com `background` só via CSS inline, sem nenhum wrapper `<!doctype html><html><head><body>` — Outlook desktop ignora `background` em `<div>`, e clientes com auto-dark-mode (Apple Mail/Gmail) podem inverter cores parcialmente sem um `<meta name="color-scheme">` declarado. As outras funções de e-mail do projeto já seguiam o padrão correto (HTML completo + tabelas com `bgcolor`); só essa function (nova nesta mesma sessão) tinha o gap. Aproveitado o pedido do usuário pra também adicionar uma seção "🏆 Destaques de ontem" com o artigo mais acessado, o link do linktree mais clicado e o evento mais visto do dia anterior.
+**Correção:** `buildEmailHtml` reescrito com estrutura table-based completa (`<html><head>` com `color-scheme`/`supported-color-schemes` dark, `<body>`/`<table>` com `bgcolor` e `background-color` redundantes) — mesmo padrão já usado em `weekly-digest-draft/index.ts`. Novo `findMostFrequent` (`metrics.ts`) + `getTopEntity` (`index.ts`) calculam artigo/link/evento mais acessado de ontem contando ocorrências em memória (volume diário baixo, sem precisar de `GROUP BY` no banco). Todo texto vindo de dados (nomes de destaques) agora passa por `escapeHtml`.
+**Data:** 19/07/2026
+**Responsável:** IA
+**Impacto:** alto (e-mail diário fica ilegível pro destinatário até esta correção)
+
+**Arquivos alterados:** `supabase/functions/daily-metrics-email/metrics.ts`, `supabase/functions/daily-metrics-email/index.ts`, `supabase/functions/daily-metrics-email/metrics_test.ts` (9 testes novos — verificado red/green que o teste de layout falha sem o wrapper completo), `docs/TESTING.md` (R-020).
+
+---
+
 ### SEO: og:title/og:description/twitter:*/meta description/canonical nunca mudavam por rota
 **Descrição:** Achado durante o teste manual do prerender (rodada anterior): `document.title` mudava corretamente por rota, mas `og:title`/`og:description`/`twitter:title`/`twitter:description`/`meta name="description"`/`link rel="canonical"` ficavam sempre com o texto genérico do site inteiro — compartilhar um link de evento no WhatsApp/Facebook/Instagram mostrava o preview genérico, não o do evento; o Google também via a `meta description` errada em qualquer rota. Causa raiz confirmada com teste real contra o site publicado: existiam **duas** tags `og:title` no DOM final — a genérica de `index.html` (sem `data-rh`) e a correta da rota (com `data-rh="true"`, gerada por `SEOHead.tsx`/react-helmet-async). O Helmet só reconhece e substitui `<meta>`/`<link>` que já tenham esse atributo (confirmado lendo o código-fonte da lib) — sem ele nas tags estáticas, o Helmet nunca as via e só empilhava a versão real ao lado da genérica, nunca removendo a antiga.
 **Correção:** `index.html` ganhou `data-rh="true"` em todas as tags que `SEOHead.tsx` também gerencia — agora o Helmet as reconhece como próprias e as substitui de verdade no primeiro render.

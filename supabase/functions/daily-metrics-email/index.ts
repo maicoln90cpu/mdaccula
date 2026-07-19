@@ -7,7 +7,16 @@
 // aceita cron (internal_cron_secrets/CRON_SHARED_SECRET) OU admin autenticado.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { handleCorsPreFlight, jsonSuccess, jsonError, authorizeAdminOrCron } from "../_shared/index.ts";
-import { getBRTDayWindowUTC, computeVariancePct, buildEmailHtml, type MetricResult } from "./metrics.ts";
+import {
+  getBRTDayWindowUTC,
+  computeVariancePct,
+  findMostFrequent,
+  buildEmailHtml,
+  type MetricResult,
+  type TopEntity,
+} from "./metrics.ts";
+
+const SITE_URL = "https://mdaccula.com";
 
 // Fixo no backend — nunca aceitar destino vindo do client (mesma regra de
 // send-test-email/index.ts, regressão R-008).
@@ -35,6 +44,86 @@ async function countInWindow(
     .lt(column, end.toISOString());
   if (error) throw error;
   return count ?? 0;
+}
+
+interface TopEntityConfig {
+  eventTable: string;
+  idColumn: string;
+  dateColumn: string;
+  parentTable: string;
+  nameColumn: string;
+  urlBuilder: (row: Record<string, unknown>) => string | null;
+  emoji: string;
+  label: string;
+}
+
+const TOP_ENTITY_CONFIGS: TopEntityConfig[] = [
+  {
+    eventTable: "blog_view_events",
+    idColumn: "post_id",
+    dateColumn: "viewed_at",
+    parentTable: "blog_posts",
+    nameColumn: "title",
+    urlBuilder: (row) => `${SITE_URL}/blog/${row.slug}`,
+    emoji: "📰",
+    label: "Artigo mais acessado",
+  },
+  {
+    eventTable: "link_click_events",
+    idColumn: "link_id",
+    dateColumn: "clicked_at",
+    parentTable: "custom_links",
+    nameColumn: "title",
+    urlBuilder: (row) => (typeof row.url === "string" ? row.url : null),
+    emoji: "🔗",
+    label: "Link mais clicado",
+  },
+  {
+    eventTable: "event_view_events",
+    idColumn: "event_id",
+    dateColumn: "viewed_at",
+    parentTable: "events",
+    nameColumn: "title",
+    urlBuilder: (row) => `${SITE_URL}/eventos/${row.slug}`,
+    emoji: "🎟️",
+    label: "Evento mais visto",
+  },
+];
+
+// Volume diário deste site é baixo o bastante pra buscar os ids da janela e
+// contar em memória (findMostFrequent) — evita precisar de uma function SQL
+// dedicada só pra um GROUP BY + LIMIT 1.
+async function getTopEntity(
+  supabase: SupabaseClient,
+  config: TopEntityConfig,
+  start: Date,
+  end: Date,
+): Promise<TopEntity | null> {
+  const { data: events, error: eventsError } = await supabase
+    .from(config.eventTable)
+    .select(config.idColumn)
+    .gte(config.dateColumn, start.toISOString())
+    .lt(config.dateColumn, end.toISOString());
+  if (eventsError) throw eventsError;
+
+  const ids = (events ?? []).map((row: Record<string, unknown>) => row[config.idColumn] as string);
+  const top = findMostFrequent(ids);
+  if (!top) return null;
+
+  const { data: parent, error: parentError } = await supabase
+    .from(config.parentTable)
+    .select("*")
+    .eq("id", top.id)
+    .maybeSingle();
+  if (parentError || !parent) return null;
+
+  return {
+    emoji: config.emoji,
+    label: config.label,
+    name: (parent[config.nameColumn] as string) ?? "—",
+    url: config.urlBuilder(parent),
+    count: top.count,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -78,13 +167,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    const topEntitiesResults = await Promise.all(
+      TOP_ENTITY_CONFIGS.map((config) => getTopEntity(admin, config, yesterday.startUTC, yesterday.endUTC)),
+    );
+    const topEntities = topEntitiesResults.filter((t): t is TopEntity => t !== null);
+
     const dateLabel = yesterday.startUTC.toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
-    const html = buildEmailHtml(metrics, dateLabel);
+    const html = buildEmailHtml(metrics, dateLabel, topEntities);
 
     let emailSent = false;
     let emailError: string | null = null;
@@ -122,7 +216,7 @@ Deno.serve(async (req) => {
     }
 
     await admin.from("daily_metrics_email_log").insert({
-      metrics: { date: dateLabel, results: metrics },
+      metrics: { date: dateLabel, results: metrics, topEntities },
       email_sent: emailSent,
       email_error: emailError,
     });
@@ -131,6 +225,7 @@ Deno.serve(async (req) => {
       success: true,
       date: dateLabel,
       metrics,
+      topEntities,
       email_sent: emailSent,
       email_error: emailError,
     });
