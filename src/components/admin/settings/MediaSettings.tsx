@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ImageDown, Loader2, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2, BarChart3, Layers } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ImageDown, Loader2, Cloud, RefreshCw, Database, Search, AlertTriangle, CheckCircle2, Trash2, BarChart3, Layers, Stamp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/useToast";
 import { runEventImageBackfill, type BackfillResult } from "@/lib/eventImageBackfill";
@@ -106,6 +108,13 @@ const MediaSettings = () => {
   const [backfillProgress, setBackfillProgress] = useState<{ done: number; total: number } | null>(null);
   const [backfillResults, setBackfillResults] = useState<BackfillResult[] | null>(null);
 
+  // Teste manual de marca (compose-event-image) — normalmente só roda via
+  // scan-event-sources agendado; aqui dá pra ver o resultado em qualquer imagem.
+  const [brandImageUrl, setBrandImageUrl] = useState("");
+  const [brandTitle, setBrandTitle] = useState("");
+  const [brandTesting, setBrandTesting] = useState(false);
+  const [brandResult, setBrandResult] = useState<{ imageUrl: string; composed: boolean } | null>(null);
+
   const { toast } = useToast();
 
   // ── Backfill de Variantes ──
@@ -128,6 +137,40 @@ const MediaSettings = () => {
       toast({ variant: "destructive", title: "Erro no backfill", description: message });
     } finally {
       setBackfillRunning(false);
+    }
+  };
+
+  // ── Teste manual de marca (compose-event-image) ──
+  const handleTestBrandCompose = async () => {
+    if (!brandImageUrl.trim() || !brandTitle.trim()) {
+      toast({ variant: "destructive", title: "Preencha os dois campos", description: "URL da imagem e título de teste são obrigatórios." });
+      return;
+    }
+    setBrandTesting(true);
+    setBrandResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke<{ success: boolean; imageUrl: string; composed: boolean }>(
+        "compose-event-image",
+        { body: { imageUrl: brandImageUrl.trim(), title: brandTitle.trim() } }
+      );
+      if (error) throw error;
+      setBrandResult({ imageUrl: data.imageUrl, composed: data.composed });
+      // compose-event-image nunca retorna erro HTTP em falha de composição — sempre
+      // 200 com composed:false e a imagem original. Checar explicitamente aqui.
+      if (data.composed) {
+        toast({ title: "Marca aplicada!", description: "Barra + logo compostos com sucesso." });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Marca não aplicada",
+          description: "A composição falhou e a imagem original foi mantida — confira os logs da function pra causa.",
+        });
+      }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro ao testar composição", description: message });
+    } finally {
+      setBrandTesting(false);
     }
   };
 
@@ -724,6 +767,73 @@ const MediaSettings = () => {
                   </pre>
                 </details>
               )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ Testar Aplicação de Marca (compose-event-image) ═══ */}
+      <Card className="border-purple-500/20">
+        <CardHeader className="px-4 sm:px-6">
+          <div className="flex items-center gap-2">
+            <Stamp className="w-5 h-5 text-purple-500" />
+            <CardTitle className="text-lg sm:text-xl">Testar Aplicação de Marca</CardTitle>
+          </div>
+          <CardDescription className="text-sm">
+            Cola a URL de uma imagem já hospedada e vê o resultado da barra + logo MDAccula
+            (mesma function que o Event Watcher aplica automaticamente todo dia às 08h). Útil
+            pra testar sem precisar esperar o agendamento.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 px-4 sm:px-6">
+          <div className="space-y-2">
+            <Label htmlFor="brand-image-url">URL da imagem</Label>
+            <Input
+              id="brand-image-url"
+              placeholder="https://mdaccula.b-cdn.net/event-images/exemplo.webp"
+              value={brandImageUrl}
+              onChange={(e) => setBrandImageUrl(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="brand-title">Título de teste</Label>
+            <Input
+              id="brand-title"
+              placeholder="Nome do evento a exibir na barra"
+              value={brandTitle}
+              onChange={(e) => setBrandTitle(e.target.value)}
+            />
+          </div>
+
+          <Button onClick={handleTestBrandCompose} disabled={brandTesting} variant="outline" className="w-full">
+            {brandTesting ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Aplicando marca...</>
+            ) : (
+              <><Stamp className="w-4 h-4 mr-2" />Aplicar Marca Nesta Imagem</>
+            )}
+          </Button>
+
+          {brandResult && (
+            <div className="space-y-2">
+              <div
+                className={`p-2 rounded-md text-xs ${
+                  brandResult.composed
+                    ? "bg-green-500/10 border border-green-500/30 text-green-600 dark:text-green-400"
+                    : "bg-destructive/10 border border-destructive/30 text-destructive"
+                }`}
+              >
+                {brandResult.composed ? "✅ Marca aplicada com sucesso" : "⚠️ Falhou — mostrando a imagem original sem alteração"}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Original</p>
+                  <img src={brandImageUrl} alt="Imagem original" className="w-full rounded-lg border object-cover" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">Resultado</p>
+                  <img src={brandResult.imageUrl} alt="Imagem com marca aplicada" className="w-full rounded-lg border object-cover" />
+                </div>
+              </div>
             </div>
           )}
         </CardContent>
