@@ -160,10 +160,10 @@ function buildMetricsRows(metrics: MetricResult[]): string {
     .map(
       (m) => `
         <tr>
-          <td style="padding:10px 8px;border-bottom:1px solid #262626;color:#eeeeee;font-size:13px;">${escapeHtml(m.label)}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #262626;text-align:right;color:#ffffff;font-weight:600;font-size:13px;">${m.yesterday}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #262626;text-align:right;font-size:13px;">${formatVariance(m.varianceVsDayBeforePct)}</td>
-          <td style="padding:10px 8px;border-bottom:1px solid #262626;text-align:right;font-size:11px;color:#999999;">
+          <td style="padding:13px 8px;border-bottom:1px solid #262626;color:#eeeeee;font-size:13px;">${escapeHtml(m.label)}</td>
+          <td style="padding:13px 8px;border-bottom:1px solid #262626;text-align:right;color:#ffffff;font-weight:600;font-size:13px;">${m.yesterday}</td>
+          <td style="padding:13px 8px;border-bottom:1px solid #262626;text-align:right;font-size:13px;">${formatVariance(m.varianceVsDayBeforePct)}</td>
+          <td style="padding:13px 8px;border-bottom:1px solid #262626;text-align:right;font-size:11px;color:#999999;">
             média 7d: ${m.baselineDailyAvg.toFixed(1)}${m.varianceVsBaselinePct !== null ? ` (${formatVariance(m.varianceVsBaselinePct)})` : ""}
           </td>
         </tr>`,
@@ -183,7 +183,7 @@ function buildHighlightsSection(topEntities: TopEntity[]): string {
         : safeName;
       const noun = t.count === 1 ? "acesso" : "acessos";
       return `
-        <p style="margin:6px 0;color:#eeeeee;font-size:13px;line-height:1.4;">
+        <p style="margin:0 0 10px;color:#eeeeee;font-size:13px;line-height:1.5;">
           ${t.emoji} ${escapeHtml(t.label)}: <strong>${nameHtml}</strong>
           <span style="color:#999999;font-size:12px;">(${t.count} ${noun})</span>
         </p>`;
@@ -192,9 +192,9 @@ function buildHighlightsSection(topEntities: TopEntity[]): string {
 
   return `
     <tr>
-      <td style="padding:4px 20px 4px;">
-        <div style="background-color:#1a1a1a;border-radius:8px;padding:14px 16px;">
-          <p style="margin:0 0 8px;color:#a855f7;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">🏆 Destaques de ontem</p>
+      <td style="padding:10px 20px;">
+        <div style="background-color:#1a1a1a;border-radius:10px;padding:20px 22px;">
+          <p style="margin:0 0 14px;color:#a855f7;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">🏆 Destaques de ontem</p>
           ${rows}
         </div>
       </td>
@@ -206,19 +206,19 @@ function buildPeriodCardHtml(card: PeriodCardData): string {
     .map(
       (r) => `
         <tr>
-          <td style="padding:6px 0;color:#eeeeee;font-size:13px;">${escapeHtml(r.label)}</td>
-          <td style="padding:6px 0;text-align:right;color:#ffffff;font-weight:600;font-size:13px;">${r.current}</td>
-          <td style="padding:6px 0;text-align:right;font-size:12px;white-space:nowrap;">${formatVariance(r.variancePct)}</td>
+          <td style="padding:8px 0;color:#eeeeee;font-size:13px;">${escapeHtml(r.label)}</td>
+          <td style="padding:8px 0;text-align:right;color:#ffffff;font-weight:600;font-size:13px;">${r.current}</td>
+          <td style="padding:8px 0;text-align:right;font-size:12px;white-space:nowrap;">${formatVariance(r.variancePct)}</td>
         </tr>`,
     )
     .join("");
 
   return `
     <tr>
-      <td style="padding:4px 20px 4px;">
-        <div style="background-color:#1a1a1a;border-radius:8px;padding:14px 16px;">
-          <p style="margin:0 0 2px;color:#a855f7;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">${card.emoji} ${escapeHtml(card.title)}</p>
-          <p style="margin:0 0 8px;color:#999999;font-size:11px;">${escapeHtml(card.rangeLabel)}</p>
+      <td style="padding:10px 20px;">
+        <div style="background-color:#1a1a1a;border-radius:10px;padding:20px 22px;">
+          <p style="margin:0 0 4px;color:#a855f7;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">${card.emoji} ${escapeHtml(card.title)}</p>
+          <p style="margin:0 0 14px;color:#999999;font-size:11px;">${escapeHtml(card.rangeLabel)}</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
             <tbody>${rows}</tbody>
           </table>
@@ -260,25 +260,25 @@ export function buildEmailHtml(
         <td align="center" style="padding:24px 12px;">
           <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" bgcolor="#111111" style="background-color:#111111;max-width:600px;width:100%;border-radius:8px;border-collapse:collapse;font-family:system-ui,Arial,sans-serif;">
             <tr>
-              <td align="center" style="padding:24px 20px 8px;">
-                <img src="${SITE_URL}/logo-mdaccula.jpeg" alt="MDAccula" width="120" style="display:block;max-width:120px;width:100%;height:auto;border:0;outline:none;border-radius:8px;">
+              <td align="center" style="padding:32px 20px 12px;">
+                <img src="${SITE_URL}/logo-mdaccula.jpeg" alt="MDAccula" width="130" style="display:block;max-width:130px;width:100%;height:auto;border:0;outline:none;border-radius:8px;">
               </td>
             </tr>
             <tr>
-              <td style="padding:4px 20px 4px;">
-                <p style="margin:0;color:#a855f7;font-size:20px;font-weight:700;">📊 Métricas Diárias — MDAccula</p>
-                <p style="margin:4px 0 0;color:#999999;font-size:13px;">Dados de ${escapeHtml(dateLabel)}</p>
+              <td style="padding:8px 20px 12px;">
+                <p style="margin:0;color:#a855f7;font-size:26px;font-weight:700;line-height:1.25;">📊 Métricas Diárias — MDAccula</p>
+                <p style="margin:8px 0 0;color:#999999;font-size:14px;">Dados de ${escapeHtml(dateLabel)}</p>
               </td>
             </tr>
             <tr>
-              <td style="padding:16px 20px 0;">
+              <td style="padding:16px 20px 4px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
                   <thead>
                     <tr>
-                      <th align="left" style="padding:8px;color:#999999;font-size:11px;text-transform:uppercase;">Métrica</th>
-                      <th align="right" style="padding:8px;color:#999999;font-size:11px;text-transform:uppercase;">Ontem</th>
-                      <th align="right" style="padding:8px;color:#999999;font-size:11px;text-transform:uppercase;">vs. Anteontem</th>
-                      <th align="right" style="padding:8px;color:#999999;font-size:11px;text-transform:uppercase;">Média 7d</th>
+                      <th align="left" style="padding:10px 8px;color:#999999;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">Métrica</th>
+                      <th align="right" style="padding:10px 8px;color:#999999;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">Ontem</th>
+                      <th align="right" style="padding:10px 8px;color:#999999;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">vs. Anteontem</th>
+                      <th align="right" style="padding:10px 8px;color:#999999;font-size:11px;text-transform:uppercase;letter-spacing:0.4px;">Média 7d</th>
                     </tr>
                   </thead>
                   <tbody>${rows}</tbody>
@@ -288,8 +288,8 @@ export function buildEmailHtml(
             ${highlights}
             ${periodCardsHtml}
             <tr>
-              <td style="padding:20px;">
-                <p style="color:#666666;font-size:12px;margin:0;line-height:1.5;">
+              <td style="padding:28px 20px 24px;">
+                <p style="color:#666666;font-size:12px;margin:0;line-height:1.6;">
                   Enviado automaticamente todo dia às 08h (Brasília). Dashboard:
                   <a href="${SITE_URL}/admin/links-analytics" style="color:#a855f7;">Analytics de Links</a>
                 </p>
