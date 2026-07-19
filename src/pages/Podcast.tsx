@@ -1,38 +1,65 @@
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Mic, MapPin, Video, Clock, Users, Music, Share2, MessageCircle, Instagram, Globe, Send, CheckCircle, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/useToast";
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Mic,
+  MapPin,
+  Video,
+  Clock,
+  Users,
+  Music,
+  Share2,
+  MessageCircle,
+  Instagram,
+  Globe,
+  Send,
+  CheckCircle,
+  Loader2,
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/useToast';
 
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import { SEOHead } from "@/components/SEOHead";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import Navigation from '@/components/ui/navigation';
+import Footer from '@/components/ui/footer';
+import { SEOHead } from '@/components/SEOHead';
+import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 
 // ============= VALIDATION SCHEMA =============
 const podcastFormSchema = z.object({
-  full_name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
-  city: z.string().min(2, "Cidade inválida").max(100, "Cidade muito longa"),
-  phone: z.string().min(10, "Telefone inválido").max(20, "Telefone inválido"),
-  project_name: z.string().min(2, "Nome do projeto muito curto").max(100, "Nome muito longo"),
-  project_age: z.string().min(1, "Informe há quanto tempo existe").max(50, "Texto muito longo"),
-  genre: z.string().min(2, "Informe a vertente/gênero").max(100, "Texto muito longo"),
+  full_name: z
+    .string()
+    .min(3, 'Nome deve ter pelo menos 3 caracteres')
+    .max(100, 'Nome muito longo'),
+  city: z.string().min(2, 'Cidade inválida').max(100, 'Cidade muito longa'),
+  phone: z.string().min(10, 'Telefone inválido').max(20, 'Telefone inválido'),
+  project_name: z.string().min(2, 'Nome do projeto muito curto').max(100, 'Nome muito longo'),
+  project_age: z.string().min(1, 'Informe há quanto tempo existe').max(50, 'Texto muito longo'),
+  genre: z.string().min(2, 'Informe a vertente/gênero').max(100, 'Texto muito longo'),
   has_original_track: z.boolean().default(false),
-  original_track_link: z.string().url("URL inválida").optional().or(z.literal("")),
-  instagram: z.string().max(100, "Instagram muito longo").optional().or(z.literal("")),
-  spotify: z.string().url("URL inválida").optional().or(z.literal("")),
-  soundcloud: z.string().url("URL inválida").optional().or(z.literal("")),
-  tiktok: z.string().max(100, "TikTok muito longo").optional().or(z.literal("")),
-  email: z.string().email("E-mail inválido").max(255, "E-mail muito longo"),
-  project_description: z.string().min(20, "Descreva melhor seu projeto (mínimo 20 caracteres)").max(1000, "Descrição muito longa"),
+  original_track_link: z.string().url('URL inválida').optional().or(z.literal('')),
+  instagram: z.string().max(100, 'Instagram muito longo').optional().or(z.literal('')),
+  spotify: z.string().url('URL inválida').optional().or(z.literal('')),
+  soundcloud: z.string().url('URL inválida').optional().or(z.literal('')),
+  tiktok: z.string().max(100, 'TikTok muito longo').optional().or(z.literal('')),
+  email: z.string().email('E-mail inválido').max(255, 'E-mail muito longo'),
+  project_description: z
+    .string()
+    .min(20, 'Descreva melhor seu projeto (mínimo 20 caracteres)')
+    .max(1000, 'Descrição muito longa'),
 });
 
 type PodcastFormData = z.infer<typeof podcastFormSchema>;
@@ -41,60 +68,68 @@ type PodcastFormData = z.infer<typeof podcastFormSchema>;
 const howItWorksCards = [
   {
     icon: MapPin,
-    title: "LOCAL",
-    description: "Nosso canal conta com a parceria da Methodus School, uma escola extremamente preparada com todos os equipamentos disponíveis para você gravar o seu set.",
-    gradient: "from-primary to-accent",
+    title: 'LOCAL',
+    description:
+      'Nosso canal conta com a parceria da Methodus School, uma escola extremamente preparada com todos os equipamentos disponíveis para você gravar o seu set.',
+    gradient: 'from-primary to-accent',
   },
   {
     icon: Video,
-    title: "GRAVAÇÃO",
-    description: "A gravação será via áudio + takes via mobile pelo creator MDAccula que disponibilizará todo material após 02 dias úteis da gravação para que você possa utilizar.",
-    gradient: "from-secondary to-primary",
+    title: 'GRAVAÇÃO',
+    description:
+      'A gravação será via áudio + takes via mobile pelo creator MDAccula que disponibilizará todo material após 02 dias úteis da gravação para que você possa utilizar.',
+    gradient: 'from-secondary to-primary',
   },
   {
     icon: Clock,
-    title: "DURAÇÃO DO SET",
-    description: "01 hora de set exclusivo para você mostrar seu talento e estilo musical.",
-    gradient: "from-accent to-secondary",
+    title: 'DURAÇÃO DO SET',
+    description: '01 hora de set exclusivo para você mostrar seu talento e estilo musical.',
+    gradient: 'from-accent to-secondary',
   },
   {
     icon: Users,
-    title: "CONVIDADOS",
-    description: "O artista terá uma lista de convidados para que possam fazer parte do dia da gravação e a vibe ficar lá em cima!",
-    gradient: "from-primary to-secondary",
+    title: 'CONVIDADOS',
+    description:
+      'O artista terá uma lista de convidados para que possam fazer parte do dia da gravação e a vibe ficar lá em cima!',
+    gradient: 'from-primary to-secondary',
   },
 ];
 
 const divulgationCards = [
   {
     icon: Music,
-    title: "SOUNDCLOUD",
-    description: "O set será divulgado no canal do MDAccula Radio no SoundCloud! Ele ficará disponível para total acesso.",
-    gradient: "from-[#ff5500] to-[#ff8800]",
+    title: 'SOUNDCLOUD',
+    description:
+      'O set será divulgado no canal do MDAccula Radio no SoundCloud! Ele ficará disponível para total acesso.',
+    gradient: 'from-[#ff5500] to-[#ff8800]',
   },
   {
     icon: MessageCircle,
-    title: "GRUPOS DE WHATSAPP",
-    description: "Realizamos o disparo em +300 grupos ativos do MDAccula, solicitando a todos que dêem o play e compartilhem o set.",
-    gradient: "from-[#25d366] to-[#128c7e]",
+    title: 'GRUPOS DE WHATSAPP',
+    description:
+      'Realizamos o disparo em +300 grupos ativos do MDAccula, solicitando a todos que dêem o play e compartilhem o set.',
+    gradient: 'from-[#25d366] to-[#128c7e]',
   },
   {
     icon: Share2,
-    title: "AÇÃO",
-    description: "Pedimos aos parceiros MDAccula para compartilhar o set como forma de ação de algum evento que estamos trabalhando.",
-    gradient: "from-primary to-accent",
+    title: 'AÇÃO',
+    description:
+      'Pedimos aos parceiros MDAccula para compartilhar o set como forma de ação de algum evento que estamos trabalhando.',
+    gradient: 'from-primary to-accent',
   },
   {
     icon: Instagram,
-    title: "REDES SOCIAIS",
-    description: "Todos os vídeos ficarão em destaque no perfil principal do IG do MDAccula, será compartilhado no TikTok o reels final editado e nas demais redes sociais.",
-    gradient: "from-[#e4405f] to-[#833ab4]",
+    title: 'REDES SOCIAIS',
+    description:
+      'Todos os vídeos ficarão em destaque no perfil principal do IG do MDAccula, será compartilhado no TikTok o reels final editado e nas demais redes sociais.',
+    gradient: 'from-[#e4405f] to-[#833ab4]',
   },
   {
     icon: Globe,
-    title: "SITE & OUTRAS PLATAFORMAS",
-    description: "Facebook, Threads e site oficial MDAccula também receberão o conteúdo para máxima divulgação.",
-    gradient: "from-secondary to-primary",
+    title: 'SITE & OUTRAS PLATAFORMAS',
+    description:
+      'Facebook, Threads e site oficial MDAccula também receberão o conteúdo para máxima divulgação.',
+    gradient: 'from-secondary to-primary',
   },
 ];
 
@@ -107,20 +142,20 @@ const Podcast = () => {
   const form = useForm<PodcastFormData>({
     resolver: zodResolver(podcastFormSchema),
     defaultValues: {
-      full_name: "",
-      city: "",
-      phone: "",
-      project_name: "",
-      project_age: "",
-      genre: "",
+      full_name: '',
+      city: '',
+      phone: '',
+      project_name: '',
+      project_age: '',
+      genre: '',
       has_original_track: false,
-      original_track_link: "",
-      instagram: "",
-      spotify: "",
-      soundcloud: "",
-      tiktok: "",
-      email: "",
-      project_description: "",
+      original_track_link: '',
+      instagram: '',
+      spotify: '',
+      soundcloud: '',
+      tiktok: '',
+      email: '',
+      project_description: '',
     },
   });
 
@@ -130,7 +165,7 @@ const Podcast = () => {
     try {
       // 1. Insert into database
       const { data: insertedData, error: insertError } = await supabase
-        .from("podcast_submissions")
+        .from('podcast_submissions')
         .insert({
           full_name: data.full_name,
           city: data.city,
@@ -159,9 +194,9 @@ const Podcast = () => {
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-podcast-notification`,
           {
-            method: "POST",
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
             body: JSON.stringify(insertedData),
@@ -169,24 +204,24 @@ const Podcast = () => {
         );
 
         if (!response.ok) {
-          console.error("Error sending notification emails");
+          console.error('Error sending notification emails');
         }
       } catch (emailError) {
-        console.error("Failed to send notification:", emailError);
+        console.error('Failed to send notification:', emailError);
         // Continue anyway - registration was successful
       }
 
       setIsSubmitted(true);
       toast({
-        title: "Inscrição enviada! 🎉",
-        description: "Recebemos seus dados. Entraremos em contato em breve!",
+        title: 'Inscrição enviada! 🎉',
+        description: 'Recebemos seus dados. Entraremos em contato em breve!',
       });
     } catch (error) {
-      console.error("Error submitting form:", error);
+      console.error('Error submitting form:', error);
       toast({
-        title: "Erro ao enviar",
-        description: "Ocorreu um erro. Tente novamente.",
-        variant: "destructive",
+        title: 'Erro ao enviar',
+        description: 'Ocorreu um erro. Tente novamente.',
+        variant: 'destructive',
       });
     } finally {
       setIsSubmitting(false);
@@ -207,7 +242,7 @@ const Podcast = () => {
         {/* ============= HERO SECTION ============= */}
         <PageHeader
           variant="radial"
-          breadcrumb={[{ label: "Home", href: "/" }, { label: "MDAccula Radio" }]}
+          breadcrumb={[{ label: 'Home', href: '/' }, { label: 'MDAccula Radio' }]}
         >
           <div className="max-w-4xl mx-auto text-center">
             <div className="inline-flex flex-wrap items-center justify-center gap-2 mb-6">
@@ -217,13 +252,13 @@ const Podcast = () => {
               </div>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/30">
                 <CheckCircle className="w-4 h-4 text-secondary" />
-                <span className="text-sm font-medium text-secondary">Análise do material é gratuita</span>
+                <span className="text-sm font-medium text-secondary">
+                  Análise do material é gratuita
+                </span>
               </div>
             </div>
 
-            <h1 className="text-display text-gradient mb-6">
-              Participe do MDAccula Radio
-            </h1>
+            <h1 className="text-display text-gradient mb-6">Participe do MDAccula Radio</h1>
 
             <p className="text-xl md:text-2xl text-foreground mb-4 font-medium">
               Aqui você tem o seu projeto divulgado como merece!
@@ -231,12 +266,13 @@ const Podcast = () => {
 
             <p className="text-lg text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Com o formato de "social live" nosso canal tem como objetivo trazer novos talentos
-              para a cena eletrônica. Se você quer fazer parte e ter seu projeto divulgado por
-              todos os canais e redes do MDAccula, sua chance está aqui!
+              para a cena eletrônica. Se você quer fazer parte e ter seu projeto divulgado por todos
+              os canais e redes do MDAccula, sua chance está aqui!
             </p>
 
             <p className="mt-6 text-accent font-semibold text-lg">
-              Envie seu material — a análise é 100% gratuita. Se aprovado, você grava seu set exclusivo! 🚀
+              Envie seu material — a análise é 100% gratuita. Se aprovado, você grava seu set
+              exclusivo! 🚀
             </p>
           </div>
         </PageHeader>
@@ -253,15 +289,24 @@ const Podcast = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {howItWorksCards.map((card) => (
-                <Card key={card.title} className="bg-card/50 backdrop-blur border-border/50 hover:border-primary/50 transition-all duration-300 group">
+                <Card
+                  key={card.title}
+                  className="bg-card/50 backdrop-blur border-border/50 hover:border-primary/50 transition-all duration-300 group"
+                >
                   <CardHeader className="pb-2">
-                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
+                    <div
+                      className={`w-12 h-12 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}
+                    >
                       <card.icon className="w-6 h-6 text-white" />
                     </div>
-                    <CardTitle className="text-lg font-bold text-foreground">{card.title}</CardTitle>
+                    <CardTitle className="text-lg font-bold text-foreground">
+                      {card.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {card.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -281,15 +326,24 @@ const Podcast = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {divulgationCards.map((card) => (
-                <Card key={card.title} className="bg-card/50 backdrop-blur border-border/50 hover:border-secondary/50 transition-all duration-300 group">
+                <Card
+                  key={card.title}
+                  className="bg-card/50 backdrop-blur border-border/50 hover:border-secondary/50 transition-all duration-300 group"
+                >
                   <CardHeader className="pb-2">
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
+                    <div
+                      className={`w-10 h-10 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}
+                    >
                       <card.icon className="w-5 h-5 text-white" />
                     </div>
-                    <CardTitle className="text-base font-bold text-foreground">{card.title}</CardTitle>
+                    <CardTitle className="text-base font-bold text-foreground">
+                      {card.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground leading-relaxed">{card.description}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {card.description}
+                    </p>
                   </CardContent>
                 </Card>
               ))}
@@ -310,7 +364,8 @@ const Podcast = () => {
                 </h2>
               </div>
               <p className="text-muted-foreground text-center mb-8">
-                Preencha o formulário abaixo — a análise do seu perfil é 100% gratuita. Aguarde o nosso contato!
+                Preencha o formulário abaixo — a análise do seu perfil é 100% gratuita. Aguarde o
+                nosso contato!
               </p>
 
               {isSubmitted ? (
@@ -319,10 +374,12 @@ const Podcast = () => {
                     <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-6">
                       <CheckCircle className="w-10 h-10 text-primary" />
                     </div>
-                    <h3 className="text-2xl font-bold text-foreground mb-4">Inscrição Enviada! 🎉</h3>
+                    <h3 className="text-2xl font-bold text-foreground mb-4">
+                      Inscrição Enviada! 🎉
+                    </h3>
                     <p className="text-muted-foreground mb-6">
-                      Recebemos seus dados com sucesso. Nossa equipe irá analisar seu perfil 
-                      e entraremos em contato em breve através do e-mail ou WhatsApp informado.
+                      Recebemos seus dados com sucesso. Nossa equipe irá analisar seu perfil e
+                      entraremos em contato em breve através do e-mail ou WhatsApp informado.
                     </p>
                     <Button variant="outline" onClick={() => setIsSubmitted(false)}>
                       Enviar Nova Inscrição
@@ -434,7 +491,10 @@ const Podcast = () => {
                                 <FormItem className="md:col-span-2">
                                   <FormLabel>Vertente/Gênero *</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="Tech House, Melodic Techno, etc." {...field} />
+                                    <Input
+                                      placeholder="Tech House, Melodic Techno, etc."
+                                      {...field}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -461,7 +521,7 @@ const Podcast = () => {
                               )}
                             />
 
-                            {form.watch("has_original_track") && (
+                            {form.watch('has_original_track') && (
                               <FormField
                                 control={form.control}
                                 name="original_track_link"
@@ -518,7 +578,10 @@ const Podcast = () => {
                                 <FormItem>
                                   <FormLabel>Spotify (URL do perfil)</FormLabel>
                                   <FormControl>
-                                    <Input placeholder="https://open.spotify.com/artist/..." {...field} />
+                                    <Input
+                                      placeholder="https://open.spotify.com/artist/..."
+                                      {...field}
+                                    />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
@@ -604,7 +667,8 @@ const Podcast = () => {
                     R$ 1.200<span className="text-2xl">,00</span>
                   </div>
                   <p className="text-muted-foreground">
-                    Pago via <span className="font-semibold text-foreground">PIX</span>, somente após a aprovação — cobre estrutura e equipamento do estúdio
+                    Pago via <span className="font-semibold text-foreground">PIX</span>, somente
+                    após a aprovação — cobre estrutura e equipamento do estúdio
                   </p>
                 </CardContent>
               </Card>
@@ -617,14 +681,16 @@ const Podcast = () => {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                <strong className="text-foreground">União, apoio e conexão.</strong> Estes são alguns pilares que fazem parte 
-                da essência da MDAccula, um núcleo que vai muito além da promoção de eventos e busca promover 
-                uma verdadeira rede de networking entre DJs, produtores e players da cena.
+                <strong className="text-foreground">União, apoio e conexão.</strong> Estes são
+                alguns pilares que fazem parte da essência da MDAccula, um núcleo que vai muito além
+                da promoção de eventos e busca promover uma verdadeira rede de networking entre DJs,
+                produtores e players da cena.
               </p>
               <p className="text-lg text-muted-foreground leading-relaxed mb-6">
-                Aqui você poderá ouvir com exclusividade sets de artistas que possuem uma ligação com o 
-                time da MDAccula, além disso, curtir os sets dos eventos produzidos pela marca. Queremos 
-                dar espaço e ajudar a reverberar o talento de tantos, ótimos, DJs que temos na cena nacional.
+                Aqui você poderá ouvir com exclusividade sets de artistas que possuem uma ligação
+                com o time da MDAccula, além disso, curtir os sets dos eventos produzidos pela
+                marca. Queremos dar espaço e ajudar a reverberar o talento de tantos, ótimos, DJs
+                que temos na cena nacional.
               </p>
               <p className="text-xl font-semibold text-gradient">
                 Ouça, apoie e leve essa mensagem para frente!

@@ -1,12 +1,12 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress";
-import { Loader2, Lightbulb, Sparkles, CheckCircle2, XCircle } from "lucide-react";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Progress } from '@/components/ui/progress';
+import { Loader2, Lightbulb, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
 
 interface Suggestion {
   title: string;
@@ -55,9 +55,7 @@ export function SuggestionsList({
 
   const toggleSuggestion = (index: number) => {
     setSelectedSuggestions((prev) =>
-      prev.includes(index)
-        ? prev.filter((i) => i !== index)
-        : [...prev, index]
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
     );
   };
 
@@ -82,20 +80,22 @@ export function SuggestionsList({
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Progresso</span>
-                <span className="font-medium">{generationProgress.current} de {generationProgress.total}</span>
+                <span className="font-medium">
+                  {generationProgress.current} de {generationProgress.total}
+                </span>
               </div>
-              <Progress 
-                value={(generationProgress.current / generationProgress.total) * 100} 
+              <Progress
+                value={(generationProgress.current / generationProgress.total) * 100}
                 className="h-2"
               />
             </div>
-            
+
             <p className="text-sm flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-muted-foreground">Gerando:</span>
               <span className="font-medium truncate">{generationProgress.currentTitle}</span>
             </p>
-            
+
             {generationProgress.completed.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Concluídos:</p>
@@ -103,13 +103,15 @@ export function SuggestionsList({
                   {generationProgress.completed.map((title, i) => (
                     <Badge key={i} variant="secondary" className="gap-1 max-w-[200px]">
                       <CheckCircle2 className="h-3 w-3 text-green-500 shrink-0" />
-                      <span className="truncate">{title.length > 30 ? title.slice(0, 30) + '...' : title}</span>
+                      <span className="truncate">
+                        {title.length > 30 ? title.slice(0, 30) + '...' : title}
+                      </span>
                     </Badge>
                   ))}
                 </div>
               </div>
             )}
-            
+
             {generationProgress.failed.length > 0 && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-muted-foreground">Falhas:</p>
@@ -117,7 +119,9 @@ export function SuggestionsList({
                   {generationProgress.failed.map((title, i) => (
                     <Badge key={i} variant="destructive" className="gap-1 max-w-[200px]">
                       <XCircle className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{title.length > 30 ? title.slice(0, 30) + '...' : title}</span>
+                      <span className="truncate">
+                        {title.length > 30 ? title.slice(0, 30) + '...' : title}
+                      </span>
                     </Badge>
                   ))}
                 </div>
@@ -178,15 +182,9 @@ export function SuggestionsList({
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">
-                {suggestions.length} Sugestões Geradas
-              </CardTitle>
+              <CardTitle className="text-lg">{suggestions.length} Sugestões Geradas</CardTitle>
               {selectedSuggestions.length > 0 && !generationProgress && (
-                <Button
-                  onClick={handleGenerateSelected}
-                  disabled={isGenerating}
-                  size="sm"
-                >
+                <Button onClick={handleGenerateSelected} disabled={isGenerating} size="sm">
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -209,20 +207,20 @@ export function SuggestionsList({
                   const isBeingGenerated = generatingIndex === index;
                   const wasCompleted = generationProgress?.completed.includes(suggestion.title);
                   const wasFailed = generationProgress?.failed.includes(suggestion.title);
-                  
+
                   return (
                     <div
                       key={index}
                       className={`p-4 rounded-lg border transition-colors ${
                         isBeingGenerated
-                          ? "border-primary bg-primary/10"
+                          ? 'border-primary bg-primary/10'
                           : wasCompleted
-                          ? "border-green-500/50 bg-green-500/5"
-                          : wasFailed
-                          ? "border-destructive/50 bg-destructive/5"
-                          : selectedSuggestions.includes(index)
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
+                            ? 'border-green-500/50 bg-green-500/5'
+                            : wasFailed
+                              ? 'border-destructive/50 bg-destructive/5'
+                              : selectedSuggestions.includes(index)
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-primary/50'
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -237,32 +235,26 @@ export function SuggestionsList({
                               {isBeingGenerated && (
                                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                               )}
-                              {wasCompleted && (
-                                <CheckCircle2 className="h-4 w-4 text-green-500" />
-                              )}
-                              {wasFailed && (
-                                <XCircle className="h-4 w-4 text-destructive" />
-                              )}
-                              <h4 className="font-medium leading-tight">
-                                {suggestion.title}
-                              </h4>
+                              {wasCompleted && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                              {wasFailed && <XCircle className="h-4 w-4 text-destructive" />}
+                              <h4 className="font-medium leading-tight">{suggestion.title}</h4>
                             </div>
                             <Badge variant="secondary" className="shrink-0">
                               {suggestion.category}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {suggestion.summary}
-                          </p>
-                          {suggestion.keywords && Array.isArray(suggestion.keywords) && suggestion.keywords.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {suggestion.keywords.map((keyword, i) => (
-                                <Badge key={i} variant="outline" className="text-xs">
-                                  {typeof keyword === 'string' ? keyword : String(keyword)}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
+                          <p className="text-sm text-muted-foreground">{suggestion.summary}</p>
+                          {suggestion.keywords &&
+                            Array.isArray(suggestion.keywords) &&
+                            suggestion.keywords.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {suggestion.keywords.map((keyword, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs">
+                                    {typeof keyword === 'string' ? keyword : String(keyword)}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
                           {suggestion.mood && (
                             <p className="text-xs text-muted-foreground">
                               <span className="font-medium">Mood:</span> {suggestion.mood}
@@ -270,9 +262,11 @@ export function SuggestionsList({
                           )}
                           {suggestion.searchQuery && (
                             <p className="text-xs text-muted-foreground border-t pt-2 mt-2">
-                              <span className="font-medium">Busca real:</span>{" "}
+                              <span className="font-medium">Busca real:</span>{' '}
                               <code className="text-xs">{suggestion.searchQuery}</code>
-                              {" — o artigo final será escrito a partir de fontes encontradas para este termo, não do resumo acima."}
+                              {
+                                ' — o artigo final será escrito a partir de fontes encontradas para este termo, não do resumo acima.'
+                              }
                             </p>
                           )}
                           <Button

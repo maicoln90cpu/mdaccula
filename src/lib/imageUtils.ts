@@ -16,9 +16,7 @@ const BUNNY_PATH_REGEX = /^https:\/\/mdaccula\.b-cdn\.net\/(.+)$/;
  * Transforma uma URL de imagem do Supabase Storage em uma URL
  * servida pelo Bunny CDN (apenas reescrita de domínio).
  */
-export function getOptimizedImageUrl(
-  url: string | null | undefined
-): string {
+export function getOptimizedImageUrl(url: string | null | undefined): string {
   if (!url) return '';
 
   // URLs do Bunny CDN já estão otimizadas
@@ -97,19 +95,19 @@ export function getMediumUrl(url: string | null | undefined): string {
  */
 export function getOriginalSupabaseUrl(url: string | null | undefined): string {
   if (!url) return '';
-  
+
   const match = url.match(BUNNY_PATH_REGEX);
   if (match) {
     return `${SUPABASE_ORIGIN}/${match[1]}`;
   }
-  
+
   return url;
 }
 
 /**
  * Helper for <img> onError handlers: tries Supabase fallback first,
  * then a local fallback image.
- * 
+ *
  * Usage:
  *   onError={(e) => handleImageFallback(e, djImage)}
  */

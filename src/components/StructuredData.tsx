@@ -59,76 +59,78 @@ export const StructuredData = ({ type, data }: StructuredDataProps) => {
     switch (type) {
       case 'website':
         return {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "name": "MDAccula",
-          "url": "https://mdaccula.com",
-          "description": "A maior agência de música eletrônica de São Paulo. Eventos, festas e conteúdo sobre techno, house e cultura eletrônica.",
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": {
-              "@type": "EntryPoint",
-              "urlTemplate": "https://mdaccula.com/blog?search={search_term_string}"
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'MDAccula',
+          url: 'https://mdaccula.com',
+          description:
+            'A maior agência de música eletrônica de São Paulo. Eventos, festas e conteúdo sobre techno, house e cultura eletrônica.',
+          potentialAction: {
+            '@type': 'SearchAction',
+            target: {
+              '@type': 'EntryPoint',
+              urlTemplate: 'https://mdaccula.com/blog?search={search_term_string}',
             },
-            "query-input": "required name=search_term_string"
-          }
+            'query-input': 'required name=search_term_string',
+          },
         };
 
       case 'organization': {
         const orgData = data as OrganizationData | undefined;
         return {
-          "@context": "https://schema.org",
-          "@type": "Organization",
-          "name": "MDAccula",
-          "url": "https://mdaccula.com",
-          "logo": "https://mdaccula.com/logo.png",
-          "description": "Agência especializada em música eletrônica em São Paulo - DJ, eventos techno, house e festas underground",
-          "address": {
-            "@type": "PostalAddress",
-            "addressLocality": "São Paulo",
-            "addressRegion": "SP",
-            "addressCountry": "BR"
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'MDAccula',
+          url: 'https://mdaccula.com',
+          logo: 'https://mdaccula.com/logo.png',
+          description:
+            'Agência especializada em música eletrônica em São Paulo - DJ, eventos techno, house e festas underground',
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'São Paulo',
+            addressRegion: 'SP',
+            addressCountry: 'BR',
           },
-          "sameAs": [
-            orgData?.instagram_link || "https://instagram.com/mdaccula",
-            orgData?.soundcloud_link || "https://soundcloud.com/mdaccula"
+          sameAs: [
+            orgData?.instagram_link || 'https://instagram.com/mdaccula',
+            orgData?.soundcloud_link || 'https://soundcloud.com/mdaccula',
           ],
-          "contactPoint": {
-            "@type": "ContactPoint",
-            "contactType": "Customer Service",
-            "availableLanguage": ["Portuguese", "English"]
-          }
+          contactPoint: {
+            '@type': 'ContactPoint',
+            contactType: 'Customer Service',
+            availableLanguage: ['Portuguese', 'English'],
+          },
         };
       }
 
       case 'article': {
         const articleData = data as ArticleData;
         return {
-          "@context": "https://schema.org",
-          "@type": "BlogPosting",
-          "headline": articleData.title,
-          "description": articleData.excerpt,
-          "image": articleData.image_url,
-          "datePublished": articleData.published_at,
-          "dateModified": articleData.updated_at,
-          "author": {
-            "@type": "Organization",
-            "name": "MDAccula"
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: articleData.title,
+          description: articleData.excerpt,
+          image: articleData.image_url,
+          datePublished: articleData.published_at,
+          dateModified: articleData.updated_at,
+          author: {
+            '@type': 'Organization',
+            name: 'MDAccula',
           },
-          "publisher": {
-            "@type": "Organization",
-            "name": "MDAccula",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "https://mdaccula.com/logo.png"
-            }
+          publisher: {
+            '@type': 'Organization',
+            name: 'MDAccula',
+            logo: {
+              '@type': 'ImageObject',
+              url: 'https://mdaccula.com/logo.png',
+            },
           },
-          "mainEntityOfPage": {
-            "@type": "WebPage",
-            "@id": `https://mdaccula.com/blog/${articleData.slug}`
+          mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': `https://mdaccula.com/blog/${articleData.slug}`,
           },
-          "keywords": articleData.tags?.join(', '),
-          "articleSection": articleData.category
+          keywords: articleData.tags?.join(', '),
+          articleSection: articleData.category,
         };
       }
 
@@ -136,60 +138,61 @@ export const StructuredData = ({ type, data }: StructuredDataProps) => {
         const eventData = data as EventData;
         const startDate = `${eventData.date}T${eventData.time}`;
         // endDate: usa end_date + end_time quando festival, senão start+end_time, senão omite
-        const endDateRaw =
-          eventData.end_date
-            ? `${eventData.end_date}T${eventData.end_time || eventData.time}`
-            : eventData.end_time
-              ? `${eventData.date}T${eventData.end_time}`
-              : undefined;
+        const endDateRaw = eventData.end_date
+          ? `${eventData.end_date}T${eventData.end_time || eventData.time}`
+          : eventData.end_time
+            ? `${eventData.date}T${eventData.end_time}`
+            : undefined;
         return {
-          "@context": "https://schema.org",
-          "@type": "MusicEvent",
-          "name": eventData.title,
-          "description": eventData.description,
-          "startDate": startDate,
-          ...(endDateRaw ? { "endDate": endDateRaw } : {}),
-          "eventStatus": "https://schema.org/EventScheduled",
-          "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-          "location": {
-            "@type": "Place",
-            "name": eventData.venue,
-            "address": {
-              "@type": "PostalAddress",
-              "addressLocality": eventData.location_city,
-              "addressRegion": eventData.location_state,
-              "addressCountry": "BR"
-            }
+          '@context': 'https://schema.org',
+          '@type': 'MusicEvent',
+          name: eventData.title,
+          description: eventData.description,
+          startDate: startDate,
+          ...(endDateRaw ? { endDate: endDateRaw } : {}),
+          eventStatus: 'https://schema.org/EventScheduled',
+          eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
+          location: {
+            '@type': 'Place',
+            name: eventData.venue,
+            address: {
+              '@type': 'PostalAddress',
+              addressLocality: eventData.location_city,
+              addressRegion: eventData.location_state,
+              addressCountry: 'BR',
+            },
           },
-          "image": eventData.image_url,
-          "offers": eventData.ticket_link ? {
-            "@type": "Offer",
-            "url": eventData.ticket_link,
-            "availability": "https://schema.org/InStock"
-          } : undefined,
-          "performer": eventData.lineup?.map((artist: string) => ({
-            "@type": "MusicGroup",
-            "name": artist
+          image: eventData.image_url,
+          offers: eventData.ticket_link
+            ? {
+                '@type': 'Offer',
+                url: eventData.ticket_link,
+                availability: 'https://schema.org/InStock',
+              }
+            : undefined,
+          performer: eventData.lineup?.map((artist: string) => ({
+            '@type': 'MusicGroup',
+            name: artist,
           })),
-          "organizer": {
-            "@type": "Organization",
-            "name": "MDAccula",
-            "url": "https://mdaccula.com"
-          }
+          organizer: {
+            '@type': 'Organization',
+            name: 'MDAccula',
+            url: 'https://mdaccula.com',
+          },
         };
       }
 
       case 'breadcrumb': {
         const breadcrumbData = data as BreadcrumbData;
         return {
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          "itemListElement": breadcrumbData.items.map((item: BreadcrumbItem, index: number) => ({
-            "@type": "ListItem",
-            "position": index + 1,
-            "name": item.name,
-            "item": item.url
-          }))
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: breadcrumbData.items.map((item: BreadcrumbItem, index: number) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            name: item.name,
+            item: item.url,
+          })),
         };
       }
 
@@ -203,9 +206,7 @@ export const StructuredData = ({ type, data }: StructuredDataProps) => {
 
   return (
     <Helmet>
-      <script type="application/ld+json">
-        {JSON.stringify(schema)}
-      </script>
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
     </Helmet>
   );
 };

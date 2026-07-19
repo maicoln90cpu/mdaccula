@@ -13,25 +13,26 @@ import { useToast } from '@/hooks/useToast';
 import { SEOHead } from '@/components/SEOHead';
 
 // Schema de validação de senha forte
-const passwordSchema = z.string()
-  .min(8, "Mínimo 8 caracteres")
-  .regex(/[A-Z]/, "Inclua uma letra maiúscula")
-  .regex(/[0-9]/, "Inclua um número")
-  .regex(/[^A-Za-z0-9]/, "Inclua um caractere especial (!@#$%^&*)");
+const passwordSchema = z
+  .string()
+  .min(8, 'Mínimo 8 caracteres')
+  .regex(/[A-Z]/, 'Inclua uma letra maiúscula')
+  .regex(/[0-9]/, 'Inclua um número')
+  .regex(/[^A-Za-z0-9]/, 'Inclua um caractere especial (!@#$%^&*)');
 
 const signUpSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().email('Email inválido'),
   password: passwordSchema,
-  fullName: z.string().min(2, "Nome muito curto").max(100, "Nome muito longo"),
-  phone: z.string().min(10, "Telefone inválido").max(20, "Telefone inválido"),
+  fullName: z.string().min(2, 'Nome muito curto').max(100, 'Nome muito longo'),
+  phone: z.string().min(10, 'Telefone inválido').max(20, 'Telefone inválido'),
 });
 
 // Requisitos de senha para feedback visual
 const passwordRequirements = [
-  { regex: /.{8,}/, label: "Mínimo 8 caracteres" },
-  { regex: /[A-Z]/, label: "Uma letra maiúscula" },
-  { regex: /[0-9]/, label: "Um número" },
-  { regex: /[^A-Za-z0-9]/, label: "Um caractere especial" },
+  { regex: /.{8,}/, label: 'Mínimo 8 caracteres' },
+  { regex: /[A-Z]/, label: 'Uma letra maiúscula' },
+  { regex: /[0-9]/, label: 'Um número' },
+  { regex: /[^A-Za-z0-9]/, label: 'Um caractere especial' },
 ];
 
 const Auth = () => {
@@ -58,8 +59,8 @@ const Auth = () => {
       setError(error.message);
     } else {
       toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta.",
+        title: 'Login realizado com sucesso!',
+        description: 'Bem-vindo de volta.',
       });
       navigate('/');
     }
@@ -98,8 +99,8 @@ const Auth = () => {
       setError(error.message);
     } else {
       toast({
-        title: "Conta criada com sucesso!",
-        description: "Você já pode fazer login.",
+        title: 'Conta criada com sucesso!',
+        description: 'Você já pode fazer login.',
       });
       navigate('/');
     }
@@ -107,7 +108,7 @@ const Auth = () => {
   };
 
   const getPasswordStrength = () => {
-    const passed = passwordRequirements.filter(req => req.regex.test(password)).length;
+    const passed = passwordRequirements.filter((req) => req.regex.test(password)).length;
     if (passed === 0) return { label: '', color: '' };
     if (passed <= 1) return { label: 'Fraca', color: 'text-destructive' };
     if (passed <= 2) return { label: 'Média', color: 'text-yellow-500' };
@@ -119,11 +120,7 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10 p-4">
-      <SEOHead
-        title="Autenticação"
-        description="Acesso ao sistema MDAccula."
-        noindex
-      />
+      <SEOHead title="Autenticação" description="Acesso ao sistema MDAccula." noindex />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Acesso ao Sistema</CardTitle>
@@ -134,27 +131,27 @@ const Auth = () => {
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="signin" className="space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signin-email">Email</Label>
-                  <Input 
+                  <Input
                     id="signin-email"
-                    name="email" 
-                    type="email" 
+                    name="email"
+                    type="email"
                     placeholder="seu@email.com"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signin-password">Senha</Label>
-                  <Input 
+                  <Input
                     id="signin-password"
-                    name="password" 
-                    type="password" 
+                    name="password"
+                    type="password"
                     placeholder="••••••••"
-                    required 
+                    required
                   />
                 </div>
                 {error && (
@@ -168,37 +165,37 @@ const Auth = () => {
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup" className="space-y-4">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Nome Completo</Label>
-                  <Input 
+                  <Input
                     id="signup-name"
-                    name="fullName" 
-                    type="text" 
+                    name="fullName"
+                    type="text"
                     placeholder="Seu nome completo"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
-                  <Input 
+                  <Input
                     id="signup-email"
-                    name="email" 
-                    type="email" 
+                    name="email"
+                    type="email"
                     placeholder="seu@email.com"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-phone">Telefone</Label>
-                  <Input 
+                  <Input
                     id="signup-phone"
-                    name="phone" 
-                    type="tel" 
+                    name="phone"
+                    type="tel"
                     placeholder="(11) 99999-9999"
-                    required 
+                    required
                   />
                 </div>
                 <div className="space-y-2">
@@ -210,15 +207,15 @@ const Auth = () => {
                       </span>
                     )}
                   </div>
-                  <Input 
+                  <Input
                     id="signup-password"
-                    name="password" 
-                    type="password" 
+                    name="password"
+                    type="password"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     onFocus={() => setShowPasswordFeedback(true)}
-                    required 
+                    required
                   />
                   {/* Feedback visual dos requisitos */}
                   {showPasswordFeedback && (
@@ -226,15 +223,11 @@ const Auth = () => {
                       {passwordRequirements.map((req, index) => {
                         const passed = req.regex.test(password);
                         return (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className={`flex items-center gap-2 text-xs ${passed ? 'text-green-500' : 'text-muted-foreground'}`}
                           >
-                            {passed ? (
-                              <Check className="h-3 w-3" />
-                            ) : (
-                              <X className="h-3 w-3" />
-                            )}
+                            {passed ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
                             <span>{req.label}</span>
                           </div>
                         );

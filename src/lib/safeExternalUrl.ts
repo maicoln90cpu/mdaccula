@@ -12,30 +12,30 @@
  * - Caso contrário (ex: `www.sympla.com.br/x`, `bit.ly/x`) → adiciona `https://`.
  */
 export const safeExternalUrl = (url: string | null | undefined): string => {
-  if (!url) return "#";
+  if (!url) return '#';
   const trimmed = String(url).trim();
-  if (!trimmed) return "#";
+  if (!trimmed) return '#';
 
   const lower = trimmed.toLowerCase();
 
   // Bloqueia esquemas perigosos
   if (
-    lower.startsWith("javascript:") ||
-    lower.startsWith("data:") ||
-    lower.startsWith("vbscript:")
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('vbscript:')
   ) {
-    return "#";
+    return '#';
   }
 
   // Já tem protocolo válido ou é navegação intencional
   if (
-    lower.startsWith("http://") ||
-    lower.startsWith("https://") ||
-    lower.startsWith("mailto:") ||
-    lower.startsWith("tel:") ||
-    lower.startsWith("sms:") ||
-    trimmed.startsWith("/") ||
-    trimmed.startsWith("#")
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('mailto:') ||
+    lower.startsWith('tel:') ||
+    lower.startsWith('sms:') ||
+    trimmed.startsWith('/') ||
+    trimmed.startsWith('#')
   ) {
     return trimmed;
   }

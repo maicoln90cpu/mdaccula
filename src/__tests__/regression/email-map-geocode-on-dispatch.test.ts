@@ -17,31 +17,34 @@
  * Este teste é estático (sem rede): garante que a chamada de geocodificação
  * continua presente e posicionada antes de `buildEventData`.
  */
-import { describe, it, expect } from "vitest";
-import fs from "fs";
-import path from "path";
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf-8");
+const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
-describe("Regressão R-006 — geocodificação sob demanda antes do disparo de e-mail", () => {
-  it("dispatchEventDraftEmail geocodifica o evento antes de montar os dados do e-mail", () => {
-    const src = read("src/lib/emailTemplates/dispatchEventDraft.ts");
+describe('Regressão R-006 — geocodificação sob demanda antes do disparo de e-mail', () => {
+  it('dispatchEventDraftEmail geocodifica o evento antes de montar os dados do e-mail', () => {
+    const src = read('src/lib/emailTemplates/dispatchEventDraft.ts');
 
-    const geocodeCallIndex = src.indexOf('invoke("geocode-event"');
+    const geocodeCallIndex = src.indexOf("invoke('geocode-event'");
     expect(
       geocodeCallIndex,
-      "Não encontrei a chamada a geocode-event em dispatchEventDraft.ts. " +
-        "Isso REINTRODUZ a regressão R-006 (mapa vazio no primeiro e-mail do evento). " +
-        "Veja docs/TESTING.md → Regressões cobertas."
+      'Não encontrei a chamada a geocode-event em dispatchEventDraft.ts. ' +
+        'Isso REINTRODUZ a regressão R-006 (mapa vazio no primeiro e-mail do evento). ' +
+        'Veja docs/TESTING.md → Regressões cobertas.'
     ).toBeGreaterThan(-1);
 
-    const buildEventDataCallIndex = src.indexOf("await buildEventData(event)");
-    expect(buildEventDataCallIndex, "Não encontrei a chamada buildEventData(event).").toBeGreaterThan(-1);
+    const buildEventDataCallIndex = src.indexOf('await buildEventData(event)');
+    expect(
+      buildEventDataCallIndex,
+      'Não encontrei a chamada buildEventData(event).'
+    ).toBeGreaterThan(-1);
 
     expect(
       geocodeCallIndex,
-      "A chamada a geocode-event deve acontecer ANTES de buildEventData(event), " +
-        "senão o e-mail é montado com latitude/longitude ainda nulos."
+      'A chamada a geocode-event deve acontecer ANTES de buildEventData(event), ' +
+        'senão o e-mail é montado com latitude/longitude ainda nulos.'
     ).toBeLessThan(buildEventDataCallIndex);
 
     // A geocodificação só deve rodar quando o evento ainda não tem coords —

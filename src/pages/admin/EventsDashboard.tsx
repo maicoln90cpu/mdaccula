@@ -1,23 +1,40 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Music, TrendingUp } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { isFuture, parseISO } from "date-fns";
-import { NavLink } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, MapPin, Music, TrendingUp } from 'lucide-react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import { isFuture, parseISO } from 'date-fns';
+import { NavLink } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))', 'hsl(var(--destructive))'];
+const COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--secondary))',
+  'hsl(var(--accent))',
+  'hsl(var(--muted))',
+  'hsl(var(--destructive))',
+];
 
 const EventsDashboard = () => {
   const { data: events, isLoading } = useQuery({
-    queryKey: ["events-dashboard"],
+    queryKey: ['events-dashboard'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("status", "active")
-        .order("date", { ascending: true });
+        .from('events')
+        .select('*')
+        .eq('status', 'active')
+        .order('date', { ascending: true });
 
       if (error) throw error;
       return data;
@@ -42,16 +59,18 @@ const EventsDashboard = () => {
   }
 
   const totalEvents = events?.length || 0;
-  const upcomingEvents = events?.filter(event => 
-    isFuture(parseISO(`${event.date}T${event.time}`))
-  ).length || 0;
+  const upcomingEvents =
+    events?.filter((event) => isFuture(parseISO(`${event.date}T${event.time}`))).length || 0;
 
   // Eventos por cidade
-  const eventsByCity = events?.reduce((acc, event) => {
-    const city = event.location_city;
-    acc[city] = (acc[city] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const eventsByCity = events?.reduce(
+    (acc, event) => {
+      const city = event.location_city;
+      acc[city] = (acc[city] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const cityData = Object.entries(eventsByCity || {})
     .map(([city, count]) => ({ city, count }))
@@ -59,23 +78,29 @@ const EventsDashboard = () => {
     .slice(0, 5);
 
   // Eventos por estado
-  const eventsByState = events?.reduce((acc, event) => {
-    const state = event.location_state;
-    acc[state] = (acc[state] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const eventsByState = events?.reduce(
+    (acc, event) => {
+      const state = event.location_state;
+      acc[state] = (acc[state] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const stateData = Object.entries(eventsByState || {})
     .map(([state, count]) => ({ name: state, value: count }))
     .sort((a, b) => b.value - a.value);
 
   // Gêneros mais populares
-  const genreCount = events?.reduce((acc, event) => {
-    event.genres.forEach(genre => {
-      acc[genre] = (acc[genre] || 0) + 1;
-    });
-    return acc;
-  }, {} as Record<string, number>);
+  const genreCount = events?.reduce(
+    (acc, event) => {
+      event.genres.forEach((genre) => {
+        acc[genre] = (acc[genre] || 0) + 1;
+      });
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const genreData = Object.entries(genreCount || {})
     .map(([genre, count]) => ({ genre, count }))
@@ -88,7 +113,10 @@ const EventsDashboard = () => {
         <main className="w-full px-4 md:px-6 py-6">
           <div className="w-full">
             <div className="mb-8">
-              <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+              <NavLink
+                to="/admin"
+                className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Painel
               </NavLink>
@@ -157,11 +185,11 @@ const EventsDashboard = () => {
                       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                       <XAxis dataKey="city" stroke="hsl(var(--muted-foreground))" />
                       <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
                           border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
+                          borderRadius: '8px',
                         }}
                       />
                       <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
@@ -193,11 +221,11 @@ const EventsDashboard = () => {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'hsl(var(--card))', 
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
                           border: '1px solid hsl(var(--border))',
-                          borderRadius: '8px'
+                          borderRadius: '8px',
                         }}
                       />
                     </PieChart>
@@ -217,12 +245,17 @@ const EventsDashboard = () => {
                   <BarChart data={genreData} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis type="number" stroke="hsl(var(--muted-foreground))" />
-                    <YAxis dataKey="genre" type="category" stroke="hsl(var(--muted-foreground))" width={100} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
+                    <YAxis
+                      dataKey="genre"
+                      type="category"
+                      stroke="hsl(var(--muted-foreground))"
+                      width={100}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--card))',
                         border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
+                        borderRadius: '8px',
                       }}
                     />
                     <Bar dataKey="count" fill="hsl(var(--accent))" radius={[0, 8, 8, 0]} />

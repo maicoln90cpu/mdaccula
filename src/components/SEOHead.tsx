@@ -17,18 +17,26 @@ interface SEOProps {
   };
 }
 
-export const SEOHead = ({ 
-  title, 
-  description, 
+export const SEOHead = ({
+  title,
+  description,
   keywords = [],
   image = 'https://mdaccula.com/logo-mdaccula.jpeg',
   type = 'website',
   url = 'https://mdaccula.com',
   noindex = false,
-  article 
+  article,
 }: SEOProps) => {
   const fullTitle = `${title} | MDAccula`;
-  const defaultKeywords = ['música eletrônica', 'techno', 'house', 'são paulo', 'eventos', 'festas', 'dj'];
+  const defaultKeywords = [
+    'música eletrônica',
+    'techno',
+    'house',
+    'são paulo',
+    'eventos',
+    'festas',
+    'dj',
+  ];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   const optimizedImage = useMemo(() => getOptimizedImageUrl(image) || image, [image]);
 
@@ -39,7 +47,7 @@ export const SEOHead = ({
       <meta name="description" content={description} />
       <meta name="keywords" content={allKeywords.join(', ')} />
       <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
-      
+
       {/* Open Graph */}
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
@@ -48,23 +56,23 @@ export const SEOHead = ({
       <meta property="og:url" content={url} />
       <meta property="og:site_name" content="MDAccula" />
       <meta property="og:locale" content="pt_BR" />
-      
+
       {/* Twitter Card */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={optimizedImage} />
-      
+
       {/* Canonical URL */}
       <link rel="canonical" href={url} />
-      
+
       {/* Article specific meta tags */}
       {article && type === 'article' && (
         <>
           <meta property="article:published_time" content={article.publishedTime} />
           <meta property="article:author" content={article.author} />
           <meta property="article:section" content="Música Eletrônica" />
-          {article.tags.map(tag => (
+          {article.tags.map((tag) => (
             <meta key={tag} property="article:tag" content={tag} />
           ))}
         </>

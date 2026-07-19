@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink } from 'react-router-dom';
 import {
   FileText,
   Calendar,
@@ -24,8 +24,8 @@ import {
   Megaphone,
   LineChart,
   Wrench,
-} from "lucide-react";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+} from 'lucide-react';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface AdminCard {
   title: string;
@@ -43,54 +43,180 @@ interface AdminSection {
 
 const sections: AdminSection[] = [
   {
-    title: "Conteúdo",
+    title: 'Conteúdo',
     icon: Newspaper,
     cards: [
-      { title: "Blog", description: "Posts e artigos do blog", icon: FileText, href: "/admin/blog", color: "text-green-500" },
-      { title: "Eventos", description: "Criar, editar e gerenciar eventos", icon: Calendar, href: "/admin/events", color: "text-blue-500" },
-      { title: "Templates de Eventos", description: "Modelos para acelerar criação", icon: Layers, href: "/admin/event-templates", color: "text-sky-500" },
-      { title: "Eventos Recorrentes", description: "Eventos gerados automaticamente", icon: RefreshCw, href: "/admin/recurring-events", color: "text-emerald-500" },
-      { title: "Equipe", description: "Membros e perfis públicos", icon: Users, href: "/admin/team", color: "text-cyan-500" },
+      {
+        title: 'Blog',
+        description: 'Posts e artigos do blog',
+        icon: FileText,
+        href: '/admin/blog',
+        color: 'text-green-500',
+      },
+      {
+        title: 'Eventos',
+        description: 'Criar, editar e gerenciar eventos',
+        icon: Calendar,
+        href: '/admin/events',
+        color: 'text-blue-500',
+      },
+      {
+        title: 'Templates de Eventos',
+        description: 'Modelos para acelerar criação',
+        icon: Layers,
+        href: '/admin/event-templates',
+        color: 'text-sky-500',
+      },
+      {
+        title: 'Eventos Recorrentes',
+        description: 'Eventos gerados automaticamente',
+        icon: RefreshCw,
+        href: '/admin/recurring-events',
+        color: 'text-emerald-500',
+      },
+      {
+        title: 'Equipe',
+        description: 'Membros e perfis públicos',
+        icon: Users,
+        href: '/admin/team',
+        color: 'text-cyan-500',
+      },
     ],
   },
   {
-    title: "Inteligência Artificial",
+    title: 'Inteligência Artificial',
     icon: Cpu,
     cards: [
-      { title: "Conteúdo por IA", description: "Gerar, sugerir e agendar artigos com IA", icon: Sparkles, href: "/admin/ai-content2", color: "text-purple-500" },
-      { title: "Fontes", description: "Fontes de notícias e eventos monitoradas pela IA", icon: Globe, href: "/admin/fontes", color: "text-yellow-500" },
-      { title: "Configuração de IA", description: "Modelo, prompt de imagem e limites de geração", icon: Bot, href: "/admin/ai-settings", color: "text-indigo-500" },
-      { title: "Custos de IA", description: "Análise de custos, tokens e comparativo por modelo", icon: BarChart3, href: "/admin/ai-costs", color: "text-fuchsia-500" },
+      {
+        title: 'Conteúdo por IA',
+        description: 'Gerar, sugerir e agendar artigos com IA',
+        icon: Sparkles,
+        href: '/admin/ai-content2',
+        color: 'text-purple-500',
+      },
+      {
+        title: 'Fontes',
+        description: 'Fontes de notícias e eventos monitoradas pela IA',
+        icon: Globe,
+        href: '/admin/fontes',
+        color: 'text-yellow-500',
+      },
+      {
+        title: 'Configuração de IA',
+        description: 'Modelo, prompt de imagem e limites de geração',
+        icon: Bot,
+        href: '/admin/ai-settings',
+        color: 'text-indigo-500',
+      },
+      {
+        title: 'Custos de IA',
+        description: 'Análise de custos, tokens e comparativo por modelo',
+        icon: BarChart3,
+        href: '/admin/ai-costs',
+        color: 'text-fuchsia-500',
+      },
     ],
   },
   {
-    title: "Links & Distribuição",
+    title: 'Links & Distribuição',
     icon: Megaphone,
     cards: [
-      { title: "Linktree", description: "Links públicos e grupos", icon: LinkIcon, href: "/admin/links-manager", color: "text-teal-500" },
-      { title: "Redirecionador", description: "Links curtos com UTM", icon: ExternalLink, href: "/admin/redirects", color: "text-orange-500" },
-      { title: "Newsletter", description: "Inscritos e campanhas", icon: Mail, href: "/admin/newsletter", color: "text-pink-500" },
-      { title: "Gestão de E-mails", description: "Templates, envio manual, automações e histórico", icon: Mail, href: "/admin/email-config", color: "text-rose-500" },
-      { title: "A/B Newsletter", description: "Resultados de variantes", icon: TestTube2, href: "/admin/newsletter-ab-results", color: "text-emerald-500" },
-      { title: "MDAccula Radio", description: "Inscrições para sets", icon: Mic, href: "/admin/mdaccula-radio", color: "text-purple-500" },
+      {
+        title: 'Linktree',
+        description: 'Links públicos e grupos',
+        icon: LinkIcon,
+        href: '/admin/links-manager',
+        color: 'text-teal-500',
+      },
+      {
+        title: 'Redirecionador',
+        description: 'Links curtos com UTM',
+        icon: ExternalLink,
+        href: '/admin/redirects',
+        color: 'text-orange-500',
+      },
+      {
+        title: 'Newsletter',
+        description: 'Inscritos e campanhas',
+        icon: Mail,
+        href: '/admin/newsletter',
+        color: 'text-pink-500',
+      },
+      {
+        title: 'Gestão de E-mails',
+        description: 'Templates, envio manual, automações e histórico',
+        icon: Mail,
+        href: '/admin/email-config',
+        color: 'text-rose-500',
+      },
+      {
+        title: 'A/B Newsletter',
+        description: 'Resultados de variantes',
+        icon: TestTube2,
+        href: '/admin/newsletter-ab-results',
+        color: 'text-emerald-500',
+      },
+      {
+        title: 'MDAccula Radio',
+        description: 'Inscrições para sets',
+        icon: Mic,
+        href: '/admin/mdaccula-radio',
+        color: 'text-purple-500',
+      },
     ],
   },
   {
-    title: "Analytics",
+    title: 'Analytics',
     icon: LineChart,
     cards: [
-      { title: "Dashboard de Eventos", description: "Estatísticas visuais", icon: PieChart, href: "/admin/events-dashboard", color: "text-violet-500" },
-      { title: "Analytics de Links", description: "Cliques e desempenho", icon: BarChart3, href: "/admin/links-analytics", color: "text-indigo-500" },
-      { title: "Monitor de Egress", description: "Consumo de dados e cache", icon: Activity, href: "/admin/egress-monitor", color: "text-red-500" },
+      {
+        title: 'Dashboard de Eventos',
+        description: 'Estatísticas visuais',
+        icon: PieChart,
+        href: '/admin/events-dashboard',
+        color: 'text-violet-500',
+      },
+      {
+        title: 'Analytics de Links',
+        description: 'Cliques e desempenho',
+        icon: BarChart3,
+        href: '/admin/links-analytics',
+        color: 'text-indigo-500',
+      },
+      {
+        title: 'Monitor de Egress',
+        description: 'Consumo de dados e cache',
+        icon: Activity,
+        href: '/admin/egress-monitor',
+        color: 'text-red-500',
+      },
     ],
   },
   {
-    title: "Sistema",
+    title: 'Sistema',
     icon: Wrench,
     cards: [
-      { title: "Configurações", description: "Geral, IA, mídia, timezone", icon: Settings, href: "/admin/settings", color: "text-pink-500" },
-      { title: "Status do Sistema", description: "Saúde e performance", icon: HeartPulse, href: "/admin/system-health", color: "text-orange-500" },
-      { title: "Importação de Dados", description: "Importar CSVs em massa", icon: Database, href: "/admin/data-import", color: "text-amber-500" },
+      {
+        title: 'Configurações',
+        description: 'Geral, IA, mídia, timezone',
+        icon: Settings,
+        href: '/admin/settings',
+        color: 'text-pink-500',
+      },
+      {
+        title: 'Status do Sistema',
+        description: 'Saúde e performance',
+        icon: HeartPulse,
+        href: '/admin/system-health',
+        color: 'text-orange-500',
+      },
+      {
+        title: 'Importação de Dados',
+        description: 'Importar CSVs em massa',
+        icon: Database,
+        href: '/admin/data-import',
+        color: 'text-amber-500',
+      },
     ],
   },
 ];
@@ -125,7 +251,9 @@ const Admin = () => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <CardTitle className="text-base">{card.title}</CardTitle>
-                          <CardDescription className="text-xs line-clamp-2">{card.description}</CardDescription>
+                          <CardDescription className="text-xs line-clamp-2">
+                            {card.description}
+                          </CardDescription>
                         </div>
                       </div>
                     </CardHeader>

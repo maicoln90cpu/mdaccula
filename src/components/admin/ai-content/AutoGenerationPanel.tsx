@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import {
   Loader2,
   Play,
@@ -17,13 +17,13 @@ import {
   Clock,
   Zap,
   RotateCcw,
-  FileText
-} from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { format, formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { logger } from "@/lib/logger";
+  FileText,
+} from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { format, formatDistanceToNow } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { logger } from '@/lib/logger';
 
 interface AutoGenSettings {
   enabled: boolean;
@@ -84,13 +84,15 @@ export function AutoGenerationPanel() {
           'ai_auto_generate_interval_hours',
           'ai_auto_generate_last_run',
           'ai_auto_generate_fail_count',
-          'suggestions_auto_publish'
+          'suggestions_auto_publish',
         ]);
 
       if (settingsError) throw settingsError;
 
       const settingsMap: Record<string, string> = {};
-      settingsData?.forEach(s => { settingsMap[s.key] = s.value || ''; });
+      settingsData?.forEach((s) => {
+        settingsMap[s.key] = s.value || '';
+      });
 
       const enabled = settingsMap['ai_auto_generate_enabled'] === 'true';
       const intervalHours = parseInt(settingsMap['ai_auto_generate_interval_hours'] || '48');
@@ -145,13 +147,12 @@ export function AutoGenerationPanel() {
           setLastPost(postData);
         }
       }
-
     } catch (error) {
       logger.error('Error fetching data:', error);
       toast({
-        title: "Erro ao carregar dados",
-        description: "Não foi possível carregar o dashboard.",
-        variant: "destructive",
+        title: 'Erro ao carregar dados',
+        description: 'Não foi possível carregar o dashboard.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -178,18 +179,18 @@ export function AutoGenerationPanel() {
 
       if (error) throw error;
 
-      setSettings(prev => ({ ...prev, enabled }));
+      setSettings((prev) => ({ ...prev, enabled }));
       toast({
-        title: enabled ? "Auto-geração habilitada" : "Auto-geração desabilitada",
+        title: enabled ? 'Auto-geração habilitada' : 'Auto-geração desabilitada',
         description: enabled
           ? `Artigos serão gerados automaticamente a cada ${settings.intervalHours}h`
-          : "A geração automática foi pausada",
+          : 'A geração automática foi pausada',
       });
     } catch (error) {
       logger.error('Error toggling enabled:', error);
       toast({
-        title: "Erro ao salvar",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        variant: 'destructive',
       });
     } finally {
       setIsSaving(false);
@@ -207,16 +208,16 @@ export function AutoGenerationPanel() {
 
       setSuggestionsAutoPublish(enabled);
       toast({
-        title: enabled ? "Publicação automática ligada" : "Publicação automática desligada",
+        title: enabled ? 'Publicação automática ligada' : 'Publicação automática desligada',
         description: enabled
-          ? "Artigos de Sugestões (automáticos ou gerados manualmente na aba Sugestões) nascem publicados direto."
-          : "Artigos de Sugestões nascem como rascunho, aguardando revisão em /admin/blog.",
+          ? 'Artigos de Sugestões (automáticos ou gerados manualmente na aba Sugestões) nascem publicados direto.'
+          : 'Artigos de Sugestões nascem como rascunho, aguardando revisão em /admin/blog.',
       });
     } catch (error) {
       logger.error('Error toggling suggestions_auto_publish:', error);
       toast({
-        title: "Erro ao salvar",
-        variant: "destructive",
+        title: 'Erro ao salvar',
+        variant: 'destructive',
       });
     } finally {
       setIsSavingAutoPublish(false);
@@ -235,14 +236,15 @@ export function AutoGenerationPanel() {
       await fetchData();
 
       // Check if generation completed (look for recent success or error log)
-      const recentLog = logs.find(l => {
+      const recentLog = logs.find((l) => {
         const logTime = new Date(l.logged_at);
         const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        return logTime > fiveMinutesAgo && (
-          l.message.includes('success') ||
-          l.message.includes('sucesso') ||
-          l.message.includes('error') ||
-          l.message.includes('failed')
+        return (
+          logTime > fiveMinutesAgo &&
+          (l.message.includes('success') ||
+            l.message.includes('sucesso') ||
+            l.message.includes('error') ||
+            l.message.includes('failed'))
         );
       });
 
@@ -254,7 +256,7 @@ export function AutoGenerationPanel() {
 
         if (recentLog.message.includes('success') || recentLog.message.includes('sucesso')) {
           toast({
-            title: "Artigo gerado com sucesso!",
+            title: 'Artigo gerado com sucesso!',
             description: "Verifique a seção 'Último Artigo Gerado'.",
           });
         }
@@ -264,30 +266,34 @@ export function AutoGenerationPanel() {
     pollingIntervalRef.current = interval;
 
     // Stop polling after 5 minutes max
-    setTimeout(() => {
-      if (interval) {
-        clearInterval(interval);
-        pollingIntervalRef.current = null;
-        setIsForcing(false);
-        toast({
-          title: "Timeout",
-          description: "A geração está demorando mais que o esperado. Verifique os logs.",
-          variant: "destructive",
-        });
-      }
-    }, 5 * 60 * 1000);
+    setTimeout(
+      () => {
+        if (interval) {
+          clearInterval(interval);
+          pollingIntervalRef.current = null;
+          setIsForcing(false);
+          toast({
+            title: 'Timeout',
+            description: 'A geração está demorando mais que o esperado. Verifique os logs.',
+            variant: 'destructive',
+          });
+        }
+      },
+      5 * 60 * 1000
+    );
   };
 
   const handleForceGeneration = async () => {
     setIsForcing(true);
     try {
       // Reset last_run to force immediate execution
-      await supabase
-        .from('site_settings')
-        .upsert({
+      await supabase.from('site_settings').upsert(
+        {
           key: 'ai_auto_generate_last_run',
-          value: new Date(Date.now() - 100 * 60 * 60 * 1000).toISOString() // 100h ago
-        }, { onConflict: 'key' });
+          value: new Date(Date.now() - 100 * 60 * 60 * 1000).toISOString(), // 100h ago
+        },
+        { onConflict: 'key' }
+      );
 
       // Call the function
       const { error } = await supabase.functions.invoke('auto-article-cron', {
@@ -297,20 +303,19 @@ export function AutoGenerationPanel() {
       if (error) throw error;
 
       toast({
-        title: "Geração iniciada em background",
-        description: "Acompanhe o progresso nesta página. Atualizando automaticamente...",
+        title: 'Geração iniciada em background',
+        description: 'Acompanhe o progresso nesta página. Atualizando automaticamente...',
       });
 
       // Start polling for status updates
       startPolling();
-
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       logger.error('Error forcing generation:', error);
       toast({
-        title: "Erro ao forçar geração",
-        description: message || "Não foi possível iniciar a geração.",
-        variant: "destructive",
+        title: 'Erro ao forçar geração',
+        description: message || 'Não foi possível iniciar a geração.',
+        variant: 'destructive',
       });
       setIsForcing(false);
     }
@@ -325,16 +330,16 @@ export function AutoGenerationPanel() {
 
       if (error) throw error;
 
-      setSettings(prev => ({ ...prev, failCount: 0 }));
+      setSettings((prev) => ({ ...prev, failCount: 0 }));
       toast({
-        title: "Contador resetado",
-        description: "O contador de falhas foi zerado.",
+        title: 'Contador resetado',
+        description: 'O contador de falhas foi zerado.',
       });
     } catch (error) {
       logger.error('Error resetting fail count:', error);
       toast({
-        title: "Erro ao resetar",
-        variant: "destructive",
+        title: 'Erro ao resetar',
+        variant: 'destructive',
       });
     } finally {
       setIsResetting(false);
@@ -343,8 +348,10 @@ export function AutoGenerationPanel() {
 
   const getLogIcon = (level: string, message: string) => {
     if (level === 'error') return <XCircle className="h-4 w-4 text-destructive" />;
-    if (message.includes('success') || message.includes('sucesso')) return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-    if (message.includes('skipped') || message.includes('pulando')) return <Clock className="h-4 w-4 text-muted-foreground" />;
+    if (message.includes('success') || message.includes('sucesso'))
+      return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    if (message.includes('skipped') || message.includes('pulando'))
+      return <Clock className="h-4 w-4 text-muted-foreground" />;
     if (level === 'warn') return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
     return <Zap className="h-4 w-4 text-primary" />;
   };
@@ -357,7 +364,11 @@ export function AutoGenerationPanel() {
       return <Badge variant="destructive">Pausado (falhas)</Badge>;
     }
     if (settings.failCount > 0) {
-      return <Badge variant="outline" className="border-yellow-500 text-yellow-500">Retry ({settings.failCount})</Badge>;
+      return (
+        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+          Retry ({settings.failCount})
+        </Badge>
+      );
     }
     return <Badge className="bg-green-500">Ativo</Badge>;
   };
@@ -397,17 +408,13 @@ export function AutoGenerationPanel() {
               <Zap className="h-5 w-5 text-primary" />
               Status Atual
             </CardTitle>
-            <CardDescription>
-              Configuração e estado da geração automática
-            </CardDescription>
+            <CardDescription>Configuração e estado da geração automática</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Auto-geração</Label>
-                <p className="text-xs text-muted-foreground">
-                  Gerar artigos automaticamente
-                </p>
+                <p className="text-xs text-muted-foreground">Gerar artigos automaticamente</p>
               </div>
               <Switch
                 checked={settings.enabled}
@@ -420,8 +427,8 @@ export function AutoGenerationPanel() {
               <div className="space-y-0.5">
                 <Label>Publicar Sugestões automaticamente</Label>
                 <p className="text-xs text-muted-foreground">
-                  Vale pro cron e pra geração manual na aba Sugestões. Desligado = artigo
-                  nasce como rascunho em /admin/blog pra revisão.
+                  Vale pro cron e pra geração manual na aba Sugestões. Desligado = artigo nasce como
+                  rascunho em /admin/blog pra revisão.
                 </p>
               </div>
               <Switch
@@ -457,7 +464,9 @@ export function AutoGenerationPanel() {
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Falhas consecutivas:</span>
                 <div className="flex items-center gap-2">
-                  <span className={`font-medium ${settings.failCount > 0 ? 'text-destructive' : ''}`}>
+                  <span
+                    className={`font-medium ${settings.failCount > 0 ? 'text-destructive' : ''}`}
+                  >
                     {settings.failCount}
                   </span>
                   {settings.failCount > 0 && (
@@ -468,7 +477,11 @@ export function AutoGenerationPanel() {
                       disabled={isResetting}
                       className="h-6 px-2"
                     >
-                      {isResetting ? <Loader2 className="h-3 w-3 animate-spin" /> : <RotateCcw className="h-3 w-3" />}
+                      {isResetting ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3 w-3" />
+                      )}
                     </Button>
                   )}
                 </div>
@@ -477,11 +490,7 @@ export function AutoGenerationPanel() {
 
             <Separator />
 
-            <Button
-              onClick={handleForceGeneration}
-              disabled={isForcing}
-              className="w-full"
-            >
+            <Button onClick={handleForceGeneration} disabled={isForcing} className="w-full">
               {isForcing ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -497,7 +506,8 @@ export function AutoGenerationPanel() {
 
             {isForcing && (
               <p className="text-xs text-muted-foreground text-center mt-2">
-                A geração está em andamento em background. Esta página será atualizada automaticamente.
+                A geração está em andamento em background. Esta página será atualizada
+                automaticamente.
               </p>
             )}
           </CardContent>
@@ -510,9 +520,7 @@ export function AutoGenerationPanel() {
               <FileText className="h-5 w-5 text-primary" />
               Último Artigo Gerado
             </CardTitle>
-            <CardDescription>
-              Artigo mais recente criado automaticamente
-            </CardDescription>
+            <CardDescription>Artigo mais recente criado automaticamente</CardDescription>
           </CardHeader>
           <CardContent>
             {lastPost ? (
@@ -520,20 +528,18 @@ export function AutoGenerationPanel() {
                 <div>
                   <h4 className="font-medium leading-tight">{lastPost.title}</h4>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {format(new Date(lastPost.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    {format(new Date(lastPost.created_at), "dd/MM/yyyy 'às' HH:mm", {
+                      locale: ptBR,
+                    })}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={lastPost.published ? "default" : "secondary"}>
-                    {lastPost.published ? "Publicado" : "Rascunho"}
+                  <Badge variant={lastPost.published ? 'default' : 'secondary'}>
+                    {lastPost.published ? 'Publicado' : 'Rascunho'}
                   </Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => navigate(`/admin/blog`)}
-                  >
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/admin/blog`)}>
                     Gerenciar Blog
                   </Button>
                   <Button
@@ -561,9 +567,7 @@ export function AutoGenerationPanel() {
               <Clock className="h-5 w-5 text-primary" />
               Histórico de Execuções
             </CardTitle>
-            <CardDescription>
-              Últimas 15 execuções e seus resultados
-            </CardDescription>
+            <CardDescription>Últimas 15 execuções e seus resultados</CardDescription>
           </CardHeader>
           <CardContent>
             {logs.length > 0 ? (
@@ -585,7 +589,7 @@ export function AutoGenerationPanel() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {format(new Date(log.logged_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
+                          {format(new Date(log.logged_at), 'dd/MM/yyyy HH:mm:ss', { locale: ptBR })}
                         </p>
                         {log.context && Object.keys(log.context).length > 0 && (
                           <details className="mt-2">

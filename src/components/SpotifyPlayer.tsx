@@ -1,6 +1,6 @@
-import { useSiteSettings } from "@/hooks/useSiteSettings";
-import { Music } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useSiteSettings } from '@/hooks/useSiteSettings';
+import { Music } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 export const SpotifyPlayer = () => {
   const { settings } = useSiteSettings();

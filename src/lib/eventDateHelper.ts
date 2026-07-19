@@ -9,15 +9,15 @@
  */
 
 export interface EventVisibilityParams {
-  date: string;            // YYYY-MM-DD (data inicial)
+  date: string; // YYYY-MM-DD (data inicial)
   end_date?: string | null; // YYYY-MM-DD (data final de festivais multi-dias). Quando ausente, == date.
-  time?: string | null;    // HH:MM[:SS] opcional
+  time?: string | null; // HH:MM[:SS] opcional
   end_time?: string | null; // mantido por compatibilidade — ignorado no cálculo
 }
 
 export interface EventVisibilitySettings {
-  timezoneOffset: number;   // ex.: -3
-  hoursAfterStart: number;  // default 12
+  timezoneOffset: number; // ex.: -3
+  hoursAfterStart: number; // default 12
   hoursWithoutTime: number; // default 24
 }
 
@@ -44,14 +44,14 @@ function localToUtcMs(
   minutes: number,
   timezoneOffset: number
 ): number {
-  const [year, month, day] = dateStr.split("-").map(Number);
+  const [year, month, day] = dateStr.split('-').map(Number);
   // Date.UTC trata os args como UTC. Para representar "hora local no offset X",
   // subtraímos o offset (ex.: 22:00 BRT = 22:00 - (-3h) = 01:00 UTC).
   return Date.UTC(year, month - 1, day, hours, minutes, 0) - timezoneOffset * 3_600_000;
 }
 
 function parseHHMM(timeStr: string): { h: number; m: number } {
-  const [h, m] = timeStr.split(":").map(Number);
+  const [h, m] = timeStr.split(':').map(Number);
   return { h: h || 0, m: m || 0 };
 }
 
@@ -72,7 +72,8 @@ export function isEventActive(
 
   let endMs: number;
   // Para festivais multi-dias, a janela de graça é aplicada sobre o ÚLTIMO dia.
-  const referenceDate = event.end_date && event.end_date >= event.date ? event.end_date : event.date;
+  const referenceDate =
+    event.end_date && event.end_date >= event.date ? event.end_date : event.date;
 
   if (event.time) {
     const { h, m } = parseHHMM(event.time);

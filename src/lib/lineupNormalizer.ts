@@ -10,10 +10,10 @@ export function normalizeLineup(input: unknown): string[] {
   if (!Array.isArray(input)) return [];
   const out: string[] = [];
   for (const item of input) {
-    if (typeof item !== "string") continue;
+    if (typeof item !== 'string') continue;
     item
       .split(/[,;]/)
-      .map((s) => s.trim().replace(/\.$/, "").trim())
+      .map((s) => s.trim().replace(/\.$/, '').trim())
       .filter(Boolean)
       .forEach((s) => out.push(s));
   }

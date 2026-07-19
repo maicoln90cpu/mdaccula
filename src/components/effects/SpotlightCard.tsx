@@ -1,5 +1,5 @@
-import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface SpotlightCardProps {
   children: React.ReactNode;
@@ -20,7 +20,7 @@ export const SpotlightCard = ({ children, className }: SpotlightCardProps) => {
   const background = useMotionTemplate`radial-gradient(240px circle at ${mouseX}px ${mouseY}px, hsl(var(--primary) / 0.15), transparent 80%)`;
 
   return (
-    <div className={cn("group relative overflow-hidden", className)} onMouseMove={handleMouseMove}>
+    <div className={cn('group relative overflow-hidden', className)} onMouseMove={handleMouseMove}>
       <motion.div
         className="pointer-events-none absolute inset-0 z-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
         style={{ background }}

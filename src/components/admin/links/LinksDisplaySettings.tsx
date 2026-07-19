@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Clock } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Save, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 
 const LinksDisplaySettings = () => {
   const [linksShowEventDate, setLinksShowEventDate] = useState(true);
@@ -16,21 +16,21 @@ const LinksDisplaySettings = () => {
   const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("site_settings")
-        .select("key, value")
-        .eq("key", "links_show_event_date")
+        .from('site_settings')
+        .select('key, value')
+        .eq('key', 'links_show_event_date')
         .maybeSingle();
 
       if (error) throw error;
 
       if (data) {
-        setLinksShowEventDate(data.value !== "false");
+        setLinksShowEventDate(data.value !== 'false');
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao carregar configurações",
+        variant: 'destructive',
+        title: 'Erro ao carregar configurações',
         description: message,
       });
     } finally {
@@ -46,20 +46,23 @@ const LinksDisplaySettings = () => {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from("site_settings")
-        .upsert({ key: "links_show_event_date", value: linksShowEventDate.toString() }, { onConflict: "key" });
+        .from('site_settings')
+        .upsert(
+          { key: 'links_show_event_date', value: linksShowEventDate.toString() },
+          { onConflict: 'key' }
+        );
 
       if (error) throw error;
 
       toast({
-        title: "Configurações salvas",
-        description: "As configurações de exibição foram atualizadas.",
+        title: 'Configurações salvas',
+        description: 'As configurações de exibição foram atualizadas.',
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao salvar configurações",
+        variant: 'destructive',
+        title: 'Erro ao salvar configurações',
         description: message,
       });
     } finally {
@@ -83,7 +86,8 @@ const LinksDisplaySettings = () => {
           <CardTitle className="text-lg sm:text-xl">Configurações de Exibição</CardTitle>
         </div>
         <CardDescription className="text-sm">
-          Timezone global e regras de visibilidade de eventos ficam em Configurações → Geral e em Eventos → Configurações.
+          Timezone global e regras de visibilidade de eventos ficam em Configurações → Geral e em
+          Eventos → Configurações.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 px-4 sm:px-6">
@@ -103,7 +107,7 @@ const LinksDisplaySettings = () => {
 
         <Button onClick={handleSave} disabled={saving} className="w-full">
           <Save className="w-4 h-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Configurações"}
+          {saving ? 'Salvando...' : 'Salvar Configurações'}
         </Button>
       </CardContent>
     </Card>

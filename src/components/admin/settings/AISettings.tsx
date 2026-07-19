@@ -1,24 +1,31 @@
-import { useState } from "react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Slider } from "@/components/ui/slider";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Image, Thermometer, History, Sparkles, Eye, RotateCcw } from "lucide-react";
-import { AI_MODELS, DEFAULT_IMAGE_PROMPT } from "./aiSettingsConstants";
+import { useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Slider } from '@/components/ui/slider';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Bot, Image, Thermometer, History, Sparkles, Eye, RotateCcw } from 'lucide-react';
+import { AI_MODELS, DEFAULT_IMAGE_PROMPT } from './aiSettingsConstants';
 
 // Dados de exemplo para preview do prompt
 const SAMPLE_DATA = {
-  title: "Vintage Culture Anuncia Turnê Mundial 2026",
-  summary: "O produtor brasileiro Vintage Culture revela as datas de sua maior turnê mundial, passando por 40 cidades em 5 continentes.",
-  category: "Eventos",
-  keywords: "Vintage Culture, turnê mundial, house music, DJ brasileiro, 2026",
-  mood: "energético e celebratório",
-  visualElements: "palco gigante com LED, multidão vibrante, luzes douradas, atmosfera de festival",
+  title: 'Vintage Culture Anuncia Turnê Mundial 2026',
+  summary:
+    'O produtor brasileiro Vintage Culture revela as datas de sua maior turnê mundial, passando por 40 cidades em 5 continentes.',
+  category: 'Eventos',
+  keywords: 'Vintage Culture, turnê mundial, house music, DJ brasileiro, 2026',
+  mood: 'energético e celebratório',
+  visualElements: 'palco gigante com LED, multidão vibrante, luzes douradas, atmosfera de festival',
 };
 
 // Componente de Preview do Prompt
@@ -75,18 +82,34 @@ const ImagePromptSection = ({
               </DialogHeader>
               <div className="space-y-4">
                 <div className="p-3 rounded-lg bg-muted/50 border">
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">Dados de exemplo utilizados:</p>
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">
+                    Dados de exemplo utilizados:
+                  </p>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div><strong>Título:</strong> {SAMPLE_DATA.title}</div>
-                    <div><strong>Categoria:</strong> {SAMPLE_DATA.category}</div>
-                    <div className="col-span-2"><strong>Resumo:</strong> {SAMPLE_DATA.summary}</div>
-                    <div className="col-span-2"><strong>Keywords:</strong> {SAMPLE_DATA.keywords}</div>
-                    <div><strong>Mood:</strong> {SAMPLE_DATA.mood}</div>
-                    <div className="col-span-2"><strong>Elementos Visuais:</strong> {SAMPLE_DATA.visualElements}</div>
+                    <div>
+                      <strong>Título:</strong> {SAMPLE_DATA.title}
+                    </div>
+                    <div>
+                      <strong>Categoria:</strong> {SAMPLE_DATA.category}
+                    </div>
+                    <div className="col-span-2">
+                      <strong>Resumo:</strong> {SAMPLE_DATA.summary}
+                    </div>
+                    <div className="col-span-2">
+                      <strong>Keywords:</strong> {SAMPLE_DATA.keywords}
+                    </div>
+                    <div>
+                      <strong>Mood:</strong> {SAMPLE_DATA.mood}
+                    </div>
+                    <div className="col-span-2">
+                      <strong>Elementos Visuais:</strong> {SAMPLE_DATA.visualElements}
+                    </div>
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-2 font-medium">Prompt final gerado:</p>
+                  <p className="text-xs text-muted-foreground mb-2 font-medium">
+                    Prompt final gerado:
+                  </p>
                   <ScrollArea className="h-[300px]">
                     <pre className="p-4 rounded-lg bg-background border text-xs font-mono whitespace-pre-wrap">
                       {getPreviewPrompt()}
@@ -105,18 +128,20 @@ const ImagePromptSection = ({
         className="min-h-[200px] font-mono text-xs"
       />
       <div className="text-xs text-muted-foreground space-y-2">
-        <p><strong>Variáveis disponíveis:</strong></p>
+        <p>
+          <strong>Variáveis disponíveis:</strong>
+        </p>
         <div className="flex flex-wrap gap-1">
-          <code className="bg-muted px-1.5 py-0.5 rounded">{"{{title}}"}</code>
-          <code className="bg-muted px-1.5 py-0.5 rounded">{"{{summary}}"}</code>
-          <code className="bg-muted px-1.5 py-0.5 rounded">{"{{category}}"}</code>
-          <code className="bg-muted px-1.5 py-0.5 rounded">{"{{keywords}}"}</code>
-          <code className="bg-muted px-1.5 py-0.5 rounded">{"{{mood}}"}</code>
-          <code className="bg-muted px-1.5 py-0.5 rounded">{"{{visualElements}}"}</code>
+          <code className="bg-muted px-1.5 py-0.5 rounded">{'{{title}}'}</code>
+          <code className="bg-muted px-1.5 py-0.5 rounded">{'{{summary}}'}</code>
+          <code className="bg-muted px-1.5 py-0.5 rounded">{'{{category}}'}</code>
+          <code className="bg-muted px-1.5 py-0.5 rounded">{'{{keywords}}'}</code>
+          <code className="bg-muted px-1.5 py-0.5 rounded">{'{{mood}}'}</code>
+          <code className="bg-muted px-1.5 py-0.5 rounded">{'{{visualElements}}'}</code>
         </div>
         <p className="text-muted-foreground/80">
-          As variáveis são preenchidas automaticamente com dados do artigo. 
-          Evite pedir texto nas imagens para melhores resultados.
+          As variáveis são preenchidas automaticamente com dados do artigo. Evite pedir texto nas
+          imagens para melhores resultados.
         </p>
       </div>
     </div>
@@ -152,7 +177,7 @@ const AISettings = ({
   aiMaxScrapeSources,
   setAiMaxScrapeSources,
 }: AISettingsProps) => {
-  const selectedModelConfig = AI_MODELS.find(m => m.id === aiModel);
+  const selectedModelConfig = AI_MODELS.find((m) => m.id === aiModel);
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -167,7 +192,6 @@ const AISettings = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 px-4 sm:px-6">
-          
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Bot className="w-4 h-4 text-muted-foreground" />
@@ -175,10 +199,12 @@ const AISettings = ({
             </div>
             <RadioGroup value={aiModel} onValueChange={setAiModel}>
               {AI_MODELS.map((model) => (
-                <div 
+                <div
                   key={model.id}
                   className={`flex items-start justify-between space-x-3 py-3 px-4 rounded-lg border transition-colors ${
-                    aiModel === model.id ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'
+                    aiModel === model.id
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted/50'
                   }`}
                 >
                   <div className="flex items-start space-x-3 flex-1">
@@ -186,16 +212,20 @@ const AISettings = ({
                     <Label htmlFor={model.id} className="font-normal cursor-pointer flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{model.name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
-                          model.apiSource === 'openai' 
-                            ? 'bg-green-500/20 text-green-600' 
-                            : 'bg-blue-500/20 text-blue-600'
-                        }`}>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            model.apiSource === 'openai'
+                              ? 'bg-green-500/20 text-green-600'
+                              : 'bg-blue-500/20 text-blue-600'
+                          }`}
+                        >
                           {model.apiSource === 'openai' ? '🔑 Sua chave OpenAI' : '☁️ Lovable AI'}
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">{model.description}</div>
-                      <div className="text-xs text-primary/80 mt-1 font-mono">{model.characteristics}</div>
+                      <div className="text-xs text-primary/80 mt-1 font-mono">
+                        {model.characteristics}
+                      </div>
                     </Label>
                   </div>
                   <div className="text-right shrink-0">
@@ -206,9 +236,15 @@ const AISettings = ({
               ))}
             </RadioGroup>
             <p className="text-xs text-muted-foreground mt-2 p-3 rounded-lg bg-muted/30 border">
-              <strong>Sobre as APIs:</strong> Modelos Gemini usam créditos da Lovable AI. 
-              Modelos OpenAI usam sua própria chave (OPENAI_API_KEY) e custos são cobrados diretamente pela OpenAI em{' '}
-              <a href="https://platform.openai.com/usage" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              <strong>Sobre as APIs:</strong> Modelos Gemini usam créditos da Lovable AI. Modelos
+              OpenAI usam sua própria chave (OPENAI_API_KEY) e custos são cobrados diretamente pela
+              OpenAI em{' '}
+              <a
+                href="https://platform.openai.com/usage"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
                 platform.openai.com/usage
               </a>
             </p>
@@ -221,7 +257,9 @@ const AISettings = ({
                   <Thermometer className="w-4 h-4 text-muted-foreground" />
                   <Label className="text-sm font-medium">Temperatura (Criatividade)</Label>
                 </div>
-                <span className="text-sm font-mono bg-background px-2 py-1 rounded">{aiTemperature.toFixed(1)}</span>
+                <span className="text-sm font-mono bg-background px-2 py-1 rounded">
+                  {aiTemperature.toFixed(1)}
+                </span>
               </div>
               <Slider
                 value={[aiTemperature]}
@@ -237,20 +275,20 @@ const AISettings = ({
                 <span>2.0 - Muito criativo</span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Valores mais altos geram textos mais criativos e variados. Disponível apenas para modelos Gemini.
+                Valores mais altos geram textos mais criativos e variados. Disponível apenas para
+                modelos Gemini.
               </p>
             </div>
           )}
 
-          <ImagePromptSection
-            aiImagePrompt={aiImagePrompt}
-            setAiImagePrompt={setAiImagePrompt}
-          />
+          <ImagePromptSection aiImagePrompt={aiImagePrompt} setAiImagePrompt={setAiImagePrompt} />
 
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <History className="w-4 h-4 text-muted-foreground" />
-              <Label className="text-sm font-medium">Limite de Histórico para Evitar Repetição</Label>
+              <Label className="text-sm font-medium">
+                Limite de Histórico para Evitar Repetição
+              </Label>
             </div>
             <div className="flex items-center gap-4">
               <Input
@@ -264,7 +302,8 @@ const AISettings = ({
               <span className="text-sm text-muted-foreground">artigos recentes</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Quantos artigos publicados a IA deve considerar para evitar sugerir temas repetidos (5-50).
+              Quantos artigos publicados a IA deve considerar para evitar sugerir temas repetidos
+              (5-50).
             </p>
           </div>
 
@@ -284,7 +323,8 @@ const AISettings = ({
               <span className="text-sm text-muted-foreground">fontes de notícias</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Quantas fontes de notícias serão scrapeadas para contexto (1-10). Mais fontes = mais contexto, porém mais lento.
+              Quantas fontes de notícias serão scrapeadas para contexto (1-10). Mais fontes = mais
+              contexto, porém mais lento.
             </p>
           </div>
 
@@ -310,7 +350,7 @@ const AISettings = ({
           </div>
 
           <p className="text-xs text-muted-foreground p-3 rounded-lg bg-muted/30 border">
-            A geração automática de artigos (ligar/desligar, intervalo e logs de execução) fica em{" "}
+            A geração automática de artigos (ligar/desligar, intervalo e logs de execução) fica em{' '}
             <strong>Conteúdo por IA → aba Automação</strong>.
           </p>
         </CardContent>

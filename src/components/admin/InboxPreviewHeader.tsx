@@ -13,8 +13,8 @@
  *   {{city_state}}   === {{event.city_state}}
  * Além disso reconhecemos {{time_label}}, {{weekend_range}}, {{week_range}}.
  */
-import { Mail } from "lucide-react";
-import { resolvePlaceholders } from "./inboxPreviewPlaceholders";
+import { Mail } from 'lucide-react';
+import { resolvePlaceholders } from './inboxPreviewPlaceholders';
 
 export type InboxPreviewData = {
   eventTitle?: string;
@@ -48,16 +48,22 @@ type Props = {
  * Mapa canônico placeholder → valor.
  * Cada chave lista TODAS as variações aceitas (ponto e underline).
  */
-const PLACEHOLDER_ALIASES: Array<{ keys: string[]; get: (d: InboxPreviewData) => string | undefined }> = [
-  { keys: ["event_title", "event.title"], get: (d) => d.eventTitle },
-  { keys: ["date_label", "event.date_label"], get: (d) => d.dateLabel },
-  { keys: ["time_label", "event.time_label"], get: (d) => d.timeLabel },
-  { keys: ["venue_name", "event.venue", "event.venue_name"], get: (d) => d.venueName },
-  { keys: ["city_state", "event.city_state"], get: (d) => d.cityState },
-  { keys: ["weekend_range"], get: (d) => d.weekendRange },
-  { keys: ["week_range"], get: (d) => d.weekRange },
-  { keys: ["range_label"], get: (d) => d.rangeLabel },
-  { keys: ["events_count"], get: (d) => d.eventsCount == null ? undefined : String(d.eventsCount) },
+const PLACEHOLDER_ALIASES: Array<{
+  keys: string[];
+  get: (d: InboxPreviewData) => string | undefined;
+}> = [
+  { keys: ['event_title', 'event.title'], get: (d) => d.eventTitle },
+  { keys: ['date_label', 'event.date_label'], get: (d) => d.dateLabel },
+  { keys: ['time_label', 'event.time_label'], get: (d) => d.timeLabel },
+  { keys: ['venue_name', 'event.venue', 'event.venue_name'], get: (d) => d.venueName },
+  { keys: ['city_state', 'event.city_state'], get: (d) => d.cityState },
+  { keys: ['weekend_range'], get: (d) => d.weekendRange },
+  { keys: ['week_range'], get: (d) => d.weekRange },
+  { keys: ['range_label'], get: (d) => d.rangeLabel },
+  {
+    keys: ['events_count'],
+    get: (d) => (d.eventsCount == null ? undefined : String(d.eventsCount)),
+  },
 ];
 
 /** Regex que casa qualquer `{{ nome }}` (com ou sem espaços, com ponto ou underline). */
@@ -73,14 +79,14 @@ export function InboxPreviewHeader({
   subjectTemplate,
   preheaderTemplate,
   data,
-  senderName = "MDAccula",
-  senderInitials = "MD",
+  senderName = 'MDAccula',
+  senderInitials = 'MD',
   overrideSubject,
   overridePreheader,
 }: Props) {
   const subject = overrideSubject ?? resolvePlaceholders(subjectTemplate, data);
   const preheader = overridePreheader ?? resolvePlaceholders(preheaderTemplate, data);
-  const rawCombined = `${subjectTemplate ?? ""} ${preheaderTemplate ?? ""}`;
+  const rawCombined = `${subjectTemplate ?? ''} ${preheaderTemplate ?? ''}`;
 
   return (
     <div className="mb-2 rounded-md border border-border bg-background/60 backdrop-blur-sm">
@@ -98,9 +104,7 @@ export function InboxPreviewHeader({
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-1.5 min-w-0">
               <Mail className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground truncate">
-                {senderName}
-              </span>
+              <span className="text-xs font-semibold text-foreground truncate">{senderName}</span>
               <span className="text-[10px] text-muted-foreground hidden sm:inline">
                 &lt;noreply@mdaccula.com&gt;
               </span>

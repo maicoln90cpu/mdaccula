@@ -1,4 +1,4 @@
-import { createContext } from "react";
+import { createContext } from 'react';
 
 export interface SiteSettings {
   google_tag_manager_id?: string;

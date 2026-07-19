@@ -6,9 +6,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { useAuth } from '@/hooks/useAuthContext';
 
 // Create wrapper component
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;
 
 describe('useAuth', () => {
   beforeEach(() => {

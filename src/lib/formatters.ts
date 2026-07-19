@@ -14,7 +14,7 @@
  * @example formatCount(null) // "—"
  */
 export const formatCount = (n: number | null | undefined): string =>
-  typeof n === "number" ? n.toLocaleString("pt-BR") : "—";
+  typeof n === 'number' ? n.toLocaleString('pt-BR') : '—';
 
 /**
  * Formata um ISO string / Date em data + hora pt-BR (dd/mm/aaaa hh:mm:ss).
@@ -26,14 +26,12 @@ export const formatCount = (n: number | null | undefined): string =>
  * @example formatDateTimeBR(null) // "—"
  * @example formatDateTimeBR("abc") // "abc" (não quebra a UI)
  */
-export const formatDateTimeBR = (
-  input: string | number | Date | null | undefined,
-): string => {
-  if (input === null || input === undefined || input === "") return "—";
+export const formatDateTimeBR = (input: string | number | Date | null | undefined): string => {
+  if (input === null || input === undefined || input === '') return '—';
   try {
     const d = input instanceof Date ? input : new Date(input);
     if (Number.isNaN(d.getTime())) return String(input);
-    return d.toLocaleString("pt-BR");
+    return d.toLocaleString('pt-BR');
   } catch {
     return String(input);
   }
@@ -42,14 +40,12 @@ export const formatDateTimeBR = (
 /**
  * Versão só-data (dd/mm/aaaa), mesmo contrato de fallback do `formatDateTimeBR`.
  */
-export const formatDateBR = (
-  input: string | number | Date | null | undefined,
-): string => {
-  if (input === null || input === undefined || input === "") return "—";
+export const formatDateBR = (input: string | number | Date | null | undefined): string => {
+  if (input === null || input === undefined || input === '') return '—';
   try {
     const d = input instanceof Date ? input : new Date(input);
     if (Number.isNaN(d.getTime())) return String(input);
-    return d.toLocaleDateString("pt-BR");
+    return d.toLocaleDateString('pt-BR');
   } catch {
     return String(input);
   }

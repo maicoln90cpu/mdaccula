@@ -19,14 +19,21 @@ export type {
   BlogPostItem,
   EventAnnouncementData,
   EmailTemplateSettings,
-} from "@shared/emailBlocks.ts";
+} from '@shared/emailBlocks.ts';
 
-import type {
-  EventAnnouncementData,
-  EmailTemplateSettings,
-} from "@shared/emailBlocks.ts";
+import type { EventAnnouncementData, EmailTemplateSettings } from '@shared/emailBlocks.ts';
 
-const DEFAULTS: Required<Omit<EmailTemplateSettings, "logo_url" | "custom_html_header" | "custom_html_footer" | "instagram_url" | "youtube_url" | "tiktok_url">> & {
+const DEFAULTS: Required<
+  Omit<
+    EmailTemplateSettings,
+    | 'logo_url'
+    | 'custom_html_header'
+    | 'custom_html_footer'
+    | 'instagram_url'
+    | 'youtube_url'
+    | 'tiktok_url'
+  >
+> & {
   logo_url: string | null;
   custom_html_header: string | null;
   custom_html_footer: string | null;
@@ -34,48 +41,48 @@ const DEFAULTS: Required<Omit<EmailTemplateSettings, "logo_url" | "custom_html_h
   youtube_url: string;
   tiktok_url: string;
 } = {
-  brand_name: "MDACCULA",
+  brand_name: 'MDACCULA',
   logo_url: null,
-  primary_color: "#a855f7",
-  accent_color: "#ec4899",
-  background_color: "#050505",
+  primary_color: '#a855f7',
+  accent_color: '#ec4899',
+  background_color: '#050505',
   footer_text:
-    "Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de São Paulo-SP.",
-  cta_label: "Garantir ingresso",
-  instagram_url: "https://instagram.com/mdaccula",
-  youtube_url: "https://youtube.com/@mdaccula",
-  tiktok_url: "https://tiktok.com/@mdaccula",
+    'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de São Paulo-SP.',
+  cta_label: 'Garantir ingresso',
+  instagram_url: 'https://instagram.com/mdaccula',
+  youtube_url: 'https://youtube.com/@mdaccula',
+  tiktok_url: 'https://tiktok.com/@mdaccula',
   show_subtitle: true,
   show_description: true,
   show_socials: true,
   show_secondary_link: true,
-  secondary_link_label: "Ver agenda completa no site",
+  secondary_link_label: 'Ver agenda completa no site',
   custom_html_header: null,
   custom_html_footer: null,
 };
 
 const escape = (s: string) =>
   s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 
 /** Sanitização leve para HTML customizado do editor. Remove tags e handlers perigosos. */
 const sanitizeCustomHtml = (raw: string) =>
   raw
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
-    .replace(/on\w+\s*=\s*"[^"]*"/gi, "")
-    .replace(/on\w+\s*=\s*'[^']*'/gi, "")
-    .replace(/javascript:/gi, "");
+    .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[\s\S]*?<\/style>/gi, '')
+    .replace(/<iframe[\s\S]*?<\/iframe>/gi, '')
+    .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/on\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/javascript:/gi, '');
 
 export function renderEventAnnouncementEmail(
   data: EventAnnouncementData,
   settingsInput?: EmailTemplateSettings | null,
-  opts?: { preheader?: string | null },
+  opts?: { preheader?: string | null }
 ): string {
   const s = { ...DEFAULTS, ...(settingsInput ?? {}) };
 
@@ -94,7 +101,9 @@ export function renderEventAnnouncementEmail(
     unsubscribeUrl,
   } = data;
 
-  const preheader = escape(opts?.preheader ?? `${eventTitle} — ${dateLabel} em ${venueName}, ${cityState}`);
+  const preheader = escape(
+    opts?.preheader ?? `${eventTitle} — ${dateLabel} em ${venueName}, ${cityState}`
+  );
   const bg = escape(s.background_color);
   const primary = escape(s.primary_color);
   const accent = escape(s.accent_color);
@@ -107,13 +116,13 @@ export function renderEventAnnouncementEmail(
     : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
 
   const socialLinks = [
-    s.instagram_url ? { label: "Instagram", url: s.instagram_url, color: primary } : null,
-    s.youtube_url ? { label: "YouTube", url: s.youtube_url, color: accent } : null,
-    s.tiktok_url ? { label: "TikTok", url: s.tiktok_url, color: "#60a5fa" } : null,
+    s.instagram_url ? { label: 'Instagram', url: s.instagram_url, color: primary } : null,
+    s.youtube_url ? { label: 'YouTube', url: s.youtube_url, color: accent } : null,
+    s.tiktok_url ? { label: 'TikTok', url: s.tiktok_url, color: '#60a5fa' } : null,
   ].filter(Boolean) as { label: string; url: string; color: string }[];
 
-  const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
-  const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
+  const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : '';
+  const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : '';
 
   return `<!doctype html>
 <html lang="pt-BR">
@@ -132,7 +141,7 @@ export function renderEventAnnouncementEmail(
 
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#080808;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
 
-  ${customHeader ? `<tr><td style="padding:16px 24px 0 24px;">${customHeader}</td></tr>` : ""}
+  ${customHeader ? `<tr><td style="padding:16px 24px 0 24px;">${customHeader}</td></tr>` : ''}
 
   <tr><td align="center" style="padding:32px 24px 24px 24px;">${headerBlock}</td></tr>
 
@@ -145,7 +154,7 @@ export function renderEventAnnouncementEmail(
   <tr><td style="padding:32px 32px 8px 32px;">
     <p style="margin:0 0 8px 0;color:${primary};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">Novo evento confirmado</p>
     <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.01em;">${escape(eventTitle)}</h1>
-    ${s.show_subtitle && eventSubtitle ? `<p style="margin:0;color:#a1a1aa;font-size:16px;line-height:1.5;">${escape(eventSubtitle)}</p>` : ""}
+    ${s.show_subtitle && eventSubtitle ? `<p style="margin:0;color:#a1a1aa;font-size:16px;line-height:1.5;">${escape(eventSubtitle)}</p>` : ''}
   </td></tr>
 
   <tr><td style="padding:16px 32px;">
@@ -163,11 +172,11 @@ export function renderEventAnnouncementEmail(
     </table>
   </td></tr>
 
-  ${s.show_description ? `<tr><td style="padding:8px 32px 24px 32px;"><p style="margin:0;color:#a1a1aa;font-size:15px;line-height:1.6;">${escape(description)}</p></td></tr>` : ""}
+  ${s.show_description ? `<tr><td style="padding:8px 32px 24px 32px;"><p style="margin:0;color:#a1a1aa;font-size:15px;line-height:1.6;">${escape(description)}</p></td></tr>` : ''}
 
   <tr><td align="center" style="padding:8px 32px 24px 32px;">
     <a href="${escape(ticketUrl)}" style="display:block;width:100%;padding:18px 24px;box-sizing:border-box;background:${gradient};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;">${ctaLabel}</a>
-    ${s.show_secondary_link ? `<a href="${escape(agendaUrl)}" style="display:block;margin-top:20px;color:#71717a;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${escape(s.secondary_link_label)}</a>` : ""}
+    ${s.show_secondary_link ? `<a href="${escape(agendaUrl)}" style="display:block;margin-top:20px;color:#71717a;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${escape(s.secondary_link_label)}</a>` : ''}
   </td></tr>
 
   <tr><td align="center" style="padding:32px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);">
@@ -176,16 +185,16 @@ export function renderEventAnnouncementEmail(
         ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 24px auto;"><tr>${socialLinks
             .map(
               (l, i) =>
-                `${i > 0 ? `<td style="padding:0 8px;color:#3f3f46;">·</td>` : ""}<td style="padding:0 8px;"><a href="${escape(
-                  l.url,
-                )}" style="color:${l.color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${l.label}</a></td>`,
+                `${i > 0 ? `<td style="padding:0 8px;color:#3f3f46;">·</td>` : ''}<td style="padding:0 8px;"><a href="${escape(
+                  l.url
+                )}" style="color:${l.color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${l.label}</a></td>`
             )
-            .join("")}</tr></table>`
-        : ""
+            .join('')}</tr></table>`
+        : ''
     }
     <p style="margin:0 0 12px 0;color:#52525b;font-size:11px;line-height:1.6;max-width:400px;">${escape(s.footer_text)}</p>
     <p style="margin:0;font-size:11px;"><a href="${escape(unsubscribeUrl)}" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a></p>
-    ${customFooter ? `<div style="margin-top:16px;">${customFooter}</div>` : ""}
+    ${customFooter ? `<div style="margin-top:16px;">${customFooter}</div>` : ''}
   </td></tr>
 
 </table>
@@ -198,23 +207,23 @@ export function renderEventAnnouncementEmail(
 
 /** Mock realista para preview e testes. */
 export const MOCK_EVENT_DATA: EventAnnouncementData = {
-  eventTitle: "NEON GARDEN: MELODIC TECHNO",
-  eventSubtitle: "Uma imersão visual e sonora exclusiva no coração de São Paulo.",
-  flyerUrl: "https://placehold.co/1080x1350/1a1a2e/ffffff/png?text=Flyer+do+Evento",
-  dateLabel: "Sábado, 25 de Maio",
-  timeLabel: "22h às 06h",
-  venueName: "Musiva",
-  cityState: "São Paulo-SP",
+  eventTitle: 'NEON GARDEN: MELODIC TECHNO',
+  eventSubtitle: 'Uma imersão visual e sonora exclusiva no coração de São Paulo.',
+  flyerUrl: 'https://placehold.co/1080x1350/1a1a2e/ffffff/png?text=Flyer+do+Evento',
+  dateLabel: 'Sábado, 25 de Maio',
+  timeLabel: '22h às 06h',
+  venueName: 'Musiva',
+  cityState: 'São Paulo-SP',
   description:
-    "Prepare-se para uma noite intensa com line-up selecionado, sistema de som premium e visuais imersivos.\nIngressos limitados, primeiro lote em promoção.\nAcesso permitido apenas para maiores de 18 anos.",
-  ticketUrl: "https://mdaccula.com/eventos/neon-garden-melodic-techno",
-  eventUrl: "https://mdaccula.com/eventos/neon-garden-melodic-techno",
-  agendaUrl: "https://mdaccula.com/eventos",
-  instagramUrl: "https://instagram.com/mdaccula",
-  youtubeUrl: "https://youtube.com/@mdaccula",
-  tiktokUrl: "https://tiktok.com/@mdaccula",
-  unsubscribeUrl: "https://mdaccula.com/descadastrar?token=EXAMPLE",
-  lineup: ["ANNA", "Adam Beyer", "Charlotte de Witte", "Amelie Lens", "Local Support"],
+    'Prepare-se para uma noite intensa com line-up selecionado, sistema de som premium e visuais imersivos.\nIngressos limitados, primeiro lote em promoção.\nAcesso permitido apenas para maiores de 18 anos.',
+  ticketUrl: 'https://mdaccula.com/eventos/neon-garden-melodic-techno',
+  eventUrl: 'https://mdaccula.com/eventos/neon-garden-melodic-techno',
+  agendaUrl: 'https://mdaccula.com/eventos',
+  instagramUrl: 'https://instagram.com/mdaccula',
+  youtubeUrl: 'https://youtube.com/@mdaccula',
+  tiktokUrl: 'https://tiktok.com/@mdaccula',
+  unsubscribeUrl: 'https://mdaccula.com/descadastrar?token=EXAMPLE',
+  lineup: ['ANNA', 'Adam Beyer', 'Charlotte de Witte', 'Amelie Lens', 'Local Support'],
   eventStartIso: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
   ticketBatchDeadlineIso: (() => {
     const d = new Date();
@@ -225,79 +234,94 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
   venueLng: -56.097892,
   weekendEvents: [
     {
-      id: "w1",
-      title: "NEON GARDEN: MELODIC TECHNO",
-      dayLabel: "Sexta, 24/05",
-      timeLabel: "22h",
-      venue: "Musiva",
-      cityState: "São Paulo-SP",
-      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
-      eventUrl: "https://mdaccula.com/eventos/neon-garden",
-      ticketUrl: "https://mdaccula.com/eventos/neon-garden",
-      articleUrl: "https://mdaccula.com/blog/neon-garden-materia",
+      id: 'w1',
+      title: 'NEON GARDEN: MELODIC TECHNO',
+      dayLabel: 'Sexta, 24/05',
+      timeLabel: '22h',
+      venue: 'Musiva',
+      cityState: 'São Paulo-SP',
+      imageUrl: 'https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg',
+      eventUrl: 'https://mdaccula.com/eventos/neon-garden',
+      ticketUrl: 'https://mdaccula.com/eventos/neon-garden',
+      articleUrl: 'https://mdaccula.com/blog/neon-garden-materia',
     },
     {
-      id: "w2",
-      title: "OPEN AIR SUNSET",
-      dayLabel: "Sábado, 25/05",
-      timeLabel: "17h",
-      venue: "Rooftop 121",
-      cityState: "São Paulo-SP",
-      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
-      eventUrl: "https://mdaccula.com/eventos/open-air-sunset",
-      ticketUrl: "https://mdaccula.com/eventos/open-air-sunset",
+      id: 'w2',
+      title: 'OPEN AIR SUNSET',
+      dayLabel: 'Sábado, 25/05',
+      timeLabel: '17h',
+      venue: 'Rooftop 121',
+      cityState: 'São Paulo-SP',
+      imageUrl: 'https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg',
+      eventUrl: 'https://mdaccula.com/eventos/open-air-sunset',
+      ticketUrl: 'https://mdaccula.com/eventos/open-air-sunset',
     },
     {
-      id: "w3",
-      title: "AFTER SUNDAY: DEEP HOUSE",
-      dayLabel: "Domingo, 26/05",
-      timeLabel: "16h",
-      venue: "Casa da Praia",
-      cityState: "São Paulo-SP",
-      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
-      eventUrl: "https://mdaccula.com/eventos/after-sunday",
+      id: 'w3',
+      title: 'AFTER SUNDAY: DEEP HOUSE',
+      dayLabel: 'Domingo, 26/05',
+      timeLabel: '16h',
+      venue: 'Casa da Praia',
+      cityState: 'São Paulo-SP',
+      imageUrl: 'https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg',
+      eventUrl: 'https://mdaccula.com/eventos/after-sunday',
     },
   ],
   blogPosts: [
     {
-      id: "p1",
-      title: "Charlotte de Witte revela setlist inédito em São Paulo",
-      excerpt: "A rainha do techno passa por São Paulo com um set exclusivo de melodic techno.",
-      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
-      url: "https://mdaccula.com/blog/charlotte-de-witte-sao-paulo",
-      publishedLabel: "há 2 dias",
-      category: "Matéria",
+      id: 'p1',
+      title: 'Charlotte de Witte revela setlist inédito em São Paulo',
+      excerpt: 'A rainha do techno passa por São Paulo com um set exclusivo de melodic techno.',
+      imageUrl: 'https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg',
+      url: 'https://mdaccula.com/blog/charlotte-de-witte-sao-paulo',
+      publishedLabel: 'há 2 dias',
+      category: 'Matéria',
     },
     {
-      id: "p2",
-      title: "Guia da cena eletrônica em São Paulo — 2025",
-      excerpt: "Da progressive ao tech house: os coletivos, DJs e casas que estão moldando a cena local.",
-      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
-      url: "https://mdaccula.com/blog/guia-cena-eletronica-sao-paulo-2025",
-      publishedLabel: "há 5 dias",
-      category: "Guia",
+      id: 'p2',
+      title: 'Guia da cena eletrônica em São Paulo — 2025',
+      excerpt:
+        'Da progressive ao tech house: os coletivos, DJs e casas que estão moldando a cena local.',
+      imageUrl: 'https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg',
+      url: 'https://mdaccula.com/blog/guia-cena-eletronica-sao-paulo-2025',
+      publishedLabel: 'há 5 dias',
+      category: 'Guia',
     },
     {
-      id: "p3",
-      title: "Musiva completa 2 anos: os melhores momentos",
-      excerpt: "Duas temporadas de line-ups internacionais, sistema Function-One e produção audiovisual autoral.",
-      imageUrl: "https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg",
-      url: "https://mdaccula.com/blog/musiva-2-anos",
-      publishedLabel: "há 1 semana",
-      category: "Notícia",
+      id: 'p3',
+      title: 'Musiva completa 2 anos: os melhores momentos',
+      excerpt:
+        'Duas temporadas de line-ups internacionais, sistema Function-One e produção audiovisual autoral.',
+      imageUrl: 'https://mdaccula.b-cdn.net/event-images/placeholder-flyer.jpg',
+      url: 'https://mdaccula.com/blog/musiva-2-anos',
+      publishedLabel: 'há 1 semana',
+      category: 'Notícia',
     },
   ],
   dedge: {
-    imageUrl: "https://mdaccula.b-cdn.net/event-images/dedge-hero.jpg",
-    eyebrow: "TODA SEMANA · RESIDÊNCIA",
-    title: "Dedge — sua noite fixa da semana",
-    description: "Três noites por semana com residentes rotativos e line-ups selecionados. Escolha sua vibe:",
+    imageUrl: 'https://mdaccula.b-cdn.net/event-images/dedge-hero.jpg',
+    eyebrow: 'TODA SEMANA · RESIDÊNCIA',
+    title: 'Dedge — sua noite fixa da semana',
+    description:
+      'Três noites por semana com residentes rotativos e line-ups selecionados. Escolha sua vibe:',
     nights: [
-      { label: "Quinta — Progressive & Deep", url: "https://mdaccula.com/eventos/dedge-quinta", enabled: true },
-      { label: "Sexta — Melodic Techno", url: "https://mdaccula.com/eventos/dedge-sexta", enabled: true },
-      { label: "Sábado — Tech House", url: "https://mdaccula.com/eventos/dedge-sabado", enabled: true },
+      {
+        label: 'Quinta — Progressive & Deep',
+        url: 'https://mdaccula.com/eventos/dedge-quinta',
+        enabled: true,
+      },
+      {
+        label: 'Sexta — Melodic Techno',
+        url: 'https://mdaccula.com/eventos/dedge-sexta',
+        enabled: true,
+      },
+      {
+        label: 'Sábado — Tech House',
+        url: 'https://mdaccula.com/eventos/dedge-sabado',
+        enabled: true,
+      },
     ],
-    primaryUrl: "https://mdaccula.com/eventos?venue=dedge",
-    primaryLabel: "Ver todos os eventos Dedge",
+    primaryUrl: 'https://mdaccula.com/eventos?venue=dedge',
+    primaryLabel: 'Ver todos os eventos Dedge',
   },
 };

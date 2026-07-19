@@ -65,8 +65,12 @@ describe('Contrato de paridade — renderer frontend vs edge', () => {
 
   for (const c of cases) {
     it(`HTML byte-idêntico — ${c.name}`, () => {
-      const htmlFE = frontend.renderBlockedTemplate(c.blocks, MOCK_EVENT_DATA, null, null, { preview: true });
-      const htmlED = edge.renderBlockedTemplate(c.blocks, MOCK_EVENT_DATA, null, null, { preview: true });
+      const htmlFE = frontend.renderBlockedTemplate(c.blocks, MOCK_EVENT_DATA, null, null, {
+        preview: true,
+      });
+      const htmlED = edge.renderBlockedTemplate(c.blocks, MOCK_EVENT_DATA, null, null, {
+        preview: true,
+      });
       expect(htmlFE).toBe(htmlED);
       expect(htmlFE.length).toBeGreaterThan(0);
     });

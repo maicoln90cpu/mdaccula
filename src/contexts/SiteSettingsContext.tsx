@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { SiteSettingsContext, type SiteSettings } from "./siteSettingsContextValue";
+import type { ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { SiteSettingsContext, type SiteSettings } from './siteSettingsContextValue';
 
 const CACHE_KEY = 'mdaccula-site-settings-cache';
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
@@ -35,24 +35,28 @@ const getCachedSettings = (): SiteSettings | null => {
 // Save settings to localStorage cache
 const setCachedSettings = (data: SiteSettings) => {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      data,
-      timestamp: Date.now()
-    }));
+    localStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        data,
+        timestamp: Date.now(),
+      })
+    );
   } catch {
     // Silently fail if localStorage is not available
   }
 };
 
 export const SiteSettingsProvider = ({ children }: { children: ReactNode }) => {
-  const { data: settings, isLoading, error } = useQuery({
-    queryKey: ["site-settings"],
+  const {
+    data: settings,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['site-settings'],
     queryFn: async () => {
-
       // No cache, fetch from database
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("key, value");
+      const { data, error } = await supabase.from('site_settings').select('key, value');
 
       if (error) throw error;
 
@@ -72,7 +76,7 @@ export const SiteSettingsProvider = ({ children }: { children: ReactNode }) => {
       value={{
         settings: settings || {},
         isLoading,
-        error: error as Error | null
+        error: error as Error | null,
       }}
     >
       {children}

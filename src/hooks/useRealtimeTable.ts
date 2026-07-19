@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Subscribe to Postgres changes on a table and run `onChange` whenever
@@ -12,11 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
  * @param onChange  Callback disparado em cada mudança (debounced internamente)
  * @param enabled  Permite desativar dinamicamente (default: true)
  */
-export function useRealtimeTable(
-  table: string,
-  onChange: () => void,
-  enabled: boolean = true
-) {
+export function useRealtimeTable(table: string, onChange: () => void, enabled: boolean = true) {
   // Guarda referência estável do callback para não recriar canal a cada render
   const cbRef = useRef(onChange);
   useEffect(() => {
@@ -35,11 +31,7 @@ export function useRealtimeTable(
 
     const channel = supabase
       .channel(`realtime:${table}:${Math.random().toString(36).slice(2, 8)}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table },
-        () => fire()
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table }, () => fire())
       .subscribe();
 
     return () => {

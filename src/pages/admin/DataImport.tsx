@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { logger } from "@/lib";
-import { CheckCircle, Loader2, AlertCircle, Upload, ArrowLeft } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import LegacyMediaImport from "@/components/admin/data-import/LegacyMediaImport";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { logger } from '@/lib';
+import { CheckCircle, Loader2, AlertCircle, Upload, ArrowLeft } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import LegacyMediaImport from '@/components/admin/data-import/LegacyMediaImport';
 /** RFC 4180 compliant CSV parser that handles quoted fields with commas, newlines, etc. */
 function parseCSV(text: string): Record<string, string>[] {
   const rows: string[][] = [];
   let row: string[] = [];
-  let field = "";
+  let field = '';
   let inQuotes = false;
 
   for (let i = 0; i < text.length; i++) {
@@ -32,12 +32,12 @@ function parseCSV(text: string): Record<string, string>[] {
         inQuotes = true;
       } else if (ch === ',') {
         row.push(field);
-        field = "";
+        field = '';
       } else if (ch === '\r' || ch === '\n') {
         if (ch === '\r' && i + 1 < text.length && text[i + 1] === '\n') i++;
         row.push(field);
-        field = "";
-        if (row.some(c => c.trim() !== "")) rows.push(row);
+        field = '';
+        if (row.some((c) => c.trim() !== '')) rows.push(row);
         row = [];
       } else {
         field += ch;
@@ -45,13 +45,15 @@ function parseCSV(text: string): Record<string, string>[] {
     }
   }
   row.push(field);
-  if (row.some(c => c.trim() !== "")) rows.push(row);
+  if (row.some((c) => c.trim() !== '')) rows.push(row);
 
   if (rows.length < 2) return [];
-  const headers = rows[0].map(h => h.replace(/^\uFEFF/, '').trim());
-  return rows.slice(1).map(r => {
+  const headers = rows[0].map((h) => h.replace(/^\uFEFF/, '').trim());
+  return rows.slice(1).map((r) => {
     const obj: Record<string, string> = {};
-    headers.forEach((h, i) => { obj[h] = r[i] ?? ""; });
+    headers.forEach((h, i) => {
+      obj[h] = r[i] ?? '';
+    });
     return obj;
   });
 }
@@ -62,27 +64,51 @@ interface ImportStep {
   label: string;
   count: string;
   batchSize: number;
-  status: "pending" | "running" | "done" | "error";
+  status: 'pending' | 'running' | 'done' | 'error';
   result?: string;
   progress?: string;
 }
 
-const IMPORT_STEPS: Omit<ImportStep, "status">[] = [
-  { table: "blog_posts", csvFile: "/import/blog_posts.csv", label: "Blog Posts (UPSERT)", count: "~113", batchSize: 5 },
-  { table: "events", csvFile: "/import/events.csv", label: "Events", count: "~141", batchSize: 5 },
-  { table: "custom_links", csvFile: "/import/custom_links.csv", label: "Custom Links", count: "~180", batchSize: 5 },
-  { table: "ai_generated_posts", csvFile: "/import/ai_generated_posts.csv", label: "AI Generated Posts", count: "~117", batchSize: 5 },
-  { table: "fix_urls", csvFile: "", label: "Corrigir URLs de imagens", count: "todas tabelas", batchSize: 1 },
+const IMPORT_STEPS: Omit<ImportStep, 'status'>[] = [
+  {
+    table: 'blog_posts',
+    csvFile: '/import/blog_posts.csv',
+    label: 'Blog Posts (UPSERT)',
+    count: '~113',
+    batchSize: 5,
+  },
+  { table: 'events', csvFile: '/import/events.csv', label: 'Events', count: '~141', batchSize: 5 },
+  {
+    table: 'custom_links',
+    csvFile: '/import/custom_links.csv',
+    label: 'Custom Links',
+    count: '~180',
+    batchSize: 5,
+  },
+  {
+    table: 'ai_generated_posts',
+    csvFile: '/import/ai_generated_posts.csv',
+    label: 'AI Generated Posts',
+    count: '~117',
+    batchSize: 5,
+  },
+  {
+    table: 'fix_urls',
+    csvFile: '',
+    label: 'Corrigir URLs de imagens',
+    count: 'todas tabelas',
+    batchSize: 1,
+  },
 ];
 
 export default function DataImport() {
   const [steps, setSteps] = useState<ImportStep[]>(
-    IMPORT_STEPS.map(s => ({ ...s, status: "pending" as const }))
+    IMPORT_STEPS.map((s) => ({ ...s, status: 'pending' as const }))
   );
   const [running, setRunning] = useState(false);
 
   const updateStep = (index: number, update: Partial<ImportStep>) => {
-    setSteps(prev => prev.map((s, i) => i === index ? { ...s, ...update } : s));
+    setSteps((prev) => prev.map((s, i) => (i === index ? { ...s, ...update } : s)));
   };
 
   const parseCSVFile = async (csvFile: string): Promise<Record<string, string>[]> => {
@@ -94,18 +120,18 @@ export default function DataImport() {
 
   const importTable = async (index: number) => {
     const step = steps[index];
-    updateStep(index, { status: "running", result: undefined, progress: undefined });
+    updateStep(index, { status: 'running', result: undefined, progress: undefined });
 
     try {
       // fix_urls doesn't need CSV
-      if (step.table === "fix_urls") {
-        updateStep(index, { progress: "Corrigindo URLs..." });
-        const { data, error } = await supabase.functions.invoke("import-csv-data", {
-          body: { table: "fix_urls", records: [] },
+      if (step.table === 'fix_urls') {
+        updateStep(index, { progress: 'Corrigindo URLs...' });
+        const { data, error } = await supabase.functions.invoke('import-csv-data', {
+          body: { table: 'fix_urls', records: [] },
         });
         if (error) throw error;
         updateStep(index, {
-          status: data?.success === false ? "error" : "done",
+          status: data?.success === false ? 'error' : 'done',
           result: JSON.stringify(data, null, 2),
           progress: undefined,
         });
@@ -113,18 +139,20 @@ export default function DataImport() {
       }
 
       // 1. Parse CSV with PapaParse
-      updateStep(index, { progress: "Parsing CSV..." });
+      updateStep(index, { progress: 'Parsing CSV...' });
       let records = await parseCSVFile(step.csvFile);
 
       // Remove search_vector from blog_posts (regenerated by trigger)
-      if (step.table === "blog_posts") {
-        records = records.map(r => {
+      if (step.table === 'blog_posts') {
+        records = records.map((r) => {
           const { search_vector: _search_vector, ...rest } = r;
           return rest;
         });
       }
 
-      logger.debug(`Parsed ${records.length} records for ${step.table}`, { firstRecord: records[0] });
+      logger.debug(`Parsed ${records.length} records for ${step.table}`, {
+        firstRecord: records[0],
+      });
 
       // 2. Send in batches
       const { batchSize } = step;
@@ -138,7 +166,7 @@ export default function DataImport() {
         updateStep(index, { progress: `Batch ${batchNum}/${totalBatches}...` });
 
         const batch = records.slice(i, i + batchSize);
-        const { data, error } = await supabase.functions.invoke("import-csv-data", {
+        const { data, error } = await supabase.functions.invoke('import-csv-data', {
           body: { table: step.table, records: batch },
         });
 
@@ -159,16 +187,20 @@ export default function DataImport() {
         }
       }
 
-      const resultMsg = JSON.stringify({
-        total: records.length,
-        inserted: totalInserted,
-        orphanedFKs: totalOrphanedFKs > 0 ? totalOrphanedFKs : undefined,
-        errors: errors.length,
-        errorDetails: errors.length > 0 ? errors : undefined,
-      }, null, 2);
+      const resultMsg = JSON.stringify(
+        {
+          total: records.length,
+          inserted: totalInserted,
+          orphanedFKs: totalOrphanedFKs > 0 ? totalOrphanedFKs : undefined,
+          errors: errors.length,
+          errorDetails: errors.length > 0 ? errors : undefined,
+        },
+        null,
+        2
+      );
 
       updateStep(index, {
-        status: errors.length > 0 && totalInserted === 0 ? "error" : "done",
+        status: errors.length > 0 && totalInserted === 0 ? 'error' : 'done',
         result: resultMsg,
         progress: undefined,
       });
@@ -179,8 +211,8 @@ export default function DataImport() {
         toast.success(`${step.label}: ${totalInserted} registros importados!`);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro desconhecido";
-      updateStep(index, { status: "error", result: message, progress: undefined });
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      updateStep(index, { status: 'error', result: message, progress: undefined });
       toast.error(`${step.label}: ${message}`);
     }
   };
@@ -188,16 +220,19 @@ export default function DataImport() {
   const runAll = async () => {
     setRunning(true);
     for (let i = 0; i < steps.length; i++) {
-      if (steps[i].status === "done") continue;
+      if (steps[i].status === 'done') continue;
       await importTable(i);
     }
     setRunning(false);
-    toast.success("Importação completa!");
+    toast.success('Importação completa!');
   };
 
   return (
     <div className="w-full px-4 md:px-6 py-6">
-      <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+      <NavLink
+        to="/admin"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+      >
         <ArrowLeft className="w-4 h-4 mr-2" />
         Voltar ao Painel
       </NavLink>
@@ -208,30 +243,45 @@ export default function DataImport() {
 
       <div className="space-y-4 mb-6">
         {steps.map((step, i) => (
-          <Card key={step.table} className={step.status === "done" ? "border-green-500" : step.status === "error" ? "border-red-500" : ""}>
+          <Card
+            key={step.table}
+            className={
+              step.status === 'done'
+                ? 'border-green-500'
+                : step.status === 'error'
+                  ? 'border-red-500'
+                  : ''
+            }
+          >
             <CardHeader className="py-3 px-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2">
-                  {step.status === "done" && <CheckCircle className="h-5 w-5 text-green-500" />}
-                  {step.status === "running" && <Loader2 className="h-5 w-5 animate-spin" />}
-                  {step.status === "error" && <AlertCircle className="h-5 w-5 text-red-500" />}
-                  {step.status === "pending" && <Upload className="h-5 w-5 text-muted-foreground" />}
+                  {step.status === 'done' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                  {step.status === 'running' && <Loader2 className="h-5 w-5 animate-spin" />}
+                  {step.status === 'error' && <AlertCircle className="h-5 w-5 text-red-500" />}
+                  {step.status === 'pending' && (
+                    <Upload className="h-5 w-5 text-muted-foreground" />
+                  )}
                   {step.label} ({step.count})
-                  {step.progress && <span className="text-sm text-muted-foreground ml-2">{step.progress}</span>}
+                  {step.progress && (
+                    <span className="text-sm text-muted-foreground ml-2">{step.progress}</span>
+                  )}
                 </CardTitle>
                 <Button
                   size="sm"
-                  variant={step.status === "done" ? "outline" : "default"}
+                  variant={step.status === 'done' ? 'outline' : 'default'}
                   onClick={() => importTable(i)}
                   disabled={running}
                 >
-                  {step.status === "done" ? "Re-importar" : "Importar"}
+                  {step.status === 'done' ? 'Re-importar' : 'Importar'}
                 </Button>
               </div>
             </CardHeader>
             {step.result && (
               <CardContent className="py-2 px-4">
-                <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-40">{step.result}</pre>
+                <pre className="text-xs bg-muted p-2 rounded overflow-auto max-h-40">
+                  {step.result}
+                </pre>
               </CardContent>
             )}
           </Card>
@@ -239,7 +289,13 @@ export default function DataImport() {
       </div>
 
       <Button onClick={runAll} disabled={running} size="lg" className="w-full">
-        {running ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importando...</> : "🚀 Importar Tudo Sequencialmente"}
+        {running ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Importando...
+          </>
+        ) : (
+          '🚀 Importar Tudo Sequencialmente'
+        )}
       </Button>
 
       <div className="mt-8">

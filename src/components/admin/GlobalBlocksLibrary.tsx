@@ -3,55 +3,87 @@
  * Permite salvar blocos individuais como "globais" reutilizáveis em vários templates.
  * Ao editar um bloco global, todos os templates que o referenciam recebem a atualização.
  */
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
-  Plus, Save, Trash2, Library, Pencil,
-  Image as ImageIcon, Type, AlignLeft, MousePointerClick, Minus,
-  Share2, LayoutGrid, Clock, FileText, Link as LinkIcon, Package,
-} from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { useEmailGlobalBlocks } from "@/hooks/useEmailGlobalBlocks";
-import type { Block, GlobalBlock } from "@/lib/emailTemplates/blocks";
-import { BLOCK_LABELS } from "@/lib/emailTemplates/blocks";
+  Plus,
+  Save,
+  Trash2,
+  Library,
+  Pencil,
+  Image as ImageIcon,
+  Type,
+  AlignLeft,
+  MousePointerClick,
+  Minus,
+  Share2,
+  LayoutGrid,
+  Clock,
+  FileText,
+  Link as LinkIcon,
+  Package,
+} from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
+import type { Block, GlobalBlock } from '@/lib/emailTemplates/blocks';
+import { BLOCK_LABELS } from '@/lib/emailTemplates/blocks';
 
 // Ícone compacto por tipo de bloco — usado no card da biblioteca no lugar do
 // texto redundante "Bloco global (biblioteca)". O nome do bloco global já
 // aparece em destaque; o ícone dá a pista visual do que ele contém.
-function BlockKindIcon({ kind, className }: { kind: Block["kind"]; className?: string }) {
-  const cls = className || "w-3.5 h-3.5";
+function BlockKindIcon({ kind, className }: { kind: Block['kind']; className?: string }) {
+  const cls = className || 'w-3.5 h-3.5';
   switch (kind) {
-    case "header": return <ImageIcon className={cls} />;
-    case "hero_image":
-    case "image_with_link":
-    case "static_map": return <ImageIcon className={cls} />;
-    case "eyebrow":
-    case "title":
-    case "subtitle": return <Type className={cls} />;
-    case "description":
-    case "text":
-    case "article_summary": return <AlignLeft className={cls} />;
-    case "cta_button":
-    case "secondary_link": return <MousePointerClick className={cls} />;
-    case "divider": return <Minus className={cls} />;
-    case "social_icons": return <Share2 className={cls} />;
-    case "weekend_grid":
-    case "weekly_hero":
-    case "event_meta": return <LayoutGrid className={cls} />;
-    case "countdown":
-    case "ticker": return <Clock className={cls} />;
-    case "blog_posts_list": return <FileText className={cls} />;
-    case "lineup": return <LinkIcon className={cls} />;
-    case "dedge_block": return <Package className={cls} />;
-    case "footer": return <AlignLeft className={cls} />;
-    default: return <Library className={cls} />;
+    case 'header':
+      return <ImageIcon className={cls} />;
+    case 'hero_image':
+    case 'image_with_link':
+    case 'static_map':
+      return <ImageIcon className={cls} />;
+    case 'eyebrow':
+    case 'title':
+    case 'subtitle':
+      return <Type className={cls} />;
+    case 'description':
+    case 'text':
+    case 'article_summary':
+      return <AlignLeft className={cls} />;
+    case 'cta_button':
+    case 'secondary_link':
+      return <MousePointerClick className={cls} />;
+    case 'divider':
+      return <Minus className={cls} />;
+    case 'social_icons':
+      return <Share2 className={cls} />;
+    case 'weekend_grid':
+    case 'weekly_hero':
+    case 'event_meta':
+      return <LayoutGrid className={cls} />;
+    case 'countdown':
+    case 'ticker':
+      return <Clock className={cls} />;
+    case 'blog_posts_list':
+      return <FileText className={cls} />;
+    case 'lineup':
+      return <LinkIcon className={cls} />;
+    case 'dedge_block':
+      return <Package className={cls} />;
+    case 'footer':
+      return <AlignLeft className={cls} />;
+    default:
+      return <Library className={cls} />;
   }
 }
 
@@ -65,15 +97,23 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
   const { globals, loading, saveAsGlobal, updateGlobal, deleteGlobal } = useEmailGlobalBlocks();
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [editing, setEditing] = useState<GlobalBlock | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", category: "geral" });
+  const [form, setForm] = useState({ name: '', description: '', category: 'geral' });
 
   const openSaveDialog = () => {
     if (!selectedBlock) return;
-    if (selectedBlock.kind === "global_ref") {
-      toast({ variant: "destructive", title: "Não é possível", description: "Já é um bloco global. Edite o original." });
+    if (selectedBlock.kind === 'global_ref') {
+      toast({
+        variant: 'destructive',
+        title: 'Não é possível',
+        description: 'Já é um bloco global. Edite o original.',
+      });
       return;
     }
-    setForm({ name: BLOCK_LABELS[selectedBlock.kind] || "Bloco", description: "", category: "geral" });
+    setForm({
+      name: BLOCK_LABELS[selectedBlock.kind] || 'Bloco',
+      description: '',
+      category: 'geral',
+    });
     setSaveDialogOpen(true);
   };
 
@@ -81,18 +121,18 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
     if (!selectedBlock || !form.name.trim()) return;
     try {
       await saveAsGlobal(selectedBlock, form);
-      toast({ title: "Bloco salvo na biblioteca" });
+      toast({ title: 'Bloco salvo na biblioteca' });
       setSaveDialogOpen(false);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erro desconhecido";
-      toast({ variant: "destructive", title: "Erro", description: message });
+      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      toast({ variant: 'destructive', title: 'Erro', description: message });
     }
   };
 
   const handleInsertRef = (g: GlobalBlock) => {
     onInsert({
       id: `b${Date.now()}${Math.floor(Math.random() * 1000)}`,
-      kind: "global_ref",
+      kind: 'global_ref',
       global_id: g.id,
       _cached_name: g.name,
     });
@@ -106,22 +146,27 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
         description: editing.description || null,
         category: editing.category,
       });
-      toast({ title: "Bloco global atualizado — todos os templates refletirão a mudança" });
+      toast({ title: 'Bloco global atualizado — todos os templates refletirão a mudança' });
       setEditing(null);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erro desconhecido";
-      toast({ variant: "destructive", title: "Erro", description: message });
+      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      toast({ variant: 'destructive', title: 'Erro', description: message });
     }
   };
 
   const handleDelete = async (g: GlobalBlock) => {
-    if (!confirm(`Excluir "${g.name}"? Templates que referenciam este bloco exibirão um aviso de indisponível.`)) return;
+    if (
+      !confirm(
+        `Excluir "${g.name}"? Templates que referenciam este bloco exibirão um aviso de indisponível.`
+      )
+    )
+      return;
     try {
       await deleteGlobal(g.id);
-      toast({ title: "Bloco global excluído" });
+      toast({ title: 'Bloco global excluído' });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erro desconhecido";
-      toast({ variant: "destructive", title: "Erro", description: message });
+      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      toast({ variant: 'destructive', title: 'Erro', description: message });
     }
   };
 
@@ -145,13 +190,13 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
             size="sm"
             variant="outline"
             onClick={openSaveDialog}
-            disabled={!selectedBlock || selectedBlock.kind === "global_ref"}
+            disabled={!selectedBlock || selectedBlock.kind === 'global_ref'}
             title={
               !selectedBlock
-                ? "Selecione um bloco à esquerda"
-                : selectedBlock.kind === "global_ref"
-                ? "Este bloco já é uma referência global"
-                : "Salvar bloco selecionado na biblioteca"
+                ? 'Selecione um bloco à esquerda'
+                : selectedBlock.kind === 'global_ref'
+                  ? 'Este bloco já é uma referência global'
+                  : 'Salvar bloco selecionado na biblioteca'
             }
           >
             <Save className="w-3.5 h-3.5 mr-1" />
@@ -160,14 +205,16 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
         </div>
 
         <p className="text-[11px] text-muted-foreground">
-          Blocos globais são <strong>compartilhados</strong>: editar aqui atualiza todos os templates que os usam automaticamente.
+          Blocos globais são <strong>compartilhados</strong>: editar aqui atualiza todos os
+          templates que os usam automaticamente.
         </p>
 
         {loading && <p className="text-xs text-muted-foreground">Carregando…</p>}
 
         {!loading && globals.length === 0 && (
           <p className="text-xs text-muted-foreground italic">
-            Nenhum bloco global ainda. Selecione um bloco no editor e clique em "Salvar como global".
+            Nenhum bloco global ainda. Selecione um bloco no editor e clique em "Salvar como
+            global".
           </p>
         )}
 
@@ -236,8 +283,8 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
             <DialogHeader>
               <DialogTitle>Salvar bloco na biblioteca global</DialogTitle>
               <DialogDescription>
-                Este bloco ficará disponível para todos os templates. Ao editá-lo aqui,
-                todos os templates que o referenciam refletirão a mudança automaticamente.
+                Este bloco ficará disponível para todos os templates. Ao editá-lo aqui, todos os
+                templates que o referenciam refletirão a mudança automaticamente.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
@@ -284,8 +331,9 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
             <DialogHeader>
               <DialogTitle>Editar bloco global</DialogTitle>
               <DialogDescription>
-                Alterar nome, descrição e categoria. Para editar o <strong>conteúdo</strong> do bloco,
-                use a página "Blocos Globais" (roadmap) ou refaça o salvamento a partir de um template.
+                Alterar nome, descrição e categoria. Para editar o <strong>conteúdo</strong> do
+                bloco, use a página "Blocos Globais" (roadmap) ou refaça o salvamento a partir de um
+                template.
               </DialogDescription>
             </DialogHeader>
             {editing && (
@@ -300,7 +348,7 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
                 <div>
                   <Label className="text-xs">Descrição</Label>
                   <Textarea
-                    value={editing.description || ""}
+                    value={editing.description || ''}
                     onChange={(e) => setEditing({ ...editing, description: e.target.value })}
                     rows={2}
                   />
@@ -315,7 +363,9 @@ export function GlobalBlocksLibrary({ selectedBlock, onInsert }: Props) {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+              <Button variant="outline" onClick={() => setEditing(null)}>
+                Cancelar
+              </Button>
               <Button onClick={handleEditSave}>Salvar</Button>
             </DialogFooter>
           </DialogContent>

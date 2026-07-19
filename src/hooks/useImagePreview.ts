@@ -23,7 +23,7 @@ export function useImagePreview() {
   const [preview, setPreview] = useState<ImagePreviewState>(initialState);
 
   const processImage = useCallback(async (file: File | Blob) => {
-    setPreview(prev => ({ ...prev, isProcessing: true, error: null }));
+    setPreview((prev) => ({ ...prev, isProcessing: true, error: null }));
     try {
       const result = await convertToWebPWithPreview(file);
       setPreview({
@@ -36,7 +36,7 @@ export function useImagePreview() {
       });
       return result.file;
     } catch (err) {
-      setPreview(prev => ({
+      setPreview((prev) => ({
         ...prev,
         isProcessing: false,
         error: (err as Error).message,

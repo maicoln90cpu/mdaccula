@@ -11,12 +11,12 @@
  * Em domínios customizados o iframe pode não carregar — nesse caso o botão
  * "Como chegar" continua funcionando (não depende da chave).
  */
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Navigation, Loader2 } from "lucide-react";
-import { logger } from "@/lib";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MapPin, Navigation, Loader2 } from 'lucide-react';
+import { logger } from '@/lib';
 
 interface Props {
   eventId: string;
@@ -40,7 +40,7 @@ async function resolveBrowserKey(): Promise<string | null> {
   if (inflightKeyPromise) return inflightKeyPromise;
   inflightKeyPromise = (async () => {
     try {
-      const { data } = await supabase.functions.invoke("public-maps-config", { body: {} });
+      const { data } = await supabase.functions.invoke('public-maps-config', { body: {} });
       const key = (data as { browser_key?: string | null } | null)?.browser_key ?? null;
       cachedBrowserKey = key ?? FALLBACK_BROWSER_KEY ?? null;
     } catch {
@@ -51,18 +51,9 @@ async function resolveBrowserKey(): Promise<string | null> {
   return inflightKeyPromise;
 }
 
-export const EventLocationMap = ({
-  eventId,
-  venue,
-  city,
-  state,
-  latitude,
-  longitude,
-}: Props) => {
+export const EventLocationMap = ({ eventId, venue, city, state, latitude, longitude }: Props) => {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
-    latitude != null && longitude != null
-      ? { lat: Number(latitude), lng: Number(longitude) }
-      : null,
+    latitude != null && longitude != null ? { lat: Number(latitude), lng: Number(longitude) } : null
   );
   const [loading, setLoading] = useState(false);
   const [browserKey, setBrowserKey] = useState<string | null>(null);
@@ -77,10 +68,10 @@ export const EventLocationMap = ({
     };
   }, []);
 
-  const address = [venue, city, state].filter(Boolean).join(", ");
+  const address = [venue, city, state].filter(Boolean).join(', ');
   const directionsUrl = coords
     ? `https://www.google.com/maps/dir/?api=1&destination=${coords.lat},${coords.lng}`
-    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ", Brasil")}`;
+    : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address + ', Brasil')}`;
 
   // Auto-geocode se ainda não temos coords
   useEffect(() => {
@@ -91,19 +82,25 @@ export const EventLocationMap = ({
     (async () => {
       setLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke("geocode-event", {
+        const { data, error } = await supabase.functions.invoke('geocode-event', {
           body: { event_id: eventId },
         });
         if (cancelled) return;
         if (error) {
-          logger.warn("geocode-event failed", { component: "EventLocationMap", error: String(error) });
+          logger.warn('geocode-event failed', {
+            component: 'EventLocationMap',
+            error: String(error),
+          });
           return;
         }
         if (data?.ok && data.lat != null && data.lng != null) {
           setCoords({ lat: Number(data.lat), lng: Number(data.lng) });
         }
       } catch (err) {
-        logger.warn("geocode-event exception", { component: "EventLocationMap", error: err instanceof Error ? err.message : String(err) });
+        logger.warn('geocode-event exception', {
+          component: 'EventLocationMap',
+          error: err instanceof Error ? err.message : String(err),
+        });
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -113,7 +110,6 @@ export const EventLocationMap = ({
       cancelled = true;
     };
   }, [eventId, venue, city, coords]);
-
 
   const embedSrc =
     coords && browserKey
@@ -136,7 +132,7 @@ export const EventLocationMap = ({
               src={embedSrc}
               width="100%"
               height="260"
-              style={{ border: 0, display: "block" }}
+              style={{ border: 0, display: 'block' }}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               allowFullScreen

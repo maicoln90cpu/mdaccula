@@ -1,27 +1,51 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MapPin, Pencil, Trash2, Plus, ArrowLeft, Copy, FileText, Loader2, CalendarDays, Search, GitMerge, X, Undo2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/useToast";
-import { NavLink } from "react-router-dom";
-import { EventForm } from "@/components/events/EventForm";
-import { MultiEventArticleModal } from "@/components/admin/MultiEventArticleModal";
-import { MergeEventsDialog } from "@/components/admin/MergeEventsDialog";
-import { UndoMergeDialog } from "@/components/admin/UndoMergeDialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { MergedEventsTab } from "@/components/admin/MergedEventsTab";
-import EventVisibilitySettings from "@/components/admin/events/EventVisibilitySettings";
-import type { MergeLog } from "@/components/admin/UndoMergeDialog";
-import { buildArticlePayload } from "@/lib/eventArticlePayload";
-import { addHours } from "date-fns";
-import { parseLocalDateTime } from "@/lib/dateUtils";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { logger } from "@/lib/logger";
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Calendar,
+  MapPin,
+  Pencil,
+  Trash2,
+  Plus,
+  ArrowLeft,
+  Copy,
+  FileText,
+  Loader2,
+  CalendarDays,
+  Search,
+  GitMerge,
+  X,
+  Undo2,
+} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useToast } from '@/hooks/useToast';
+import { NavLink } from 'react-router-dom';
+import { EventForm } from '@/components/events/EventForm';
+import { MultiEventArticleModal } from '@/components/admin/MultiEventArticleModal';
+import { MergeEventsDialog } from '@/components/admin/MergeEventsDialog';
+import { UndoMergeDialog } from '@/components/admin/UndoMergeDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { MergedEventsTab } from '@/components/admin/MergedEventsTab';
+import EventVisibilitySettings from '@/components/admin/events/EventVisibilitySettings';
+import type { MergeLog } from '@/components/admin/UndoMergeDialog';
+import { buildArticlePayload } from '@/lib/eventArticlePayload';
+import { addHours } from 'date-fns';
+import { parseLocalDateTime } from '@/lib/dateUtils';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { logger } from '@/lib/logger';
 
 interface Event {
   id: string;
@@ -57,7 +81,9 @@ const EventsManager = () => {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'todos' | 'ativos' | 'inativos'>('ativos');
-  const [articleFilter, setArticleFilter] = useState<'todos' | 'sem-artigo' | 'com-artigo'>('todos');
+  const [articleFilter, setArticleFilter] = useState<'todos' | 'sem-artigo' | 'com-artigo'>(
+    'todos'
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [generatingArticle, setGeneratingArticle] = useState<string | null>(null);
   const [showMultiEventModal, setShowMultiEventModal] = useState(false);
@@ -74,28 +100,34 @@ const EventsManager = () => {
   // Busca a última mesclagem desfazível (sem undo posterior)
   const fetchLastMergeLog = async () => {
     const { data: merges } = await supabase
-      .from("application_logs")
-      .select("id, logged_at, context")
-      .eq("level", "info")
-      .gte("logged_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      .order("logged_at", { ascending: false })
+      .from('application_logs')
+      .select('id, logged_at, context')
+      .eq('level', 'info')
+      .gte('logged_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+      .order('logged_at', { ascending: false })
       .limit(50);
-    if (!merges) { setLastMergeLog(null); return; }
+    if (!merges) {
+      setLastMergeLog(null);
+      return;
+    }
     const typedMerges = merges as unknown as MergeLog[];
-    const lastMerge = typedMerges.find((l) => l.context?.action === "merge_events");
-    if (!lastMerge) { setLastMergeLog(null); return; }
+    const lastMerge = typedMerges.find((l) => l.context?.action === 'merge_events');
+    if (!lastMerge) {
+      setLastMergeLog(null);
+      return;
+    }
     // Verifica se já foi desfeita
     const undone = typedMerges.find(
-      (l) => l.context?.action === "undo_merge" && l.context?.source_log_id === lastMerge.id,
+      (l) => l.context?.action === 'undo_merge' && l.context?.source_log_id === lastMerge.id
     );
     setLastMergeLog(undone ? null : lastMerge);
   };
 
   const fetchEvents = useCallback(async () => {
     try {
-      let query = supabase.from("events").select("*").order("date", { ascending: true });
+      let query = supabase.from('events').select('*').order('date', { ascending: true });
       if (!showMerged) {
-        query = query.eq("status", "active");
+        query = query.eq('status', 'active');
       }
       const { data, error } = await query;
 
@@ -105,21 +137,30 @@ const EventsManager = () => {
 
       // Buscar títulos dos eventos principais para os inativos (badge "Mesclado em…")
       const primaryIds = Array.from(
-        new Set(list.filter((e) => e.status === "merged_inactive" && e.merged_into_id).map((e) => e.merged_into_id as string)),
+        new Set(
+          list
+            .filter((e) => e.status === 'merged_inactive' && e.merged_into_id)
+            .map((e) => e.merged_into_id as string)
+        )
       );
       if (primaryIds.length > 0) {
-        const { data: primaries } = await supabase.from("events").select("id, title").in("id", primaryIds);
+        const { data: primaries } = await supabase
+          .from('events')
+          .select('id, title')
+          .in('id', primaryIds);
         const map: Record<string, string> = {};
-        (primaries || []).forEach((p) => { map[p.id] = p.title; });
+        (primaries || []).forEach((p) => {
+          map[p.id] = p.title;
+        });
         setMergedPrimaryTitles(map);
       } else {
         setMergedPrimaryTitles({});
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao carregar eventos",
+        variant: 'destructive',
+        title: 'Erro ao carregar eventos',
         description: message,
       });
     } finally {
@@ -132,26 +173,25 @@ const EventsManager = () => {
     fetchLastMergeLog();
   }, [fetchEvents]);
 
-
   // Realtime: lista de eventos atualiza automaticamente em qualquer mudança.
-  useRealtimeTable("events", () => fetchEvents());
+  useRealtimeTable('events', () => fetchEvents());
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("events").delete().eq("id", id);
+      const { error } = await supabase.from('events').delete().eq('id', id);
 
       if (error) throw error;
 
       toast({
-        title: "Evento deletado",
-        description: "O evento foi removido com sucesso.",
+        title: 'Evento deletado',
+        description: 'O evento foi removido com sucesso.',
       });
       fetchEvents();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao deletar evento",
+        variant: 'destructive',
+        title: 'Erro ao deletar evento',
         description: message,
       });
     } finally {
@@ -163,25 +203,25 @@ const EventsManager = () => {
     setReactivatingId(event.id);
     try {
       const { error } = await supabase
-        .from("events")
+        .from('events')
         .update({
-          status: "active",
+          status: 'active',
           merged_into_id: null,
           merged_at: null,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", event.id);
+        .eq('id', event.id);
       if (error) throw error;
       toast({
-        title: "Evento reativado",
+        title: 'Evento reativado',
         description: `"${event.title}" voltou a ficar ativo. O evento principal não foi alterado.`,
       });
       fetchEvents();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao reativar evento",
+        variant: 'destructive',
+        title: 'Erro ao reativar evento',
         description: message,
       });
     } finally {
@@ -191,15 +231,15 @@ const EventsManager = () => {
 
   const handleEdit = async (event: Event) => {
     const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .eq("id", event.id)
+      .from('events')
+      .select('*')
+      .eq('id', event.id)
       .maybeSingle();
 
     if (error) {
       toast({
-        variant: "destructive",
-        title: "Erro ao abrir editor",
+        variant: 'destructive',
+        title: 'Erro ao abrir editor',
         description: error.message,
       });
       return;
@@ -228,50 +268,55 @@ const EventsManager = () => {
 
   const handleGenerateArticle = async (event: Event) => {
     setGeneratingArticle(event.id);
-    
+
     try {
-      logger.debug('[EventsManager] Iniciando geração de artigo para evento', { title: event.title });
-      
-      const payload = buildArticlePayload(event, { generateImage: !event.image_url });
-      
-      logger.debug('[EventsManager] Payload para generate-blog-post-v2', { payload });
-      
-      const { data: blogData, error: blogError } = await supabase.functions.invoke('generate-blog-post-v2', {
-        body: payload
+      logger.debug('[EventsManager] Iniciando geração de artigo para evento', {
+        title: event.title,
       });
-      
+
+      const payload = buildArticlePayload(event, { generateImage: !event.image_url });
+
+      logger.debug('[EventsManager] Payload para generate-blog-post-v2', { payload });
+
+      const { data: blogData, error: blogError } = await supabase.functions.invoke(
+        'generate-blog-post-v2',
+        {
+          body: payload,
+        }
+      );
+
       logger.debug('[EventsManager] Resposta da edge function:', { blogData, blogError });
-      
+
       if (blogError) {
         throw new Error(blogError.message || 'Erro ao gerar artigo');
       }
-      
+
       if (blogData?.post?.id) {
         // Vincular o blog post ao evento
         const { error: updateError } = await supabase
           .from('events')
           .update({ blog_post_id: blogData.post.id })
           .eq('id', event.id);
-        
+
         if (updateError) {
           logger.error('[EventsManager] Erro ao vincular blog post ao evento:', updateError);
         }
-        
+
         toast({
-          title: "Artigo gerado com sucesso!",
+          title: 'Artigo gerado com sucesso!',
           description: `O artigo "${blogData.post.title}" foi criado e vinculado ao evento.`,
         });
-        
+
         fetchEvents();
       } else {
         throw new Error('Resposta inválida da API');
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       logger.error('[EventsManager] Erro ao gerar artigo:', error);
       toast({
-        variant: "destructive",
-        title: "Erro ao gerar artigo",
+        variant: 'destructive',
+        title: 'Erro ao gerar artigo',
         description: message || 'Ocorreu um erro ao gerar o artigo do blog.',
       });
     } finally {
@@ -279,7 +324,7 @@ const EventsManager = () => {
     }
   };
 
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = events.filter((event) => {
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -287,16 +332,16 @@ const EventsManager = () => {
         return false;
       }
     }
-    
+
     if (articleFilter === 'sem-artigo' && event.blog_post_id) return false;
     if (articleFilter === 'com-artigo' && !event.blog_post_id) return false;
 
     if (statusFilter === 'todos') return true;
-    
+
     const now = new Date();
     const eventDateTime = parseLocalDateTime(event.date, event.time);
     const eventEndTime = addHours(eventDateTime, 24);
-    
+
     if (statusFilter === 'ativos') {
       return eventEndTime > now;
     } else {
@@ -304,7 +349,7 @@ const EventsManager = () => {
     }
   });
 
-  const activeCount = events.filter(event => {
+  const activeCount = events.filter((event) => {
     const now = new Date();
     const eventDateTime = parseLocalDateTime(event.date, event.time);
     const eventEndTime = addHours(eventDateTime, 24);
@@ -328,11 +373,16 @@ const EventsManager = () => {
           <div className="w-full">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
               <div className="w-full sm:w-auto">
-                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <NavLink
+                  to="/admin"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar ao Painel
                 </NavLink>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold hero-text">Gerenciar Eventos</h1>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold hero-text">
+                  Gerenciar Eventos
+                </h1>
               </div>
               <div className="flex gap-2 w-full sm:w-auto flex-wrap">
                 {mergeMode ? (
@@ -348,7 +398,10 @@ const EventsManager = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => { setMergeMode(false); setSelectedIds(new Set()); }}
+                      onClick={() => {
+                        setMergeMode(false);
+                        setSelectedIds(new Set());
+                      }}
                       className="min-h-[44px]"
                     >
                       <X className="w-4 h-4 mr-2" />
@@ -385,7 +438,10 @@ const EventsManager = () => {
                       <CalendarDays className="w-4 h-4 mr-2" />
                       Artigo Multi-Datas
                     </Button>
-                    <Button onClick={() => setShowForm(true)} className="min-h-[44px] flex-1 sm:flex-none">
+                    <Button
+                      onClick={() => setShowForm(true)}
+                      className="min-h-[44px] flex-1 sm:flex-none"
+                    >
                       <Plus className="w-4 h-4 mr-2" />
                       Adicionar Evento
                     </Button>
@@ -401,219 +457,229 @@ const EventsManager = () => {
               </TabsList>
 
               <TabsContent value="ativos">
+                {/* Search + Filters */}
+                <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar evento por nome ou local..."
+                    className="pl-10 h-11"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2 mb-6 flex-wrap">
+                  <Button
+                    variant={statusFilter === 'todos' ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter('todos')}
+                    size="sm"
+                  >
+                    Todos ({events.length})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'ativos' ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter('ativos')}
+                    size="sm"
+                  >
+                    Ativos ({activeCount})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'inativos' ? 'default' : 'outline'}
+                    onClick={() => setStatusFilter('inativos')}
+                    size="sm"
+                  >
+                    Inativos ({inactiveCount})
+                  </Button>
+                  <span className="text-muted-foreground mx-1">|</span>
+                  <Button
+                    variant={articleFilter === 'todos' ? 'default' : 'outline'}
+                    onClick={() => setArticleFilter('todos')}
+                    size="sm"
+                  >
+                    Artigo: Todos
+                  </Button>
+                  <Button
+                    variant={articleFilter === 'sem-artigo' ? 'default' : 'outline'}
+                    onClick={() => setArticleFilter('sem-artigo')}
+                    size="sm"
+                  >
+                    Sem Artigo
+                  </Button>
+                  <Button
+                    variant={articleFilter === 'com-artigo' ? 'default' : 'outline'}
+                    onClick={() => setArticleFilter('com-artigo')}
+                    size="sm"
+                  >
+                    Com Artigo
+                  </Button>
+                </div>
 
-            {/* Search + Filters */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar evento por nome ou local..."
-                className="pl-10 h-11"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex gap-2 mb-6 flex-wrap">
-              <Button 
-                variant={statusFilter === 'todos' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('todos')}
-                size="sm"
-              >
-                Todos ({events.length})
-              </Button>
-              <Button 
-                variant={statusFilter === 'ativos' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('ativos')}
-                size="sm"
-              >
-                Ativos ({activeCount})
-              </Button>
-              <Button 
-                variant={statusFilter === 'inativos' ? 'default' : 'outline'}
-                onClick={() => setStatusFilter('inativos')}
-                size="sm"
-              >
-                Inativos ({inactiveCount})
-              </Button>
-              <span className="text-muted-foreground mx-1">|</span>
-              <Button 
-                variant={articleFilter === 'todos' ? 'default' : 'outline'}
-                onClick={() => setArticleFilter('todos')}
-                size="sm"
-              >
-                Artigo: Todos
-              </Button>
-              <Button 
-                variant={articleFilter === 'sem-artigo' ? 'default' : 'outline'}
-                onClick={() => setArticleFilter('sem-artigo')}
-                size="sm"
-              >
-                Sem Artigo
-              </Button>
-              <Button 
-                variant={articleFilter === 'com-artigo' ? 'default' : 'outline'}
-                onClick={() => setArticleFilter('com-artigo')}
-                size="sm"
-              >
-                Com Artigo
-              </Button>
-            </div>
+                <label className="flex items-center gap-2 mb-4 text-sm text-muted-foreground cursor-pointer select-none">
+                  <Checkbox
+                    checked={showMerged}
+                    onCheckedChange={(v) => setShowMerged(Boolean(v))}
+                  />
+                  Mostrar mesclados (inativos)
+                  <span className="text-xs text-muted-foreground/70">
+                    — eventos absorvidos em outro principal aparecem com a opção de Reativar
+                  </span>
+                </label>
 
-            <label className="flex items-center gap-2 mb-4 text-sm text-muted-foreground cursor-pointer select-none">
-              <Checkbox
-                checked={showMerged}
-                onCheckedChange={(v) => setShowMerged(Boolean(v))}
-              />
-              Mostrar mesclados (inativos)
-              <span className="text-xs text-muted-foreground/70">
-                — eventos absorvidos em outro principal aparecem com a opção de Reativar
-              </span>
-            </label>
-
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEvents.map((event) => (
-                <Card
-                  key={event.id}
-                  className={`overflow-hidden relative transition ${mergeMode && selectedIds.has(event.id) ? "ring-2 ring-primary" : ""}`}
-                  onClick={mergeMode ? () => {
-                    setSelectedIds((prev) => {
-                      const next = new Set(prev);
-                      if (next.has(event.id)) next.delete(event.id);
-                      else next.add(event.id);
-                      return next;
-                    });
-                  } : undefined}
-                  style={mergeMode ? { cursor: "pointer" } : undefined}
-                >
-                  {mergeMode && (
-                    <div className="absolute top-2 left-2 z-10 bg-background/90 rounded p-1">
-                      <Checkbox checked={selectedIds.has(event.id)} />
-                    </div>
-                  )}
-                  {event.image_url && (
-                    <div className="h-48 overflow-hidden">
-                      <img
-                        src={event.image_url}
-                        alt={event.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="line-clamp-2">{event.title}</CardTitle>
-                    {event.status === "merged_inactive" && (
-                      <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 text-[11px] uppercase font-semibold w-fit">
-                        <GitMerge className="w-3 h-3" />
-                        Inativo · mesclado{event.merged_into_id && mergedPrimaryTitles[event.merged_into_id]
-                          ? ` em "${mergedPrimaryTitles[event.merged_into_id]}"`
-                          : ""}
-                      </div>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-
-                    <div className="space-y-2 text-sm text-muted-foreground mb-4">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {event.date}{event.end_date && event.end_date !== event.date ? ` → ${event.end_date}` : ""} às {event.time}
-                        {event.end_date && event.end_date !== event.date && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase font-semibold">festival</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredEvents.map((event) => (
+                    <Card
+                      key={event.id}
+                      className={`overflow-hidden relative transition ${mergeMode && selectedIds.has(event.id) ? 'ring-2 ring-primary' : ''}`}
+                      onClick={
+                        mergeMode
+                          ? () => {
+                              setSelectedIds((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(event.id)) next.delete(event.id);
+                                else next.add(event.id);
+                                return next;
+                              });
+                            }
+                          : undefined
+                      }
+                      style={mergeMode ? { cursor: 'pointer' } : undefined}
+                    >
+                      {mergeMode && (
+                        <div className="absolute top-2 left-2 z-10 bg-background/90 rounded p-1">
+                          <Checkbox checked={selectedIds.has(event.id)} />
+                        </div>
+                      )}
+                      {event.image_url && (
+                        <div className="h-48 overflow-hidden">
+                          <img
+                            src={event.image_url}
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                      <CardHeader>
+                        <CardTitle className="line-clamp-2">{event.title}</CardTitle>
+                        {event.status === 'merged_inactive' && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-500/15 text-amber-600 text-[11px] uppercase font-semibold w-fit">
+                            <GitMerge className="w-3 h-3" />
+                            Inativo · mesclado
+                            {event.merged_into_id && mergedPrimaryTitles[event.merged_into_id]
+                              ? ` em "${mergedPrimaryTitles[event.merged_into_id]}"`
+                              : ''}
+                          </div>
                         )}
-                      </div>
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {event.venue}, {event.location_city} - {event.location_state}
-                      </div>
-                      <div className="text-xs text-muted-foreground/70">
-                        Slug: {event.slug}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleEdit(event)}
-                      >
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleDuplicate(event)}
-                        title="Duplicar evento"
-                      >
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                      {!event.blog_post_id && (
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleGenerateArticle(event)}
-                          disabled={generatingArticle === event.id}
-                          title="Gerar artigo do blog"
-                          className="bg-primary/10 hover:bg-primary/20 text-primary"
-                        >
-                          {generatingArticle === event.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <FileText className="w-4 h-4" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-2" />
+                            {event.date}
+                            {event.end_date && event.end_date !== event.date
+                              ? ` → ${event.end_date}`
+                              : ''}{' '}
+                            às {event.time}
+                            {event.end_date && event.end_date !== event.date && (
+                              <span className="ml-2 px-1.5 py-0.5 rounded bg-primary/10 text-primary text-[10px] uppercase font-semibold">
+                                festival
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center">
+                            <MapPin className="w-4 h-4 mr-2" />
+                            {event.venue}, {event.location_city} - {event.location_state}
+                          </div>
+                          <div className="text-xs text-muted-foreground/70">Slug: {event.slug}</div>
+                        </div>
+                        <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => handleEdit(event)}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleDuplicate(event)}
+                            title="Duplicar evento"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          {!event.blog_post_id && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => handleGenerateArticle(event)}
+                              disabled={generatingArticle === event.id}
+                              title="Gerar artigo do blog"
+                              className="bg-primary/10 hover:bg-primary/20 text-primary"
+                            >
+                              {generatingArticle === event.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <FileText className="w-4 h-4" />
+                              )}
+                            </Button>
                           )}
-                        </Button>
-                      )}
-                      {event.status === "merged_inactive" && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleReactivate(event)}
-                          disabled={reactivatingId === event.id}
-                          title="Reativar evento (não altera o principal)"
-                          className="border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
-                        >
-                          {reactivatingId === event.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Undo2 className="w-4 h-4 mr-1" />
-                              Reativar
-                            </>
+                          {event.status === 'merged_inactive' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleReactivate(event)}
+                              disabled={reactivatingId === event.id}
+                              title="Reativar evento (não altera o principal)"
+                              className="border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10"
+                            >
+                              {reactivatingId === event.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Undo2 className="w-4 h-4 mr-1" />
+                                  Reativar
+                                </>
+                              )}
+                            </Button>
                           )}
-                        </Button>
-                      )}
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setDeletingEventId(event.id)}
-                        title="Deletar evento"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => setDeletingEventId(event.id)}
+                            title="Deletar evento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
 
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {events.length === 0 && (
-              <Card className="col-span-full">
-                <CardContent className="text-center py-16">
-                  <Calendar className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-                  <h3 className="text-xl font-semibold mb-2">Nenhum evento cadastrado</h3>
-                  <p className="text-muted-foreground mb-6">
-                    Comece adicionando seu primeiro evento clicando no botão acima.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
+                {events.length === 0 && (
+                  <Card className="col-span-full">
+                    <CardContent className="text-center py-16">
+                      <Calendar className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                      <h3 className="text-xl font-semibold mb-2">Nenhum evento cadastrado</h3>
+                      <p className="text-muted-foreground mb-6">
+                        Comece adicionando seu primeiro evento clicando no botão acima.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="mesclados">
-                <MergedEventsTab onChange={() => { fetchEvents(); fetchLastMergeLog(); }} />
+                <MergedEventsTab
+                  onChange={() => {
+                    fetchEvents();
+                    fetchLastMergeLog();
+                  }}
+                />
               </TabsContent>
 
               <TabsContent value="config">
@@ -625,7 +691,7 @@ const EventsManager = () => {
         <Dialog open={showForm} onOpenChange={(open) => !open && handleFormClose()}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <EventForm
-              key={editingEvent?.id || "new-event"}
+              key={editingEvent?.id || 'new-event'}
               event={editingEvent}
               onSuccess={handleFormClose}
               onCancel={handleFormClose}
@@ -633,8 +699,8 @@ const EventsManager = () => {
           </DialogContent>
         </Dialog>
 
-        <MultiEventArticleModal 
-          open={showMultiEventModal} 
+        <MultiEventArticleModal
+          open={showMultiEventModal}
           onOpenChange={setShowMultiEventModal}
           onSuccess={fetchEvents}
         />

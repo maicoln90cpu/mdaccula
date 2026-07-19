@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface Blob {
   color: string;
@@ -9,9 +9,9 @@ interface Blob {
 }
 
 const BLOBS: Blob[] = [
-  { color: "hsl(var(--neon-purple) / 0.22)", size: 420, top: "-12%", left: "0%", duration: 18 },
-  { color: "hsl(var(--neon-blue) / 0.16)", size: 380, top: "5%", left: "68%", duration: 22 },
-  { color: "hsl(var(--neon-pink) / 0.14)", size: 320, top: "48%", left: "28%", duration: 26 },
+  { color: 'hsl(var(--neon-purple) / 0.22)', size: 420, top: '-12%', left: '0%', duration: 18 },
+  { color: 'hsl(var(--neon-blue) / 0.16)', size: 380, top: '5%', left: '68%', duration: 22 },
+  { color: 'hsl(var(--neon-pink) / 0.14)', size: 320, top: '48%', left: '28%', duration: 26 },
 ];
 
 /** Ambient drifting glow behind hero content, built from the existing neon design tokens. */
@@ -40,7 +40,7 @@ const AuroraBackground = () => {
                   scale: [1, 1.15, 0.95, 1],
                 }
           }
-          transition={{ duration: blob.duration, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: blob.duration, repeat: Infinity, ease: 'easeInOut' }}
         />
       ))}
     </div>

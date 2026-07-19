@@ -1,53 +1,75 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend, PieChart, Pie, Cell } from "recharts";
-import { format, subDays, subWeeks, subMonths, startOfDay, startOfWeek, startOfMonth } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import {
+  format,
+  subDays,
+  subWeeks,
+  subMonths,
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+} from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 // Custo por 1M de tokens (input/output) - Preços atualizados 2025
 const MODEL_COSTS: Record<string, { input: number; output: number }> = {
   // Google Gemini
-  "google/gemini-2.5-flash": { input: 0.075, output: 0.30 },
-  "google/gemini-2.5-pro": { input: 1.25, output: 5.00 },
-  "google/gemini-2.5-flash-lite": { input: 0.018, output: 0.075 },
+  'google/gemini-2.5-flash': { input: 0.075, output: 0.3 },
+  'google/gemini-2.5-pro': { input: 1.25, output: 5.0 },
+  'google/gemini-2.5-flash-lite': { input: 0.018, output: 0.075 },
   // Nano Banana (Image Generation)
-  "google/gemini-2.5-flash-image-preview": { input: 0.04, output: 0.04 },
+  'google/gemini-2.5-flash-image-preview': { input: 0.04, output: 0.04 },
   // OpenAI GPT-5 series
-  "openai/gpt-5": { input: 1.25, output: 10.00 },
-  "openai/gpt-5-mini": { input: 0.25, output: 2.00 },
-  "openai/gpt-5-nano": { input: 0.05, output: 0.40 },
+  'openai/gpt-5': { input: 1.25, output: 10.0 },
+  'openai/gpt-5-mini': { input: 0.25, output: 2.0 },
+  'openai/gpt-5-nano': { input: 0.05, output: 0.4 },
   // OpenAI GPT-4.1 series
-  "openai/gpt-4.1": { input: 2.00, output: 8.00 },
-  "openai/gpt-4.1-mini": { input: 0.40, output: 1.60 },
-  "openai/gpt-4.1-nano": { input: 0.10, output: 0.40 },
+  'openai/gpt-4.1': { input: 2.0, output: 8.0 },
+  'openai/gpt-4.1-mini': { input: 0.4, output: 1.6 },
+  'openai/gpt-4.1-nano': { input: 0.1, output: 0.4 },
   // OpenAI GPT-4o series
-  "openai/gpt-4o": { input: 2.50, output: 10.00 },
-  "openai/gpt-4o-mini": { input: 0.15, output: 0.60 },
+  'openai/gpt-4o': { input: 2.5, output: 10.0 },
+  'openai/gpt-4o-mini': { input: 0.15, output: 0.6 },
   // OpenAI Reasoning models
-  "openai/o3": { input: 2.00, output: 8.00 },
-  "openai/o3-mini": { input: 1.10, output: 4.40 },
-  "openai/o4-mini": { input: 1.10, output: 4.40 },
+  'openai/o3': { input: 2.0, output: 8.0 },
+  'openai/o3-mini': { input: 1.1, output: 4.4 },
+  'openai/o4-mini': { input: 1.1, output: 4.4 },
 };
 
 // Custo estimado por artigo (usado apenas quando não há dados de tokens)
 const ESTIMATED_COST_PER_ARTICLE: Record<string, number> = {
-  "google/gemini-2.5-flash": 0.0007,
-  "google/gemini-2.5-pro": 0.012,
-  "google/gemini-2.5-flash-lite": 0.0002,
-  "google/gemini-2.5-flash-image-preview": 0.04,
-  "openai/gpt-5": 0.022,
-  "openai/gpt-5-mini": 0.0044,
-  "openai/gpt-5-nano": 0.0009,
-  "openai/gpt-4.1": 0.019,
-  "openai/gpt-4.1-mini": 0.0038,
-  "openai/gpt-4.1-nano": 0.001,
-  "openai/gpt-4o": 0.024,
-  "openai/gpt-4o-mini": 0.0014,
-  "openai/o3": 0.019,
-  "openai/o3-mini": 0.0105,
-  "openai/o4-mini": 0.0105,
+  'google/gemini-2.5-flash': 0.0007,
+  'google/gemini-2.5-pro': 0.012,
+  'google/gemini-2.5-flash-lite': 0.0002,
+  'google/gemini-2.5-flash-image-preview': 0.04,
+  'openai/gpt-5': 0.022,
+  'openai/gpt-5-mini': 0.0044,
+  'openai/gpt-5-nano': 0.0009,
+  'openai/gpt-4.1': 0.019,
+  'openai/gpt-4.1-mini': 0.0038,
+  'openai/gpt-4.1-nano': 0.001,
+  'openai/gpt-4o': 0.024,
+  'openai/gpt-4o-mini': 0.0014,
+  'openai/o3': 0.019,
+  'openai/o3-mini': 0.0105,
+  'openai/o4-mini': 0.0105,
 };
 
 interface AIPost {
@@ -77,12 +99,12 @@ interface ModelComparison {
   isImageModel?: boolean;
 }
 
-const COLORS = ["#8b5cf6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444", "#ec4899"];
+const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export const AIAnalyticsDashboard = () => {
   const [posts, setPosts] = useState<AIPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   useEffect(() => {
     fetchPosts();
@@ -91,50 +113,63 @@ export const AIAnalyticsDashboard = () => {
   const fetchPosts = async () => {
     try {
       const { data, error } = await supabase
-        .from("ai_generated_posts")
-        .select("id, model_used, input_tokens, output_tokens, total_tokens, image_tokens, generated_at")
-        .order("generated_at", { ascending: true });
+        .from('ai_generated_posts')
+        .select(
+          'id, model_used, input_tokens, output_tokens, total_tokens, image_tokens, generated_at'
+        )
+        .order('generated_at', { ascending: true });
 
       if (error) throw error;
       setPosts((data as AIPost[]) || []);
     } catch (error) {
-      console.error("Error fetching AI posts:", error);
+      console.error('Error fetching AI posts:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const calculateRealCost = (model: string, inputTokens: number, outputTokens: number): number => {
-    const costs = MODEL_COSTS[model] || MODEL_COSTS["google/gemini-2.5-flash"];
+    const costs = MODEL_COSTS[model] || MODEL_COSTS['google/gemini-2.5-flash'];
     return (inputTokens / 1_000_000) * costs.input + (outputTokens / 1_000_000) * costs.output;
   };
 
   const getModelComparison = (): ModelComparison[] => {
-    const modelData: Record<string, { 
-      posts: number; 
-      totalTokens: number; 
-      inputTokens: number; 
-      outputTokens: number;
-      postsWithTokens: number;
-      imageTokens: number;
-      postsWithImages: number;
-    }> = {};
+    const modelData: Record<
+      string,
+      {
+        posts: number;
+        totalTokens: number;
+        inputTokens: number;
+        outputTokens: number;
+        postsWithTokens: number;
+        imageTokens: number;
+        postsWithImages: number;
+      }
+    > = {};
 
     // Initialize Nano Banana model entry
-    modelData["google/gemini-2.5-flash-image-preview"] = { 
-      posts: 0, 
-      totalTokens: 0, 
-      inputTokens: 0, 
-      outputTokens: 0, 
+    modelData['google/gemini-2.5-flash-image-preview'] = {
+      posts: 0,
+      totalTokens: 0,
+      inputTokens: 0,
+      outputTokens: 0,
       postsWithTokens: 0,
       imageTokens: 0,
-      postsWithImages: 0
+      postsWithImages: 0,
     };
 
     posts.forEach((post) => {
-      const model = post.model_used || "desconhecido";
+      const model = post.model_used || 'desconhecido';
       if (!modelData[model]) {
-        modelData[model] = { posts: 0, totalTokens: 0, inputTokens: 0, outputTokens: 0, postsWithTokens: 0, imageTokens: 0, postsWithImages: 0 };
+        modelData[model] = {
+          posts: 0,
+          totalTokens: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          postsWithTokens: 0,
+          imageTokens: 0,
+          postsWithImages: 0,
+        };
       }
       modelData[model].posts += 1;
       modelData[model].totalTokens += post.total_tokens || 0;
@@ -146,21 +181,21 @@ export const AIAnalyticsDashboard = () => {
 
       // Track image tokens separately for Nano Banana
       if (post.image_tokens && post.image_tokens > 0) {
-        modelData["google/gemini-2.5-flash-image-preview"].imageTokens += post.image_tokens;
-        modelData["google/gemini-2.5-flash-image-preview"].postsWithImages += 1;
+        modelData['google/gemini-2.5-flash-image-preview'].imageTokens += post.image_tokens;
+        modelData['google/gemini-2.5-flash-image-preview'].postsWithImages += 1;
       }
     });
 
     // Count posts with images for Nano Banana
-    const postsWithImages = posts.filter(p => p.image_tokens && p.image_tokens > 0).length;
-    modelData["google/gemini-2.5-flash-image-preview"].posts = postsWithImages;
+    const postsWithImages = posts.filter((p) => p.image_tokens && p.image_tokens > 0).length;
+    modelData['google/gemini-2.5-flash-image-preview'].posts = postsWithImages;
 
     const results: ModelComparison[] = [];
 
     // Add text models
     Object.entries(modelData).forEach(([model, data]) => {
-      if (model === "google/gemini-2.5-flash-image-preview") return; // Handle separately
-      
+      if (model === 'google/gemini-2.5-flash-image-preview') return; // Handle separately
+
       const hasRealData = data.totalTokens > 0;
       const cost = hasRealData
         ? calculateRealCost(model, data.inputTokens, data.outputTokens)
@@ -178,12 +213,12 @@ export const AIAnalyticsDashboard = () => {
     });
 
     // Add Nano Banana (image generation) separately - usando APENAS dados reais
-    const realImageCount = posts.filter(p => p.image_tokens && p.image_tokens > 0).length;
+    const realImageCount = posts.filter((p) => p.image_tokens && p.image_tokens > 0).length;
     const totalImageTokens = posts.reduce((acc, p) => acc + (p.image_tokens || 0), 0);
-    
+
     if (realImageCount > 0) {
       results.push({
-        model: "Nano Banana (Imagens)",
+        model: 'Nano Banana (Imagens)',
         posts: realImageCount,
         totalTokens: totalImageTokens,
         cost: (totalImageTokens / 1_000_000) * 0.04,
@@ -202,24 +237,27 @@ export const AIAnalyticsDashboard = () => {
     let dateFormat: string;
 
     switch (period) {
-      case "daily":
+      case 'daily':
         startDate = subDays(now, 30);
-        groupBy = (date) => format(startOfDay(date), "yyyy-MM-dd");
-        dateFormat = "dd/MM";
+        groupBy = (date) => format(startOfDay(date), 'yyyy-MM-dd');
+        dateFormat = 'dd/MM';
         break;
-      case "weekly":
+      case 'weekly':
         startDate = subWeeks(now, 12);
-        groupBy = (date) => format(startOfWeek(date, { locale: ptBR }), "yyyy-MM-dd");
-        dateFormat = "dd/MM";
+        groupBy = (date) => format(startOfWeek(date, { locale: ptBR }), 'yyyy-MM-dd');
+        dateFormat = 'dd/MM';
         break;
-      case "monthly":
+      case 'monthly':
         startDate = subMonths(now, 12);
-        groupBy = (date) => format(startOfMonth(date), "yyyy-MM");
-        dateFormat = "MMM/yy";
+        groupBy = (date) => format(startOfMonth(date), 'yyyy-MM');
+        dateFormat = 'MMM/yy';
         break;
     }
 
-    const grouped: Record<string, { tokens: number; cost: number; posts: number; imageCost: number }> = {};
+    const grouped: Record<
+      string,
+      { tokens: number; cost: number; posts: number; imageCost: number }
+    > = {};
 
     posts
       .filter((post) => post.generated_at && new Date(post.generated_at) >= startDate)
@@ -229,16 +267,17 @@ export const AIAnalyticsDashboard = () => {
           grouped[key] = { tokens: 0, cost: 0, posts: 0, imageCost: 0 };
         }
         grouped[key].tokens += post.total_tokens || 0;
-        
+
         const hasTokens = (post.total_tokens || 0) > 0;
         if (hasTokens) {
           grouped[key].cost += calculateRealCost(
-            post.model_used || "google/gemini-2.5-flash",
+            post.model_used || 'google/gemini-2.5-flash',
             post.input_tokens || 0,
             post.output_tokens || 0
           );
         } else {
-          grouped[key].cost += ESTIMATED_COST_PER_ARTICLE[post.model_used || "google/gemini-2.5-flash"] || 0.015;
+          grouped[key].cost +=
+            ESTIMATED_COST_PER_ARTICLE[post.model_used || 'google/gemini-2.5-flash'] || 0.015;
         }
 
         // Add image cost - APENAS dados reais, sem estimativas
@@ -263,7 +302,7 @@ export const AIAnalyticsDashboard = () => {
   const getPieData = () => {
     const comparison = getModelComparison();
     return comparison.map((item) => ({
-      name: item.isImageModel ? "Imagens" : (item.model.split("/").pop() || item.model),
+      name: item.isImageModel ? 'Imagens' : item.model.split('/').pop() || item.model,
       value: item.isImageModel ? item.posts : item.totalTokens,
       cost: item.cost,
     }));
@@ -271,7 +310,7 @@ export const AIAnalyticsDashboard = () => {
 
   const modelComparison = getModelComparison();
   const totalCost = modelComparison.reduce((acc, item) => acc + item.cost, 0);
-  const hasAnyRealData = modelComparison.some(item => item.hasRealData);
+  const hasAnyRealData = modelComparison.some((item) => item.hasRealData);
 
   if (loading) {
     return (
@@ -313,7 +352,7 @@ export const AIAnalyticsDashboard = () => {
           <CardHeader className="pb-2">
             <CardDescription>Imagens Geradas</CardDescription>
             <CardTitle className="text-2xl">
-              {posts.filter(p => p.image_tokens && p.image_tokens > 0).length}
+              {posts.filter((p) => p.image_tokens && p.image_tokens > 0).length}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -332,9 +371,9 @@ export const AIAnalyticsDashboard = () => {
         <CardHeader>
           <CardTitle className="text-lg">Custos por Modelo de IA</CardTitle>
           <CardDescription>
-            {hasAnyRealData 
-              ? "Custo real baseado em tokens utilizados" 
-              : "Custo estimado (sem dados de tokens disponíveis)"}
+            {hasAnyRealData
+              ? 'Custo real baseado em tokens utilizados'
+              : 'Custo estimado (sem dados de tokens disponíveis)'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -350,25 +389,31 @@ export const AIAnalyticsDashboard = () => {
               </thead>
               <tbody>
                 {modelComparison.map((item) => (
-                  <tr key={item.model} className={`border-b border-border/50 ${item.isImageModel ? 'bg-primary/5' : ''}`}>
+                  <tr
+                    key={item.model}
+                    className={`border-b border-border/50 ${item.isImageModel ? 'bg-primary/5' : ''}`}
+                  >
                     <td className="py-2 px-2 font-medium truncate max-w-[150px]">
                       {item.isImageModel ? (
-                        <span className="flex items-center gap-1">
-                          🖼️ {item.model}
-                        </span>
+                        <span className="flex items-center gap-1">🖼️ {item.model}</span>
                       ) : (
-                        item.model.split("/").pop()
+                        item.model.split('/').pop()
                       )}
                     </td>
                     <td className="text-right py-2 px-2">{item.posts}</td>
                     <td className="text-right py-2 px-2">
-                      {item.isImageModel 
+                      {item.isImageModel
                         ? `${item.posts} imgs`
-                        : (item.totalTokens > 0 ? item.totalTokens.toLocaleString() : "-")
-                      }
+                        : item.totalTokens > 0
+                          ? item.totalTokens.toLocaleString()
+                          : '-'}
                     </td>
                     <td className="text-right py-2 px-2">
-                      <span className={item.hasRealData ? "text-primary font-medium" : "text-muted-foreground"}>
+                      <span
+                        className={
+                          item.hasRealData ? 'text-primary font-medium' : 'text-muted-foreground'
+                        }
+                      >
                         ${item.cost.toFixed(4)}
                       </span>
                       {!item.hasRealData && (
@@ -395,7 +440,10 @@ export const AIAnalyticsDashboard = () => {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Gráficos de Uso</CardTitle>
-          <Tabs value={period} onValueChange={(v) => setPeriod(v as "daily" | "weekly" | "monthly")}>
+          <Tabs
+            value={period}
+            onValueChange={(v) => setPeriod(v as 'daily' | 'weekly' | 'monthly')}
+          >
             <TabsList>
               <TabsTrigger value="daily">Diário</TabsTrigger>
               <TabsTrigger value="weekly">Semanal</TabsTrigger>
@@ -411,13 +459,17 @@ export const AIAnalyticsDashboard = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={getChartData()}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <XAxis
+                    dataKey="date"
+                    className="text-xs"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
                     }}
                   />
                   <Bar dataKey="tokens" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -428,27 +480,47 @@ export const AIAnalyticsDashboard = () => {
 
           {/* Cost Chart */}
           <div>
-            <h4 className="text-sm font-medium mb-3">Custos por Período (USD) - Inclui Texto + Imagens</h4>
+            <h4 className="text-sm font-medium mb-3">
+              Custos por Período (USD) - Inclui Texto + Imagens
+            </h4>
             <div className="h-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={getChartData()}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis className="text-xs" tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                  <XAxis
+                    dataKey="date"
+                    className="text-xs"
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis className="text-xs" tick={{ fill: 'hsl(var(--muted-foreground))' }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: "hsl(var(--background))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
                     }}
                     formatter={(value: number, name: string) => [
-                      `$${value.toFixed(4)}`, 
-                      name === "imageCost" ? "Custo Imagens" : "Custo Total"
+                      `$${value.toFixed(4)}`,
+                      name === 'imageCost' ? 'Custo Imagens' : 'Custo Total',
                     ]}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="cost" name="Custo Total" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: "hsl(var(--primary))" }} />
-                  <Line type="monotone" dataKey="imageCost" name="Custo Imagens" stroke="#ec4899" strokeWidth={2} dot={{ fill: "#ec4899" }} />
+                  <Line
+                    type="monotone"
+                    dataKey="cost"
+                    name="Custo Total"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))' }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="imageCost"
+                    name="Custo Imagens"
+                    stroke="#ec4899"
+                    strokeWidth={2}
+                    dot={{ fill: '#ec4899' }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -473,7 +545,9 @@ export const AIAnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [value.toLocaleString(), "Tokens/Imagens"]} />
+                    <Tooltip
+                      formatter={(value: number) => [value.toLocaleString(), 'Tokens/Imagens']}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -495,7 +569,7 @@ export const AIAnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`$${value.toFixed(4)}`, "Custo"]} />
+                    <Tooltip formatter={(value: number) => [`$${value.toFixed(4)}`, 'Custo']} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

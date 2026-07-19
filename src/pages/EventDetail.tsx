@@ -1,23 +1,23 @@
-import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
-import { TicketDayPickerModal } from "@/components/events/TicketDayPickerModal";
-import { EventCountdown } from "@/components/events/EventCountdown";
-import { SpotlightCard } from "@/components/effects/SpotlightCard";
-import { safeExternalUrl } from "@/lib/safeExternalUrl";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { addHours } from "date-fns";
-import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from "@/lib/dateUtils";
-import { parseSchedule } from "@/lib/eventScheduleHelper";
-import { normalizeLineup } from "@/lib/lineupNormalizer";
-import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
-import { getEventCtaButtonLabel, getEventCtaCardTitle } from "@shared/eventCta.ts";
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { TicketDayPickerModal } from '@/components/events/TicketDayPickerModal';
+import { EventCountdown } from '@/components/events/EventCountdown';
+import { SpotlightCard } from '@/components/effects/SpotlightCard';
+import { safeExternalUrl } from '@/lib/safeExternalUrl';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import Navigation from '@/components/ui/navigation';
+import Footer from '@/components/ui/footer';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { addHours } from 'date-fns';
+import { parseLocalDate, parseLocalDateTime, formatEventDateRange } from '@/lib/dateUtils';
+import { parseSchedule } from '@/lib/eventScheduleHelper';
+import { normalizeLineup } from '@/lib/lineupNormalizer';
+import { EVENT_PUBLIC_FIELDS } from '@/lib/eventSelectFields';
+import { getEventCtaButtonLabel, getEventCtaCardTitle } from '@shared/eventCta.ts';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,14 +25,20 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { ShareButtons } from "@/components/ShareButtons";
-import { SoundWaveBackground } from "@/components/SoundWaveBackground";
-import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from "lucide-react";
-import { SEOHead } from "@/components/SEOHead";
-import { getOptimizedImageUrl, getThumbnailUrl, getMediumUrl, handleImageFallback, handleThumbImageFallback } from "@/lib/imageUtils";
-import { StructuredData } from "@/components/StructuredData";
-import { EventLocationMap } from "@/components/events/EventLocationMap";
+} from '@/components/ui/breadcrumb';
+import { ShareButtons } from '@/components/ShareButtons';
+import { SoundWaveBackground } from '@/components/SoundWaveBackground';
+import { Calendar, Clock, MapPin, ExternalLink, ChevronLeft, Users } from 'lucide-react';
+import { SEOHead } from '@/components/SEOHead';
+import {
+  getOptimizedImageUrl,
+  getThumbnailUrl,
+  getMediumUrl,
+  handleImageFallback,
+  handleThumbImageFallback,
+} from '@/lib/imageUtils';
+import { StructuredData } from '@/components/StructuredData';
+import { EventLocationMap } from '@/components/events/EventLocationMap';
 
 interface Event {
   id: string;
@@ -80,22 +86,26 @@ const EventDetail = () => {
   const prefersReducedMotion = useReducedMotion();
 
   // Main event query (com fallback para slug antigo via event_slug_redirects)
-  const { data: event, isLoading, error } = useQuery({
-    queryKey: ["event-detail", slug],
+  const {
+    data: event,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['event-detail', slug],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("events")
-        .select("*")
-        .eq("slug", slug)
+        .from('events')
+        .select('*')
+        .eq('slug', slug)
         .maybeSingle();
       if (error) throw error;
 
       // Fase 6.2: se o evento existe mas foi inativado por mesclagem, segue p/ o principal.
-      if (data && data.status === "merged_inactive" && data.merged_into_id) {
+      if (data && data.status === 'merged_inactive' && data.merged_into_id) {
         const { data: target, error: targetErr } = await supabase
-          .from("events")
-          .select("*")
-          .eq("id", data.merged_into_id)
+          .from('events')
+          .select('*')
+          .eq('id', data.merged_into_id)
           .maybeSingle();
         if (targetErr) throw targetErr;
         if (target) return target as Event | null;
@@ -104,16 +114,16 @@ const EventDetail = () => {
 
       // Fallback: slug antigo (evento mesclado em festival)
       const { data: redir } = await supabase
-        .from("event_slug_redirects")
-        .select("event_id")
-        .eq("old_slug", slug)
+        .from('event_slug_redirects')
+        .select('event_id')
+        .eq('old_slug', slug)
         .maybeSingle();
       if (!redir?.event_id) return null;
 
       const { data: target, error: targetErr } = await supabase
-        .from("events")
-        .select("*")
-        .eq("id", redir.event_id)
+        .from('events')
+        .select('*')
+        .eq('id', redir.event_id)
         .maybeSingle();
       if (targetErr) throw targetErr;
       return target as Event | null;
@@ -133,13 +143,13 @@ const EventDetail = () => {
 
   // Related blog post query
   const { data: relatedPost } = useQuery({
-    queryKey: ["event-related-post", event?.blog_post_id],
+    queryKey: ['event-related-post', event?.blog_post_id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("blog_posts")
-        .select("id, title, slug, excerpt, image_url, category, published_at")
-        .eq("id", event!.blog_post_id!)
-        .eq("published", true)
+        .from('blog_posts')
+        .select('id, title, slug, excerpt, image_url, category, published_at')
+        .eq('id', event!.blog_post_id!)
+        .eq('published', true)
         .maybeSingle();
       return data as BlogPost | null;
     },
@@ -150,24 +160,26 @@ const EventDetail = () => {
 
   // Related events query
   const { data: relatedEvents = [] } = useQuery({
-    queryKey: ["event-related-events", event?.id, event?.genres],
+    queryKey: ['event-related-events', event?.id, event?.genres],
     queryFn: async () => {
       const { data } = await supabase
-        .from("events")
+        .from('events')
         .select(EVENT_PUBLIC_FIELDS)
-        .eq("status", "active")
-        .overlaps("genres", event!.genres)
-        .neq("id", event!.id)
-        .gte("date", new Date().toISOString().split("T")[0])
-        .order("date", { ascending: true })
+        .eq('status', 'active')
+        .overlaps('genres', event!.genres)
+        .neq('id', event!.id)
+        .gte('date', new Date().toISOString().split('T')[0])
+        .order('date', { ascending: true })
         .limit(5);
 
       if (!data) return [];
       const now = new Date();
-      return (data as unknown as Event[]).filter(e => {
-        const eventDateTime = parseLocalDateTime(e.date, e.time);
-        return addHours(eventDateTime, 24) > now;
-      }).slice(0, 3);
+      return (data as unknown as Event[])
+        .filter((e) => {
+          const eventDateTime = parseLocalDateTime(e.date, e.time);
+          return addHours(eventDateTime, 24) > now;
+        })
+        .slice(0, 3);
     },
     enabled: !!event?.id && !!event?.genres?.length,
     staleTime: 15 * 60 * 1000,
@@ -177,15 +189,16 @@ const EventDetail = () => {
   // Track view
   useEffect(() => {
     if (event?.id) {
-      supabase.functions.invoke("track-view", { body: { eventId: event.id } })
-        .catch((err) => console.error("Error tracking event view:", err));
+      supabase.functions
+        .invoke('track-view', { body: { eventId: event.id } })
+        .catch((err) => console.error('Error tracking event view:', err));
     }
   }, [event?.id]);
 
   // Redirect if not found
   useEffect(() => {
     if (!isLoading && !event && !error) {
-      navigate("/eventos");
+      navigate('/eventos');
     }
   }, [isLoading, event, error, navigate]);
 
@@ -221,21 +234,19 @@ const EventDetail = () => {
   // Fase 5: quando evento é multi-dia e admin marcou "um link por dia",
   // o botão Comprar Ingresso abre modal de seleção em vez de ir direto ao ticket_link.
   const useDayPicker =
-    event.tickets_per_day === true &&
-    !!event.end_date &&
-    event.end_date !== event.date;
+    event.tickets_per_day === true && !!event.end_date && event.end_date !== event.date;
 
   // Botão Pix sem taxa: reaproveita o número do WhatsApp do vip_link, trocando a mensagem.
   const pixWhatsAppLink = (() => {
     if (!event.pix_button_enabled || !event.vip_link) return null;
     try {
       const url = new URL(event.vip_link);
-      const phone = url.searchParams.get("phone");
+      const phone = url.searchParams.get('phone');
       if (!phone) return null;
-      const isGui = phone.includes("5511997819194");
-      const greeting = isGui ? "Olá Gui" : "Olá MD";
+      const isGui = phone.includes('5511997819194');
+      const greeting = isGui ? 'Olá Gui' : 'Olá MD';
       const message = `${greeting}, quero comprar ingresso sem taxa via Pix para ${event.title}`;
-      url.searchParams.set("text", message);
+      url.searchParams.set('text', message);
       return url.toString();
     } catch {
       return null;
@@ -300,7 +311,7 @@ const EventDetail = () => {
             </Breadcrumb>
 
             {/* Back Button */}
-            <Button variant="ghost" onClick={() => navigate("/eventos")} className="mb-6">
+            <Button variant="ghost" onClick={() => navigate('/eventos')} className="mb-6">
               <ChevronLeft className="w-4 h-4 mr-2" />
               Voltar para eventos
             </Button>
@@ -330,7 +341,7 @@ const EventDetail = () => {
                     const img = e.currentTarget;
                     // variante medium pode não existir (imagem antiga) -> tira o srcset e força a full
                     if (img.srcset) {
-                      img.removeAttribute("srcset");
+                      img.removeAttribute('srcset');
                       img.src = getOptimizedImageUrl(event.image_url);
                       return;
                     }
@@ -346,7 +357,9 @@ const EventDetail = () => {
               <div className="lg:col-span-2 space-y-6 sm:space-y-8">
                 {/* Title & Genre */}
                 <div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 leading-tight break-words text-center sm:text-left">{event.title}</h1>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 leading-tight break-words text-center sm:text-left">
+                    {event.title}
+                  </h1>
                   {event.subtitle && (
                     <p
                       data-testid="event-subtitle"
@@ -358,7 +371,10 @@ const EventDetail = () => {
                   <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
                     {event.genres && event.genres.length > 0 ? (
                       event.genres.map((genre, index) => (
-                        <Badge key={index} className="bg-primary/20 text-primary border-primary/30 text-sm sm:text-base px-3 sm:px-4 py-1">
+                        <Badge
+                          key={index}
+                          className="bg-primary/20 text-primary border-primary/30 text-sm sm:text-base px-3 sm:px-4 py-1"
+                        >
                           🎵 {genre}
                         </Badge>
                       ))
@@ -378,8 +394,8 @@ const EventDetail = () => {
                       <CardTitle>{ticketCardTitle}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {event.ticket_link && (
-                        useDayPicker ? (
+                      {event.ticket_link &&
+                        (useDayPicker ? (
                           <Button
                             className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
                             size="lg"
@@ -389,14 +405,21 @@ const EventDetail = () => {
                             {ticketButtonText}
                           </Button>
                         ) : (
-                          <Button asChild className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift" size="lg">
-                            <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
+                          <Button
+                            asChild
+                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
+                            size="lg"
+                          >
+                            <a
+                              href={safeExternalUrl(event.ticket_link)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {ticketButtonText}
                             </a>
                           </Button>
-                        )
-                      )}
+                        ))}
                       {pixWhatsAppLink && (
                         <Button
                           asChild
@@ -411,7 +434,11 @@ const EventDetail = () => {
                       )}
                       {event.vip_link && (
                         <Button variant="secondary" asChild className="w-full" size="lg">
-                          <a href={safeExternalUrl(event.vip_link)} target="_blank" rel="noopener noreferrer">
+                          <a
+                            href={safeExternalUrl(event.vip_link)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Reservas de Camarote
                           </a>
@@ -431,7 +458,9 @@ const EventDetail = () => {
                       <Calendar className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
                       <div>
                         <p className="font-medium">Data</p>
-                        <p className="text-muted-foreground capitalize">{formatEventDateRange(event.date, event.end_date)}</p>
+                        <p className="text-muted-foreground capitalize">
+                          {formatEventDateRange(event.date, event.end_date)}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
@@ -470,8 +499,6 @@ const EventDetail = () => {
                   />
                 )}
 
-
-
                 {/* Programação por dia (festival) ou Line-up único */}
                 {(() => {
                   const schedule = parseSchedule(event.schedule);
@@ -496,7 +523,10 @@ const EventDetail = () => {
                               month: 'long',
                             });
                             return (
-                              <div key={day.date} className="border-l-2 border-primary pl-4 space-y-2">
+                              <div
+                                key={day.date}
+                                className="border-l-2 border-primary pl-4 space-y-2"
+                              >
                                 <div className="flex flex-wrap items-baseline gap-2">
                                   <p className="font-semibold capitalize">{dayLabel}</p>
                                   <p className="text-sm text-muted-foreground">
@@ -509,10 +539,16 @@ const EventDetail = () => {
                                     {dayLineup.map((artist, i) => (
                                       <motion.span
                                         key={i}
-                                        initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
+                                        initial={
+                                          prefersReducedMotion ? undefined : { opacity: 0, y: 8 }
+                                        }
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
-                                        transition={{ duration: 0.3, delay: Math.min(i, 10) * 0.04, ease: "easeOut" }}
+                                        transition={{
+                                          duration: 0.3,
+                                          delay: Math.min(i, 10) * 0.04,
+                                          ease: 'easeOut',
+                                        }}
                                       >
                                         <Badge
                                           variant="outline"
@@ -553,7 +589,11 @@ const EventDetail = () => {
                                 initial={prefersReducedMotion ? undefined : { opacity: 0, y: 8 }}
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
-                                transition={{ duration: 0.3, delay: Math.min(index, 10) * 0.04, ease: "easeOut" }}
+                                transition={{
+                                  duration: 0.3,
+                                  delay: Math.min(index, 10) * 0.04,
+                                  ease: 'easeOut',
+                                }}
                               >
                                 <Badge
                                   variant="outline"
@@ -578,7 +618,9 @@ const EventDetail = () => {
                       <CardTitle>Sobre o Evento</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{event.description}</p>
+                      <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {event.description}
+                      </p>
                     </CardContent>
                   </Card>
                 )}
@@ -601,7 +643,12 @@ const EventDetail = () => {
                                 className="w-full h-full object-contain"
                                 loading="lazy"
                                 decoding="async"
-                                onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(relatedPost.image_url))}
+                                onError={(e) =>
+                                  handleThumbImageFallback(
+                                    e,
+                                    getOptimizedImageUrl(relatedPost.image_url)
+                                  )
+                                }
                               />
                             </div>
                           )}
@@ -629,8 +676,8 @@ const EventDetail = () => {
                       <CardTitle>{ticketCardTitle}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {event.ticket_link && (
-                        useDayPicker ? (
+                      {event.ticket_link &&
+                        (useDayPicker ? (
                           <Button
                             className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
                             size="lg"
@@ -640,14 +687,21 @@ const EventDetail = () => {
                             {ticketButtonText}
                           </Button>
                         ) : (
-                          <Button asChild className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift" size="lg">
-                            <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
+                          <Button
+                            asChild
+                            className="w-full btn-ticket-glow animate-ticket-glow-pulse animate-ticket-glow-shift"
+                            size="lg"
+                          >
+                            <a
+                              href={safeExternalUrl(event.ticket_link)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <ExternalLink className="w-4 h-4 mr-2" />
                               {ticketButtonText}
                             </a>
                           </Button>
-                        )
-                      )}
+                        ))}
                       {pixWhatsAppLink && (
                         <Button
                           asChild
@@ -662,7 +716,11 @@ const EventDetail = () => {
                       )}
                       {event.vip_link && (
                         <Button variant="secondary" asChild className="w-full" size="lg">
-                          <a href={safeExternalUrl(event.vip_link)} target="_blank" rel="noopener noreferrer">
+                          <a
+                            href={safeExternalUrl(event.vip_link)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             <ExternalLink className="w-4 h-4 mr-2" />
                             Reservas de Camarote
                           </a>
@@ -681,7 +739,10 @@ const EventDetail = () => {
                     <ShareButtons
                       url={currentUrl}
                       title={event.title}
-                      description={event.description || `${(event.genres ?? []).join(", ") || "Música eletrônica"} - ${event.venue ?? ""}`}
+                      description={
+                        event.description ||
+                        `${(event.genres ?? []).join(', ') || 'Música eletrônica'} - ${event.venue ?? ''}`
+                      }
                     />
                   </CardContent>
                 </Card>
@@ -691,11 +752,17 @@ const EventDetail = () => {
                   <Card>
                     <CardHeader>
                       <CardTitle>Eventos Similares</CardTitle>
-                      <CardDescription>Outros eventos de {(event.genres ?? []).join(", ") || "música eletrônica"}</CardDescription>
+                      <CardDescription>
+                        Outros eventos de {(event.genres ?? []).join(', ') || 'música eletrônica'}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       {relatedEvents.map((relatedEvent) => (
-                        <Link key={relatedEvent.id} to={`/eventos/${relatedEvent.slug}`} className="block group">
+                        <Link
+                          key={relatedEvent.id}
+                          to={`/eventos/${relatedEvent.slug}`}
+                          className="block group"
+                        >
                           <SpotlightCard className="rounded-lg hover:bg-muted/50 transition-colors">
                             <div className="flex gap-3 p-3">
                               {relatedEvent.image_url && (
@@ -706,7 +773,12 @@ const EventDetail = () => {
                                     className="w-full h-full object-cover"
                                     loading="lazy"
                                     decoding="async"
-                                    onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(relatedEvent.image_url))}
+                                    onError={(e) =>
+                                      handleThumbImageFallback(
+                                        e,
+                                        getOptimizedImageUrl(relatedEvent.image_url)
+                                      )
+                                    }
                                   />
                                 </div>
                               )}
@@ -715,7 +787,8 @@ const EventDetail = () => {
                                   {relatedEvent.title}
                                 </h4>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                  {parseLocalDate(relatedEvent.date).toLocaleDateString("pt-BR")} • {relatedEvent.venue}
+                                  {parseLocalDate(relatedEvent.date).toLocaleDateString('pt-BR')} •{' '}
+                                  {relatedEvent.venue}
                                 </p>
                               </div>
                             </div>

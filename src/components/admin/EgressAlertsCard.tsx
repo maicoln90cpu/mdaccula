@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Bell, Save, PlayCircle } from "lucide-react";
-import { toast } from "sonner";
-import { formatDateTimeBR } from "@/lib/formatters";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Bell, Save, PlayCircle } from 'lucide-react';
+import { toast } from 'sonner';
+import { formatDateTimeBR } from '@/lib/formatters';
 
 interface AlertRow {
   id: string;
@@ -21,13 +21,13 @@ interface AlertRow {
   email_error: string | null;
 }
 
-const formatMB = (b: number) => (b / (1024 * 1024)).toFixed(2) + " MB";
+const formatMB = (b: number) => (b / (1024 * 1024)).toFixed(2) + ' MB';
 
 export const EgressAlertsCard = () => {
   const [enabled, setEnabled] = useState(true);
   const [thresholdMb, setThresholdMb] = useState(500);
   const [ratio, setRatio] = useState(2);
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
   const [alerts, setAlerts] = useState<AlertRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -35,23 +35,25 @@ export const EgressAlertsCard = () => {
 
   const loadAll = async () => {
     setLoading(true);
-    const { data: cfgRows } = await supabase.from("site_settings")
-      .select("key,value")
-      .in("key", [
-        "egress_alert_enabled",
-        "egress_alert_threshold_mb",
-        "egress_alert_ratio",
-        "egress_alert_email",
+    const { data: cfgRows } = await supabase
+      .from('site_settings')
+      .select('key,value')
+      .in('key', [
+        'egress_alert_enabled',
+        'egress_alert_threshold_mb',
+        'egress_alert_ratio',
+        'egress_alert_email',
       ]);
     const map = new Map((cfgRows ?? []).map((r) => [r.key, r.value]));
-    setEnabled(Boolean(map.get("egress_alert_enabled") ?? true));
-    setThresholdMb(Number(map.get("egress_alert_threshold_mb") ?? 500));
-    setRatio(Number(map.get("egress_alert_ratio") ?? 2));
-    setEmail(String(map.get("egress_alert_email") ?? ""));
+    setEnabled(Boolean(map.get('egress_alert_enabled') ?? true));
+    setThresholdMb(Number(map.get('egress_alert_threshold_mb') ?? 500));
+    setRatio(Number(map.get('egress_alert_ratio') ?? 2));
+    setEmail(String(map.get('egress_alert_email') ?? ''));
 
-    const { data: alertRows } = await supabase.from("egress_alerts")
-      .select("*")
-      .order("triggered_at", { ascending: false })
+    const { data: alertRows } = await supabase
+      .from('egress_alerts')
+      .select('*')
+      .order('triggered_at', { ascending: false })
       .limit(10);
     setAlerts((alertRows ?? []) as AlertRow[]);
     setLoading(false);
@@ -65,17 +67,17 @@ export const EgressAlertsCard = () => {
     setSaving(true);
     try {
       const updates = [
-        { key: "egress_alert_enabled", value: enabled },
-        { key: "egress_alert_threshold_mb", value: thresholdMb },
-        { key: "egress_alert_ratio", value: ratio },
-        { key: "egress_alert_email", value: email },
+        { key: 'egress_alert_enabled', value: enabled },
+        { key: 'egress_alert_threshold_mb', value: thresholdMb },
+        { key: 'egress_alert_ratio', value: ratio },
+        { key: 'egress_alert_email', value: email },
       ];
       for (const u of updates) {
-        await supabase.from("site_settings").upsert(u, { onConflict: "key" });
+        await supabase.from('site_settings').upsert(u, { onConflict: 'key' });
       }
-      toast.success("Configurações salvas");
+      toast.success('Configurações salvas');
     } catch (err) {
-      toast.error("Erro ao salvar: " + (err instanceof Error ? err.message : String(err)));
+      toast.error('Erro ao salvar: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setSaving(false);
     }
@@ -84,16 +86,14 @@ export const EgressAlertsCard = () => {
   const runNow = async () => {
     setTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("egress-alert-cron");
+      const { data, error } = await supabase.functions.invoke('egress-alert-cron');
       if (error) throw error;
       toast.success(
-        data?.alerted
-          ? `Alerta disparado: ${data.reason}`
-          : "Verificação executada — nada anormal.",
+        data?.alerted ? `Alerta disparado: ${data.reason}` : 'Verificação executada — nada anormal.'
       );
       await loadAll();
     } catch (err) {
-      toast.error("Erro ao executar: " + (err instanceof Error ? err.message : String(err)));
+      toast.error('Erro ao executar: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setTesting(false);
     }
@@ -108,8 +108,8 @@ export const EgressAlertsCard = () => {
             <CardTitle>Alertas Automáticos de Egress</CardTitle>
           </div>
           <CardDescription>
-            Cron diário compara consumo das últimas 24h com a média dos 7 dias anteriores.
-            Dispara e-mail quando: total {`>`} limite, OU consumo {`>`} média × fator.
+            Cron diário compara consumo das últimas 24h com a média dos 7 dias anteriores. Dispara
+            e-mail quando: total {`>`} limite, OU consumo {`>`} média × fator.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -161,11 +161,11 @@ export const EgressAlertsCard = () => {
           <div className="flex flex-wrap gap-2">
             <Button onClick={save} disabled={saving} size="sm">
               <Save className="h-4 w-4 mr-1" />
-              {saving ? "Salvando…" : "Salvar"}
+              {saving ? 'Salvando…' : 'Salvar'}
             </Button>
             <Button onClick={runNow} disabled={testing} size="sm" variant="outline">
               <PlayCircle className="h-4 w-4 mr-1" />
-              {testing ? "Executando…" : "Executar verificação agora"}
+              {testing ? 'Executando…' : 'Executar verificação agora'}
             </Button>
           </div>
         </CardContent>
@@ -179,9 +179,7 @@ export const EgressAlertsCard = () => {
           {loading ? (
             <p className="text-sm text-muted-foreground">Carregando…</p>
           ) : alerts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Nenhum alerta disparado até agora. ✅
-            </p>
+            <p className="text-sm text-muted-foreground">Nenhum alerta disparado até agora. ✅</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -203,20 +201,17 @@ export const EgressAlertsCard = () => {
                       </td>
                       <td className="py-2 px-2 text-xs">{a.reason}</td>
                       <td className="py-2 px-2 text-xs text-right">{formatMB(a.window_bytes)}</td>
+                      <td className="py-2 px-2 text-xs text-right">{formatMB(a.baseline_bytes)}</td>
                       <td className="py-2 px-2 text-xs text-right">
-                        {formatMB(a.baseline_bytes)}
-                      </td>
-                      <td className="py-2 px-2 text-xs text-right">
-                        {a.ratio ? a.ratio.toFixed(2) + "×" : "—"}
+                        {a.ratio ? a.ratio.toFixed(2) + '×' : '—'}
                       </td>
                       <td className="py-2 px-2 text-center">
                         {a.email_sent ? (
-                          <span className="text-green-600" title="Enviado">✓</span>
+                          <span className="text-green-600" title="Enviado">
+                            ✓
+                          </span>
                         ) : (
-                          <span
-                            className="text-yellow-600"
-                            title={a.email_error ?? "Não enviado"}
-                          >
+                          <span className="text-yellow-600" title={a.email_error ?? 'Não enviado'}>
                             ⚠
                           </span>
                         )}

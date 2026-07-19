@@ -7,12 +7,20 @@
  * artigo") mesmo quando o backend já explicava o problema com clareza.
  */
 export async function getEdgeFunctionErrorMessage(error: unknown): Promise<string> {
-  if (error && typeof error === "object" && "context" in error) {
+  if (error && typeof error === 'object' && 'context' in error) {
     const context = (error as { context?: unknown }).context;
-    if (context && typeof context === "object" && typeof (context as Response).json === "function") {
+    if (
+      context &&
+      typeof context === 'object' &&
+      typeof (context as Response).json === 'function'
+    ) {
       try {
         const body = await (context as Response).json();
-        if (body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string") {
+        if (
+          body &&
+          typeof body === 'object' &&
+          typeof (body as { error?: unknown }).error === 'string'
+        ) {
           return (body as { error: string }).error;
         }
       } catch {
@@ -21,5 +29,5 @@ export async function getEdgeFunctionErrorMessage(error: unknown): Promise<strin
     }
   }
   if (error instanceof Error && error.message) return error.message;
-  return "Erro desconhecido";
+  return 'Erro desconhecido';
 }

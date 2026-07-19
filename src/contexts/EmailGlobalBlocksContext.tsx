@@ -8,10 +8,13 @@
  * Agora todos consomem o MESMO cache via este contexto, e qualquer
  * save/update/delete recarrega uma única fonte de verdade.
  */
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import type { Block, GlobalBlock } from "@/lib/emailTemplates/blocks";
-import { EmailGlobalBlocksContext, type EmailGlobalBlocksCtx as Ctx } from "./emailGlobalBlocksContextValue";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Block, GlobalBlock } from '@/lib/emailTemplates/blocks';
+import {
+  EmailGlobalBlocksContext,
+  type EmailGlobalBlocksCtx as Ctx,
+} from './emailGlobalBlocksContextValue';
 
 export function EmailGlobalBlocksProvider({ children }: { children: ReactNode }) {
   const [globals, setGlobals] = useState<GlobalBlock[]>([]);
@@ -22,15 +25,16 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.from("email_global_blocks")
-        .select("id, name, description, category, block")
-        .order("category", { ascending: true })
-        .order("name", { ascending: true });
+      const { data, error } = await supabase
+        .from('email_global_blocks')
+        .select('id, name, description, category, block')
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
       if (error) throw error;
       setGlobals((data || []) as GlobalBlock[]);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erro desconhecido";
-      setError(message || "Erro ao carregar blocos globais");
+      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      setError(message || 'Erro ao carregar blocos globais');
       setGlobals([]);
     } finally {
       setLoading(false);
@@ -43,58 +47,55 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
 
   const globalsMap = useMemo(
     () => new Map<string, GlobalBlock>(globals.map((g) => [g.id, g])),
-    [globals],
+    [globals]
   );
 
   const saveAsGlobal = useCallback(
     async (
       block: Block,
-      meta: { name: string; description?: string; category?: string },
+      meta: { name: string; description?: string; category?: string }
     ): Promise<GlobalBlock | null> => {
-      if (block.kind === "global_ref") {
-        throw new Error("Não é possível salvar uma referência como bloco global (evitando loops).");
+      if (block.kind === 'global_ref') {
+        throw new Error('Não é possível salvar uma referência como bloco global (evitando loops).');
       }
       // Remove o id local E a flag `hidden` do bloco antes de salvar.
       // `hidden` é uma propriedade da REFERÊNCIA no template, não do bloco global em si;
       // se herdada, faria o global sempre renderizar vazio em todos os templates.
       const { id: _localId, hidden: _localHidden, ...rest } = block as Block & { hidden?: boolean };
-      const cleanBlock = { id: "template", ...rest } as Block;
-      const { data, error } = await supabase.from("email_global_blocks")
+      const cleanBlock = { id: 'template', ...rest } as Block;
+      const { data, error } = await supabase
+        .from('email_global_blocks')
         .insert({
           name: meta.name,
           description: meta.description || null,
-          category: meta.category || "geral",
+          category: meta.category || 'geral',
           block: cleanBlock,
         })
-        .select("id, name, description, category, block")
+        .select('id, name, description, category, block')
         .single();
       if (error) throw error;
       await reload();
       return data as GlobalBlock;
     },
-    [reload],
+    [reload]
   );
 
   const updateGlobal = useCallback(
-    async (id: string, patch: Partial<Omit<GlobalBlock, "id">>) => {
-      const { error } = await supabase.from("email_global_blocks")
-        .update(patch)
-        .eq("id", id);
+    async (id: string, patch: Partial<Omit<GlobalBlock, 'id'>>) => {
+      const { error } = await supabase.from('email_global_blocks').update(patch).eq('id', id);
       if (error) throw error;
       await reload();
     },
-    [reload],
+    [reload]
   );
 
   const deleteGlobal = useCallback(
     async (id: string) => {
-      const { error } = await supabase.from("email_global_blocks")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from('email_global_blocks').delete().eq('id', id);
       if (error) throw error;
       await reload();
     },
-    [reload],
+    [reload]
   );
 
   const value: Ctx = {
@@ -109,8 +110,6 @@ export function EmailGlobalBlocksProvider({ children }: { children: ReactNode })
   };
 
   return (
-    <EmailGlobalBlocksContext.Provider value={value}>
-      {children}
-    </EmailGlobalBlocksContext.Provider>
+    <EmailGlobalBlocksContext.Provider value={value}>{children}</EmailGlobalBlocksContext.Provider>
   );
 }

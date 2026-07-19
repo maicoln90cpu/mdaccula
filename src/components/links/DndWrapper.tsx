@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
-import type { DragEndEvent} from "@dnd-kit/core";
-import { DndContext, closestCenter } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import type { ReactNode } from 'react';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { DndContext, closestCenter } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface DndWrapperProps {
   children: ReactNode;

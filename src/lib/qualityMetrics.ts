@@ -102,7 +102,8 @@ export function getQualityMetrics(): QualityMetric[] {
       score: 95,
       maxScore: 100,
       status: 'good',
-      description: 'ESLint estrito (no-floating-promises, eqeqeq, etc), TypeScript strict, Prettier',
+      description:
+        'ESLint estrito (no-floating-promises, eqeqeq, etc), TypeScript strict, Prettier',
       trend: 'up',
     },
     {
@@ -110,7 +111,8 @@ export function getQualityMetrics(): QualityMetric[] {
       score: 90,
       maxScore: 100,
       status: 'good',
-      description: 'README + docs/ (PRD, ROADMAP, SECURITY-AUDIT, SYSTEM-DESIGN, CODE_STYLE) + JSDoc',
+      description:
+        'README + docs/ (PRD, ROADMAP, SECURITY-AUDIT, SYSTEM-DESIGN, CODE_STYLE) + JSDoc',
       trend: 'up',
     },
     {

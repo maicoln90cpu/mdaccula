@@ -24,10 +24,9 @@ describe('Architecture guard — MergedEventsTab', () => {
       'MergedEventsTab deve consultar a tabela events'
     ).toBe(true);
 
-    expect(
-      /merged_into_id/.test(content),
-      'MergedEventsTab deve filtrar por merged_into_id'
-    ).toBe(true);
+    expect(/merged_into_id/.test(content), 'MergedEventsTab deve filtrar por merged_into_id').toBe(
+      true
+    );
   });
 
   it('não depende exclusivamente de application_logs para listar merges', () => {

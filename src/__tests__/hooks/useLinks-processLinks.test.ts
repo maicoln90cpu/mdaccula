@@ -38,8 +38,12 @@ describe('processLinks — override_date x event.date', () => {
       override_date: '2026-07-10',
       override_time: '20:00',
       events: {
-        venue: 'x', location_city: 'x', location_state: 'x',
-        date: '2026-07-09', end_date: '2026-07-10', time: '20:00',
+        venue: 'x',
+        location_city: 'x',
+        location_state: 'x',
+        date: '2026-07-09',
+        end_date: '2026-07-10',
+        time: '20:00',
       },
     });
     const result = processLinks([link]);
@@ -51,8 +55,12 @@ describe('processLinks — override_date x event.date', () => {
       override_date: '2026-07-09',
       override_time: '20:00',
       events: {
-        venue: 'x', location_city: 'x', location_state: 'x',
-        date: '2026-07-09', end_date: '2026-07-10', time: '20:00',
+        venue: 'x',
+        location_city: 'x',
+        location_state: 'x',
+        date: '2026-07-09',
+        end_date: '2026-07-10',
+        time: '20:00',
       },
     });
     const result = processLinks([link]);
@@ -63,8 +71,12 @@ describe('processLinks — override_date x event.date', () => {
   it('sem override, event multi-dia com end_date futura mantém visível', () => {
     const link = baseLink({
       events: {
-        venue: 'x', location_city: 'x', location_state: 'x',
-        date: '2026-07-09', end_date: '2026-07-10', time: '20:00',
+        venue: 'x',
+        location_city: 'x',
+        location_state: 'x',
+        date: '2026-07-09',
+        end_date: '2026-07-10',
+        time: '20:00',
       },
     });
     const result = processLinks([link]);
@@ -74,8 +86,11 @@ describe('processLinks — override_date x event.date', () => {
   it('sem override e sem end_date, event passado é ocultado', () => {
     const link = baseLink({
       events: {
-        venue: 'x', location_city: 'x', location_state: 'x',
-        date: '2026-07-08', time: '20:00',
+        venue: 'x',
+        location_city: 'x',
+        location_state: 'x',
+        date: '2026-07-08',
+        time: '20:00',
       },
     });
     const result = processLinks([link]);

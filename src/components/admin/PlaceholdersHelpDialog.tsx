@@ -5,13 +5,18 @@
  * escondendo weekend_range/week_range/time_label e as variações com ponto.
  * Agora o usuário abre uma referência única com botão copiar.
  */
-import { useState } from "react";
-import { Copy, HelpCircle, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { useState } from 'react';
+import { Copy, HelpCircle, Check } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription,
-} from "@/components/ui/dialog";
-import { KNOWN_PLACEHOLDERS } from "./inboxPreviewPlaceholders";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { KNOWN_PLACEHOLDERS } from './inboxPreviewPlaceholders';
 
 export function PlaceholdersHelpDialog() {
   const [copied, setCopied] = useState<string | null>(null);
@@ -38,9 +43,9 @@ export function PlaceholdersHelpDialog() {
         <DialogHeader>
           <DialogTitle>Placeholders disponíveis</DialogTitle>
           <DialogDescription>
-            Cole no Assunto ou Preheader. Aceitamos as duas notações — com ponto
-            (<code className="text-xs">{"{{event.title}}"}</code>) e com underline
-            (<code className="text-xs">{"{{event_title}}"}</code>).
+            Cole no Assunto ou Preheader. Aceitamos as duas notações — com ponto (
+            <code className="text-xs">{'{{event.title}}'}</code>) e com underline (
+            <code className="text-xs">{'{{event_title}}'}</code>).
           </DialogDescription>
         </DialogHeader>
 
@@ -75,12 +80,12 @@ export function PlaceholdersHelpDialog() {
                 <Button
                   type="button"
                   size="sm"
-                  variant={isCopied ? "default" : "outline"}
+                  variant={isCopied ? 'default' : 'outline'}
                   className="h-7 px-2 gap-1 shrink-0"
                   onClick={() => copy(primary)}
                 >
                   {isCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                  {isCopied ? "Copiado" : "Copiar"}
+                  {isCopied ? 'Copiado' : 'Copiar'}
                 </Button>
               </div>
             );

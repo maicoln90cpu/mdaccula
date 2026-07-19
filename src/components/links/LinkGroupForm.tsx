@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/useToast";
-import { z } from "zod";
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/useToast';
+import { z } from 'zod';
 
 const groupSchema = z.object({
-  name: z.string().trim().min(1, "Nome é obrigatório").max(100, "Nome muito longo"),
+  name: z.string().trim().min(1, 'Nome é obrigatório').max(100, 'Nome muito longo'),
 });
 
 interface LinkGroup {
@@ -25,8 +25,8 @@ interface LinkGroupFormProps {
 }
 
 export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps) => {
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
+  const [name, setName] = useState('');
+  const [slug, setSlug] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
   const { toast } = useToast();
@@ -47,7 +47,7 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
     if (!result.success) {
       const fieldErrors: { name?: string } = {};
       result.error.errors.forEach((err) => {
-        if (err.path[0] === "name") fieldErrors.name = err.message;
+        if (err.path[0] === 'name') fieldErrors.name = err.message;
       });
       setErrors(fieldErrors);
       return;
@@ -62,9 +62,9 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
         finalSlug = await generateUniqueSlug(result.data.name);
       } else if (await checkSlugExists(finalSlug, group?.id)) {
         toast({
-          variant: "destructive",
-          title: "Slug já existe",
-          description: "Escolha outro slug ou deixe vazio para gerar automaticamente",
+          variant: 'destructive',
+          title: 'Slug já existe',
+          description: 'Escolha outro slug ou deixe vazio para gerar automaticamente',
         });
         setLoading(false);
         return;
@@ -73,28 +73,28 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
       if (group) {
         // Update
         const { error } = await supabase
-          .from("link_groups")
+          .from('link_groups')
           .update({ name: result.data.name, slug: finalSlug })
-          .eq("id", group.id);
+          .eq('id', group.id);
 
         if (error) throw error;
-        toast({ title: "Grupo atualizado com sucesso" });
+        toast({ title: 'Grupo atualizado com sucesso' });
       } else {
         // Insert
         const { error } = await supabase
-          .from("link_groups")
+          .from('link_groups')
           .insert({ name: result.data.name, slug: finalSlug });
 
         if (error) throw error;
-        toast({ title: "Grupo criado com sucesso" });
+        toast({ title: 'Grupo criado com sucesso' });
       }
 
       onSuccess();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao salvar grupo",
+        variant: 'destructive',
+        title: 'Erro ao salvar grupo',
         description: message,
       });
     } finally {
@@ -122,19 +122,19 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
     const baseSlug = generateSlug(text);
     let slug = baseSlug;
     let counter = 1;
-    
+
     while (await checkSlugExists(slug, group?.id)) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
-    
+
     return slug;
   };
 
   const copySlugLink = () => {
     const link = `${window.location.origin}/links/${slug}`;
     navigator.clipboard.writeText(link);
-    toast({ title: "Link copiado!" });
+    toast({ title: 'Link copiado!' });
   };
 
   return (
@@ -167,12 +167,7 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
             placeholder="Ex: redes-sociais"
             disabled={loading}
           />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={copySlugLink}
-            disabled={!slug}
-          >
+          <Button type="button" variant="outline" onClick={copySlugLink} disabled={!slug}>
             Copiar Link
           </Button>
         </div>
@@ -186,7 +181,7 @@ export const LinkGroupForm = ({ group, onSuccess, onCancel }: LinkGroupFormProps
           Cancelar
         </Button>
         <Button type="submit" disabled={loading}>
-          {loading ? "Salvando..." : group ? "Atualizar" : "Criar"}
+          {loading ? 'Salvando...' : group ? 'Atualizar' : 'Criar'}
         </Button>
       </div>
     </form>

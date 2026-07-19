@@ -8,7 +8,7 @@ import { EVENT_PUBLIC_FIELDS, EVENT_REQUIRED_FIELDS } from '@/lib/eventSelectFie
  * Esta proteção garante que ninguém remova campos críticos da fonte única.
  */
 describe('EVENT_PUBLIC_FIELDS — fonte única de campos do SELECT de events', () => {
-  const fields = EVENT_PUBLIC_FIELDS.split(',').map(f => f.trim());
+  const fields = EVENT_PUBLIC_FIELDS.split(',').map((f) => f.trim());
 
   it('contém todos os campos obrigatórios para renderização pública', () => {
     for (const required of EVENT_REQUIRED_FIELDS) {

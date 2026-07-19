@@ -16,10 +16,10 @@
  * Correção: index.html ganhou `data-rh="true"` nessas tags — agora o Helmet
  * as reconhece como próprias e as substitui de verdade no primeiro render.
  */
-import { describe, it, expect, beforeEach } from "vitest";
-import { render, waitFor } from "@testing-library/react";
-import { HelmetProvider } from "react-helmet-async";
-import { SEOHead } from "@/components/SEOHead";
+import { describe, it, expect, beforeEach } from 'vitest';
+import { render, waitFor } from '@testing-library/react';
+import { HelmetProvider } from 'react-helmet-async';
+import { SEOHead } from '@/components/SEOHead';
 
 function seedStaticShellTags() {
   document.head.innerHTML = `
@@ -32,12 +32,12 @@ function seedStaticShellTags() {
   `;
 }
 
-describe("Regressão — SEOHead substitui (não duplica) as tags estáticas de index.html", () => {
+describe('Regressão — SEOHead substitui (não duplica) as tags estáticas de index.html', () => {
   beforeEach(() => {
     seedStaticShellTags();
   });
 
-  it("og:title/twitter:title da rota substituem o genérico do shell — só uma tag sobra", async () => {
+  it('og:title/twitter:title da rota substituem o genérico do shell — só uma tag sobra', async () => {
     render(
       <HelmetProvider>
         <SEOHead
@@ -51,15 +51,15 @@ describe("Regressão — SEOHead substitui (não duplica) as tags estáticas de 
     await waitFor(() => {
       const ogTitles = document.head.querySelectorAll('meta[property="og:title"]');
       expect(ogTitles).toHaveLength(1);
-      expect(ogTitles[0].getAttribute("content")).toBe("Helvétia Open Bar | MDAccula");
+      expect(ogTitles[0].getAttribute('content')).toBe('Helvétia Open Bar | MDAccula');
     });
 
     const twitterTitles = document.head.querySelectorAll('meta[name="twitter:title"]');
     expect(twitterTitles).toHaveLength(1);
-    expect(twitterTitles[0].getAttribute("content")).toBe("Helvétia Open Bar | MDAccula");
+    expect(twitterTitles[0].getAttribute('content')).toBe('Helvétia Open Bar | MDAccula');
   });
 
-  it("meta description e canonical da rota também substituem o genérico (não só og:title)", async () => {
+  it('meta description e canonical da rota também substituem o genérico (não só og:title)', async () => {
     render(
       <HelmetProvider>
         <SEOHead
@@ -73,11 +73,11 @@ describe("Regressão — SEOHead substitui (não duplica) as tags estáticas de 
     await waitFor(() => {
       const descriptions = document.head.querySelectorAll('meta[name="description"]');
       expect(descriptions).toHaveLength(1);
-      expect(descriptions[0].getAttribute("content")).toBe("Evento real na Helvétia");
+      expect(descriptions[0].getAttribute('content')).toBe('Evento real na Helvétia');
 
       const canonicals = document.head.querySelectorAll('link[rel="canonical"]');
       expect(canonicals).toHaveLength(1);
-      expect(canonicals[0].getAttribute("href")).toBe("https://mdaccula.com/eventos/helvetia2509");
+      expect(canonicals[0].getAttribute('href')).toBe('https://mdaccula.com/eventos/helvetia2509');
     });
   });
 });

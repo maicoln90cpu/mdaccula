@@ -1,16 +1,16 @@
 // Barrel export for lib utilities
 export { cn } from './utils';
-export { 
-  isEventVisible, 
-  filterVisibleEvents, 
+export {
+  isEventVisible,
+  filterVisibleEvents,
   isEventActive,
   type EventVisibilityParams,
-  type TimezoneSettings
+  type TimezoneSettings,
 } from './eventDateHelper';
 export { generateEventGroupName } from './eventGroupHelper';
 export { sortByEventDate } from './linkSortHelper';
-export { 
-  linkThemes, 
+export {
+  linkThemes,
   getTheme,
   cardColorOptions,
   cardBorderColorOptions,
@@ -19,7 +19,7 @@ export {
   cardRoundednessOptions,
   cardBackdropOptions,
   cardHoverOptions,
-  type LinkTheme
+  type LinkTheme,
 } from './linkThemes';
 export { logger, useLogger, type LogLevel, type LogContext, type LogEntry } from './logger';
 export { getBrandColor } from './brandColors';

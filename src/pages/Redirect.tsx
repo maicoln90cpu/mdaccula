@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 // Normalize URLs that may be missing protocol
 const normalizeUrl = (raw: string): string => {
@@ -17,21 +17,21 @@ const Redirect = () => {
 
   useEffect(() => {
     if (!slug) {
-      setError("Link inválido.");
+      setError('Link inválido.');
       return;
     }
 
     const doRedirect = async () => {
       try {
         const { data, error: fetchError } = await supabase
-          .from("redirect_links")
-          .select("destination_url, utm_source, utm_medium, utm_campaign, utm_content, enabled")
-          .eq("slug", slug)
-          .eq("enabled", true)
+          .from('redirect_links')
+          .select('destination_url, utm_source, utm_medium, utm_campaign, utm_content, enabled')
+          .eq('slug', slug)
+          .eq('enabled', true)
           .maybeSingle();
 
         if (fetchError || !data) {
-          setError("Link não encontrado ou desativado.");
+          setError('Link não encontrado ou desativado.');
           return;
         }
 
@@ -42,10 +42,10 @@ const Redirect = () => {
         let finalUrl = normalizedUrl;
         try {
           const url = new URL(normalizedUrl);
-          if (data.utm_source) url.searchParams.set("utm_source", data.utm_source);
-          if (data.utm_medium) url.searchParams.set("utm_medium", data.utm_medium);
-          if (data.utm_campaign) url.searchParams.set("utm_campaign", data.utm_campaign);
-          if (data.utm_content) url.searchParams.set("utm_content", data.utm_content);
+          if (data.utm_source) url.searchParams.set('utm_source', data.utm_source);
+          if (data.utm_medium) url.searchParams.set('utm_medium', data.utm_medium);
+          if (data.utm_campaign) url.searchParams.set('utm_campaign', data.utm_campaign);
+          if (data.utm_content) url.searchParams.set('utm_content', data.utm_content);
           finalUrl = url.toString();
         } catch {
           // Just use normalized URL as-is
@@ -55,10 +55,10 @@ const Redirect = () => {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
         fetch(`${supabaseUrl}/functions/v1/track-redirect-click`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            "apikey": supabaseKey,
+            'Content-Type': 'application/json',
+            apikey: supabaseKey,
           },
           body: JSON.stringify({ slug }),
         }).catch(() => {});
@@ -66,7 +66,7 @@ const Redirect = () => {
         // Redirect
         window.location.replace(finalUrl);
       } catch {
-        setError("Erro ao processar redirecionamento.");
+        setError('Erro ao processar redirecionamento.');
       }
     };
 

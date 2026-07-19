@@ -1,10 +1,16 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, Sparkles } from 'lucide-react';
 
 interface PromptTemplate {
   id: string;
@@ -55,10 +61,7 @@ export function GenerateForm({
         {/* Template Selector */}
         <div className="space-y-2">
           <Label htmlFor="template">Template de Geração</Label>
-          <Select
-            value={selectedTemplate?.id || ""}
-            onValueChange={onTemplateChange}
-          >
+          <Select value={selectedTemplate?.id || ''} onValueChange={onTemplateChange}>
             <SelectTrigger>
               <SelectValue placeholder="Selecione um template..." />
             </SelectTrigger>
@@ -68,9 +71,7 @@ export function GenerateForm({
                   <div className="flex flex-col items-start">
                     <span>{template.name}</span>
                     {template.category && (
-                      <span className="text-xs text-muted-foreground">
-                        {template.category}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{template.category}</span>
                     )}
                   </div>
                 </SelectItem>
@@ -78,9 +79,7 @@ export function GenerateForm({
             </SelectContent>
           </Select>
           {selectedTemplate?.description && (
-            <p className="text-sm text-muted-foreground">
-              {selectedTemplate.description}
-            </p>
+            <p className="text-sm text-muted-foreground">{selectedTemplate.description}</p>
           )}
         </div>
 
@@ -94,11 +93,15 @@ export function GenerateForm({
                 <div key={field} className="space-y-2">
                   <Label htmlFor={field}>
                     {getFieldLabel(field)}
-                    {isRequired ? <span className="text-destructive"> *</span> : <span className="text-muted-foreground text-xs"> (opcional)</span>}
+                    {isRequired ? (
+                      <span className="text-destructive"> *</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs"> (opcional)</span>
+                    )}
                   </Label>
                   <Input
                     id={field}
-                    value={formData[field] || ""}
+                    value={formData[field] || ''}
                     onChange={(e) => onFormDataChange(field, e.target.value)}
                     placeholder={`Digite ${getFieldLabel(field).toLowerCase()}...`}
                   />

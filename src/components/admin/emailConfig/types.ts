@@ -6,13 +6,13 @@
  * slim-down por responsabilidade (Fase C do plano).
  */
 
-export type Mode = "draft" | "immediate" | "scheduled" | "manual";
+export type Mode = 'draft' | 'immediate' | 'scheduled' | 'manual';
 
 export type Campaign = {
   id: string;
   event_id: string;
   egoi_campaign_id: string | null;
-  status: "draft" | "scheduled" | "sent" | "failed";
+  status: 'draft' | 'scheduled' | 'sent' | 'failed';
   mode: Mode;
   error_message: string | null;
   sent_at: string | null;

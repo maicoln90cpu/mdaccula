@@ -1,12 +1,12 @@
 /**
  * Utilitários centralizados de data para garantir consistência de timezone
  * em todo o sistema MDAccula.
- * 
- * REGRA PRINCIPAL: Sempre usar parseLocalDate() ou parseLocalDateTime() 
+ *
+ * REGRA PRINCIPAL: Sempre usar parseLocalDate() ou parseLocalDateTime()
  * em vez de new Date(string) para evitar problemas de timezone.
  */
 
-import { parseLocalDate } from "@/lib/utils";
+import { parseLocalDate } from '@/lib/utils';
 
 /**
  * Combina data e hora strings em um Date objeto local
@@ -15,7 +15,7 @@ import { parseLocalDate } from "@/lib/utils";
 export function parseLocalDateTime(dateStr: string, timeStr: string | null | undefined): Date {
   const [year, month, day] = dateStr.split('-').map(Number);
   // Eventos com horário opcional: usa 00:00 quando não houver hora definida.
-  const safeTime = (timeStr && timeStr.trim()) ? timeStr : '00:00';
+  const safeTime = timeStr && timeStr.trim() ? timeStr : '00:00';
   const [hours, minutes] = safeTime.split(':').map(Number);
   return new Date(year, month - 1, day, hours || 0, minutes || 0, 0);
 }
@@ -24,16 +24,16 @@ export function parseLocalDateTime(dateStr: string, timeStr: string | null | und
  * Formata data de evento com locale pt-BR
  * Usa parseLocalDate internamente para garantir consistência
  */
-export function formatEventDate(
-  dateStr: string, 
-  options?: Intl.DateTimeFormatOptions
-): string {
+export function formatEventDate(dateStr: string, options?: Intl.DateTimeFormatOptions): string {
   const date = parseLocalDate(dateStr);
-  return date.toLocaleDateString('pt-BR', options || {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric'
-  });
+  return date.toLocaleDateString(
+    'pt-BR',
+    options || {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    }
+  );
 }
 
 /**
@@ -43,10 +43,7 @@ export function formatEventDate(
  * - Mesmo ano, meses diferentes: "30 de maio – 02 de junho de 2026"
  * - Anos diferentes: "30 de dezembro de 2026 – 02 de janeiro de 2027"
  */
-export function formatEventDateRange(
-  startDate: string,
-  endDate?: string | null
-): string {
+export function formatEventDateRange(startDate: string, endDate?: string | null): string {
   const start = parseLocalDate(startDate);
   if (!endDate || endDate === startDate) {
     return start.toLocaleDateString('pt-BR', {
@@ -71,12 +68,24 @@ export function formatEventDateRange(
 
   if (sameYear) {
     const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
-    const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const endFmt = end.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
     return `${startFmt} – ${endFmt}`;
   }
 
-  const startFmt = start.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-  const endFmt = end.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+  const startFmt = start.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+  const endFmt = end.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
   return `${startFmt} – ${endFmt}`;
 }
 
@@ -89,7 +98,7 @@ export function formatEventDateLong(dateStr: string): string {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
-    weekday: 'long'
+    weekday: 'long',
   });
 }
 
@@ -126,4 +135,4 @@ export function getLocalMonthShort(dateStr: string): string {
 }
 
 // Re-export parseLocalDate for convenience
-export { parseLocalDate } from "@/lib/utils";
+export { parseLocalDate } from '@/lib/utils';

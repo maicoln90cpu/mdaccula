@@ -2,10 +2,10 @@
  * Helper de IndexNow — notifica motores de busca (Bing/Yandex) que uma URL
  * mudou. Falha em silêncio: nunca quebra o fluxo do usuário.
  */
-import { supabase } from "@/integrations/supabase/client";
-import { logger } from "./logger";
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from './logger';
 
-const SITE_ORIGIN = "https://mdaccula.com";
+const SITE_ORIGIN = 'https://mdaccula.com';
 
 /**
  * Dispara notificação de IndexNow para os caminhos informados.
@@ -17,35 +17,35 @@ export async function notifyIndexNow(paths: string[]): Promise<void> {
     const normalized = Array.from(
       new Set(
         paths
-          .filter((p): p is string => typeof p === "string" && p.length > 0)
-          .map((p) => (p.startsWith("http") ? p : `${SITE_ORIGIN}${p}`))
+          .filter((p): p is string => typeof p === 'string' && p.length > 0)
+          .map((p) => (p.startsWith('http') ? p : `${SITE_ORIGIN}${p}`))
       )
     );
 
     if (normalized.length === 0) return;
 
-    const { error } = await supabase.functions.invoke("indexnow-notify", {
+    const { error } = await supabase.functions.invoke('indexnow-notify', {
       body: { urls: normalized },
     });
 
     if (error) {
-      console.warn("[indexnow] falha (ignorada):", error.message);
+      console.warn('[indexnow] falha (ignorada):', error.message);
     } else {
-      logger.debug("[indexnow] notificadas:", { count: normalized.length });
+      logger.debug('[indexnow] notificadas:', { count: normalized.length });
     }
   } catch (err) {
-    console.warn("[indexnow] erro (ignorado):", err);
+    console.warn('[indexnow] erro (ignorado):', err);
   }
 }
 
 /** Notifica criação/edição de um evento publicado. */
 export function notifyEventChange(slug: string | null | undefined) {
   if (!slug) return;
-  void notifyIndexNow([`/eventos/${slug}`, "/eventos", "/"]);
+  void notifyIndexNow([`/eventos/${slug}`, '/eventos', '/']);
 }
 
 /** Notifica criação/edição de um post publicado. */
 export function notifyBlogChange(slug: string | null | undefined) {
   if (!slug) return;
-  void notifyIndexNow([`/blog/${slug}`, "/blog", "/"]);
+  void notifyIndexNow([`/blog/${slug}`, '/blog', '/']);
 }

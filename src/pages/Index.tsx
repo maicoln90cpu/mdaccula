@@ -1,13 +1,13 @@
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import Hero from "@/components/sections/Hero";
-import StatStrip from "@/components/sections/StatStrip";
-import FeaturedEvents from "@/components/sections/FeaturedEvents";
-import LatestNews from "@/components/sections/LatestNews";
-import CuradoriaCta from "@/components/sections/CuradoriaCta";
-import { SEOHead } from "@/components/SEOHead";
-import { StructuredData } from "@/components/StructuredData";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
+import Navigation from '@/components/ui/navigation';
+import Footer from '@/components/ui/footer';
+import Hero from '@/components/sections/Hero';
+import StatStrip from '@/components/sections/StatStrip';
+import FeaturedEvents from '@/components/sections/FeaturedEvents';
+import LatestNews from '@/components/sections/LatestNews';
+import CuradoriaCta from '@/components/sections/CuradoriaCta';
+import { SEOHead } from '@/components/SEOHead';
+import { StructuredData } from '@/components/StructuredData';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const Index = () => {
   const { settings } = useSiteSettings();
@@ -25,7 +25,7 @@ const Index = () => {
           'contratar dj techno sp',
           'house music são paulo',
           'baladas sp',
-          'festas techno são paulo'
+          'festas techno são paulo',
         ]}
         url="https://mdaccula.com"
       />
@@ -34,10 +34,10 @@ const Index = () => {
         type="organization"
         data={{
           instagram_link: settings.instagram_link,
-          soundcloud_link: settings.soundcloud_link
+          soundcloud_link: settings.soundcloud_link,
         }}
       />
-      
+
       <div className="min-h-screen">
         <Navigation />
         <main id="main-content">

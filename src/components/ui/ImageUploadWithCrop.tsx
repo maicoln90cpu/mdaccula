@@ -21,12 +21,12 @@ interface CropArea {
   height: number;
 }
 
-export const ImageUploadWithCrop = ({ 
-  onImageSelect, 
-  currentImageUrl, 
+export const ImageUploadWithCrop = ({
+  onImageSelect,
+  currentImageUrl,
   aspectRatio = 16 / 9,
-  label = "Imagem",
-  cropMode = 'required'
+  label = 'Imagem',
+  cropMode = 'required',
 }: ImageUploadWithCropProps) => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [originalFile, setOriginalFile] = useState<File | null>(null);
@@ -45,7 +45,7 @@ export const ImageUploadWithCrop = ({
       maxSizeMB: 1,
       maxWidthOrHeight: 1920,
       useWebWorker: true,
-      fileType: 'image/webp'
+      fileType: 'image/webp',
     };
     const compressedFile = await imageCompression(file, options);
     return new File([compressedFile], `image-${Date.now()}.webp`, { type: 'image/webp' });
@@ -55,7 +55,7 @@ export const ImageUploadWithCrop = ({
     const file = e.target.files?.[0];
     if (file) {
       setOriginalFile(file);
-      
+
       // Se cropMode='none', usar imagem direto sem crop
       if (cropMode === 'none') {
         const compressedFile = await compressImage(file);
@@ -64,7 +64,7 @@ export const ImageUploadWithCrop = ({
         onImageSelect(compressedFile);
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onload = () => {
         setSelectedImage(reader.result as string);
@@ -107,9 +107,13 @@ export const ImageUploadWithCrop = ({
     );
 
     return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) resolve(blob);
-      }, 'image/webp', 0.95);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+        },
+        'image/webp',
+        0.95
+      );
     });
   };
 
@@ -119,11 +123,11 @@ export const ImageUploadWithCrop = ({
     try {
       const croppedBlob = await getCroppedImg(selectedImage, croppedAreaPixels);
       const finalFile = await compressImage(croppedBlob as File);
-      
+
       // Create preview URL
       const previewUrl = URL.createObjectURL(finalFile);
       setPreviewUrl(previewUrl);
-      
+
       onImageSelect(finalFile);
       setShowCropDialog(false);
       setSelectedImage(null);
@@ -139,7 +143,7 @@ export const ImageUploadWithCrop = ({
       const compressedFile = await compressImage(originalFile);
       const previewUrl = URL.createObjectURL(compressedFile);
       setPreviewUrl(previewUrl);
-      
+
       onImageSelect(compressedFile);
       setShowCropDialog(false);
       setSelectedImage(null);
@@ -157,19 +161,21 @@ export const ImageUploadWithCrop = ({
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      
+
       {previewUrl ? (
-        <div className={cn(
-          "relative w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center",
-          cropMode === 'none' || cropMode === 'optional' ? "min-h-48" : "aspect-video"
-        )}>
-          <img 
-            src={previewUrl} 
-            alt="Preview" 
+        <div
+          className={cn(
+            'relative w-full rounded-lg overflow-hidden bg-muted flex items-center justify-center',
+            cropMode === 'none' || cropMode === 'optional' ? 'min-h-48' : 'aspect-video'
+          )}
+        >
+          <img
+            src={previewUrl}
+            alt="Preview"
             className={cn(
-              cropMode === 'none' || cropMode === 'optional' 
-                ? "max-w-full max-h-[400px] object-contain" 
-                : "w-full h-full object-cover"
+              cropMode === 'none' || cropMode === 'optional'
+                ? 'max-w-full max-h-[400px] object-contain'
+                : 'w-full h-full object-cover'
             )}
           />
           <Button
@@ -191,12 +197,7 @@ export const ImageUploadWithCrop = ({
             </p>
             <p className="text-xs text-muted-foreground">PNG, JPG, WEBP (MAX. 10MB)</p>
           </div>
-          <input
-            type="file"
-            className="hidden"
-            accept="image/*"
-            onChange={handleFileSelect}
-          />
+          <input type="file" className="hidden" accept="image/*" onChange={handleFileSelect} />
         </label>
       )}
 
@@ -242,9 +243,7 @@ export const ImageUploadWithCrop = ({
                 Usar sem recortar
               </Button>
             )}
-            <Button onClick={handleCropConfirm}>
-              Confirmar Recorte
-            </Button>
+            <Button onClick={handleCropConfirm}>Confirmar Recorte</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -17,16 +17,22 @@ import {
 
 // Tipos e dados agora vêm de @/lib/qualityMetrics (dinâmicos)
 
-
 const SeverityBadge = ({ severity }: { severity: string }) => {
-  const config: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }> = {
+  const config: Record<
+    string,
+    { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string }
+  > = {
     low: { variant: 'outline', label: 'Baixa' },
     medium: { variant: 'secondary', label: 'Média' },
     high: { variant: 'default', label: 'Alta' },
     critical: { variant: 'destructive', label: 'Crítica' },
   };
 
-  return <Badge variant={config[severity]?.variant || 'outline'}>{config[severity]?.label || severity}</Badge>;
+  return (
+    <Badge variant={config[severity]?.variant || 'outline'}>
+      {config[severity]?.label || severity}
+    </Badge>
+  );
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
@@ -53,7 +59,8 @@ export const TechDebtDashboard = () => {
   const QUALITY_METRICS = useMemo(() => getQualityMetrics(), []);
 
   const overallScore = Math.round(
-    QUALITY_METRICS.reduce((acc, m) => acc + (m.score / m.maxScore) * 100, 0) / QUALITY_METRICS.length
+    QUALITY_METRICS.reduce((acc, m) => acc + (m.score / m.maxScore) * 100, 0) /
+      QUALITY_METRICS.length
   );
 
   const categories = ['all', ...new Set(TECH_DEBT_ITEMS.map((item) => item.category))];
@@ -88,7 +95,9 @@ export const TechDebtDashboard = () => {
             {/* Overall Score */}
             <div className="flex items-center justify-between p-4 rounded-lg bg-accent/50">
               <div>
-                <div className="text-sm font-medium text-muted-foreground">Score Geral de Qualidade</div>
+                <div className="text-sm font-medium text-muted-foreground">
+                  Score Geral de Qualidade
+                </div>
                 <div className="text-3xl font-bold">{overallScore}%</div>
               </div>
               <div
@@ -145,7 +154,11 @@ export const TechDebtDashboard = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-4 rounded-lg bg-accent/50 text-center">
                 <div className="text-2xl font-bold text-red-500">
-                  {TECH_DEBT_ITEMS.filter((i) => i.severity === 'critical' || i.severity === 'high').length}
+                  {
+                    TECH_DEBT_ITEMS.filter(
+                      (i) => i.severity === 'critical' || i.severity === 'high'
+                    ).length
+                  }
                 </div>
                 <div className="text-xs text-muted-foreground">Alta Prioridade</div>
               </div>
@@ -195,12 +208,17 @@ export const TechDebtDashboard = () => {
                         {item.category}
                       </Badge>
                       {item.resolved && (
-                        <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/30">
+                        <Badge
+                          variant="outline"
+                          className="text-xs bg-green-500/10 text-green-600 border-green-500/30"
+                        >
                           ✓ Resolvido
                         </Badge>
                       )}
                     </div>
-                    <h4 className={`font-medium ${item.resolved ? 'line-through' : ''}`}>{item.title}</h4>
+                    <h4 className={`font-medium ${item.resolved ? 'line-through' : ''}`}>
+                      {item.title}
+                    </h4>
                     <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
                   </div>
                   <div className="text-right ml-4">

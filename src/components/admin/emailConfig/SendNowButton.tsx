@@ -7,9 +7,9 @@
  *   2) Digitação obrigatória da palavra "ENVIAR" antes do botão liberar.
  * Só chama `onConfirm()` depois das duas etapas.
  */
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,8 +20,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Send } from "lucide-react";
+} from '@/components/ui/alert-dialog';
+import { Send } from 'lucide-react';
 
 interface SendNowButtonProps {
   eventTitle: string;
@@ -33,14 +33,20 @@ export const SendNowButton = ({ eventTitle, disabled, onConfirm }: SendNowButton
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [reviewed, setReviewed] = useState(false);
-  const [typed, setTyped] = useState("");
+  const [typed, setTyped] = useState('');
   const reset = () => {
     setStep(1);
     setReviewed(false);
-    setTyped("");
+    setTyped('');
   };
   return (
-    <AlertDialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) reset();
+      }}
+    >
       <AlertDialogTrigger asChild>
         <Button size="sm" variant="destructive" disabled={disabled}>
           <Send className="w-4 h-4 mr-2" /> Enviar agora
@@ -54,9 +60,9 @@ export const SendNowButton = ({ eventTitle, disabled, onConfirm }: SendNowButton
               <AlertDialogDescription asChild>
                 <div className="space-y-3">
                   <p>
-                    Você está prestes a <b>enviar de verdade</b> o e-mail do evento{" "}
-                    <b>{eventTitle}</b> para toda a lista configurada na E-goi.
-                    Isso <b>não pode ser desfeito</b>.
+                    Você está prestes a <b>enviar de verdade</b> o e-mail do evento{' '}
+                    <b>{eventTitle}</b> para toda a lista configurada na E-goi. Isso{' '}
+                    <b>não pode ser desfeito</b>.
                   </p>
                   <label className="flex items-start gap-2 text-sm cursor-pointer">
                     <input
@@ -72,7 +78,9 @@ export const SendNowButton = ({ eventTitle, disabled, onConfirm }: SendNowButton
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <Button disabled={!reviewed} onClick={() => setStep(2)}>Continuar</Button>
+              <Button disabled={!reviewed} onClick={() => setStep(2)}>
+                Continuar
+              </Button>
             </AlertDialogFooter>
           </>
         ) : (
@@ -96,8 +104,12 @@ export const SendNowButton = ({ eventTitle, disabled, onConfirm }: SendNowButton
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                disabled={typed.trim().toUpperCase() !== "ENVIAR"}
-                onClick={async () => { setOpen(false); reset(); await onConfirm(); }}
+                disabled={typed.trim().toUpperCase() !== 'ENVIAR'}
+                onClick={async () => {
+                  setOpen(false);
+                  reset();
+                  await onConfirm();
+                }}
               >
                 Sim, enviar agora
               </AlertDialogAction>

@@ -1,16 +1,13 @@
-import { linkThemes } from "@/lib/linkThemes";
-import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { linkThemes } from '@/lib/linkThemes';
+import { cn } from '@/lib/utils';
+import { Check } from 'lucide-react';
 
 interface ThemeSelectorProps {
   selectedTheme: string;
   onThemeSelect: (themeId: string) => void;
 }
 
-export const ThemeSelector = ({
-  selectedTheme,
-  onThemeSelect,
-}: ThemeSelectorProps) => {
+export const ThemeSelector = ({ selectedTheme, onThemeSelect }: ThemeSelectorProps) => {
   return (
     <div className="grid grid-cols-4 lg:grid-cols-5 gap-3 mt-2">
       {Object.values(linkThemes).map((theme) => (
@@ -18,9 +15,9 @@ export const ThemeSelector = ({
           key={theme.id}
           onClick={() => onThemeSelect(theme.id)}
           className={cn(
-            "relative aspect-square rounded-xl transition-all hover:scale-105",
+            'relative aspect-square rounded-xl transition-all hover:scale-105',
             theme.background,
-            selectedTheme === theme.id && "ring-2 ring-primary ring-offset-2"
+            selectedTheme === theme.id && 'ring-2 ring-primary ring-offset-2'
           )}
           title={theme.name}
         >

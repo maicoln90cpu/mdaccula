@@ -50,10 +50,9 @@ describe('SEO - sitemap.xml', () => {
   it('não contém rotas privadas', () => {
     const sitemap = readFileSync(resolve(ROOT, 'public/sitemap.xml'), 'utf-8');
     for (const route of PRIVATE_ROUTES) {
-      expect(
-        sitemap,
-        `sitemap não deve conter rota privada ${route}`,
-      ).not.toMatch(new RegExp(`<loc>[^<]*${route}(/|<)`));
+      expect(sitemap, `sitemap não deve conter rota privada ${route}`).not.toMatch(
+        new RegExp(`<loc>[^<]*${route}(/|<)`)
+      );
     }
   });
 
@@ -74,11 +73,7 @@ describe('SEO - llms.txt', () => {
 });
 
 describe('SEO - páginas privadas usam noindex via SEOHead', () => {
-  const privatePages = [
-    'src/pages/Auth.tsx',
-    'src/pages/Login.tsx',
-    'src/pages/NotFound.tsx',
-  ];
+  const privatePages = ['src/pages/Auth.tsx', 'src/pages/Login.tsx', 'src/pages/NotFound.tsx'];
 
   for (const page of privatePages) {
     it(`${page} usa <SEOHead ... noindex />`, () => {

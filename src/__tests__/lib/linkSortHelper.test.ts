@@ -187,7 +187,12 @@ describe('linkSortHelper', () => {
   describe('processLinksForDisplay', () => {
     it('should filter disabled links', () => {
       const links: TestLink[] = [
-        { id: '1', display_order: 1, enabled: false, events: { date: '2026-01-10', time: '22:00' } },
+        {
+          id: '1',
+          display_order: 1,
+          enabled: false,
+          events: { date: '2026-01-10', time: '22:00' },
+        },
         { id: '2', display_order: 2, enabled: true, events: { date: '2026-01-10', time: '22:00' } },
       ];
 

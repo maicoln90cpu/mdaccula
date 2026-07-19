@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from '@/components/ui/skeleton';
 
 /**
  * Skeleton loading component for /links page
@@ -29,8 +29,8 @@ export const LinksSkeleton = () => (
       {/* Link Cards Skeleton */}
       <div className="space-y-3">
         {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Skeleton 
-            key={i} 
+          <Skeleton
+            key={i}
             className="h-[100px] w-full rounded-2xl"
             style={{ animationDelay: `${i * 100}ms` }}
           />
@@ -44,8 +44,8 @@ export const LinksSkeleton = () => (
         </div>
         <div className="space-y-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton 
-              key={i} 
+            <Skeleton
+              key={i}
               className="h-[100px] w-full rounded-2xl"
               style={{ animationDelay: `${(i + 6) * 100}ms` }}
             />

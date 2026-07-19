@@ -1,18 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { Calendar, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
-import { OptimizedImage } from "@/components/OptimizedImage";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { formatEventDateRange } from "@/lib/dateUtils";
-import { useEvents } from "@/hooks/useEvents";
-import { StructuredData } from "@/components/StructuredData";
-import { useScrollReveal } from "@/hooks";
-import { cn } from "@/lib";
-import type { Event } from "@/types";
-import SectionHeading from "@/components/sections/SectionHeading";
-import { SpotlightCard } from "@/components/effects/SpotlightCard";
-import { getEventCtaButtonLabel } from "@shared/eventCta.ts";
+import { Button } from '@/components/ui/button';
+import { Calendar, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Skeleton } from '@/components/ui/skeleton';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { formatEventDateRange } from '@/lib/dateUtils';
+import { useEvents } from '@/hooks/useEvents';
+import { StructuredData } from '@/components/StructuredData';
+import { useScrollReveal } from '@/hooks';
+import { cn } from '@/lib';
+import type { Event } from '@/types';
+import SectionHeading from '@/components/sections/SectionHeading';
+import { SpotlightCard } from '@/components/effects/SpotlightCard';
+import { getEventCtaButtonLabel } from '@shared/eventCta.ts';
 
 const EventCard = ({ event, index }: { event: Event; index: number }) => {
   const { ref, isVisible } = useScrollReveal<HTMLElement>();
@@ -21,9 +21,9 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
     <article
       ref={ref}
       className={cn(
-        "group rounded-lg overflow-hidden border border-border bg-card transition-all duration-500",
-        "hover:-translate-y-2 hover:shadow-[0_24px_50px_hsl(220_25%_0%/0.35),0_0_32px_hsl(var(--primary)/0.25)] hover:border-primary/40",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        'group rounded-lg overflow-hidden border border-border bg-card transition-all duration-500',
+        'hover:-translate-y-2 hover:shadow-[0_24px_50px_hsl(220_25%_0%/0.35),0_0_32px_hsl(var(--primary)/0.25)] hover:border-primary/40',
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       )}
       style={{ transitionDelay: `${index * 80}ms` }}
     >
@@ -48,8 +48,8 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
       <SpotlightCard>
         <div className="relative aspect-square overflow-hidden">
           <OptimizedImage
-            src={event.image_url || "/placeholder.svg"}
-            alt={event.title ?? "Evento"}
+            src={event.image_url || '/placeholder.svg'}
+            alt={event.title ?? 'Evento'}
             className="w-full h-full transition-transform duration-500 group-hover:scale-105"
             objectFit="cover"
             priority={index === 0}
@@ -71,7 +71,7 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
 
         <div className="p-3">
           <h3 className="font-display font-bold uppercase text-sm leading-tight mb-2 line-clamp-2">
-            {event.title ?? "Evento sem título"}
+            {event.title ?? 'Evento sem título'}
           </h3>
 
           <div className="space-y-1 text-xs font-mono text-muted-foreground mb-3">
@@ -86,7 +86,7 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
           </div>
 
           <Button size="sm" className="w-full min-h-[40px] text-sm" asChild>
-            <a href={event.ticket_link || "#"} target="_blank" rel="noopener noreferrer">
+            <a href={event.ticket_link || '#'} target="_blank" rel="noopener noreferrer">
               {getEventCtaButtonLabel(event.cta_type)}
             </a>
           </Button>
@@ -104,7 +104,11 @@ const FeaturedEvents = () => {
     return (
       <section className="py-16 sm:py-20 bg-darker-surface">
         <div className="container mx-auto px-4">
-          <SectionHeading title="Próximos Eventos" viewAllHref="/eventos" viewAllLabel="Ver todos" />
+          <SectionHeading
+            title="Próximos Eventos"
+            viewAllHref="/eventos"
+            viewAllLabel="Ver todos"
+          />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
               <div key={i} className="rounded-lg overflow-hidden border border-border bg-card">
@@ -136,7 +140,11 @@ const FeaturedEvents = () => {
     <ErrorBoundary>
       <section id="proximos-eventos" className="py-16 sm:py-20 bg-darker-surface">
         <div className="container mx-auto px-4">
-          <SectionHeading title="Próximos Eventos" viewAllHref="/eventos" viewAllLabel="Ver todos" />
+          <SectionHeading
+            title="Próximos Eventos"
+            viewAllHref="/eventos"
+            viewAllLabel="Ver todos"
+          />
 
           {featuredEvents.length === 0 ? (
             <div className="text-center py-12">

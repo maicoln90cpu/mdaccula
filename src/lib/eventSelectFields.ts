@@ -17,28 +17,28 @@
  * - src/__tests__/architecture/event-select-fields.test.ts (uso obrigatório)
  */
 export const EVENT_PUBLIC_FIELDS =
-  "id, title, subtitle, slug, venue, address, location_city, location_state, " +
-  "date, end_date, time, end_time, genres, lineup, description, schedule, " +
-  "ticket_link, vip_link, pix_button_enabled, tickets_per_day, cta_type, image_url, " +
-  "views, blog_post_id, status, ai_context, latitude, longitude, " +
-  "created_at, updated_at";
+  'id, title, subtitle, slug, venue, address, location_city, location_state, ' +
+  'date, end_date, time, end_time, genres, lineup, description, schedule, ' +
+  'ticket_link, vip_link, pix_button_enabled, tickets_per_day, cta_type, image_url, ' +
+  'views, blog_post_id, status, ai_context, latitude, longitude, ' +
+  'created_at, updated_at';
 
 /**
  * Campos mínimos que TODO componente público depende.
  * Se algum sumir de EVENT_PUBLIC_FIELDS, o teste unitário quebra.
  */
 export const EVENT_REQUIRED_FIELDS = [
-  "id",
-  "title",
-  "subtitle",
-  "slug",
-  "venue",
-  "address",
-  "date",
-  "end_date",
-  "time",
-  "description",
-  "schedule",
-  "pix_button_enabled",
-  "tickets_per_day",
+  'id',
+  'title',
+  'subtitle',
+  'slug',
+  'venue',
+  'address',
+  'date',
+  'end_date',
+  'time',
+  'description',
+  'schedule',
+  'pix_button_enabled',
+  'tickets_per_day',
 ] as const;

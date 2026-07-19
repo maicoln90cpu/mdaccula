@@ -142,10 +142,14 @@ const SystemHealth = () => {
         ? `Scan: ${data.summary.orphanedCount} órfãs + ${data.summary.duplicatesCount} duplicadas = ${data.summary.freedMB} MB recuperáveis`
         : `Limpeza concluída! ${data.summary.freedMB} MB liberados`;
 
-      setCleanupResults(prev => ({ ...prev, [key]: msg }));
+      setCleanupResults((prev) => ({ ...prev, [key]: msg }));
       toast({ title: dryRun ? 'Scan concluído' : 'Limpeza concluída', description: msg });
     } catch (err) {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
     } finally {
       setCleanupLoading(null);
     }
@@ -156,10 +160,17 @@ const SystemHealth = () => {
     try {
       const { error } = await supabase.rpc('cleanup_old_logs');
       if (error) throw error;
-      setCleanupResults(prev => ({ ...prev, logs: 'Logs antigos (>30 dias) removidos com sucesso' }));
+      setCleanupResults((prev) => ({
+        ...prev,
+        logs: 'Logs antigos (>30 dias) removidos com sucesso',
+      }));
       toast({ title: 'Limpeza concluída', description: 'Logs e métricas antigas removidos' });
     } catch (err) {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
     } finally {
       setCleanupLoading(null);
     }
@@ -170,10 +181,17 @@ const SystemHealth = () => {
     try {
       const { data, error } = await supabase.functions.invoke('cleanup-sync-logs');
       if (error) throw error;
-      setCleanupResults(prev => ({ ...prev, sync: `${data.deleted_count} sync logs removidos` }));
-      toast({ title: 'Sync logs limpos', description: `${data.deleted_count} registros removidos` });
+      setCleanupResults((prev) => ({ ...prev, sync: `${data.deleted_count} sync logs removidos` }));
+      toast({
+        title: 'Sync logs limpos',
+        description: `${data.deleted_count} registros removidos`,
+      });
     } catch (err) {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
     } finally {
       setCleanupLoading(null);
     }
@@ -186,13 +204,20 @@ const SystemHealth = () => {
         body: { bucket: 'event-images', quality: 80, maxFiles: 10 },
       });
       if (error) throw error;
-      setCleanupResults(prev => ({
+      setCleanupResults((prev) => ({
         ...prev,
         convert: `${data.summary.processed} convertidos, ${data.summary.totalSavedMB} MB economizados`,
       }));
-      toast({ title: 'Conversão concluída', description: `${data.summary.processed} imagens otimizadas` });
+      toast({
+        title: 'Conversão concluída',
+        description: `${data.summary.processed} imagens otimizadas`,
+      });
     } catch (err) {
-      toast({ title: 'Erro', description: err instanceof Error ? err.message : 'Erro desconhecido', variant: 'destructive' });
+      toast({
+        title: 'Erro',
+        description: err instanceof Error ? err.message : 'Erro desconhecido',
+        variant: 'destructive',
+      });
     } finally {
       setCleanupLoading(null);
     }
@@ -200,7 +225,8 @@ const SystemHealth = () => {
 
   const overallHealthScore = healthData
     ? Math.round(
-        (healthData.checks.filter((c) => c.status === 'healthy').length / healthData.checks.length) *
+        (healthData.checks.filter((c) => c.status === 'healthy').length /
+          healthData.checks.length) *
           100
       )
     : 0;
@@ -213,7 +239,10 @@ const SystemHealth = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <NavLink
+                  to="/admin"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar ao Painel
                 </NavLink>
@@ -381,7 +410,9 @@ const SystemHealth = () => {
                         onClick={() => handleCleanupStorage(true)}
                         disabled={cleanupLoading !== null}
                       >
-                        {cleanupLoading === 'storage-scan' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                        {cleanupLoading === 'storage-scan' && (
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        )}
                         Escanear
                       </Button>
                       <Button
@@ -390,16 +421,22 @@ const SystemHealth = () => {
                         onClick={() => handleCleanupStorage(false)}
                         disabled={cleanupLoading !== null}
                       >
-                        {cleanupLoading === 'storage-clean' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                        {cleanupLoading === 'storage-clean' && (
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                        )}
                         <Trash2 className="w-3 h-3 mr-1" />
                         Limpar
                       </Button>
                     </div>
                     {cleanupResults['storage-scan'] && (
-                      <p className="text-xs text-blue-400 bg-blue-500/10 p-2 rounded">{cleanupResults['storage-scan']}</p>
+                      <p className="text-xs text-blue-400 bg-blue-500/10 p-2 rounded">
+                        {cleanupResults['storage-scan']}
+                      </p>
                     )}
                     {cleanupResults['storage-clean'] && (
-                      <p className="text-xs text-green-400 bg-green-500/10 p-2 rounded">{cleanupResults['storage-clean']}</p>
+                      <p className="text-xs text-green-400 bg-green-500/10 p-2 rounded">
+                        {cleanupResults['storage-clean']}
+                      </p>
                     )}
                   </div>
 
@@ -418,11 +455,15 @@ const SystemHealth = () => {
                       onClick={handleBatchConvert}
                       disabled={cleanupLoading !== null}
                     >
-                      {cleanupLoading === 'convert' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                      {cleanupLoading === 'convert' && (
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      )}
                       Converter (máx 10)
                     </Button>
                     {cleanupResults['convert'] && (
-                      <p className="text-xs text-purple-400 bg-purple-500/10 p-2 rounded">{cleanupResults['convert']}</p>
+                      <p className="text-xs text-purple-400 bg-purple-500/10 p-2 rounded">
+                        {cleanupResults['convert']}
+                      </p>
                     )}
                   </div>
 
@@ -441,12 +482,16 @@ const SystemHealth = () => {
                       onClick={handleCleanupLogs}
                       disabled={cleanupLoading !== null}
                     >
-                      {cleanupLoading === 'logs' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                      {cleanupLoading === 'logs' && (
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      )}
                       <Trash2 className="w-3 h-3 mr-1" />
                       Limpar Logs
                     </Button>
                     {cleanupResults['logs'] && (
-                      <p className="text-xs text-yellow-400 bg-yellow-500/10 p-2 rounded">{cleanupResults['logs']}</p>
+                      <p className="text-xs text-yellow-400 bg-yellow-500/10 p-2 rounded">
+                        {cleanupResults['logs']}
+                      </p>
                     )}
                   </div>
 
@@ -465,12 +510,16 @@ const SystemHealth = () => {
                       onClick={handleCleanupSyncLogs}
                       disabled={cleanupLoading !== null}
                     >
-                      {cleanupLoading === 'sync' && <RefreshCw className="w-3 h-3 mr-1 animate-spin" />}
+                      {cleanupLoading === 'sync' && (
+                        <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                      )}
                       <Trash2 className="w-3 h-3 mr-1" />
                       Limpar Sync
                     </Button>
                     {cleanupResults['sync'] && (
-                      <p className="text-xs text-cyan-400 bg-cyan-500/10 p-2 rounded">{cleanupResults['sync']}</p>
+                      <p className="text-xs text-cyan-400 bg-cyan-500/10 p-2 rounded">
+                        {cleanupResults['sync']}
+                      </p>
                     )}
                   </div>
                 </div>

@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   FileText,
@@ -21,7 +21,7 @@ import {
   Home,
   Radar,
   Bot,
-} from "lucide-react";
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -32,75 +32,75 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar";
-import { useSidebar } from "@/components/ui/sidebar-context";
+} from '@/components/ui/sidebar';
+import { useSidebar } from '@/components/ui/sidebar-context';
 
 type Item = { title: string; url: string; icon: React.ComponentType<{ className?: string }> };
 type Group = { label: string; items: Item[] };
 
 const groups: Group[] = [
   {
-    label: "Geral",
+    label: 'Geral',
     items: [
-      { title: "Painel", url: "/admin", icon: LayoutDashboard },
-      { title: "Voltar ao Site", url: "/", icon: Home },
+      { title: 'Painel', url: '/admin', icon: LayoutDashboard },
+      { title: 'Voltar ao Site', url: '/', icon: Home },
     ],
   },
   {
-    label: "Conteúdo",
+    label: 'Conteúdo',
     items: [
-      { title: "Blog", url: "/admin/blog", icon: FileText },
-      { title: "Eventos", url: "/admin/events", icon: Calendar },
-      { title: "Templates de Eventos", url: "/admin/event-templates", icon: Layers },
-      { title: "Eventos Recorrentes", url: "/admin/recurring-events", icon: RefreshCw },
-      { title: "Equipe", url: "/admin/team", icon: Users },
+      { title: 'Blog', url: '/admin/blog', icon: FileText },
+      { title: 'Eventos', url: '/admin/events', icon: Calendar },
+      { title: 'Templates de Eventos', url: '/admin/event-templates', icon: Layers },
+      { title: 'Eventos Recorrentes', url: '/admin/recurring-events', icon: RefreshCw },
+      { title: 'Equipe', url: '/admin/team', icon: Users },
     ],
   },
   {
-    label: "Inteligência Artificial",
+    label: 'Inteligência Artificial',
     items: [
-      { title: "Conteúdo por IA", url: "/admin/ai-content2", icon: Sparkles },
-      { title: "Fontes", url: "/admin/fontes", icon: Radar },
-      { title: "Configuração de IA", url: "/admin/ai-settings", icon: Bot },
-      { title: "Custos de IA", url: "/admin/ai-costs", icon: BarChart3 },
+      { title: 'Conteúdo por IA', url: '/admin/ai-content2', icon: Sparkles },
+      { title: 'Fontes', url: '/admin/fontes', icon: Radar },
+      { title: 'Configuração de IA', url: '/admin/ai-settings', icon: Bot },
+      { title: 'Custos de IA', url: '/admin/ai-costs', icon: BarChart3 },
     ],
   },
   {
-    label: "Links & Distribuição",
+    label: 'Links & Distribuição',
     items: [
-      { title: "Linktree", url: "/admin/links-manager", icon: LinkIcon },
-      { title: "Redirecionador", url: "/admin/redirects", icon: ExternalLink },
-      { title: "Newsletter", url: "/admin/newsletter", icon: Mail },
-      { title: "Gestão de E-mails", url: "/admin/email-config", icon: Mail },
-      { title: "A/B Newsletter", url: "/admin/newsletter-ab-results", icon: TestTube2 },
-      { title: "MDAccula Radio", url: "/admin/mdaccula-radio", icon: Mic },
+      { title: 'Linktree', url: '/admin/links-manager', icon: LinkIcon },
+      { title: 'Redirecionador', url: '/admin/redirects', icon: ExternalLink },
+      { title: 'Newsletter', url: '/admin/newsletter', icon: Mail },
+      { title: 'Gestão de E-mails', url: '/admin/email-config', icon: Mail },
+      { title: 'A/B Newsletter', url: '/admin/newsletter-ab-results', icon: TestTube2 },
+      { title: 'MDAccula Radio', url: '/admin/mdaccula-radio', icon: Mic },
     ],
   },
   {
-    label: "Analytics",
+    label: 'Analytics',
     items: [
-      { title: "Dashboard de Eventos", url: "/admin/events-dashboard", icon: PieChart },
-      { title: "Analytics de Links", url: "/admin/links-analytics", icon: BarChart3 },
-      { title: "Monitor de Egress", url: "/admin/egress-monitor", icon: Activity },
+      { title: 'Dashboard de Eventos', url: '/admin/events-dashboard', icon: PieChart },
+      { title: 'Analytics de Links', url: '/admin/links-analytics', icon: BarChart3 },
+      { title: 'Monitor de Egress', url: '/admin/egress-monitor', icon: Activity },
     ],
   },
   {
-    label: "Sistema",
+    label: 'Sistema',
     items: [
-      { title: "Configurações", url: "/admin/settings", icon: Settings },
-      { title: "Status do Sistema", url: "/admin/system-health", icon: HeartPulse },
-      { title: "Importação de Dados", url: "/admin/data-import", icon: Database },
+      { title: 'Configurações', url: '/admin/settings', icon: Settings },
+      { title: 'Status do Sistema', url: '/admin/system-health', icon: HeartPulse },
+      { title: 'Importação de Dados', url: '/admin/data-import', icon: Database },
     ],
   },
 ];
 
 export function AdminSidebar() {
   const { state } = useSidebar();
-  const collapsed = state === "collapsed";
+  const collapsed = state === 'collapsed';
   const { pathname } = useLocation();
 
   const isActive = (url: string) =>
-    url === "/admin" ? pathname === "/admin" : pathname === url || pathname.startsWith(url + "/");
+    url === '/admin' ? pathname === '/admin' : pathname === url || pathname.startsWith(url + '/');
 
   return (
     <Sidebar collapsible="icon" className="border-r">

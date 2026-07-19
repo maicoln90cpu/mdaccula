@@ -4,8 +4,8 @@
  */
 
 export interface ScheduleEntry {
-  date: string;           // YYYY-MM-DD
-  time: string;           // HH:mm:ss ou HH:mm
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm:ss ou HH:mm
   end_time?: string | null;
   lineup?: string[];
 }
@@ -24,7 +24,7 @@ export function isValidSchedule(value: unknown): value is EventSchedule {
         e &&
         typeof e === 'object' &&
         typeof (e as Record<string, unknown>).date === 'string' &&
-        typeof (e as Record<string, unknown>).time === 'string',
+        typeof (e as Record<string, unknown>).time === 'string'
     )
   );
 }
@@ -70,7 +70,7 @@ export function reconcileSchedule(
   startDate: string,
   endDate: string | null | undefined,
   fallbackTime: string,
-  fallbackEndTime?: string | null,
+  fallbackEndTime?: string | null
 ): EventSchedule | null {
   if (!endDate || endDate === startDate) return null;
   const dates = datesInRange(startDate, endDate);

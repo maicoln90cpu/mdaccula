@@ -1,25 +1,52 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { useToast } from "@/hooks/useToast";
-import { Plus, Copy, Pencil, Trash2, MousePointerClick, Filter, Settings2, Calendar as CalendarIcon, CalendarDays, ArrowLeft } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { format, startOfDay, subDays } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import type { DateRange } from "react-day-picker";
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { useToast } from '@/hooks/useToast';
+import {
+  Plus,
+  Copy,
+  Pencil,
+  Trash2,
+  MousePointerClick,
+  Filter,
+  Settings2,
+  Calendar as CalendarIcon,
+  CalendarDays,
+  ArrowLeft,
+} from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { format, startOfDay, subDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
+import type { DateRange } from 'react-day-picker';
 
 interface RedirectLink {
   id: string;
@@ -45,8 +72,16 @@ interface FormData {
   utm_content: string;
 }
 
-const UTM_SOURCE_OPTIONS = ["mdaccula", "instagram", "whatsapp", "facebook", "tiktok", "email", "google"];
-const UTM_MEDIUM_OPTIONS = ["link-curto", "bio", "stories", "email", "post", "ads", "qrcode"];
+const UTM_SOURCE_OPTIONS = [
+  'mdaccula',
+  'instagram',
+  'whatsapp',
+  'facebook',
+  'tiktok',
+  'email',
+  'google',
+];
+const UTM_MEDIUM_OPTIONS = ['link-curto', 'bio', 'stories', 'email', 'post', 'ads', 'qrcode'];
 
 const RedirectsManager = () => {
   const { toast } = useToast();
@@ -55,17 +90,17 @@ const RedirectsManager = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Default UTM config
-  const [defaultSource, setDefaultSource] = useState("mdaccula");
-  const [defaultMedium, setDefaultMedium] = useState("link-curto");
+  const [defaultSource, setDefaultSource] = useState('mdaccula');
+  const [defaultMedium, setDefaultMedium] = useState('link-curto');
 
   const emptyForm: FormData = {
-    slug: "",
-    destination_url: "",
-    description: "",
+    slug: '',
+    destination_url: '',
+    description: '',
     utm_source: defaultSource,
     utm_medium: defaultMedium,
-    utm_campaign: "",
-    utm_content: "",
+    utm_campaign: '',
+    utm_content: '',
   };
 
   const [form, setForm] = useState<FormData>(emptyForm);
@@ -75,50 +110,54 @@ const RedirectsManager = () => {
   const [customMedium, setCustomMedium] = useState(false);
 
   // Filters
-  const [filterSource, setFilterSource] = useState("__all__");
-  const [filterMedium, setFilterMedium] = useState("__all__");
-  const [filterCampaign, setFilterCampaign] = useState("__all__");
+  const [filterSource, setFilterSource] = useState('__all__');
+  const [filterMedium, setFilterMedium] = useState('__all__');
+  const [filterCampaign, setFilterCampaign] = useState('__all__');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [sortBy, setSortBy] = useState<"recent" | "clicks">("recent");
-  const [periodLabel, setPeriodLabel] = useState<string>("Todo período");
+  const [sortBy, setSortBy] = useState<'recent' | 'clicks'>('recent');
+  const [periodLabel, setPeriodLabel] = useState<string>('Todo período');
 
   const { data: links = [], isLoading } = useQuery({
-    queryKey: ["redirect-links"],
+    queryKey: ['redirect-links'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("redirect_links")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('redirect_links')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data as RedirectLink[];
     },
   });
 
   // Realtime: invalida o cache do react-query a cada mudança em redirect_links.
-  useRealtimeTable("redirect_links", () =>
-    queryClient.invalidateQueries({ queryKey: ["redirect-links"] }),
+  useRealtimeTable('redirect_links', () =>
+    queryClient.invalidateQueries({ queryKey: ['redirect-links'] })
   );
 
   // Query period clicks from redirect_click_events
   const { data: periodClicks = {} } = useQuery({
-    queryKey: ["redirect-period-clicks", dateRange?.from?.toISOString(), dateRange?.to?.toISOString()],
+    queryKey: [
+      'redirect-period-clicks',
+      dateRange?.from?.toISOString(),
+      dateRange?.to?.toISOString(),
+    ],
     queryFn: async () => {
       if (!dateRange?.from) return {};
-      
+
       let query = supabase
-        .from("redirect_click_events")
-        .select("redirect_link_id")
-        .gte("clicked_at", dateRange.from.toISOString());
-      
+        .from('redirect_click_events')
+        .select('redirect_link_id')
+        .gte('clicked_at', dateRange.from.toISOString());
+
       if (dateRange.to) {
         const endOfDay = new Date(dateRange.to);
         endOfDay.setHours(23, 59, 59, 999);
-        query = query.lte("clicked_at", endOfDay.toISOString());
+        query = query.lte('clicked_at', endOfDay.toISOString());
       }
 
       const { data, error } = await query;
       if (error) {
-        console.error("Error fetching period clicks:", error);
+        console.error('Error fetching period clicks:', error);
         return {};
       }
 
@@ -134,26 +173,41 @@ const RedirectsManager = () => {
   });
 
   // Derive unique UTM values for filter selects
-  const uniqueSources = useMemo(() => [...new Set(links.map(l => l.utm_source).filter(Boolean) as string[])].sort(), [links]);
-  const uniqueMediums = useMemo(() => [...new Set(links.map(l => l.utm_medium).filter(Boolean) as string[])].sort(), [links]);
-  const uniqueCampaigns = useMemo(() => [...new Set(links.map(l => l.utm_campaign).filter(Boolean) as string[])].sort(), [links]);
+  const uniqueSources = useMemo(
+    () => [...new Set(links.map((l) => l.utm_source).filter(Boolean) as string[])].sort(),
+    [links]
+  );
+  const uniqueMediums = useMemo(
+    () => [...new Set(links.map((l) => l.utm_medium).filter(Boolean) as string[])].sort(),
+    [links]
+  );
+  const uniqueCampaigns = useMemo(
+    () => [...new Set(links.map((l) => l.utm_campaign).filter(Boolean) as string[])].sort(),
+    [links]
+  );
 
   const filteredLinks = useMemo(() => {
-    const filtered = links.filter(link => {
-      if (filterSource !== "__all__" && (link.utm_source || "") !== filterSource) return false;
-      if (filterMedium !== "__all__" && (link.utm_medium || "") !== filterMedium) return false;
-      if (filterCampaign !== "__all__" && (link.utm_campaign || "") !== filterCampaign) return false;
+    const filtered = links.filter((link) => {
+      if (filterSource !== '__all__' && (link.utm_source || '') !== filterSource) return false;
+      if (filterMedium !== '__all__' && (link.utm_medium || '') !== filterMedium) return false;
+      if (filterCampaign !== '__all__' && (link.utm_campaign || '') !== filterCampaign)
+        return false;
       return true;
     });
 
-    if (sortBy === "clicks") {
+    if (sortBy === 'clicks') {
       filtered.sort((a, b) => b.clicks - a.clicks);
     }
 
     return filtered;
   }, [links, filterSource, filterMedium, filterCampaign, sortBy]);
 
-  const hasActiveFilters = filterSource !== "__all__" || filterMedium !== "__all__" || filterCampaign !== "__all__" || !!dateRange?.from || sortBy !== "recent";
+  const hasActiveFilters =
+    filterSource !== '__all__' ||
+    filterMedium !== '__all__' ||
+    filterCampaign !== '__all__' ||
+    !!dateRange?.from ||
+    sortBy !== 'recent';
 
   const hasPeriodFilter = !!dateRange?.from;
 
@@ -178,7 +232,7 @@ const RedirectsManager = () => {
   const saveMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const payload = {
-        slug: data.slug.replace(/[^a-zA-Z0-9_-]/g, ""),
+        slug: data.slug.replace(/[^a-zA-Z0-9_-]/g, ''),
         destination_url: normalizeUrl(data.destination_url),
         description: data.description || null,
         utm_source: data.utm_source || null,
@@ -188,69 +242,58 @@ const RedirectsManager = () => {
       };
 
       if (editingId) {
-        const { error } = await supabase
-          .from("redirect_links")
-          .update(payload)
-          .eq("id", editingId);
+        const { error } = await supabase.from('redirect_links').update(payload).eq('id', editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("redirect_links")
-          .insert(payload);
+        const { error } = await supabase.from('redirect_links').insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["redirect-links"] });
+      queryClient.invalidateQueries({ queryKey: ['redirect-links'] });
       setDialogOpen(false);
       setEditingId(null);
       setForm({ ...emptyForm, utm_source: defaultSource, utm_medium: defaultMedium });
-      toast({ title: editingId ? "Link atualizado!" : "Link criado!" });
+      toast({ title: editingId ? 'Link atualizado!' : 'Link criado!' });
     },
     onError: (err: Error) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+      toast({ title: 'Erro ao salvar', description: err.message, variant: 'destructive' });
     },
   });
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const { error } = await supabase
-        .from("redirect_links")
-        .update({ enabled })
-        .eq("id", id);
+      const { error } = await supabase.from('redirect_links').update({ enabled }).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["redirect-links"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['redirect-links'] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("redirect_links")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from('redirect_links').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["redirect-links"] });
-      toast({ title: "Link deletado!" });
+      queryClient.invalidateQueries({ queryKey: ['redirect-links'] });
+      toast({ title: 'Link deletado!' });
     },
   });
 
   const handleEdit = (link: RedirectLink) => {
     setEditingId(link.id);
-    const sourceVal = link.utm_source || "";
-    const mediumVal = link.utm_medium || "";
-    setCustomSource(!UTM_SOURCE_OPTIONS.includes(sourceVal) && sourceVal !== "");
-    setCustomMedium(!UTM_MEDIUM_OPTIONS.includes(mediumVal) && mediumVal !== "");
+    const sourceVal = link.utm_source || '';
+    const mediumVal = link.utm_medium || '';
+    setCustomSource(!UTM_SOURCE_OPTIONS.includes(sourceVal) && sourceVal !== '');
+    setCustomMedium(!UTM_MEDIUM_OPTIONS.includes(mediumVal) && mediumVal !== '');
     setForm({
       slug: link.slug,
       destination_url: link.destination_url,
-      description: link.description || "",
+      description: link.description || '',
       utm_source: sourceVal,
       utm_medium: mediumVal,
-      utm_campaign: link.utm_campaign || "",
-      utm_content: link.utm_content || "",
+      utm_campaign: link.utm_campaign || '',
+      utm_content: link.utm_content || '',
     });
     setDialogOpen(true);
   };
@@ -266,7 +309,7 @@ const RedirectsManager = () => {
   const copyLink = (slug: string) => {
     const url = `${window.location.origin}/r/${slug}`;
     navigator.clipboard.writeText(url);
-    toast({ title: "Link copiado!", description: url });
+    toast({ title: 'Link copiado!', description: url });
   };
 
   const siteUrl = window.location.origin;
@@ -278,7 +321,10 @@ const RedirectsManager = () => {
           <div className="w-full">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
               <div>
-                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <NavLink
+                  to="/admin"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar ao Painel
                 </NavLink>
@@ -302,8 +348,10 @@ const RedirectsManager = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__all__">Todos sources</SelectItem>
-                        {uniqueSources.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        {uniqueSources.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -313,8 +361,10 @@ const RedirectsManager = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__all__">Todos mediums</SelectItem>
-                        {uniqueMediums.map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        {uniqueMediums.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -324,8 +374,10 @@ const RedirectsManager = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__all__">Todas campaigns</SelectItem>
-                        {uniqueCampaigns.map(c => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
+                        {uniqueCampaigns.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -336,51 +388,63 @@ const RedirectsManager = () => {
                         <Button
                           variant="outline"
                           className={cn(
-                            "h-8 text-xs justify-start min-w-[160px]",
-                            !dateRange?.from && "text-muted-foreground"
+                            'h-8 text-xs justify-start min-w-[160px]',
+                            !dateRange?.from && 'text-muted-foreground'
                           )}
                         >
                           <CalendarDays className="w-3 h-3 mr-1" />
-                          {dateRange?.from ? (
-                            dateRange.to && dateRange.from.getTime() !== dateRange.to.getTime()
-                              ? `${format(dateRange.from, "dd/MM", { locale: ptBR })} - ${format(dateRange.to, "dd/MM", { locale: ptBR })}`
-                              : format(dateRange.from, "dd/MM/yyyy", { locale: ptBR })
-                          ) : (
-                            periodLabel
-                          )}
+                          {dateRange?.from
+                            ? dateRange.to && dateRange.from.getTime() !== dateRange.to.getTime()
+                              ? `${format(dateRange.from, 'dd/MM', { locale: ptBR })} - ${format(dateRange.to, 'dd/MM', { locale: ptBR })}`
+                              : format(dateRange.from, 'dd/MM/yyyy', { locale: ptBR })
+                            : periodLabel}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
                         <div className="flex flex-wrap gap-1 p-2 border-b">
                           <Button
-                            variant={periodLabel === "Hoje" ? "default" : "ghost"}
+                            variant={periodLabel === 'Hoje' ? 'default' : 'ghost'}
                             size="sm"
                             className="h-7 text-xs"
-                            onClick={() => handlePeriodShortcut("Hoje", startOfDay(new Date()), new Date())}
+                            onClick={() =>
+                              handlePeriodShortcut('Hoje', startOfDay(new Date()), new Date())
+                            }
                           >
                             Hoje
                           </Button>
                           <Button
-                            variant={periodLabel === "7 dias" ? "default" : "ghost"}
+                            variant={periodLabel === '7 dias' ? 'default' : 'ghost'}
                             size="sm"
                             className="h-7 text-xs"
-                            onClick={() => handlePeriodShortcut("7 dias", startOfDay(subDays(new Date(), 7)), new Date())}
+                            onClick={() =>
+                              handlePeriodShortcut(
+                                '7 dias',
+                                startOfDay(subDays(new Date(), 7)),
+                                new Date()
+                              )
+                            }
                           >
                             7 dias
                           </Button>
                           <Button
-                            variant={periodLabel === "30 dias" ? "default" : "ghost"}
+                            variant={periodLabel === '30 dias' ? 'default' : 'ghost'}
                             size="sm"
                             className="h-7 text-xs"
-                            onClick={() => handlePeriodShortcut("30 dias", startOfDay(subDays(new Date(), 30)), new Date())}
+                            onClick={() =>
+                              handlePeriodShortcut(
+                                '30 dias',
+                                startOfDay(subDays(new Date(), 30)),
+                                new Date()
+                              )
+                            }
                           >
                             30 dias
                           </Button>
                           <Button
-                            variant={periodLabel === "Todo período" ? "default" : "ghost"}
+                            variant={periodLabel === 'Todo período' ? 'default' : 'ghost'}
                             size="sm"
                             className="h-7 text-xs"
-                            onClick={() => handlePeriodShortcut("Todo período", null, null)}
+                            onClick={() => handlePeriodShortcut('Todo período', null, null)}
                           >
                             Todo período
                           </Button>
@@ -390,11 +454,11 @@ const RedirectsManager = () => {
                           selected={dateRange}
                           onSelect={(range) => {
                             setDateRange(range);
-                            setPeriodLabel("Personalizado");
+                            setPeriodLabel('Personalizado');
                           }}
                           numberOfMonths={1}
                           locale={ptBR}
-                          className={cn("p-3 pointer-events-auto")}
+                          className={cn('p-3 pointer-events-auto')}
                         />
                       </PopoverContent>
                     </Popover>
@@ -413,7 +477,14 @@ const RedirectsManager = () => {
                         variant="ghost"
                         size="sm"
                         className="h-8 text-xs"
-                        onClick={() => { setFilterSource("__all__"); setFilterMedium("__all__"); setFilterCampaign("__all__"); setDateRange(undefined); setPeriodLabel("Todo período"); setSortBy("recent"); }}
+                        onClick={() => {
+                          setFilterSource('__all__');
+                          setFilterMedium('__all__');
+                          setFilterCampaign('__all__');
+                          setDateRange(undefined);
+                          setPeriodLabel('Todo período');
+                          setSortBy('recent');
+                        }}
                       >
                         Limpar filtros
                       </Button>
@@ -444,7 +515,7 @@ const RedirectsManager = () => {
             ) : (
               <div className="space-y-3">
                 {filteredLinks.map((link) => (
-                  <Card key={link.id} className={!link.enabled ? "opacity-60" : ""}>
+                  <Card key={link.id} className={!link.enabled ? 'opacity-60' : ''}>
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div className="min-w-0 flex-1">
@@ -452,7 +523,12 @@ const RedirectsManager = () => {
                             <code className="text-sm font-mono text-primary truncate">
                               {siteUrl}/r/{link.slug}
                             </code>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyLink(link.slug)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 shrink-0"
+                              onClick={() => copyLink(link.slug)}
+                            >
                               <Copy className="w-3 h-3" />
                             </Button>
                           </div>
@@ -463,10 +539,26 @@ const RedirectsManager = () => {
                             <p className="text-xs text-muted-foreground mt-1">{link.description}</p>
                           )}
                           <div className="flex gap-1 mt-2 flex-wrap items-center">
-                            {link.utm_source && <Badge variant="outline" className="text-[10px]">source: {link.utm_source}</Badge>}
-                            {link.utm_medium && <Badge variant="outline" className="text-[10px]">medium: {link.utm_medium}</Badge>}
-                            {link.utm_campaign && <Badge variant="outline" className="text-[10px]">campaign: {link.utm_campaign}</Badge>}
-                            {link.utm_content && <Badge variant="outline" className="text-[10px]">content: {link.utm_content}</Badge>}
+                            {link.utm_source && (
+                              <Badge variant="outline" className="text-[10px]">
+                                source: {link.utm_source}
+                              </Badge>
+                            )}
+                            {link.utm_medium && (
+                              <Badge variant="outline" className="text-[10px]">
+                                medium: {link.utm_medium}
+                              </Badge>
+                            )}
+                            {link.utm_campaign && (
+                              <Badge variant="outline" className="text-[10px]">
+                                campaign: {link.utm_campaign}
+                              </Badge>
+                            )}
+                            {link.utm_content && (
+                              <Badge variant="outline" className="text-[10px]">
+                                content: {link.utm_content}
+                              </Badge>
+                            )}
                             <span className="flex items-center gap-1 text-[10px] text-muted-foreground ml-1">
                               <CalendarIcon className="w-3 h-3" />
                               {new Date(link.created_at).toLocaleDateString('pt-BR')}
@@ -486,7 +578,9 @@ const RedirectsManager = () => {
                           </div>
                           <Switch
                             checked={link.enabled}
-                            onCheckedChange={(enabled) => toggleMutation.mutate({ id: link.id, enabled })}
+                            onCheckedChange={(enabled) =>
+                              toggleMutation.mutate({ id: link.id, enabled })
+                            }
                           />
                           <Button variant="ghost" size="icon" onClick={() => handleEdit(link)}>
                             <Pencil className="w-4 h-4" />
@@ -501,7 +595,8 @@ const RedirectsManager = () => {
                               <AlertDialogHeader>
                                 <AlertDialogTitle>Deletar link?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  O link <strong>/r/{link.slug}</strong> será removido permanentemente.
+                                  O link <strong>/r/{link.slug}</strong> será removido
+                                  permanentemente.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -540,8 +635,10 @@ const RedirectsManager = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {UTM_SOURCE_OPTIONS.map(s => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
+                        {UTM_SOURCE_OPTIONS.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -553,8 +650,10 @@ const RedirectsManager = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {UTM_MEDIUM_OPTIONS.map(m => (
-                          <SelectItem key={m} value={m}>{m}</SelectItem>
+                        {UTM_MEDIUM_OPTIONS.map((m) => (
+                          <SelectItem key={m} value={m}>
+                            {m}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -566,30 +665,55 @@ const RedirectsManager = () => {
             {/* UTM Guide */}
             <Card variant="note" className="mt-4">
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">📊 Guia de UTMs — Como configurar corretamente</CardTitle>
+                <CardTitle className="text-lg">
+                  📊 Guia de UTMs — Como configurar corretamente
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm text-muted-foreground">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">utm_source</p>
-                    <p>De onde vem o tráfego. Ex: <code className="text-primary">mdaccula</code>, <code className="text-primary">instagram</code>, <code className="text-primary">whatsapp</code></p>
+                    <p>
+                      De onde vem o tráfego. Ex: <code className="text-primary">mdaccula</code>,{' '}
+                      <code className="text-primary">instagram</code>,{' '}
+                      <code className="text-primary">whatsapp</code>
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">utm_medium</p>
-                    <p>Tipo de canal. Ex: <code className="text-primary">link-curto</code>, <code className="text-primary">bio</code>, <code className="text-primary">stories</code>, <code className="text-primary">email</code></p>
+                    <p>
+                      Tipo de canal. Ex: <code className="text-primary">link-curto</code>,{' '}
+                      <code className="text-primary">bio</code>,{' '}
+                      <code className="text-primary">stories</code>,{' '}
+                      <code className="text-primary">email</code>
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">utm_campaign</p>
-                    <p>Nome da campanha ou ação. Ex: <code className="text-primary">carnaval-2026</code>, <code className="text-primary">lancamento-ep</code></p>
+                    <p>
+                      Nome da campanha ou ação. Ex:{' '}
+                      <code className="text-primary">carnaval-2026</code>,{' '}
+                      <code className="text-primary">lancamento-ep</code>
+                    </p>
                   </div>
                   <div className="space-y-1">
                     <p className="font-semibold text-foreground">utm_content</p>
-                    <p>Diferencia variações do mesmo link. Ex: <code className="text-primary">botao-cta</code>, <code className="text-primary">banner-topo</code></p>
+                    <p>
+                      Diferencia variações do mesmo link. Ex:{' '}
+                      <code className="text-primary">botao-cta</code>,{' '}
+                      <code className="text-primary">banner-topo</code>
+                    </p>
                   </div>
                 </div>
                 <div className="border-t border-border pt-3 mt-3">
                   <p className="font-semibold text-foreground mb-1">💡 Configuração recomendada</p>
-                  <p>Use sempre <code className="text-primary">utm_source=mdaccula</code> e <code className="text-primary">utm_medium=link-curto</code> como padrão. Personalize <code className="text-primary">utm_campaign</code> por ação e <code className="text-primary">utm_content</code> quando tiver mais de um link para a mesma campanha.</p>
+                  <p>
+                    Use sempre <code className="text-primary">utm_source=mdaccula</code> e{' '}
+                    <code className="text-primary">utm_medium=link-curto</code> como padrão.
+                    Personalize <code className="text-primary">utm_campaign</code> por ação e{' '}
+                    <code className="text-primary">utm_content</code> quando tiver mais de um link
+                    para a mesma campanha.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -598,14 +722,14 @@ const RedirectsManager = () => {
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogContent className="max-w-lg">
                 <DialogHeader>
-                  <DialogTitle>{editingId ? "Editar Link" : "Novo Link"}</DialogTitle>
+                  <DialogTitle>{editingId ? 'Editar Link' : 'Novo Link'}</DialogTitle>
                 </DialogHeader>
                 <form
                   className="space-y-4"
                   onSubmit={(e) => {
                     e.preventDefault();
                     if (!form.slug || !form.destination_url) {
-                      toast({ title: "Preencha slug e URL de destino", variant: "destructive" });
+                      toast({ title: 'Preencha slug e URL de destino', variant: 'destructive' });
                       return;
                     }
                     saveMutation.mutate(form);
@@ -614,10 +738,14 @@ const RedirectsManager = () => {
                   <div>
                     <Label>Slug (identificador curto)</Label>
                     <div className="flex items-center gap-1 mt-1">
-                      <span className="min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">{siteUrl}/r/</span>
+                      <span className="min-w-0 max-w-[45%] truncate text-xs text-muted-foreground">
+                        {siteUrl}/r/
+                      </span>
                       <Input
                         value={form.slug}
-                        onChange={(e) => setForm({ ...form, slug: e.target.value.replace(/[^a-zA-Z0-9_-]/g, "") })}
+                        onChange={(e) =>
+                          setForm({ ...form, slug: e.target.value.replace(/[^a-zA-Z0-9_-]/g, '') })
+                        }
                         placeholder="whatsapp-carnaval"
                         className="flex-1"
                       />
@@ -652,19 +780,28 @@ const RedirectsManager = () => {
                             placeholder="fonte personalizada"
                             className="flex-1 h-9 text-xs"
                           />
-                          <Button type="button" variant="ghost" size="sm" className="h-9 text-xs px-2" onClick={() => { setCustomSource(false); setForm({ ...form, utm_source: defaultSource }); }}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 text-xs px-2"
+                            onClick={() => {
+                              setCustomSource(false);
+                              setForm({ ...form, utm_source: defaultSource });
+                            }}
+                          >
                             ✕
                           </Button>
                         </div>
                       ) : (
                         <Select
-                          value={form.utm_source || "__empty__"}
+                          value={form.utm_source || '__empty__'}
                           onValueChange={(v) => {
-                            if (v === "__custom__") {
+                            if (v === '__custom__') {
                               setCustomSource(true);
-                              setForm({ ...form, utm_source: "" });
-                            } else if (v === "__empty__") {
-                              setForm({ ...form, utm_source: "" });
+                              setForm({ ...form, utm_source: '' });
+                            } else if (v === '__empty__') {
+                              setForm({ ...form, utm_source: '' });
                             } else {
                               setForm({ ...form, utm_source: v });
                             }
@@ -674,8 +811,10 @@ const RedirectsManager = () => {
                             <SelectValue placeholder="Selecionar..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {UTM_SOURCE_OPTIONS.map(s => (
-                              <SelectItem key={s} value={s}>{s}</SelectItem>
+                            {UTM_SOURCE_OPTIONS.map((s) => (
+                              <SelectItem key={s} value={s}>
+                                {s}
+                              </SelectItem>
                             ))}
                             <SelectItem value="__custom__">Personalizado...</SelectItem>
                           </SelectContent>
@@ -692,19 +831,28 @@ const RedirectsManager = () => {
                             placeholder="medium personalizado"
                             className="flex-1 h-9 text-xs"
                           />
-                          <Button type="button" variant="ghost" size="sm" className="h-9 text-xs px-2" onClick={() => { setCustomMedium(false); setForm({ ...form, utm_medium: defaultMedium }); }}>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 text-xs px-2"
+                            onClick={() => {
+                              setCustomMedium(false);
+                              setForm({ ...form, utm_medium: defaultMedium });
+                            }}
+                          >
                             ✕
                           </Button>
                         </div>
                       ) : (
                         <Select
-                          value={form.utm_medium || "__empty__"}
+                          value={form.utm_medium || '__empty__'}
                           onValueChange={(v) => {
-                            if (v === "__custom__") {
+                            if (v === '__custom__') {
                               setCustomMedium(true);
-                              setForm({ ...form, utm_medium: "" });
-                            } else if (v === "__empty__") {
-                              setForm({ ...form, utm_medium: "" });
+                              setForm({ ...form, utm_medium: '' });
+                            } else if (v === '__empty__') {
+                              setForm({ ...form, utm_medium: '' });
                             } else {
                               setForm({ ...form, utm_medium: v });
                             }
@@ -714,8 +862,10 @@ const RedirectsManager = () => {
                             <SelectValue placeholder="Selecionar..." />
                           </SelectTrigger>
                           <SelectContent>
-                            {UTM_MEDIUM_OPTIONS.map(m => (
-                              <SelectItem key={m} value={m}>{m}</SelectItem>
+                            {UTM_MEDIUM_OPTIONS.map((m) => (
+                              <SelectItem key={m} value={m}>
+                                {m}
+                              </SelectItem>
                             ))}
                             <SelectItem value="__custom__">Personalizado...</SelectItem>
                           </SelectContent>
@@ -742,7 +892,11 @@ const RedirectsManager = () => {
                     </div>
                   </div>
                   <Button type="submit" className="w-full" disabled={saveMutation.isPending}>
-                    {saveMutation.isPending ? "Salvando..." : editingId ? "Salvar alterações" : "Criar link"}
+                    {saveMutation.isPending
+                      ? 'Salvando...'
+                      : editingId
+                        ? 'Salvar alterações'
+                        : 'Criar link'}
                   </Button>
                 </form>
               </DialogContent>

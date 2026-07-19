@@ -1,8 +1,8 @@
-import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar } from "./AdminSidebar";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import Navigation from "@/components/ui/navigation";
+import { Outlet } from 'react-router-dom';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { AdminSidebar } from './AdminSidebar';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import Navigation from '@/components/ui/navigation';
 
 export default function AdminLayout() {
   return (

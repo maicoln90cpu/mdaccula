@@ -10,7 +10,7 @@
  *   { context: { component: 'EventDetail', action: 'fetchEvent' } }
  * );
  */
-import { logger } from "@/lib/logger";
+import { logger } from '@/lib/logger';
 
 interface SupabaseLike<T> {
   data: T | null;

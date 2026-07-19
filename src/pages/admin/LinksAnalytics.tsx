@@ -1,13 +1,25 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { fetchAllPaginated } from "@/lib";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, TrendingUp, MousePointerClick, Eye, Heart, FileText, Link as LinkIcon, ChevronDown, ChevronRight, Calendar, Share2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { toast } from "sonner";
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchAllPaginated } from '@/lib';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  ArrowLeft,
+  TrendingUp,
+  MousePointerClick,
+  Eye,
+  Heart,
+  FileText,
+  Link as LinkIcon,
+  ChevronDown,
+  ChevronRight,
+  Calendar,
+  Share2,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface LinkAnalytics {
   id: string;
@@ -64,7 +76,7 @@ const LinksAnalytics = () => {
   const [totalLikes, setTotalLikes] = useState(0);
   const [totalEventViews, setTotalEventViews] = useState(0);
   const [totalRedirectClicks, setTotalRedirectClicks] = useState(0);
-  
+
   // Estados para seções colapsáveis — iniciam colapsadas
   const [linksOpen, setLinksOpen] = useState(false);
   const [blogOpen, setBlogOpen] = useState(false);
@@ -74,17 +86,21 @@ const LinksAnalytics = () => {
   const [viewsOpen, setViewsOpen] = useState(false);
   const [likesOpen, setLikesOpen] = useState(false);
   const [redirectsOpen, setRedirectsOpen] = useState(false);
-  
+
   // Filtro de período
   const [timePeriod, setTimePeriod] = useState<'today' | '7d' | '30d' | 'all'>('all');
 
   const getDateFilter = useCallback(() => {
     const now = new Date();
     switch (timePeriod) {
-      case 'today': return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-      case '7d': return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      case '30d': return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-      default: return null;
+      case 'today':
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+      case '7d':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      default:
+        return null;
     }
   }, [timePeriod]);
 
@@ -95,35 +111,35 @@ const LinksAnalytics = () => {
 
       // Buscar metadados dos links com seus grupos
       const { data: linksData, error: linksError } = await supabase
-        .from("custom_links")
+        .from('custom_links')
         .select(`id, title, url, clicks, is_internal, link_groups (name)`)
-        .order("clicks", { ascending: false });
+        .order('clicks', { ascending: false });
 
       if (linksError) throw linksError;
 
       // Buscar metadados do blog
       const { data: blogData, error: blogError } = await supabase
-        .from("blog_posts")
-        .select("id, title, slug, views, likes, category")
-        .eq("published", true)
-        .order("views", { ascending: false });
+        .from('blog_posts')
+        .select('id, title, slug, views, likes, category')
+        .eq('published', true)
+        .order('views', { ascending: false });
 
       if (blogError) throw blogError;
 
       // Buscar metadados dos eventos
       const { data: eventsData, error: eventsError } = await supabase
-        .from("events")
-        .select("id, title, slug, views, date, venue")
-        .eq("status", "active")
-        .order("views", { ascending: false, nullsFirst: false });
+        .from('events')
+        .select('id, title, slug, views, date, venue')
+        .eq('status', 'active')
+        .order('views', { ascending: false, nullsFirst: false });
 
       if (eventsError) throw eventsError;
 
       // Buscar metadados dos redirect links
       const { data: redirectsData, error: redirectsError } = await supabase
-        .from("redirect_links")
-        .select("id, slug, destination_url, description, clicks, enabled")
-        .order("clicks", { ascending: false });
+        .from('redirect_links')
+        .select('id, slug, destination_url, description, clicks, enabled')
+        .order('clicks', { ascending: false });
 
       if (redirectsError) throw redirectsError;
 
@@ -137,9 +153,9 @@ const LinksAnalytics = () => {
         // Buscar cliques de links por período (paginado - período pode ter >1000 eventos)
         const linkClicks = await fetchAllPaginated<{ link_id: string }>((from, to) =>
           supabase
-            .from("link_click_events")
-            .select("link_id")
-            .gte("clicked_at", dateFilter)
+            .from('link_click_events')
+            .select('link_id')
+            .gte('clicked_at', dateFilter)
             .range(from, to)
         );
         linkClicks.forEach((row) => {
@@ -149,9 +165,9 @@ const LinksAnalytics = () => {
         // Buscar views de blog por período (paginado)
         const blogViews = await fetchAllPaginated<{ post_id: string }>((from, to) =>
           supabase
-            .from("blog_view_events")
-            .select("post_id")
-            .gte("viewed_at", dateFilter)
+            .from('blog_view_events')
+            .select('post_id')
+            .gte('viewed_at', dateFilter)
             .range(from, to)
         );
         blogViews.forEach((row) => {
@@ -161,9 +177,9 @@ const LinksAnalytics = () => {
         // Buscar views de eventos por período (paginado)
         const eventViews = await fetchAllPaginated<{ event_id: string }>((from, to) =>
           supabase
-            .from("event_view_events")
-            .select("event_id")
-            .gte("viewed_at", dateFilter)
+            .from('event_view_events')
+            .select('event_id')
+            .gte('viewed_at', dateFilter)
             .range(from, to)
         );
         eventViews.forEach((row) => {
@@ -173,39 +189,42 @@ const LinksAnalytics = () => {
         // Buscar cliques de redirect por período (paginado)
         const clickEvents = await fetchAllPaginated<{ redirect_link_id: string }>((from, to) =>
           supabase
-            .from("redirect_click_events")
-            .select("redirect_link_id")
-            .gte("clicked_at", dateFilter)
+            .from('redirect_click_events')
+            .select('redirect_link_id')
+            .gte('clicked_at', dateFilter)
             .range(from, to)
         );
         clickEvents.forEach((row) => {
-          redirectClicksByPeriod[row.redirect_link_id] = (redirectClicksByPeriod[row.redirect_link_id] || 0) + 1;
+          redirectClicksByPeriod[row.redirect_link_id] =
+            (redirectClicksByPeriod[row.redirect_link_id] || 0) + 1;
         });
       }
 
       // Processar dados dos links
-      const processedLinks = linksData?.map((link) => ({
-        id: link.id,
-        title: link.title,
-        url: link.url,
-        clicks: dateFilter ? (linkClicksByPeriod[link.id] || 0) : (link.clicks || 0),
-        group_name: link.link_groups?.name || "Sem grupo",
-        is_internal: link.is_internal,
-      })) || [];
+      const processedLinks =
+        linksData?.map((link) => ({
+          id: link.id,
+          title: link.title,
+          url: link.url,
+          clicks: dateFilter ? linkClicksByPeriod[link.id] || 0 : link.clicks || 0,
+          group_name: link.link_groups?.name || 'Sem grupo',
+          is_internal: link.is_internal,
+        })) || [];
 
       // Ordenar por cliques (do período ou total)
       processedLinks.sort((a, b) => b.clicks - a.clicks);
       setLinks(processedLinks);
 
       // Processar dados do blog
-      const processedBlog = blogData?.map((post) => ({
-        id: post.id,
-        title: post.title,
-        slug: post.slug,
-        views: dateFilter ? (blogViewsByPeriod[post.id] || 0) : (post.views || 0),
-        likes: post.likes || 0,
-        category: post.category,
-      })) || [];
+      const processedBlog =
+        blogData?.map((post) => ({
+          id: post.id,
+          title: post.title,
+          slug: post.slug,
+          views: dateFilter ? blogViewsByPeriod[post.id] || 0 : post.views || 0,
+          likes: post.likes || 0,
+          category: post.category,
+        })) || [];
 
       processedBlog.sort((a, b) => b.views - a.views);
       setBlogPosts(processedBlog);
@@ -221,14 +240,15 @@ const LinksAnalytics = () => {
       setTotalLikes(likesTotal);
 
       // Processar dados dos eventos
-      const processedEvents = eventsData?.map((event) => ({
-        id: event.id,
-        title: event.title,
-        slug: event.slug,
-        views: dateFilter ? (eventViewsByPeriod[event.id] || 0) : (event.views || 0),
-        date: event.date,
-        venue: event.venue,
-      })) || [];
+      const processedEvents =
+        eventsData?.map((event) => ({
+          id: event.id,
+          title: event.title,
+          slug: event.slug,
+          views: dateFilter ? eventViewsByPeriod[event.id] || 0 : event.views || 0,
+          date: event.date,
+          venue: event.venue,
+        })) || [];
 
       processedEvents.sort((a, b) => b.views - a.views);
       setEvents(processedEvents);
@@ -236,18 +256,22 @@ const LinksAnalytics = () => {
       setTotalEventViews(eventViewsTotal);
 
       // Processar dados dos redirects
-      const processedRedirects = redirectsData?.map((r) => ({
-        id: r.id,
-        slug: r.slug,
-        destination_url: r.destination_url,
-        description: r.description,
-        clicks: dateFilter ? (redirectClicksByPeriod[r.id] || 0) : (r.clicks || 0),
-        enabled: r.enabled,
-      })) || [];
+      const processedRedirects =
+        redirectsData?.map((r) => ({
+          id: r.id,
+          slug: r.slug,
+          destination_url: r.destination_url,
+          description: r.description,
+          clicks: dateFilter ? redirectClicksByPeriod[r.id] || 0 : r.clicks || 0,
+          enabled: r.enabled,
+        })) || [];
 
       processedRedirects.sort((a, b) => b.clicks - a.clicks);
       setRedirects(processedRedirects);
-      const redirectClicksTotal = processedRedirects.reduce((sum: number, r: RedirectAnalytics) => sum + r.clicks, 0);
+      const redirectClicksTotal = processedRedirects.reduce(
+        (sum: number, r: RedirectAnalytics) => sum + r.clicks,
+        0
+      );
       setTotalRedirectClicks(redirectClicksTotal);
 
       // Agrupar dados por grupo
@@ -270,8 +294,8 @@ const LinksAnalytics = () => {
 
       setGroups(groupsData);
     } catch (error) {
-      console.error("Error fetching analytics:", error);
-      toast.error("Erro ao carregar analytics");
+      console.error('Error fetching analytics:', error);
+      toast.error('Erro ao carregar analytics');
     } finally {
       setLoading(false);
     }
@@ -294,29 +318,25 @@ const LinksAnalytics = () => {
       <div className="w-full">
         <main className="w-full px-4 md:px-6 py-6">
           <div className="flex items-center gap-4 mb-8">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/admin")}
-            >
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
               <h1 className="text-3xl font-bold">Analytics</h1>
-              <p className="text-muted-foreground">
-                Performance de links e blog posts
-              </p>
+              <p className="text-muted-foreground">Performance de links e blog posts</p>
             </div>
           </div>
 
           {/* Filtro de período */}
           <div className="flex gap-2 mb-6 flex-wrap">
-            {([
-              { value: 'today', label: 'Hoje' },
-              { value: '7d', label: '7 dias' },
-              { value: '30d', label: '30 dias' },
-              { value: 'all', label: 'Todo período' },
-            ] as const).map(opt => (
+            {(
+              [
+                { value: 'today', label: 'Hoje' },
+                { value: '7d', label: '7 dias' },
+                { value: '30d', label: '30 dias' },
+                { value: 'all', label: 'Todo período' },
+              ] as const
+            ).map((opt) => (
               <Button
                 key={opt.value}
                 variant={timePeriod === opt.value ? 'default' : 'outline'}
@@ -328,7 +348,8 @@ const LinksAnalytics = () => {
             ))}
             {timePeriod !== 'all' && (
               <span className="text-xs text-muted-foreground self-center ml-2">
-                ℹ️ Dados filtrados por período usando tabelas de tracking. Dados anteriores à ativação do tracking não aparecem.
+                ℹ️ Dados filtrados por período usando tabelas de tracking. Dados anteriores à
+                ativação do tracking não aparecem.
               </span>
             )}
           </div>
@@ -337,22 +358,20 @@ const LinksAnalytics = () => {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mb-8">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Cliques em Links
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Cliques em Links</CardTitle>
                 <MousePointerClick className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalClicks}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
+                {timePeriod !== 'all' && (
+                  <p className="text-xs text-muted-foreground">no período</p>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Total de Links
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Total de Links</CardTitle>
                 <LinkIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -362,48 +381,46 @@ const LinksAnalytics = () => {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Views em Eventos
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Views em Eventos</CardTitle>
                 <Calendar className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalEventViews}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
+                {timePeriod !== 'all' && (
+                  <p className="text-xs text-muted-foreground">no período</p>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Views do Blog
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Views do Blog</CardTitle>
                 <Eye className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalViews}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
+                {timePeriod !== 'all' && (
+                  <p className="text-xs text-muted-foreground">no período</p>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Likes do Blog
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Likes do Blog</CardTitle>
                 <Heart className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{totalLikes}</div>
-                {timePeriod !== 'all' && <p className="text-xs text-muted-foreground">no período</p>}
+                {timePeriod !== 'all' && (
+                  <p className="text-xs text-muted-foreground">no período</p>
+                )}
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Posts Publicados
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Posts Publicados</CardTitle>
                 <FileText className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -413,9 +430,7 @@ const LinksAnalytics = () => {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  Redirects
-                </CardTitle>
+                <CardTitle className="text-sm font-medium">Redirects</CardTitle>
                 <Share2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -444,7 +459,7 @@ const LinksAnalytics = () => {
                     )}
                   </div>
                   <CardDescription>
-                    Clique para {linksOpen ? "colapsar" : "expandir"} os dados de links
+                    Clique para {linksOpen ? 'colapsar' : 'expandir'} os dados de links
                   </CardDescription>
                 </CardHeader>
               </CollapsibleTrigger>
@@ -473,7 +488,7 @@ const LinksAnalytics = () => {
                               <div>
                                 <p className="font-medium">{group.group_name}</p>
                                 <p className="text-sm text-muted-foreground">
-                                  {group.link_count} {group.link_count === 1 ? "link" : "links"}
+                                  {group.link_count} {group.link_count === 1 ? 'link' : 'links'}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -513,7 +528,10 @@ const LinksAnalytics = () => {
                     <CollapsibleContent>
                       <div className="space-y-3 mt-4">
                         {links.slice(0, 10).map((link) => (
-                          <div key={link.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
+                          <div
+                            key={link.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                          >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="font-medium truncate">{link.title}</p>
@@ -532,7 +550,9 @@ const LinksAnalytics = () => {
                             <div className="text-right ml-4 flex-shrink-0">
                               <p className="text-xl font-bold">{link.clicks}</p>
                               <p className="text-xs text-muted-foreground">
-                                {totalClicks > 0 ? `${((link.clicks / totalClicks) * 100).toFixed(1)}%` : "0%"}
+                                {totalClicks > 0
+                                  ? `${((link.clicks / totalClicks) * 100).toFixed(1)}%`
+                                  : '0%'}
                               </p>
                             </div>
                           </div>
@@ -575,26 +595,34 @@ const LinksAnalytics = () => {
                 <CardContent>
                   <div className="space-y-3">
                     {events.slice(0, 20).map((event, index) => (
-                      <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
+                      <div
+                        key={event.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                      >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>
+                          <span className="text-lg font-bold text-muted-foreground w-6">
+                            #{index + 1}
+                          </span>
                           <div className="min-w-0">
-                            <Link 
-                              to={`/eventos/${event.slug}`} 
+                            <Link
+                              to={`/eventos/${event.slug}`}
                               className="font-medium hover:text-primary truncate block"
                               target="_blank"
                             >
                               {event.title}
                             </Link>
                             <p className="text-sm text-muted-foreground">
-                              {event.venue} • {new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}
+                              {event.venue} •{' '}
+                              {new Date(event.date + 'T00:00:00').toLocaleDateString('pt-BR')}
                             </p>
                           </div>
                         </div>
                         <div className="text-right ml-4 flex-shrink-0">
                           <p className="text-xl font-bold">{event.views}</p>
                           <p className="text-xs text-muted-foreground">
-                            {totalEventViews > 0 ? `${((event.views / totalEventViews) * 100).toFixed(1)}%` : "0%"}
+                            {totalEventViews > 0
+                              ? `${((event.views / totalEventViews) * 100).toFixed(1)}%`
+                              : '0%'}
                           </p>
                         </div>
                       </div>
@@ -635,9 +663,14 @@ const LinksAnalytics = () => {
                 <CardContent>
                   <div className="space-y-3">
                     {redirects.map((redirect, index) => (
-                      <div key={redirect.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
+                      <div
+                        key={redirect.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                      >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>
+                          <span className="text-lg font-bold text-muted-foreground w-6">
+                            #{index + 1}
+                          </span>
                           <div className="min-w-0">
                             <p className="font-medium truncate">/r/{redirect.slug}</p>
                             <p className="text-sm text-muted-foreground truncate">
@@ -653,7 +686,9 @@ const LinksAnalytics = () => {
                         <div className="text-right ml-4 flex-shrink-0">
                           <p className="text-xl font-bold">{redirect.clicks}</p>
                           <p className="text-xs text-muted-foreground">
-                            {totalRedirectClicks > 0 ? `${((redirect.clicks / totalRedirectClicks) * 100).toFixed(1)}%` : "0%"}
+                            {totalRedirectClicks > 0
+                              ? `${((redirect.clicks / totalRedirectClicks) * 100).toFixed(1)}%`
+                              : '0%'}
                           </p>
                         </div>
                       </div>
@@ -686,7 +721,7 @@ const LinksAnalytics = () => {
                     )}
                   </div>
                   <CardDescription>
-                    Clique para {blogOpen ? "colapsar" : "expandir"} os dados do blog
+                    Clique para {blogOpen ? 'colapsar' : 'expandir'} os dados do blog
                   </CardDescription>
                 </CardHeader>
               </CollapsibleTrigger>
@@ -710,9 +745,14 @@ const LinksAnalytics = () => {
                     <CollapsibleContent>
                       <div className="space-y-3 mt-4">
                         {blogPosts.slice(0, 10).map((post, index) => (
-                          <div key={post.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
+                          <div
+                            key={post.id}
+                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                          >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>
+                              <span className="text-lg font-bold text-muted-foreground w-6">
+                                #{index + 1}
+                              </span>
                               <div className="min-w-0">
                                 <p className="font-medium truncate">{post.title}</p>
                                 <p className="text-sm text-muted-foreground">{post.category}</p>
@@ -764,9 +804,14 @@ const LinksAnalytics = () => {
                           .sort((a, b) => b.likes - a.likes)
                           .slice(0, 10)
                           .map((post, index) => (
-                            <div key={post.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors">
+                            <div
+                              key={post.id}
+                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent transition-colors"
+                            >
                               <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <span className="text-lg font-bold text-muted-foreground w-6">#{index + 1}</span>
+                                <span className="text-lg font-bold text-muted-foreground w-6">
+                                  #{index + 1}
+                                </span>
                                 <div className="min-w-0">
                                   <p className="font-medium truncate">{post.title}</p>
                                   <p className="text-sm text-muted-foreground">{post.category}</p>

@@ -1,21 +1,30 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { supabase } from "@/integrations/supabase/client";
-import { logger } from "@/lib";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/useToast";
-import { Loader2, Plus, Edit, Trash2, Instagram, ArrowLeft } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
-import { uploadImageWithThumb } from "@/lib/bunnyUploader";
+import { useState, useEffect, useCallback } from 'react';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/useToast';
+import { Loader2, Plus, Edit, Trash2, Instagram, ArrowLeft } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 
 interface TeamMember {
   id: string;
@@ -36,11 +45,11 @@ const TeamManager = () => {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    position: "",
-    bio: "",
-    image_url: "",
-    instagram_url: "",
+    name: '',
+    position: '',
+    bio: '',
+    image_url: '',
+    instagram_url: '',
     active: true,
   });
   const { toast } = useToast();
@@ -48,18 +57,18 @@ const TeamManager = () => {
   const fetchMembers = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("team_members")
-        .select("*")
-        .order("display_order", { ascending: true });
+        .from('team_members')
+        .select('*')
+        .order('display_order', { ascending: true });
 
       if (error) throw error;
       setMembers(data || []);
     } catch (error) {
-      logger.error("Erro ao carregar membros", error, { component: 'TeamManager' });
+      logger.error('Erro ao carregar membros', error, { component: 'TeamManager' });
       toast({
-        title: "Erro ao carregar membros",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
+        title: 'Erro ao carregar membros',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -71,15 +80,15 @@ const TeamManager = () => {
   }, [fetchMembers]);
 
   // Realtime: qualquer alteração em team_members reflete imediatamente.
-  useRealtimeTable("team_members", () => fetchMembers());
+  useRealtimeTable('team_members', () => fetchMembers());
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      position: "",
-      bio: "",
-      image_url: "",
-      instagram_url: "",
+      name: '',
+      position: '',
+      bio: '',
+      image_url: '',
+      instagram_url: '',
       active: true,
     });
     setEditingMember(null);
@@ -88,7 +97,7 @@ const TeamManager = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       let imageUrl = formData.image_url;
 
@@ -99,36 +108,36 @@ const TeamManager = () => {
 
       const dataToSave = {
         ...formData,
-        image_url: imageUrl
+        image_url: imageUrl,
       };
-      
+
       if (editingMember) {
         const { error } = await supabase
-          .from("team_members")
+          .from('team_members')
           .update(dataToSave)
-          .eq("id", editingMember.id);
+          .eq('id', editingMember.id);
 
         if (error) throw error;
-        toast({ title: "Membro atualizado com sucesso!" });
+        toast({ title: 'Membro atualizado com sucesso!' });
       } else {
-        const maxOrder = members.length > 0 ? Math.max(...members.map(m => m.display_order)) : 0;
+        const maxOrder = members.length > 0 ? Math.max(...members.map((m) => m.display_order)) : 0;
         const { error } = await supabase
-          .from("team_members")
+          .from('team_members')
           .insert([{ ...dataToSave, display_order: maxOrder + 1 }]);
 
         if (error) throw error;
-        toast({ title: "Membro adicionado com sucesso!" });
+        toast({ title: 'Membro adicionado com sucesso!' });
       }
 
       setDialogOpen(false);
       resetForm();
       fetchMembers();
     } catch (error) {
-      logger.error("Erro ao salvar membro", error, { component: 'TeamManager' });
+      logger.error('Erro ao salvar membro', error, { component: 'TeamManager' });
       toast({
-        title: "Erro ao salvar membro",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
+        title: 'Erro ao salvar membro',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
       });
     }
   };
@@ -137,20 +146,17 @@ const TeamManager = () => {
     if (!deleteId) return;
 
     try {
-      const { error } = await supabase
-        .from("team_members")
-        .delete()
-        .eq("id", deleteId);
+      const { error } = await supabase.from('team_members').delete().eq('id', deleteId);
 
       if (error) throw error;
-      toast({ title: "Membro removido com sucesso!" });
+      toast({ title: 'Membro removido com sucesso!' });
       fetchMembers();
     } catch (error) {
-      logger.error("Erro ao remover membro", error, { component: 'TeamManager' });
+      logger.error('Erro ao remover membro', error, { component: 'TeamManager' });
       toast({
-        title: "Erro ao remover membro",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
+        title: 'Erro ao remover membro',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
       });
     } finally {
       setDeleteId(null);
@@ -162,9 +168,9 @@ const TeamManager = () => {
     setFormData({
       name: member.name,
       position: member.position,
-      bio: member.bio || "",
-      image_url: member.image_url || "",
-      instagram_url: member.instagram_url || "",
+      bio: member.bio || '',
+      image_url: member.image_url || '',
+      instagram_url: member.instagram_url || '',
       active: member.active,
     });
     setDialogOpen(true);
@@ -190,11 +196,16 @@ const TeamManager = () => {
           <div className="w-full">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 md:mb-8">
               <div className="w-full sm:w-auto">
-                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <NavLink
+                  to="/admin"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar ao Painel
                 </NavLink>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold hero-text">Gerenciar Equipe</h1>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold hero-text">
+                  Gerenciar Equipe
+                </h1>
               </div>
               <Button onClick={handleNew} className="w-full sm:w-auto min-h-[44px]">
                 <Plus className="w-4 h-4 mr-2" />
@@ -211,11 +222,16 @@ const TeamManager = () => {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {members.map((member) => (
-                  <Card key={member.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                  <Card
+                    key={member.id}
+                    className="overflow-hidden hover:shadow-lg transition-shadow"
+                  >
                     <CardHeader className="p-4 sm:p-6">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <CardTitle className="text-base sm:text-lg break-words">{member.name}</CardTitle>
+                          <CardTitle className="text-base sm:text-lg break-words">
+                            {member.name}
+                          </CardTitle>
                           <p className="text-sm text-muted-foreground mt-1">{member.position}</p>
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
@@ -263,7 +279,9 @@ const TeamManager = () => {
                             Instagram
                           </a>
                         )}
-                        <span className={`text-xs px-2 py-1 rounded ${member.active ? 'bg-green-500/10 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${member.active ? 'bg-green-500/10 text-green-500' : 'bg-muted text-muted-foreground'}`}
+                        >
                           {member.active ? 'Ativo' : 'Inativo'}
                         </span>
                       </div>
@@ -277,7 +295,7 @@ const TeamManager = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingMember ? "Editar Membro" : "Novo Membro"}</DialogTitle>
+              <DialogTitle>{editingMember ? 'Editar Membro' : 'Novo Membro'}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -318,9 +336,7 @@ const TeamManager = () => {
                   aspectRatio={1}
                   label="Foto do Membro"
                 />
-                <p className="text-xs text-muted-foreground mt-2">
-                  Ou insira uma URL abaixo:
-                </p>
+                <p className="text-xs text-muted-foreground mt-2">Ou insira uma URL abaixo:</p>
               </div>
               <div>
                 <Label htmlFor="image_url">URL da Foto (opcional)</Label>
@@ -354,9 +370,14 @@ const TeamManager = () => {
               </div>
               <div className="flex gap-3 pt-4">
                 <Button type="submit" className="flex-1 min-h-[48px]">
-                  {editingMember ? "Atualizar" : "Adicionar"}
+                  {editingMember ? 'Atualizar' : 'Adicionar'}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="flex-1 min-h-[48px]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDialogOpen(false)}
+                  className="flex-1 min-h-[48px]"
+                >
                   Cancelar
                 </Button>
               </div>

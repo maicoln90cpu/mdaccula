@@ -1,14 +1,14 @@
-import { useEffect } from "react";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useEffect } from 'react';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const GoogleTagManager = () => {
   const { settings } = useSiteSettings();
   const gtmId = settings?.google_tag_manager_id;
 
   useEffect(() => {
-    if (!gtmId || gtmId.trim() === "") return;
+    if (!gtmId || gtmId.trim() === '') return;
 
-    const script1 = document.createElement("script");
+    const script1 = document.createElement('script');
     script1.innerHTML = `
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -18,13 +18,13 @@ const GoogleTagManager = () => {
     `;
     document.head.appendChild(script1);
 
-    const noscript = document.createElement("noscript");
-    const iframe = document.createElement("iframe");
+    const noscript = document.createElement('noscript');
+    const iframe = document.createElement('iframe');
     iframe.src = `https://www.googletagmanager.com/ns.html?id=${gtmId}`;
-    iframe.height = "0";
-    iframe.width = "0";
-    iframe.style.display = "none";
-    iframe.style.visibility = "hidden";
+    iframe.height = '0';
+    iframe.width = '0';
+    iframe.style.display = 'none';
+    iframe.style.visibility = 'hidden';
     noscript.appendChild(iframe);
     document.body.insertBefore(noscript, document.body.firstChild);
 

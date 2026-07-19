@@ -5,9 +5,9 @@
  */
 
 const REQUIRED_ENVS = [
-  "VITE_SUPABASE_URL",
-  "VITE_SUPABASE_PUBLISHABLE_KEY",
-  "VITE_SUPABASE_PROJECT_ID",
+  'VITE_SUPABASE_URL',
+  'VITE_SUPABASE_PUBLISHABLE_KEY',
+  'VITE_SUPABASE_PROJECT_ID',
 ] as const;
 
 type RequiredEnv = (typeof REQUIRED_ENVS)[number];
@@ -20,7 +20,7 @@ export interface EnvCheckResult {
 export function checkEnv(env: Record<string, unknown> = import.meta.env): EnvCheckResult {
   const missing = REQUIRED_ENVS.filter((k) => {
     const v = env[k];
-    return v === undefined || v === null || v === "";
+    return v === undefined || v === null || v === '';
   });
   return { ok: missing.length === 0, missing };
 }
@@ -33,7 +33,7 @@ export function assertEnv(env: Record<string, unknown> = import.meta.env): void 
   const { ok, missing } = checkEnv(env);
   if (!ok) {
     throw new Error(
-      `Variáveis de ambiente ausentes: ${missing.join(", ")}. ` +
+      `Variáveis de ambiente ausentes: ${missing.join(', ')}. ` +
         `Configure-as antes de iniciar o app.`
     );
   }

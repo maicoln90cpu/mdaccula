@@ -1,9 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { isEventVisible } from "@/lib/eventDateHelper";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
-import type { Event } from "@/types";
-import { EVENT_PUBLIC_FIELDS } from "@/lib/eventSelectFields";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { isEventVisible } from '@/lib/eventDateHelper';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
+import type { Event } from '@/types';
+import { EVENT_PUBLIC_FIELDS } from '@/lib/eventSelectFields';
 
 const EVENTS_CACHE_KEY = 'mdaccula-events-cache';
 
@@ -29,12 +29,12 @@ export function useEvents() {
   const { settings, isLoading: settingsLoading } = useSiteSettings();
   const queryClient = useQueryClient();
 
-  const hoursAfterStart = parseInt(settings?.event_hours_after_start || "12");
-  const hoursWithoutTime = parseInt(settings?.event_hours_without_time || "24");
-  const timezoneOffset = parseInt(settings?.timezone_offset || "-3");
+  const hoursAfterStart = parseInt(settings?.event_hours_after_start || '12');
+  const hoursWithoutTime = parseInt(settings?.event_hours_without_time || '24');
+  const timezoneOffset = parseInt(settings?.timezone_offset || '-3');
 
   const query = useQuery({
-    queryKey: ["events", hoursAfterStart, hoursWithoutTime, timezoneOffset],
+    queryKey: ['events', hoursAfterStart, hoursWithoutTime, timezoneOffset],
     queryFn: async (): Promise<Event[]> => {
       const maxWindowHours = Math.max(hoursAfterStart, hoursWithoutTime);
       const graceDate = new Date();
@@ -42,11 +42,11 @@ export function useEvents() {
       const dateFilter = graceDate.toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from("events")
+        .from('events')
         .select(EVENT_PUBLIC_FIELDS)
-        .eq("status", "active")
+        .eq('status', 'active')
         .or(`date.gte.${dateFilter},end_date.gte.${dateFilter}`)
-        .order("date", { ascending: true })
+        .order('date', { ascending: true })
         .limit(100);
 
       if (error) throw error;
@@ -71,7 +71,7 @@ export function useEvents() {
   });
 
   const refetch = () => {
-    queryClient.invalidateQueries({ queryKey: ["events"] });
+    queryClient.invalidateQueries({ queryKey: ['events'] });
   };
 
   return {

@@ -1,5 +1,5 @@
-import { createContext } from "react";
-import type { Block, GlobalBlock } from "@/lib/emailTemplates/blocks";
+import { createContext } from 'react';
+import type { Block, GlobalBlock } from '@/lib/emailTemplates/blocks';
 
 export type EmailGlobalBlocksCtx = {
   globals: GlobalBlock[];
@@ -9,9 +9,9 @@ export type EmailGlobalBlocksCtx = {
   reload: () => Promise<void>;
   saveAsGlobal: (
     block: Block,
-    meta: { name: string; description?: string; category?: string },
+    meta: { name: string; description?: string; category?: string }
   ) => Promise<GlobalBlock | null>;
-  updateGlobal: (id: string, patch: Partial<Omit<GlobalBlock, "id">>) => Promise<void>;
+  updateGlobal: (id: string, patch: Partial<Omit<GlobalBlock, 'id'>>) => Promise<void>;
   deleteGlobal: (id: string) => Promise<void>;
 };
 

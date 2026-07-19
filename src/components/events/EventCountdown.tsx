@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { Clock, PartyPopper } from "lucide-react";
-import { parseLocalDateTime } from "@/lib/dateUtils";
-import { isEventActive } from "@/lib/eventDateHelper";
-import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { useEffect, useState } from 'react';
+import { Clock, PartyPopper } from 'lucide-react';
+import { parseLocalDateTime } from '@/lib/dateUtils';
+import { isEventActive } from '@/lib/eventDateHelper';
+import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 interface EventCountdownProps {
   date: string;
@@ -34,8 +34,12 @@ export const EventCountdown = ({ date, time, end_date }: EventCountdownProps) =>
 
   const eventSettings = {
     timezoneOffset: settings.timezone_offset ? parseInt(settings.timezone_offset, 10) : -3,
-    hoursAfterStart: settings.event_hours_after_start ? parseInt(settings.event_hours_after_start, 10) : 12,
-    hoursWithoutTime: settings.event_hours_without_time ? parseInt(settings.event_hours_without_time, 10) : 24,
+    hoursAfterStart: settings.event_hours_after_start
+      ? parseInt(settings.event_hours_after_start, 10)
+      : 12,
+    hoursWithoutTime: settings.event_hours_without_time
+      ? parseInt(settings.event_hours_without_time, 10)
+      : 24,
   };
 
   const active = isEventActive({ date, end_date, time }, eventSettings);

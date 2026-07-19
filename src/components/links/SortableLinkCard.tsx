@@ -1,8 +1,8 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { cn, parseLocalDate } from "@/lib/utils";
-import { CopyPlus, Edit } from "lucide-react";
-import { LinkCardImage } from "./LinkCardImage";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { cn, parseLocalDate } from '@/lib/utils';
+import { CopyPlus, Edit } from 'lucide-react';
+import { LinkCardImage } from './LinkCardImage';
 
 interface LinkEvent {
   venue: string;
@@ -71,12 +71,12 @@ export const SortableLinkCard = ({
   showEventDate,
   templateCardColor,
   templateBorderColor,
-  templateCardHeight
+  templateCardHeight,
 }: SortableLinkCardProps) => {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: link.id,
     data: { groupId: link.group_id },
-    disabled: !isAdmin
+    disabled: !isAdmin,
   });
 
   const style = {
@@ -84,19 +84,21 @@ export const SortableLinkCard = ({
     transition,
     opacity: isDragging ? 0.5 : 1,
     maxWidth: link.card_width ? `${Math.min(Math.max(link.card_width, 200), 650)}px` : '650px',
-    width: '100%'
+    width: '100%',
   };
 
   const getCardColor = () => {
     if (link.color_gradient && link.color_gradient.includes('from-')) return link.color_gradient;
-    if (templateCardColor && templateCardColor !== 'default' && templateCardColor !== '') return templateCardColor;
+    if (templateCardColor && templateCardColor !== 'default' && templateCardColor !== '')
+      return templateCardColor;
     if (link.events) return theme.cardEvent;
     if (groupName?.toLowerCase().includes('navega')) return theme.cardNavigation;
     return theme.cardDefault;
   };
 
   const getCardBorder = () => {
-    if (templateBorderColor && templateBorderColor !== 'default' && templateBorderColor !== '') return templateBorderColor;
+    if (templateBorderColor && templateBorderColor !== 'default' && templateBorderColor !== '')
+      return templateBorderColor;
     return theme.cardBorder;
   };
 
@@ -113,7 +115,8 @@ export const SortableLinkCard = ({
         <span className="font-bold text-xl break-words block">{link.title}</span>
         {(link.override_date || link.events?.date) && showEventDate && (
           <span className="text-sm font-semibold text-white/90 block">
-            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} • {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
+            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} •{' '}
+            {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
           </span>
         )}
         {link.subtitle && <div className="text-sm opacity-80">{link.subtitle}</div>}
@@ -138,7 +141,8 @@ export const SortableLinkCard = ({
         <span className="font-semibold text-base break-words block">{link.title}</span>
         {(link.override_date || link.events?.date) && showEventDate && (
           <span className="text-xs sm:text-sm font-semibold text-white/90 block">
-            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} • {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
+            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} •{' '}
+            {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
           </span>
         )}
         {link.subtitle && <div className="text-xs opacity-80 truncate">{link.subtitle}</div>}
@@ -154,24 +158,26 @@ export const SortableLinkCard = ({
   return (
     <div ref={setNodeRef} style={style} {...attributes} className="flex items-center gap-2 w-full">
       <button
-        {...isAdmin ? listeners : {}}
+        {...(isAdmin ? listeners : {})}
         onClick={() => onLinkClick(link)}
         className={cn(
-          "flex-1 bg-gradient-to-r",
+          'flex-1 bg-gradient-to-r',
           getCardColor(),
           link.is_featured
-            ? "border-4 border-primary shadow-[0_0_20px_rgba(156,39,176,0.5)] ring-2 ring-primary/30"
+            ? 'border-4 border-primary shadow-[0_0_20px_rgba(156,39,176,0.5)] ring-2 ring-primary/30'
             : getCardBorder(),
-          link.is_featured ? "shadow-2xl" : theme.cardShadow,
+          link.is_featured ? 'shadow-2xl' : theme.cardShadow,
           theme.cardRoundedness,
           theme.cardBackdrop,
           theme.cardHoverEffect,
-          "transition-all duration-300",
-          isDragging && "opacity-50 scale-95"
+          'transition-all duration-300',
+          isDragging && 'opacity-50 scale-95'
         )}
         style={{
-          minHeight: link.is_featured ? '120px' : `${Math.min(link.card_height || templateCardHeight || 80, 150)}px`,
-          height: 'auto'
+          minHeight: link.is_featured
+            ? '120px'
+            : `${Math.min(link.card_height || templateCardHeight || 80, 150)}px`,
+          height: 'auto',
         }}
       >
         {link.is_featured ? renderFeaturedCard() : renderStandardCard()}
@@ -180,14 +186,20 @@ export const SortableLinkCard = ({
       {isAdmin && (
         <div className="flex gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); onDuplicate(link); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicate(link);
+            }}
             className="flex-shrink-0 w-10 h-10 rounded-lg bg-secondary/20 hover:bg-secondary/30 border border-secondary/30 flex items-center justify-center transition-colors"
             title="Duplicar link"
           >
             <CopyPlus className="w-4 h-4 text-secondary-foreground" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onEdit(link); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(link);
+            }}
             className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 flex items-center justify-center transition-colors"
             title="Editar link"
           >

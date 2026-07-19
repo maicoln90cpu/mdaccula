@@ -1,12 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Loader2, Undo2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/useToast";
-import { formatDateTimeBR } from "@/lib/formatters";
-import type { Tables, Json } from "@/integrations/supabase/types";
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle, Loader2, Undo2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/useToast';
+import { formatDateTimeBR } from '@/lib/formatters';
+import type { Tables, Json } from '@/integrations/supabase/types';
 
 export interface MergeLog {
   id: string;
@@ -64,13 +71,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
     const ids = snapshot.map((e) => e.id);
     if (!slugs.length) return;
     (async () => {
-      const { data } = await supabase
-        .from("events")
-        .select("slug, id")
-        .in("slug", slugs);
-      const conflicts = (data || [])
-        .filter((row) => !ids.includes(row.id))
-        .map((row) => row.slug);
+      const { data } = await supabase.from('events').select('slug, id').in('slug', slugs);
+      const conflicts = (data || []).filter((row) => !ids.includes(row.id)).map((row) => row.slug);
       setSlugConflicts(conflicts);
     })();
   }, [open, snapshot]);
@@ -79,9 +81,9 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
     if (!log || !ctx || !ctx.primary_pre_merge) return;
     if (slugConflicts.length > 0) {
       toast({
-        variant: "destructive",
-        title: "Não é possível desfazer",
-        description: `Slug(s) já em uso por outro evento: ${slugConflicts.join(", ")}`,
+        variant: 'destructive',
+        title: 'Não é possível desfazer',
+        description: `Slug(s) já em uso por outro evento: ${slugConflicts.join(', ')}`,
       });
       return;
     }
@@ -91,9 +93,9 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       const oldSlugs = snapshot.map((e) => e.slug).filter(Boolean);
       if (oldSlugs.length > 0) {
         const { error: redErr } = await supabase
-          .from("event_slug_redirects")
+          .from('event_slug_redirects')
           .delete()
-          .in("old_slug", oldSlugs);
+          .in('old_slug', oldSlugs);
         if (redErr) throw redErr;
       }
 
@@ -102,9 +104,9 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       // Mesclagens antigas (pré-6.2) realmente foram DELETE → precisam INSERT.
       const snapshotIds = snapshot.map((e) => e.id);
       const { data: existingRows } = await supabase
-        .from("events")
-        .select("id")
-        .in("id", snapshotIds);
+        .from('events')
+        .select('id')
+        .in('id', snapshotIds);
       const existingIds = new Set((existingRows || []).map((r) => r.id));
 
       const toReactivate = snapshotIds.filter((id: string) => existingIds.has(id));
@@ -112,18 +114,18 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
 
       if (toReactivate.length > 0) {
         const { error: reactErr } = await supabase
-          .from("events")
+          .from('events')
           .update({
-            status: "active",
+            status: 'active',
             merged_into_id: null,
             merged_at: null,
             updated_at: new Date().toISOString(),
           })
-          .in("id", toReactivate);
+          .in('id', toReactivate);
         if (reactErr) throw reactErr;
       }
       if (toInsert.length > 0) {
-        const { error: insErr } = await supabase.from("events").insert(toInsert);
+        const { error: insErr } = await supabase.from('events').insert(toInsert);
         if (insErr) throw insErr;
       }
 
@@ -137,16 +139,16 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       }
       for (const [oldEventId, linkIds] of Object.entries(grouped)) {
         const { error: linkErr } = await supabase
-          .from("custom_links")
+          .from('custom_links')
           .update({ event_id: oldEventId, updated_at: new Date().toISOString() })
-          .in("id", linkIds);
+          .in('id', linkIds);
         if (linkErr) throw linkErr;
       }
 
       // 4. Restaurar estado pré-merge do principal
       const pre = ctx.primary_pre_merge;
       const { error: restoreErr } = await supabase
-        .from("events")
+        .from('events')
         .update({
           date: pre.date,
           end_date: pre.end_date,
@@ -156,34 +158,36 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
           lineup: pre.lineup,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", pre.id);
+        .eq('id', pre.id);
       if (restoreErr) throw restoreErr;
 
       // 5. Log da operação (para evitar reexecução acidental)
-      await supabase.from("application_logs").insert([{
-        level: "info",
-        message: `Desfazer mesclagem: ${snapshot.length} evento(s) restaurado(s)`,
-        context: {
-          action: "undo_merge",
-          source_log_id: log.id,
-          primary_id: pre.id,
-          restored_event_ids: snapshot.map((e) => e.id),
+      await supabase.from('application_logs').insert([
+        {
+          level: 'info',
+          message: `Desfazer mesclagem: ${snapshot.length} evento(s) restaurado(s)`,
+          context: {
+            action: 'undo_merge',
+            source_log_id: log.id,
+            primary_id: pre.id,
+            restored_event_ids: snapshot.map((e) => e.id),
+          },
         },
-      }]);
+      ]);
 
       toast({
-        title: "Mesclagem desfeita!",
+        title: 'Mesclagem desfeita!',
         description: `${snapshot.length} evento(s) restaurado(s) e principal reposto ao estado anterior.`,
       });
       onSuccess();
       onOpenChange(false);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro desconhecido";
-      console.error("[UndoMergeDialog] Erro ao desfazer:", err);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      console.error('[UndoMergeDialog] Erro ao desfazer:', err);
       toast({
-        variant: "destructive",
-        title: "Erro ao desfazer",
-        description: message || "Nada foi alterado. Tente novamente.",
+        variant: 'destructive',
+        title: 'Erro ao desfazer',
+        description: message || 'Nada foi alterado. Tente novamente.',
       });
     } finally {
       setWorking(false);
@@ -202,7 +206,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
             <Undo2 className="w-5 h-5" /> Desfazer última mesclagem
           </DialogTitle>
           <DialogDescription>
-            Mesclagem feita em <strong>{when}</strong> no evento <strong>{ctx.primary_title}</strong>.
+            Mesclagem feita em <strong>{when}</strong> no evento{' '}
+            <strong>{ctx.primary_title}</strong>.
           </DialogDescription>
         </DialogHeader>
 
@@ -210,7 +215,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
-              Esta mesclagem foi feita antes da atualização e não tem snapshot completo. Rollback só é possível via SQL manual.
+              Esta mesclagem foi feita antes da atualização e não tem snapshot completo. Rollback só
+              é possível via SQL manual.
             </AlertDescription>
           </Alert>
         ) : (
@@ -218,8 +224,14 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
             <div className="text-sm space-y-2">
               <p>Vou:</p>
               <ul className="list-disc pl-5 space-y-1">
-                <li>Recriar <strong>{snapshot.length}</strong> evento(s) deletado(s) com IDs e slugs originais.</li>
-                <li>Reverter <strong>{ctx.primary_title}</strong> para o estado anterior à mesclagem (data, line-up, programação, views).</li>
+                <li>
+                  Recriar <strong>{snapshot.length}</strong> evento(s) deletado(s) com IDs e slugs
+                  originais.
+                </li>
+                <li>
+                  Reverter <strong>{ctx.primary_title}</strong> para o estado anterior à mesclagem
+                  (data, line-up, programação, views).
+                </li>
                 <li>Repor os links de venda nos eventos originais.</li>
                 <li>Apagar os redirects de URL antiga criados pela mesclagem.</li>
               </ul>
@@ -229,7 +241,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Bloqueado:</strong> os slugs <code>{slugConflicts.join(", ")}</code> já foram reutilizados por outros eventos. Renomeie-os antes de desfazer.
+                  <strong>Bloqueado:</strong> os slugs <code>{slugConflicts.join(', ')}</code> já
+                  foram reutilizados por outros eventos. Renomeie-os antes de desfazer.
                 </AlertDescription>
               </Alert>
             )}
@@ -237,7 +250,8 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Se você editou o evento principal depois de mesclar (mudou views/data/line-up), essas alterações serão perdidas.
+                Se você editou o evento principal depois de mesclar (mudou views/data/line-up),
+                essas alterações serão perdidas.
               </AlertDescription>
             </Alert>
           </>
@@ -253,9 +267,11 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
             disabled={working || !canUndo || slugConflicts.length > 0}
           >
             {working ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Desfazendo...</>
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Desfazendo...
+              </>
             ) : (
-              "Confirmar desfazer"
+              'Confirmar desfazer'
             )}
           </Button>
         </DialogFooter>

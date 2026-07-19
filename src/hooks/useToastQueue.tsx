@@ -40,11 +40,7 @@ export const useToastQueue = () => {
   };
 
   // Add to queue
-  const queueToast = (
-    title: string,
-    description?: string,
-    variant?: 'default' | 'destructive'
-  ) => {
+  const queueToast = (title: string, description?: string, variant?: 'default' | 'destructive') => {
     const item: ToastQueueItem = {
       id: `toast-${Date.now()}-${Math.random()}`,
       title,

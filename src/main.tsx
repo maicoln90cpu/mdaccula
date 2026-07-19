@@ -1,19 +1,19 @@
-import React from "react";
-import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
-import "./index.css";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { logger } from "./lib/logger";
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import App from './App.tsx';
+import './index.css';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { logger } from './lib/logger';
 
 // --- Auto-recuperação de chunk obsoleto (após novo deploy) ---
 // Vite renomeia os arquivos JS lazy-loaded a cada build. Se a aba já estava
 // aberta antes do deploy, o import() falha porque o hash mudou.
 // Aqui detectamos esses casos e recarregamos a página UMA vez, com guarda
 // de 10s no sessionStorage para evitar loop infinito.
-const CHUNK_RELOAD_KEY = "__chunk_reload_at";
+const CHUNK_RELOAD_KEY = '__chunk_reload_at';
 function reloadForChunkError(reason: string) {
   try {
-    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || "0");
+    const last = Number(sessionStorage.getItem(CHUNK_RELOAD_KEY) || '0');
     if (Date.now() - last < 10_000) return; // já tentou recentemente
     sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
     console.warn(`[chunk-reload] Recarregando após chunk obsoleto: ${reason}`);
@@ -23,23 +23,23 @@ function reloadForChunkError(reason: string) {
   }
 }
 export function isChunkLoadError(err: unknown): boolean {
-  const msg = String((err as { message?: string })?.message || err || "");
+  const msg = String((err as { message?: string })?.message || err || '');
   return (
-    msg.includes("dynamically imported module") ||
-    msg.includes("Failed to fetch dynamically imported") ||
-    msg.includes("Importing a module script failed") ||
-    msg.includes("error loading dynamically imported module")
+    msg.includes('dynamically imported module') ||
+    msg.includes('Failed to fetch dynamically imported') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('error loading dynamically imported module')
   );
 }
 
-window.addEventListener("vite:preloadError", (event) => {
+window.addEventListener('vite:preloadError', (event) => {
   event.preventDefault?.();
-  reloadForChunkError("vite:preloadError");
+  reloadForChunkError('vite:preloadError');
 });
 
 window.addEventListener('error', (event) => {
   if (isChunkLoadError(event.error) || isChunkLoadError(event.message)) {
-    reloadForChunkError("window.error");
+    reloadForChunkError('window.error');
     return;
   }
   logger.error('Uncaught global error', event.error, {
@@ -50,7 +50,7 @@ window.addEventListener('error', (event) => {
 
 window.addEventListener('unhandledrejection', (event) => {
   if (isChunkLoadError(event.reason)) {
-    reloadForChunkError("unhandledrejection");
+    reloadForChunkError('unhandledrejection');
     return;
   }
   logger.error('Unhandled promise rejection', event.reason, {
@@ -65,7 +65,7 @@ logger.info('MDAccula app initializing', {
   action: 'init',
 });
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary
       onError={(error, _errorInfo) => {

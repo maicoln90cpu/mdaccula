@@ -1,15 +1,26 @@
-import { useEffect, useState } from "react";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Eye, Loader2, Plus, Pencil, Trash2, ArrowLeft, ImagePlus, Image, RefreshCw, FileSearch } from "lucide-react";
-import { BlogForm } from "@/components/blog/BlogForm";
-import { NavLink } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  Eye,
+  Loader2,
+  Plus,
+  Pencil,
+  Trash2,
+  ArrowLeft,
+  ImagePlus,
+  Image,
+  RefreshCw,
+  FileSearch,
+} from 'lucide-react';
+import { BlogForm } from '@/components/blog/BlogForm';
+import { NavLink } from 'react-router-dom';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,20 +30,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { logger } from "@/lib/logger";
+} from '@/components/ui/alert-dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { logger } from '@/lib/logger';
 
 interface BlogPost {
   id: string;
@@ -59,7 +61,7 @@ const BlogManager = () => {
   const [sourcesPostId, setSourcesPostId] = useState<string | null>(null);
   const [sourcesInfo, setSourcesInfo] = useState<{
     functionLabel: string | null;
-    sources: { name: string; url: string; kind: "origin" | "context" }[];
+    sources: { name: string; url: string; kind: 'origin' | 'context' }[];
   } | null>(null);
   const [autoPublish, setAutoPublish] = useState(false);
   const [savingAutoPublish, setSavingAutoPublish] = useState(false);
@@ -68,15 +70,17 @@ const BlogManager = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("blog_posts")
-        .select("id, title, slug, category, published, views, likes, created_at, image_url, excerpt, content")
-        .order("created_at", { ascending: false });
+        .from('blog_posts')
+        .select(
+          'id, title, slug, category, published, views, likes, created_at, image_url, excerpt, content'
+        )
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setPosts(data || []);
     } catch (error) {
-      logger.error("Error fetching posts:", error);
-      toast.error("Erro ao carregar posts");
+      logger.error('Error fetching posts:', error);
+      toast.error('Erro ao carregar posts');
     } finally {
       setLoading(false);
     }
@@ -85,14 +89,14 @@ const BlogManager = () => {
   const fetchAutoPublishSetting = async () => {
     try {
       const { data, error } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "event_watcher_auto_publish")
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'event_watcher_auto_publish')
         .maybeSingle();
       if (error) throw error;
-      setAutoPublish(data?.value === "true");
+      setAutoPublish(data?.value === 'true');
     } catch (error) {
-      logger.error("Error fetching auto-publish setting:", error);
+      logger.error('Error fetching auto-publish setting:', error);
     }
   };
 
@@ -103,24 +107,27 @@ const BlogManager = () => {
 
   // Realtime: lista atualiza automaticamente em qualquer INSERT/UPDATE/DELETE
   // (inclui mudanças vindas de outras abas, edge functions e regenerate-image).
-  useRealtimeTable("blog_posts", () => fetchPosts());
+  useRealtimeTable('blog_posts', () => fetchPosts());
 
   const handleToggleAutoPublish = async (checked: boolean) => {
     setSavingAutoPublish(true);
     try {
       const { error } = await supabase
-        .from("site_settings")
-        .upsert({ key: "event_watcher_auto_publish", value: String(checked) }, { onConflict: "key" });
+        .from('site_settings')
+        .upsert(
+          { key: 'event_watcher_auto_publish', value: String(checked) },
+          { onConflict: 'key' }
+        );
       if (error) throw error;
       setAutoPublish(checked);
       toast.success(
         checked
-          ? "Publicação automática ativada: novos rascunhos do Event Watcher vão ao ar sem revisão manual."
-          : "Publicação automática desativada: novos rascunhos do Event Watcher voltam a aguardar revisão manual."
+          ? 'Publicação automática ativada: novos rascunhos do Event Watcher vão ao ar sem revisão manual.'
+          : 'Publicação automática desativada: novos rascunhos do Event Watcher voltam a aguardar revisão manual.'
       );
     } catch (error) {
-      logger.error("Error updating auto-publish setting:", error);
-      toast.error("Erro ao atualizar configuração de publicação automática");
+      logger.error('Error updating auto-publish setting:', error);
+      toast.error('Erro ao atualizar configuração de publicação automática');
     } finally {
       setSavingAutoPublish(false);
     }
@@ -149,13 +156,13 @@ const BlogManager = () => {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
+      const { error } = await supabase.from('blog_posts').delete().eq('id', id);
       if (error) throw error;
-      toast.success("Post deletado com sucesso!");
+      toast.success('Post deletado com sucesso!');
       fetchPosts();
     } catch (error) {
-      logger.error("Error deleting post:", error);
-      toast.error("Erro ao deletar post");
+      logger.error('Error deleting post:', error);
+      toast.error('Erro ao deletar post');
     } finally {
       setDeletingId(null);
     }
@@ -164,33 +171,33 @@ const BlogManager = () => {
   const togglePublished = async (id: string, published: boolean) => {
     try {
       const { error } = await supabase
-        .from("blog_posts")
-        .update({ 
+        .from('blog_posts')
+        .update({
           published,
-          published_at: published ? new Date().toISOString() : null
+          published_at: published ? new Date().toISOString() : null,
         })
-        .eq("id", id);
-      
+        .eq('id', id);
+
       if (error) throw error;
-      toast.success(published ? "Post publicado!" : "Post despublicado!");
+      toast.success(published ? 'Post publicado!' : 'Post despublicado!');
       fetchPosts();
     } catch (error) {
-      logger.error("Error updating post:", error);
-      toast.error("Erro ao atualizar post");
+      logger.error('Error updating post:', error);
+      toast.error('Erro ao atualizar post');
     }
   };
 
   const handleRegenerateImage = async (postId: string, postTitle: string) => {
     setRegeneratingImageId(postId);
     toast.info(`Gerando imagem para "${postTitle}"...`);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('regenerate-blog-image', {
-        body: { postId }
+        body: { postId },
       });
 
       if (error) throw error;
-      
+
       if (data?.success) {
         toast.success('Imagem regenerada com sucesso!');
         fetchPosts();
@@ -198,7 +205,7 @@ const BlogManager = () => {
         throw new Error(data?.error || 'Erro desconhecido');
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       logger.error('Error regenerating image:', error);
       toast.error(`Erro ao regenerar imagem: ${message || 'Erro desconhecido'}`);
     } finally {
@@ -209,47 +216,52 @@ const BlogManager = () => {
   const handleRegeneratePost = async (postId: string, postTitle: string) => {
     setRegeneratingPostId(postId);
     toast.info(`Regenerando artigo "${postTitle}"...`);
-    
+
     try {
       // Buscar TODOS os eventos vinculados ao post
       const { data: linkedEvents, error: eventError } = await supabase
         .from('events')
         .select('*')
         .eq('blog_post_id', postId);
-      
+
       if (eventError) {
         throw new Error(`Erro ao buscar eventos: ${eventError.message}`);
       }
 
       if (!linkedEvents || linkedEvents.length === 0) {
-        throw new Error('Nenhum evento vinculado a este post. Só é possível regenerar posts criados a partir de eventos.');
+        throw new Error(
+          'Nenhum evento vinculado a este post. Só é possível regenerar posts criados a partir de eventos.'
+        );
       }
-      
+
       // Se tiver 2+ eventos, usar generate-multi-event-article
       if (linkedEvents.length >= 2) {
-        logger.debug('[BlogManager] Regenerando artigo multi-eventos', { eventsCount: linkedEvents.length });
-        
+        logger.debug('[BlogManager] Regenerando artigo multi-eventos', {
+          eventsCount: linkedEvents.length,
+        });
+
         const { data, error } = await supabase.functions.invoke('generate-multi-event-article', {
           body: {
-            eventIds: linkedEvents.map(e => e.id),
+            eventIds: linkedEvents.map((e) => e.id),
             seriesName: linkedEvents[0].title, // usar título do evento (dados frescos), não do post antigo
             existingPostId: postId, // regenerar no mesmo post
-            generateImage: false // manter imagem
-          }
+            generateImage: false, // manter imagem
+          },
         });
-        
+
         if (error) throw error;
         if (!data?.success) throw new Error(data?.error || 'Erro ao regenerar');
-        
+
         toast.success('Artigo multi-eventos regenerado com sucesso!');
       } else {
         // Evento único: comportamento atual
         const event = linkedEvents[0];
-        
+
         // Compor eventLocation
         const eventLocation = [event.venue, event.location_city, event.location_state]
-          .filter(Boolean).join(' - ');
-        
+          .filter(Boolean)
+          .join(' - ');
+
         // Chamar edge function para gerar novo conteúdo
         const payload = {
           eventName: event.title,
@@ -271,20 +283,20 @@ const BlogManager = () => {
           generateImage: false, // manter imagem existente
           existingPostId: postId, // ID do post para atualizar
         };
-        
+
         const { data, error } = await supabase.functions.invoke('generate-blog-post-v2', {
           body: payload,
         });
-        
+
         if (error) throw error;
         if (!data?.success) throw new Error(data?.error || 'Erro ao regenerar');
-        
+
         toast.success('Artigo regenerado com sucesso!');
       }
-      
+
       fetchPosts();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       logger.error('Error regenerating post:', error);
       toast.error(`Erro ao regenerar: ${message}`);
     } finally {
@@ -302,15 +314,15 @@ const BlogManager = () => {
         // atualiza a existente) — pega sempre a mais recente pra refletir a última
         // geração de fato usada.
         supabase
-          .from("ai_generated_posts")
-          .select("template_id, prompt_used, source_urls")
-          .eq("blog_post_id", postId)
-          .order("generated_at", { ascending: false })
+          .from('ai_generated_posts')
+          .select('template_id, prompt_used, source_urls')
+          .eq('blog_post_id', postId)
+          .order('generated_at', { ascending: false })
           .limit(1),
         supabase
-          .from("event_watch_drafts")
-          .select("source_page_url, event_sources(name, url)")
-          .eq("published_blog_post_id", postId)
+          .from('event_watch_drafts')
+          .select('source_page_url, event_sources(name, url)')
+          .eq('published_blog_post_id', postId)
           .maybeSingle(),
       ]);
       const gen = genRows?.[0] ?? null;
@@ -318,27 +330,27 @@ const BlogManager = () => {
       let functionLabel: string | null = null;
       if (gen?.template_id) {
         const { data: template } = await supabase
-          .from("ai_prompt_templates")
-          .select("name")
-          .eq("id", gen.template_id)
+          .from('ai_prompt_templates')
+          .select('name')
+          .eq('id', gen.template_id)
           .maybeSingle();
-        functionLabel = template?.name ?? "Geração por IA";
-      } else if (gen?.prompt_used?.startsWith("Multi-Event Article")) {
-        functionLabel = "Geração de Multi-Eventos";
-      } else if (gen?.prompt_used?.startsWith("Busca por tema")) {
-        functionLabel = "Geração por Tema";
+        functionLabel = template?.name ?? 'Geração por IA';
+      } else if (gen?.prompt_used?.startsWith('Multi-Event Article')) {
+        functionLabel = 'Geração de Multi-Eventos';
+      } else if (gen?.prompt_used?.startsWith('Busca por tema')) {
+        functionLabel = 'Geração por Tema';
       } else if (gen) {
-        functionLabel = "Geração por IA";
+        functionLabel = 'Geração por IA';
       }
 
-      const sources: { name: string; url: string; kind: "origin" | "context" }[] = [];
+      const sources: { name: string; url: string; kind: 'origin' | 'context' }[] = [];
       if (draft?.event_sources) {
         sources.push({
           name: draft.event_sources.name,
           // Prefere a página exata da notícia (extraída do conteúdo raspado) e só
           // cai pra URL raiz da fonte quando a IA não identificou um link específico.
           url: draft.source_page_url || draft.event_sources.url,
-          kind: "origin",
+          kind: 'origin',
         });
       }
 
@@ -347,7 +359,7 @@ const BlogManager = () => {
         // A URL de contexto pode ser um link de artigo específico (não a URL
         // raiz cadastrada em event_sources), então casa por hostname em vez
         // de igualdade exata pra achar o nome amigável da fonte.
-        const { data: allSources } = await supabase.from("event_sources").select("name, url");
+        const { data: allSources } = await supabase.from('event_sources').select('name, url');
 
         contextUrls.forEach((url) => {
           let hostname = url;
@@ -363,14 +375,14 @@ const BlogManager = () => {
               return false;
             }
           });
-          sources.push({ name: match?.name ?? hostname, url, kind: "context" });
+          sources.push({ name: match?.name ?? hostname, url, kind: 'context' });
         });
       }
 
       setSourcesInfo({ functionLabel, sources });
     } catch (error) {
-      logger.error("Error fetching sources info:", error);
-      toast.error("Erro ao carregar fontes e origem do artigo");
+      logger.error('Error fetching sources info:', error);
+      toast.error('Erro ao carregar fontes e origem do artigo');
       setSourcesPostId(null);
     }
   };
@@ -381,12 +393,15 @@ const BlogManager = () => {
         <main className="w-full">
           <div className="w-full px-4 md:px-6 py-6">
             <div className="mb-4">
-              <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary">
+              <NavLink
+                to="/admin"
+                className="inline-flex items-center text-sm text-muted-foreground hover:text-primary"
+              >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar ao Painel
               </NavLink>
             </div>
-            
+
             <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <h1 className="text-4xl font-bold hero-text">Gerenciar Blog</h1>
               <Button onClick={handleNew} className="btn-neon">
@@ -450,8 +465,8 @@ const BlogManager = () => {
                               {/* Thumbnail preview */}
                               <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
                                 {post.image_url ? (
-                                  <img 
-                                    src={getOptimizedImageUrl(post.image_url)} 
+                                  <img
+                                    src={getOptimizedImageUrl(post.image_url)}
                                     alt={post.title}
                                     className="w-full h-full object-contain"
                                   />
@@ -464,8 +479,8 @@ const BlogManager = () => {
                               <div>
                                 <CardTitle className="text-base">{post.title}</CardTitle>
                                 <div className="flex gap-2 mt-2 flex-wrap">
-                                  <Badge variant={post.published ? "default" : "secondary"}>
-                                    {post.published ? "Publicado" : "Rascunho"}
+                                  <Badge variant={post.published ? 'default' : 'secondary'}>
+                                    {post.published ? 'Publicado' : 'Rascunho'}
                                   </Badge>
                                   <Badge variant="outline">{post.category}</Badge>
                                   {!post.image_url && (
@@ -487,11 +502,7 @@ const BlogManager = () => {
                               </div>
                             </div>
                             <div className="flex flex-wrap gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(post)}
-                              >
+                              <Button variant="outline" size="sm" onClick={() => handleEdit(post)}>
                                 <Pencil className="w-4 h-4 mr-1" />
                                 Editar
                               </Button>
@@ -548,11 +559,11 @@ const BlogManager = () => {
                                 </TooltipContent>
                               </Tooltip>
                               <Button
-                                variant={post.published ? "outline" : "default"}
+                                variant={post.published ? 'outline' : 'default'}
                                 size="sm"
                                 onClick={() => togglePublished(post.id, !post.published)}
                               >
-                                {post.published ? "Despublicar" : "Publicar"}
+                                {post.published ? 'Despublicar' : 'Publicar'}
                               </Button>
                               <Button
                                 variant="destructive"
@@ -604,7 +615,10 @@ const BlogManager = () => {
               <div className="space-y-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Gerado por</p>
-                  <p>{sourcesInfo.functionLabel ?? "Criado manualmente, sem dados de geração por IA."}</p>
+                  <p>
+                    {sourcesInfo.functionLabel ??
+                      'Criado manualmente, sem dados de geração por IA.'}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Fontes usadas</p>
@@ -615,7 +629,7 @@ const BlogManager = () => {
                       {sourcesInfo.sources.map((source, i) => (
                         <li key={i} className="space-y-0.5">
                           <p className="text-xs text-muted-foreground">
-                            {source.kind === "origin" ? "Fonte de origem" : "Contexto adicional"}
+                            {source.kind === 'origin' ? 'Fonte de origem' : 'Contexto adicional'}
                           </p>
                           <p className="font-medium">{source.name}</p>
                           <a

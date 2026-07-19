@@ -1,26 +1,26 @@
-import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { NavLink } from "react-router-dom";
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { NavLink } from 'react-router-dom';
 
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { useToast } from "@/hooks";
-import { logger } from "@/lib";
-import { supabase } from "@/integrations/supabase/client";
-import type { EventSource, EventSourceInsert, EventSourceType } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { useToast } from '@/hooks';
+import { logger } from '@/lib';
+import { supabase } from '@/integrations/supabase/client';
+import type { EventSource, EventSourceInsert, EventSourceType } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -28,7 +28,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -36,7 +36,7 @@ import {
   DialogTitle,
   DialogTrigger,
   DialogFooter,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -47,8 +47,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Radar, Play } from "lucide-react";
+} from '@/components/ui/alert-dialog';
+import { Plus, Pencil, Trash2, Loader2, ArrowLeft, Radar, Play } from 'lucide-react';
 
 interface SourceFormValues {
   name: string;
@@ -59,14 +59,14 @@ interface SourceFormValues {
 }
 
 const emptyForm: SourceFormValues = {
-  name: "",
-  url: "",
-  description: "",
-  type: "site",
+  name: '',
+  url: '',
+  description: '',
+  type: 'site',
   enabled: true,
 };
 
-const queryKey = ["event-sources"];
+const queryKey = ['event-sources'];
 
 const FontesManager = () => {
   const { toast } = useToast();
@@ -80,9 +80,9 @@ const FontesManager = () => {
     queryKey,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("event_sources")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('event_sources')
+        .select('*')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return data as EventSource[];
     },
@@ -90,24 +90,24 @@ const FontesManager = () => {
 
   // Realtime: reflete mudanças feitas em background (ex: scan-event-sources
   // atualizando last_scanned_at) sem exigir refresh manual.
-  useRealtimeTable("event_sources", () => queryClient.invalidateQueries({ queryKey }));
+  useRealtimeTable('event_sources', () => queryClient.invalidateQueries({ queryKey }));
 
   const handleScanNow = async () => {
     setScanning(true);
     try {
-      const { data, error } = await supabase.functions.invoke("scan-event-sources", { body: {} });
+      const { data, error } = await supabase.functions.invoke('scan-event-sources', { body: {} });
       if (error) throw error;
       toast({
-        title: "Varredura concluída",
+        title: 'Varredura concluída',
         description: `${data.created} rascunho(s) de evento encontrados de ${data.sourcesScanned} fonte(s). Os artigos estão sendo gerados em segundo plano e vão aparecer como rascunho em Gerenciar Blog.`,
       });
       queryClient.invalidateQueries({ queryKey });
     } catch (error) {
-      logger.error("Erro na varredura", error, { component: "FontesManager" });
+      logger.error('Erro na varredura', error, { component: 'FontesManager' });
       toast({
-        title: "Erro na varredura",
-        description: error instanceof Error ? error.message : "Erro desconhecido",
-        variant: "destructive",
+        title: 'Erro na varredura',
+        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        variant: 'destructive',
       });
     } finally {
       setScanning(false);
@@ -129,7 +129,7 @@ const FontesManager = () => {
     setForm({
       name: source.name,
       url: source.url,
-      description: source.description || "",
+      description: source.description || '',
       type: source.type,
       enabled: source.enabled,
     });
@@ -145,18 +145,22 @@ const FontesManager = () => {
         type: values.type,
         enabled: values.enabled,
       };
-      const { error } = await supabase.from("event_sources").insert([payload]);
+      const { error } = await supabase.from('event_sources').insert([payload]);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: "Fonte adicionada!" });
+      toast({ title: 'Fonte adicionada!' });
       setDialogOpen(false);
       resetForm();
     },
     onError: (error: Error) => {
-      logger.error("Erro ao adicionar fonte", error, { component: "FontesManager" });
-      toast({ title: "Erro ao adicionar fonte", description: error.message, variant: "destructive" });
+      logger.error('Erro ao adicionar fonte', error, { component: 'FontesManager' });
+      toast({
+        title: 'Erro ao adicionar fonte',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
@@ -170,45 +174,53 @@ const FontesManager = () => {
         type: values.type,
         enabled: values.enabled,
       };
-      const { error } = await supabase.from("event_sources").update(payload).eq("id", editingId);
+      const { error } = await supabase.from('event_sources').update(payload).eq('id', editingId);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: "Fonte atualizada!" });
+      toast({ title: 'Fonte atualizada!' });
       setDialogOpen(false);
       resetForm();
     },
     onError: (error: Error) => {
-      logger.error("Erro ao atualizar fonte", error, { component: "FontesManager" });
-      toast({ title: "Erro ao atualizar fonte", description: error.message, variant: "destructive" });
+      logger.error('Erro ao atualizar fonte', error, { component: 'FontesManager' });
+      toast({
+        title: 'Erro ao atualizar fonte',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
   const toggleEnabledMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
-      const { error } = await supabase.from("event_sources").update({ enabled }).eq("id", id);
+      const { error } = await supabase.from('event_sources').update({ enabled }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
     onError: (error: Error) => {
-      logger.error("Erro ao atualizar fonte", error, { component: "FontesManager" });
-      toast({ title: "Erro ao atualizar fonte", description: error.message, variant: "destructive" });
+      logger.error('Erro ao atualizar fonte', error, { component: 'FontesManager' });
+      toast({
+        title: 'Erro ao atualizar fonte',
+        description: error.message,
+        variant: 'destructive',
+      });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("event_sources").delete().eq("id", id);
+      const { error } = await supabase.from('event_sources').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey });
-      toast({ title: "Fonte removida" });
+      toast({ title: 'Fonte removida' });
     },
     onError: (error: Error) => {
-      logger.error("Erro ao remover fonte", error, { component: "FontesManager" });
-      toast({ title: "Erro ao remover fonte", description: error.message, variant: "destructive" });
+      logger.error('Erro ao remover fonte', error, { component: 'FontesManager' });
+      toast({ title: 'Erro ao remover fonte', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -241,7 +253,8 @@ const FontesManager = () => {
                 Fontes
               </h1>
               <p className="text-muted-foreground mt-1">
-                Sites e perfis monitorados pelo Event Watcher e usados pela IA como referência para gerar posts do blog
+                Sites e perfis monitorados pelo Event Watcher e usados pela IA como referência para
+                gerar posts do blog
               </p>
             </div>
 
@@ -260,75 +273,74 @@ const FontesManager = () => {
                     <Plus className="w-4 h-4 mr-2" /> Nova Fonte
                   </Button>
                 </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{isEditing ? "Editar Fonte" : "Adicionar Nova Fonte"}</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="source-name">Nome</Label>
-                    <Input
-                      id="source-name"
-                      value={form.name}
-                      onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                      placeholder="Ex: Resident Advisor"
-                    />
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>{isEditing ? 'Editar Fonte' : 'Adicionar Nova Fonte'}</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="source-name">Nome</Label>
+                      <Input
+                        id="source-name"
+                        value={form.name}
+                        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                        placeholder="Ex: Resident Advisor"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="source-url">URL</Label>
+                      <Input
+                        id="source-url"
+                        type="url"
+                        value={form.url}
+                        onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="source-description">Descrição (opcional)</Label>
+                      <Textarea
+                        id="source-description"
+                        value={form.description}
+                        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                        placeholder="Breve descrição da fonte"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="source-type">Tipo</Label>
+                      <Select
+                        value={form.type}
+                        onValueChange={(value) =>
+                          setForm((f) => ({ ...f, type: value as EventSourceType }))
+                        }
+                      >
+                        <SelectTrigger id="source-type">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="site">Site</SelectItem>
+                          <SelectItem value="instagram">Instagram</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="source-enabled"
+                        checked={form.enabled}
+                        onCheckedChange={(checked) => setForm((f) => ({ ...f, enabled: checked }))}
+                      />
+                      <Label htmlFor="source-enabled">Fonte ativa</Label>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="source-url">URL</Label>
-                    <Input
-                      id="source-url"
-                      type="url"
-                      value={form.url}
-                      onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-                      placeholder="https://..."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="source-description">Descrição (opcional)</Label>
-                    <Textarea
-                      id="source-description"
-                      value={form.description}
-                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                      placeholder="Breve descrição da fonte"
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="source-type">Tipo</Label>
-                    <Select
-                      value={form.type}
-                      onValueChange={(value) => setForm((f) => ({ ...f, type: value as EventSourceType }))}
-                    >
-                      <SelectTrigger id="source-type">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="site">Site</SelectItem>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="source-enabled"
-                      checked={form.enabled}
-                      onCheckedChange={(checked) => setForm((f) => ({ ...f, enabled: checked }))}
-                    />
-                    <Label htmlFor="source-enabled">Fonte ativa</Label>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!form.name || !form.url || isSaving}
-                  >
-                    {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                    {isEditing ? "Atualizar" : "Adicionar"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+                  <DialogFooter>
+                    <Button onClick={handleSubmit} disabled={!form.name || !form.url || isSaving}>
+                      {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                      {isEditing ? 'Atualizar' : 'Adicionar'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
 
@@ -368,7 +380,7 @@ const FontesManager = () => {
                             {source.url}
                           </TableCell>
                           <TableCell className="text-muted-foreground truncate max-w-xs">
-                            {source.description || "—"}
+                            {source.description || '—'}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">
@@ -385,8 +397,8 @@ const FontesManager = () => {
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
                             {source.last_scanned_at
-                              ? new Date(source.last_scanned_at).toLocaleString("pt-BR")
-                              : "Nunca"}
+                              ? new Date(source.last_scanned_at).toLocaleString('pt-BR')
+                              : 'Nunca'}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -407,13 +419,15 @@ const FontesManager = () => {
                                   <AlertDialogHeader>
                                     <AlertDialogTitle>Remover fonte?</AlertDialogTitle>
                                     <AlertDialogDescription>
-                                      A fonte <strong>{source.name}</strong> será removida permanentemente e não
-                                      será mais varrida pelo Event Watcher.
+                                      A fonte <strong>{source.name}</strong> será removida
+                                      permanentemente e não será mais varrida pelo Event Watcher.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deleteMutation.mutate(source.id)}>
+                                    <AlertDialogAction
+                                      onClick={() => deleteMutation.mutate(source.id)}
+                                    >
                                       Remover
                                     </AlertDialogAction>
                                   </AlertDialogFooter>

@@ -11,10 +11,14 @@ export const WebVitals = () => {
       try {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
-          const lastEntry = entries[entries.length - 1] as PerformanceEntry & { renderTime?: number; loadTime?: number };
+          const lastEntry = entries[entries.length - 1] as PerformanceEntry & {
+            renderTime?: number;
+            loadTime?: number;
+          };
           const value = lastEntry.renderTime || lastEntry.loadTime;
           (window as unknown as { __webVitals?: Record<string, number> }).__webVitals ??= {};
-          (window as unknown as { __webVitals: Record<string, number> }).__webVitals.lcp = value ?? 0;
+          (window as unknown as { __webVitals: Record<string, number> }).__webVitals.lcp =
+            value ?? 0;
           webVitalsLogger.debug('LCP measured', { value });
         });
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
@@ -27,8 +31,8 @@ export const WebVitals = () => {
         const fidObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
           entries.forEach((entry: PerformanceEntry & { processingStart?: number }) => {
-            webVitalsLogger.debug('FID measured', { 
-              value: (entry.processingStart ?? 0) - entry.startTime 
+            webVitalsLogger.debug('FID measured', {
+              value: (entry.processingStart ?? 0) - entry.startTime,
             });
           });
         });
@@ -42,14 +46,17 @@ export const WebVitals = () => {
         let clsScore = 0;
         const clsObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
-          entries.forEach((entry: PerformanceEntry & { hadRecentInput?: boolean; value?: number }) => {
-            if (!entry.hadRecentInput) {
-              clsScore += entry.value ?? 0;
-              (window as unknown as { __webVitals?: Record<string, number> }).__webVitals ??= {};
-              (window as unknown as { __webVitals: Record<string, number> }).__webVitals.cls = clsScore;
-              webVitalsLogger.debug('CLS measured', { value: clsScore });
+          entries.forEach(
+            (entry: PerformanceEntry & { hadRecentInput?: boolean; value?: number }) => {
+              if (!entry.hadRecentInput) {
+                clsScore += entry.value ?? 0;
+                (window as unknown as { __webVitals?: Record<string, number> }).__webVitals ??= {};
+                (window as unknown as { __webVitals: Record<string, number> }).__webVitals.cls =
+                  clsScore;
+                webVitalsLogger.debug('CLS measured', { value: clsScore });
+              }
             }
-          });
+          );
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
       } catch {
@@ -62,8 +69,8 @@ export const WebVitals = () => {
       navigator.serviceWorker
         .register('/service-worker.js')
         .then((registration) => {
-          webVitalsLogger.info('Service Worker registered', { 
-            scope: registration.scope 
+          webVitalsLogger.info('Service Worker registered', {
+            scope: registration.scope,
           });
         })
         .catch((error) => {

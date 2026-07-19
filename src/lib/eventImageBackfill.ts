@@ -30,9 +30,12 @@ function extractBunnyFileParts(url: string): BunnyFileParts | null {
 
 async function variantExists(parts: BunnyFileParts, variant: 'thumb' | 'medium'): Promise<boolean> {
   try {
-    const resp = await fetch(`${BUNNY_CDN_HOST}/${parts.bucket}/${parts.baseName}-${variant}.${parts.ext}`, {
-      method: 'HEAD',
-    });
+    const resp = await fetch(
+      `${BUNNY_CDN_HOST}/${parts.bucket}/${parts.baseName}-${variant}.${parts.ext}`,
+      {
+        method: 'HEAD',
+      }
+    );
     return resp.ok;
   } catch {
     return false;
@@ -51,10 +54,7 @@ export async function getActiveEventImageUrls(): Promise<string[]> {
       .select('image_url')
       .not('image_url', 'is', null)
       .or(`date.gte.${today},end_date.gte.${today}`),
-    supabase
-      .from('recurring_event_configs')
-      .select('image_url')
-      .not('image_url', 'is', null),
+    supabase.from('recurring_event_configs').select('image_url').not('image_url', 'is', null),
   ]);
 
   if (eventsRes.error) throw eventsRes.error;
@@ -84,7 +84,11 @@ export interface BackfillResult {
 export async function backfillVariantsForUrl(url: string): Promise<BackfillResult> {
   const parts = extractBunnyFileParts(url);
   if (!parts) {
-    return { url, status: 'unsupported', detail: 'URL fora do padrão do Bunny CDN (ex: ainda no Supabase)' };
+    return {
+      url,
+      status: 'unsupported',
+      detail: 'URL fora do padrão do Bunny CDN (ex: ainda no Supabase)',
+    };
   }
 
   const [hasThumb, hasMedium] = await Promise.all([
@@ -97,7 +101,8 @@ export async function backfillVariantsForUrl(url: string): Promise<BackfillResul
 
   try {
     const sourceResp = await fetch(getOptimizedImageUrl(url));
-    if (!sourceResp.ok) throw new Error(`download da imagem original falhou (HTTP ${sourceResp.status})`);
+    if (!sourceResp.ok)
+      throw new Error(`download da imagem original falhou (HTTP ${sourceResp.status})`);
     const sourceBlob = await sourceResp.blob();
 
     const uploads: Promise<unknown>[] = [];

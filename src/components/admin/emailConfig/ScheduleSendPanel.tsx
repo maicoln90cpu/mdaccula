@@ -8,16 +8,16 @@
  * de admin autenticado (mesmo padrão usado por resendEvent/markManual), então
  * é um UPDATE direto revertendo a linha para 'draft'.
  */
-import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { CalendarClock, X } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { formatDateTimeBR } from "@/lib/formatters";
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { CalendarClock, X } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { formatDateTimeBR } from '@/lib/formatters';
 
 type ScheduledRow = {
   id: string;
@@ -48,14 +48,15 @@ export function ScheduleSendPanel({
   const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const { data } = useQuery({
-    queryKey: ["scheduled-sends", eventId],
+    queryKey: ['scheduled-sends', eventId],
     queryFn: async (): Promise<ScheduledRow[]> => {
       if (!eventId) return [];
-      const { data, error } = await supabase.from("event_email_campaigns")
-        .select("id, scheduled_at, scheduled_send_attempts, error_message")
-        .eq("event_id", eventId)
-        .eq("status", "scheduled")
-        .order("scheduled_at", { ascending: true });
+      const { data, error } = await supabase
+        .from('event_email_campaigns')
+        .select('id, scheduled_at, scheduled_send_attempts, error_message')
+        .eq('event_id', eventId)
+        .eq('status', 'scheduled')
+        .order('scheduled_at', { ascending: true });
       if (error) throw error;
       return (data as ScheduledRow[]) ?? [];
     },
@@ -68,21 +69,26 @@ export function ScheduleSendPanel({
   async function cancelSchedule(id: string) {
     setCancelingId(id);
     try {
-      const { error } = await supabase.from("event_email_campaigns")
+      const { error } = await supabase
+        .from('event_email_campaigns')
         .update({
-          status: "draft",
-          mode: "draft",
+          status: 'draft',
+          mode: 'draft',
           scheduled_at: null,
           scheduled_send_claimed_at: null,
           scheduled_send_attempts: 0,
         })
-        .eq("id", id);
+        .eq('id', id);
       if (error) throw error;
-      toast({ title: "Agendamento cancelado", description: "A campanha voltou para rascunho." });
-      queryClient.invalidateQueries({ queryKey: ["scheduled-sends", eventId] });
+      toast({ title: 'Agendamento cancelado', description: 'A campanha voltou para rascunho.' });
+      queryClient.invalidateQueries({ queryKey: ['scheduled-sends', eventId] });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erro desconhecido";
-      toast({ variant: "destructive", title: "Erro ao cancelar", description: message ?? String(e) });
+      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao cancelar',
+        description: message ?? String(e),
+      });
     } finally {
       setCancelingId(null);
     }
@@ -100,9 +106,13 @@ export function ScheduleSendPanel({
             onChange={(e) => onScheduleAtChange(e.target.value)}
           />
         </div>
-        <Button variant="outline" disabled={disabled || scheduling || !scheduleAt} onClick={onSchedule}>
+        <Button
+          variant="outline"
+          disabled={disabled || scheduling || !scheduleAt}
+          onClick={onSchedule}
+        >
           <CalendarClock className="w-4 h-4 mr-2" />
-          {scheduling ? "Agendando..." : "Agendar"}
+          {scheduling ? 'Agendando...' : 'Agendar'}
         </Button>
       </div>
 
@@ -112,14 +122,18 @@ export function ScheduleSendPanel({
             Agendamentos pendentes deste evento
           </div>
           {pending.map((row) => (
-            <div key={row.id} className="flex items-center justify-between gap-2 rounded border p-2 text-sm">
+            <div
+              key={row.id}
+              className="flex items-center justify-between gap-2 rounded border p-2 text-sm"
+            >
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary">Agendado</Badge>
                   <span>{formatDateTimeBR(row.scheduled_at)}</span>
                   {(row.scheduled_send_attempts ?? 0) > 0 && (
                     <span className="text-xs text-muted-foreground">
-                      {row.scheduled_send_attempts} tentativa{row.scheduled_send_attempts === 1 ? "" : "s"}
+                      {row.scheduled_send_attempts} tentativa
+                      {row.scheduled_send_attempts === 1 ? '' : 's'}
                     </span>
                   )}
                 </div>

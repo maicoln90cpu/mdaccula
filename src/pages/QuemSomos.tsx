@@ -1,27 +1,27 @@
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Music, Users, Calendar, Award, Instagram } from "lucide-react";
-import heroImage from "@/assets/sao-paulo-night.jpg";
-import logoImage from "@/assets/logo-mdaccula.jpeg";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Skeleton } from "@/components/ui/skeleton";
-import { SEOHead } from "@/components/SEOHead";
-import { StructuredData } from "@/components/StructuredData";
-import { OptimizedImage } from "@/components/OptimizedImage";
-import { PageHeader } from "@/components/ui/page-header";
+import Navigation from '@/components/ui/navigation';
+import Footer from '@/components/ui/footer';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Music, Users, Calendar, Award, Instagram } from 'lucide-react';
+import heroImage from '@/assets/sao-paulo-night.jpg';
+import logoImage from '@/assets/logo-mdaccula.jpeg';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SEOHead } from '@/components/SEOHead';
+import { StructuredData } from '@/components/StructuredData';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { PageHeader } from '@/components/ui/page-header';
 
 const QuemSomos = () => {
   const { data: teamMembers, isLoading: loadingMembers } = useQuery({
-    queryKey: ["team-members"],
+    queryKey: ['team-members'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("team_members")
-        .select("*")
-        .eq("active", true)
-        .order("display_order", { ascending: true });
+        .from('team_members')
+        .select('*')
+        .eq('active', true)
+        .order('display_order', { ascending: true });
 
       if (error) throw error;
       return data || [];
@@ -29,10 +29,10 @@ const QuemSomos = () => {
   });
 
   const stats = [
-    { icon: Music, label: "Eventos Promovidos/ano", value: "500+" },
-    { icon: Users, label: "Alcance Mensal", value: "200K+" },
-    { icon: Calendar, label: "Anos de Experiência", value: "7+" },
-    { icon: Award, label: "Parceiros", value: "50+" },
+    { icon: Music, label: 'Eventos Promovidos/ano', value: '500+' },
+    { icon: Users, label: 'Alcance Mensal', value: '200K+' },
+    { icon: Calendar, label: 'Anos de Experiência', value: '7+' },
+    { icon: Award, label: 'Parceiros', value: '50+' },
   ];
 
   return (
@@ -41,27 +41,27 @@ const QuemSomos = () => {
         title="Quem Somos - História da MDAccula"
         description="Conheça a MDAccula, a maior agência de música eletrônica de São Paulo desde 2017. Nossa história, missão e equipe especializada em eventos techno e house."
         keywords={[
-          "sobre mdaccula",
-          "história dj são paulo",
-          "agência música eletrônica sp",
-          "equipe mdaccula",
-          "dj techno história",
+          'sobre mdaccula',
+          'história dj são paulo',
+          'agência música eletrônica sp',
+          'equipe mdaccula',
+          'dj techno história',
         ]}
         url="https://mdaccula.com/quem-somos"
       />
       <StructuredData
         type="organization"
         data={{
-          instagram_link: "https://instagram.com/mdaccula",
-          soundcloud_link: "https://soundcloud.com/mdaccula",
+          instagram_link: 'https://instagram.com/mdaccula',
+          soundcloud_link: 'https://soundcloud.com/mdaccula',
         }}
       />
       <StructuredData
         type="breadcrumb"
         data={{
           items: [
-            { name: "Home", url: "https://mdaccula.com" },
-            { name: "Quem Somos", url: "https://mdaccula.com/quem-somos" },
+            { name: 'Home', url: 'https://mdaccula.com' },
+            { name: 'Quem Somos', url: 'https://mdaccula.com/quem-somos' },
           ],
         }}
       />
@@ -72,7 +72,7 @@ const QuemSomos = () => {
           <PageHeader
             title="Quem Somos"
             subtitle="A paixão pela música eletrônica que move São Paulo"
-            breadcrumb={[{ label: "Home", href: "/" }, { label: "Quem Somos" }]}
+            breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Quem Somos' }]}
             variant="photo"
             backgroundImage={heroImage}
             align="center"
@@ -85,23 +85,25 @@ const QuemSomos = () => {
                 <div className="space-y-6">
                   <h2 className="text-4xl font-bold hero-text">Nossa História</h2>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    Fundada com o propósito de amplificar a cena eletrônica brasileira, a MDAccula surgiu como um
-                    projeto independente de divulgação e rapidamente evoluiu para uma das referências mais respeitadas
-                    do país. O que começou com apoio a artistas e sets promocionais se transformou em uma agência que
-                    movimenta milhares de pessoas diariamente, conectando eventos de alto impacto ao público apaixonado
+                    Fundada com o propósito de amplificar a cena eletrônica brasileira, a MDAccula
+                    surgiu como um projeto independente de divulgação e rapidamente evoluiu para uma
+                    das referências mais respeitadas do país. O que começou com apoio a artistas e
+                    sets promocionais se transformou em uma agência que movimenta milhares de
+                    pessoas diariamente, conectando eventos de alto impacto ao público apaixonado
                     pela música eletrônica.
                   </p>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    Com atuação forte em São Paulo e presença constante em estados como Rio de Janeiro, Minas Gerais,
-                    Brasília, Curitiba, Santa Catarina e Rio Grande do Sul, a MDAccula se consolidou pela credibilidade,
-                    pela comunicação autêntica e pela capacidade de gerar resultados reais. Através do Instagram, grupos
-                    de WhatsApp e mailing ativo, a agência impulsiona vendas oficiais, fortalece a cena e mantém relação
-                    próxima com produtores e frequentadores.{" "}
+                    Com atuação forte em São Paulo e presença constante em estados como Rio de
+                    Janeiro, Minas Gerais, Brasília, Curitiba, Santa Catarina e Rio Grande do Sul, a
+                    MDAccula se consolidou pela credibilidade, pela comunicação autêntica e pela
+                    capacidade de gerar resultados reais. Através do Instagram, grupos de WhatsApp e
+                    mailing ativo, a agência impulsiona vendas oficiais, fortalece a cena e mantém
+                    relação próxima com produtores e frequentadores.{' '}
                   </p>
                   <p className="text-lg text-muted-foreground leading-relaxed">
-                    Hoje, mais do que uma agência de divulgação, a MDAccula é parte viva da cultura eletrônica: um
-                    movimento que conecta pessoas, celebra diversidade e dá visibilidade aos eventos que fazem a cena
-                    pulsar.
+                    Hoje, mais do que uma agência de divulgação, a MDAccula é parte viva da cultura
+                    eletrônica: um movimento que conecta pessoas, celebra diversidade e dá
+                    visibilidade aos eventos que fazem a cena pulsar.
                   </p>
                 </div>
                 <div className="relative h-[500px] rounded-lg overflow-hidden flex items-center justify-center bg-black">
@@ -145,7 +147,7 @@ const QuemSomos = () => {
                       <CardContent className="pt-6 space-y-4">
                         <div className="relative w-32 h-32 mx-auto">
                           <OptimizedImage
-                            src={member.image_url || "/placeholder.svg"}
+                            src={member.image_url || '/placeholder.svg'}
                             alt={member.name}
                             className="rounded-full w-full h-full object-cover border-4 border-primary/20"
                             objectFit="cover"
@@ -156,10 +158,18 @@ const QuemSomos = () => {
                           <h3 className="text-xl font-bold text-primary">{member.name}</h3>
                           <p className="text-sm text-muted-foreground">{member.position}</p>
                         </div>
-                        {member.bio && <p className="text-sm text-muted-foreground leading-relaxed">{member.bio}</p>}
+                        {member.bio && (
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {member.bio}
+                          </p>
+                        )}
                         {member.instagram_url && (
                           <Button variant="outline" size="sm" asChild>
-                            <a href={member.instagram_url} target="_blank" rel="noopener noreferrer">
+                            <a
+                              href={member.instagram_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
                               <Instagram className="w-4 h-4 mr-2" />
                               Instagram
                             </a>
@@ -170,7 +180,9 @@ const QuemSomos = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-muted-foreground">Informações da equipe em breve...</p>
+                <p className="text-center text-muted-foreground">
+                  Informações da equipe em breve...
+                </p>
               )}
             </div>
           </section>
@@ -180,7 +192,9 @@ const QuemSomos = () => {
             <div className="container mx-auto px-4">
               <div className="text-center mb-16">
                 <h2 className="text-4xl font-bold mb-4 hero-text">Nossos Números</h2>
-                <p className="text-xl text-muted-foreground">O impacto que criamos na cena eletrônica</p>
+                <p className="text-xl text-muted-foreground">
+                  O impacto que criamos na cena eletrônica
+                </p>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -202,7 +216,8 @@ const QuemSomos = () => {
             <div className="container mx-auto px-4 text-center">
               <h2 className="text-4xl font-bold mb-6 hero-text">Faça Parte da Nossa História</h2>
               <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Entre em contato para parcerias, eventos ou apenas para trocar uma ideia sobre música eletrônica
+                Entre em contato para parcerias, eventos ou apenas para trocar uma ideia sobre
+                música eletrônica
               </p>
               <Button size="lg" asChild>
                 <a href="/contato">Fale Conosco</a>

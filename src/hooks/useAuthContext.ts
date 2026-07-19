@@ -16,7 +16,12 @@ export interface AuthContextType {
   isAdminLoading: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthResponse>;
-  signUp: (email: string, password: string, fullName: string, phone?: string) => Promise<AuthResponse>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName: string,
+    phone?: string
+  ) => Promise<AuthResponse>;
   signOut: () => Promise<void>;
 }
 

@@ -2,17 +2,17 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { Button } from './button';
-import { 
-  Bold, 
-  Italic, 
-  List, 
-  ListOrdered, 
-  Heading2, 
-  Quote, 
-  Undo, 
+import {
+  Bold,
+  Italic,
+  List,
+  ListOrdered,
+  Heading2,
+  Quote,
+  Undo,
   Redo,
   Eye,
-  Code
+  Code,
 } from 'lucide-react';
 import { Label } from './label';
 import { Card } from './card';
@@ -26,11 +26,11 @@ interface RichTextEditorProps {
   label?: string;
 }
 
-export const RichTextEditor = ({ 
-  content, 
-  onChange, 
-  placeholder = "Escreva seu conteúdo aqui...",
-  label = "Conteúdo"
+export const RichTextEditor = ({
+  content,
+  onChange,
+  placeholder = 'Escreva seu conteúdo aqui...',
+  label = 'Conteúdo',
 }: RichTextEditorProps) => {
   const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('edit');
 
@@ -51,7 +51,8 @@ export const RichTextEditor = ({
     },
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[300px] p-4',
+        class:
+          'prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-[300px] p-4',
       },
     },
   });
@@ -60,20 +61,20 @@ export const RichTextEditor = ({
     return null;
   }
 
-  const MenuButton = ({ 
-    onClick, 
-    isActive, 
-    children, 
-    title 
-  }: { 
-    onClick: () => void; 
-    isActive?: boolean; 
+  const MenuButton = ({
+    onClick,
+    isActive,
+    children,
+    title,
+  }: {
+    onClick: () => void;
+    isActive?: boolean;
     children: React.ReactNode;
     title: string;
   }) => (
     <Button
       type="button"
-      variant={isActive ? "default" : "ghost"}
+      variant={isActive ? 'default' : 'ghost'}
       size="sm"
       onClick={onClick}
       title={title}
@@ -86,7 +87,7 @@ export const RichTextEditor = ({
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      
+
       <Card className="overflow-hidden">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'edit' | 'preview')}>
           <div className="border-b bg-muted/50">
@@ -155,9 +156,11 @@ export const RichTextEditor = ({
                   <Redo className="w-4 h-4" />
                 </MenuButton>
               </div>
-              
+
               <TabsList>
-                <TabsTrigger value="edit" className="text-xs">Editar</TabsTrigger>
+                <TabsTrigger value="edit" className="text-xs">
+                  Editar
+                </TabsTrigger>
                 <TabsTrigger value="preview" className="text-xs">
                   <Eye className="w-3 h-3 mr-1" />
                   Preview
@@ -165,20 +168,20 @@ export const RichTextEditor = ({
               </TabsList>
             </div>
           </div>
-          
+
           <TabsContent value="edit" className="m-0">
             <EditorContent editor={editor} />
           </TabsContent>
-          
+
           <TabsContent value="preview" className="m-0">
-            <div 
+            <div
               className="prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none p-4 min-h-[300px]"
               dangerouslySetInnerHTML={{ __html: editor.getHTML() }}
             />
           </TabsContent>
         </Tabs>
       </Card>
-      
+
       <p className="text-xs text-muted-foreground">
         Suporta Markdown e atalhos de teclado (Ctrl+B, Ctrl+I, etc.)
       </p>

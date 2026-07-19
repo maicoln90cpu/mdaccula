@@ -10,9 +10,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { useAuth } from '@/hooks/useAuthContext';
 import { queryClient } from '@/lib/queryClient';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;
 
 describe('useAuth.signOut cache reset', () => {
   it('chama queryClient.clear() ao deslogar', async () => {

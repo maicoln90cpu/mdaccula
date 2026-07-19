@@ -4,12 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { EventForm } from '@/components/events/EventForm';
 import { supabase } from '@/integrations/supabase/client';
 
-class ROStub { observe() {} unobserve() {} disconnect() {} }
+class ROStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
 (globalThis as any).ResizeObserver = ROStub;
 (window as any).ResizeObserver = ROStub;
 
-const renderForm = (ui: React.ReactElement) =>
-  render(<MemoryRouter>{ui}</MemoryRouter>);
+const renderForm = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 /**
  * Regressão: ao abrir o modal de edição com pix_button_enabled=true,
@@ -67,7 +70,7 @@ describe('EventForm — toggle Pix persiste estado do banco', () => {
         event={{ ...baseEvent, pix_button_enabled: true }}
         onSuccess={vi.fn()}
         onCancel={vi.fn()}
-      />,
+      />
     );
 
     const switchEl = await waitFor(() => {
@@ -86,7 +89,7 @@ describe('EventForm — toggle Pix persiste estado do banco', () => {
         event={{ ...baseEvent, pix_button_enabled: false }}
         onSuccess={vi.fn()}
         onCancel={vi.fn()}
-      />,
+      />
     );
 
     const switchEl = await waitFor(() => {
@@ -99,10 +102,11 @@ describe('EventForm — toggle Pix persiste estado do banco', () => {
   });
 
   it('mostra OFF quando o campo está ausente (default seguro)', async () => {
-    const { pix_button_enabled: _omit, ...evNoField } = { ...baseEvent, pix_button_enabled: undefined } as any;
-    renderForm(
-      <EventForm event={evNoField} onSuccess={vi.fn()} onCancel={vi.fn()} />,
-    );
+    const { pix_button_enabled: _omit, ...evNoField } = {
+      ...baseEvent,
+      pix_button_enabled: undefined,
+    } as any;
+    renderForm(<EventForm event={evNoField} onSuccess={vi.fn()} onCancel={vi.fn()} />);
 
     const switchEl = await waitFor(() => {
       const el = document.getElementById('pix_button_enabled');

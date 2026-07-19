@@ -1,11 +1,17 @@
-import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2, ExternalLink, Calendar } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { parseLocalDate } from "@/lib/dateUtils";
-import { parseSchedule } from "@/lib/eventScheduleHelper";
-import { safeExternalUrl } from "@/lib/safeExternalUrl";
+import { useEffect, useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Loader2, ExternalLink, Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { parseLocalDate } from '@/lib/dateUtils';
+import { parseSchedule } from '@/lib/eventScheduleHelper';
+import { safeExternalUrl } from '@/lib/safeExternalUrl';
 
 interface TicketDayPickerModalProps {
   open: boolean;
@@ -46,10 +52,10 @@ export const TicketDayPickerModal = ({
     (async () => {
       setLoading(true);
       const { data: links } = await supabase
-        .from("custom_links")
-        .select("title, url, override_date")
-        .eq("event_id", eventId)
-        .eq("enabled", true);
+        .from('custom_links')
+        .select('title, url, override_date')
+        .eq('event_id', eventId)
+        .eq('enabled', true);
 
       if (cancelled) return;
 
@@ -63,15 +69,15 @@ export const TicketDayPickerModal = ({
 
       const built: DayOption[] = scheduleDays.map((d) => {
         const match = linkByDate.get(d.date);
-        const label = parseLocalDate(d.date).toLocaleDateString("pt-BR", {
-          weekday: "long",
-          day: "2-digit",
-          month: "long",
+        const label = parseLocalDate(d.date).toLocaleDateString('pt-BR', {
+          weekday: 'long',
+          day: '2-digit',
+          month: 'long',
         });
         return {
           date: d.date,
           label,
-          url: match?.url || fallbackTicketLink || "",
+          url: match?.url || fallbackTicketLink || '',
           linkTitle: match?.title,
         };
       });
@@ -100,9 +106,7 @@ export const TicketDayPickerModal = ({
             <Loader2 className="w-6 h-6 animate-spin text-primary" />
           </div>
         ) : days.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-4">
-            Nenhum dia disponível no momento.
-          </p>
+          <p className="text-sm text-muted-foreground py-4">Nenhum dia disponível no momento.</p>
         ) : (
           <div className="space-y-2 py-2">
             {days.map((d) => (

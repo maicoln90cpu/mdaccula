@@ -1,6 +1,6 @@
-import { motion, useReducedMotion } from "framer-motion";
-import { cn, parseLocalDate } from "@/lib/utils";
-import { LinkCardImage } from "./LinkCardImage";
+import { motion, useReducedMotion } from 'framer-motion';
+import { cn, parseLocalDate } from '@/lib/utils';
+import { LinkCardImage } from './LinkCardImage';
 
 interface LinkEvent {
   venue: string;
@@ -76,14 +76,16 @@ export const SimpleLinkCard = ({
 
   const getCardColor = () => {
     if (link.color_gradient && link.color_gradient.includes('from-')) return link.color_gradient;
-    if (templateCardColor && templateCardColor !== 'default' && templateCardColor !== '') return templateCardColor;
+    if (templateCardColor && templateCardColor !== 'default' && templateCardColor !== '')
+      return templateCardColor;
     if (link.events) return theme.cardEvent;
     if (groupName?.toLowerCase().includes('navega')) return theme.cardNavigation;
     return theme.cardDefault;
   };
 
   const getCardBorder = () => {
-    if (templateBorderColor && templateBorderColor !== 'default' && templateBorderColor !== '') return templateBorderColor;
+    if (templateBorderColor && templateBorderColor !== 'default' && templateBorderColor !== '')
+      return templateBorderColor;
     return theme.cardBorder;
   };
 
@@ -100,7 +102,8 @@ export const SimpleLinkCard = ({
         <span className="font-bold text-xl break-words block">{link.title}</span>
         {(link.override_date || link.events?.date) && showEventDate && (
           <span className="text-sm font-semibold text-white/90 block">
-            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} • {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
+            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} •{' '}
+            {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
           </span>
         )}
         {link.subtitle && <div className="text-sm opacity-80">{link.subtitle}</div>}
@@ -125,7 +128,8 @@ export const SimpleLinkCard = ({
         <span className="font-semibold text-base break-words block">{link.title}</span>
         {(link.override_date || link.events?.date) && showEventDate && (
           <span className="text-xs sm:text-sm font-semibold text-white/90 block">
-            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} • {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
+            {parseLocalDate(link.override_date || link.events?.date).toLocaleDateString('pt-BR')} •{' '}
+            {(link.override_time || link.events?.time || '00:00').slice(0, 5)}
           </span>
         )}
         {link.subtitle && <div className="text-xs opacity-80 truncate">{link.subtitle}</div>}
@@ -144,24 +148,30 @@ export const SimpleLinkCard = ({
       className="flex items-center gap-2 w-full"
       initial={prefersReducedMotion ? undefined : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: prefersReducedMotion ? 0 : Math.min(index, 10) * 0.04, ease: "easeOut" }}
+      transition={{
+        duration: 0.35,
+        delay: prefersReducedMotion ? 0 : Math.min(index, 10) * 0.04,
+        ease: 'easeOut',
+      }}
     >
       <button
         onClick={() => onLinkClick(link)}
         className={cn(
-          "relative overflow-hidden link-card-shine flex-1 min-w-0 bg-gradient-to-r",
+          'relative overflow-hidden link-card-shine flex-1 min-w-0 bg-gradient-to-r',
           getCardColor(),
           link.is_featured
-            ? "border-4 border-primary animate-featured-glow-pulse ring-2 ring-primary/30"
+            ? 'border-4 border-primary animate-featured-glow-pulse ring-2 ring-primary/30'
             : getCardBorder(),
-          link.is_featured ? "shadow-2xl" : theme.cardShadow,
+          link.is_featured ? 'shadow-2xl' : theme.cardShadow,
           theme.cardRoundedness,
           theme.cardBackdrop,
           theme.cardHoverEffect,
-          "transition-all duration-300"
+          'transition-all duration-300'
         )}
         style={{
-          minHeight: link.is_featured ? '120px' : `${Math.min(link.card_height || templateCardHeight || 80, 150)}px`,
+          minHeight: link.is_featured
+            ? '120px'
+            : `${Math.min(link.card_height || templateCardHeight || 80, 150)}px`,
           height: 'auto',
         }}
       >

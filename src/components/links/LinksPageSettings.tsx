@@ -1,27 +1,27 @@
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { uploadImageWithThumb } from "@/lib/bunnyUploader";
-import { Upload, Loader2 } from "lucide-react";
-import { ThemeSelector } from "./ThemeSelector";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
+import { Upload, Loader2 } from 'lucide-react';
+import { ThemeSelector } from './ThemeSelector';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   cardBorderOptions,
   cardShadowOptions,
@@ -30,7 +30,7 @@ import {
   cardHoverOptions,
   cardColorOptions,
   cardBorderColorOptions,
-} from "@/lib/linkThemes";
+} from '@/lib/linkThemes';
 
 interface LinksPageSettingsProps {
   open: boolean;
@@ -61,10 +61,10 @@ export const LinksPageSettings = ({
   currentCardColor,
   currentCardBorderColor,
 }: LinksPageSettingsProps) => {
-  const [handle, setHandle] = useState(currentHandle || "@MDAccula");
+  const [handle, setHandle] = useState(currentHandle || '@MDAccula');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(currentAvatar || null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState(currentTheme || "sunset");
+  const [selectedTheme, setSelectedTheme] = useState(currentTheme || 'sunset');
   const [cardBorder, setCardBorder] = useState(currentCardBorder || 'border border-white/10');
   const [cardShadow, setCardShadow] = useState(currentCardShadow || 'shadow-lg hover:shadow-xl');
   const [cardRoundedness, setCardRoundedness] = useState(currentCardRoundedness || 'rounded-2xl');
@@ -86,8 +86,8 @@ export const LinksPageSettings = ({
       setAvatarFile(null);
       return publicUrl;
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro desconhecido";
-      toast.error("Erro no upload do avatar: " + message);
+      const message = err instanceof Error ? err.message : 'Erro desconhecido';
+      toast.error('Erro no upload do avatar: ' + message);
       return null;
     } finally {
       setUploadingAvatar(false);
@@ -102,32 +102,32 @@ export const LinksPageSettings = ({
 
       // Update settings
       const updates = [
-        { key: "links_page_avatar_url", value: avatarUrl },
-        { key: "links_page_handle", value: handle },
-        { key: "links_page_theme", value: selectedTheme },
-        { key: "links_page_card_border", value: cardBorder },
-        { key: "links_page_card_shadow", value: cardShadow },
-        { key: "links_page_card_roundedness", value: cardRoundedness },
-        { key: "links_page_card_backdrop", value: cardBackdrop },
-        { key: "links_page_card_hover", value: cardHoverEffect },
-        { key: "links_page_card_color", value: cardColor },
-        { key: "links_page_card_border_color", value: cardBorderColor },
+        { key: 'links_page_avatar_url', value: avatarUrl },
+        { key: 'links_page_handle', value: handle },
+        { key: 'links_page_theme', value: selectedTheme },
+        { key: 'links_page_card_border', value: cardBorder },
+        { key: 'links_page_card_shadow', value: cardShadow },
+        { key: 'links_page_card_roundedness', value: cardRoundedness },
+        { key: 'links_page_card_backdrop', value: cardBackdrop },
+        { key: 'links_page_card_hover', value: cardHoverEffect },
+        { key: 'links_page_card_color', value: cardColor },
+        { key: 'links_page_card_border_color', value: cardBorderColor },
       ];
 
       for (const update of updates) {
         const { error } = await supabase
-          .from("site_settings")
-          .upsert(update, { onConflict: "key" });
+          .from('site_settings')
+          .upsert(update, { onConflict: 'key' });
 
         if (error) throw error;
       }
 
-      queryClient.invalidateQueries({ queryKey: ["site-settings"] });
-      toast.success("Configurações salvas com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ['site-settings'] });
+      toast.success('Configurações salvas com sucesso!');
       onOpenChange(false);
     } catch (error) {
-      console.error("Error saving settings:", error);
-      toast.error("Erro ao salvar configurações");
+      console.error('Error saving settings:', error);
+      toast.error('Erro ao salvar configurações');
     } finally {
       setLoading(false);
     }
@@ -148,7 +148,11 @@ export const LinksPageSettings = ({
             <Label>Avatar</Label>
             <div className="flex items-center gap-4 mt-2">
               {avatarPreview && (
-                <img src={avatarPreview} alt="Avatar" className="w-16 h-16 rounded-full object-cover bg-muted/20" />
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="w-16 h-16 rounded-full object-cover bg-muted/20"
+                />
               )}
               <Button
                 type="button"
@@ -156,8 +160,12 @@ export const LinksPageSettings = ({
                 disabled={uploadingAvatar}
                 onClick={() => document.getElementById('avatar-upload-input')?.click()}
               >
-                {uploadingAvatar ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {avatarPreview ? "Trocar Avatar" : "Enviar Avatar"}
+                {uploadingAvatar ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 mr-2" />
+                )}
+                {avatarPreview ? 'Trocar Avatar' : 'Enviar Avatar'}
               </Button>
               <input
                 id="avatar-upload-input"
@@ -185,15 +193,12 @@ export const LinksPageSettings = ({
 
           <div>
             <Label>Tema</Label>
-            <ThemeSelector
-              selectedTheme={selectedTheme}
-              onThemeSelect={setSelectedTheme}
-            />
+            <ThemeSelector selectedTheme={selectedTheme} onThemeSelect={setSelectedTheme} />
           </div>
 
           <div className="border-t pt-4 space-y-3">
             <h3 className="text-sm font-semibold">Customização de Cards</h3>
-            
+
             <div>
               <Label htmlFor="cardColor">Cor Padrão dos Cards</Label>
               <Select value={cardColor} onValueChange={setCardColor}>
@@ -202,13 +207,16 @@ export const LinksPageSettings = ({
                     {cardColor && cardColor !== 'default' && (
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded bg-gradient-to-r ${cardColor}`} />
-                        <span>{cardColorOptions.find(o => o.value === cardColor)?.label || 'Personalizado'}</span>
+                        <span>
+                          {cardColorOptions.find((o) => o.value === cardColor)?.label ||
+                            'Personalizado'}
+                        </span>
                       </div>
                     )}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-border z-50">
-                  {cardColorOptions.map(opt => (
+                  {cardColorOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value || 'default'}>
                       <div className="flex items-center gap-2">
                         {opt.value ? (
@@ -222,7 +230,9 @@ export const LinksPageSettings = ({
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">Cor individual do card tem prioridade</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Cor individual do card tem prioridade
+              </p>
             </div>
 
             <div>
@@ -233,13 +243,16 @@ export const LinksPageSettings = ({
                     {cardBorderColor && cardBorderColor !== 'default' && (
                       <div className="flex items-center gap-2">
                         <div className={`w-4 h-4 rounded ${cardBorderColor}`} />
-                        <span>{cardBorderColorOptions.find(o => o.value === cardBorderColor)?.label || 'Personalizado'}</span>
+                        <span>
+                          {cardBorderColorOptions.find((o) => o.value === cardBorderColor)?.label ||
+                            'Personalizado'}
+                        </span>
                       </div>
                     )}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="bg-popover border border-border z-50">
-                  {cardBorderColorOptions.map(opt => (
+                  {cardBorderColorOptions.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value || 'default'}>
                       <div className="flex items-center gap-2">
                         {opt.value ? (
@@ -262,8 +275,10 @@ export const LinksPageSettings = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {cardBorderOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  {cardBorderOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -276,8 +291,10 @@ export const LinksPageSettings = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {cardShadowOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  {cardShadowOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -290,8 +307,10 @@ export const LinksPageSettings = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {cardRoundednessOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  {cardRoundednessOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -304,8 +323,10 @@ export const LinksPageSettings = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {cardBackdropOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  {cardBackdropOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -318,8 +339,10 @@ export const LinksPageSettings = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {cardHoverOptions.map(opt => (
-                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  {cardHoverOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -327,15 +350,11 @@ export const LinksPageSettings = ({
           </div>
 
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={loading}>
-              {loading ? "Salvando..." : "Salvar"}
+              {loading ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </div>

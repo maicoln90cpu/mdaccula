@@ -1,7 +1,7 @@
 /**
  * Centralized logging system for MDAccula
  * Provides consistent logging with context, levels, and remote persistence
- * 
+ *
  * Features:
  * - Structured logs with context
  * - Log levels (debug, info, warn, error)
@@ -86,7 +86,7 @@ const persistLogs = async () => {
 
   const logsToSend = [...pendingLogs];
   const metricsToSend = [...pendingMetrics];
-  
+
   // Clear pending before sending (optimistic)
   pendingLogs.length = 0;
   pendingMetrics.length = 0;
@@ -94,17 +94,17 @@ const persistLogs = async () => {
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-    
+
     if (!supabaseUrl || !supabaseKey) return;
 
     await fetch(`${supabaseUrl}/functions/v1/persist-logs`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
+        Authorization: `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
-        logs: logsToSend.map(l => ({
+        logs: logsToSend.map((l) => ({
           ...l,
           error: l.error?.message,
         })),
@@ -141,7 +141,7 @@ if (typeof window !== 'undefined') {
         navigator.sendBeacon?.(
           `${supabaseUrl}/functions/v1/persist-logs`,
           JSON.stringify({
-            logs: pendingLogs.map(l => ({ ...l, error: l.error?.message })),
+            logs: pendingLogs.map((l) => ({ ...l, error: l.error?.message })),
             metrics: pendingMetrics,
             sessionId,
           })
@@ -156,7 +156,7 @@ const shouldLog = (level: LogLevel): boolean => {
 };
 
 const formatLogMessage = (entry: LogEntry): string => {
-  const contextStr = entry.context 
+  const contextStr = entry.context
     ? ` [${Object.entries(entry.context)
         .filter(([_, v]) => v !== undefined)
         .map(([k, v]) => `${k}=${typeof v === 'object' ? JSON.stringify(v) : v}`)
@@ -214,11 +214,14 @@ const checkN1Query = (table: string, operation: string): void => {
   }, 100);
 
   if (currentCount >= LOG_CONFIG.n1DetectionThreshold) {
-    logger.warn(`Potential N+1 query detected: ${table}.${operation} called ${currentCount} times`, {
-      component: 'QueryMonitor',
-      action: 'n1_detection',
-      queryCount: currentCount,
-    });
+    logger.warn(
+      `Potential N+1 query detected: ${table}.${operation} called ${currentCount} times`,
+      {
+        component: 'QueryMonitor',
+        action: 'n1_detection',
+        queryCount: currentCount,
+      }
+    );
   }
 };
 
@@ -264,7 +267,7 @@ export const logger = {
   error: (message: string, error?: Error | unknown, context?: LogContext): void => {
     const err = error instanceof Error ? error : undefined;
     const entry = createLogEntry('error', message, context, err);
-    
+
     if (shouldLog('error')) {
       storeLog(entry);
       if (LOG_CONFIG.enableConsole) {
@@ -279,7 +282,7 @@ export const logger = {
   },
 
   // Performance tracking
-  time: (name: string, context?: LogContext): () => void => {
+  time: (name: string, context?: LogContext): (() => void) => {
     const start = performance.now();
     return () => {
       const duration = Math.round(performance.now() - start);
@@ -331,12 +334,13 @@ export const logger = {
   // Get aggregated stats
   getStats: () => ({
     totalLogs: logStore.length,
-    errorCount: logStore.filter(l => l.level === 'error').length,
-    warnCount: logStore.filter(l => l.level === 'warn').length,
-    avgQueryTime: queryStore.length > 0 
-      ? Math.round(queryStore.reduce((sum, q) => sum + q.duration, 0) / queryStore.length)
-      : 0,
-    slowQueries: performanceStore.filter(m => m.duration > LOG_CONFIG.slowQueryThreshold).length,
+    errorCount: logStore.filter((l) => l.level === 'error').length,
+    warnCount: logStore.filter((l) => l.level === 'warn').length,
+    avgQueryTime:
+      queryStore.length > 0
+        ? Math.round(queryStore.reduce((sum, q) => sum + q.duration, 0) / queryStore.length)
+        : 0,
+    slowQueries: performanceStore.filter((m) => m.duration > LOG_CONFIG.slowQueryThreshold).length,
   }),
 
   // Clear stored logs
@@ -364,13 +368,13 @@ export const logger = {
 
   // Create a scoped logger with preset context
   scope: (defaultContext: LogContext) => ({
-    debug: (message: string, context?: LogContext) => 
+    debug: (message: string, context?: LogContext) =>
       logger.debug(message, { ...defaultContext, ...context }),
-    info: (message: string, context?: LogContext) => 
+    info: (message: string, context?: LogContext) =>
       logger.info(message, { ...defaultContext, ...context }),
-    warn: (message: string, context?: LogContext) => 
+    warn: (message: string, context?: LogContext) =>
       logger.warn(message, { ...defaultContext, ...context }),
-    error: (message: string, error?: Error | unknown, context?: LogContext) => 
+    error: (message: string, error?: Error | unknown, context?: LogContext) =>
       logger.error(message, error, { ...defaultContext, ...context }),
     time: (name: string, context?: LogContext) =>
       logger.time(name, { ...defaultContext, ...context }),

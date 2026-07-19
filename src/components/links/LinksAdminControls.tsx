@@ -1,12 +1,12 @@
-import { useState, lazy, Suspense } from "react";
-import { Plus } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { CustomLinkForm } from "@/components/links/CustomLinkForm";
-import type { CustomLink } from "@/hooks/useLinks";
-import type { DragEndEvent } from "@dnd-kit/core";
-import { SortableLinkCard, type Theme } from "@/components/links/SortableLinkCard";
+import { useState, lazy, Suspense } from 'react';
+import { Plus } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { CustomLinkForm } from '@/components/links/CustomLinkForm';
+import type { CustomLink } from '@/hooks/useLinks';
+import type { DragEndEvent } from '@dnd-kit/core';
+import { SortableLinkCard, type Theme } from '@/components/links/SortableLinkCard';
 
-const DndWrapper = lazy(() => import("@/components/links/DndWrapper"));
+const DndWrapper = lazy(() => import('@/components/links/DndWrapper'));
 
 interface LinkGroup {
   id: string;
@@ -133,7 +133,10 @@ export const LinksAdminControls = ({
             link={null}
             groups={groups}
             preselectedGroupId={null}
-            onSuccess={() => { setShowAddLinkForm(false); refetchLinks(); }}
+            onSuccess={() => {
+              setShowAddLinkForm(false);
+              refetchLinks();
+            }}
             onCancel={() => setShowAddLinkForm(false)}
           />
         </DialogContent>
@@ -147,7 +150,10 @@ export const LinksAdminControls = ({
               link={editingLink}
               groups={groups}
               preselectedGroupId={editingLink.group_id || null}
-              onSuccess={() => { setEditingLink(null); refetchLinks(); }}
+              onSuccess={() => {
+                setEditingLink(null);
+                refetchLinks();
+              }}
               onCancel={() => setEditingLink(null)}
             />
           )}

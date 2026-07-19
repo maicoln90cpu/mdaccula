@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import {
   Mic,
   Search,
@@ -23,37 +23,37 @@ import {
   X,
   Loader2,
   ArrowLeft,
-} from "lucide-react";
-import { NavLink } from "react-router-dom";
+} from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/useToast";
-import type { PodcastSubmission, PodcastSubmissionStatus } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/useToast';
+import type { PodcastSubmission, PodcastSubmissionStatus } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 import {
   Table,
   TableBody,
@@ -61,22 +61,41 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
 
 // ============= STATUS CONFIG =============
-const statusConfig: Record<PodcastSubmissionStatus, { label: string; color: string; icon: typeof Clock }> = {
-  pending: { label: "Pendente", color: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30", icon: Clock },
-  contacted: { label: "Contatado", color: "bg-blue-500/20 text-blue-400 border-blue-500/30", icon: MessageCircle },
-  approved: { label: "Aprovado", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle },
-  rejected: { label: "Rejeitado", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: XCircle },
+const statusConfig: Record<
+  PodcastSubmissionStatus,
+  { label: string; color: string; icon: typeof Clock }
+> = {
+  pending: {
+    label: 'Pendente',
+    color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+    icon: Clock,
+  },
+  contacted: {
+    label: 'Contatado',
+    color: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+    icon: MessageCircle,
+  },
+  approved: {
+    label: 'Aprovado',
+    color: 'bg-green-500/20 text-green-400 border-green-500/30',
+    icon: CheckCircle,
+  },
+  rejected: {
+    label: 'Rejeitado',
+    color: 'bg-red-500/20 text-red-400 border-red-500/30',
+    icon: XCircle,
+  },
 };
 
 // ============= MAIN COMPONENT =============
 const PodcastManager = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedSubmission, setSelectedSubmission] = useState<PodcastSubmission | null>(null);
-  const [adminNotes, setAdminNotes] = useState("");
+  const [adminNotes, setAdminNotes] = useState('');
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const { toast } = useToast();
@@ -84,12 +103,12 @@ const PodcastManager = () => {
 
   // ============= FETCH DATA =============
   const { data: submissions = [], isLoading } = useQuery({
-    queryKey: ["podcast-submissions"],
+    queryKey: ['podcast-submissions'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("podcast_submissions")
-        .select("*")
-        .order("created_at", { ascending: false });
+        .from('podcast_submissions')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data as PodcastSubmission[];
@@ -97,45 +116,42 @@ const PodcastManager = () => {
   });
 
   // Realtime: novas inscrições e mudanças de status aparecem na hora.
-  useRealtimeTable("podcast_submissions", () =>
-    queryClient.invalidateQueries({ queryKey: ["podcast-submissions"] }),
+  useRealtimeTable('podcast_submissions', () =>
+    queryClient.invalidateQueries({ queryKey: ['podcast-submissions'] })
   );
 
   // ============= MUTATIONS =============
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: PodcastSubmissionStatus }) => {
-      const { error } = await supabase
-        .from("podcast_submissions")
-        .update({ status })
-        .eq("id", id);
+      const { error } = await supabase.from('podcast_submissions').update({ status }).eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["podcast-submissions"] });
-      toast({ title: "Status atualizado!" });
+      queryClient.invalidateQueries({ queryKey: ['podcast-submissions'] });
+      toast({ title: 'Status atualizado!' });
     },
     onError: () => {
-      toast({ title: "Erro ao atualizar status", variant: "destructive" });
+      toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     },
   });
 
   const updateNotesMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
       const { error } = await supabase
-        .from("podcast_submissions")
+        .from('podcast_submissions')
         .update({ admin_notes: notes })
-        .eq("id", id);
+        .eq('id', id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["podcast-submissions"] });
-      toast({ title: "Notas salvas!" });
+      queryClient.invalidateQueries({ queryKey: ['podcast-submissions'] });
+      toast({ title: 'Notas salvas!' });
       setIsSavingNotes(false);
     },
     onError: () => {
-      toast({ title: "Erro ao salvar notas", variant: "destructive" });
+      toast({ title: 'Erro ao salvar notas', variant: 'destructive' });
       setIsSavingNotes(false);
     },
   });
@@ -149,7 +165,7 @@ const PodcastManager = () => {
         sub.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         sub.city.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = statusFilter === "all" || sub.status === statusFilter;
+      const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -158,10 +174,10 @@ const PodcastManager = () => {
   // ============= METRICS =============
   const metrics = useMemo(() => {
     const total = submissions.length;
-    const pending = submissions.filter((s) => s.status === "pending").length;
-    const contacted = submissions.filter((s) => s.status === "contacted").length;
-    const approved = submissions.filter((s) => s.status === "approved").length;
-    const rejected = submissions.filter((s) => s.status === "rejected").length;
+    const pending = submissions.filter((s) => s.status === 'pending').length;
+    const contacted = submissions.filter((s) => s.status === 'contacted').length;
+    const approved = submissions.filter((s) => s.status === 'approved').length;
+    const rejected = submissions.filter((s) => s.status === 'rejected').length;
 
     return { total, pending, contacted, approved, rejected };
   }, [submissions]);
@@ -169,23 +185,23 @@ const PodcastManager = () => {
   // ============= EXPORT CSV =============
   const exportToCSV = () => {
     const headers = [
-      "Nome",
-      "Email",
-      "Telefone",
-      "Cidade",
-      "Projeto",
-      "Tempo",
-      "Gênero",
-      "Track Autoral",
-      "Link Track",
-      "Instagram",
-      "Spotify",
-      "SoundCloud",
-      "TikTok",
-      "Descrição",
-      "Status",
-      "Notas Admin",
-      "Data Inscrição",
+      'Nome',
+      'Email',
+      'Telefone',
+      'Cidade',
+      'Projeto',
+      'Tempo',
+      'Gênero',
+      'Track Autoral',
+      'Link Track',
+      'Instagram',
+      'Spotify',
+      'SoundCloud',
+      'TikTok',
+      'Descrição',
+      'Status',
+      'Notas Admin',
+      'Data Inscrição',
     ];
 
     const rows = filteredSubmissions.map((sub) => [
@@ -196,36 +212,38 @@ const PodcastManager = () => {
       sub.project_name,
       sub.project_age,
       sub.genre,
-      sub.has_original_track ? "Sim" : "Não",
-      sub.original_track_link || "",
-      sub.instagram || "",
-      sub.spotify || "",
-      sub.soundcloud || "",
-      sub.tiktok || "",
+      sub.has_original_track ? 'Sim' : 'Não',
+      sub.original_track_link || '',
+      sub.instagram || '',
+      sub.spotify || '',
+      sub.soundcloud || '',
+      sub.tiktok || '',
       sub.project_description.replace(/"/g, '""'),
       statusConfig[sub.status].label,
-      (sub.admin_notes || "").replace(/"/g, '""'),
-      format(new Date(sub.created_at), "dd/MM/yyyy HH:mm"),
+      (sub.admin_notes || '').replace(/"/g, '""'),
+      format(new Date(sub.created_at), 'dd/MM/yyyy HH:mm'),
     ]);
 
     const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [headers.join(","), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(","))].join("\n");
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((row) => row.map((cell) => `"${cell}"`).join(','))].join(
+        '\n'
+      );
 
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `podcast-inscricoes-${format(new Date(), "yyyy-MM-dd")}.csv`);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodeURI(csvContent));
+    link.setAttribute('download', `podcast-inscricoes-${format(new Date(), 'yyyy-MM-dd')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    toast({ title: "CSV exportado com sucesso!" });
+    toast({ title: 'CSV exportado com sucesso!' });
   };
 
   // ============= HANDLERS =============
   const handleOpenDetails = (submission: PodcastSubmission) => {
     setSelectedSubmission(submission);
-    setAdminNotes(submission.admin_notes || "");
+    setAdminNotes(submission.admin_notes || '');
   };
 
   const handleSaveNotes = () => {
@@ -247,7 +265,10 @@ const PodcastManager = () => {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
               <div>
-                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <NavLink
+                  to="/admin"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar ao Painel
                 </NavLink>
@@ -272,7 +293,9 @@ const PodcastManager = () => {
                 <CardHeader className="p-4">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-muted-foreground" />
-                    <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
+                    <CardTitle className="text-sm font-medium text-muted-foreground">
+                      Total
+                    </CardTitle>
                   </div>
                   <p className="text-2xl font-bold">{metrics.total}</p>
                 </CardHeader>
@@ -380,12 +403,20 @@ const PodcastManager = () => {
                               <TableCell>
                                 <div>
                                   <p className="font-medium">{submission.full_name}</p>
-                                  <p className="text-xs text-muted-foreground">{submission.email}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {submission.email}
+                                  </p>
                                 </div>
                               </TableCell>
-                              <TableCell className="font-medium">{submission.project_name}</TableCell>
-                              <TableCell className="text-muted-foreground">{submission.genre}</TableCell>
-                              <TableCell className="text-muted-foreground">{submission.city}</TableCell>
+                              <TableCell className="font-medium">
+                                {submission.project_name}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {submission.genre}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {submission.city}
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className={status.color}>
                                   <StatusIcon className="w-3 h-3 mr-1" />
@@ -393,7 +424,9 @@ const PodcastManager = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-muted-foreground text-sm">
-                                {format(new Date(submission.created_at), "dd/MM/yy", { locale: ptBR })}
+                                {format(new Date(submission.created_at), 'dd/MM/yy', {
+                                  locale: ptBR,
+                                })}
                               </TableCell>
                               <TableCell className="text-right">
                                 <DropdownMenu>
@@ -403,16 +436,38 @@ const PodcastManager = () => {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(submission.id, "pending"); }}>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusChange(submission.id, 'pending');
+                                      }}
+                                    >
                                       <Clock className="w-4 h-4 mr-2 text-yellow-400" /> Pendente
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(submission.id, "contacted"); }}>
-                                      <MessageCircle className="w-4 h-4 mr-2 text-blue-400" /> Contatado
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusChange(submission.id, 'contacted');
+                                      }}
+                                    >
+                                      <MessageCircle className="w-4 h-4 mr-2 text-blue-400" />{' '}
+                                      Contatado
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(submission.id, "approved"); }}>
-                                      <CheckCircle className="w-4 h-4 mr-2 text-green-400" /> Aprovado
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusChange(submission.id, 'approved');
+                                      }}
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-2 text-green-400" />{' '}
+                                      Aprovado
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleStatusChange(submission.id, "rejected"); }}>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleStatusChange(submission.id, 'rejected');
+                                      }}
+                                    >
                                       <XCircle className="w-4 h-4 mr-2 text-red-400" /> Rejeitado
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -439,9 +494,7 @@ const PodcastManager = () => {
                     <Mic className="w-5 h-5 text-primary" />
                     {selectedSubmission.project_name}
                   </DialogTitle>
-                  <DialogDescription>
-                    Inscrição de {selectedSubmission.full_name}
-                  </DialogDescription>
+                  <DialogDescription>Inscrição de {selectedSubmission.full_name}</DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 mt-4">
@@ -450,7 +503,9 @@ const PodcastManager = () => {
                     <span className="text-sm text-muted-foreground">Status atual:</span>
                     <Select
                       value={selectedSubmission.status}
-                      onValueChange={(value) => handleStatusChange(selectedSubmission.id, value as PodcastSubmissionStatus)}
+                      onValueChange={(value) =>
+                        handleStatusChange(selectedSubmission.id, value as PodcastSubmissionStatus)
+                      }
                     >
                       <SelectTrigger className="w-40">
                         <SelectValue />
@@ -468,13 +523,19 @@ const PodcastManager = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
                       <Mail className="w-4 h-4 text-muted-foreground" />
-                      <a href={`mailto:${selectedSubmission.email}`} className="text-primary hover:underline text-sm">
+                      <a
+                        href={`mailto:${selectedSubmission.email}`}
+                        className="text-primary hover:underline text-sm"
+                      >
                         {selectedSubmission.email}
                       </a>
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-muted-foreground" />
-                      <a href={`tel:${selectedSubmission.phone}`} className="text-primary hover:underline text-sm">
+                      <a
+                        href={`tel:${selectedSubmission.phone}`}
+                        className="text-primary hover:underline text-sm"
+                      >
                         {selectedSubmission.phone}
                       </a>
                     </div>
@@ -490,7 +551,9 @@ const PodcastManager = () => {
 
                   {/* Project Info */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Projeto</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Projeto
+                    </h4>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">Nome:</span>
@@ -501,25 +564,28 @@ const PodcastManager = () => {
                         <p className="font-medium">{selectedSubmission.project_age}</p>
                       </div>
                     </div>
-                    {selectedSubmission.has_original_track && selectedSubmission.original_track_link && (
-                      <div>
-                        <span className="text-muted-foreground text-sm">Track Autoral:</span>
-                        <a
-                          href={selectedSubmission.original_track_link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1 text-primary hover:underline text-sm mt-1"
-                        >
-                          <ExternalLink className="w-3 h-3" />
-                          Ouvir track
-                        </a>
-                      </div>
-                    )}
+                    {selectedSubmission.has_original_track &&
+                      selectedSubmission.original_track_link && (
+                        <div>
+                          <span className="text-muted-foreground text-sm">Track Autoral:</span>
+                          <a
+                            href={selectedSubmission.original_track_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-primary hover:underline text-sm mt-1"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                            Ouvir track
+                          </a>
+                        </div>
+                      )}
                   </div>
 
                   {/* Social Links */}
                   <div className="space-y-3">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Redes Sociais</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Redes Sociais
+                    </h4>
                     <div className="flex flex-wrap gap-2">
                       {selectedSubmission.instagram && (
                         <Badge variant="outline" className="gap-1">
@@ -528,14 +594,22 @@ const PodcastManager = () => {
                         </Badge>
                       )}
                       {selectedSubmission.spotify && (
-                        <a href={selectedSubmission.spotify} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={selectedSubmission.spotify}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <Badge variant="outline" className="gap-1 hover:bg-green-500/20">
                             <ExternalLink className="w-3 h-3" /> Spotify
                           </Badge>
                         </a>
                       )}
                       {selectedSubmission.soundcloud && (
-                        <a href={selectedSubmission.soundcloud} target="_blank" rel="noopener noreferrer">
+                        <a
+                          href={selectedSubmission.soundcloud}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
                           <Badge variant="outline" className="gap-1 hover:bg-orange-500/20">
                             <ExternalLink className="w-3 h-3" /> SoundCloud
                           </Badge>
@@ -551,7 +625,9 @@ const PodcastManager = () => {
 
                   {/* Description */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Sobre o Projeto</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Sobre o Projeto
+                    </h4>
                     <p className="text-sm leading-relaxed bg-muted/30 p-4 rounded-lg">
                       {selectedSubmission.project_description}
                     </p>
@@ -559,7 +635,9 @@ const PodcastManager = () => {
 
                   {/* Admin Notes */}
                   <div className="space-y-2">
-                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Notas do Admin</h4>
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+                      Notas do Admin
+                    </h4>
                     <Textarea
                       value={adminNotes}
                       onChange={(e) => setAdminNotes(e.target.value)}
@@ -570,15 +648,11 @@ const PodcastManager = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setAdminNotes(selectedSubmission.admin_notes || "")}
+                        onClick={() => setAdminNotes(selectedSubmission.admin_notes || '')}
                       >
                         <X className="w-4 h-4 mr-1" /> Cancelar
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveNotes}
-                        disabled={isSavingNotes}
-                      >
+                      <Button size="sm" onClick={handleSaveNotes} disabled={isSavingNotes}>
                         {isSavingNotes ? (
                           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                         ) : (
@@ -591,7 +665,12 @@ const PodcastManager = () => {
 
                   {/* Meta Info */}
                   <div className="text-xs text-muted-foreground border-t pt-4">
-                    <p>Inscrito em: {format(new Date(selectedSubmission.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
+                    <p>
+                      Inscrito em:{' '}
+                      {format(new Date(selectedSubmission.created_at), "dd/MM/yyyy 'às' HH:mm", {
+                        locale: ptBR,
+                      })}
+                    </p>
                     <p>ID: {selectedSubmission.id}</p>
                   </div>
                 </div>

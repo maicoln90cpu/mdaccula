@@ -1,21 +1,51 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/useToast";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, RefreshCw, Play, Edit2, Loader2, Calendar, Clock, MapPin, Link as LinkIcon, Upload } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
-import { uploadImageWithThumb } from "@/lib/bunnyUploader";
+import { useState, useEffect, useCallback } from 'react';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/useToast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  ArrowLeft,
+  RefreshCw,
+  Play,
+  Edit2,
+  Loader2,
+  Calendar,
+  Clock,
+  MapPin,
+  Link as LinkIcon,
+  Upload,
+} from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 
 interface RecurringConfig {
   id: string;
@@ -46,7 +76,7 @@ interface LinkGroup {
   enabled: boolean;
 }
 
-const WEEKDAYS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const WEEKDAYS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 const RecurringEventsManager = () => {
   const navigate = useNavigate();
@@ -58,45 +88,39 @@ const RecurringEventsManager = () => {
   const [editingConfig, setEditingConfig] = useState<RecurringConfig | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [cronWeekday, setCronWeekday] = useState("2");
-  const [cronHour, setCronHour] = useState("3");
+  const [cronWeekday, setCronWeekday] = useState('2');
+  const [cronHour, setCronHour] = useState('3');
   const [savingSchedule, setSavingSchedule] = useState(false);
 
   const fetchConfigs = useCallback(async () => {
     setLoading(true);
     try {
       const [configsRes, groupsRes, settingsRes] = await Promise.all([
+        supabase.from('recurring_event_configs').select('*').order('weekday'),
+        supabase.from('link_groups').select('id, name, enabled').order('display_order'),
         supabase
-          .from("recurring_event_configs")
-          .select("*")
-          .order("weekday"),
-        supabase
-          .from("link_groups")
-          .select("id, name, enabled")
-          .order("display_order"),
-        supabase
-          .from("site_settings")
-          .select("key, value")
-          .in("key", ["recurring_cron_weekday", "recurring_cron_hour"])
+          .from('site_settings')
+          .select('key, value')
+          .in('key', ['recurring_cron_weekday', 'recurring_cron_hour']),
       ]);
 
       if (configsRes.error) throw configsRes.error;
       if (groupsRes.error) throw groupsRes.error;
-      
+
       setConfigs((configsRes.data as RecurringConfig[]) || []);
       setLinkGroups((groupsRes.data as LinkGroup[]) || []);
-      
+
       // Load schedule settings
-      settingsRes.data?.forEach(s => {
-        if (s.key === "recurring_cron_weekday") setCronWeekday(s.value || "2");
-        if (s.key === "recurring_cron_hour") setCronHour(s.value || "3");
+      settingsRes.data?.forEach((s) => {
+        if (s.key === 'recurring_cron_weekday') setCronWeekday(s.value || '2');
+        if (s.key === 'recurring_cron_hour') setCronHour(s.value || '3');
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao carregar configurações",
+        title: 'Erro ao carregar configurações',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -107,14 +131,14 @@ const RecurringEventsManager = () => {
     fetchConfigs();
   }, [fetchConfigs]);
 
-  useRealtimeTable("recurring_event_configs", () => fetchConfigs());
+  useRealtimeTable('recurring_event_configs', () => fetchConfigs());
 
   const handleToggleEnabled = async (config: RecurringConfig) => {
     try {
       const { error } = await supabase
-        .from("recurring_event_configs")
+        .from('recurring_event_configs')
         .update({ enabled: !config.enabled })
-        .eq("id", config.id);
+        .eq('id', config.id);
 
       if (error) throw error;
 
@@ -123,15 +147,15 @@ const RecurringEventsManager = () => {
       );
 
       toast({
-        title: config.enabled ? "Desativado" : "Ativado",
-        description: `${config.name} foi ${config.enabled ? "desativado" : "ativado"}`,
+        title: config.enabled ? 'Desativado' : 'Ativado',
+        description: `${config.name} foi ${config.enabled ? 'desativado' : 'ativado'}`,
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro",
+        title: 'Erro',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };
@@ -139,8 +163,11 @@ const RecurringEventsManager = () => {
   const handleExecuteNow = async () => {
     setExecuting(true);
     try {
-      const { data, error } = await supabase.functions.invoke<{ created: number; results?: { linkCreated?: boolean }[] }>("create-recurring-events", {
-        body: { force: true }
+      const { data, error } = await supabase.functions.invoke<{
+        created: number;
+        results?: { linkCreated?: boolean }[];
+      }>('create-recurring-events', {
+        body: { force: true },
       });
 
       if (error) throw error;
@@ -148,17 +175,17 @@ const RecurringEventsManager = () => {
       const linksCreated = data?.results?.filter((r) => r.linkCreated)?.length || 0;
 
       toast({
-        title: "Execução concluída",
+        title: 'Execução concluída',
         description: `${data.created} evento(s) criado(s)${linksCreated > 0 ? `, ${linksCreated} link(s) criado(s)` : ''}`,
       });
 
       fetchConfigs();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro na execução",
+        title: 'Erro na execução',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setExecuting(false);
@@ -169,25 +196,25 @@ const RecurringEventsManager = () => {
     setSavingSchedule(true);
     try {
       const updates = [
-        { key: "recurring_cron_weekday", value: cronWeekday },
-        { key: "recurring_cron_hour", value: cronHour },
+        { key: 'recurring_cron_weekday', value: cronWeekday },
+        { key: 'recurring_cron_hour', value: cronHour },
       ];
       for (const update of updates) {
         const { error } = await supabase
-          .from("site_settings")
-          .upsert({ key: update.key, value: update.value }, { onConflict: "key" });
+          .from('site_settings')
+          .upsert({ key: update.key, value: update.value }, { onConflict: 'key' });
         if (error) throw error;
       }
       toast({
-        title: "Agendamento salvo",
+        title: 'Agendamento salvo',
         description: `Eventos recorrentes serão criados toda ${WEEKDAYS[parseInt(cronWeekday)]} às ${cronHour.padStart(2, '0')}:00 (BRT)`,
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao salvar agendamento",
+        title: 'Erro ao salvar agendamento',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setSavingSchedule(false);
@@ -200,39 +227,37 @@ const RecurringEventsManager = () => {
     setSaving(true);
     try {
       const { error } = await supabase
-        .from("recurring_event_configs")
+        .from('recurring_event_configs')
         .update({
-        title: editingConfig.title,
-        subtitle: editingConfig.subtitle,
-        description: editingConfig.description,
-        address: editingConfig.address,
-        time: editingConfig.time,
-        end_time: editingConfig.end_time,
-        ticket_link: editingConfig.ticket_link,
-        vip_link: editingConfig.vip_link,
-        image_url: editingConfig.image_url,
-        link_group_id: editingConfig.link_group_id,
+          title: editingConfig.title,
+          subtitle: editingConfig.subtitle,
+          description: editingConfig.description,
+          address: editingConfig.address,
+          time: editingConfig.time,
+          end_time: editingConfig.end_time,
+          ticket_link: editingConfig.ticket_link,
+          vip_link: editingConfig.vip_link,
+          image_url: editingConfig.image_url,
+          link_group_id: editingConfig.link_group_id,
         })
-        .eq("id", editingConfig.id);
+        .eq('id', editingConfig.id);
 
       if (error) throw error;
 
-      setConfigs((prev) =>
-        prev.map((c) => (c.id === editingConfig.id ? editingConfig : c))
-      );
+      setConfigs((prev) => prev.map((c) => (c.id === editingConfig.id ? editingConfig : c)));
 
       toast({
-        title: "Salvo",
+        title: 'Salvo',
         description: `${editingConfig.name} atualizado com sucesso`,
       });
 
       setEditingConfig(null);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao salvar",
+        title: 'Erro ao salvar',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setSaving(false);
@@ -241,7 +266,7 @@ const RecurringEventsManager = () => {
 
   const getGroupName = (groupId: string | null) => {
     if (!groupId) return null;
-    return linkGroups.find(g => g.id === groupId)?.name || null;
+    return linkGroups.find((g) => g.id === groupId)?.name || null;
   };
 
   return (
@@ -265,7 +290,7 @@ const RecurringEventsManager = () => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
               <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => navigate("/admin")}>
+                <Button variant="ghost" size="icon" onClick={() => navigate('/admin')}>
                   <ArrowLeft className="w-5 h-5" />
                 </Button>
                 <div>
@@ -295,7 +320,8 @@ const RecurringEventsManager = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">
-                  O cron roda diariamente. A função só cria eventos no dia e horário configurados abaixo (BRT).
+                  O cron roda diariamente. A função só cria eventos no dia e horário configurados
+                  abaixo (BRT).
                 </p>
                 <div className="flex flex-wrap gap-4 items-end">
                   <div className="space-y-1">
@@ -306,7 +332,9 @@ const RecurringEventsManager = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {WEEKDAYS.map((day, i) => (
-                          <SelectItem key={i} value={String(i)}>{day}</SelectItem>
+                          <SelectItem key={i} value={String(i)}>
+                            {day}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -319,7 +347,9 @@ const RecurringEventsManager = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {Array.from({ length: 24 }, (_, i) => (
-                          <SelectItem key={i} value={String(i)}>{String(i).padStart(2, '0')}:00</SelectItem>
+                          <SelectItem key={i} value={String(i)}>
+                            {String(i).padStart(2, '0')}:00
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -330,8 +360,11 @@ const RecurringEventsManager = () => {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground mt-3">
-                  Atual: <strong>{WEEKDAYS[parseInt(cronWeekday)]} às {cronHour.padStart(2, '0')}:00 (BRT)</strong>. 
-                  Os eventos habilitados abaixo serão criados automaticamente neste horário.
+                  Atual:{' '}
+                  <strong>
+                    {WEEKDAYS[parseInt(cronWeekday)]} às {cronHour.padStart(2, '0')}:00 (BRT)
+                  </strong>
+                  . Os eventos habilitados abaixo serão criados automaticamente neste horário.
                 </p>
               </CardContent>
             </Card>
@@ -344,14 +377,14 @@ const RecurringEventsManager = () => {
             ) : (
               <div className="space-y-4">
                 {configs.map((config) => (
-                  <Card key={config.id} className={!config.enabled ? "opacity-60" : ""}>
+                  <Card key={config.id} className={!config.enabled ? 'opacity-60' : ''}>
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <CardTitle className="text-lg">{config.name}</CardTitle>
-                            <Badge variant={config.enabled ? "default" : "secondary"}>
-                              {config.enabled ? "Ativo" : "Inativo"}
+                            <Badge variant={config.enabled ? 'default' : 'secondary'}>
+                              {config.enabled ? 'Ativo' : 'Inativo'}
                             </Badge>
                           </div>
                           <CardDescription className="line-clamp-1">{config.title}</CardDescription>
@@ -413,9 +446,7 @@ const RecurringEventsManager = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Editar {editingConfig?.name}</DialogTitle>
-              <DialogDescription>
-                Altere as configurações do evento recorrente
-              </DialogDescription>
+              <DialogDescription>Altere as configurações do evento recorrente</DialogDescription>
             </DialogHeader>
             {editingConfig && (
               <div className="space-y-4">
@@ -423,15 +454,13 @@ const RecurringEventsManager = () => {
                   <Label>Título do Evento</Label>
                   <Input
                     value={editingConfig.title}
-                    onChange={(e) =>
-                      setEditingConfig({ ...editingConfig, title: e.target.value })
-                    }
+                    onChange={(e) => setEditingConfig({ ...editingConfig, title: e.target.value })}
                   />
                 </div>
                 <div>
                   <Label>Subtítulo</Label>
                   <Input
-                    value={editingConfig.subtitle || ""}
+                    value={editingConfig.subtitle || ''}
                     onChange={(e) =>
                       setEditingConfig({ ...editingConfig, subtitle: e.target.value })
                     }
@@ -441,7 +470,7 @@ const RecurringEventsManager = () => {
                 <div>
                   <Label>Endereço Completo</Label>
                   <Input
-                    value={editingConfig.address || ""}
+                    value={editingConfig.address || ''}
                     onChange={(e) =>
                       setEditingConfig({ ...editingConfig, address: e.target.value })
                     }
@@ -455,7 +484,7 @@ const RecurringEventsManager = () => {
                       type="time"
                       value={editingConfig.time.slice(0, 5)}
                       onChange={(e) =>
-                        setEditingConfig({ ...editingConfig, time: e.target.value + ":00" })
+                        setEditingConfig({ ...editingConfig, time: e.target.value + ':00' })
                       }
                     />
                   </div>
@@ -463,11 +492,11 @@ const RecurringEventsManager = () => {
                     <Label>Horário Término</Label>
                     <Input
                       type="time"
-                      value={editingConfig.end_time?.slice(0, 5) || ""}
+                      value={editingConfig.end_time?.slice(0, 5) || ''}
                       onChange={(e) =>
-                        setEditingConfig({ 
-                          ...editingConfig, 
-                          end_time: e.target.value ? e.target.value + ":00" : null 
+                        setEditingConfig({
+                          ...editingConfig,
+                          end_time: e.target.value ? e.target.value + ':00' : null,
                         })
                       }
                     />
@@ -476,7 +505,7 @@ const RecurringEventsManager = () => {
                 <div>
                   <Label>Descrição do Evento</Label>
                   <Textarea
-                    value={editingConfig.description || ""}
+                    value={editingConfig.description || ''}
                     onChange={(e) =>
                       setEditingConfig({ ...editingConfig, description: e.target.value })
                     }
@@ -487,11 +516,11 @@ const RecurringEventsManager = () => {
                 <div>
                   <Label>Grupo de Links</Label>
                   <Select
-                    value={editingConfig.link_group_id || "none"}
+                    value={editingConfig.link_group_id || 'none'}
                     onValueChange={(value) =>
-                      setEditingConfig({ 
-                        ...editingConfig, 
-                        link_group_id: value === "none" ? null : value 
+                      setEditingConfig({
+                        ...editingConfig,
+                        link_group_id: value === 'none' ? null : value,
                       })
                     }
                   >
@@ -500,9 +529,9 @@ const RecurringEventsManager = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhum (não criar link)</SelectItem>
-                      {linkGroups.map(group => (
+                      {linkGroups.map((group) => (
                         <SelectItem key={group.id} value={group.id}>
-                          {group.name} {!group.enabled && "(desabilitado)"}
+                          {group.name} {!group.enabled && '(desabilitado)'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -514,7 +543,7 @@ const RecurringEventsManager = () => {
                 <div>
                   <Label>Link Ingressos</Label>
                   <Input
-                    value={editingConfig.ticket_link || ""}
+                    value={editingConfig.ticket_link || ''}
                     onChange={(e) =>
                       setEditingConfig({ ...editingConfig, ticket_link: e.target.value })
                     }
@@ -524,7 +553,7 @@ const RecurringEventsManager = () => {
                 <div>
                   <Label>Link VIP</Label>
                   <Input
-                    value={editingConfig.vip_link || ""}
+                    value={editingConfig.vip_link || ''}
                     onChange={(e) =>
                       setEditingConfig({ ...editingConfig, vip_link: e.target.value })
                     }
@@ -535,7 +564,7 @@ const RecurringEventsManager = () => {
                   <Label>Imagem do Evento</Label>
                   <div className="flex gap-2 mt-1">
                     <Input
-                      value={editingConfig.image_url || ""}
+                      value={editingConfig.image_url || ''}
                       onChange={(e) =>
                         setEditingConfig({ ...editingConfig, image_url: e.target.value })
                       }
@@ -549,7 +578,11 @@ const RecurringEventsManager = () => {
                       disabled={uploadingImage}
                       onClick={() => document.getElementById('recurring-image-upload')?.click()}
                     >
-                      {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      {uploadingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Upload className="w-4 h-4" />
+                      )}
                     </Button>
                     <input
                       id="recurring-image-upload"
@@ -566,10 +599,17 @@ const RecurringEventsManager = () => {
                             medium: true,
                           });
                           setEditingConfig({ ...editingConfig, image_url: publicUrl });
-                          toast({ title: "Imagem enviada!", description: "Upload concluído com sucesso." });
+                          toast({
+                            title: 'Imagem enviada!',
+                            description: 'Upload concluído com sucesso.',
+                          });
                         } catch (err: unknown) {
-                          const message = err instanceof Error ? err.message : "Erro desconhecido";
-                          toast({ title: "Erro no upload", description: message, variant: "destructive" });
+                          const message = err instanceof Error ? err.message : 'Erro desconhecido';
+                          toast({
+                            title: 'Erro no upload',
+                            description: message,
+                            variant: 'destructive',
+                          });
                         } finally {
                           setUploadingImage(false);
                           e.target.value = '';

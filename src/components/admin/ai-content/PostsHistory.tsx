@@ -1,21 +1,30 @@
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Skeleton } from "@/components/ui/skeleton";
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "@/components/ui/dialog";
-import { Eye, Edit, ExternalLink, Sparkles, Clock, Image as ImageIcon, RefreshCw, Globe } from "lucide-react";
-import { Link } from "react-router-dom";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+} from '@/components/ui/dialog';
+import {
+  Eye,
+  Edit,
+  ExternalLink,
+  Sparkles,
+  Clock,
+  Image as ImageIcon,
+  RefreshCw,
+  Globe,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface BlogPost {
   id: string;
@@ -41,7 +50,12 @@ interface PostsHistoryProps {
   regeneratingId?: string | null;
 }
 
-export function PostsHistory({ posts, isLoading, onRegenerateImage, regeneratingId }: PostsHistoryProps) {
+export function PostsHistory({
+  posts,
+  isLoading,
+  onRegenerateImage,
+  regeneratingId,
+}: PostsHistoryProps) {
   const [sourcesDialogPost, setSourcesDialogPost] = useState<BlogPost | null>(null);
 
   if (isLoading) {
@@ -73,9 +87,7 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
           <Clock className="h-5 w-5 text-muted-foreground" />
           Histórico de Posts
         </CardTitle>
-        <CardDescription>
-          Últimos {posts.length} posts gerados com IA
-        </CardDescription>
+        <CardDescription>Últimos {posts.length} posts gerados com IA</CardDescription>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[600px] pr-4">
@@ -122,9 +134,7 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
                   {/* Content */}
                   <div className="flex-1 min-w-0 space-y-2">
                     <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-medium leading-tight line-clamp-2">
-                        {post.title}
-                      </h4>
+                      <h4 className="font-medium leading-tight line-clamp-2">{post.title}</h4>
                       <div className="flex items-center gap-1 shrink-0">
                         {post.ai_data && (
                           <Badge variant="secondary" className="gap-1">
@@ -132,8 +142,8 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
                             IA
                           </Badge>
                         )}
-                        <Badge variant={post.published ? "default" : "outline"}>
-                          {post.published ? "Publicado" : "Rascunho"}
+                        <Badge variant={post.published ? 'default' : 'outline'}>
+                          {post.published ? 'Publicado' : 'Rascunho'}
                         </Badge>
                       </div>
                     </div>
@@ -177,11 +187,7 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
                         </Link>
                       </Button>
                       <Button variant="ghost" size="sm" asChild>
-                        <a
-                          href={`/blog/${post.slug}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
+                        <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="h-3 w-3 mr-1" />
                           Abrir
                         </a>
@@ -194,8 +200,10 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
                           disabled={regeneratingId === post.id}
                           title="Gerar nova imagem de capa"
                         >
-                          <RefreshCw className={`h-3 w-3 mr-1 ${regeneratingId === post.id ? "animate-spin" : ""}`} />
-                          {regeneratingId === post.id ? "Gerando..." : "Regerar imagem"}
+                          <RefreshCw
+                            className={`h-3 w-3 mr-1 ${regeneratingId === post.id ? 'animate-spin' : ''}`}
+                          />
+                          {regeneratingId === post.id ? 'Gerando...' : 'Regerar imagem'}
                         </Button>
                       )}
                       {!!post.ai_data?.source_urls?.length && (
@@ -218,7 +226,10 @@ export function PostsHistory({ posts, isLoading, onRegenerateImage, regenerating
         </ScrollArea>
       </CardContent>
 
-      <Dialog open={!!sourcesDialogPost} onOpenChange={(open) => !open && setSourcesDialogPost(null)}>
+      <Dialog
+        open={!!sourcesDialogPost}
+        onOpenChange={(open) => !open && setSourcesDialogPost(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">

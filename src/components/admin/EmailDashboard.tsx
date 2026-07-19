@@ -1,19 +1,29 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import { RefreshCw, BarChart3, Mail, MousePointerClick, Eye, TrendingUp, AlertTriangle } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { formatCount } from "@/lib/formatters";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-} from "recharts";
+  RefreshCw,
+  BarChart3,
+  Mail,
+  MousePointerClick,
+  Eye,
+  TrendingUp,
+  AlertTriangle,
+} from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { formatCount } from '@/lib/formatters';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
 /** Métricas cacheadas em event_email_campaign_stats.stats_json (formato retornado pela edge egoi-campaign-stats). */
 type CampaignStats = {
@@ -41,39 +51,39 @@ type Row = {
   fetched_at: string | null;
 };
 
-type Period = "7" | "30" | "90" | "365" | "custom";
+type Period = '7' | '30' | '90' | '365' | 'custom';
 
 const TYPE_LABEL: Record<string, string> = {
-  standard: "Evento",
-  ticket_batch: "Virada de lote",
-  weekly_digest: "Digest semanal",
-  weekend_agenda: "Agenda FDS",
-  blog_digest: "Blog news",
-  courtesy: "Cortesia",
-  custom: "Custom",
-  ab_test_a: "A/B (A)",
-  ab_test_b: "A/B (B)",
+  standard: 'Evento',
+  ticket_batch: 'Virada de lote',
+  weekly_digest: 'Digest semanal',
+  weekend_agenda: 'Agenda FDS',
+  blog_digest: 'Blog news',
+  courtesy: 'Cortesia',
+  custom: 'Custom',
+  ab_test_a: 'A/B (A)',
+  ab_test_b: 'A/B (B)',
 };
 
 const rateFmt = (n: number | null | undefined) =>
-  n == null || !Number.isFinite(n) ? "—" : `${(n * 100).toFixed(1)}%`;
+  n == null || !Number.isFinite(n) ? '—' : `${(n * 100).toFixed(1)}%`;
 
 export function EmailDashboard() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
   const [refreshingAll, setRefreshingAll] = useState(false);
-  const [period, setPeriod] = useState<Period>("30");
-  const [customFrom, setCustomFrom] = useState<string>("");
-  const [customTo, setCustomTo] = useState<string>("");
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [period, setPeriod] = useState<Period>('30');
+  const [customFrom, setCustomFrom] = useState<string>('');
+  const [customTo, setCustomTo] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
 
   const range = useMemo(() => {
     const now = new Date();
-    if (period === "custom" && customFrom && customTo) {
-      return { from: new Date(customFrom + "T00:00:00"), to: new Date(customTo + "T23:59:59") };
+    if (period === 'custom' && customFrom && customTo) {
+      return { from: new Date(customFrom + 'T00:00:00'), to: new Date(customTo + 'T23:59:59') };
     }
-    const days = period === "custom" ? 30 : parseInt(period, 10);
+    const days = period === 'custom' ? 30 : parseInt(period, 10);
     const from = new Date(now);
     from.setDate(from.getDate() - days);
     return { from, to: now };
@@ -84,24 +94,30 @@ export function EmailDashboard() {
     try {
       // Enviadas via sistema (exclui campaign_type = 'manual' — controle pessoal fica separado)
       const { data: camps, error } = await supabase
-        .from("event_email_campaigns")
-        .select("id,event_id,egoi_campaign_id,status,mode,campaign_type,sent_at,created_at,events(title)")
-        .eq("status", "sent")
-        .gte("sent_at", range.from.toISOString())
-        .lte("sent_at", range.to.toISOString())
-        .neq("campaign_type", "manual")
-        .order("sent_at", { ascending: false })
+        .from('event_email_campaigns')
+        .select(
+          'id,event_id,egoi_campaign_id,status,mode,campaign_type,sent_at,created_at,events(title)'
+        )
+        .eq('status', 'sent')
+        .gte('sent_at', range.from.toISOString())
+        .lte('sent_at', range.to.toISOString())
+        .neq('campaign_type', 'manual')
+        .order('sent_at', { ascending: false })
         .limit(500);
       if (error) throw error;
 
       const ids = (camps ?? []).map((c) => c.id);
       const statsMap = new Map<string, { stats: CampaignStats; fetched_at: string | null }>();
       if (ids.length > 0) {
-        const { data: stats } = await supabase.from("event_email_campaign_stats")
-          .select("campaign_id, stats_json, fetched_at")
-          .in("campaign_id", ids);
+        const { data: stats } = await supabase
+          .from('event_email_campaign_stats')
+          .select('campaign_id, stats_json, fetched_at')
+          .in('campaign_id', ids);
         for (const s of stats ?? []) {
-          statsMap.set(s.campaign_id, { stats: s.stats_json as CampaignStats, fetched_at: s.fetched_at });
+          statsMap.set(s.campaign_id, {
+            stats: s.stats_json as CampaignStats,
+            fetched_at: s.fetched_at,
+          });
         }
       }
 
@@ -120,8 +136,8 @@ export function EmailDashboard() {
       }));
       setRows(built);
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : "Erro desconhecido";
-      toast({ variant: "destructive", title: "Erro ao carregar dashboard", description: message });
+      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      toast({ variant: 'destructive', title: 'Erro ao carregar dashboard', description: message });
     } finally {
       setLoading(false);
     }
@@ -132,15 +148,24 @@ export function EmailDashboard() {
   }, [load]);
 
   const filtered = useMemo(
-    () => typeFilter === "all" ? rows : rows.filter((r) => (r.campaign_type || "standard") === typeFilter),
-    [rows, typeFilter],
+    () =>
+      typeFilter === 'all'
+        ? rows
+        : rows.filter((r) => (r.campaign_type || 'standard') === typeFilter),
+    [rows, typeFilter]
   );
 
   const kpis = useMemo(() => {
     const total = filtered.length;
-    let sent = 0, delivered = 0, opens = 0, clicks = 0, bounces = 0, unsubs = 0;
+    let sent = 0,
+      delivered = 0,
+      opens = 0,
+      clicks = 0,
+      bounces = 0,
+      unsubs = 0;
     let withStats = 0;
-    let openRateSum = 0, clickRateSum = 0;
+    let openRateSum = 0,
+      clickRateSum = 0;
     for (const r of filtered) {
       if (!r.stats) continue;
       withStats++;
@@ -186,7 +211,7 @@ export function EmailDashboard() {
   const byType = useMemo(() => {
     const map = new Map<string, number>();
     for (const r of filtered) {
-      const t = r.campaign_type || "standard";
+      const t = r.campaign_type || 'standard';
       map.set(t, (map.get(t) ?? 0) + 1);
     }
     return [...map.entries()]
@@ -197,20 +222,25 @@ export function EmailDashboard() {
   const refreshAll = async () => {
     const targets = filtered.filter((r) => r.egoi_campaign_id);
     if (targets.length === 0) {
-      toast({ title: "Nada para atualizar", description: "Nenhuma campanha com ID da E-goi no filtro atual." });
+      toast({
+        title: 'Nada para atualizar',
+        description: 'Nenhuma campanha com ID da E-goi no filtro atual.',
+      });
       return;
     }
     setRefreshingAll(true);
-    let ok = 0, fail = 0;
+    let ok = 0,
+      fail = 0;
     try {
       for (const r of targets) {
         try {
-          const { data, error } = await supabase.functions.invoke("egoi-campaign-stats", {
+          const { data, error } = await supabase.functions.invoke('egoi-campaign-stats', {
             body: { campaign_id: r.id },
           });
           if (error) throw error;
           const res = data as { ok?: boolean; error?: string };
-          if (res?.ok) ok++; else fail++;
+          if (res?.ok) ok++;
+          else fail++;
         } catch {
           fail++;
         }
@@ -218,9 +248,9 @@ export function EmailDashboard() {
         await new Promise((r) => setTimeout(r, 400));
       }
       toast({
-        title: "Métricas atualizadas",
+        title: 'Métricas atualizadas',
         description: `${ok} sucesso · ${fail} falha(s).`,
-        variant: fail > 0 ? "destructive" : undefined,
+        variant: fail > 0 ? 'destructive' : undefined,
       });
       await load();
     } finally {
@@ -232,7 +262,7 @@ export function EmailDashboard() {
     // Combina tipos conhecidos (fixos) com tipos vistos nas campanhas — garante
     // que o filtro sempre exponha as opções mesmo antes de existir envio.
     const s = new Set<string>(Object.keys(TYPE_LABEL));
-    for (const r of rows) s.add(r.campaign_type || "standard");
+    for (const r of rows) s.add(r.campaign_type || 'standard');
     return [...s];
   }, [rows]);
 
@@ -245,7 +275,8 @@ export function EmailDashboard() {
             <BarChart3 className="w-5 h-5" /> Dashboard de e-mails
           </CardTitle>
           <CardDescription>
-            Métricas das campanhas <b>efetivamente enviadas pelo sistema</b> (via E-goi). Envios marcados manualmente ficam na aba Controle.
+            Métricas das campanhas <b>efetivamente enviadas pelo sistema</b> (via E-goi). Envios
+            marcados manualmente ficam na aba Controle.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -253,7 +284,9 @@ export function EmailDashboard() {
             <div>
               <Label>Período</Label>
               <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="7">Últimos 7 dias</SelectItem>
                   <SelectItem value="30">Últimos 30 dias</SelectItem>
@@ -263,26 +296,38 @@ export function EmailDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            {period === "custom" && (
+            {period === 'custom' && (
               <>
                 <div>
                   <Label>De</Label>
-                  <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
+                  <Input
+                    type="date"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                  />
                 </div>
                 <div>
                   <Label>Até</Label>
-                  <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
+                  <Input
+                    type="date"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                  />
                 </div>
               </>
             )}
             <div>
               <Label>Tipo de template</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   {availableTypes.map((t) => (
-                    <SelectItem key={t} value={t}>{TYPE_LABEL[t] ?? t}</SelectItem>
+                    <SelectItem key={t} value={t}>
+                      {TYPE_LABEL[t] ?? t}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -290,11 +335,15 @@ export function EmailDashboard() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} /> Recarregar
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Recarregar
             </Button>
-            <Button size="sm" onClick={refreshAll} disabled={refreshingAll || filtered.length === 0}>
-              <TrendingUp className={`w-4 h-4 mr-2 ${refreshingAll ? "animate-spin" : ""}`} />
-              {refreshingAll ? "Atualizando métricas..." : "Atualizar métricas do período"}
+            <Button
+              size="sm"
+              onClick={refreshAll}
+              disabled={refreshingAll || filtered.length === 0}
+            >
+              <TrendingUp className={`w-4 h-4 mr-2 ${refreshingAll ? 'animate-spin' : ''}`} />
+              {refreshingAll ? 'Atualizando métricas...' : 'Atualizar métricas do período'}
             </Button>
             <span className="text-xs text-muted-foreground">
               {kpis.withStats}/{kpis.total} campanhas com métricas coletadas
@@ -306,9 +355,24 @@ export function EmailDashboard() {
       {/* KPIs */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi icon={Mail} label="Campanhas enviadas" value={formatCount(kpis.total)} />
-        <Kpi icon={Mail} label="Contatos alcançados" value={formatCount(kpis.sent)} sub={`entregues: ${formatCount(kpis.delivered)}`} />
-        <Kpi icon={Eye} label="Aberturas únicas" value={formatCount(kpis.opens)} sub={`taxa média: ${rateFmt(kpis.openRateAvg)}`} />
-        <Kpi icon={MousePointerClick} label="Cliques únicos" value={formatCount(kpis.clicks)} sub={`taxa média: ${rateFmt(kpis.clickRateAvg)}`} />
+        <Kpi
+          icon={Mail}
+          label="Contatos alcançados"
+          value={formatCount(kpis.sent)}
+          sub={`entregues: ${formatCount(kpis.delivered)}`}
+        />
+        <Kpi
+          icon={Eye}
+          label="Aberturas únicas"
+          value={formatCount(kpis.opens)}
+          sub={`taxa média: ${rateFmt(kpis.openRateAvg)}`}
+        />
+        <Kpi
+          icon={MousePointerClick}
+          label="Cliques únicos"
+          value={formatCount(kpis.clicks)}
+          sub={`taxa média: ${rateFmt(kpis.clickRateAvg)}`}
+        />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi icon={AlertTriangle} label="Bounces" value={formatCount(kpis.bounces)} />
@@ -320,11 +384,15 @@ export function EmailDashboard() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Envios por dia</CardTitle>
-            <CardDescription>Quantidade de campanhas disparadas por dia no período.</CardDescription>
+            <CardDescription>
+              Quantidade de campanhas disparadas por dia no período.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {chartData.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-8 text-center">Sem envios no período selecionado.</p>
+              <p className="text-sm text-muted-foreground py-8 text-center">
+                Sem envios no período selecionado.
+              </p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={chartData}>
@@ -394,23 +462,40 @@ export function EmailDashboard() {
                   {filtered.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-muted/30">
                       <td className="py-2 pr-3 whitespace-nowrap">
-                        {r.sent_at ? new Date(r.sent_at).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—"}
+                        {r.sent_at
+                          ? new Date(r.sent_at).toLocaleString('pt-BR', {
+                              dateStyle: 'short',
+                              timeStyle: 'short',
+                            })
+                          : '—'}
                       </td>
                       <td className="pr-3">
                         <Badge variant="secondary" className="font-normal">
-                          {TYPE_LABEL[r.campaign_type || "standard"] ?? r.campaign_type}
+                          {TYPE_LABEL[r.campaign_type || 'standard'] ?? r.campaign_type}
                         </Badge>
                       </td>
-                      <td className="pr-3 max-w-[280px] truncate">{r.event_title ?? "—"}</td>
+                      <td className="pr-3 max-w-[280px] truncate">{r.event_title ?? '—'}</td>
                       <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.sent)}</td>
-                      <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.opens_unique)}</td>
-                      <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.clicks_unique)}</td>
-                      <td className="pr-3 text-right tabular-nums">{rateFmt(r.stats?.open_rate)}</td>
-                      <td className="pr-3 text-right tabular-nums">{rateFmt(r.stats?.click_rate)}</td>
+                      <td className="pr-3 text-right tabular-nums">
+                        {formatCount(r.stats?.opens_unique)}
+                      </td>
+                      <td className="pr-3 text-right tabular-nums">
+                        {formatCount(r.stats?.clicks_unique)}
+                      </td>
+                      <td className="pr-3 text-right tabular-nums">
+                        {rateFmt(r.stats?.open_rate)}
+                      </td>
+                      <td className="pr-3 text-right tabular-nums">
+                        {rateFmt(r.stats?.click_rate)}
+                      </td>
                       <td className="pr-3">
                         {r.egoi_campaign_id ? (
-                          <span className="text-xs text-muted-foreground">#{r.egoi_campaign_id}</span>
-                        ) : "—"}
+                          <span className="text-xs text-muted-foreground">
+                            #{r.egoi_campaign_id}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
                   ))}

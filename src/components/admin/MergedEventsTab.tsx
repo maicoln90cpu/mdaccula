@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Undo2, GitMerge, Loader2 } from "lucide-react";
-import { UndoMergeDialog, type MergeLog } from "@/components/admin/UndoMergeDialog";
-import { formatDateTimeBR } from "@/lib/formatters";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Undo2, GitMerge, Loader2 } from 'lucide-react';
+import { UndoMergeDialog, type MergeLog } from '@/components/admin/UndoMergeDialog';
+import { formatDateTimeBR } from '@/lib/formatters';
 
 interface MergedEventRow {
   id: string;
@@ -49,10 +49,10 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
 
       // 1) Buscar todos os eventos mesclados (inativos com merged_into_id)
       const { data: mergedRows } = await supabase
-        .from("events")
-        .select("id, title, slug, date, end_date, merged_at, merged_into_id")
-        .not("merged_into_id", "is", null)
-        .order("merged_at", { ascending: false })
+        .from('events')
+        .select('id, title, slug, date, end_date, merged_at, merged_into_id')
+        .not('merged_into_id', 'is', null)
+        .order('merged_at', { ascending: false })
         .limit(500);
 
       const merged = (mergedRows || []) as MergedEventRow[];
@@ -65,33 +65,33 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
       // 2) Buscar os eventos principais
       const primaryIds = Array.from(new Set(merged.map((m) => m.merged_into_id)));
       const { data: primaryRows } = await supabase
-        .from("events")
-        .select("id, title, date, end_date")
-        .in("id", primaryIds);
+        .from('events')
+        .select('id, title, date, end_date')
+        .in('id', primaryIds);
       const primaryMap = new Map<string, PrimaryRow>(
-        ((primaryRows || []) as PrimaryRow[]).map((p) => [p.id, p]),
+        ((primaryRows || []) as PrimaryRow[]).map((p) => [p.id, p])
       );
 
       // 3) Buscar logs com snapshot (últimos 90 dias) para habilitar undo quando existir
       const sinceIso = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: logs } = await supabase
-        .from("application_logs")
-        .select("id, logged_at, context")
-        .eq("level", "info")
-        .gte("logged_at", sinceIso)
-        .order("logged_at", { ascending: false })
+        .from('application_logs')
+        .select('id, logged_at, context')
+        .eq('level', 'info')
+        .gte('logged_at', sinceIso)
+        .order('logged_at', { ascending: false })
         .limit(500);
 
       const allLogs = (logs || []) as unknown as MergeLog[];
       const undoneSourceIds = new Set(
         allLogs
-          .filter((l) => l.context?.action === "undo_merge")
+          .filter((l) => l.context?.action === 'undo_merge')
           .map((l) => l.context?.source_log_id)
-          .filter(Boolean),
+          .filter(Boolean)
       );
       const logsByPrimary = new Map<string, MergeLog>();
       for (const l of allLogs) {
-        if (l.context?.action !== "merge_events") continue;
+        if (l.context?.action !== 'merge_events') continue;
         if (undoneSourceIds.has(l.id)) continue;
         const pid = l.context?.primary_id;
         if (!pid) continue;
@@ -104,9 +104,8 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
       for (const m of merged) {
         const primary = primaryMap.get(m.merged_into_id);
         if (!primary) continue; // órfão: principal foi apagado
-        const effectiveEnd = primary.end_date && primary.end_date >= primary.date
-          ? primary.end_date
-          : primary.date;
+        const effectiveEnd =
+          primary.end_date && primary.end_date >= primary.date ? primary.end_date : primary.date;
         if (effectiveEnd < todayStr) continue; // já passou
 
         let g = grouped.get(primary.id);
@@ -126,13 +125,13 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
       }
 
       const arr = Array.from(grouped.values()).sort((a, b) => {
-        const aKey = a.latestMergedAt || "";
-        const bKey = b.latestMergedAt || "";
+        const aKey = a.latestMergedAt || '';
+        const bKey = b.latestMergedAt || '';
         return bKey.localeCompare(aKey);
       });
       setGroups(arr);
     } catch (err) {
-      console.error("[MergedEventsTab] fetchGroups error:", err);
+      console.error('[MergedEventsTab] fetchGroups error:', err);
       setGroups([]);
     } finally {
       setLoading(false);
@@ -170,9 +169,7 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
       <div className="space-y-3">
         {groups.map((g) => {
           const canUndo = !!g.log?.context?.primary_pre_merge;
-          const when = g.latestMergedAt
-            ? formatDateTimeBR(g.latestMergedAt)
-            : "—";
+          const when = g.latestMergedAt ? formatDateTimeBR(g.latestMergedAt) : '—';
           return (
             <Card key={g.primary.id}>
               <CardContent className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -182,7 +179,7 @@ export const MergedEventsTab = ({ onChange }: { onChange?: () => void }) => {
                     {g.merged.length} evento(s) absorvido(s) · Mesclado em {when}
                   </div>
                   <div className="text-xs text-muted-foreground truncate mt-1">
-                    Absorvidos: {g.merged.map((m) => m.title).join(", ")}
+                    Absorvidos: {g.merged.map((m) => m.title).join(', ')}
                   </div>
                   {!canUndo && (
                     <div className="text-xs text-amber-600 mt-1">

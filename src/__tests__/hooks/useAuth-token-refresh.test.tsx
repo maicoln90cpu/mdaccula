@@ -6,9 +6,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import { useAuth } from '@/hooks/useAuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;
 
 /**
  * Regressão: quando o Supabase dispara TOKEN_REFRESHED com o MESMO user id
@@ -35,9 +33,7 @@ describe('useAuth — estabilidade em TOKEN_REFRESHED', () => {
       user: { id: 'user-123', email: 'x@y.z' },
     };
 
-    let capturedCallback:
-      | ((event: string, session: unknown) => void)
-      | null = null;
+    let capturedCallback: ((event: string, session: unknown) => void) | null = null;
     (supabase.auth.onAuthStateChange as unknown as ReturnType<typeof vi.fn>).mockImplementation(
       (cb: (event: string, session: unknown) => void) => {
         capturedCallback = cb;

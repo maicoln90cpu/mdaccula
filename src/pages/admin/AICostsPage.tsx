@@ -1,7 +1,7 @@
-import { NavLink } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import AIAnalyticsDashboard from "@/components/admin/AIAnalyticsDashboard";
+import { NavLink } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import AIAnalyticsDashboard from '@/components/admin/AIAnalyticsDashboard';
 
 const AICostsPage = () => {
   return (
@@ -9,7 +9,10 @@ const AICostsPage = () => {
       <main className="w-full px-4 md:px-6 py-6">
         <div className="w-full">
           <div className="mb-6 sm:mb-8">
-            <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+            <NavLink
+              to="/admin"
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Voltar ao Painel
             </NavLink>

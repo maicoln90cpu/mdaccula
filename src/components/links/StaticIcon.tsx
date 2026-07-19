@@ -1,18 +1,18 @@
-import { 
-  ExternalLink, 
-  Instagram, 
-  Music, 
-  MessageCircle, 
-  Calendar, 
-  FileText, 
-  Mail, 
-  Youtube, 
-  Twitter, 
-  Facebook, 
-  Linkedin, 
-  Globe, 
-  Ticket, 
-  MapPin, 
+import {
+  ExternalLink,
+  Instagram,
+  Music,
+  MessageCircle,
+  Calendar,
+  FileText,
+  Mail,
+  Youtube,
+  Twitter,
+  Facebook,
+  Linkedin,
+  Globe,
+  Ticket,
+  MapPin,
   Clock,
   Heart,
   Share2,
@@ -29,10 +29,10 @@ import {
   Gift,
   ShoppingBag,
   Store,
-  type LucideProps 
-} from "lucide-react";
-import type { ComponentType } from "react";
-import { getBrandColor } from "@/lib";
+  type LucideProps,
+} from 'lucide-react';
+import type { ComponentType } from 'react';
+import { getBrandColor } from '@/lib';
 
 /**
  * Static icon map for common icons used in link cards
@@ -43,7 +43,7 @@ const iconMap: Record<string, ComponentType<LucideProps>> = {
   // Default
   ExternalLink,
   externallink: ExternalLink,
-  
+
   // Social
   Instagram,
   instagram: Instagram,
@@ -55,7 +55,7 @@ const iconMap: Record<string, ComponentType<LucideProps>> = {
   linkedin: Linkedin,
   Youtube,
   youtube: Youtube,
-  
+
   // Music
   Music,
   music: Music,
@@ -67,16 +67,16 @@ const iconMap: Record<string, ComponentType<LucideProps>> = {
   mic: Mic,
   Play,
   play: Play,
-  
+
   // Communication
   MessageCircle,
   messagecircle: MessageCircle,
-  "message-circle": MessageCircle,
+  'message-circle': MessageCircle,
   Mail,
   mail: Mail,
   Phone,
   phone: Phone,
-  
+
   // Events
   Calendar,
   calendar: Calendar,
@@ -86,18 +86,18 @@ const iconMap: Record<string, ComponentType<LucideProps>> = {
   clock: Clock,
   MapPin,
   mappin: MapPin,
-  "map-pin": MapPin,
-  
+  'map-pin': MapPin,
+
   // Media
   Camera,
   camera: Camera,
   Video,
   video: Video,
-  
+
   // Misc
   FileText,
   filetext: FileText,
-  "file-text": FileText,
+  'file-text': FileText,
   Globe,
   globe: Globe,
   Heart,
@@ -114,7 +114,7 @@ const iconMap: Record<string, ComponentType<LucideProps>> = {
   gift: Gift,
   ShoppingBag,
   shoppingbag: ShoppingBag,
-  "shopping-bag": ShoppingBag,
+  'shopping-bag': ShoppingBag,
   Store,
   store: Store,
 };

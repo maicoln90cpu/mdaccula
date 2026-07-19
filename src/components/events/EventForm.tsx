@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
@@ -20,8 +26,13 @@ import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/even
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
-import { logger } from "@/lib/logger";
-import { EVENT_CTA_TYPES, EVENT_CTA_CONFIG, DEFAULT_EVENT_CTA_TYPE, type EventCtaType } from '@shared/eventCta.ts';
+import { logger } from '@/lib/logger';
+import {
+  EVENT_CTA_TYPES,
+  EVENT_CTA_CONFIG,
+  DEFAULT_EVENT_CTA_TYPE,
+  type EventCtaType,
+} from '@shared/eventCta.ts';
 import type { Event } from '@/types';
 import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
 
@@ -62,7 +73,7 @@ interface EventFormProps {
 
 const GENRES = [
   'Techno',
-  'House', 
+  'House',
   'Tech House',
   'Deep House',
   'Progressive',
@@ -82,11 +93,37 @@ const GENRES = [
   'EDM',
   'Open Format',
   'Festival',
-  'Outros'
+  'Outros',
 ];
 
 const STATES = [
-  'SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE', 'PA', 'MA', 'PB', 'ES', 'PI', 'AL', 'RN', 'MT', 'MS', 'DF', 'SE', 'RO', 'TO', 'AC', 'AM', 'RR', 'AP'
+  'SP',
+  'RJ',
+  'MG',
+  'RS',
+  'PR',
+  'SC',
+  'BA',
+  'GO',
+  'PE',
+  'CE',
+  'PA',
+  'MA',
+  'PB',
+  'ES',
+  'PI',
+  'AL',
+  'RN',
+  'MT',
+  'MS',
+  'DF',
+  'SE',
+  'RO',
+  'TO',
+  'AC',
+  'AM',
+  'RR',
+  'AP',
 ];
 
 // Normaliza URLs antes de salvar: garante protocolo https:// para qualquer domínio
@@ -99,11 +136,11 @@ const normalizeUrl = (url: string | undefined): string | undefined => {
 
   const lower = trimmed.toLowerCase();
   if (
-    lower.startsWith("http://") ||
-    lower.startsWith("https://") ||
-    lower.startsWith("mailto:") ||
-    lower.startsWith("tel:") ||
-    lower.startsWith("sms:")
+    lower.startsWith('http://') ||
+    lower.startsWith('https://') ||
+    lower.startsWith('mailto:') ||
+    lower.startsWith('tel:') ||
+    lower.startsWith('sms:')
   ) {
     return trimmed;
   }
@@ -145,31 +182,40 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const { register, handleSubmit, setValue, watch, control, formState: { errors } } = useForm<EventFormData>({
-    defaultValues: event ? {
-      title: event.title,
-      venue: event.venue,
-      address: event.address,
-      location_state: event.location_state,
-      location_city: event.location_city,
-      venue_lat: event.venue_lat ?? null,
-      venue_lng: event.venue_lng ?? null,
-      date: event.date,
-      end_date: event.end_date || '',
-      time: event.time,
-      end_time: event.end_time,
-      ticket_link: event.ticket_link,
-      vip_link: event.vip_link,
-      pix_button_enabled: event.pix_button_enabled ?? false,
-      tickets_per_day: event.tickets_per_day ?? false,
-      cta_type: (event.cta_type as EventCtaType) ?? DEFAULT_EVENT_CTA_TYPE,
-      description: event.description,
-      subtitle: event.subtitle,
-      blog_post_id: event.blog_post_id,
-    } : {
-      location_state: 'SP',
-      cta_type: DEFAULT_EVENT_CTA_TYPE,
-    }
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    control,
+    formState: { errors },
+  } = useForm<EventFormData>({
+    defaultValues: event
+      ? {
+          title: event.title,
+          venue: event.venue,
+          address: event.address,
+          location_state: event.location_state,
+          location_city: event.location_city,
+          venue_lat: event.venue_lat ?? null,
+          venue_lng: event.venue_lng ?? null,
+          date: event.date,
+          end_date: event.end_date || '',
+          time: event.time,
+          end_time: event.end_time,
+          ticket_link: event.ticket_link,
+          vip_link: event.vip_link,
+          pix_button_enabled: event.pix_button_enabled ?? false,
+          tickets_per_day: event.tickets_per_day ?? false,
+          cta_type: (event.cta_type as EventCtaType) ?? DEFAULT_EVENT_CTA_TYPE,
+          description: event.description,
+          subtitle: event.subtitle,
+          blog_post_id: event.blog_post_id,
+        }
+      : {
+          location_state: 'SP',
+          cta_type: DEFAULT_EVENT_CTA_TYPE,
+        },
   });
 
   const isEditing = !!event?.id;
@@ -183,7 +229,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         .eq('published', true)
         .order('published_at', { ascending: false })
         .limit(20);
-      
+
       if (posts) setBlogPosts(posts);
 
       // If editing and has blog_post_id, fetch the selected post
@@ -201,23 +247,27 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         .from('link_groups')
         .select('*')
         .order('display_order', { ascending: true });
-      
+
       if (groups) setLinkGroups(groups);
 
       // Fetch event templates
-      const { data: templates } = await supabase
-        .from('event_templates')
-        .select('*')
-        .order('name');
-      
+      const { data: templates } = await supabase.from('event_templates').select('*').order('name');
+
       if (templates) setEventTemplates(templates);
 
       // B.6 — Descobrir se a automação de e-mail está pronta.
       // Só habilita o toggle se: master ON + agência ON + list/sender/template preenchidos.
       try {
         const [{ data: master }, { data: cfg }] = await Promise.all([
-          supabase.from('site_settings').select('value').eq('key', 'egoi_email_enabled').maybeSingle(),
-          supabase.from('egoi_config').select('is_enabled,list_id,sender_id,default_event_template_id').maybeSingle(),
+          supabase
+            .from('site_settings')
+            .select('value')
+            .eq('key', 'egoi_email_enabled')
+            .maybeSingle(),
+          supabase
+            .from('egoi_config')
+            .select('is_enabled,list_id,sender_id,default_event_template_id')
+            .maybeSingle(),
         ]);
         if (master?.value !== 'true') {
           setEmailAutomationReady(false);
@@ -258,7 +308,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         .ilike('title', `%${blogSearchTerm}%`)
         .order('published_at', { ascending: false })
         .limit(15);
-      
+
       if (data) setBlogSearchResults(data);
     }, 300);
 
@@ -286,7 +336,13 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       return;
     }
     if (!watchedTime) return;
-    const next = reconcileSchedule(schedule, watchedDate, watchedEndDate, watchedTime, watchedEndTime || null);
+    const next = reconcileSchedule(
+      schedule,
+      watchedDate,
+      watchedEndDate,
+      watchedTime,
+      watchedEndTime || null
+    );
     // Só atualiza se mudou (evita loop)
     if (JSON.stringify(next) !== JSON.stringify(schedule)) {
       setSchedule(next);
@@ -307,7 +363,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     setSchedule((prev) => {
       if (!prev) return prev;
       return prev.map((e) =>
-        e.date === date ? { ...e, lineup: [...(e.lineup || []), value] } : e,
+        e.date === date ? { ...e, lineup: [...(e.lineup || []), value] } : e
       );
     });
     setNewScheduleArtist((s) => ({ ...s, [date]: '' }));
@@ -317,15 +373,13 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     setSchedule((prev) => {
       if (!prev) return prev;
       return prev.map((e) =>
-        e.date === date
-          ? { ...e, lineup: (e.lineup || []).filter((_, i) => i !== idx) }
-          : e,
+        e.date === date ? { ...e, lineup: (e.lineup || []).filter((_, i) => i !== idx) } : e
       );
     });
   };
 
   const applyTemplate = (templateId: string) => {
-    const template = eventTemplates.find(t => t.id === templateId);
+    const template = eventTemplates.find((t) => t.id === templateId);
     if (!template) return;
 
     setValue('venue', template.venue);
@@ -341,8 +395,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     setSelectedGenres(template.genres || []);
 
     toast({
-      title: "Template aplicado",
-      description: `Dados do template "${template.name}" foram preenchidos no formulário`
+      title: 'Template aplicado',
+      description: `Dados do template "${template.name}" foram preenchidos no formulário`,
     });
   };
 
@@ -366,9 +420,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     } catch (error) {
       logger.error('Error uploading image:', error);
       toast({
-        title: "Erro ao fazer upload da imagem",
-        description: "Tente novamente",
-        variant: "destructive"
+        title: 'Erro ao fazer upload da imagem',
+        description: 'Tente novamente',
+        variant: 'destructive',
       });
       return null;
     } finally {
@@ -383,13 +437,13 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       eventId: event?.id,
       generateBlogPost,
       createLink,
-      title: data.title
+      title: data.title,
     });
 
     setSubmitting(true);
     try {
       let imageUrl = event?.image_url;
-      
+
       if (imageFile) {
         logger.debug('[EventForm] 📷 Fazendo upload de imagem...');
         imageUrl = await uploadImage();
@@ -402,10 +456,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       }
 
       // Generate slug with timestamp to ensure uniqueness when duplicating
-      const baseSlug = data.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_]+/g, '-').replace(/(^-|-$)/g, '');
+      const baseSlug = data.title
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-zA-Z0-9_]+/g, '-')
+        .replace(/(^-|-$)/g, '');
       const timestamp = Date.now().toString().slice(-6);
       const eventSlug = manualSlug || event?.slug || `${baseSlug}-${timestamp}`;
-      
+
       const blogPostId = data.blog_post_id === 'none' ? null : data.blog_post_id || null;
 
       // Normalize URLs
@@ -415,9 +473,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       // Validação: end_date precisa ser >= date (segurança extra além do CHECK no banco)
       if (data.end_date && data.end_date < data.date) {
         toast({
-          title: "Data final inválida",
-          description: "A data final do festival precisa ser igual ou posterior à data inicial.",
-          variant: "destructive",
+          title: 'Data final inválida',
+          description: 'A data final do festival precisa ser igual ou posterior à data inicial.',
+          variant: 'destructive',
         });
         setSubmitting(false);
         return;
@@ -437,14 +495,20 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         ticket_link: normalizedTicketLink,
         vip_link: normalizedVipLink,
         lineup: normalizedLineup,
-        venue_lat: data.venue_lat === undefined || data.venue_lat === null || Number.isNaN(data.venue_lat) ? null : Number(data.venue_lat),
-        venue_lng: data.venue_lng === undefined || data.venue_lng === null || Number.isNaN(data.venue_lng) ? null : Number(data.venue_lng),
+        venue_lat:
+          data.venue_lat === undefined || data.venue_lat === null || Number.isNaN(data.venue_lat)
+            ? null
+            : Number(data.venue_lat),
+        venue_lng:
+          data.venue_lng === undefined || data.venue_lng === null || Number.isNaN(data.venue_lng)
+            ? null
+            : Number(data.venue_lng),
         genres: selectedGenres,
         image_url: imageUrl,
         slug: eventSlug,
         blog_post_id: blogPostId,
         end_date: data.end_date || null,
-        time: (data.time && data.time.trim()) ? data.time : null,
+        time: data.time && data.time.trim() ? data.time : null,
         end_time: data.end_time || null,
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
@@ -462,7 +526,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         slug: eventSlug,
         genres: selectedGenres.length,
         hasImage: !!imageUrl,
-        hasTicketLink: !!normalizedTicketLink
+        hasTicketLink: !!normalizedTicketLink,
       });
 
       let createdEventId = event?.id;
@@ -470,11 +534,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       if (event?.id) {
         logger.debug('[EventForm] 🔄 Atualizando evento existente:', event.id);
         const previousSlug = event?.slug;
-        const { error } = await supabase
-          .from('events')
-          .update(eventData)
-          .eq('id', event.id);
-        
+        const { error } = await supabase.from('events').update(eventData).eq('id', event.id);
+
         if (error) throw error;
 
         // 🔁 Se o slug mudou, registra redirect do antigo → novo (preserva SEO e links externos)
@@ -486,12 +547,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               { onConflict: 'old_slug' }
             );
           if (redirErr) {
-            logger.warn('[EventForm] Falha ao gravar redirect de slug antigo', { error: String(redirErr?.message ?? redirErr) });
+            logger.warn('[EventForm] Falha ao gravar redirect de slug antigo', {
+              error: String(redirErr?.message ?? redirErr),
+            });
           } else {
             logger.debug('[EventForm] Redirect criado', { previousSlug, eventSlug });
           }
         }
-        
+
         // 🔗 Sincronizar TODOS os campos com links vinculados
         logger.debug('[EventForm] 🔗 Sincronizando campos com links vinculados...');
         const linkUpdateData: TablesUpdate<'custom_links'> = {
@@ -516,15 +579,15 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           .from('custom_links')
           .update(linkUpdateData)
           .eq('event_id', event.id);
-        
+
         if (linkUpdateError) {
           logger.error('[EventForm] ⚠️ Erro ao sincronizar links:', linkUpdateError);
         } else {
           logger.debug('[EventForm] ✅ Campos sincronizados com links vinculados');
         }
-        
+
         logger.debug('[EventForm] ✅ Evento atualizado com sucesso');
-        
+
         // Invalidar cache de eventos para refletir mudanças imediatamente
         try {
           // Clear localStorage cache
@@ -533,9 +596,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         } catch {
           // localStorage indisponível — limpeza de cache é best-effort
         }
-        
+
         toast({
-          title: "Evento atualizado com sucesso!",
+          title: 'Evento atualizado com sucesso!',
         });
 
         // IndexNow: avisa Bing/Yandex que o evento foi atualizado
@@ -547,13 +610,13 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           .insert([eventData])
           .select()
           .single();
-        
+
         if (error) throw error;
         createdEventId = insertedEvent.id;
-        
+
         logger.debug('[EventForm] ✅ Evento criado com sucesso:', createdEventId);
         toast({
-          title: "Evento criado com sucesso!",
+          title: 'Evento criado com sucesso!',
         });
 
         // IndexNow: avisa Bing/Yandex sobre o novo evento
@@ -566,12 +629,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         generateBlogPost,
         isEditing,
         createdEventId,
-        shouldGenerate: generateBlogPost && !isEditing && createdEventId
+        shouldGenerate: generateBlogPost && !isEditing && createdEventId,
       });
 
       if (generateBlogPost && !isEditing && createdEventId) {
         logger.debug('[EventForm] 🤖 Iniciando geração de blog post via IA...');
-        
+
         const blogPayload = buildArticlePayload(
           {
             id: createdEventId,
@@ -592,16 +655,19 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             image_url: imageUrl,
             ai_context: aiContext,
           },
-          { generateImage: !imageUrl, aiContextOverride: aiContext },
+          { generateImage: !imageUrl, aiContextOverride: aiContext }
         );
-        
+
         logger.debug('[EventForm] Payload para generate-blog-post-v2', { payload: blogPayload });
-        
+
         try {
           const startTime = Date.now();
-          const { data: blogPostData, error: blogError } = await supabase.functions.invoke('generate-blog-post-v2', {
-            body: blogPayload
-          });
+          const { data: blogPostData, error: blogError } = await supabase.functions.invoke(
+            'generate-blog-post-v2',
+            {
+              body: blogPayload,
+            }
+          );
           const duration = Date.now() - startTime;
 
           logger.debug('[EventForm] Resposta da edge function', {
@@ -613,7 +679,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           });
 
           if (blogError) throw blogError;
-          
+
           if (blogPostData?.post?.id) {
             logger.debug('[EventForm] 🔗 Vinculando blog post ao evento...');
             // Update event with blog_post_id
@@ -627,11 +693,11 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             } else {
               logger.debug('[EventForm] ✅ Blog post vinculado com sucesso:', blogPostData.post.id);
               toast({
-                title: "Post do blog gerado e vinculado!",
-                description: "O post foi automaticamente vinculado ao evento.",
+                title: 'Post do blog gerado e vinculado!',
+                description: 'O post foi automaticamente vinculado ao evento.',
                 action: (
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => navigate(`/admin/blog?edit=${blogPostData.post.id}`)}
                   >
@@ -646,94 +712,97 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         } catch (blogError) {
           logger.error('[EventForm] ❌ Erro ao gerar blog post:', blogError);
           toast({
-            title: "Erro ao gerar post do blog",
-            description: "O evento foi criado, mas o post não foi gerado.",
-            variant: "destructive"
+            title: 'Erro ao gerar post do blog',
+            description: 'O evento foi criado, mas o post não foi gerado.',
+            variant: 'destructive',
           });
         }
       } else {
         logger.debug('[EventForm] ⏭️ Geração de blog post ignorada:', {
-          reason: !generateBlogPost ? 'checkbox desmarcado' : isEditing ? 'modo edição' : 'sem eventId'
+          reason: !generateBlogPost
+            ? 'checkbox desmarcado'
+            : isEditing
+              ? 'modo edição'
+              : 'sem eventId',
         });
       }
-      
+
       // Create link automatically if checkbox is checked
       if (createLink && !isEditing && data.date && normalizedTicketLink && createdEventId) {
-          try {
-            // Generate group name based on event date
-            const groupName = generateEventGroupName(data.date);
-            
-            
-            
-            // Check if group exists, if not create it
-            const { data: existingGroup, error: _groupError } = await supabase
+        try {
+          // Generate group name based on event date
+          const groupName = generateEventGroupName(data.date);
+
+          // Check if group exists, if not create it
+          const { data: existingGroup, error: _groupError } = await supabase
+            .from('link_groups')
+            .select('id')
+            .eq('name', groupName)
+            .single();
+
+          let groupId = existingGroup?.id;
+
+          if (!existingGroup) {
+            // Calculate chronological display_order: YYYY*100+MM
+            const eventDate = new Date(data.date + 'T12:00:00');
+            const chronologicalOrder = eventDate.getFullYear() * 100 + (eventDate.getMonth() + 1);
+
+            const { data: newGroup, error: createGroupError } = await supabase
               .from('link_groups')
-              .select('id')
-              .eq('name', groupName)
+              .insert([{ name: groupName, enabled: true, display_order: chronologicalOrder }])
+              .select()
               .single();
 
-            let groupId = existingGroup?.id;
-
-            if (!existingGroup) {
-              // Calculate chronological display_order: YYYY*100+MM
-              const eventDate = new Date(data.date + 'T12:00:00');
-              const chronologicalOrder = eventDate.getFullYear() * 100 + (eventDate.getMonth() + 1);
-              
-              const { data: newGroup, error: createGroupError } = await supabase
-                .from('link_groups')
-                .insert([{ name: groupName, enabled: true, display_order: chronologicalOrder }])
-                .select()
-                .single();
-
-              if (createGroupError) throw createGroupError;
-              groupId = newGroup.id;
-              logger.debug(`[EventForm] 📁 Grupo "${groupName}" criado com display_order=${chronologicalOrder}`);
-            }
-
-            // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
-            // Sem horário definido → usa 00:00 só para ordenar (mantém ordenação por data)
-            const eventDateTime = parseLocalDateTime(data.date, data.time || '00:00');
-            const displayOrder = Math.floor(eventDateTime.getTime() / 1000);
-
-            // Determine URL based on selection
-            const linkUrl = linkUrlType === 'ticket' 
-              ? normalizedTicketLink 
-              : `/eventos/${eventSlug}`;
-
-            // Create the link
-            const { error: linkError } = await supabase
-              .from('custom_links')
-              .insert([{
-                title: data.title,
-                subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
-                url: linkUrl,
-                thumbnail_url: imageUrl,
-                group_id: groupId,
-                display_order: displayOrder,
-                is_internal: linkUrlType === 'slug',
-                enabled: true,
-                icon: 'Calendar',
-                color_gradient: null, // Herda cor do template
-                card_height: 80,
-                event_id: createdEventId,
-                override_date: data.date,
-                override_time: data.time || null,
-              }]);
-
-            if (linkError) throw linkError;
-
-            toast({
-              title: "Link criado em /links com sucesso!",
-            });
-          } catch (linkError) {
-            logger.error('Error creating link:', linkError);
-            toast({
-              title: "Erro ao criar link",
-              description: "O evento foi criado, mas o link não foi criado.",
-              variant: "destructive"
-            });
+            if (createGroupError) throw createGroupError;
+            groupId = newGroup.id;
+            logger.debug(
+              `[EventForm] 📁 Grupo "${groupName}" criado com display_order=${chronologicalOrder}`
+            );
           }
+
+          // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
+          // Sem horário definido → usa 00:00 só para ordenar (mantém ordenação por data)
+          const eventDateTime = parseLocalDateTime(data.date, data.time || '00:00');
+          const displayOrder = Math.floor(eventDateTime.getTime() / 1000);
+
+          // Determine URL based on selection
+          const linkUrl = linkUrlType === 'ticket' ? normalizedTicketLink : `/eventos/${eventSlug}`;
+
+          // Create the link
+          const { error: linkError } = await supabase.from('custom_links').insert([
+            {
+              title: data.title,
+              subtitle:
+                data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
+              url: linkUrl,
+              thumbnail_url: imageUrl,
+              group_id: groupId,
+              display_order: displayOrder,
+              is_internal: linkUrlType === 'slug',
+              enabled: true,
+              icon: 'Calendar',
+              color_gradient: null, // Herda cor do template
+              card_height: 80,
+              event_id: createdEventId,
+              override_date: data.date,
+              override_time: data.time || null,
+            },
+          ]);
+
+          if (linkError) throw linkError;
+
+          toast({
+            title: 'Link criado em /links com sucesso!',
+          });
+        } catch (linkError) {
+          logger.error('Error creating link:', linkError);
+          toast({
+            title: 'Erro ao criar link',
+            description: 'O evento foi criado, mas o link não foi criado.',
+            variant: 'destructive',
+          });
         }
+      }
 
       // B.6 — Se admin marcou o toggle e a automação está pronta, cria rascunho na E-goi.
       // Falha aqui NÃO reverte o evento — apenas mostra toast. Histórico grava error_message.
@@ -759,7 +828,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             });
           }
         } catch (dispatchErr: unknown) {
-          const message = dispatchErr instanceof Error ? dispatchErr.message : "Erro desconhecido";
+          const message = dispatchErr instanceof Error ? dispatchErr.message : 'Erro desconhecido';
           logger.error('[EventForm] Falha no disparo de rascunho E-goi:', dispatchErr);
           toast({
             title: 'Falha no disparo de e-mail',
@@ -773,9 +842,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     } catch (error) {
       logger.error('Error saving event:', error);
       toast({
-        title: "Erro ao salvar evento",
-        description: "Tente novamente",
-        variant: "destructive"
+        title: 'Erro ao salvar evento',
+        description: 'Tente novamente',
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -786,12 +855,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle>{event ? 'Editar Evento' : 'Novo Evento'}</CardTitle>
-        
+
         {!event && eventTemplates.length > 0 && (
           <div className="mt-4 space-y-2">
             <Label htmlFor="template-select">Usar Template (opcional)</Label>
-            <Select 
-              value={selectedTemplate} 
+            <Select
+              value={selectedTemplate}
               onValueChange={(value) => {
                 setSelectedTemplate(value);
                 if (value && value !== 'none') applyTemplate(value);
@@ -802,8 +871,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhum (preencher manualmente)</SelectItem>
-                {eventTemplates.map(t => (
-                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                {eventTemplates.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -820,7 +891,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 {...register('title', { required: 'Nome é obrigatório' })}
                 placeholder="Nome do evento"
               />
-              {errors.title && <span className="text-sm text-destructive">{errors.title.message}</span>}
+              {errors.title && (
+                <span className="text-sm text-destructive">{errors.title.message}</span>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -830,17 +903,15 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 {...register('venue', { required: 'Local é obrigatório' })}
                 placeholder="Nome do local"
               />
-              {errors.venue && <span className="text-sm text-destructive">{errors.venue.message}</span>}
+              {errors.venue && (
+                <span className="text-sm text-destructive">{errors.venue.message}</span>
+              )}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="address">Endereço Completo</Label>
-            <Input
-              id="address"
-              {...register('address')}
-              placeholder="Rua, número - Bairro"
-            />
+            <Input id="address" {...register('address')} placeholder="Rua, número - Bairro" />
             <p className="text-xs text-muted-foreground">
               Endereço aparecerá apenas na página de detalhes do evento
             </p>
@@ -873,13 +944,17 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                     </SelectTrigger>
                     <SelectContent>
                       {STATES.map((state) => (
-                        <SelectItem key={state} value={state}>{state}</SelectItem>
+                        <SelectItem key={state} value={state}>
+                          {state}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
               />
-              {errors.location_state && <span className="text-sm text-destructive">{errors.location_state.message}</span>}
+              {errors.location_state && (
+                <span className="text-sm text-destructive">{errors.location_state.message}</span>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -889,7 +964,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 {...register('location_city', { required: 'Cidade é obrigatória' })}
                 placeholder="Nome da cidade"
               />
-              {errors.location_city && <span className="text-sm text-destructive">{errors.location_city.message}</span>}
+              {errors.location_city && (
+                <span className="text-sm text-destructive">{errors.location_city.message}</span>
+              )}
             </div>
           </div>
 
@@ -915,11 +992,11 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 placeholder="Ex.: -56.097892"
               />
               <p className="text-xs text-muted-foreground">
-                Dica: abra o Google Maps, clique no local, e as coordenadas aparecem no topo. Sem isso, o bloco "Mapa estático" do e-mail fica oculto.
+                Dica: abra o Google Maps, clique no local, e as coordenadas aparecem no topo. Sem
+                isso, o bloco "Mapa estático" do e-mail fica oculto.
               </p>
             </div>
           </div>
-
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -929,7 +1006,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 type="date"
                 {...register('date', { required: 'Data é obrigatória' })}
               />
-              {errors.date && <span className="text-sm text-destructive">{errors.date.message}</span>}
+              {errors.date && (
+                <span className="text-sm text-destructive">{errors.date.message}</span>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -949,11 +1028,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="time">Horário de Início (Opcional)</Label>
-              <Input
-                id="time"
-                type="time"
-                {...register('time')}
-              />
+              <Input id="time" type="time" {...register('time')} />
               <p className="text-xs text-muted-foreground">
                 Deixe vazio se a produtora ainda não divulgou o horário
               </p>
@@ -961,11 +1036,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
             <div className="space-y-2">
               <Label htmlFor="end_time">Horário de Término (Opcional)</Label>
-              <Input
-                id="end_time"
-                type="time"
-                {...register('end_time')}
-              />
+              <Input id="end_time" type="time" {...register('end_time')} />
               <p className="text-xs text-muted-foreground">
                 Deixe vazio se o evento não tiver horário definido de término
               </p>
@@ -985,7 +1056,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                       if (e.target.checked) {
                         setSelectedGenres([...selectedGenres, genre]);
                       } else {
-                        setSelectedGenres(selectedGenres.filter(g => g !== genre));
+                        setSelectedGenres(selectedGenres.filter((g) => g !== genre));
                       }
                     }}
                     className="w-4 h-4 rounded border-input"
@@ -1019,7 +1090,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               placeholder="meu-evento-personalizado"
             />
             <p className="text-xs text-muted-foreground">
-              Se vazio, será gerado automaticamente do título. Use apenas letras minúsculas, números e hífens.
+              Se vazio, será gerado automaticamente do título. Use apenas letras minúsculas, números
+              e hífens.
             </p>
           </div>
 
@@ -1038,7 +1110,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
             <div className="flex flex-wrap gap-2 mt-2">
               {lineup.map((artist, index) => (
-                <div key={index} className="flex items-center gap-1 bg-secondary px-3 py-1 rounded-full text-sm">
+                <div
+                  key={index}
+                  className="flex items-center gap-1 bg-secondary px-3 py-1 rounded-full text-sm"
+                >
                   {artist}
                   <button
                     type="button"
@@ -1052,7 +1127,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
             {schedule && schedule.length > 1 && (
               <p className="text-xs text-muted-foreground">
-                Esse line-up serve como padrão. Use a "Programação por dia" abaixo para variar por dia.
+                Esse line-up serve como padrão. Use a "Programação por dia" abaixo para variar por
+                dia.
               </p>
             )}
           </div>
@@ -1063,8 +1139,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               <div>
                 <Label className="text-base">📅 Programação por dia (festival)</Label>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Festival de {formatEventDateRange(watchedDate, watchedEndDate)}.
-                  Defina horário e line-up de cada dia. Se um dia ficar sem line-up próprio, usa o line-up principal acima.
+                  Festival de {formatEventDateRange(watchedDate, watchedEndDate)}. Defina horário e
+                  line-up de cada dia. Se um dia ficar sem line-up próprio, usa o line-up principal
+                  acima.
                 </p>
               </div>
               {schedule.map((entry) => (
@@ -1090,7 +1167,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                       <Input
                         type="time"
                         value={entry.end_time?.slice(0, 5) || ''}
-                        onChange={(e) => updateScheduleEntry(entry.date, { end_time: e.target.value || null })}
+                        onChange={(e) =>
+                          updateScheduleEntry(entry.date, { end_time: e.target.value || null })
+                        }
                       />
                     </div>
                   </div>
@@ -1107,11 +1186,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                           e.key === 'Enter' && (e.preventDefault(), addScheduleArtist(entry.date))
                         }
                       />
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => addScheduleArtist(entry.date)}
-                      >
+                      <Button type="button" size="sm" onClick={() => addScheduleArtist(entry.date)}>
                         <Plus className="w-4 h-4" />
                       </Button>
                     </div>
@@ -1181,19 +1256,27 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                 render={({ field }) => (
                   <Select
                     value={
-                      field.value?.includes('5511999136884') ? 'maicoln' :
-                      field.value?.includes('5511997819194') ? 'guilherme' :
-                      field.value ? 'none' : ''
+                      field.value?.includes('5511999136884')
+                        ? 'maicoln'
+                        : field.value?.includes('5511997819194')
+                          ? 'guilherme'
+                          : field.value
+                            ? 'none'
+                            : ''
                     }
                     onValueChange={(value) => {
                       if (value === 'none' || !value) {
                         field.onChange('');
                       } else if (value === 'maicoln') {
                         const message = `Olá MD, queria ver um camarote para ${watch('title') || 'evento'}`;
-                        field.onChange(`https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`);
+                        field.onChange(
+                          `https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`
+                        );
                       } else if (value === 'guilherme') {
                         const message = `Olá Gui, queria ver um camarote para ${watch('title') || 'evento'}`;
-                        field.onChange(`https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`);
+                        field.onChange(
+                          `https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`
+                        );
                       }
                     }}
                   >
@@ -1217,7 +1300,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               name="cta_type"
               control={control}
               render={({ field }) => (
-                <Select value={field.value ?? DEFAULT_EVENT_CTA_TYPE} onValueChange={field.onChange}>
+                <Select
+                  value={field.value ?? DEFAULT_EVENT_CTA_TYPE}
+                  onValueChange={field.onChange}
+                >
                   <SelectTrigger id="cta_type">
                     <SelectValue placeholder="Selecione uma opção" />
                   </SelectTrigger>
@@ -1232,7 +1318,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               )}
             />
             <p className="text-xs text-muted-foreground">
-              Define o texto do botão principal na Home, em /eventos, na página do evento e nos e-mails deste evento (disparo único e resumos semanais).
+              Define o texto do botão principal na Home, em /eventos, na página do evento e nos
+              e-mails deste evento (disparo único e resumos semanais).
             </p>
           </div>
 
@@ -1243,9 +1330,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             return (
               <div
                 className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
-                  missingVip
-                    ? 'border-amber-500/60 bg-amber-500/10'
-                    : 'border-input bg-muted/30'
+                  missingVip ? 'border-amber-500/60 bg-amber-500/10' : 'border-input bg-muted/30'
                 }`}
               >
                 <Controller
@@ -1265,11 +1350,13 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                     Mostrar botão "Comprar Sem Taxa via Pix"
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp configurado em Link Camarote, com mensagem de Pix sem taxa.
+                    Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp
+                    configurado em Link Camarote, com mensagem de Pix sem taxa.
                   </p>
                   {missingVip && (
                     <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                      ⚠️ O botão NÃO vai aparecer no evento até você preencher um "Link Camarote" acima (Maicoln ou Guilherme).
+                      ⚠️ O botão NÃO vai aparecer no evento até você preencher um "Link Camarote"
+                      acima (Maicoln ou Guilherme).
                     </p>
                   )}
                 </div>
@@ -1301,13 +1388,15 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                     Um link de venda por dia (festival)
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Ative quando cada dia do festival tem ingresso vendido separadamente. Na página do evento, o botão "Comprar Ingresso" abrirá um modal para a pessoa escolher o dia. Os links por dia precisam estar cadastrados em <strong>Links</strong> com o evento vinculado e a data de override preenchida.
+                    Ative quando cada dia do festival tem ingresso vendido separadamente. Na página
+                    do evento, o botão "Comprar Ingresso" abrirá um modal para a pessoa escolher o
+                    dia. Os links por dia precisam estar cadastrados em <strong>Links</strong> com o
+                    evento vinculado e a data de override preenchida.
                   </p>
                 </div>
               </div>
             );
           })()}
-
 
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
@@ -1321,8 +1410,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               (watch('description')?.trim().length ?? 0) < 80 && (
                 <p className="text-xs text-amber-500">
                   Descrição curta — eventos com um texto único e mais detalhado (line-up, o que
-                  esperar da noite, diferenciais do local) tendem a se sair melhor no Google.
-                  Não é obrigatório, só uma sugestão.
+                  esperar da noite, diferenciais do local) tendem a se sair melhor no Google. Não é
+                  obrigatório, só uma sugestão.
                 </p>
               )}
           </div>
@@ -1390,7 +1479,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                             setBlogSearchTerm('');
                           }}
                         >
-                          <span className="text-muted-foreground">[{post.category}]</span> {post.title}
+                          <span className="text-muted-foreground">[{post.category}]</span>{' '}
+                          {post.title}
                         </button>
                       ))}
                     </div>
@@ -1414,7 +1504,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               rows={3}
             />
             <p className="text-xs text-muted-foreground">
-              Salvo no evento e respeitado em toda geração/regeneração de artigo. Tem prioridade máxima sobre o template.
+              Salvo no evento e respeitado em toda geração/regeneração de artigo. Tem prioridade
+              máxima sobre o template.
             </p>
           </div>
 
@@ -1432,11 +1523,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                     Criar link automaticamente em /links
                   </Label>
                 </div>
-                
+
                 {createLink && (
                   <div className="space-y-2 pl-6">
                     <Label htmlFor="linkUrlType">URL do Link</Label>
-                    <Select value={linkUrlType} onValueChange={(value: 'ticket' | 'slug') => setLinkUrlType(value)}>
+                    <Select
+                      value={linkUrlType}
+                      onValueChange={(value: 'ticket' | 'slug') => setLinkUrlType(value)}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -1464,11 +1558,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                     Gerar post do blog automaticamente com IA
                   </Label>
                 </div>
-                
+
                 {generateBlogPost && (
                   <div className="space-y-3 pl-6">
                     <p className="text-xs text-muted-foreground">
-                      Um post do blog será criado como rascunho e vinculado a este evento. Você poderá editá-lo após a criação.
+                      Um post do blog será criado como rascunho e vinculado a este evento. Você
+                      poderá editá-lo após a criação.
                     </p>
                     <div className="space-y-2">
                       <Label htmlFor="aiContext">Contexto para IA (opcional)</Label>
@@ -1480,7 +1575,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
                         rows={3}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Informações extras que a IA deve considerar ao gerar o artigo. Essas instruções têm prioridade máxima.
+                        Informações extras que a IA deve considerar ao gerar o artigo. Essas
+                        instruções têm prioridade máxima.
                       </p>
                     </div>
                   </div>
@@ -1515,7 +1611,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           </div>
 
           <div className="flex gap-4 pt-4">
-
             <Button type="submit" disabled={submitting || uploading} className="flex-1">
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {event ? 'Atualizar' : 'Criar'} Evento

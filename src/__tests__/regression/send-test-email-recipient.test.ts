@@ -21,49 +21,52 @@
  * Este teste é estático (sem rede): lê o código-fonte e garante que essas
  * checagens continuam presentes.
  */
-import { describe, it, expect } from "vitest";
-import fs from "fs";
-import path from "path";
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf-8");
+const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
-describe("Regressão R-009 — destino fixo e confirmação de entrega no teste de e-mail", () => {
-  it("send-test-email não lê mais to_email do corpo da requisição", () => {
-    const src = read("supabase/functions/send-test-email/index.ts");
+describe('Regressão R-009 — destino fixo e confirmação de entrega no teste de e-mail', () => {
+  it('send-test-email não lê mais to_email do corpo da requisição', () => {
+    const src = read('supabase/functions/send-test-email/index.ts');
     expect(
       src,
-      "send-test-email voltou a ler to_email do body — isso REINTRODUZ a regressão R-009 " +
-        "(destino controlado pelo client, em vez de fixo em contato@mdaccula.com)."
+      'send-test-email voltou a ler to_email do body — isso REINTRODUZ a regressão R-009 ' +
+        '(destino controlado pelo client, em vez de fixo em contato@mdaccula.com).'
     ).not.toMatch(/to_email/);
   });
 
-  it("send-test-email tem o destinatário de teste fixo hardcoded", () => {
-    const src = read("supabase/functions/send-test-email/index.ts");
+  it('send-test-email tem o destinatário de teste fixo hardcoded', () => {
+    const src = read('supabase/functions/send-test-email/index.ts');
     expect(src).toMatch(/const TEST_RECIPIENT\s*=\s*["']contato@mdaccula\.com["']/);
     expect(src).toMatch(/const destination = TEST_RECIPIENT/);
   });
 
-  it("send-test-email exige um ID de mensagem da Resend antes de confirmar sucesso", () => {
-    const src = read("supabase/functions/send-test-email/index.ts");
+  it('send-test-email exige um ID de mensagem da Resend antes de confirmar sucesso', () => {
+    const src = read('supabase/functions/send-test-email/index.ts');
     expect(
       src,
-      "A resposta de sucesso da Resend deve ser validada por um ID de mensagem " +
-        "(respBody?.id) — um 2xx sozinho não confirma que o e-mail foi de fato enfileirado " +
-        "(regressão R-009)."
+      'A resposta de sucesso da Resend deve ser validada por um ID de mensagem ' +
+        '(respBody?.id) — um 2xx sozinho não confirma que o e-mail foi de fato enfileirado ' +
+        '(regressão R-009).'
     ).toMatch(/respBody\?\.id/);
     expect(src).toMatch(/id:\s*respBody\.id/);
   });
 
-  it("EmailConfig.tsx (sendTestEmail) não envia mais to_email e valida o ID de retorno", () => {
-    const src = read("src/pages/admin/EmailConfig.tsx");
+  it('EmailConfig.tsx (sendTestEmail) não envia mais to_email e valida o ID de retorno', () => {
+    const src = read('src/pages/admin/EmailConfig.tsx');
     const fnMatch = src.match(/const sendTestEmail[\s\S]*?\n  };/);
-    expect(fnMatch, "Não encontrei a função sendTestEmail em EmailConfig.tsx.").toBeTruthy();
+    expect(fnMatch, 'Não encontrei a função sendTestEmail em EmailConfig.tsx.').toBeTruthy();
     const fnSrc = fnMatch![0];
-    expect(fnSrc, "sendTestEmail não deve mais enviar to_email — o backend ignora e fixa o destino.").not.toMatch(/to_email/);
     expect(
       fnSrc,
-      "sendTestEmail precisa validar data?.id antes do toast de sucesso — só checar ausência de " +
-        "`error` não confirma que a Resend retornou um ID de mensagem (regressão R-009)."
+      'sendTestEmail não deve mais enviar to_email — o backend ignora e fixa o destino.'
+    ).not.toMatch(/to_email/);
+    expect(
+      fnSrc,
+      'sendTestEmail precisa validar data?.id antes do toast de sucesso — só checar ausência de ' +
+        '`error` não confirma que a Resend retornou um ID de mensagem (regressão R-009).'
     ).toMatch(/data\?\.id/);
   });
 });

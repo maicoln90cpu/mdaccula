@@ -40,11 +40,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        applySession(session);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+    });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       applySession(session, true);
@@ -60,11 +60,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .select('*')
         .eq('id', userId)
         .maybeSingle();
-      
+
       if (error) throw error;
       setProfile(data);
     } catch (error) {
-      logger.error('Error fetching profile', error, { component: 'useAuth', action: 'fetchProfile' });
+      logger.error('Error fetching profile', error, {
+        component: 'useAuth',
+        action: 'fetchProfile',
+      });
     }
   };
 
@@ -78,7 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signUp = async (email: string, password: string, fullName: string, phone?: string) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -87,8 +90,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         data: {
           full_name: fullName,
           phone: phone,
-        }
-      }
+        },
+      },
     });
     return { error };
   };
@@ -123,7 +126,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         setIsAdmin(!!data);
       } catch (error) {
-        logger.error('Error checking admin role', error, { component: 'useAuth', action: 'checkAdminRole' });
+        logger.error('Error checking admin role', error, {
+          component: 'useAuth',
+          action: 'checkAdminRole',
+        });
         setIsAdmin(false);
       } finally {
         setIsAdminLoading(false);
@@ -134,17 +140,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      session,
-      profile,
-      isAdmin,
-      isAdminLoading,
-      loading,
-      signIn,
-      signUp,
-      signOut,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        profile,
+        isAdmin,
+        isAdminLoading,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

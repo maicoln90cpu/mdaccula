@@ -1,9 +1,9 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Search } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Loader2, Search } from 'lucide-react';
 
 interface TopicSearchFormProps {
   topicQuery: string;
@@ -43,7 +43,7 @@ export function TopicSearchForm({
             onChange={(e) => onTopicQueryChange(e.target.value)}
             placeholder='ex: "Solomun São Paulo"'
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !isGenerating && topicQuery.trim()) {
+              if (e.key === 'Enter' && !isGenerating && topicQuery.trim()) {
                 onGenerate();
               }
             }}

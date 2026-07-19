@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Reveals an element (fade+translate, styled by the caller) the first time it scrolls
@@ -9,13 +9,13 @@ export function useScrollReveal<T extends HTMLElement>() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setIsVisible(true);
       return;
     }
 
     const node = ref.current;
-    if (!node || typeof IntersectionObserver === "undefined") {
+    if (!node || typeof IntersectionObserver === 'undefined') {
       setIsVisible(true);
       return;
     }
@@ -27,7 +27,7 @@ export function useScrollReveal<T extends HTMLElement>() {
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
     );
     observer.observe(node);
     return () => observer.disconnect();

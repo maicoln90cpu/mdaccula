@@ -1,10 +1,10 @@
-import { useScrollReveal } from "@/hooks";
-import { cn } from "@/lib";
+import { useScrollReveal } from '@/hooks';
+import { cn } from '@/lib';
 
 const stats = [
-  { value: "500+", label: "Eventos Promovidos" },
-  { value: "200+", label: "DJs Parceiros" },
-  { value: "50k+", label: "Seguidores" },
+  { value: '500+', label: 'Eventos Promovidos' },
+  { value: '200+', label: 'DJs Parceiros' },
+  { value: '50k+', label: 'Seguidores' },
 ];
 
 const StatCell = ({ value, label, delay }: { value: string; label: string; delay: number }) => {
@@ -14,8 +14,8 @@ const StatCell = ({ value, label, delay }: { value: string; label: string; delay
     <div
       ref={ref}
       className={cn(
-        "group text-center py-8 px-6 transition-all duration-500",
-        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        'group text-center py-8 px-6 transition-all duration-500',
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       )}
       style={{ transitionDelay: `${delay}ms` }}
     >

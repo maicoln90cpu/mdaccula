@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Assina mudanças (INSERT/UPDATE/DELETE) em uma OU mais tabelas e dispara
@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 export function useAdminRealtime(
   tables: string | string[],
   onChange: () => void,
-  enabled: boolean = true,
+  enabled: boolean = true
 ) {
   const cbRef = useRef(onChange);
   useEffect(() => {
@@ -22,7 +22,7 @@ export function useAdminRealtime(
   }, [onChange]);
 
   const tableList = Array.isArray(tables) ? tables : [tables];
-  const tableKey = tableList.slice().sort().join(",");
+  const tableKey = tableList.slice().sort().join(',');
 
   useEffect(() => {
     if (!enabled || tableList.length === 0) return;
@@ -34,15 +34,11 @@ export function useAdminRealtime(
     };
 
     const channel = supabase.channel(
-      `admin-realtime:${tableKey}:${Math.random().toString(36).slice(2, 8)}`,
+      `admin-realtime:${tableKey}:${Math.random().toString(36).slice(2, 8)}`
     );
 
     for (const t of tableList) {
-      channel.on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: t },
-        () => fire(),
-      );
+      channel.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => fire());
     }
 
     channel.subscribe((status) => {

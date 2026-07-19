@@ -2,13 +2,22 @@
  * VirtualizedLinkList - Lista virtualizada de links para performance
  * Renderiza apenas os itens visíveis na viewport
  */
-import { useRef } from "react";
-import { getOptimizedImageUrl } from "@/lib/imageUtils";
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { Button } from "@/components/ui/button";
-import { GripVertical, Eye, EyeOff, RotateCcw, FolderPlus, CopyPlus, Edit, Trash2 } from "lucide-react";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { SortableItem } from "@/components/links/SortableItem";
+import { useRef } from 'react';
+import { getOptimizedImageUrl } from '@/lib/imageUtils';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { Button } from '@/components/ui/button';
+import {
+  GripVertical,
+  Eye,
+  EyeOff,
+  RotateCcw,
+  FolderPlus,
+  CopyPlus,
+  Edit,
+  Trash2,
+} from 'lucide-react';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { SortableItem } from '@/components/links/SortableItem';
 
 interface LinkEvent {
   date: string;
@@ -74,16 +83,16 @@ export const VirtualizedLinkList = ({
     <div
       key={link.id}
       style={style}
-      className={`flex items-center justify-between p-3 rounded-lg border bg-card ${!link.enabled ? "opacity-50" : ""}`}
+      className={`flex items-center justify-between p-3 rounded-lg border bg-card ${!link.enabled ? 'opacity-50' : ''}`}
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <SortableItem id={link.id}>
           <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab flex-shrink-0" />
         </SortableItem>
         {link.thumbnail_url && (
-          <img 
-            src={getOptimizedImageUrl(link.thumbnail_url)} 
-            alt={link.title} 
+          <img
+            src={getOptimizedImageUrl(link.thumbnail_url)}
+            alt={link.title}
             className="w-10 h-10 rounded object-contain flex-shrink-0"
             loading="lazy"
           />
@@ -92,12 +101,15 @@ export const VirtualizedLinkList = ({
           <div className="flex items-center gap-2">
             <p className="font-medium truncate">{link.title}</p>
             {link.manual_order_override && (
-              <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">manual</span>
+              <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
+                manual
+              </span>
             )}
           </div>
           {link.events?.date && (
             <p className="text-xs text-primary font-medium">
-              📅 {new Date(link.events.date + 'T00:00:00').toLocaleDateString('pt-BR')} • {link.events.time?.slice(0, 5) || ''}
+              📅 {new Date(link.events.date + 'T00:00:00').toLocaleDateString('pt-BR')} •{' '}
+              {link.events.time?.slice(0, 5) || ''}
             </p>
           )}
           <p className="text-xs text-muted-foreground truncate">{link.url}</p>
@@ -109,7 +121,7 @@ export const VirtualizedLinkList = ({
           variant="ghost"
           size="icon"
           onClick={() => onToggleEnabled(link.id, link.enabled)}
-          title={link.enabled ? "Desativar" : "Ativar"}
+          title={link.enabled ? 'Desativar' : 'Ativar'}
         >
           {link.enabled ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </Button>
@@ -131,28 +143,13 @@ export const VirtualizedLinkList = ({
         >
           <FolderPlus className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDuplicate(link)}
-          title="Duplicar"
-        >
+        <Button variant="ghost" size="icon" onClick={() => onDuplicate(link)} title="Duplicar">
           <CopyPlus className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onEdit(link)}
-          title="Editar"
-        >
+        <Button variant="ghost" size="icon" onClick={() => onEdit(link)} title="Editar">
           <Edit className="w-4 h-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onDelete(link.id)}
-          title="Excluir"
-        >
+        <Button variant="ghost" size="icon" onClick={() => onDelete(link.id)} title="Excluir">
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
@@ -163,9 +160,7 @@ export const VirtualizedLinkList = ({
   if (!shouldVirtualize) {
     return (
       <SortableContext items={links.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-        <div className="space-y-2">
-          {links.map((link) => renderLinkItem(link))}
-        </div>
+        <div className="space-y-2">{links.map((link) => renderLinkItem(link))}</div>
       </SortableContext>
     );
   }
@@ -173,11 +168,7 @@ export const VirtualizedLinkList = ({
   // For large lists, use virtualization
   return (
     <SortableContext items={links.map((l) => l.id)} strategy={verticalListSortingStrategy}>
-      <div 
-        ref={parentRef} 
-        className="max-h-[500px] overflow-auto"
-        style={{ contain: 'strict' }}
-      >
+      <div ref={parentRef} className="max-h-[500px] overflow-auto" style={{ contain: 'strict' }}>
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,

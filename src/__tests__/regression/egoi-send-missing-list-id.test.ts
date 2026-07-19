@@ -16,27 +16,27 @@
  * garante que a chamada .../actions/send nunca volte a ser feita com corpo
  * vazio.
  */
-import { describe, it, expect } from "vitest";
-import fs from "fs";
-import path from "path";
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf-8");
+const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
-describe("Regressão R-004 — list_id na chamada actions/send da E-goi", () => {
-  it("create-event-email-campaign inclui list_id no body do POST actions/send", () => {
-    const c = read("supabase/functions/create-event-email-campaign/index.ts");
+describe('Regressão R-004 — list_id na chamada actions/send da E-goi', () => {
+  it('create-event-email-campaign inclui list_id no body do POST actions/send', () => {
+    const c = read('supabase/functions/create-event-email-campaign/index.ts');
     const sendCallMatch = c.match(/actions\/send[\s\S]{0,800}/);
     expect(
       sendCallMatch,
-      "Não encontrei a chamada .../actions/send em create-event-email-campaign/index.ts."
+      'Não encontrei a chamada .../actions/send em create-event-email-campaign/index.ts.'
     ).toBeTruthy();
 
     const snippet = sendCallMatch![0];
     expect(
       snippet,
-      "A chamada .../actions/send não inclui list_id no body. " +
+      'A chamada .../actions/send não inclui list_id no body. ' +
         "Isso REINTRODUZ a regressão R-004 (E-goi 422 list_id.isEmpty no botão 'Enviar agora'). " +
-        "Veja docs/TESTING.md → Regressões cobertas."
+        'Veja docs/TESTING.md → Regressões cobertas.'
     ).toMatch(/list_id/);
 
     // Corpo vazio é exatamente o bug original — nunca mais deve voltar.

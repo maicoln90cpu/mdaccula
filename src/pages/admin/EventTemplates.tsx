@@ -1,19 +1,25 @@
-import { useState, useEffect } from "react";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { logger } from "@/lib";
-import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from "lucide-react";
-import { NavLink } from "react-router-dom";
-import { Badge } from "@/components/ui/badge";
-import { ImageUploadWithCrop } from "@/components/ui/ImageUploadWithCrop";
-import { uploadImageWithThumb } from "@/lib/bunnyUploader";
+import { useState, useEffect } from 'react';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { logger } from '@/lib';
+import { Plus, Trash2, Edit2, Save, X, ArrowLeft } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
+import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 
 interface EventTemplate {
   id: string;
@@ -33,16 +39,58 @@ interface EventTemplate {
 }
 
 const GENRES = [
-  'Techno', 'House', 'Tech House', 'Deep House', 'Progressive', 'Trance', 
-  'Psytrance', 'Drum & Bass', 'Dubstep', 'Trap', 'Hip Hop', 'Funk',
-  'Sertanejo', 'Pagode', 'Samba', 'Rock', 'Pop', 'Eletrônica', 'EDM',
-  'Open Format', 'Festival', 'Outros'
+  'Techno',
+  'House',
+  'Tech House',
+  'Deep House',
+  'Progressive',
+  'Trance',
+  'Psytrance',
+  'Drum & Bass',
+  'Dubstep',
+  'Trap',
+  'Hip Hop',
+  'Funk',
+  'Sertanejo',
+  'Pagode',
+  'Samba',
+  'Rock',
+  'Pop',
+  'Eletrônica',
+  'EDM',
+  'Open Format',
+  'Festival',
+  'Outros',
 ];
 
 const STATES = [
-  'SP', 'RJ', 'MG', 'RS', 'PR', 'SC', 'BA', 'GO', 'PE', 'CE', 'PA', 
-  'MA', 'PB', 'ES', 'PI', 'AL', 'RN', 'MT', 'MS', 'DF', 'SE', 'RO', 
-  'TO', 'AC', 'AM', 'RR', 'AP'
+  'SP',
+  'RJ',
+  'MG',
+  'RS',
+  'PR',
+  'SC',
+  'BA',
+  'GO',
+  'PE',
+  'CE',
+  'PA',
+  'MA',
+  'PB',
+  'ES',
+  'PI',
+  'AL',
+  'RN',
+  'MT',
+  'MS',
+  'DF',
+  'SE',
+  'RO',
+  'TO',
+  'AC',
+  'AM',
+  'RR',
+  'AP',
 ];
 
 const EventTemplates = () => {
@@ -53,39 +101,36 @@ const EventTemplates = () => {
   const [showForm, setShowForm] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    venue: "",
-    address: "",
-    location_city: "",
-    location_state: "SP",
+    name: '',
+    venue: '',
+    address: '',
+    location_city: '',
+    location_state: 'SP',
     genres: [] as string[],
-    ticket_link: "",
-    vip_link: "",
-    image_url: "",
-    title: "",
-    subtitle: "",
-    time: "",
-    description: ""
+    ticket_link: '',
+    vip_link: '',
+    image_url: '',
+    title: '',
+    subtitle: '',
+    time: '',
+    description: '',
   });
 
   useEffect(() => {
     fetchTemplates();
   }, []);
 
-  useRealtimeTable("event_templates", () => fetchTemplates());
+  useRealtimeTable('event_templates', () => fetchTemplates());
 
   const fetchTemplates = async () => {
     try {
-      const { data, error } = await supabase
-        .from("event_templates")
-        .select("*")
-        .order("name");
+      const { data, error } = await supabase.from('event_templates').select('*').order('name');
 
       if (error) throw error;
       setTemplates(data || []);
     } catch (error) {
-      logger.error("Erro ao buscar templates", error, { component: 'EventTemplates' });
-      toast.error("Erro ao carregar templates");
+      logger.error('Erro ao buscar templates', error, { component: 'EventTemplates' });
+      toast.error('Erro ao carregar templates');
     } finally {
       setLoading(false);
     }
@@ -93,12 +138,12 @@ const EventTemplates = () => {
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return null;
-    
+
     try {
       return await uploadImageWithThumb(imageFile, 'event-images', { medium: true });
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error("Erro ao fazer upload da imagem");
+      toast.error('Erro ao fazer upload da imagem');
       return null;
     }
   };
@@ -106,7 +151,7 @@ const EventTemplates = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-    
+
     try {
       // Upload de imagem se houver
       let imageUrl = formData.image_url;
@@ -132,31 +177,29 @@ const EventTemplates = () => {
         title: formData.title || null,
         subtitle: formData.subtitle || null,
         time: formData.time || null,
-        description: formData.description || null
+        description: formData.description || null,
       };
-      
+
       if (editingId) {
         const { error } = await supabase
-          .from("event_templates")
+          .from('event_templates')
           .update(templateData)
-          .eq("id", editingId);
+          .eq('id', editingId);
 
         if (error) throw error;
-        toast.success("Template atualizado com sucesso!");
+        toast.success('Template atualizado com sucesso!');
       } else {
-        const { error } = await supabase
-          .from("event_templates")
-          .insert(templateData);
+        const { error } = await supabase.from('event_templates').insert(templateData);
 
         if (error) throw error;
-        toast.success("Template criado com sucesso!");
+        toast.success('Template criado com sucesso!');
       }
 
       resetForm();
       fetchTemplates();
     } catch (error) {
-      logger.error("Erro ao salvar template", error, { component: 'EventTemplates' });
-      const errorMessage = error instanceof Error ? error.message : "Erro ao salvar template";
+      logger.error('Erro ao salvar template', error, { component: 'EventTemplates' });
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao salvar template';
       toast.error(errorMessage);
     } finally {
       setSubmitting(false);
@@ -167,56 +210,53 @@ const EventTemplates = () => {
     setFormData({
       name: template.name,
       venue: template.venue,
-      address: template.address || "",
+      address: template.address || '',
       location_city: template.location_city,
       location_state: template.location_state,
       genres: template.genres || [],
-      ticket_link: template.ticket_link || "",
-      vip_link: template.vip_link || "",
-      image_url: template.image_url || "",
-      title: template.title || "",
-      subtitle: template.subtitle || "",
-      time: template.time || "",
-      description: template.description || ""
+      ticket_link: template.ticket_link || '',
+      vip_link: template.vip_link || '',
+      image_url: template.image_url || '',
+      title: template.title || '',
+      subtitle: template.subtitle || '',
+      time: template.time || '',
+      description: template.description || '',
     });
     setEditingId(template.id);
     setShowForm(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja deletar este template?")) return;
+    if (!confirm('Tem certeza que deseja deletar este template?')) return;
 
     try {
-      const { error } = await supabase
-        .from("event_templates")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from('event_templates').delete().eq('id', id);
 
       if (error) throw error;
-      toast.success("Template deletado com sucesso!");
+      toast.success('Template deletado com sucesso!');
       fetchTemplates();
     } catch (error) {
-      logger.error("Erro ao deletar template", error, { component: 'EventTemplates' });
-      const errorMessage = error instanceof Error ? error.message : "Erro ao deletar template";
+      logger.error('Erro ao deletar template', error, { component: 'EventTemplates' });
+      const errorMessage = error instanceof Error ? error.message : 'Erro ao deletar template';
       toast.error(errorMessage);
     }
   };
 
   const resetForm = () => {
     setFormData({
-      name: "",
-      venue: "",
-      address: "",
-      location_city: "",
-      location_state: "SP",
+      name: '',
+      venue: '',
+      address: '',
+      location_city: '',
+      location_state: 'SP',
       genres: [],
-      ticket_link: "",
-      vip_link: "",
-      image_url: "",
-      title: "",
-      subtitle: "",
-      time: "",
-      description: ""
+      ticket_link: '',
+      vip_link: '',
+      image_url: '',
+      title: '',
+      subtitle: '',
+      time: '',
+      description: '',
     });
     setImageFile(null);
     setEditingId(null);
@@ -224,11 +264,11 @@ const EventTemplates = () => {
   };
 
   const toggleGenre = (genre: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       genres: prev.genres.includes(genre)
-        ? prev.genres.filter(g => g !== genre)
-        : [...prev.genres, genre]
+        ? prev.genres.filter((g) => g !== genre)
+        : [...prev.genres, genre],
     }));
   };
 
@@ -246,13 +286,13 @@ const EventTemplates = () => {
       const message = `Olá MD, queria ver um camarote para ${formData.title || 'evento'}`;
       setFormData({
         ...formData,
-        vip_link: `https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`
+        vip_link: `https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`,
       });
     } else if (value === 'guilherme') {
       const message = `Olá Gui, queria ver um camarote para ${formData.title || 'evento'}`;
       setFormData({
         ...formData,
-        vip_link: `https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`
+        vip_link: `https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`,
       });
     }
   };
@@ -264,7 +304,10 @@ const EventTemplates = () => {
           <div className="w-full">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-8">
               <div>
-                <NavLink to="/admin" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]">
+                <NavLink
+                  to="/admin"
+                  className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-2 min-h-[44px]"
+                >
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar ao Painel
                 </NavLink>
@@ -282,7 +325,7 @@ const EventTemplates = () => {
             {showForm && (
               <Card className="mb-8">
                 <CardHeader>
-                  <CardTitle>{editingId ? "Editar Template" : "Novo Template"}</CardTitle>
+                  <CardTitle>{editingId ? 'Editar Template' : 'Novo Template'}</CardTitle>
                   <CardDescription>
                     Preencha os dados que devem ser reutilizados em múltiplos eventos
                   </CardDescription>
@@ -352,7 +395,9 @@ const EventTemplates = () => {
                         <Textarea
                           id="description"
                           value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, description: e.target.value })
+                          }
                           placeholder="Descrição completa do evento..."
                           rows={4}
                           disabled={submitting}
@@ -364,7 +409,7 @@ const EventTemplates = () => {
                         <ImageUploadWithCrop
                           onImageSelect={(file) => setImageFile(file)}
                           currentImageUrl={formData.image_url}
-                          aspectRatio={16/9}
+                          aspectRatio={16 / 9}
                           label="Imagem do Template"
                         />
                       </div>
@@ -385,7 +430,9 @@ const EventTemplates = () => {
                         <Input
                           id="location_city"
                           value={formData.location_city}
-                          onChange={(e) => setFormData({ ...formData, location_city: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, location_city: e.target.value })
+                          }
                           placeholder="Ex: São Paulo"
                           required
                           disabled={submitting}
@@ -394,17 +441,21 @@ const EventTemplates = () => {
 
                       <div>
                         <Label htmlFor="location_state">Estado *</Label>
-                        <Select 
-                          value={formData.location_state} 
-                          onValueChange={(value) => setFormData({ ...formData, location_state: value })}
+                        <Select
+                          value={formData.location_state}
+                          onValueChange={(value) =>
+                            setFormData({ ...formData, location_state: value })
+                          }
                           disabled={submitting}
                         >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {STATES.map(state => (
-                              <SelectItem key={state} value={state}>{state}</SelectItem>
+                            {STATES.map((state) => (
+                              <SelectItem key={state} value={state}>
+                                {state}
+                              </SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -415,7 +466,9 @@ const EventTemplates = () => {
                         <Input
                           id="ticket_link"
                           value={formData.ticket_link}
-                          onChange={(e) => setFormData({ ...formData, ticket_link: e.target.value })}
+                          onChange={(e) =>
+                            setFormData({ ...formData, ticket_link: e.target.value })
+                          }
                           placeholder="https://..."
                           disabled={submitting}
                         />
@@ -423,7 +476,11 @@ const EventTemplates = () => {
 
                       <div>
                         <Label htmlFor="vip_link">Link Camarote</Label>
-                        <Select value={getVipLinkValue()} onValueChange={handleVipLinkChange} disabled={submitting}>
+                        <Select
+                          value={getVipLinkValue()}
+                          onValueChange={handleVipLinkChange}
+                          disabled={submitting}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Selecione uma opção" />
                           </SelectTrigger>
@@ -438,10 +495,10 @@ const EventTemplates = () => {
                       <div className="md:col-span-2">
                         <Label>Gêneros Musicais</Label>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {GENRES.map(genre => (
+                          {GENRES.map((genre) => (
                             <Badge
                               key={genre}
-                              variant={formData.genres.includes(genre) ? "default" : "outline"}
+                              variant={formData.genres.includes(genre) ? 'default' : 'outline'}
                               className="cursor-pointer"
                               onClick={() => !submitting && toggleGenre(genre)}
                             >
@@ -455,9 +512,18 @@ const EventTemplates = () => {
                     <div className="flex gap-2">
                       <Button type="submit" disabled={submitting}>
                         <Save className="w-4 h-4 mr-2" />
-                        {submitting ? 'Salvando...' : editingId ? "Salvar Alterações" : "Criar Template"}
+                        {submitting
+                          ? 'Salvando...'
+                          : editingId
+                            ? 'Salvar Alterações'
+                            : 'Criar Template'}
                       </Button>
-                      <Button type="button" variant="outline" onClick={resetForm} disabled={submitting}>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={resetForm}
+                        disabled={submitting}
+                      >
                         <X className="w-4 h-4 mr-2" />
                         Cancelar
                       </Button>
@@ -477,23 +543,35 @@ const EventTemplates = () => {
                   </CardContent>
                 </Card>
               ) : (
-                templates.map(template => (
+                templates.map((template) => (
                   <Card key={template.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
                           <CardTitle className="text-xl">{template.name}</CardTitle>
-                          {template.title && <p className="text-sm text-muted-foreground mt-1">{template.title}</p>}
+                          {template.title && (
+                            <p className="text-sm text-muted-foreground mt-1">{template.title}</p>
+                          )}
                           <CardDescription className="mt-2">
-                            <strong>{template.venue}</strong> - {template.location_city}, {template.location_state}
-                            {template.address && <><br />{template.address}</>}
+                            <strong>{template.venue}</strong> - {template.location_city},{' '}
+                            {template.location_state}
+                            {template.address && (
+                              <>
+                                <br />
+                                {template.address}
+                              </>
+                            )}
                           </CardDescription>
                         </div>
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" onClick={() => handleEdit(template)}>
                             <Edit2 className="w-4 h-4" />
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => handleDelete(template.id)}>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(template.id)}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -502,8 +580,10 @@ const EventTemplates = () => {
                     {template.genres.length > 0 && (
                       <CardContent>
                         <div className="flex flex-wrap gap-2">
-                          {template.genres.map(genre => (
-                            <Badge key={genre} variant="secondary">{genre}</Badge>
+                          {template.genres.map((genre) => (
+                            <Badge key={genre} variant="secondary">
+                              {genre}
+                            </Badge>
                           ))}
                         </div>
                       </CardContent>

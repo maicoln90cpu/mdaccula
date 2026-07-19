@@ -20,19 +20,24 @@
  * sincronizados, para que ninguém reintroduza o descompasso editando
  * um dos dois lados sem o outro.
  */
-import { describe, it, expect } from "vitest";
-import fs from "fs";
-import path from "path";
+import { describe, it, expect } from 'vitest';
+import fs from 'fs';
+import path from 'path';
 
-const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf-8");
+const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
 function latestModeCheckConstraint(): string | null {
-  const dir = path.join(process.cwd(), "supabase/migrations");
-  const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  const dir = path.join(process.cwd(), 'supabase/migrations');
+  const files = fs
+    .readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort();
   let lastMatch: string | null = null;
   for (const file of files) {
-    const sql = fs.readFileSync(path.join(dir, file), "utf-8");
-    const matches = sql.match(/event_email_campaigns_mode_check["'\s]*\s*CHECK\s*\(mode IN \(([^)]+)\)\)/gi);
+    const sql = fs.readFileSync(path.join(dir, file), 'utf-8');
+    const matches = sql.match(
+      /event_email_campaigns_mode_check["'\s]*\s*CHECK\s*\(mode IN \(([^)]+)\)\)/gi
+    );
     if (matches && matches.length > 0) {
       lastMatch = matches[matches.length - 1];
     }
@@ -41,23 +46,23 @@ function latestModeCheckConstraint(): string | null {
 }
 
 describe("Regressão R-003 — mode 'manual' em event_email_campaigns", () => {
-  it("EmailEventsTab.markManual continua gravando mode: \"manual\"", () => {
-    const c = read("src/components/admin/emailConfig/EmailEventsTab.tsx");
-    expect(c).toMatch(/mode:\s*"manual"/);
+  it('EmailEventsTab.markManual continua gravando mode: "manual"', () => {
+    const c = read('src/components/admin/emailConfig/EmailEventsTab.tsx');
+    expect(c).toMatch(/mode:\s*'manual'/);
   });
 
   it("A CHECK constraint mais recente de event_email_campaigns.mode permite 'manual'", () => {
     const constraint = latestModeCheckConstraint();
     expect(
       constraint,
-      "Nenhuma migration define event_email_campaigns_mode_check. " +
-        "Veja docs/TESTING.md → Regressões cobertas → R-003."
+      'Nenhuma migration define event_email_campaigns_mode_check. ' +
+        'Veja docs/TESTING.md → Regressões cobertas → R-003.'
     ).toBeTruthy();
     expect(
       constraint,
       `A constraint mais recente (${constraint}) não inclui 'manual'. ` +
-        "Isso REINTRODUZ a regressão R-003 (Marcar como enviado falha no Controle Pessoal). " +
-        "Veja docs/TESTING.md → Regressões cobertas."
+        'Isso REINTRODUZ a regressão R-003 (Marcar como enviado falha no Controle Pessoal). ' +
+        'Veja docs/TESTING.md → Regressões cobertas.'
     ).toMatch(/'manual'/);
   });
 });

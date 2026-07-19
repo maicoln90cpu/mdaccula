@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Save, Clock } from "lucide-react";
-import { useToast } from "@/hooks/useToast";
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Save, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 
 const EventVisibilitySettings = () => {
   const [eventHoursAfterStart, setEventHoursAfterStart] = useState(12);
@@ -17,24 +17,24 @@ const EventVisibilitySettings = () => {
   const fetchSettings = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .from("site_settings")
-        .select("key, value")
-        .in("key", ["event_hours_after_start", "event_hours_without_time"]);
+        .from('site_settings')
+        .select('key, value')
+        .in('key', ['event_hours_after_start', 'event_hours_without_time']);
 
       if (error) throw error;
 
       data?.forEach((setting) => {
-        if (setting.key === "event_hours_after_start") {
-          setEventHoursAfterStart(parseInt(setting.value || "12"));
-        } else if (setting.key === "event_hours_without_time") {
-          setEventHoursWithoutTime(parseInt(setting.value || "24"));
+        if (setting.key === 'event_hours_after_start') {
+          setEventHoursAfterStart(parseInt(setting.value || '12'));
+        } else if (setting.key === 'event_hours_without_time') {
+          setEventHoursWithoutTime(parseInt(setting.value || '24'));
         }
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao carregar configurações",
+        variant: 'destructive',
+        title: 'Erro ao carregar configurações',
         description: message,
       });
     } finally {
@@ -50,27 +50,27 @@ const EventVisibilitySettings = () => {
     setSaving(true);
     try {
       const updates = [
-        { key: "event_hours_after_start", value: eventHoursAfterStart.toString() },
-        { key: "event_hours_without_time", value: eventHoursWithoutTime.toString() },
+        { key: 'event_hours_after_start', value: eventHoursAfterStart.toString() },
+        { key: 'event_hours_without_time', value: eventHoursWithoutTime.toString() },
       ];
 
       for (const update of updates) {
         const { error } = await supabase
-          .from("site_settings")
-          .upsert({ key: update.key, value: update.value }, { onConflict: "key" });
+          .from('site_settings')
+          .upsert({ key: update.key, value: update.value }, { onConflict: 'key' });
 
         if (error) throw error;
       }
 
       toast({
-        title: "Configurações salvas",
-        description: "As regras de visibilidade de eventos foram atualizadas.",
+        title: 'Configurações salvas',
+        description: 'As regras de visibilidade de eventos foram atualizadas.',
       });
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        variant: "destructive",
-        title: "Erro ao salvar configurações",
+        variant: 'destructive',
+        title: 'Erro ao salvar configurações',
         description: message,
       });
     } finally {
@@ -94,7 +94,8 @@ const EventVisibilitySettings = () => {
           <CardTitle className="text-lg sm:text-xl">Regras de Visibilidade</CardTitle>
         </div>
         <CardDescription className="text-sm">
-          Quando um evento passa a ficar inativo e some do site. O timezone global fica em Configurações → Geral.
+          Quando um evento passa a ficar inativo e some do site. O timezone global fica em
+          Configurações → Geral.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6 px-4 sm:px-6">
@@ -130,23 +131,32 @@ const EventVisibilitySettings = () => {
             <span className="text-sm text-muted-foreground">horas após 00:00 do dia</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            Quando não houver horário definido, conta a partir da meia-noite do dia do evento (1-72h, padrão 24h).
+            Quando não houver horário definido, conta a partir da meia-noite do dia do evento
+            (1-72h, padrão 24h).
           </p>
         </div>
 
         <div className="p-4 rounded-lg bg-muted/30 border space-y-2">
           <p className="text-sm font-medium">Como funciona a regra de visibilidade:</p>
           <ul className="text-xs text-muted-foreground space-y-1 list-disc list-inside">
-            <li>Evento usa apenas <strong>data</strong> e <strong>horário de início</strong></li>
-            <li>Com horário: visível até <strong>início + horas configuradas</strong></li>
-            <li>Sem horário: visível até <strong>meia-noite do dia + horas configuradas</strong></li>
-            <li>Comparação respeita o <strong>timezone</strong> configurado em Configurações → Geral</li>
+            <li>
+              Evento usa apenas <strong>data</strong> e <strong>horário de início</strong>
+            </li>
+            <li>
+              Com horário: visível até <strong>início + horas configuradas</strong>
+            </li>
+            <li>
+              Sem horário: visível até <strong>meia-noite do dia + horas configuradas</strong>
+            </li>
+            <li>
+              Comparação respeita o <strong>timezone</strong> configurado em Configurações → Geral
+            </li>
           </ul>
         </div>
 
         <Button onClick={handleSave} disabled={saving} className="w-full">
           <Save className="w-4 h-4 mr-2" />
-          {saving ? "Salvando..." : "Salvar Regras de Visibilidade"}
+          {saving ? 'Salvando...' : 'Salvar Regras de Visibilidade'}
         </Button>
       </CardContent>
     </Card>

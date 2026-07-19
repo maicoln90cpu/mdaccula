@@ -8,11 +8,11 @@
  * override em supabase/config.toml). fetchAllPaginated (src/lib/supabasePagination.ts)
  * é a proteção: pagina em blocos de 1000 até esgotar o resultado real.
  */
-import { describe, it, expect, vi } from "vitest";
-import { fetchAllPaginated } from "@/lib/supabasePagination";
+import { describe, it, expect, vi } from 'vitest';
+import { fetchAllPaginated } from '@/lib/supabasePagination';
 
-describe("Regressão — LinksAnalytics não trunca mais em 1000 linhas com filtro de data", () => {
-  it("soma corretamente um período com mais de 1000 eventos de clique/view", async () => {
+describe('Regressão — LinksAnalytics não trunca mais em 1000 linhas com filtro de data', () => {
+  it('soma corretamente um período com mais de 1000 eventos de clique/view', async () => {
     const totalRows = 1347;
     const allRows = Array.from({ length: totalRows }, (_, i) => ({ link_id: `link-${i % 5}` }));
 

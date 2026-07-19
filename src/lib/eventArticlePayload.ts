@@ -25,18 +25,28 @@ export interface EventLike {
 }
 
 const WEEKDAYS_PT = [
-  "domingo",
-  "segunda-feira",
-  "terça-feira",
-  "quarta-feira",
-  "quinta-feira",
-  "sexta-feira",
-  "sábado",
+  'domingo',
+  'segunda-feira',
+  'terça-feira',
+  'quarta-feira',
+  'quinta-feira',
+  'sexta-feira',
+  'sábado',
 ];
 
 const MONTHS_PT = [
-  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
 ];
 
 /**
@@ -45,20 +55,20 @@ const MONTHS_PT = [
  * `new Date('2026-09-19')` retornar sexta em UTC-3.
  */
 export function weekdayPtBr(dateStr: string): string {
-  if (!dateStr) return "";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  if (!y || !m || !d) return "";
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return '';
   const dt = new Date(y, m - 1, d);
-  return WEEKDAYS_PT[dt.getDay()] ?? "";
+  return WEEKDAYS_PT[dt.getDay()] ?? '';
 }
 
 /** Ex: "19 de setembro de 2026 (sábado)" */
 export function dateFormattedPtBr(dateStr: string): string {
-  if (!dateStr) return "";
-  const [y, m, d] = dateStr.split("-").map(Number);
-  if (!y || !m || !d) return "";
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return '';
   const wd = weekdayPtBr(dateStr);
-  return `${d} de ${MONTHS_PT[m - 1]} de ${y}${wd ? ` (${wd})` : ""}`;
+  return `${d} de ${MONTHS_PT[m - 1]} de ${y}${wd ? ` (${wd})` : ''}`;
 }
 
 export interface ArticlePayload {
@@ -107,33 +117,35 @@ function dedupeParts(parts: Array<string | null | undefined>): string[] {
 
 export function buildArticlePayload(
   event: EventLike,
-  opts: { generateImage?: boolean; aiContextOverride?: string } = {},
+  opts: { generateImage?: boolean; aiContextOverride?: string } = {}
 ): ArticlePayload {
-  const eventLocation = dedupeParts([event.venue, event.location_city, event.location_state]).join(" - ");
+  const eventLocation = dedupeParts([event.venue, event.location_city, event.location_state]).join(
+    ' - '
+  );
 
   return {
     eventId: event.id,
     eventName: event.title,
     title: event.title,
-    subtitle: event.subtitle ?? "",
+    subtitle: event.subtitle ?? '',
     eventDate: event.date,
     dateFormatted: dateFormattedPtBr(event.date),
     weekday: weekdayPtBr(event.date),
-    eventTime: event.time ?? "",
-    endTime: event.end_time ?? "",
+    eventTime: event.time ?? '',
+    endTime: event.end_time ?? '',
     eventLocation,
     venue: event.venue,
-    address: event.address ?? "",
+    address: event.address ?? '',
     locationCity: event.location_city,
     locationState: event.location_state,
-    description: event.description ?? "",
-    genres: (event.genres ?? []).join(", "),
-    lineup: (event.lineup ?? []).join(", "),
-    ticketLink: event.ticket_link ?? "",
-    vipLink: event.vip_link ?? "",
-    eventImageUrl: event.image_url ?? "",
-    aiContext: opts.aiContextOverride ?? event.ai_context ?? "",
-    category: "Eventos",
+    description: event.description ?? '',
+    genres: (event.genres ?? []).join(', '),
+    lineup: (event.lineup ?? []).join(', '),
+    ticketLink: event.ticket_link ?? '',
+    vipLink: event.vip_link ?? '',
+    eventImageUrl: event.image_url ?? '',
+    aiContext: opts.aiContextOverride ?? event.ai_context ?? '',
+    category: 'Eventos',
     generateImage: opts.generateImage ?? !event.image_url,
   };
 }

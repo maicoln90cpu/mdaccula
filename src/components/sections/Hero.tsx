@@ -1,19 +1,19 @@
-import { Button } from "@/components/ui/button";
-import { Calendar, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { OptimizedImage } from "@/components/OptimizedImage";
-import { useEvents } from "@/hooks/useEvents";
-import { formatEventDateRange } from "@/lib/dateUtils";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useMuralParallax } from "@/hooks/useTiltParallax";
-import { useMagneticHover } from "@/hooks/useMagneticHover";
-import AuroraBackground from "@/components/effects/AuroraBackground";
+import { Button } from '@/components/ui/button';
+import { Calendar, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { useEvents } from '@/hooks/useEvents';
+import { formatEventDateRange } from '@/lib/dateUtils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useMuralParallax } from '@/hooks/useTiltParallax';
+import { useMagneticHover } from '@/hooks/useMagneticHover';
+import AuroraBackground from '@/components/effects/AuroraBackground';
 
 const FLYER_LAYOUT = [
-  { top: "0%", left: "12%", rotate: -6, depth: 10 },
-  { top: "18%", left: "42%", rotate: 5, depth: 16 },
-  { top: "42%", left: "2%", rotate: 3, depth: 6 },
+  { top: '0%', left: '12%', rotate: -6, depth: 10 },
+  { top: '18%', left: '42%', rotate: 5, depth: 16 },
+  { top: '42%', left: '2%', rotate: 3, depth: 6 },
 ] as const;
 
 const FlyerMural = () => {
@@ -59,7 +59,7 @@ const FlyerMural = () => {
             >
               <div className="relative h-36 overflow-hidden">
                 <OptimizedImage
-                  src={event.image_url || "/placeholder.svg"}
+                  src={event.image_url || '/placeholder.svg'}
                   alt=""
                   className="w-full h-full"
                   objectFit="cover"
@@ -126,7 +126,12 @@ const Hero = () => {
                 </Link>
               </Button>
             </motion.span>
-            <Button variant="outline" size="lg" className="text-base px-8 py-4 border-primary/50 hover:border-primary" asChild>
+            <Button
+              variant="outline"
+              size="lg"
+              className="text-base px-8 py-4 border-primary/50 hover:border-primary"
+              asChild
+            >
               <Link to="/quem-somos">
                 <MapPin className="w-5 h-5 mr-2" />
                 Quem somos

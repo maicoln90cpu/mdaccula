@@ -1,6 +1,6 @@
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface SocialSettingsProps {
   instagramLink: string;
@@ -38,7 +38,9 @@ const SocialSettings = ({
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="space-y-2">
-            <Label htmlFor="instagram-link" className="text-sm">Instagram URL</Label>
+            <Label htmlFor="instagram-link" className="text-sm">
+              Instagram URL
+            </Label>
             <Input
               id="instagram-link"
               placeholder="https://instagram.com/mdaccula"
@@ -48,7 +50,9 @@ const SocialSettings = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="soundcloud-link" className="text-sm">Soundcloud URL</Label>
+            <Label htmlFor="soundcloud-link" className="text-sm">
+              Soundcloud URL
+            </Label>
             <Input
               id="soundcloud-link"
               placeholder="https://soundcloud.com/mdaccula"
@@ -63,13 +67,13 @@ const SocialSettings = ({
       <Card>
         <CardHeader className="px-4 sm:px-6">
           <CardTitle className="text-lg sm:text-xl">Contato</CardTitle>
-          <CardDescription className="text-sm">
-            Configure as informações de contato
-          </CardDescription>
+          <CardDescription className="text-sm">Configure as informações de contato</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="space-y-2">
-            <Label htmlFor="whatsapp-number" className="text-sm">WhatsApp (Número)</Label>
+            <Label htmlFor="whatsapp-number" className="text-sm">
+              WhatsApp (Número)
+            </Label>
             <Input
               id="whatsapp-number"
               placeholder="+55 11 99999-9999"
@@ -79,7 +83,9 @@ const SocialSettings = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="whatsapp-link" className="text-sm">WhatsApp (Link)</Label>
+            <Label htmlFor="whatsapp-link" className="text-sm">
+              WhatsApp (Link)
+            </Label>
             <Input
               id="whatsapp-link"
               placeholder="https://wa.me/5511999999999"
@@ -89,7 +95,9 @@ const SocialSettings = ({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="contact-email" className="text-sm">Email de Contato</Label>
+            <Label htmlFor="contact-email" className="text-sm">
+              Email de Contato
+            </Label>
             <Input
               id="contact-email"
               type="email"

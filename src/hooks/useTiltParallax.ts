@@ -1,10 +1,10 @@
-import { useRef } from "react";
-import { useMotionValue, useSpring, useReducedMotion, type MotionValue } from "framer-motion";
+import { useRef } from 'react';
+import { useMotionValue, useSpring, useReducedMotion, type MotionValue } from 'framer-motion';
 
 const SPRING = { stiffness: 150, damping: 18, mass: 0.4 };
 
 function isMousePointer(e: React.PointerEvent): boolean {
-  return e.pointerType === "mouse";
+  return e.pointerType === 'mouse';
 }
 
 export interface TiltRotateHandle<T extends HTMLElement> {
@@ -16,7 +16,9 @@ export interface TiltRotateHandle<T extends HTMLElement> {
 }
 
 /** Single-element 3D tilt driven by pointer position (desktop-only, respects prefers-reduced-motion). */
-export function useTiltRotate<T extends HTMLElement = HTMLDivElement>(maxDeg = 16): TiltRotateHandle<T> {
+export function useTiltRotate<T extends HTMLElement = HTMLDivElement>(
+  maxDeg = 16
+): TiltRotateHandle<T> {
   const ref = useRef<T>(null);
   const rx = useMotionValue(0);
   const ry = useMotionValue(0);

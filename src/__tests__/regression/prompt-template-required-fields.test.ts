@@ -8,11 +8,11 @@
  * sempre separar allFields (todas as chaves, pro formulário) de requiredFields (só as
  * marcadas true, pro bloqueio de geração).
  */
-import { describe, it, expect } from "vitest";
-import { normalizePromptTemplateFields } from "@/lib/promptTemplateFields";
+import { describe, it, expect } from 'vitest';
+import { normalizePromptTemplateFields } from '@/lib/promptTemplateFields';
 
-describe("Regressão — campo opcional do template não bloqueia mais a geração", () => {
-  it("campo marcado como false não entra em requiredFields, mas continua em allFields", () => {
+describe('Regressão — campo opcional do template não bloqueia mais a geração', () => {
+  it('campo marcado como false não entra em requiredFields, mas continua em allFields', () => {
     const { allFields, requiredFields } = normalizePromptTemplateFields({
       nome_evento: true,
       lineup: false,
@@ -20,12 +20,12 @@ describe("Regressão — campo opcional do template não bloqueia mais a geraç�
       link_ingresso: false,
     });
 
-    expect(allFields).toContain("lineup");
-    expect(allFields).toContain("data_evento");
-    expect(allFields).toContain("link_ingresso");
-    expect(requiredFields).toEqual(["nome_evento"]);
-    expect(requiredFields).not.toContain("lineup");
-    expect(requiredFields).not.toContain("data_evento");
-    expect(requiredFields).not.toContain("link_ingresso");
+    expect(allFields).toContain('lineup');
+    expect(allFields).toContain('data_evento');
+    expect(allFields).toContain('link_ingresso');
+    expect(requiredFields).toEqual(['nome_evento']);
+    expect(requiredFields).not.toContain('lineup');
+    expect(requiredFields).not.toContain('data_evento');
+    expect(requiredFields).not.toContain('link_ingresso');
   });
 });

@@ -11,8 +11,11 @@
  * do Provider TODOS os componentes compartilham o mesmo cache — evita o bug
  * do "[Bloco global indisponível]" no preview logo após salvar.
  */
-import { useContext } from "react";
-import { EmailGlobalBlocksContext, type EmailGlobalBlocksCtx } from "@/contexts/emailGlobalBlocksContextValue";
+import { useContext } from 'react';
+import {
+  EmailGlobalBlocksContext,
+  type EmailGlobalBlocksCtx,
+} from '@/contexts/emailGlobalBlocksContextValue';
 
 export function useEmailGlobalBlocksContext(): EmailGlobalBlocksCtx {
   const ctx = useContext(EmailGlobalBlocksContext);
@@ -25,13 +28,13 @@ export function useEmailGlobalBlocksContext(): EmailGlobalBlocksCtx {
     error: null,
     reload: async () => {},
     saveAsGlobal: async () => {
-      throw new Error("EmailGlobalBlocksProvider não montado — envolva a página com o Provider.");
+      throw new Error('EmailGlobalBlocksProvider não montado — envolva a página com o Provider.');
     },
     updateGlobal: async () => {
-      throw new Error("EmailGlobalBlocksProvider não montado.");
+      throw new Error('EmailGlobalBlocksProvider não montado.');
     },
     deleteGlobal: async () => {
-      throw new Error("EmailGlobalBlocksProvider não montado.");
+      throw new Error('EmailGlobalBlocksProvider não montado.');
     },
   };
 }

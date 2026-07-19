@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { getOptimizedImageUrl, getThumbnailUrl, getOriginalSupabaseUrl } from "@/lib/imageUtils";
-import { StaticIcon } from "./StaticIcon";
+import { useState } from 'react';
+import { getOptimizedImageUrl, getThumbnailUrl, getOriginalSupabaseUrl } from '@/lib/imageUtils';
+import { StaticIcon } from './StaticIcon';
 
 interface LinkCardImageProps {
   /** Raw image URL (thumbnail_url or event image_url) */
@@ -31,7 +31,7 @@ export const LinkCardImage = ({
   thumbnailUrl,
   fallbackUrl,
   alt,
-  iconName = "ExternalLink",
+  iconName = 'ExternalLink',
   featured = false,
   skipOptimization = false,
 }: LinkCardImageProps) => {
@@ -39,16 +39,16 @@ export const LinkCardImage = ({
   const rawImage = imgError ? fallbackUrl || null : thumbnailUrl || fallbackUrl || null;
 
   const optimizedFull = rawImage && !skipOptimization ? getOptimizedImageUrl(rawImage) : null;
-  const resolvedImage = rawImage
-    ? (skipOptimization ? rawImage : getThumbnailUrl(rawImage))
-    : null;
+  const resolvedImage = rawImage ? (skipOptimization ? rawImage : getThumbnailUrl(rawImage)) : null;
 
-  const containerClass = featured ? "w-20 h-20 sm:w-24 sm:h-24" : "w-16 h-16";
+  const containerClass = featured ? 'w-20 h-20 sm:w-24 sm:h-24' : 'w-16 h-16';
 
   if (!resolvedImage) {
     return (
-      <div className={`${containerClass} flex-shrink-0 rounded-lg bg-white/10 flex items-center justify-center`}>
-        <StaticIcon name={iconName} className={featured ? "w-8 h-8" : "w-6 h-6"} />
+      <div
+        className={`${containerClass} flex-shrink-0 rounded-lg bg-white/10 flex items-center justify-center`}
+      >
+        <StaticIcon name={iconName} className={featured ? 'w-8 h-8' : 'w-6 h-6'} />
       </div>
     );
   }
@@ -65,7 +65,7 @@ export const LinkCardImage = ({
 
           // 1) thumb (pode não existir pra imagens antigas) -> full no Bunny CDN
           if (optimizedFull && !img.dataset.triedFull && img.src !== optimizedFull) {
-            img.dataset.triedFull = "true";
+            img.dataset.triedFull = 'true';
             img.src = optimizedFull;
             return;
           }
@@ -74,7 +74,7 @@ export const LinkCardImage = ({
           if (!img.dataset.triedSupabase) {
             const supabaseUrl = getOriginalSupabaseUrl(optimizedFull || img.src);
             if (supabaseUrl !== img.src) {
-              img.dataset.triedSupabase = "true";
+              img.dataset.triedSupabase = 'true';
               img.src = supabaseUrl;
               return;
             }

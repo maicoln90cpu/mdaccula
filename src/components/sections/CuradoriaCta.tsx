@@ -1,10 +1,11 @@
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { useTiltRotate } from "@/hooks/useTiltParallax";
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { useTiltRotate } from '@/hooks/useTiltParallax';
 
 const DraftSetCard = () => {
-  const { ref, rotateX, rotateY, onPointerMove, onPointerLeave } = useTiltRotate<HTMLDivElement>(16);
+  const { ref, rotateX, rotateY, onPointerMove, onPointerLeave } =
+    useTiltRotate<HTMLDivElement>(16);
 
   return (
     <motion.div
@@ -14,7 +15,7 @@ const DraftSetCard = () => {
         rotateX,
         rotateY,
         transformPerspective: 700,
-        transformStyle: "preserve-3d",
+        transformStyle: 'preserve-3d',
       }}
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
@@ -23,7 +24,7 @@ const DraftSetCard = () => {
         className="relative h-36"
         style={{
           background:
-            "repeating-linear-gradient(135deg, hsl(var(--muted)) 0 2px, hsl(var(--muted) / 0.6) 2px 14px)",
+            'repeating-linear-gradient(135deg, hsl(var(--muted)) 0 2px, hsl(var(--muted) / 0.6) 2px 14px)',
         }}
       >
         <span className="absolute top-2.5 left-2.5 text-[0.65rem] font-mono uppercase tracking-wide font-bold bg-accent/20 border border-accent/50 text-accent-glow px-2 py-0.5 rounded-full animate-pulse">
@@ -53,7 +54,7 @@ const CuradoriaCta = () => {
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 55% 65% at 80% 40%, hsl(var(--accent) / 0.16), transparent 60%), radial-gradient(ellipse 45% 55% at 10% 70%, hsl(var(--primary) / 0.16), transparent 60%)",
+            'radial-gradient(ellipse 55% 65% at 80% 40%, hsl(var(--accent) / 0.16), transparent 60%), radial-gradient(ellipse 45% 55% at 10% 70%, hsl(var(--primary) / 0.16), transparent 60%)',
         }}
       />
 

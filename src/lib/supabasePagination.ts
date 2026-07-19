@@ -5,7 +5,10 @@
  * em blocos de 1000 até esgotar.
  */
 export async function fetchAllPaginated<T>(
-  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+  buildQuery: (
+    from: number,
+    to: number
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 ): Promise<T[]> {
   const PAGE_SIZE = 1000;
   const results: T[] = [];

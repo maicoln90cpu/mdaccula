@@ -35,20 +35,20 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Detecta chunk obsoleto (após novo deploy) e tenta recarregar uma vez
-    const msg = String(error?.message || "");
+    const msg = String(error?.message || '');
     const isChunkError =
-      msg.includes("dynamically imported module") ||
-      msg.includes("Failed to fetch dynamically imported") ||
-      msg.includes("Importing a module script failed") ||
-      msg.includes("error loading dynamically imported module");
+      msg.includes('dynamically imported module') ||
+      msg.includes('Failed to fetch dynamically imported') ||
+      msg.includes('Importing a module script failed') ||
+      msg.includes('error loading dynamically imported module');
 
     if (isChunkError) {
       try {
-        const KEY = "__chunk_reload_at";
-        const last = Number(sessionStorage.getItem(KEY) || "0");
+        const KEY = '__chunk_reload_at';
+        const last = Number(sessionStorage.getItem(KEY) || '0');
         if (Date.now() - last >= 10_000) {
           sessionStorage.setItem(KEY, String(Date.now()));
-          console.warn("[ErrorBoundary] Chunk obsoleto detectado — recarregando.");
+          console.warn('[ErrorBoundary] Chunk obsoleto detectado — recarregando.');
           window.location.reload();
           return;
         }
@@ -59,15 +59,11 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     // Log error with centralized logger
-    this.errorLogger.error(
-      `Uncaught error in ${this.props.pageName || 'component tree'}`,
-      error,
-      { 
-        action: 'componentDidCatch',
-        pageName: this.props.pageName,
-        componentStack: errorInfo.componentStack?.slice(0, 500) 
-      }
-    );
+    this.errorLogger.error(`Uncaught error in ${this.props.pageName || 'component tree'}`, error, {
+      action: 'componentDidCatch',
+      pageName: this.props.pageName,
+      componentStack: errorInfo.componentStack?.slice(0, 500),
+    });
 
     // Store error info for display
     this.setState({ errorInfo });
@@ -129,12 +125,12 @@ export class ErrorBoundary extends Component<Props, State> {
               </div>
               <CardTitle className="text-2xl">Algo deu errado</CardTitle>
               <CardDescription className="text-base">
-                {this.props.pageName 
+                {this.props.pageName
                   ? `Ocorreu um erro ao carregar ${this.props.pageName}. Tente recarregar a página.`
                   : 'Ocorreu um erro inesperado. Tente recarregar a página ou voltar para a página inicial.'}
               </CardDescription>
             </CardHeader>
-            
+
             <CardContent className="space-y-6">
               {/* Error details in development */}
               {isDev && this.state.error && (
@@ -152,27 +148,17 @@ export class ErrorBoundary extends Component<Props, State> {
 
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-3">
-                <Button 
-                  onClick={this.handleRetry}
-                  variant="default"
-                  className="col-span-2"
-                >
+                <Button onClick={this.handleRetry} variant="default" className="col-span-2">
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Tentar Novamente
                 </Button>
-                
-                <Button 
-                  onClick={this.handleGoBack}
-                  variant="outline"
-                >
+
+                <Button onClick={this.handleGoBack} variant="outline">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Voltar
                 </Button>
-                
-                <Button 
-                  onClick={this.handleGoHome}
-                  variant="outline"
-                >
+
+                <Button onClick={this.handleGoHome} variant="outline">
                   <Home className="w-4 h-4 mr-2" />
                   Página Inicial
                 </Button>
@@ -181,7 +167,10 @@ export class ErrorBoundary extends Component<Props, State> {
               {/* Help text */}
               <p className="text-xs text-muted-foreground text-center">
                 Se o problema persistir, entre em contato conosco através da página de{' '}
-                <a href="/contato" className="text-primary hover:underline">Contato</a>.
+                <a href="/contato" className="text-primary hover:underline">
+                  Contato
+                </a>
+                .
               </p>
             </CardContent>
           </Card>
@@ -196,13 +185,7 @@ export class ErrorBoundary extends Component<Props, State> {
 /**
  * Hook-friendly wrapper component for sections
  */
-export function SectionErrorBoundary({ 
-  children, 
-  name 
-}: { 
-  children: ReactNode; 
-  name: string;
-}) {
+export function SectionErrorBoundary({ children, name }: { children: ReactNode; name: string }) {
   return (
     <ErrorBoundary pageName={name} minimal>
       {children}

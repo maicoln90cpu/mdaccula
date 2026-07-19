@@ -1,28 +1,38 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Eye, Share2, Calendar, TrendingUp, Newspaper } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { OptimizedImage } from "@/components/OptimizedImage";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { SEOHead } from "@/components/SEOHead";
-import { PageHeader } from "@/components/ui/page-header";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import Navigation from '@/components/ui/navigation';
+import Footer from '@/components/ui/footer';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+import { Eye, Share2, Calendar, TrendingUp, Newspaper } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { OptimizedImage } from '@/components/OptimizedImage';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { SEOHead } from '@/components/SEOHead';
+import { PageHeader } from '@/components/ui/page-header';
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 export default function Analytics() {
   // Top 10 posts mais lidos
   const { data: topPosts, isLoading: loadingPosts } = useQuery({
-    queryKey: ["top-posts"],
+    queryKey: ['top-posts'],
     queryFn: async () => {
       const { data } = await supabase
-        .from("blog_posts")
-        .select("title, slug, views, image_url, category")
-        .eq("published", true)
-        .order("views", { ascending: false })
+        .from('blog_posts')
+        .select('title, slug, views, image_url, category')
+        .eq('published', true)
+        .order('views', { ascending: false })
         .limit(10);
       return data || [];
     },
@@ -30,13 +40,13 @@ export default function Analytics() {
 
   // Top 10 eventos mais populares
   const { data: topEvents, isLoading: loadingEvents } = useQuery({
-    queryKey: ["top-events"],
+    queryKey: ['top-events'],
     queryFn: async () => {
       const { data } = await supabase
-        .from("events")
-        .select("title, slug, views, image_url")
-        .eq("status", "active")
-        .order("views", { ascending: false })
+        .from('events')
+        .select('title, slug, views, image_url')
+        .eq('status', 'active')
+        .order('views', { ascending: false })
         .limit(10);
       return data || [];
     },
@@ -44,21 +54,21 @@ export default function Analytics() {
 
   // Compartilhamentos por plataforma
   const { data: shareStats, isLoading: loadingShares } = useQuery({
-    queryKey: ["share-stats"],
+    queryKey: ['share-stats'],
     queryFn: async () => {
       const { data } = await supabase
-        .from("share_analytics")
-        .select("platform")
-        .gte(
-          "shared_at",
-          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-        );
+        .from('share_analytics')
+        .select('platform')
+        .gte('shared_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
 
       // Agrupar por plataforma
-      const grouped = data?.reduce((acc: Record<string, number>, { platform }) => {
-        acc[platform] = (acc[platform] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
+      const grouped = data?.reduce(
+        (acc: Record<string, number>, { platform }) => {
+          acc[platform] = (acc[platform] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
 
       return Object.entries(grouped || {}).map(([name, value]) => ({
         name: name.charAt(0).toUpperCase() + name.slice(1),
@@ -69,17 +79,15 @@ export default function Analytics() {
 
   // Total de views do site
   const { data: totalViews } = useQuery({
-    queryKey: ["total-views"],
+    queryKey: ['total-views'],
     queryFn: async () => {
       const [posts, events] = await Promise.all([
-        supabase.from("blog_posts").select("views"),
-        supabase.from("events").select("views").eq("status", "active"),
+        supabase.from('blog_posts').select('views'),
+        supabase.from('events').select('views').eq('status', 'active'),
       ]);
 
-      const postViews =
-        posts.data?.reduce((sum, p) => sum + (p.views || 0), 0) || 0;
-      const eventViews =
-        events.data?.reduce((sum, e) => sum + (e.views || 0), 0) || 0;
+      const postViews = posts.data?.reduce((sum, p) => sum + (p.views || 0), 0) || 0;
+      const eventViews = events.data?.reduce((sum, e) => sum + (e.views || 0), 0) || 0;
 
       return postViews + eventViews;
     },
@@ -87,12 +95,12 @@ export default function Analytics() {
 
   // Total de posts
   const { data: totalPosts } = useQuery({
-    queryKey: ["total-posts"],
+    queryKey: ['total-posts'],
     queryFn: async () => {
       const { count } = await supabase
-        .from("blog_posts")
-        .select("*", { count: "exact", head: true })
-        .eq("published", true);
+        .from('blog_posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('published', true);
       return count || 0;
     },
   });
@@ -113,80 +121,55 @@ export default function Analytics() {
           <PageHeader
             title="Analytics Público"
             subtitle="Transparência total sobre o desempenho do site"
-            breadcrumb={[{ label: "Home", href: "/" }, { label: "Analytics" }]}
+            breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Analytics' }]}
             variant="plain"
             align="center"
             icon={TrendingUp}
           />
           <div className="container mx-auto px-4 py-8">
-
             {/* Cards de métricas */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total de Views
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Total de Views</CardTitle>
                   <Eye className="w-4 h-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {totalViews?.toLocaleString() || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Desde o início
-                  </p>
+                  <div className="text-3xl font-bold">{totalViews?.toLocaleString() || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Desde o início</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Posts Publicados
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Posts Publicados</CardTitle>
                   <Newspaper className="w-4 h-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {totalPosts}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Total de artigos
-                  </p>
+                  <div className="text-3xl font-bold">{totalPosts}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Total de artigos</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Compartilhamentos
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Compartilhamentos</CardTitle>
                   <Share2 className="w-4 h-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {totalShares}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Últimos 30 dias
-                  </p>
+                  <div className="text-3xl font-bold">{totalShares}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Últimos 30 dias</p>
                 </CardContent>
               </Card>
 
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Eventos
-                  </CardTitle>
+                  <CardTitle className="text-sm font-medium">Eventos</CardTitle>
                   <Calendar className="w-4 h-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold">
-                    {topEvents?.length || 0}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Com estatísticas
-                  </p>
+                  <div className="text-3xl font-bold">{topEvents?.length || 0}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Com estatísticas</p>
                 </CardContent>
               </Card>
             </div>
@@ -243,20 +226,12 @@ export default function Analytics() {
                             />
                           )}
                           <div className="flex-1">
-                            <h3 className="font-semibold line-clamp-1">
-                              {post.title}
-                            </h3>
-                            <span className="text-xs text-muted-foreground">
-                              {post.category}
-                            </span>
+                            <h3 className="font-semibold line-clamp-1">{post.title}</h3>
+                            <span className="text-xs text-muted-foreground">{post.category}</span>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold text-lg">
-                              {post.views?.toLocaleString()}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              visualizações
-                            </div>
+                            <div className="font-bold text-lg">{post.views?.toLocaleString()}</div>
+                            <div className="text-xs text-muted-foreground">visualizações</div>
                           </div>
                         </a>
                       ))}
@@ -274,9 +249,7 @@ export default function Analytics() {
                     <Share2 className="w-6 h-6 text-primary" />
                     Compartilhamentos
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Últimos 30 dias
-                  </p>
+                  <p className="text-sm text-muted-foreground">Últimos 30 dias</p>
                 </CardHeader>
                 <CardContent>
                   {loadingShares ? (
@@ -295,10 +268,7 @@ export default function Analytics() {
                             label
                           >
                             {shareStats.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={COLORS[index % COLORS.length]}
-                              />
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -343,17 +313,11 @@ export default function Analytics() {
                             />
                           )}
                           <div className="flex-1">
-                            <h3 className="font-semibold line-clamp-1">
-                              {event.title}
-                            </h3>
+                            <h3 className="font-semibold line-clamp-1">{event.title}</h3>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold">
-                              {event.views?.toLocaleString() || 0}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              views
-                            </div>
+                            <div className="font-bold">{event.views?.toLocaleString() || 0}</div>
+                            <div className="text-xs text-muted-foreground">views</div>
                           </div>
                         </a>
                       ))}

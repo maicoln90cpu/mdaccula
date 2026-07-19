@@ -33,7 +33,9 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
         <DialogHeader>
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
-              <DialogTitle className="text-xl sm:text-2xl break-words pr-8 sm:pr-0">{event.title}</DialogTitle>
+              <DialogTitle className="text-xl sm:text-2xl break-words pr-8 sm:pr-0">
+                {event.title}
+              </DialogTitle>
               {event.subtitle && (
                 <p className="text-sm sm:text-base text-muted-foreground italic mt-1 break-words">
                   {event.subtitle}
@@ -41,7 +43,12 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
               )}
             </div>
             {isAdmin && onEdit && (
-              <Button variant="outline" size="sm" onClick={onEdit} className="min-h-[44px] w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                className="min-h-[44px] w-full sm:w-auto"
+              >
                 <Edit className="w-4 h-4 mr-2" />
                 Editar
               </Button>
@@ -67,7 +74,15 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
                     return;
                   }
                   target.style.display = 'none';
-                  target.parentElement!.classList.add('flex', 'items-center', 'justify-center', 'bg-gradient-to-br', 'from-primary/20', 'via-muted/30', 'to-accent/20');
+                  target.parentElement!.classList.add(
+                    'flex',
+                    'items-center',
+                    'justify-center',
+                    'bg-gradient-to-br',
+                    'from-primary/20',
+                    'via-muted/30',
+                    'to-accent/20'
+                  );
                 }}
               />
             </div>
@@ -107,35 +122,43 @@ export const EventModal = ({ event, isOpen, onClose, onEdit }: EventModalProps) 
             </div>
           </div>
 
-          {event.lineup && event.lineup.length > 0 && (() => {
-            const cleanLineup = normalizeLineup(event.lineup);
-            return (
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Line-up</h3>
-                <div className="flex flex-wrap gap-2">
-                  {cleanLineup.map((artist: string, index: number) => (
-                    <Badge key={index} variant="outline" className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full">
-                      {artist}
-                    </Badge>
-                  ))}
+          {event.lineup &&
+            event.lineup.length > 0 &&
+            (() => {
+              const cleanLineup = normalizeLineup(event.lineup);
+              return (
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Line-up</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {cleanLineup.map((artist: string, index: number) => (
+                      <Badge
+                        key={index}
+                        variant="outline"
+                        className="text-sm px-3 py-1 leading-relaxed whitespace-normal break-words max-w-full"
+                      >
+                        {artist}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {event.description && (
             <div>
               <h3 className="text-lg font-semibold mb-3">Descrição</h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {event.description}
-              </p>
+              <p className="text-muted-foreground leading-relaxed">{event.description}</p>
             </div>
           )}
 
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
             {event.ticket_link && (
               <Button asChild className="flex-1 min-h-[48px] text-base">
-                <a href={safeExternalUrl(event.ticket_link)} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={safeExternalUrl(event.ticket_link)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <ExternalLink className="w-5 h-5 mr-2" />
                   {getEventCtaButtonLabel(event.cta_type)}
                 </a>

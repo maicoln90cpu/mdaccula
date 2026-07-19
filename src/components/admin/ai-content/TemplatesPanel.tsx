@@ -1,21 +1,50 @@
-import { useState, useEffect, useCallback } from "react";
-import { useRealtimeTable } from "@/hooks/useRealtimeTable";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/useToast";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Edit2, Trash2, Star, StarOff, CheckCircle2, XCircle, Eye } from "lucide-react";
-import type { Json } from "@/integrations/supabase/types";
+import { useState, useEffect, useCallback } from 'react';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/useToast';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Plus, Edit2, Trash2, Star, StarOff, CheckCircle2, XCircle, Eye } from 'lucide-react';
+import type { Json } from '@/integrations/supabase/types';
 
 interface PromptTemplate {
   id: string;
@@ -42,35 +71,35 @@ export function TemplatesPanel() {
 
   // Form state
   const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    category: "Eventos",
-    system_prompt: "",
-    user_prompt_template: "",
+    name: '',
+    description: '',
+    category: 'Eventos',
+    system_prompt: '',
+    user_prompt_template: '',
     required_fields: {} as Record<string, boolean>,
     enabled: true,
   });
 
-  const [fieldKey, setFieldKey] = useState("");
+  const [fieldKey, setFieldKey] = useState('');
   const [fieldRequired, setFieldRequired] = useState(true);
 
   const fetchTemplates = useCallback(async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from("ai_prompt_templates")
-        .select("*")
-        .order("category", { ascending: true })
-        .order("name", { ascending: true });
+        .from('ai_prompt_templates')
+        .select('*')
+        .order('category', { ascending: true })
+        .order('name', { ascending: true });
 
       if (error) throw error;
       setTemplates(data || []);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao carregar templates",
+        title: 'Erro ao carregar templates',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -81,7 +110,7 @@ export function TemplatesPanel() {
     fetchTemplates();
   }, [fetchTemplates]);
 
-  useRealtimeTable("ai_prompt_templates", () => fetchTemplates());
+  useRealtimeTable('ai_prompt_templates', () => fetchTemplates());
 
   // Helper to normalize required_fields from array to object
   const normalizeRequiredFields = (fields: unknown): Record<string, boolean> => {
@@ -94,12 +123,15 @@ export function TemplatesPanel() {
 
     // If it's an array, convert to object
     if (Array.isArray(fields)) {
-      return fields.reduce((acc, field) => {
-        if (typeof field === 'string') {
-          acc[field] = true;
-        }
-        return acc;
-      }, {} as Record<string, boolean>);
+      return fields.reduce(
+        (acc, field) => {
+          if (typeof field === 'string') {
+            acc[field] = true;
+          }
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
     }
 
     return {};
@@ -110,8 +142,8 @@ export function TemplatesPanel() {
       setEditingTemplate(template);
       setFormData({
         name: template.name,
-        description: template.description || "",
-        category: template.category || "Eventos",
+        description: template.description || '',
+        category: template.category || 'Eventos',
         system_prompt: template.system_prompt,
         user_prompt_template: template.user_prompt_template,
         required_fields: normalizeRequiredFields(template.required_fields),
@@ -120,11 +152,11 @@ export function TemplatesPanel() {
     } else {
       setEditingTemplate(null);
       setFormData({
-        name: "",
-        description: "",
-        category: "Eventos",
-        system_prompt: "",
-        user_prompt_template: "",
+        name: '',
+        description: '',
+        category: 'Eventos',
+        system_prompt: '',
+        user_prompt_template: '',
         required_fields: {},
         enabled: true,
       });
@@ -135,33 +167,33 @@ export function TemplatesPanel() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingTemplate(null);
-    setFieldKey("");
+    setFieldKey('');
     setFieldRequired(true);
   };
 
   const handleAddField = () => {
     if (!fieldKey.trim()) {
       toast({
-        title: "Campo vazio",
-        description: "Digite o nome do campo",
-        variant: "destructive",
+        title: 'Campo vazio',
+        description: 'Digite o nome do campo',
+        variant: 'destructive',
       });
       return;
     }
 
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       required_fields: {
         ...prev.required_fields,
         [fieldKey]: fieldRequired,
       },
     }));
-    setFieldKey("");
+    setFieldKey('');
     setFieldRequired(true);
   };
 
   const handleRemoveField = (key: string) => {
-    setFormData(prev => {
+    setFormData((prev) => {
       const newFields = { ...prev.required_fields };
       delete newFields[key];
       return { ...prev, required_fields: newFields };
@@ -169,11 +201,15 @@ export function TemplatesPanel() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.system_prompt.trim() || !formData.user_prompt_template.trim()) {
+    if (
+      !formData.name.trim() ||
+      !formData.system_prompt.trim() ||
+      !formData.user_prompt_template.trim()
+    ) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Nome, System Prompt e User Prompt Template são obrigatórios",
-        variant: "destructive",
+        title: 'Campos obrigatórios',
+        description: 'Nome, System Prompt e User Prompt Template são obrigatórios',
+        variant: 'destructive',
       });
       return;
     }
@@ -181,7 +217,7 @@ export function TemplatesPanel() {
     try {
       if (editingTemplate) {
         const { error } = await supabase
-          .from("ai_prompt_templates")
+          .from('ai_prompt_templates')
           .update({
             name: formData.name,
             description: formData.description || null,
@@ -192,44 +228,42 @@ export function TemplatesPanel() {
             enabled: formData.enabled,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", editingTemplate.id);
+          .eq('id', editingTemplate.id);
 
         if (error) throw error;
 
         toast({
-          title: "Template atualizado",
-          description: "As alterações foram salvas com sucesso",
+          title: 'Template atualizado',
+          description: 'As alterações foram salvas com sucesso',
         });
       } else {
-        const { error } = await supabase
-          .from("ai_prompt_templates")
-          .insert({
-            name: formData.name,
-            description: formData.description || null,
-            category: formData.category,
-            system_prompt: formData.system_prompt,
-            user_prompt_template: formData.user_prompt_template,
-            required_fields: formData.required_fields,
-            enabled: formData.enabled,
-            is_default: false,
-          });
+        const { error } = await supabase.from('ai_prompt_templates').insert({
+          name: formData.name,
+          description: formData.description || null,
+          category: formData.category,
+          system_prompt: formData.system_prompt,
+          user_prompt_template: formData.user_prompt_template,
+          required_fields: formData.required_fields,
+          enabled: formData.enabled,
+          is_default: false,
+        });
 
         if (error) throw error;
 
         toast({
-          title: "Template criado",
-          description: "Novo template adicionado com sucesso",
+          title: 'Template criado',
+          description: 'Novo template adicionado com sucesso',
         });
       }
 
       handleCloseDialog();
       fetchTemplates();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao salvar template",
+        title: 'Erro ao salvar template',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };
@@ -237,22 +271,22 @@ export function TemplatesPanel() {
   const handleToggleEnabled = async (template: PromptTemplate) => {
     try {
       const { error } = await supabase
-        .from("ai_prompt_templates")
+        .from('ai_prompt_templates')
         .update({ enabled: !template.enabled })
-        .eq("id", template.id);
+        .eq('id', template.id);
 
       if (error) throw error;
 
       toast({
-        title: template.enabled ? "Template desativado" : "Template ativado",
+        title: template.enabled ? 'Template desativado' : 'Template ativado',
       });
       fetchTemplates();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao alterar status",
+        title: 'Erro ao alterar status',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };
@@ -261,55 +295,52 @@ export function TemplatesPanel() {
     try {
       // Unset all defaults in the same category
       const { error: unsetError } = await supabase
-        .from("ai_prompt_templates")
+        .from('ai_prompt_templates')
         .update({ is_default: false })
-        .eq("category", template.category);
+        .eq('category', template.category);
 
       if (unsetError) throw unsetError;
 
       // Set the new default
       const { error: setError } = await supabase
-        .from("ai_prompt_templates")
+        .from('ai_prompt_templates')
         .update({ is_default: true })
-        .eq("id", template.id);
+        .eq('id', template.id);
 
       if (setError) throw setError;
 
       toast({
-        title: "Template padrão definido",
+        title: 'Template padrão definido',
         description: `"${template.name}" agora é o padrão para ${template.category}`,
       });
       fetchTemplates();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao definir padrão",
+        title: 'Erro ao definir padrão',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("ai_prompt_templates")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from('ai_prompt_templates').delete().eq('id', id);
 
       if (error) throw error;
 
       toast({
-        title: "Template deletado",
-        description: "Template removido com sucesso",
+        title: 'Template deletado',
+        description: 'Template removido com sucesso',
       });
       fetchTemplates();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Erro desconhecido";
+      const message = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
-        title: "Erro ao deletar template",
+        title: 'Erro ao deletar template',
         description: message,
-        variant: "destructive",
+        variant: 'destructive',
       });
     } finally {
       setDeleteConfirmId(null);
@@ -344,8 +375,8 @@ export function TemplatesPanel() {
           <CardHeader>
             <CardTitle>Templates Disponíveis</CardTitle>
             <CardDescription>
-              {templates.length} template{templates.length !== 1 ? "s" : ""} cadastrado
-              {templates.length !== 1 ? "s" : ""}
+              {templates.length} template{templates.length !== 1 ? 's' : ''} cadastrado
+              {templates.length !== 1 ? 's' : ''}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -415,7 +446,7 @@ export function TemplatesPanel() {
                             variant="ghost"
                             size="icon"
                             onClick={() => handleToggleEnabled(template)}
-                            title={template.enabled ? "Desativar" : "Ativar"}
+                            title={template.enabled ? 'Desativar' : 'Ativar'}
                           >
                             {template.enabled ? (
                               <XCircle className="w-4 h-4" />
@@ -459,9 +490,7 @@ export function TemplatesPanel() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingTemplate ? "Editar Template" : "Novo Template"}
-            </DialogTitle>
+            <DialogTitle>{editingTemplate ? 'Editar Template' : 'Novo Template'}</DialogTitle>
             <DialogDescription>
               Configure o template de prompt para geração de conteúdo com IA
             </DialogDescription>
@@ -540,16 +569,14 @@ export function TemplatesPanel() {
               <Textarea
                 id="user_prompt_template"
                 value={formData.user_prompt_template}
-                onChange={(e) =>
-                  setFormData({ ...formData, user_prompt_template: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, user_prompt_template: e.target.value })}
                 placeholder="Use {{variavel}} para campos dinâmicos e {{#if variavel}}...{{/if}} para condicionais"
                 rows={8}
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Use <code className="bg-muted px-1 rounded">{"{{campo}}"}</code> para inserir
-                valores e <code className="bg-muted px-1 rounded">{"{{#if campo}}...{{/if}}"}</code>{" "}
+                Use <code className="bg-muted px-1 rounded">{'{{campo}}'}</code> para inserir
+                valores e <code className="bg-muted px-1 rounded">{'{{#if campo}}...{{/if}}'}</code>{' '}
                 para condicionais
               </p>
             </div>
@@ -562,13 +589,10 @@ export function TemplatesPanel() {
                     placeholder="Nome do campo"
                     value={fieldKey}
                     onChange={(e) => setFieldKey(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddField()}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddField()}
                   />
                   <div className="flex items-center gap-2 whitespace-nowrap">
-                    <Switch
-                      checked={fieldRequired}
-                      onCheckedChange={setFieldRequired}
-                    />
+                    <Switch checked={fieldRequired} onCheckedChange={setFieldRequired} />
                     <span className="text-sm">Obrigatório</span>
                   </div>
                   <Button onClick={handleAddField} type="button">
@@ -586,11 +610,7 @@ export function TemplatesPanel() {
                         <span className="font-mono text-sm">
                           {key} {required && <Badge variant="secondary">obrigatório</Badge>}
                         </span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveField(key)}
-                        >
+                        <Button variant="ghost" size="icon" onClick={() => handleRemoveField(key)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -615,7 +635,7 @@ export function TemplatesPanel() {
               Cancelar
             </Button>
             <Button onClick={handleSave}>
-              {editingTemplate ? "Salvar Alterações" : "Criar Template"}
+              {editingTemplate ? 'Salvar Alterações' : 'Criar Template'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -657,52 +677,79 @@ export function TemplatesPanel() {
           <ScrollArea className="max-h-[70vh]">
             <div className="space-y-4 p-1">
               <div className="p-3 rounded-lg bg-muted/50 border">
-                <p className="text-xs text-muted-foreground mb-2 font-medium">Valores de exemplo utilizados:</p>
+                <p className="text-xs text-muted-foreground mb-2 font-medium">
+                  Valores de exemplo utilizados:
+                </p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div><strong>seriesName:</strong> DEDGE SP</div>
-                  <div><strong>venue:</strong> D-Edge São Paulo</div>
-                  <div><strong>city:</strong> São Paulo</div>
-                  <div><strong>state:</strong> SP</div>
-                  <div><strong>startDate:</strong> 24/01/2026</div>
-                  <div><strong>endDate:</strong> 26/01/2026</div>
-                  <div><strong>genres:</strong> Techno, House</div>
-                  <div><strong>eventName:</strong> Nome do Evento</div>
-                  <div><strong>artistName:</strong> Artista Exemplo</div>
-                  <div><strong>topic:</strong> Tópico do Artigo</div>
+                  <div>
+                    <strong>seriesName:</strong> DEDGE SP
+                  </div>
+                  <div>
+                    <strong>venue:</strong> D-Edge São Paulo
+                  </div>
+                  <div>
+                    <strong>city:</strong> São Paulo
+                  </div>
+                  <div>
+                    <strong>state:</strong> SP
+                  </div>
+                  <div>
+                    <strong>startDate:</strong> 24/01/2026
+                  </div>
+                  <div>
+                    <strong>endDate:</strong> 26/01/2026
+                  </div>
+                  <div>
+                    <strong>genres:</strong> Techno, House
+                  </div>
+                  <div>
+                    <strong>eventName:</strong> Nome do Evento
+                  </div>
+                  <div>
+                    <strong>artistName:</strong> Artista Exemplo
+                  </div>
+                  <div>
+                    <strong>topic:</strong> Tópico do Artigo
+                  </div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <p className="text-sm font-medium text-primary">System Prompt:</p>
                 <pre className="p-4 rounded-lg bg-background border text-xs font-mono whitespace-pre-wrap max-h-[200px] overflow-y-auto">
-                  {formData.system_prompt || "(vazio)"}
+                  {formData.system_prompt || '(vazio)'}
                 </pre>
               </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium text-primary">User Prompt (com variáveis substituídas):</p>
+                <p className="text-sm font-medium text-primary">
+                  User Prompt (com variáveis substituídas):
+                </p>
                 <pre className="p-4 rounded-lg bg-background border text-xs font-mono whitespace-pre-wrap">
                   {(() => {
-                    let prompt = formData.user_prompt_template || "(vazio)";
+                    let prompt = formData.user_prompt_template || '(vazio)';
                     const sampleValues: Record<string, string> = {
-                      seriesName: "DEDGE SP",
-                      venue: "D-Edge São Paulo",
-                      city: "São Paulo",
-                      state: "SP",
-                      startDate: "24/01/2026",
-                      endDate: "26/01/2026",
-                      genres: "Techno, House, Minimal",
-                      dates: "[Programação detalhada seria inserida aqui]",
-                      additionalContext: "Evento especial comemorativo.",
-                      eventName: "Nome do Evento Exemplo",
-                      artistName: "Artista Exemplo",
-                      festivalName: "Festival Exemplo",
-                      topic: "Tópico do Artigo",
-                      summary: "Resumo breve do artigo",
-                      category: "Eventos",
+                      seriesName: 'DEDGE SP',
+                      venue: 'D-Edge São Paulo',
+                      city: 'São Paulo',
+                      state: 'SP',
+                      startDate: '24/01/2026',
+                      endDate: '26/01/2026',
+                      genres: 'Techno, House, Minimal',
+                      dates: '[Programação detalhada seria inserida aqui]',
+                      additionalContext: 'Evento especial comemorativo.',
+                      eventName: 'Nome do Evento Exemplo',
+                      artistName: 'Artista Exemplo',
+                      festivalName: 'Festival Exemplo',
+                      topic: 'Tópico do Artigo',
+                      summary: 'Resumo breve do artigo',
+                      category: 'Eventos',
                     };
                     Object.entries(sampleValues).forEach(([key, value]) => {
-                      prompt = prompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), `【${value}】`);
+                      prompt = prompt.replace(
+                        new RegExp(`\\{\\{${key}\\}\\}`, 'g'),
+                        `【${value}】`
+                      );
                     });
                     return prompt;
                   })()}
@@ -711,8 +758,8 @@ export function TemplatesPanel() {
 
               <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
                 <p className="text-xs text-muted-foreground">
-                  <strong>Legenda:</strong> Valores entre 【colchetes】 são os dados de exemplo substituídos.
-                  Variáveis não substituídas permanecem como {"{{variavel}}"}.
+                  <strong>Legenda:</strong> Valores entre 【colchetes】 são os dados de exemplo
+                  substituídos. Variáveis não substituídas permanecem como {'{{variavel}}'}.
                 </p>
               </div>
             </div>

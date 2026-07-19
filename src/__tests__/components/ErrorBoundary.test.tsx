@@ -1,25 +1,25 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const Boom = () => {
-  throw new Error("boom");
+  throw new Error('boom');
 };
 
-describe("ErrorBoundary", () => {
-  it("renderiza children quando não há erro", () => {
+describe('ErrorBoundary', () => {
+  it('renderiza children quando não há erro', () => {
     render(
       <ErrorBoundary>
         <div>conteudo ok</div>
       </ErrorBoundary>
     );
-    expect(screen.getByText("conteudo ok")).toBeInTheDocument();
+    expect(screen.getByText('conteudo ok')).toBeInTheDocument();
   });
 
-  it("captura erro e mostra fallback", () => {
+  it('captura erro e mostra fallback', () => {
     // Suprimir console.error esperado
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     render(
       <ErrorBoundary pageName="Teste">
         <Boom />
@@ -29,8 +29,8 @@ describe("ErrorBoundary", () => {
     spy.mockRestore();
   });
 
-  it("usa fallback minimal quando minimal=true", () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it('usa fallback minimal quando minimal=true', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     render(
       <ErrorBoundary pageName="Mini" minimal>
         <Boom />
@@ -40,9 +40,9 @@ describe("ErrorBoundary", () => {
     spy.mockRestore();
   });
 
-  describe("chunk obsoleto (auto-reload)", () => {
+  describe('chunk obsoleto (auto-reload)', () => {
     const ChunkBoom = () => {
-      throw new Error("Failed to fetch dynamically imported module: /assets/x.js");
+      throw new Error('Failed to fetch dynamically imported module: /assets/x.js');
     };
     let reloadSpy: ReturnType<typeof vi.fn>;
     let originalLocation: Location;
@@ -51,42 +51,41 @@ describe("ErrorBoundary", () => {
       sessionStorage.clear();
       reloadSpy = vi.fn();
       originalLocation = window.location;
-      Object.defineProperty(window, "location", {
+      Object.defineProperty(window, 'location', {
         configurable: true,
         value: { ...originalLocation, reload: reloadSpy },
       });
     });
 
     afterEach(() => {
-      Object.defineProperty(window, "location", {
+      Object.defineProperty(window, 'location', {
         configurable: true,
         value: originalLocation,
       });
       sessionStorage.clear();
     });
 
-
-    it("dispara reload quando erro é de chunk obsoleto", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-      const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    it('dispara reload quando erro é de chunk obsoleto', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
       render(
         <ErrorBoundary pageName="Chunk">
           <ChunkBoom />
-        </ErrorBoundary>,
+        </ErrorBoundary>
       );
       expect(reloadSpy).toHaveBeenCalledTimes(1);
-      expect(sessionStorage.getItem("__chunk_reload_at")).toBeTruthy();
+      expect(sessionStorage.getItem('__chunk_reload_at')).toBeTruthy();
       spy.mockRestore();
       warn.mockRestore();
     });
 
-    it("NÃO recarrega duas vezes dentro de 10s (guarda anti-loop)", () => {
-      sessionStorage.setItem("__chunk_reload_at", String(Date.now()));
-      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    it('NÃO recarrega duas vezes dentro de 10s (guarda anti-loop)', () => {
+      sessionStorage.setItem('__chunk_reload_at', String(Date.now()));
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       render(
         <ErrorBoundary pageName="Chunk">
           <ChunkBoom />
-        </ErrorBoundary>,
+        </ErrorBoundary>
       );
       expect(reloadSpy).not.toHaveBeenCalled();
       // Como não recarregou, mostra a tela de erro padrão
@@ -94,12 +93,12 @@ describe("ErrorBoundary", () => {
       spy.mockRestore();
     });
 
-    it("erro comum NÃO dispara reload e mostra fallback", () => {
-      const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    it('erro comum NÃO dispara reload e mostra fallback', () => {
+      const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
       render(
         <ErrorBoundary pageName="Normal">
           <Boom />
-        </ErrorBoundary>,
+        </ErrorBoundary>
       );
       expect(reloadSpy).not.toHaveBeenCalled();
       expect(screen.getByText(/Algo deu errado/i)).toBeInTheDocument();
@@ -107,4 +106,3 @@ describe("ErrorBoundary", () => {
     });
   });
 });
-

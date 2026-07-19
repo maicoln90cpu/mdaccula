@@ -1,17 +1,17 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import Navigation from "@/components/ui/navigation";
-import Footer from "@/components/ui/footer";
-import { SEOHead } from "@/components/SEOHead";
-import { StructuredData } from "@/components/StructuredData";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Calendar, User, Search, ArrowRight, Eye, Heart, Rss } from "lucide-react";
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import Navigation from '@/components/ui/navigation';
+import Footer from '@/components/ui/footer';
+import { SEOHead } from '@/components/SEOHead';
+import { StructuredData } from '@/components/StructuredData';
+import { PageHeader } from '@/components/ui/page-header';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Calendar, User, Search, ArrowRight, Eye, Heart, Rss } from 'lucide-react';
 import {
   Pagination,
   PaginationContent,
@@ -19,12 +19,17 @@ import {
   PaginationItem,
   PaginationLink,
   PaginationNext,
-  PaginationPrevious } from
-"@/components/ui/pagination";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import djImage from "@/assets/dj-performance.jpg";
-import { getOptimizedImageUrl, getThumbnailUrl, handleImageFallback, handleThumbImageFallback } from "@/lib/imageUtils";
+  PaginationPrevious,
+} from '@/components/ui/pagination';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import djImage from '@/assets/dj-performance.jpg';
+import {
+  getOptimizedImageUrl,
+  getThumbnailUrl,
+  handleImageFallback,
+  handleThumbImageFallback,
+} from '@/lib/imageUtils';
 
 interface BlogPost {
   id: string;
@@ -49,19 +54,22 @@ const PAGE_SIZE = 9;
 
 // Single consolidated fetch function for both featured post and paginated list
 const fetchBlogPostsWithFeatured = async (
-page: number,
-category: string,
-searchTerm: string)
-: Promise<PaginatedResult> => {
+  page: number,
+  category: string,
+  searchTerm: string
+): Promise<PaginatedResult> => {
   // Build base query
-  let query = supabase.
-  from("blog_posts").
-  select("id, title, slug, excerpt, category, image_url, views, likes, created_at, published_at", { count: "exact" }).
-  eq("published", true);
+  let query = supabase
+    .from('blog_posts')
+    .select(
+      'id, title, slug, excerpt, category, image_url, views, likes, created_at, published_at',
+      { count: 'exact' }
+    )
+    .eq('published', true);
 
   // Apply category filter
-  if (category !== "Todos") {
-    query = query.eq("category", category);
+  if (category !== 'Todos') {
+    query = query.eq('category', category);
   }
 
   // Apply search filter
@@ -75,9 +83,9 @@ searchTerm: string)
   const limit = isFirstPage ? PAGE_SIZE + 1 : PAGE_SIZE;
   const offset = isFirstPage ? 0 : (page - 1) * PAGE_SIZE;
 
-  const { data, error, count } = await query.
-  order("created_at", { ascending: false }).
-  range(offset, offset + limit - 1);
+  const { data, error, count } = await query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (error) throw error;
 
@@ -94,23 +102,26 @@ searchTerm: string)
   return {
     posts,
     featuredPost,
-    total: totalCount
+    total: totalCount,
   };
 };
 
 const Blog = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Todos');
+  const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Buscar categorias dinâmicas do banco de dados
   const { data: dynamicCategories } = useQuery({
-    queryKey: ["blog-categories"],
+    queryKey: ['blog-categories'],
     queryFn: async () => {
-      const { data, error } = await supabase.from("blog_posts").select("category").eq("published", true);
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('category')
+        .eq('published', true);
 
       if (error) throw error;
 
@@ -122,18 +133,18 @@ const Blog = () => {
         {} as Record<string, number>
       );
 
-      const sortedCategories = Object.entries(categoryCount).
-      sort((a, b) => b[1] - a[1]).
-      map(([category]) => category);
+      const sortedCategories = Object.entries(categoryCount)
+        .sort((a, b) => b[1] - a[1])
+        .map(([category]) => category);
 
-      return ["Todos", ...sortedCategories];
+      return ['Todos', ...sortedCategories];
     },
     staleTime: 30 * 60 * 1000, // 30 min - categories rarely change
     gcTime: 60 * 60 * 1000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
 
-  const categories = dynamicCategories || ["Todos"];
+  const categories = dynamicCategories || ['Todos'];
 
   // Debounce search term
   useEffect(() => {
@@ -150,11 +161,11 @@ const Blog = () => {
 
   // Single consolidated query for both featured and paginated posts
   const { data: blogData, isLoading } = useQuery({
-    queryKey: ["blog-posts", currentPage, selectedCategory, debouncedSearch],
+    queryKey: ['blog-posts', currentPage, selectedCategory, debouncedSearch],
     queryFn: () => fetchBlogPostsWithFeatured(currentPage, selectedCategory, debouncedSearch),
     staleTime: 10 * 60 * 1000, // 10 min cache
     gcTime: 20 * 60 * 1000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
   });
 
   const posts = blogData?.posts || [];
@@ -166,8 +177,8 @@ const Blog = () => {
   const totalPages = Math.ceil(effectiveTotal / PAGE_SIZE);
 
   // Skeleton components for loading state
-  const BlogCardSkeleton = () =>
-  <Card className="overflow-hidden h-full">
+  const BlogCardSkeleton = () => (
+    <Card className="overflow-hidden h-full">
       <Skeleton className="aspect-video w-full" />
       <CardHeader>
         <Skeleton className="h-6 w-3/4" />
@@ -190,37 +201,37 @@ const Blog = () => {
           <Skeleton className="h-8 w-20" />
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 
-
-  const BlogGridSkeleton = () =>
-  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {Array.from({ length: 6 }).map((_, i) =>
-    <BlogCardSkeleton key={i} />
-    )}
-    </div>;
-
+  const BlogGridSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <BlogCardSkeleton key={i} />
+      ))}
+    </div>
+  );
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case "Eventos":
-        return "bg-primary/20 text-primary border-primary/30";
-      case "Cena SP":
-        return "bg-secondary/20 text-secondary border-secondary/30";
-      case "Festivais":
-        return "bg-accent/20 text-accent border-accent/30";
-      case "História":
-        return "bg-purple-500/20 text-purple-400 border-purple-500/30";
-      case "Cultura":
-        return "bg-pink-500/20 text-pink-400 border-pink-500/30";
-      case "Lançamentos":
-        return "bg-cyan-500/20 text-cyan-400 border-cyan-500/30";
-      case "Tecnologia":
-        return "bg-blue-500/20 text-blue-400 border-blue-500/30";
-      case "Produtores":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+      case 'Eventos':
+        return 'bg-primary/20 text-primary border-primary/30';
+      case 'Cena SP':
+        return 'bg-secondary/20 text-secondary border-secondary/30';
+      case 'Festivais':
+        return 'bg-accent/20 text-accent border-accent/30';
+      case 'História':
+        return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'Cultura':
+        return 'bg-pink-500/20 text-pink-400 border-pink-500/30';
+      case 'Lançamentos':
+        return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
+      case 'Tecnologia':
+        return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'Produtores':
+        return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
       default:
-        return "bg-muted/20 text-muted-foreground border-muted/30";
+        return 'bg-muted/20 text-muted-foreground border-muted/30';
     }
   };
 
@@ -228,31 +239,31 @@ const Blog = () => {
     e.preventDefault();
 
     if (!newsletterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newsletterEmail)) {
-      toast.error("Por favor, insira um email válido");
+      toast.error('Por favor, insira um email válido');
       return;
     }
 
     setNewsletterLoading(true);
 
     try {
-      const { error } = await supabase.from("newsletter_subscribers").insert({
+      const { error } = await supabase.from('newsletter_subscribers').insert({
         email: newsletterEmail,
-        source: "blog_footer"
+        source: 'blog_footer',
       });
 
       if (error) {
-        if (error.code === "23505") {
-          toast.error("Este email já está cadastrado!");
+        if (error.code === '23505') {
+          toast.error('Este email já está cadastrado!');
         } else {
           throw error;
         }
       } else {
-        toast.success("🎉 Inscrição realizada com sucesso!");
-        setNewsletterEmail("");
+        toast.success('🎉 Inscrição realizada com sucesso!');
+        setNewsletterEmail('');
       }
     } catch (error) {
-      console.error("Newsletter error:", error);
-      toast.error("Erro ao processar inscrição. Tente novamente.");
+      console.error('Newsletter error:', error);
+      toast.error('Erro ao processar inscrição. Tente novamente.');
     } finally {
       setNewsletterLoading(false);
     }
@@ -264,24 +275,25 @@ const Blog = () => {
         title="Blog de Música Eletrônica - Techno e House"
         description="Fique por dentro das últimas notícias da cena eletrônica brasileira e mundial. Techno, house, festivais e eventos underground em São Paulo."
         keywords={[
-        "blog música eletrônica",
-        "notícias techno sp",
-        "cena eletrônica brasil",
-        "festivais techno 2025",
-        "house music blog",
-        "eventos underground sp"]
-        }
-        url="https://mdaccula.com/blog" />
-      
+          'blog música eletrônica',
+          'notícias techno sp',
+          'cena eletrônica brasil',
+          'festivais techno 2025',
+          'house music blog',
+          'eventos underground sp',
+        ]}
+        url="https://mdaccula.com/blog"
+      />
+
       <StructuredData
         type="breadcrumb"
         data={{
           items: [
-          { name: "Home", url: "https://mdaccula.com" },
-          { name: "Blog", url: "https://mdaccula.com/blog" }]
-
-        }} />
-      
+            { name: 'Home', url: 'https://mdaccula.com' },
+            { name: 'Blog', url: 'https://mdaccula.com/blog' },
+          ],
+        }}
+      />
 
       <div className="min-h-screen">
         <Navigation />
@@ -290,7 +302,7 @@ const Blog = () => {
           <PageHeader
             title="Blog"
             subtitle="Fique por dentro de tudo que rola na cena eletrônica brasileira e mundial"
-            breadcrumb={[{ label: "Home", href: "/" }, { label: "Blog" }]}
+            breadcrumb={[{ label: 'Home', href: '/' }, { label: 'Blog' }]}
             extra={
               <div className="mt-6">
                 <Button variant="outline" asChild className="gap-2">
@@ -317,33 +329,33 @@ const Blog = () => {
                     placeholder="Buscar artigos..."
                     className="pl-10 h-12 w-full"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)} />
-                  
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {categories.map((category) =>
-                  <Badge
-                    key={category}
-                    variant="outline"
-                    className={`cursor-pointer transition-colors min-h-[36px] px-4 text-sm ${
-                    category === selectedCategory ?
-                    "bg-primary/20 text-primary border-primary/30" :
-                    "hover:bg-muted/50"}`
-                    }
-                    onClick={() => setSelectedCategory(category)}>
-                    
+                  {categories.map((category) => (
+                    <Badge
+                      key={category}
+                      variant="outline"
+                      className={`cursor-pointer transition-colors min-h-[36px] px-4 text-sm ${
+                        category === selectedCategory
+                          ? 'bg-primary/20 text-primary border-primary/30'
+                          : 'hover:bg-muted/50'
+                      }`}
+                      onClick={() => setSelectedCategory(category)}
+                    >
                       {category}
                     </Badge>
-                  )}
+                  ))}
                 </div>
               </div>
             </div>
           </section>
 
           {/* Featured Post Skeleton or Content */}
-          {isLoading ?
-          <section className="py-12 bg-background">
+          {isLoading ? (
+            <section className="py-12 bg-background">
               <div className="container mx-auto px-4">
                 <Skeleton className="h-8 w-32 mb-6" />
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 rounded-lg overflow-hidden border border-border">
@@ -367,25 +379,30 @@ const Blog = () => {
                   </div>
                 </div>
               </div>
-            </section> :
-
-          featuredPost &&
-          <section className="py-8 bg-background">
+            </section>
+          ) : (
+            featuredPost && (
+              <section className="py-8 bg-background">
                 <div className="container mx-auto px-4">
-                  <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 hero-text">Destaque</h2>
+                  <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 hero-text">
+                    Destaque
+                  </h2>
 
                   <Card className="card-hover overflow-hidden">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
                       <div className="relative overflow-hidden h-40 sm:h-48 md:h-56 lg:h-64 bg-muted/20">
                         <img
-                      src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
-                      alt={featuredPost.title}
-                      className="w-full h-full object-contain"
-                      loading="lazy"
-                      onError={(e) => handleImageFallback(e, djImage)} />
-                    
+                          src={getOptimizedImageUrl(featuredPost.image_url) || djImage}
+                          alt={featuredPost.title}
+                          className="w-full h-full object-contain"
+                          loading="lazy"
+                          onError={(e) => handleImageFallback(e, djImage)}
+                        />
+
                         <div className="absolute top-4 left-4">
-                          <Badge className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}>
+                          <Badge
+                            className={`text-xs sm:text-sm ${getCategoryColor(featuredPost.category)}`}
+                          >
                             {featuredPost.category}
                           </Badge>
                         </div>
@@ -407,7 +424,7 @@ const Blog = () => {
                           </div>
                           <div className="flex items-center">
                             <Calendar className="w-4 h-4 mr-1" />
-                            {new Date(featuredPost.created_at).toLocaleDateString("pt-BR")}
+                            {new Date(featuredPost.created_at).toLocaleDateString('pt-BR')}
                           </div>
                         </div>
 
@@ -435,42 +452,55 @@ const Blog = () => {
                   </Card>
                 </div>
               </section>
-
-          }
+            )
+          )}
 
           {/* Posts Grid */}
           <section className="py-12 bg-darker-surface overflow-x-hidden">
             <div className="container mx-auto px-4">
               <h2 className="text-3xl font-bold mb-8 hero-text">Últimos Artigos</h2>
 
-              {isLoading ?
-              <BlogGridSkeleton /> :
-              posts.length === 0 && !featuredPost ?
-              <p className="text-center text-muted-foreground">Nenhum post encontrado.</p> :
-
-              <>
+              {isLoading ? (
+                <BlogGridSkeleton />
+              ) : posts.length === 0 && !featuredPost ? (
+                <p className="text-center text-muted-foreground">Nenhum post encontrado.</p>
+              ) : (
+                <>
                   <div className="space-y-20 py-2">
                     {posts.map((post, index) => {
-                    const isReversed = index % 2 === 1;
-                    return (
-                      <Link to={`/blog/${post.slug}`} key={post.id}>
+                      const isReversed = index % 2 === 1;
+                      return (
+                        <Link to={`/blog/${post.slug}`} key={post.id}>
                           <Card
-                          className="card-hover group cursor-pointer overflow-hidden mx-0 py-0 my-[20px]"
-                          style={{ animationDelay: `${index * 0.05}s` }}>
-                          
-                            <div className={`flex flex-row ${isReversed ? "flex-row-reverse" : ""}`}>
+                            className="card-hover group cursor-pointer overflow-hidden mx-0 py-0 my-[20px]"
+                            style={{ animationDelay: `${index * 0.05}s` }}
+                          >
+                            <div
+                              className={`flex flex-row ${isReversed ? 'flex-row-reverse' : ''}`}
+                            >
                               {/* Image lateral */}
                               <div className="relative flex-shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
-                                src={getThumbnailUrl(post.image_url) || djImage}
-                                alt={post.title}
-                                className="w-full h-full object-contain"
-                                loading="lazy"
-                                decoding="async"
-                                onError={(e) => handleThumbImageFallback(e, getOptimizedImageUrl(post.image_url) || djImage, djImage)} />
-                              
-                                <div className={`absolute top-2 ${isReversed ? "right-2" : "left-2"}`}>
-                                  <Badge className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}>
+                                  src={getThumbnailUrl(post.image_url) || djImage}
+                                  alt={post.title}
+                                  className="w-full h-full object-contain"
+                                  loading="lazy"
+                                  decoding="async"
+                                  onError={(e) =>
+                                    handleThumbImageFallback(
+                                      e,
+                                      getOptimizedImageUrl(post.image_url) || djImage,
+                                      djImage
+                                    )
+                                  }
+                                />
+
+                                <div
+                                  className={`absolute top-2 ${isReversed ? 'right-2' : 'left-2'}`}
+                                >
+                                  <Badge
+                                    className={`text-[10px] px-1.5 py-0.5 ${getCategoryColor(post.category)}`}
+                                  >
                                     {post.category}
                                   </Badge>
                                 </div>
@@ -483,7 +513,7 @@ const Blog = () => {
                                     {post.title}
                                   </h3>
                                   <p className="text-sm sm:text-base text-muted-foreground line-clamp-2 mt-2 hidden sm:block">
-                                    {post.excerpt || "Clique para ler mais..."}
+                                    {post.excerpt || 'Clique para ler mais...'}
                                   </p>
                                 </div>
 
@@ -491,7 +521,7 @@ const Blog = () => {
                                   <div className="flex items-center gap-3">
                                     <span className="flex items-center">
                                       <Calendar className="w-3 h-3 mr-1" />
-                                      {new Date(post.created_at).toLocaleDateString("pt-BR")}
+                                      {new Date(post.created_at).toLocaleDateString('pt-BR')}
                                     </span>
                                     <span className="flex items-center">
                                       <Eye className="w-3 h-3 mr-1" />
@@ -507,69 +537,75 @@ const Blog = () => {
                               </div>
                             </div>
                           </Card>
-                        </Link>);
-
-                  })}
+                        </Link>
+                      );
+                    })}
                   </div>
 
                   {/* Smart Pagination */}
-                  {totalPages > 1 &&
-                <div className="mt-12 flex justify-center">
+                  {totalPages > 1 && (
+                    <div className="mt-12 flex justify-center">
                       <Pagination>
                         <PaginationContent className="flex-wrap gap-1">
                           <PaginationItem>
                             <PaginationPrevious
-                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} />
-                        
+                              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                              className={
+                                currentPage === 1
+                                  ? 'pointer-events-none opacity-50'
+                                  : 'cursor-pointer'
+                              }
+                            />
                           </PaginationItem>
 
                           {(() => {
-                        const pages: (number | "ellipsis")[] = [];
-                        if (totalPages <= 5) {
-                          for (let i = 1; i <= totalPages; i++) pages.push(i);
-                        } else {
-                          pages.push(1);
-                          const start = Math.max(2, currentPage - 1);
-                          const end = Math.min(totalPages - 1, currentPage + 1);
-                          if (start > 2) pages.push("ellipsis");
-                          for (let i = start; i <= end; i++) pages.push(i);
-                          if (end < totalPages - 1) pages.push("ellipsis");
-                          pages.push(totalPages);
-                        }
-                        return pages.map((p, idx) =>
-                        p === "ellipsis" ?
-                        <PaginationItem key={`e-${idx}`}>
+                            const pages: (number | 'ellipsis')[] = [];
+                            if (totalPages <= 5) {
+                              for (let i = 1; i <= totalPages; i++) pages.push(i);
+                            } else {
+                              pages.push(1);
+                              const start = Math.max(2, currentPage - 1);
+                              const end = Math.min(totalPages - 1, currentPage + 1);
+                              if (start > 2) pages.push('ellipsis');
+                              for (let i = start; i <= end; i++) pages.push(i);
+                              if (end < totalPages - 1) pages.push('ellipsis');
+                              pages.push(totalPages);
+                            }
+                            return pages.map((p, idx) =>
+                              p === 'ellipsis' ? (
+                                <PaginationItem key={`e-${idx}`}>
                                   <PaginationEllipsis />
-                                </PaginationItem> :
-
-                        <PaginationItem key={p}>
+                                </PaginationItem>
+                              ) : (
+                                <PaginationItem key={p}>
                                   <PaginationLink
-                            onClick={() => setCurrentPage(p)}
-                            isActive={currentPage === p}
-                            className="cursor-pointer">
-                            
+                                    onClick={() => setCurrentPage(p)}
+                                    isActive={currentPage === p}
+                                    className="cursor-pointer"
+                                  >
                                     {p}
                                   </PaginationLink>
                                 </PaginationItem>
-
-                        );
-                      })()}
+                              )
+                            );
+                          })()}
 
                           <PaginationItem>
                             <PaginationNext
-                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                          className={
-                          currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"
-                          } />
-                        
+                              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                              className={
+                                currentPage === totalPages
+                                  ? 'pointer-events-none opacity-50'
+                                  : 'cursor-pointer'
+                              }
+                            />
                           </PaginationItem>
                         </PaginationContent>
                       </Pagination>
                     </div>
-                }
+                  )}
                 </>
-              }
+              )}
             </div>
           </section>
 
@@ -578,7 +614,9 @@ const Blog = () => {
             <div className="container mx-auto px-4">
               <div className="max-w-xl mx-auto text-center">
                 <h2 className="text-3xl font-bold mb-4 hero-text">Newsletter</h2>
-                <p className="text-muted-foreground mb-8">Receba as últimas notícias diretamente no seu email</p>
+                <p className="text-muted-foreground mb-8">
+                  Receba as últimas notícias diretamente no seu email
+                </p>
 
                 <form onSubmit={handleNewsletterSubmit} className="flex gap-4">
                   <Input
@@ -586,10 +624,11 @@ const Blog = () => {
                     placeholder="Seu melhor email"
                     value={newsletterEmail}
                     onChange={(e) => setNewsletterEmail(e.target.value)}
-                    className="flex-1" />
-                  
+                    className="flex-1"
+                  />
+
                   <Button type="submit" disabled={newsletterLoading}>
-                    {newsletterLoading ? "Enviando..." : "Inscrever"}
+                    {newsletterLoading ? 'Enviando...' : 'Inscrever'}
                   </Button>
                 </form>
               </div>
@@ -599,8 +638,8 @@ const Blog = () => {
 
         <Footer />
       </div>
-    </>);
-
+    </>
+  );
 };
 
 export default Blog;

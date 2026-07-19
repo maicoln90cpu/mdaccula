@@ -5,10 +5,7 @@
  */
 export function SoundWaveBackground() {
   return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
-    >
+    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       <svg
         className="animate-wave-drift-slow absolute bottom-0 left-0 h-40 w-[200%] sm:h-56"
         viewBox="0 0 1440 200"

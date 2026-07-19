@@ -5,7 +5,7 @@
  * (ex.: `queryClient.clear()` em `useAuth.signOut`), evitando vazamento de
  * cache entre sessões de usuário.
  */
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient } from '@tanstack/react-query';
 
 export const queryClient = new QueryClient({
   defaultOptions: {

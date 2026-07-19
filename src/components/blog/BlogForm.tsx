@@ -4,7 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,7 +51,18 @@ interface BlogFormProps {
   onCancel: () => void;
 }
 
-const CATEGORIES = ['Eventos', 'Cena SP', 'Festivais', 'História', 'Guias', 'Entrevistas', 'Lançamentos', 'Produtores', 'Tecnologia', 'Cultura'];
+const CATEGORIES = [
+  'Eventos',
+  'Cena SP',
+  'Festivais',
+  'História',
+  'Guias',
+  'Entrevistas',
+  'Lançamentos',
+  'Produtores',
+  'Tecnologia',
+  'Cultura',
+];
 
 export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -55,16 +72,23 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
   const [content, setContent] = useState(post?.content || '');
   const { toast } = useToast();
 
-  const { register, handleSubmit, control, formState: { errors } } = useForm<BlogFormData>({
-    defaultValues: post ? {
-      title: post.title,
-      excerpt: post.excerpt || '',
-      content: post.content,
-      category: post.category,
-      published: post.published,
-    } : {
-      published: false,
-    }
+  const {
+    register,
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = useForm<BlogFormData>({
+    defaultValues: post
+      ? {
+          title: post.title,
+          excerpt: post.excerpt || '',
+          content: post.content,
+          category: post.category,
+          published: post.published,
+        }
+      : {
+          published: false,
+        },
   });
 
   const handleImageSelect = (file: File) => {
@@ -80,9 +104,9 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
     } catch (error) {
       console.error('Error uploading image:', error);
       toast({
-        title: "Erro ao fazer upload da imagem",
-        description: "Tente novamente",
-        variant: "destructive"
+        title: 'Erro ao fazer upload da imagem',
+        description: 'Tente novamente',
+        variant: 'destructive',
       });
       return null;
     } finally {
@@ -100,11 +124,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
   };
 
   const checkSlugExists = async (slug: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from('blog_posts')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle();
+    const { data } = await supabase.from('blog_posts').select('id').eq('slug', slug).maybeSingle();
     return !!data;
   };
 
@@ -112,12 +132,12 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
     const baseSlug = generateSlug(title);
     let slug = baseSlug;
     let counter = 1;
-    
+
     while (await checkSlugExists(slug)) {
       slug = `${baseSlug}-${counter}`;
       counter++;
     }
-    
+
     return slug;
   };
 
@@ -125,7 +145,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
     setSubmitting(true);
     try {
       let imageUrl = post?.image_url;
-      
+
       if (imageFile) {
         imageUrl = await uploadImage();
         if (!imageUrl) {
@@ -143,30 +163,25 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
       };
 
       if (post) {
-        const { error } = await supabase
-          .from('blog_posts')
-          .update(postData)
-          .eq('id', post.id);
-        
+        const { error } = await supabase.from('blog_posts').update(postData).eq('id', post.id);
+
         if (error) throw error;
-        
+
         toast({
-          title: "Post atualizado com sucesso!",
+          title: 'Post atualizado com sucesso!',
         });
 
         // IndexNow: avisa Bing/Yandex se o post está publicado
         if (published && post.slug) notifyBlogChange(post.slug);
       } else {
         const slug = await generateUniqueSlug(data.title);
-        
-        const { error } = await supabase
-          .from('blog_posts')
-          .insert([{ ...postData, slug }]);
-        
+
+        const { error } = await supabase.from('blog_posts').insert([{ ...postData, slug }]);
+
         if (error) throw error;
-        
+
         toast({
-          title: "Post criado com sucesso!",
+          title: 'Post criado com sucesso!',
         });
 
         // IndexNow: avisa Bing/Yandex se já foi publicado na criação
@@ -177,9 +192,9 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
     } catch (error) {
       console.error('Error saving post:', error);
       toast({
-        title: "Erro ao salvar post",
-        description: "Tente novamente",
-        variant: "destructive"
+        title: 'Erro ao salvar post',
+        description: 'Tente novamente',
+        variant: 'destructive',
       });
     } finally {
       setSubmitting(false);
@@ -200,7 +215,9 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
               {...register('title', { required: 'Título é obrigatório' })}
               placeholder="Título do post"
             />
-            {errors.title && <span className="text-sm text-destructive">{errors.title.message}</span>}
+            {errors.title && (
+              <span className="text-sm text-destructive">{errors.title.message}</span>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -216,26 +233,28 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
                   </SelectTrigger>
                   <SelectContent>
                     {CATEGORIES.map((category) => (
-                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               )}
             />
-            {errors.category && <span className="text-sm text-destructive">{errors.category.message}</span>}
+            {errors.category && (
+              <span className="text-sm text-destructive">{errors.category.message}</span>
+            )}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="excerpt">Resumo</Label>
             <Textarea
               id="excerpt"
-              {...register("excerpt", { required: "Resumo é obrigatório" })}
+              {...register('excerpt', { required: 'Resumo é obrigatório' })}
               rows={3}
               className="resize-none"
             />
-            {errors.excerpt && (
-              <p className="text-sm text-destructive">{errors.excerpt.message}</p>
-            )}
+            {errors.excerpt && <p className="text-sm text-destructive">{errors.excerpt.message}</p>}
           </div>
 
           <RichTextEditor
@@ -254,11 +273,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
           />
 
           <div className="flex items-center space-x-2">
-            <Switch
-              id="published"
-              checked={published}
-              onCheckedChange={setPublished}
-            />
+            <Switch id="published" checked={published} onCheckedChange={setPublished} />
             <Label htmlFor="published">Publicar imediatamente</Label>
           </div>
 
