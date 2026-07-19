@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.MD`](PENDENCIAS.MD).
 > Features novas planejadas (ainda não construídas) ficam em [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-**Última atualização:** 18/07/2026
+**Última atualização:** 19/07/2026
 
 ---
 
@@ -17,6 +17,22 @@
 ---
 
 ## Entradas Detalhadas
+
+### Guardrail de raspagem sem fonte real, marca automática em imagens e prerender SEO (Fase 4)
+**Descrição:** Continuação direta da rodada anterior — ao testar a correção de roteamento de sugestões (R-017), o usuário gerou manualmente dois artigos de evento ("A Liga", "Solomun") pela aba **Gerar** com o template "Raspagem de Eventos" e ambos saíram com conteúdo totalmente inventado, publicados até serem despublicados durante a investigação (ver R-018 em `docs/TESTING.md`). Três frentes:
+1. **Guardrail de conteúdo (R-018):** `generate-blog-post-v2` agora exige uma busca real via Firecrawl antes de gerar um artigo de evento sem dado real por trás (`isEventMode && !hasEventSignals`) — sem fonte encontrada, nenhum artigo é criado. `searchWithFirecrawl` foi extraída pra `supabase/functions/_shared/firecrawlSearch.ts` (compartilhada com `generate-blog-post-from-topic`). Também corrigido um gap relacionado: o frontend nunca lia a mensagem de erro real de uma Edge Function (`FunctionsHttpError.context`) — `getEdgeFunctionErrorMessage` (`src/lib/`) corrige isso em todos os handlers de geração de `AIContent2.tsx`.
+2. **Marca automática em imagens:** `scan-event-sources` (Event Watcher) já aplicava a marca MDAccula (`compose-event-image`) em eventos descobertos automaticamente, mas nunca tinha agendamento `pg_cron` — mesmo padrão de bug do `egress-alert-cron` (R-013). Agendado diariamente às 08h BRT. Nova ferramenta em `/admin/settings` → Mídia pra testar `compose-event-image` manualmente (colar URL + título, ver preview antes/depois), sem depender do agendamento.
+3. **Prerender SEO (Fase 4 da auditoria, achado crítico #1):** toda rota devolvia o mesmo HTML genérico da SPA pra crawlers sem JS. `scripts/prerender.mjs` + `.github/workflows/prerender.yml` geram HTML pré-renderizado via Playwright headless contra o site já publicado (`mdaccula.lovable.app`) — não um `vite preview` local, que se mostrou pouco confiável em teste manual (build local às vezes falhava a hidratar; erro não reproduzido no site real). Roda só agendado (nunca em push, pra eliminar risco de loop com o auto-sync do Lovable) e commita o resultado de volta com `[skip ci]`. Testado manualmente contra o site real: título e JSON-LD corretamente específicos por rota.
+
+**Achado colateral (não corrigido nesta rodada, registrado em `PENDENCIAS.MD`):** `og:title`/`og:description`/`twitter:*` não mudam por rota (ficam sempre o texto genérico do site), mesmo com `document.title` correto — mais visível agora que o prerender entrega HTML real pra crawlers.
+
+**Data:** 19/07/2026
+**Responsável:** IA
+**Impacto:** alto (bloqueia publicação de conteúdo fabricado já em produção; destrava SEO/compartilhamento social que dependia da Fase 4)
+
+**Arquivos alterados:** `supabase/functions/generate-blog-post-v2/index.ts`, `supabase/functions/generate-blog-post-from-topic/index.ts`, `supabase/functions/_shared/firecrawlSearch.ts` (novo), `supabase/functions/_shared/eventSourceGuardrail.ts` (novo), `src/lib/edgeFunctionErrorMessage.ts` (novo), `src/pages/admin/AIContent2.tsx`, `src/components/admin/settings/MediaSettings.tsx`, `supabase/migrations/20260719060000_scan_event_sources_cron_schedule.sql` (novo), `scripts/prerender.mjs` (novo), `.github/workflows/prerender.yml` (novo).
+
+---
 
 ### Lapidações: KPIs travados em 1000, template com campo opcional bloqueando geração, raspagem sem fonte real, RSS estático e fundo de ondas
 **Descrição:** Lote de 6 pendências levantadas numa auditoria rápida do site, cada uma investigada com causa raiz confirmada antes de corrigir (ver R-015, R-016, R-017 em `docs/TESTING.md`):
