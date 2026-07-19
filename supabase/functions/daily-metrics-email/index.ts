@@ -9,11 +9,15 @@ import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { handleCorsPreFlight, jsonSuccess, jsonError, authorizeAdminOrCron } from "../_shared/index.ts";
 import {
   getBRTDayWindowUTC,
+  getBRTMonthToDateWindows,
   computeVariancePct,
+  formatBRTDateRange,
   findMostFrequent,
   buildEmailHtml,
   type MetricResult,
   type TopEntity,
+  type PeriodMetricResult,
+  type PeriodCardData,
 } from "./metrics.ts";
 
 const SITE_URL = "https://mdaccula.com";
@@ -44,6 +48,30 @@ async function countInWindow(
     .lt(column, end.toISOString());
   if (error) throw error;
   return count ?? 0;
+}
+
+async function buildPeriodMetricResults(
+  admin: SupabaseClient,
+  currentStart: Date,
+  currentEnd: Date,
+  previousStart: Date,
+  previousEnd: Date,
+): Promise<PeriodMetricResult[]> {
+  return Promise.all(
+    METRICS_CONFIG.map(async (cfg) => {
+      const [current, previous] = await Promise.all([
+        countInWindow(admin, cfg.table, cfg.column, currentStart, currentEnd),
+        countInWindow(admin, cfg.table, cfg.column, previousStart, previousEnd),
+      ]);
+      return {
+        key: cfg.key,
+        label: cfg.label,
+        current,
+        previous,
+        variancePct: computeVariancePct(current, previous),
+      };
+    }),
+  );
 }
 
 interface TopEntityConfig {
@@ -172,13 +200,48 @@ Deno.serve(async (req) => {
     );
     const topEntities = topEntitiesResults.filter((t): t is TopEntity => t !== null);
 
+    // Últimos 7 dias corridos (ontem até 7 dias atrás) vs. os 7 dias anteriores a esses —
+    // janela diferente do "média 7d" da tabela principal, que exclui ontem.
+    const last7Start = getBRTDayWindowUTC(7).startUTC;
+    const last7End = yesterday.endUTC;
+    const prev7Start = getBRTDayWindowUTC(14).startUTC;
+    const prev7End = last7Start;
+
+    const monthWindows = getBRTMonthToDateWindows(yesterday.startUTC);
+
+    const [last7Rows, monthRows] = await Promise.all([
+      buildPeriodMetricResults(admin, last7Start, last7End, prev7Start, prev7End),
+      buildPeriodMetricResults(
+        admin,
+        monthWindows.current.startUTC,
+        monthWindows.current.endUTC,
+        monthWindows.previous.startUTC,
+        monthWindows.previous.endUTC,
+      ),
+    ]);
+
+    const periodCards: PeriodCardData[] = [
+      {
+        emoji: "📅",
+        title: "Últimos 7 dias",
+        rangeLabel: `${formatBRTDateRange(last7Start, last7End)} · vs. ${formatBRTDateRange(prev7Start, prev7End)}`,
+        rows: last7Rows,
+      },
+      {
+        emoji: "🗓️",
+        title: "Mês atual",
+        rangeLabel: `${formatBRTDateRange(monthWindows.current.startUTC, monthWindows.current.endUTC)} · vs. ${formatBRTDateRange(monthWindows.previous.startUTC, monthWindows.previous.endUTC)}`,
+        rows: monthRows,
+      },
+    ];
+
     const dateLabel = yesterday.startUTC.toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
     });
-    const html = buildEmailHtml(metrics, dateLabel, topEntities);
+    const html = buildEmailHtml(metrics, dateLabel, topEntities, periodCards);
 
     let emailSent = false;
     let emailError: string | null = null;
@@ -216,7 +279,7 @@ Deno.serve(async (req) => {
     }
 
     await admin.from("daily_metrics_email_log").insert({
-      metrics: { date: dateLabel, results: metrics, topEntities },
+      metrics: { date: dateLabel, results: metrics, topEntities, periodCards },
       email_sent: emailSent,
       email_error: emailError,
     });
@@ -226,6 +289,7 @@ Deno.serve(async (req) => {
       date: dateLabel,
       metrics,
       topEntities,
+      periodCards,
       email_sent: emailSent,
       email_error: emailError,
     });

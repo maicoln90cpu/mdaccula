@@ -1,11 +1,15 @@
 import { assertEquals, assertStringIncludes } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
   getBRTDayWindowUTC,
+  getBRTMonthToDateWindows,
   computeVariancePct,
+  formatBRTDate,
+  formatBRTDateRange,
   findMostFrequent,
   buildEmailHtml,
   type MetricResult,
   type TopEntity,
+  type PeriodCardData,
 } from "./metrics.ts";
 
 Deno.test("getBRTDayWindowUTC: caso básico (referência ao meio-dia UTC)", () => {
@@ -205,4 +209,82 @@ Deno.test("buildEmailHtml: escapa HTML no nome do destaque (título vindo do ban
   const html = buildEmailHtml(metrics, "18/07/2026", topEntities);
   assertEquals(html.includes("<script>alert"), false);
   assertStringIncludes(html, "&lt;script&gt;");
+});
+
+Deno.test("buildEmailHtml: inclui o logo no topo", () => {
+  const html = buildEmailHtml([], "18/07/2026");
+  assertStringIncludes(html, "https://mdaccula.com/logo-mdaccula.jpeg");
+  assertStringIncludes(html, 'alt="MDAccula"');
+});
+
+Deno.test("formatBRTDate: formata dd/mm/yyyy por padrão", () => {
+  assertEquals(formatBRTDate(new Date("2026-07-18T03:00:00.000Z")), "18/07/2026");
+});
+
+Deno.test("formatBRTDate: sem ano quando withYear=false", () => {
+  assertEquals(formatBRTDate(new Date("2026-07-18T03:00:00.000Z"), false), "18/07");
+});
+
+Deno.test("formatBRTDateRange: mostra o último dia incluído, não o limite exclusivo", () => {
+  // janela [12/07 00h BRT, 19/07 00h BRT) cobre 12/07 a 18/07 inclusive.
+  const start = new Date("2026-07-12T03:00:00.000Z");
+  const end = new Date("2026-07-19T03:00:00.000Z");
+  assertEquals(formatBRTDateRange(start, end), "12/07 – 18/07");
+});
+
+Deno.test("getBRTMonthToDateWindows: mês atual do dia 1 até ontem, mesmo intervalo no mês anterior", () => {
+  // "ontem" = 18/07/2026 (18 dias corridos de julho).
+  const yesterdayStart = getBRTDayWindowUTC(1, new Date("2026-07-19T12:00:00.000Z")).startUTC;
+  const { current, previous } = getBRTMonthToDateWindows(yesterdayStart);
+  assertEquals(formatBRTDateRange(current.startUTC, current.endUTC), "01/07 – 18/07");
+  assertEquals(formatBRTDateRange(previous.startUTC, previous.endUTC), "01/06 – 18/06");
+});
+
+Deno.test("getBRTMonthToDateWindows: trunca no mês anterior mais curto (31/03 → fevereiro só tem 28)", () => {
+  const yesterdayStart = getBRTDayWindowUTC(1, new Date("2026-04-01T12:00:00.000Z")).startUTC; // ontem = 31/03/2026
+  const { current, previous } = getBRTMonthToDateWindows(yesterdayStart);
+  assertEquals(formatBRTDateRange(current.startUTC, current.endUTC), "01/03 – 31/03");
+  assertEquals(formatBRTDateRange(previous.startUTC, previous.endUTC), "01/02 – 28/02");
+});
+
+Deno.test("getBRTMonthToDateWindows: virada de ano (ontem em janeiro → mês anterior é dezembro do ano passado)", () => {
+  const yesterdayStart = getBRTDayWindowUTC(1, new Date("2027-01-05T12:00:00.000Z")).startUTC; // ontem = 04/01/2027
+  const { current, previous } = getBRTMonthToDateWindows(yesterdayStart);
+  assertEquals(formatBRTDateRange(current.startUTC, current.endUTC), "01/01 – 04/01");
+  assertEquals(formatBRTDateRange(previous.startUTC, previous.endUTC), "01/12 – 04/12");
+  assertEquals(previous.startUTC.getUTCFullYear(), 2026);
+});
+
+Deno.test("buildEmailHtml: renderiza os cards de período (últimos 7 dias / mês atual) com título, range e variação", () => {
+  const periodCards: PeriodCardData[] = [
+    {
+      emoji: "📅",
+      title: "Últimos 7 dias",
+      rangeLabel: "12/07 – 18/07 · vs. 05/07 – 11/07",
+      rows: [
+        { key: "link_clicks", label: "Cliques no Linktree", current: 70, previous: 56, variancePct: computeVariancePct(70, 56) },
+      ],
+    },
+    {
+      emoji: "🗓️",
+      title: "Mês atual",
+      rangeLabel: "01/07 – 18/07 · vs. 01/06 – 18/06",
+      rows: [
+        { key: "link_clicks", label: "Cliques no Linktree", current: 300, previous: 250, variancePct: computeVariancePct(300, 250) },
+      ],
+    },
+  ];
+  const html = buildEmailHtml([], "18/07/2026", [], periodCards);
+  assertStringIncludes(html, "Últimos 7 dias");
+  assertStringIncludes(html, "12/07 – 18/07 · vs. 05/07 – 11/07");
+  assertStringIncludes(html, "Mês atual");
+  assertStringIncludes(html, "01/07 – 18/07 · vs. 01/06 – 18/06");
+  assertStringIncludes(html, "70");
+  assertStringIncludes(html, "300");
+});
+
+Deno.test("buildEmailHtml: sem períodos informados (default) não gera cards de período", () => {
+  const html = buildEmailHtml([], "18/07/2026");
+  assertEquals(html.includes("Últimos 7 dias"), false);
+  assertEquals(html.includes("Mês atual"), false);
 });
