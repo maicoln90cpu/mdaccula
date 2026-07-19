@@ -1,0 +1,62 @@
+name: Prerender SEO
+
+# Só agendado (nunca em push/pull_request) — o HTML gerado aqui é commitado de
+# volta pro repo, e reagir a push criaria risco de loop com o auto-sync do
+# Lovable. workflow_dispatch fica disponível pra rodar manualmente quando
+# precisar (ex.: depois de publicar um lote de eventos novos).
+on:
+  schedule:
+    - cron: '0 9 * * *' # 09:00 UTC = 06:00 BRT
+  workflow_dispatch: {}
+
+env:
+  NODE_VERSION: '20'
+
+# Necessário pra esse job poder commitar/dar push de volta pro repo.
+permissions:
+  contents: write
+
+jobs:
+  prerender:
+    name: Gerar HTML pré-renderizado
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build project
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Gerar HTML pré-renderizado
+        run: node scripts/prerender.mjs
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Commitar HTML gerado (se algo mudou)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/_prerendered/
+          if git diff --cached --quiet; then
+            echo "Nada mudou no prerender — sem commit."
+            exit 0
+          fi
+          git commit -m "chore(prerender): atualiza HTML pré-renderizado [skip ci]"
+          git push
