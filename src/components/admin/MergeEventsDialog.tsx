@@ -157,6 +157,7 @@ export const MergeEventsDialog = ({
             primary_pre_merge: JSON.parse(
               JSON.stringify({
                 id: fullPrimary.id,
+                title: fullPrimary.title,
                 date: fullPrimary.date,
                 end_date: fullPrimary.end_date ?? null,
                 views: fullPrimary.views ?? 0,
@@ -165,6 +166,7 @@ export const MergeEventsDialog = ({
                 lineup: fullPrimary.lineup ?? [],
               })
             ),
+            new_title: effectiveTitle,
             links_repointed: (linksToRepoint || []).map((l) => ({
               id: l.id,
               old_event_id: l.event_id,
