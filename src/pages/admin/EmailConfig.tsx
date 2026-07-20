@@ -352,6 +352,7 @@ const EmailConfig = () => {
         mode: cfg.mode,
         is_enabled: canEnableAuto ? cfg.is_enabled : false,
         scheduled_days_before: cfg.scheduled_days_before,
+        default_event_template_id: cfg.default_event_template_id || null,
         singleton: true,
       };
       const { error } = cfg.id
