@@ -84,7 +84,17 @@ export const MergeEventsDialog = ({
       setTicketsPerDay(hasDistinctTicketLinks);
     }
   }, [open, hasDistinctTicketLinks]);
+
+  // Sincroniza o campo "nome do festival" com o principal selecionado.
+  // O usuário pode sobrescrever livremente; se voltar a ficar vazio, cai no título do principal.
+  useEffect(() => {
+    if (open && primary) {
+      setMergedTitle(primary.title);
+    }
+  }, [open, primary?.id, primary?.title]);
+
   const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
+  const effectiveTitle = (mergedTitle.trim() || primary?.title || '').trim();
 
   const handleMerge = async () => {
     if (!primary || !dateRange) return;
