@@ -263,6 +263,7 @@ const EmailConfig = () => {
           mode: (config.data.mode as Mode) ?? 'draft',
           is_enabled: !!config.data.is_enabled,
           scheduled_days_before: config.data.scheduled_days_before ?? 3,
+          default_event_template_id: (config.data as unknown as { default_event_template_id?: string | null }).default_event_template_id ?? null,
         });
       }
     } catch (e: unknown) {
