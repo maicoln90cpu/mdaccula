@@ -194,6 +194,7 @@ export const MergeEventsDialog = ({
       const { error: updateErr } = await supabase
         .from('events')
         .update({
+          title: effectiveTitle,
           end_date: dateRange.end,
           date: dateRange.start,
           views: totalViews,
