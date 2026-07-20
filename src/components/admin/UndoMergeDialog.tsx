@@ -153,6 +153,9 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       const { error: restoreErr } = await supabase
         .from('events')
         .update({
+          // Restaura o título anterior somente se o snapshot preservou (mesclagens
+          // pós-Fase 2). Snapshots antigos não têm title — mantém o atual.
+          ...(pre.title ? { title: pre.title } : {}),
           date: pre.date,
           end_date: pre.end_date,
           views: pre.views,
