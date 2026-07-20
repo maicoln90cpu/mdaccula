@@ -194,10 +194,17 @@ const EmailConfig = () => {
         supabase
           .from('events')
           .select(
-            'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng'
+            'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng,status'
           )
-          .order('date', { ascending: false })
-          .limit(30),
+          // Oculta eventos inativados por mesclagem (senão o "nome antigo" da
+          // duplicata volta a aparecer no select depois de mesclar um festival).
+          .neq('status', 'merged_inactive')
+          // Mantém eventos recém-passados (últimos 7 dias) para reenvios/cortesias.
+          .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+          // Mais próximos primeiro (crescente por data e hora).
+          .order('date', { ascending: true })
+          .order('time', { ascending: true })
+          .limit(500),
         supabase
           .from('site_settings')
           .select('key, value')
