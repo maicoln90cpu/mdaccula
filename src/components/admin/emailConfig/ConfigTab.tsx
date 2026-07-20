@@ -23,8 +23,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { RefreshCw, Save, ShieldAlert, ShieldCheck, Users } from 'lucide-react';
+import { RefreshCw, Save, ShieldAlert, ShieldCheck, Users, FileText } from 'lucide-react';
 import type { EgoiConfig, ListItem, Mode, SegmentItem, SenderItem } from './types';
+import type { Template } from '@/lib/emailTemplates/blocks';
 import { formatDateTimeBR } from '@/lib/formatters';
 
 interface ConfigTabProps {
