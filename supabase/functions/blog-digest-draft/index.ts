@@ -18,6 +18,7 @@ import {
 } from '../_shared/emailBlocks.ts';
 import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
+import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { filterOutPastEventPosts, type EventDateLink } from './pastEventFilter.ts';
 
 const corsHeaders = {
@@ -186,6 +187,11 @@ Deno.serve(async (req) => {
     if (!isCron && !digestEnabled && !force) {
       return json({ skipped: true, reason: 'digest_disabled' });
     }
+
+    // Guard 2b: disparo automático no cron (padrão = rascunho)
+    const { data: sendOnCronRow } = await admin
+      .from('site_settings').select('value').eq('key', 'blog_digest_send_on_cron').maybeSingle();
+    const sendOnCron = isCron && sendOnCronRow?.value === 'true';
 
     // Guard 3: egoi_config
     let cfg: any = null;
@@ -410,9 +416,28 @@ Deno.serve(async (req) => {
       (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
       (created.body?.id != null ? String(created.body.id) : null);
 
+    let status: 'draft' | 'sent' = 'draft';
+    if (sendOnCron && campaignHash) {
+      const sendRes = await sendEgoiCampaign(campaignHash, Number(cfg.list_id), apiKey!);
+      if (!sendRes.ok) {
+        return json({
+          ok: false,
+          status: 'draft',
+          error: `E-goi send ${sendRes.status}`,
+          detail: typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body),
+          egoi_campaign_id: campaignHash,
+          posts_count: pts.length,
+          range: rangeLabel,
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
+        }, 502);
+      }
+      status = 'sent';
+    }
+
     return json({
       ok: true,
-      status: 'draft',
+      status,
       egoi_campaign_id: campaignHash,
       posts_count: pts.length,
       range: rangeLabel,

@@ -41,3 +41,24 @@ export function egoiSendBodyIndicatesError(body: unknown): boolean {
     ((body as any).error || (body as any).errors || (body as any).status === "error")
   );
 }
+
+/**
+ * Dispara uma campanha E-goi recém-criada via POST .../actions/send.
+ * Retorna { ok: true } apenas se o corpo da resposta não indicar erro.
+ */
+export async function sendEgoiCampaign(
+  campaignHash: string,
+  listId: number,
+  apiKey: string,
+): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const res = await egoiRequest(
+    `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
+    apiKey,
+    { method: "POST", body: JSON.stringify({ list_id: listId }) },
+  );
+  return {
+    ok: res.ok && !egoiSendBodyIndicatesError(res.body),
+    status: res.status,
+    body: res.body,
+  };
+}

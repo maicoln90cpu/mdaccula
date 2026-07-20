@@ -106,6 +106,26 @@ export const AutomationsTab = ({
 }: AutomationsTabProps) => {
   const testTitle = `Envia via Resend para ${automationTestRecipient} — não toca a E-goi`;
 
+  const SendOnCronToggle = ({
+    checked,
+    onChange,
+    label,
+  }: {
+    checked: boolean;
+    onChange: (v: boolean) => void;
+    label: string;
+  }) => (
+    <div className="flex items-center justify-between rounded-lg border border-border p-3">
+      <div className="text-sm">
+        {label}
+        <p className="text-xs text-muted-foreground">
+          Quando ON, o cron envia direto. Quando OFF, só cria rascunho.
+        </p>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {!masterEnabled && (
@@ -140,6 +160,12 @@ export const AutomationsTab = ({
                 onCheckedChange={(v) => setWeeklyCfg({ ...weeklyCfg, enabled: v })}
               />
             </div>
+
+            <SendOnCronToggle
+              checked={!!weeklyCfg.sendOnCron}
+              onChange={(v) => setWeeklyCfg({ ...weeklyCfg, sendOnCron: v })}
+              label="Enviar automaticamente no cron"
+            />
 
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -305,6 +331,12 @@ export const AutomationsTab = ({
               />
             </div>
 
+            <SendOnCronToggle
+              checked={!!weekendCfg.sendOnCron}
+              onChange={(v) => setWeekendCfg({ ...weekendCfg, sendOnCron: v })}
+              label="Enviar automaticamente no cron"
+            />
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Dia da semana</Label>
@@ -465,6 +497,12 @@ export const AutomationsTab = ({
                 onCheckedChange={(v) => setBlogCfg({ ...blogCfg, enabled: v })}
               />
             </div>
+
+            <SendOnCronToggle
+              checked={!!blogCfg.sendOnCron}
+              onChange={(v) => setBlogCfg({ ...blogCfg, sendOnCron: v })}
+              label="Enviar automaticamente no cron"
+            />
 
             <div className="grid grid-cols-2 gap-3">
               <div>

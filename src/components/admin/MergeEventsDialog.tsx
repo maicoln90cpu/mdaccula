@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -87,11 +87,13 @@ export const MergeEventsDialog = ({
 
   // Sincroniza o campo "nome do festival" com o principal selecionado.
   // O usuário pode sobrescrever livremente; se voltar a ficar vazio, cai no título do principal.
+  const primaryRef = useRef(primary?.id);
   useEffect(() => {
-    if (open && primary) {
+    if (open && primary && primaryRef.current !== primary.id) {
+      primaryRef.current = primary.id;
       setMergedTitle(primary.title);
     }
-  }, [open, primary?.id, primary?.title]);
+  }, [open, primary]);
 
   const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
   const effectiveTitle = (mergedTitle.trim() || primary?.title || '').trim();

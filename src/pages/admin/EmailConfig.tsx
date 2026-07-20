@@ -206,14 +206,17 @@ const EmailConfig = () => {
             'weekly_digest_cron_day',
             'weekly_digest_cron_hour',
             'weekly_digest_template_id',
+            'weekly_digest_send_on_cron',
             'weekend_agenda_enabled',
             'weekend_agenda_cron_day',
             'weekend_agenda_cron_hour',
             'weekend_agenda_template_id',
+            'weekend_agenda_send_on_cron',
             'blog_digest_enabled',
             'blog_digest_cron_day',
             'blog_digest_cron_hour',
             'blog_digest_template_id',
+            'blog_digest_send_on_cron',
           ]),
       ]);
 
@@ -229,18 +232,21 @@ const EmailConfig = () => {
         day: parseInt10(settingsMap.weekly_digest_cron_day, 4),
         hour: parseInt10(settingsMap.weekly_digest_cron_hour, 18),
         templateId: settingsMap.weekly_digest_template_id || '',
+        sendOnCron: settingsMap.weekly_digest_send_on_cron === 'true',
       });
       setWeekendCfg({
         enabled: settingsMap.weekend_agenda_enabled === 'true',
         day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
         hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
         templateId: settingsMap.weekend_agenda_template_id || '',
+        sendOnCron: settingsMap.weekend_agenda_send_on_cron === 'true',
       });
       setBlogCfg({
         enabled: settingsMap.blog_digest_enabled === 'true',
         day: parseInt10(settingsMap.blog_digest_cron_day, 0),
         hour: parseInt10(settingsMap.blog_digest_cron_hour, 12),
         templateId: settingsMap.blog_digest_template_id || '',
+        sendOnCron: settingsMap.blog_digest_send_on_cron === 'true',
       });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
@@ -263,6 +269,7 @@ const EmailConfig = () => {
           mode: (config.data.mode as Mode) ?? 'draft',
           is_enabled: !!config.data.is_enabled,
           scheduled_days_before: config.data.scheduled_days_before ?? 3,
+          default_event_template_id: (config.data as unknown as { default_event_template_id?: string | null }).default_event_template_id ?? null,
         });
       }
     } catch (e: unknown) {
@@ -351,6 +358,7 @@ const EmailConfig = () => {
         mode: cfg.mode,
         is_enabled: canEnableAuto ? cfg.is_enabled : false,
         scheduled_days_before: cfg.scheduled_days_before,
+        default_event_template_id: cfg.default_event_template_id || null,
         singleton: true,
       };
       const { error } = cfg.id
@@ -919,6 +927,7 @@ const EmailConfig = () => {
             lists={lists}
             senders={senders}
             segments={segments}
+            templates={templates}
             listTotal={listTotal}
             reachEstimate={reachEstimate}
             fetchingResources={fetchingResources}

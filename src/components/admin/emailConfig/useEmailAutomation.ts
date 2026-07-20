@@ -59,6 +59,7 @@ async function saveAutomation(
     { key: `${prefix}_cron_day`, value: String(cfg.day) },
     { key: `${prefix}_cron_hour`, value: String(cfg.hour) },
     { key: `${prefix}_template_id`, value: cfg.templateId || '' },
+    { key: `${prefix}_send_on_cron`, value: cfg.sendOnCron ? 'true' : 'false' },
   ]);
   const { data, error } = await supabase.functions.invoke('update-digest-schedule', {
     body: { job },
@@ -75,18 +76,21 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     day: 4,
     hour: 18,
     templateId: '',
+    sendOnCron: false,
   });
   const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({
     enabled: false,
     day: 4,
     hour: 12,
     templateId: '',
+    sendOnCron: false,
   });
   const [blogCfg, setBlogCfg] = useState<AutomationCfg>({
     enabled: false,
     day: 0,
     hour: 12,
     templateId: '',
+    sendOnCron: false,
   });
 
   // Flags de UI (Salvar / Gerar agora / Enviar teste)
