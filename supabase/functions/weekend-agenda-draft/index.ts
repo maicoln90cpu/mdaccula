@@ -221,6 +221,11 @@ Deno.serve(async (req) => {
     if (isCron && !agendaEnabled) return json({ skipped: true, reason: 'agenda_disabled' });
     if (!isCron && !agendaEnabled && !force) return json({ skipped: true, reason: 'agenda_disabled' });
 
+    // Guard 2b: disparo automático no cron (padrão = rascunho)
+    const { data: sendOnCronRow } = await admin
+      .from('site_settings').select('value').eq('key', 'weekend_agenda_send_on_cron').maybeSingle();
+    const sendOnCron = isCron && sendOnCronRow?.value === 'true';
+
     // Guard 3: egoi_config (só quando vai enviar)
     let cfg: any = null;
     let apiKey: string | undefined;
