@@ -551,9 +551,29 @@ Deno.serve(async (req) => {
       (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
       (created.body?.id != null ? String(created.body.id) : null);
 
+    let status: 'draft' | 'sent' = 'draft';
+    if (sendOnCron && campaignHash) {
+      const sendRes = await sendEgoiCampaign(campaignHash, Number(cfg.list_id), apiKey!);
+      if (!sendRes.ok) {
+        return json({
+          ok: false,
+          status: 'draft',
+          error: `E-goi send ${sendRes.status}`,
+          detail: typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body),
+          egoi_campaign_id: campaignHash,
+          events_count: evs.length,
+          posts_count: pts.length,
+          range: rangeLabel,
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
+        }, 502);
+      }
+      status = 'sent';
+    }
+
     return json({
       ok: true,
-      status: 'draft',
+      status,
       egoi_campaign_id: campaignHash,
       events_count: evs.length,
       posts_count: pts.length,
