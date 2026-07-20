@@ -63,6 +63,7 @@ export type EgoiConfig = {
   mode: Mode;
   is_enabled: boolean;
   scheduled_days_before: number;
+  default_event_template_id?: string | null;
 };
 
 export type ListItem = {
