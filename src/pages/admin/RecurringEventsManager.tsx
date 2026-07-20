@@ -551,7 +551,7 @@ const RecurringEventsManager = () => {
                   />
                 </div>
                 <div>
-                  <Label>Link VIP</Label>
+                  <Label>Link Camarote</Label>
                   <Input
                     value={editingConfig.vip_link || ''}
                     onChange={(e) =>
