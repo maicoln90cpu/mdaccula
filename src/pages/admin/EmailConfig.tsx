@@ -921,6 +921,7 @@ const EmailConfig = () => {
             lists={lists}
             senders={senders}
             segments={segments}
+            templates={templates}
             listTotal={listTotal}
             reachEstimate={reachEstimate}
             fetchingResources={fetchingResources}
