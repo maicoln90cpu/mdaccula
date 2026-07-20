@@ -76,18 +76,21 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     day: 4,
     hour: 18,
     templateId: '',
+    sendOnCron: false,
   });
   const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({
     enabled: false,
     day: 4,
     hour: 12,
     templateId: '',
+    sendOnCron: false,
   });
   const [blogCfg, setBlogCfg] = useState<AutomationCfg>({
     enabled: false,
     day: 0,
     hour: 12,
     templateId: '',
+    sendOnCron: false,
   });
 
   // Flags de UI (Salvar / Gerar agora / Enviar teste)
