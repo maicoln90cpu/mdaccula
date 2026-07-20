@@ -311,6 +311,23 @@ export const MergeEventsDialog = ({
                   </div>
                 ))}
               </RadioGroup>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <Label htmlFor="merged-title" className="text-base">
+                  Nome do festival (evento final):
+                </Label>
+                <Input
+                  id="merged-title"
+                  value={mergedTitle}
+                  onChange={(e) => setMergedTitle(e.target.value)}
+                  placeholder={primary?.title || 'Nome do festival'}
+                  maxLength={200}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Você pode renomear o evento final (ex.: "Festival XYZ 2026"). Se deixar em branco,
+                  usaremos o nome do evento principal selecionado.
+                </p>
+              </div>
             </div>
 
             <Alert>
