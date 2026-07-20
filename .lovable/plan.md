@@ -1,73 +1,107 @@
-## Parte 1 — Suas 3 perguntas sobre lockfiles
+Plano de correção — itens restantes dos 7 mapeados
+Fase 1 (VIP → Camarote) e Fase 2 (título editável na mesclagem) já foram aplicadas. Aqui segue o plano para os 5 itens que ainda estão pendentes.
 
-**1) O ambiente do Lovable depende do `bun.lock`?**
-Sim. O sandbox do Lovable (preview + build na nuvem) roda com **Bun** como gerenciador. É por isso que o bot `gpt-engineer-app[bot]` atualiza o `bun.lock` (texto) a cada edição feita pelo chat — o Bun regrava o lockfile toda vez que instala/altera dependência. Se você apagar o `bun.lock`, o próximo build no Lovable **vai regerar do zero** a partir do `package.json`. Isso funciona, mas tem um risco pequeno: o Bun vai reresolver todas as versões dentro dos ranges do `package.json` (ex: `^1.2.3`) e pode subir para uma versão minor/patch mais nova do que a que estava travada — em teoria idêntico, na prática pode expor bug novo de dependência. **Recomendação: manter o `bun.lock` intacto.**
-
-**2) O `bun.lockb` (binário antigo) ainda é usado?**
-Não. A partir do Bun 1.2 (jan/2025) o formato oficial passou a ser o `bun.lock` texto, e o Bun **ignora** o `.lockb` quando existe um `bun.lock` ao lado. O fato do seu `bun.lockb` estar parado desde 19/02/2026 confirma isso — é lixo órfão. **Seguro remover.** O Bun no ambiente do Lovable vai continuar usando só o `bun.lock` texto, sem diferença nenhuma.
-
-**3) Risco de divergência npm (local) ↔ Bun (Lovable)?**
-Existe, mas é **baixo na prática** neste projeto:
-- Fonte de verdade dos dois é o mesmo `package.json` com os mesmos ranges semver.
-- Ao longo do tempo, um pode travar `1.2.3` e o outro `1.2.4` de uma sub-dependência transitiva, se rodarem `install` em dias diferentes.
-- Impacto real quase sempre é zero (patch releases). Fica perigoso só se alguma dependência publicar patch com breaking change (raro).
-- Como o **build oficial de produção** é o do Lovable (Bun), o `bun.lock` é o que importa para o que vai ao ar. Seu `npm install` local serve pra você rodar `npm run dev`, `npm test`, `npx tsc` — se der problema local, você reinstala.
-- Mitigação opcional futura: padronizar tudo em Bun (deletar `package-lock.json` e usar `bun install`/`bun run` localmente também). Não faço isso agora — fica como sugestão.
-
-**Ação proposta desta parte:** deletar apenas `bun.lockb`. Manter `bun.lock` e `package-lock.json`.
-
----
-
-## Parte 2 — As 10 funções que falharam no deploy anterior
-
-**Sim, dá pra tentar de novo por aqui.** As 10 funções falharam com `Module not found` apontando para arquivos em `supabase/functions/_shared/`. Duas hipóteses:
-
-- **(a) Falha transiente do bundler** — o pacote foi montado sem o `_shared` naquela execução específica. Retry costuma resolver.
-- **(b) Bug real no deployer do Lovable** — sempre falha para funções que importam `_shared`. Se for isso, retry vai falhar de novo com o mesmo erro, e aí a solução definitiva é o workflow do GitHub Actions com Supabase CLI (que respeita `_shared` corretamente).
-
-**Plano:** rodar `supabase--deploy_edge_functions` só nas 10 que falharam e ver o resultado. Custo é baixo (~1 min), e o output nos diz qual das duas hipóteses é a verdadeira.
-
-Lista das 10 (todas usam `_shared`):
-```
-weekly-digest-draft, weekend-agenda-draft, blog-digest-draft,
-create-event-email-campaign, send-scheduled-email-campaigns,
-generate-multi-event-article, generate-blog-post-v2,
-generate-blog-post-from-topic, scan-event-sources,
-send-mass-newsletter
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│ PENDENTES                                                          │
+│ 3. Cron de emails automáticos criando apenas rascunho              │
+│ 4. Erro "Não há eventos para montar a agenda deste bloco" manual   │
+│ 5. Favicon oscilando entre Lovable e MDAccula                    │
+│ 6. Remover campos de latitude/longitude do modal de evento          │
+│ 7. Configurar "template padrão" para novo evento (aviso sem UI)    │
+└────────────────────────────────────────────────────────────────────┘
 ```
 
-*(A lista exata pode variar 1-2 nomes — vou reconferir contra o log do deploy anterior antes de disparar.)*
 
----
+FASE 3 — UI/Metadata de baixo risco (favicon + coordenadas do evento)
 
-## Execução (quando você aprovar)
+3.1 Favicon corrigido
+- O que muda: `index.html` passa a apontar corretamente para `public/favicon.ico` com `type="image/x-icon"` e remove referências ao favicon do template Lovable.
+- Arquivos envolvidos: `index.html`, `public/favicon.ico` (já existe, apenas revisar se é o logo MDAccula).
+- Risco: baixo. Apenas tag `<link rel="icon">`. Não afeta runtime nem banco.
+- Teste manual: recarregar /admin e /eventos, aba deve exibir o ícone MDAccula (caveira estilizada) em vez do ícone Lovable.
 
-**Passo 1 — Limpeza do lockfile órfão** (risco: nenhum)
-- `rm bun.lockb`
+3.2 Remover inputs de latitude e longitude do formulário de evento
+- O que muda: os campos `venue_lat` e `venue_lng` deixam de ser exibidos em `src/components/events/EventForm.tsx`. A geocodificação automática continua funcionando em segundo plano via `geocode-event` quando o evento é visualizado (`EventLocationMap`) ou quando o e-mail é disparado (`dispatchEventDraft.ts`).
+- Arquivos envolvidos: `src/components/events/EventForm.tsx`, `src/components/events/EventLocationMap.tsx` (verificar se mantém fallback), `src/lib/emailTemplates/dispatchEventDraft.ts` (já geocodifica).
+- Risco: baixo. Remove inputs opcionais; a lógica de geocode em fallback é preservada.
+- Teste manual: criar/editar um evento → aba de local deve mostrar apenas endereço, cidade, estado, país. Acessar a página pública do evento deve ainda exibir o mapa se o endereço for geocodificável.
 
-**Passo 2 — Retry das 10 funções** (risco: baixo — pior caso é falhar de novo com a mesma mensagem)
-- Chamar `supabase--deploy_edge_functions` com a lista das 10.
-- Se **todas subirem:** era transiente, missão cumprida.
-- Se **falharem de novo com `Module not found` de `_shared`:** confirma bug do deployer do Lovable. Aí o caminho é criar o workflow do GitHub Actions (fica como próximo plano separado, não faço junto).
 
-**Passo 3 — Validação manual (você)**
-- [ ] Confirmar que `bun.lockb` sumiu do VS Code e o aviso de lockfile duplicado desapareceu.
-- [ ] Abrir Admin → E-mail → Configuração e disparar um "teste" de weekly-digest / weekend-agenda / blog-digest — se o HTML do e-mail chegar com os blocos atualizados (múltiplos CTAs, contagem regressiva corrigida, etc), as edges novas estão no ar.
-- [ ] Ver logs de 1 das 10 funções no dashboard do Supabase e confirmar timestamp de deploy recente.
+FASE 4 — Template padrão para novo evento (frontend admin)
 
----
+4.1 Adicionar seletor de template padrão na aba "Configuração" do e-mail
+- O que muda: a tabela `egoi_config` já possui a coluna `default_event_template_id` e o código de evento (`EventForm.tsx`) já exibe o aviso "Selecione um template padrão em /admin/email-config". O que falta é a UI para escolher esse template. Incluir um `<Select>` em `src/components/admin/emailConfig/ConfigTab.tsx` listando os templates do tipo `event_new` e salvando o `id` em `egoi_config.default_event_template_id`.
+- Arquivos envolvidos: `src/components/admin/emailConfig/ConfigTab.tsx`, `src/pages/admin/EmailConfig.tsx` (carregar/salvar `default_event_template_id`), `src/components/events/EventForm.tsx` (apenas confirmar que o aviso some após a configuração).
+- Risco: baixo. Adiciona campo que já existe no banco; não altera schema.
+- Teste manual: ir em /admin/email-config → aba Configuração → escolher um template padrão → salvar. Criar evento: o aviso de "Selecione um template padrão" deve sumir e o botão de automação de e-mail deve habilitar.
 
-## Prevenção de regressão
 
-- Se o retry funcionar: nada a fazer — foi transiente.
-- Se falhar: abrir o plano do **GitHub Actions workflow** (`.github/workflows/deploy-edge-functions.yml` rodando `supabase functions deploy` a cada push em `main`). Isso elimina a dependência do deployer do Lovable pra sempre e ainda te dá deploy automático no push do VS Code — resolvendo também a dor original da conversa anterior.
-- Documentar em `README.md` que `bun.lock` é o lockfile oficial do ambiente Lovable e não deve ser apagado, e que `package-lock.json` é só para uso local.
+FASE 5 — Automação de envio direto pelos crons de digest (edge functions)
 
----
+5.1 Adicionar flag de envio automático na configuração do admin
+- O que muda: inserir 3 novas `site_settings` (`weekly_digest_send_on_cron`, `weekend_agenda_send_on_cron`, `blog_digest_send_on_cron`) com valor `true`. Adicionar toggles na aba "Automações" para que o usuário possa desligar o envio direto (mantendo rascunho) se quiser.
+- Arquivos envolvidos: `src/components/admin/emailConfig/AutomationsTab.tsx`, `src/components/admin/emailConfig/useEmailAutomation.ts`, `src/pages/admin/EmailConfig.tsx` (carregar/salvar as flags).
+- Risco: médio. Adiciona estado e novas settings, mas não altera a API da E-goi.
+- Teste manual: /admin/email-config → aba Automações → ver 3 toggles "Enviar automaticamente no cron".
 
-## Pendências que ficam para depois (não faço agora)
+5.2 Fazer as functions de digest dispararem a campanha após criar o rascunho
+- O que muda: após criar a campanha na E-goi (`POST /campaigns/email`), se a flag de envio automático estiver ativa ou o body da requisição vier com `send_now: true`, a function chamará `POST /campaigns/{hash}/actions/send` e retornará `status: 'sent'` em vez de `'draft'`. A mesma defensiva de `egoiSendBodyIndicatesError` usada em `send-scheduled-email-campaigns` será aplicada.
+- Arquivos envolvidos:
+  - `supabase/functions/weekly-digest-draft/index.ts`
+  - `supabase/functions/weekend-agenda-draft/index.ts`
+  - `supabase/functions/blog-digest-draft/index.ts`
+  - `supabase/functions/_shared/egoiClient.ts` (já exporta `egoiSendBodyIndicatesError`)
+- Risco: médio-alto. Muda o comportamento das functions em produção. Requer deploy das functions e teste de envio real (pode usar o teste via admin para validar antes de deixar o cron ativo).
+- Teste manual: /admin/email-config → aba Automações → clicar em "Testar Digest Semanal" com toggle de envio ativo → esperar resultado "sent" com campaign hash. Depois, verificar na E-goi se a campanha foi realmente enviada.
 
-1. Workflow do GitHub Actions para deploy automático das edge functions (só se o retry falhar, ou se você quiser blindagem definitiva).
-2. Decidir se vale padronizar tudo em Bun localmente (apagar `package-lock.json` e usar `bun install`). Elimina o risco de divergência da pergunta 3, mas muda seu fluxo de trabalho no VS Code.
+5.3 Atualizar crons para enviar automaticamente (migration)
+- O que muda: opcional. A function já pode ler a flag `send_on_cron` do banco. Se preferir, podemos garantir que o body do `pg_cron` envie `send_now: true` explicitamente, mas a preferência é usar a flag no banco para centralizar o controle.
+- Arquivos envolvidos: possivelmente `supabase/migrations/...` para inserir as novas settings e, se necessário, recriar o job do cron.
+- Risco: baixo se apenas inserir settings. Recriar cron requer cuidado para não duplicar jobs.
+- Teste manual: aguardar o horário do cron ou usar endpoint com `x-cron-secret` para simular.
 
-Aprova executar os passos 1 e 2?
+
+FASE 6 — Corrigir erro "Não há eventos para montar a agenda deste bloco" no envio manual
+
+6.1 Entender o cenário exato
+- O erro vem de `supabase/functions/_shared/emailComposer.ts` quando um bloco `weekend_grid` é renderizado sem eventos. No envio manual, isso pode ocorrer quando o template selecionado é do tipo `weekend_agenda` mas o evento escolhido não é um evento de fim de semana multi-evento, ou quando o evento é único e a grade de eventos fica vazia.
+- Arquivos envolvidos a investigar: `supabase/functions/_shared/emailComposer.ts` (linha ~204), `src/lib/emailTemplates/dispatchEventDraft.ts`, `src/lib/emailTemplates/eventAnnouncement.ts`.
+
+6.2 Correção defensiva
+- O que muda: se o template escolhido for `weekend_agenda` e o evento não tiver múltiplos eventos associados, o sistema deve usar uma variante de template compatível (do tipo `event_new`) ou renderizar um bloco de evento único em vez de `weekend_grid`. Outra opção é ajustar `emailComposer.ts` para renderizar grade vazia sem falhar.
+- Preferência: fazer `dispatchEventDraft.ts` detectar a incompatibilidade e fallback para template `event_new` (ou o template padrão), emitindo um aviso no log. Isso evita que o envio manual quebre para eventos isolados.
+- Arquivos envolvidos: `src/lib/emailTemplates/dispatchEventDraft.ts`, `supabase/functions/_shared/emailComposer.ts` (mensagem de erro mais clara), `src/pages/admin/EmailConfig.tsx` (feedback ao usuário).
+- Risco: médio. Afeta a lógica de renderização de e-mails, mas a mudança é defensiva.
+- Teste manual: /admin/email-config → aba Envio manual → escolher um template do tipo "Agenda de fim de semana" e um evento único (não multi) → clicar em "Criar/enviar". O sistema deve enviar com um template de evento único ou mostrar um aviso claro antes de prosseguir.
+
+
+Ordem de execução recomendada
+
+1. FASE 3: favicon + coordenadas (independente, baixo risco).
+2. FASE 4: template padrão (frontend, baixo risco, desbloqueia o aviso do evento).
+3. FASE 6: erro de agenda manual (mediação antes do envio automático).
+4. FASE 5: envio automático pelos crons (maior impacto, testar bem após as correções anteriores).
+
+
+Checklist geral de validação (para cada fase)
+- [ ] Rodar `npx tsc --noEmit` após alterações frontend.
+- [ ] Rodar `npm run lint`.
+- [ ] Rodar `npm test` e `npm run test:coverage:ratchet` (se alterar edge functions, também `npm run test:edge`).
+- [ ] Validar no localhost:8080 o fluxo afetado.
+- [ ] Para edge functions, deploy via script `scripts/bundle-edge-functions.mjs` ou GitHub Actions.
+- [ ] Para migrations, aplicar no banco e confirmar settings/tabelas.
+
+
+Prevenção de regressão
+- Adicionar/atualizar contratos em `src/__tests__/contracts/` para:
+  - envio automático de digest (`status: 'sent'` quando `send_now: true`)
+  - fallback de template `weekend_agenda` incompatível
+- Atualizar testes de regressão existentes se o comportamento de draft mudar.
+- Documentar as novas `site_settings` no `tabelas.md` e/ou `README.md`.
+
+
+Pendências futuras (fora do escopo deste plano)
+- Melhorar a mensagem de erro "Não há eventos para montar a agenda deste bloco" para incluir qual template e qual evento causaram o problema.
+- Criar uma tela de "Preview" de e-mail antes de envio, para o usuário visualizar o resultado antes de confirmar.
+- Auditoria de logs das edge functions para confirmar taxa de sucesso dos envios automáticos.
