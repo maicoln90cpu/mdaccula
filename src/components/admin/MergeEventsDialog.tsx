@@ -390,9 +390,15 @@ export const MergeEventsDialog = ({
                 <strong>Confirmação final.</strong> Vou:
                 <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
                   <li>
-                    Atualizar <strong>{primary?.title}</strong> com data{' '}
-                    {formatEventDateRange(dateRange.start, dateRange.end)} (vira o "guarda-chuva" do
-                    festival).
+                    Renomear o evento principal para <strong>{effectiveTitle}</strong>
+                    {effectiveTitle !== primary?.title ? (
+                      <>
+                        {' '}
+                        (antes: <em>{primary?.title}</em>)
+                      </>
+                    ) : null}{' '}
+                    com data {formatEventDateRange(dateRange.start, dateRange.end)} (vira o
+                    "guarda-chuva" do festival).
                   </li>
                   {effectiveTicketsPerDay ? (
                     <li>
