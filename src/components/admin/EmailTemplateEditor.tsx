@@ -1236,7 +1236,7 @@ function BlockPropsPanel({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="ticket_link">Link de ingresso do evento</SelectItem>
-                <SelectItem value="vip_link">Link VIP do evento</SelectItem>
+                <SelectItem value="vip_link">Link Camarote do evento</SelectItem>
                 <SelectItem value="event_url">Página do evento no site</SelectItem>
                 <SelectItem value="custom">URL personalizada</SelectItem>
               </SelectContent>
