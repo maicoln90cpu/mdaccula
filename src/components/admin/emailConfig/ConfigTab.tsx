@@ -63,6 +63,7 @@ export const ConfigTab = ({
   lists,
   senders,
   segments,
+  templates,
   listTotal,
   reachEstimate,
   fetchingResources,
