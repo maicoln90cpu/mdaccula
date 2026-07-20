@@ -206,14 +206,17 @@ const EmailConfig = () => {
             'weekly_digest_cron_day',
             'weekly_digest_cron_hour',
             'weekly_digest_template_id',
+            'weekly_digest_send_on_cron',
             'weekend_agenda_enabled',
             'weekend_agenda_cron_day',
             'weekend_agenda_cron_hour',
             'weekend_agenda_template_id',
+            'weekend_agenda_send_on_cron',
             'blog_digest_enabled',
             'blog_digest_cron_day',
             'blog_digest_cron_hour',
             'blog_digest_template_id',
+            'blog_digest_send_on_cron',
           ]),
       ]);
 
