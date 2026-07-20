@@ -232,18 +232,21 @@ const EmailConfig = () => {
         day: parseInt10(settingsMap.weekly_digest_cron_day, 4),
         hour: parseInt10(settingsMap.weekly_digest_cron_hour, 18),
         templateId: settingsMap.weekly_digest_template_id || '',
+        sendOnCron: settingsMap.weekly_digest_send_on_cron === 'true',
       });
       setWeekendCfg({
         enabled: settingsMap.weekend_agenda_enabled === 'true',
         day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
         hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
         templateId: settingsMap.weekend_agenda_template_id || '',
+        sendOnCron: settingsMap.weekend_agenda_send_on_cron === 'true',
       });
       setBlogCfg({
         enabled: settingsMap.blog_digest_enabled === 'true',
         day: parseInt10(settingsMap.blog_digest_cron_day, 0),
         hour: parseInt10(settingsMap.blog_digest_cron_hour, 12),
         templateId: settingsMap.blog_digest_template_id || '',
+        sendOnCron: settingsMap.blog_digest_send_on_cron === 'true',
       });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
