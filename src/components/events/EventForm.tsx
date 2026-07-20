@@ -970,33 +970,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             </div>
           </div>
 
-          {/* Coordenadas do venue (opcional) — usadas pelo bloco Mapa estático no e-mail */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="venue_lat">Latitude do local (opcional)</Label>
-              <Input
-                id="venue_lat"
-                type="number"
-                step="any"
-                {...register('venue_lat', { valueAsNumber: true })}
-                placeholder="Ex.: -15.601411"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="venue_lng">Longitude do local (opcional)</Label>
-              <Input
-                id="venue_lng"
-                type="number"
-                step="any"
-                {...register('venue_lng', { valueAsNumber: true })}
-                placeholder="Ex.: -56.097892"
-              />
-              <p className="text-xs text-muted-foreground">
-                Dica: abra o Google Maps, clique no local, e as coordenadas aparecem no topo. Sem
-                isso, o bloco "Mapa estático" do e-mail fica oculto.
-              </p>
-            </div>
-          </div>
+          {/* As coordenadas do venue são preenchidas automaticamente pela geocodificação
+              quando o evento é visualizado ou quando o e-mail é disparado. */}
+
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
