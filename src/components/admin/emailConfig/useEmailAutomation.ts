@@ -59,6 +59,7 @@ async function saveAutomation(
     { key: `${prefix}_cron_day`, value: String(cfg.day) },
     { key: `${prefix}_cron_hour`, value: String(cfg.hour) },
     { key: `${prefix}_template_id`, value: cfg.templateId || '' },
+    { key: `${prefix}_send_on_cron`, value: cfg.sendOnCron ? 'true' : 'false' },
   ]);
   const { data, error } = await supabase.functions.invoke('update-digest-schedule', {
     body: { job },
