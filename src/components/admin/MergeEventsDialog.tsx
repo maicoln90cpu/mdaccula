@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Loader2 } from 'lucide-react';
@@ -57,6 +58,7 @@ export const MergeEventsDialog = ({
   const [confirming, setConfirming] = useState(false);
   const [merging, setMerging] = useState(false);
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
+  const [mergedTitle, setMergedTitle] = useState<string>('');
   const { toast } = useToast();
 
   const primary = events.find((e) => e.id === primaryId);
@@ -82,7 +84,17 @@ export const MergeEventsDialog = ({
       setTicketsPerDay(hasDistinctTicketLinks);
     }
   }, [open, hasDistinctTicketLinks]);
+
+  // Sincroniza o campo "nome do festival" com o principal selecionado.
+  // O usuário pode sobrescrever livremente; se voltar a ficar vazio, cai no título do principal.
+  useEffect(() => {
+    if (open && primary) {
+      setMergedTitle(primary.title);
+    }
+  }, [open, primary?.id, primary?.title]);
+
   const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
+  const effectiveTitle = (mergedTitle.trim() || primary?.title || '').trim();
 
   const handleMerge = async () => {
     if (!primary || !dateRange) return;
@@ -145,6 +157,7 @@ export const MergeEventsDialog = ({
             primary_pre_merge: JSON.parse(
               JSON.stringify({
                 id: fullPrimary.id,
+                title: fullPrimary.title,
                 date: fullPrimary.date,
                 end_date: fullPrimary.end_date ?? null,
                 views: fullPrimary.views ?? 0,
@@ -153,6 +166,7 @@ export const MergeEventsDialog = ({
                 lineup: fullPrimary.lineup ?? [],
               })
             ),
+            new_title: effectiveTitle,
             links_repointed: (linksToRepoint || []).map((l) => ({
               id: l.id,
               old_event_id: l.event_id,
@@ -180,6 +194,7 @@ export const MergeEventsDialog = ({
       const { error: updateErr } = await supabase
         .from('events')
         .update({
+          title: effectiveTitle,
           end_date: dateRange.end,
           date: dateRange.start,
           views: totalViews,
@@ -296,6 +311,23 @@ export const MergeEventsDialog = ({
                   </div>
                 ))}
               </RadioGroup>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <Label htmlFor="merged-title" className="text-base">
+                  Nome do festival (evento final):
+                </Label>
+                <Input
+                  id="merged-title"
+                  value={mergedTitle}
+                  onChange={(e) => setMergedTitle(e.target.value)}
+                  placeholder={primary?.title || 'Nome do festival'}
+                  maxLength={200}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Você pode renomear o evento final (ex.: "Festival XYZ 2026"). Se deixar em branco,
+                  usaremos o nome do evento principal selecionado.
+                </p>
+              </div>
             </div>
 
             <Alert>
@@ -358,9 +390,15 @@ export const MergeEventsDialog = ({
                 <strong>Confirmação final.</strong> Vou:
                 <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
                   <li>
-                    Atualizar <strong>{primary?.title}</strong> com data{' '}
-                    {formatEventDateRange(dateRange.start, dateRange.end)} (vira o "guarda-chuva" do
-                    festival).
+                    Renomear o evento principal para <strong>{effectiveTitle}</strong>
+                    {effectiveTitle !== primary?.title ? (
+                      <>
+                        {' '}
+                        (antes: <em>{primary?.title}</em>)
+                      </>
+                    ) : null}{' '}
+                    com data {formatEventDateRange(dateRange.start, dateRange.end)} (vira o
+                    "guarda-chuva" do festival).
                   </li>
                   {effectiveTicketsPerDay ? (
                     <li>
