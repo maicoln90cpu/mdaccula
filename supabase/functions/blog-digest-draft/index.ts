@@ -18,6 +18,7 @@ import {
 } from '../_shared/emailBlocks.ts';
 import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
+import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { filterOutPastEventPosts, type EventDateLink } from './pastEventFilter.ts';
 
 const corsHeaders = {
