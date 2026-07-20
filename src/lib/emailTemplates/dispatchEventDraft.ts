@@ -170,13 +170,25 @@ export async function dispatchEventDraftEmail(
 
   // B.8 — se veio arte específica, preenche blocos image_with_link vazios
   // (útil no preset "ticket_batch" que já tem esse bloco pronto).
-  const resolvedBlocks: Block[] | null =
+  let resolvedBlocks: Block[] | null =
     template && Array.isArray(template.blocks)
       ? applyEmailBlockOverrides(template.blocks as Block[], {
           artworkUrl: opts.flyerOverrideUrl || eventData.flyerUrl,
           defaultLink: eventData.ticketUrl,
         })
       : null;
+
+  // Templates de evento único nunca devem renderizar blocos de digest/agenda
+  // multi-evento (weekend_grid, weekly_hero, blog_posts_list, dedge_block),
+  // pois eventData não carrega weekendEvents/blogPosts/dedge. Sem esse filtro,
+  // um template compartilhado entre digest e evento gera o erro
+  // "Não há eventos para montar a agenda deste bloco" no envio manual.
+  const eventOnlyTemplateTypes = new Set(['event_new', 'event_reminder', 'last_hours', 'ticket_batch']);
+  if (resolvedBlocks && eventOnlyTemplateTypes.has(String(template.type))) {
+    resolvedBlocks = resolvedBlocks.filter(
+      (b) => !['weekend_grid', 'weekly_hero', 'blog_posts_list', 'dedge_block'].includes(b.kind)
+    );
+  }
 
   // 4. Carrega blocos globais (Fase C) e expande refs antes do render
   let globalsMap: Map<string, GlobalBlock> | undefined;
