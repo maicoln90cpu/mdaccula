@@ -188,6 +188,11 @@ Deno.serve(async (req) => {
       return json({ skipped: true, reason: 'digest_disabled' });
     }
 
+    // Guard 2b: disparo automático no cron (padrão = rascunho)
+    const { data: sendOnCronRow } = await admin
+      .from('site_settings').select('value').eq('key', 'blog_digest_send_on_cron').maybeSingle();
+    const sendOnCron = isCron && sendOnCronRow?.value === 'true';
+
     // Guard 3: egoi_config
     let cfg: any = null;
     let apiKey: string | undefined;
