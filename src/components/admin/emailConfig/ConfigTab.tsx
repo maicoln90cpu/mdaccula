@@ -39,6 +39,7 @@ interface ConfigTabProps {
   lists: ListItem[];
   senders: SenderItem[];
   segments: SegmentItem[];
+  templates: Template[];
   listTotal: number | null;
   reachEstimate: number | null;
 
