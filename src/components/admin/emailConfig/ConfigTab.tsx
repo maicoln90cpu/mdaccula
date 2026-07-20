@@ -301,6 +301,39 @@ export const ConfigTab = ({
                 />
               </div>
             )}
+
+            {/* Template padrão para novos eventos */}
+            <div className="md:col-span-2">
+              <Label className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Template padrão para novo evento
+              </Label>
+              <Select
+                value={cfg.default_event_template_id ?? 'none'}
+                onValueChange={(v) =>
+                  setCfg({ ...cfg, default_event_template_id: v === 'none' ? null : v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um template do tipo Evento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum (usar primeiro template de evento)</SelectItem>
+                  {templates
+                    .filter((t) => t.type === 'event_new')
+                    .map((t) => (
+                      <SelectItem key={t.id} value={t.id}>
+                        {t.name}
+                        {t.is_default ? ' (padrão)' : ''}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Usado pelo botão de automação de e-mail na criação/edição de eventos. Selecione um
+                template do tipo "Evento".
+              </p>
+            </div>
           </div>
 
           {/* Alcance estimado */}
