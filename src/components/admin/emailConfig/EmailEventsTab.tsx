@@ -64,7 +64,7 @@ import { buildEmailMeta } from '@/lib/emailTemplates/emailMeta';
 import { dispatchAbSubjectTest } from '@/lib/emailTemplates/dispatchEventDraft';
 import { AbTestButton } from './AbTestButton';
 import type { Template } from '@/lib/emailTemplates/blocks';
-import type { Campaign, CampaignStatsMap } from './types';
+import type { Campaign, CampaignStats, CampaignStatsMap } from './types';
 
 type PeriodFilter = 'next7' | 'next30' | 'future' | 'past30' | 'all';
 type SummaryStatus = 'pending' | 'draft' | 'sent' | 'manual' | 'failed';
@@ -225,7 +225,7 @@ export function EmailEventsTab({
       if (cErr) throw cErr;
 
       const byEvent = new Map<string, Campaign[]>();
-      for (const c of (campaigns ?? []) as Campaign[]) {
+      for (const c of (campaigns ?? []) as unknown as Campaign[]) {
         const arr = byEvent.get(c.event_id);
         if (arr) arr.push(c);
         else byEvent.set(c.event_id, [c]);
@@ -302,7 +302,7 @@ export function EmailEventsTab({
     } catch (e: unknown) {
       toast({
         title: 'Erro ao marcar',
-        description: e?.message ?? String(e),
+        description: e instanceof Error ? e.message : String(e),
         variant: 'destructive',
       });
     }
@@ -331,7 +331,7 @@ export function EmailEventsTab({
     } catch (e: unknown) {
       toast({
         title: 'Erro ao desfazer',
-        description: e?.message ?? String(e),
+        description: e instanceof Error ? e.message : String(e),
         variant: 'destructive',
       });
     }
@@ -366,7 +366,10 @@ export function EmailEventsTab({
       if (!res?.ok || !res.stats) throw new Error(res?.error || 'Resposta inválida da E-goi');
       setCampaignStats((prev) => ({
         ...prev,
-        [campaignId]: { ...res.stats, fetched_at: new Date().toISOString() },
+        [campaignId]: {
+          ...(res.stats as unknown as CampaignStats),
+          fetched_at: new Date().toISOString(),
+        },
       }));
       toast({ title: 'Métricas atualizadas' });
     } catch (e: unknown) {

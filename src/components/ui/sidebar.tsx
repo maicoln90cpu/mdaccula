@@ -15,7 +15,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   SidebarContext,
   useSidebar,
-  type SidebarContext as SidebarContextType,
+  type SidebarContextValue as SidebarContextType,
 } from './sidebar-context';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';

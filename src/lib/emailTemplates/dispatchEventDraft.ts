@@ -121,7 +121,7 @@ export async function dispatchEventDraftEmail(
       .select('*')
       .eq('id', opts.templateIdOverride)
       .maybeSingle();
-    template = data as Template | null;
+    template = data as unknown as Template | null;
   }
   if (!template && cfg.default_event_template_id) {
     const { data } = await supabase
@@ -129,7 +129,7 @@ export async function dispatchEventDraftEmail(
       .select('*')
       .eq('id', cfg.default_event_template_id)
       .maybeSingle();
-    template = (data as Template | null)?.type === 'event_new' ? (data as Template) : null;
+    template = (data as unknown as Template | null)?.type === 'event_new' ? (data as unknown as Template) : null;
   }
   if (!template) {
     const { data } = await supabase
@@ -140,7 +140,7 @@ export async function dispatchEventDraftEmail(
       .order('updated_at', { ascending: false })
       .limit(1)
       .maybeSingle();
-    template = data as Template | null;
+    template = data as unknown as Template | null;
   }
   if (!template) {
     return { ok: false, error: 'Nenhum template do tipo Evento encontrado' };

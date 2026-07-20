@@ -394,7 +394,7 @@ export default function AIContent2() {
               : [],
       }));
 
-      setSuggestions(normalizedSuggestions);
+      setSuggestions(normalizedSuggestions as unknown as Suggestion[]);
 
       toast({
         title: 'Sugestões geradas!',

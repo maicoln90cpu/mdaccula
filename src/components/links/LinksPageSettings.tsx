@@ -83,7 +83,6 @@ export const LinksPageSettings = ({
         thumbOpts: { maxSizeMB: 0.03, maxDimension: 150 },
       });
       setAvatarPreview(publicUrl);
-      setAvatarFile(null);
       return publicUrl;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';

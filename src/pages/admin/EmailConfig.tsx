@@ -244,11 +244,11 @@ const EmailConfig = () => {
       });
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
-        setLists(Array.isArray(cacheRes.data.lists) ? cacheRes.data.lists : []);
-        setSenders(Array.isArray(cacheRes.data.senders) ? cacheRes.data.senders : []);
+        setLists(Array.isArray(cacheRes.data.lists) ? (cacheRes.data.lists as unknown as ListItem[]) : []);
+        setSenders(Array.isArray(cacheRes.data.senders) ? (cacheRes.data.senders as unknown as SenderItem[]) : []);
         setLastSyncedAt(cacheRes.data.last_synced_at ?? null);
       }
-      const tplArr = (tplList?.data as Template[]) ?? [];
+      const tplArr = (tplList?.data as unknown as Template[]) ?? [];
       setTemplates(tplArr);
       setActiveTemplateId(
         (prev) => prev || tplArr.find((t) => t.is_default)?.id || tplArr[0]?.id || null
@@ -293,7 +293,7 @@ const EmailConfig = () => {
       .select('*')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
-    setTemplates((data as Template[]) ?? []);
+    setTemplates((data as unknown as Template[]) ?? []);
   };
 
   const fetchEgoiResources = async () => {
