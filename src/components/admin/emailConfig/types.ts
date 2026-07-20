@@ -46,6 +46,7 @@ export type AutomationCfg = {
   day: number;
   hour: number;
   templateId: string;
+  sendOnCron?: boolean;
 };
 
 export type AutomationResult = {
