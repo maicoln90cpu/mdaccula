@@ -64,7 +64,7 @@ import { buildEmailMeta } from '@/lib/emailTemplates/emailMeta';
 import { dispatchAbSubjectTest } from '@/lib/emailTemplates/dispatchEventDraft';
 import { AbTestButton } from './AbTestButton';
 import type { Template } from '@/lib/emailTemplates/blocks';
-import type { Campaign, CampaignStatsMap } from './types';
+import type { Campaign, CampaignStats, CampaignStatsMap } from './types';
 
 type PeriodFilter = 'next7' | 'next30' | 'future' | 'past30' | 'all';
 type SummaryStatus = 'pending' | 'draft' | 'sent' | 'manual' | 'failed';

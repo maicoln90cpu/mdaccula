@@ -293,7 +293,7 @@ const EmailConfig = () => {
       .select('*')
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
-    setTemplates((data as Template[]) ?? []);
+    setTemplates((data as unknown as Template[]) ?? []);
   };
 
   const fetchEgoiResources = async () => {
