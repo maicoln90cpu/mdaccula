@@ -161,6 +161,12 @@ export const AutomationsTab = ({
               />
             </div>
 
+            <SendOnCronToggle
+              checked={!!weeklyCfg.sendOnCron}
+              onChange={(v) => setWeeklyCfg({ ...weeklyCfg, sendOnCron: v })}
+              label="Enviar automaticamente no cron"
+            />
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Dia da semana</Label>
