@@ -34,6 +34,8 @@ export interface MergeLog {
       lineup: string[];
     };
     links_repointed?: { id: string; old_event_id: string }[];
+    /** Presente apenas em logs de undo_merge, apontando para o log de merge_events original. */
+    source_log_id?: string;
   };
 }
 

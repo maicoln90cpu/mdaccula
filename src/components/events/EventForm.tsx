@@ -452,7 +452,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           setSubmitting(false);
           return;
         }
-        logger.debug('[EventForm] ✅ Upload de imagem concluído:', imageUrl);
+        logger.debug('[EventForm] ✅ Upload de imagem concluído:', { imageUrl });
       }
 
       // Generate slug with timestamp to ensure uniqueness when duplicating
@@ -532,7 +532,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       let createdEventId = event?.id;
 
       if (event?.id) {
-        logger.debug('[EventForm] 🔄 Atualizando evento existente:', event.id);
+        logger.debug('[EventForm] 🔄 Atualizando evento existente:', { eventId: event.id });
         const previousSlug = event?.slug;
         const { error } = await supabase.from('events').update(eventData).eq('id', event.id);
 
@@ -614,7 +614,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         if (error) throw error;
         createdEventId = insertedEvent.id;
 
-        logger.debug('[EventForm] ✅ Evento criado com sucesso:', createdEventId);
+        logger.debug('[EventForm] ✅ Evento criado com sucesso:', { createdEventId });
         toast({
           title: 'Evento criado com sucesso!',
         });

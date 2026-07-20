@@ -147,7 +147,7 @@ export const LinksAdminControls = ({
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {editingLink && (
             <CustomLinkForm
-              link={editingLink}
+              link={editingLink as unknown as Parameters<typeof CustomLinkForm>[0]['link']}
               groups={groups}
               preselectedGroupId={editingLink.group_id || null}
               onSuccess={() => {

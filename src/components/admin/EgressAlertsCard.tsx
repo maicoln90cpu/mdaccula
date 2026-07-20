@@ -73,7 +73,9 @@ export const EgressAlertsCard = () => {
         { key: 'egress_alert_email', value: email },
       ];
       for (const u of updates) {
-        await supabase.from('site_settings').upsert(u, { onConflict: 'key' });
+        await supabase
+          .from('site_settings')
+          .upsert({ key: u.key, value: String(u.value) }, { onConflict: 'key' });
       }
       toast.success('Configurações salvas');
     } catch (err) {

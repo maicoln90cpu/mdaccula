@@ -267,7 +267,7 @@ const BlogPost = () => {
                   alt={post.title}
                   className="w-full h-auto max-h-[42vh] object-contain rounded-lg mx-auto"
                   loading="eager"
-                  fetchpriority="high"
+                  fetchPriority="high"
                   onError={(e) => {
                     const img = e.currentTarget;
                     // variante medium pode não existir (post antigo) -> tira o srcset e força a full

@@ -5,9 +5,18 @@ import { Download, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 
+interface ImportResult {
+  complete?: boolean;
+  message?: string;
+  totalFiles?: number;
+  imported?: number;
+  skipped?: number;
+  errors?: number;
+}
+
 const LegacyMediaImport = () => {
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<Record<string, unknown> | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const { toast } = useToast();
 
   const handleImportStorage = async () => {
