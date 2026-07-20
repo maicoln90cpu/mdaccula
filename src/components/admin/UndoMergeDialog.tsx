@@ -26,6 +26,7 @@ export interface MergeLog {
     merged_snapshot: Tables<'events'>[];
     primary_pre_merge?: {
       id: string;
+      title?: string;
       date: string;
       end_date: string | null;
       views: number;
