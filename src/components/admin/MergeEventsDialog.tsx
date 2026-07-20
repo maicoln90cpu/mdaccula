@@ -58,6 +58,7 @@ export const MergeEventsDialog = ({
   const [confirming, setConfirming] = useState(false);
   const [merging, setMerging] = useState(false);
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
+  const [mergedTitle, setMergedTitle] = useState<string>('');
   const { toast } = useToast();
 
   const primary = events.find((e) => e.id === primaryId);
