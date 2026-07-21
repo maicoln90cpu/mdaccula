@@ -1,61 +1,71 @@
-## Contexto
+## Plano — 3 correções na gestão de e-mail e mesclagem
 
-Todos os selects de evento na página `/admin/email-config` são alimentados por uma única query em `EmailConfig.tsx` (linhas 194‑200) que:
+### 1) Envio manual: aviso não-bloqueante em vez de erro
 
-- Busca só 30 eventos (`.limit(30)`).
-- Ordena por data **decrescente** (mais distantes primeiro no futuro; mais antigos por último).
-- Não filtra por status — mas o limite de 30 exclui qualquer evento que caia fora dessa janela.
+**Hoje:** em `src/lib/emailTemplates/dispatchEventDraft.ts` (linha 218), qualquer `composition.issues` (ex.: `ARTICLE_MISSING` — "Vincule uma matéria ao evento ou oculte o resumo.") aborta o envio com `ok:false`.
 
-## Diagnóstico dos 3 problemas
+**Depois:** classificar as issues em duas categorias:
+- **Bloqueantes** (permanecem impedindo o envio): faltar template, faltar bloco obrigatório, etc.
+- **Avisos** (permitem envio, mas retornam mensagem visível): `ARTICLE_MISSING`.
 
-**1) Nome antigo aparecendo depois da mesclagem "Parador Reveillon – Dias Avulsos"**
-O merge grava o novo título corretamente (`MergeEventsDialog` → `title: effectiveTitle`). O select mostra nome velho porque `realEvents` é carregado uma única vez em `loadAll()` e não é reconsultado após uma mesclagem feita em outra tela. Ao recarregar a página, o nome novo aparece.
+Implementação:
+- Adicionar constante `WARNING_ISSUE_CODES = new Set(['ARTICLE_MISSING'])` em `dispatchEventDraft.ts`.
+- Filtrar `composition.issues`; se houver só warnings, seguir com o envio e retornar `{ ok: true, warnings: [...] }`.
+- Estender `DispatchEventDraftResult` com campo opcional `warnings?: EmailCompositionIssue[]`.
+- Nos consumidores (envio manual em `EmailConfig.tsx` e `EmailEventsTab.tsx`), quando `result.ok && result.warnings?.length`, mostrar toast **amarelo** com a mensagem, sem impedir a operação.
 
-**2) "Nova Era" (e outros) não aparecem no select**
-O `.limit(30)` corta a lista. Como a ordenação é `date DESC`, ficam de fora eventos que:
-- estejam além dos 30 mais distantes no futuro, **ou**
-- sejam mais antigos que o 30º item da lista ordenada.
-"Nova Era" simplesmente não entra nessa janela.
+### 2) Evento mesclado ainda mostra nome antigo em /eventos
 
-**3) Ordem dos selects de evento**
-Hoje: mais distante → mais próximo (`DESC`).
-Desejado: mais próximo primeiro (`ASC`).
+**Diagnóstico confirmado:** o `title` é atualizado corretamente no banco (linha 199 de `MergeEventsDialog.tsx`). O nome antigo persiste porque:
+- `useEvents` grava `mdaccula-events-cache` em `localStorage` (30 min de staleTime) e usa como `placeholderData`.
+- O Service Worker (`public/service-worker.js`) pode manter respostas antigas do Supabase em cache.
+- A página `/eventos` não é notificada quando a mesclagem acontece em outra aba (admin).
 
-## Plano de correção (Fase única, baixo risco)
+**Correção:**
+- Ao final do `handleMerge` em `MergeEventsDialog.tsx`, além do `onSuccess()`, executar:
+  - `localStorage.removeItem('mdaccula-events-cache')`
+  - Notificar o SW via `postMessage({ type: 'CLEAR_EVENTS_CACHE' })` (adicionar handler simples no `service-worker.js` que dá `caches.delete` nas entradas de eventos).
+  - `queryClient.invalidateQueries({ queryKey: ['events'] })` — injetar `useQueryClient` no dialog.
+- No `useEvents.ts`, adicionar `refetchOnMount: 'always'` quando o cache local for mais antigo que 5 min OU quando a chave de cache tiver um marcador de "invalidado".
 
-**Arquivo:** `src/pages/admin/EmailConfig.tsx` — bloco da query `evts` (linhas 194‑200).
+Escopo mínimo suficiente na maioria dos casos: limpar `localStorage` + invalidar query. O SW só é problema se o usuário tiver a página aberta há muito tempo — tratar em fallback.
 
-1. Trocar `.order('date', { ascending: false })` por `.order('date', { ascending: true })`.
-2. Adicionar `.order('time', { ascending: true })` como desempate.
-3. Trocar `.limit(30)` por um filtro mais inteligente que garanta que **todos os eventos futuros + relevantes recentes** apareçam:
-   - `.gte('date', <hoje - 7 dias>)` (mantém eventos recém-passados, útil para reenvios/cortesias).
-   - `.limit(500)` (teto de segurança bem acima do volume real da agência).
-4. Adicionar `.neq('status', 'merged_inactive')` para não mostrar duplicatas de festival já mescladas (é isso que faz o "nome velho" reaparecer se a duplicata ainda estivesse listada — reforça a correção do item 1).
-5. Invalidar a lista após uma mesclagem: no callback `onSuccess` do `MergeEventsDialog` (usado no `MergedEventsTab`), disparar também um refresh de `realEvents` chamando `loadAll()`. Como esse dialog não é usado dentro do `EmailConfig`, a garantia principal para o item 1 vira o filtro `neq('status','merged_inactive')` + reload manual da página quando o admin volta para o email-config.
+### 3) Selects de e-mail: mostrar apenas eventos ativos
 
-## Detalhes técnicos (para revisão)
+**Hoje:** em `src/pages/admin/EmailConfig.tsx` (linhas 195-207) a query filtra `.neq('status','merged_inactive')` e mantém últimos 7 dias.
 
-```ts
-// EmailConfig.tsx — bloco evts
-supabase
-  .from('events')
-  .select(
-    'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng,status'
-  )
-  .neq('status', 'merged_inactive')
-  .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
-  .order('date', { ascending: true })
-  .order('time', { ascending: true })
-  .limit(500),
-```
+**Depois:**
+- Trocar por `.eq('status', 'active')` (elimina `merged_inactive`, `draft`, `archived`, etc. — só ativos).
+- Remover a janela de -7 dias: passar a filtrar `.gte('date', hoje)`.
+- Manter ordenação crescente e limite 500.
+- Aplicar o mesmo padrão no select "real event" do preview (mesmo arquivo) — a query já é a mesma, então é uma alteração única.
+- Verificar se `EmailEventsTab.tsx` (linhas 205-211) usa a mesma query para o dropdown de envio ou é só para a tabela de histórico; se for para dropdown, aplicar o mesmo filtro.
 
-Isto afeta **todos os selects** que usam `realEvents` (Envio manual, A/B, Agendamento, Virada de lote) — todos ganham a mesma ordem e a mesma lista completa de eventos futuros.
+---
 
-## Relatório obrigatório (será entregue após implementar)
+### Detalhes técnicos
 
-1. Antes vs Depois
-2. Melhorias
-3. Vantagens / desvantagens
-4. Checklist manual (abrir cada aba, conferir ordem crescente, procurar "Nova Era" e "Parador Reveillon – Dias Avulsos")
-5. Pendências (nenhuma prevista)
-6. Prevenção de regressão: comentário no código explicando por que o filtro de status é necessário; opcionalmente um teste de arquitetura garantindo que a query use `ascending: true`.
+- Arquivos alterados: `src/lib/emailTemplates/dispatchEventDraft.ts`, `src/pages/admin/EmailConfig.tsx`, `src/components/admin/emailConfig/EmailEventsTab.tsx`, `src/components/admin/MergeEventsDialog.tsx`, `src/hooks/useEvents.ts`, opcionalmente `public/service-worker.js`.
+- Nenhuma mudança de schema, nenhuma edge function tocada.
+- Nenhum teste existente deve quebrar; adicionar 1 teste em `src/__tests__/lib/` cobrindo a classificação warning-vs-blocker em `dispatchEventDraft`.
+
+### Antes vs Depois (resumo)
+
+| Item | Antes | Depois |
+|---|---|---|
+| Envio manual sem matéria | Erro bloqueia | Aviso amarelo, envio segue |
+| Nome do festival mesclado | Mochakk (cache antigo) | Nome renomeado aparece imediatamente |
+| Select de eventos | Ativos + inativos recentes | Só ativos futuros |
+
+### Riscos / trade-offs
+
+- Envio manual sem matéria pode gerar e-mail com bloco `article_summary` vazio — o composer já trata como bloco oculto, então visual fica ok.
+- Filtro `status='active'` esconde `merged_inactive` e qualquer outro status não-ativo. Se no futuro criarmos status `draft`, também some do select (comportamento desejado).
+- Limpar `localStorage` do cache de eventos custa 1 requisição extra por usuário quando a página /eventos abrir depois de uma mesclagem — irrelevante.
+
+### Checklist manual (após aprovado)
+
+- [ ] Envio manual num evento sem matéria vinculada mostra toast amarelo mas envia.
+- [ ] Envio manual num evento com template inválido continua bloqueando.
+- [ ] Mesclar 2+ eventos com nome custom → abrir /eventos em outra aba → nome novo aparece.
+- [ ] Selects da aba E-mail não mostram nenhum evento com data passada nem mesclado.
