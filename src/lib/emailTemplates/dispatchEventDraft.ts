@@ -219,14 +219,17 @@ export async function dispatchEventDraftEmail(
     article,
     globals: globalsMap,
   });
-  if (composition.issues.length > 0) {
+  const { warnings, blockers } = partitionIssues(composition.issues);
+  if (blockers.length > 0) {
     return {
       ok: false,
-      error: composition.issues.map((item) => item.message).join(' '),
-      validation_issues: composition.issues,
+      error: blockers.map((item) => item.message).join(' '),
+      validation_issues: blockers,
+      warnings: warnings.length ? warnings : undefined,
     };
   }
   const finalComposition = opts.preparedComposition ?? composition;
+
 
   // 5. Chama edge function
   const invokeBody: Record<string, unknown> = {
