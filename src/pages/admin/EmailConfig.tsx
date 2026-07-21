@@ -42,6 +42,8 @@ import {
   type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
+import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
+
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
 import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
 import { EmailDashboard } from '@/components/admin/EmailDashboard';
