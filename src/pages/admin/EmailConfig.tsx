@@ -833,14 +833,22 @@ const EmailConfig = () => {
       toast({ variant: 'destructive', title: 'Selecione o evento, o template e a data/hora' });
       return;
     }
-    if (manualComposition.issues.length > 0) {
+    const preCheckSched = partitionIssues(manualComposition.issues);
+    if (preCheckSched.blockers.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Agendamento bloqueado',
-        description: manualComposition.issues.map((item) => item.message).join(' '),
+        description: preCheckSched.blockers.map((item) => item.message).join(' '),
       });
       return;
     }
+    if (preCheckSched.warnings.length > 0) {
+      toast({
+        title: 'Aviso',
+        description: preCheckSched.warnings.map((item) => item.message).join(' '),
+      });
+    }
+
     setBatchScheduling(true);
     try {
       const scheduleAtIso = new Date(batchScheduleAt).toISOString();
