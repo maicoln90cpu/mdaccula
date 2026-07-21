@@ -42,6 +42,8 @@ import {
   type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
+import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
+
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
 import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
 import { EmailDashboard } from '@/components/admin/EmailDashboard';
@@ -196,15 +198,15 @@ const EmailConfig = () => {
           .select(
             'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng,status'
           )
-          // Oculta eventos inativados por mesclagem (senão o "nome antigo" da
-          // duplicata volta a aparecer no select depois de mesclar um festival).
-          .neq('status', 'merged_inactive')
-          // Mantém eventos recém-passados (últimos 7 dias) para reenvios/cortesias.
-          .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+          // Só eventos ativos e futuros — descarta merged_inactive, arquivados
+          // e passados (não faz sentido enviar e-mail de evento que já aconteceu).
+          .eq('status', 'active')
+          .gte('date', new Date().toISOString().slice(0, 10))
           // Mais próximos primeiro (crescente por data e hora).
           .order('date', { ascending: true })
           .order('time', { ascending: true })
           .limit(500),
+
         supabase
           .from('site_settings')
           .select('key, value')
@@ -758,15 +760,23 @@ const EmailConfig = () => {
       toast({ variant: 'destructive', title: 'Selecione o evento e o template' });
       return;
     }
-    if (manualComposition.issues.length > 0) {
+    const preCheck = partitionIssues(manualComposition.issues);
+    if (preCheck.blockers.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Envio bloqueado',
-        description: manualComposition.issues.map((item) => item.message).join(' '),
+        description: preCheck.blockers.map((item) => item.message).join(' '),
       });
       return;
     }
+    if (preCheck.warnings.length > 0) {
+      toast({
+        title: 'Aviso',
+        description: preCheck.warnings.map((item) => item.message).join(' '),
+      });
+    }
     setBatchDispatching(true);
+
     try {
       const res = await dispatchEventDraftEmail(batchEventId, {
         forceResend: true,
@@ -823,14 +833,22 @@ const EmailConfig = () => {
       toast({ variant: 'destructive', title: 'Selecione o evento, o template e a data/hora' });
       return;
     }
-    if (manualComposition.issues.length > 0) {
+    const preCheckSched = partitionIssues(manualComposition.issues);
+    if (preCheckSched.blockers.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Agendamento bloqueado',
-        description: manualComposition.issues.map((item) => item.message).join(' '),
+        description: preCheckSched.blockers.map((item) => item.message).join(' '),
       });
       return;
     }
+    if (preCheckSched.warnings.length > 0) {
+      toast({
+        title: 'Aviso',
+        description: preCheckSched.warnings.map((item) => item.message).join(' '),
+      });
+    }
+
     setBatchScheduling(true);
     try {
       const scheduleAtIso = new Date(batchScheduleAt).toISOString();

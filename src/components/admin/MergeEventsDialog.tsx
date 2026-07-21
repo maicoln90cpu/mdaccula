@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { logger } from '@/lib/logger';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 interface MergeableEvent {
   id: string;
@@ -60,6 +62,8 @@ export const MergeEventsDialog = ({
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
   const [mergedTitle, setMergedTitle] = useState<string>('');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
 
   const primary = events.find((e) => e.id === primaryId);
   const duplicates = events.filter((e) => e.id !== primaryId);
@@ -243,10 +247,19 @@ export const MergeEventsDialog = ({
       }
 
       logger.debug('[merge] step 7 done · todas as operações concluídas com sucesso');
+      // Invalida caches para que o nome novo apareça imediatamente em /eventos,
+      // no admin e em qualquer select que consome a tabela events.
+      try {
+        localStorage.removeItem('mdaccula-events-cache');
+      } catch {
+        // localStorage indisponível — segue sem quebrar
+      }
+      await queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
         title: 'Eventos mesclados!',
         description: `${duplicates.length + 1} eventos viraram 1 festival de ${formatEventDateRange(dateRange.start, dateRange.end)}.`,
       });
+
       // Fase 6.1: garantir que UI atualize ANTES de fechar o modal,
       // evitando bug de "precisa atualizar a página"
       try {
