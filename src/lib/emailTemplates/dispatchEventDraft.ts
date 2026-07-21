@@ -255,10 +255,14 @@ export async function dispatchEventDraftEmail(
   });
 
   if (error) {
-    return { ok: false, error: error.message };
+    return { ok: false, error: error.message, warnings: warnings.length ? warnings : undefined };
   }
-  return (data as DispatchEventDraftResult) ?? { ok: false, error: 'Resposta vazia' };
+  const result = (data as DispatchEventDraftResult) ?? { ok: false, error: 'Resposta vazia' };
+  // Propaga avisos (matéria não vinculada etc.) mesmo em envio bem-sucedido.
+  if (warnings.length && !result.warnings) result.warnings = warnings;
+  return result;
 }
+
 
 /**
  * B.10 — Dispara teste A/B de assunto criando 2 campanhas na E-goi (variantes A e B),
