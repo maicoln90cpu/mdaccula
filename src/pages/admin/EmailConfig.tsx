@@ -760,15 +760,23 @@ const EmailConfig = () => {
       toast({ variant: 'destructive', title: 'Selecione o evento e o template' });
       return;
     }
-    if (manualComposition.issues.length > 0) {
+    const preCheck = partitionIssues(manualComposition.issues);
+    if (preCheck.blockers.length > 0) {
       toast({
         variant: 'destructive',
         title: 'Envio bloqueado',
-        description: manualComposition.issues.map((item) => item.message).join(' '),
+        description: preCheck.blockers.map((item) => item.message).join(' '),
       });
       return;
     }
+    if (preCheck.warnings.length > 0) {
+      toast({
+        title: 'Aviso',
+        description: preCheck.warnings.map((item) => item.message).join(' '),
+      });
+    }
     setBatchDispatching(true);
+
     try {
       const res = await dispatchEventDraftEmail(batchEventId, {
         forceResend: true,
