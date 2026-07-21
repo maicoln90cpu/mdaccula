@@ -62,6 +62,8 @@ export const MergeEventsDialog = ({
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
   const [mergedTitle, setMergedTitle] = useState<string>('');
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
 
   const primary = events.find((e) => e.id === primaryId);
   const duplicates = events.filter((e) => e.id !== primaryId);
