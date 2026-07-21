@@ -20,6 +20,7 @@ import {
   type EmailEventRow,
 } from './emailComposer';
 import { type EmailTemplateSettings } from './eventAnnouncement';
+import { partitionIssues } from './issueClassifier';
 
 export type DispatchEventDraftResult = {
   ok: boolean;
@@ -29,8 +30,11 @@ export type DispatchEventDraftResult = {
   egoi_campaign_id?: string | null;
   error?: string | null;
   validation_issues?: EmailCompositionIssue[];
+  /** Issues não-bloqueantes (ex.: matéria não vinculada). Envio prossegue. */
+  warnings?: EmailCompositionIssue[];
   scheduled_at?: string | null;
 };
+
 
 type EventRow = EmailEventRow & {
   blog_post_id?: string | null;
