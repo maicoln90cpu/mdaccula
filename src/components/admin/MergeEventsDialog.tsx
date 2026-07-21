@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { logger } from '@/lib/logger';
+import { useQueryClient } from '@tanstack/react-query';
+
 
 interface MergeableEvent {
   id: string;
