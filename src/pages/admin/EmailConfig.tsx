@@ -473,13 +473,22 @@ const EmailConfig = () => {
         selectedManualTemplate.type === 'ticket_batch' ? batchArtworkUrl || undefined : undefined,
       ticketBatchDeadlineIso: deadline.toISOString(),
     });
-    const blocks = applyEmailBlockOverrides(selectedManualTemplate.blocks as Block[], {
+    let blocks = applyEmailBlockOverrides(selectedManualTemplate.blocks as Block[], {
       artworkUrl:
         selectedManualTemplate.type === 'ticket_batch'
           ? batchArtworkUrl || event.flyerUrl || undefined
           : undefined,
       defaultLink: event.ticketUrl,
     });
+    // Mesmo filtro de dispatchEventDraft.ts: templates de evento único nunca
+    // devem renderizar blocos de digest/agenda multi-evento — sem isso, a
+    // prévia do envio manual mostra um aviso que o disparo real já não tem.
+    const eventOnlyTemplateTypes = new Set(['event_new', 'event_reminder', 'last_hours', 'ticket_batch']);
+    if (eventOnlyTemplateTypes.has(String(selectedManualTemplate.type))) {
+      blocks = blocks.filter(
+        (b) => !['weekend_grid', 'weekly_hero', 'blog_posts_list', 'dedge_block'].includes(b.kind)
+      );
+    }
     return composeEmail({
       template: {
         blocks,
@@ -503,6 +512,14 @@ const EmailConfig = () => {
     batchArticle,
     globalsMap,
   ]);
+
+  // Só blockers reais devem desabilitar os botões de envio — warnings (ex.:
+  // descrição vazia) já não impedem o disparo em dispatchBatch/scheduleBatch,
+  // então os botões não podem ficar travados por eles também.
+  const manualIssuePartition = useMemo(
+    () => partitionIssues(manualComposition?.issues ?? []),
+    [manualComposition]
+  );
 
   const loadDigestPreview = async (opts?: {
     source?: 'digest' | 'weekend' | 'blog';
@@ -1457,11 +1474,20 @@ const EmailConfig = () => {
                         </div>
                       )}
                     </div>
-                    {manualComposition.issues.length > 0 ? (
+                    {manualIssuePartition.blockers.length > 0 ? (
                       <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300">
                         <div className="font-semibold">Corrija antes de enviar:</div>
                         <ul className="mt-1 list-disc space-y-1 pl-4">
-                          {manualComposition.issues.map((item) => (
+                          {manualIssuePartition.blockers.map((item) => (
+                            <li key={`${item.blockId}-${item.code}`}>{item.message}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : manualIssuePartition.warnings.length > 0 ? (
+                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                        <div className="font-semibold">Pendências (não impedem o envio):</div>
+                        <ul className="mt-1 list-disc space-y-1 pl-4">
+                          {manualIssuePartition.warnings.map((item) => (
                             <li key={`${item.blockId}-${item.code}`}>{item.message}</li>
                           ))}
                         </ul>
@@ -1489,7 +1515,7 @@ const EmailConfig = () => {
                 <Button
                   variant="secondary"
                   disabled={
-                    !manualComposition || manualComposition.issues.length > 0 || sendingTest
+                    !manualComposition || manualIssuePartition.blockers.length > 0 || sendingTest
                   }
                   onClick={() =>
                     manualComposition &&
@@ -1502,7 +1528,9 @@ const EmailConfig = () => {
                 <Button
                   variant="outline"
                   disabled={
-                    !manualComposition || manualComposition.issues.length > 0 || batchDispatching
+                    !manualComposition ||
+                    manualIssuePartition.blockers.length > 0 ||
+                    batchDispatching
                   }
                   onClick={() => dispatchBatch(false)}
                 >
@@ -1512,7 +1540,9 @@ const EmailConfig = () => {
                 <SendNowButton
                   eventTitle={realEvents.find((e) => e.id === batchEventId)?.title || '(selecione)'}
                   disabled={
-                    !manualComposition || manualComposition.issues.length > 0 || batchDispatching
+                    !manualComposition ||
+                    manualIssuePartition.blockers.length > 0 ||
+                    batchDispatching
                   }
                   onConfirm={() => dispatchBatch(true)}
                 />
@@ -1524,7 +1554,9 @@ const EmailConfig = () => {
                   scheduleAt={batchScheduleAt}
                   onScheduleAtChange={setBatchScheduleAt}
                   disabled={
-                    !masterEnabled || !manualComposition || manualComposition.issues.length > 0
+                    !masterEnabled ||
+                    !manualComposition ||
+                    manualIssuePartition.blockers.length > 0
                   }
                   scheduling={batchScheduling}
                   onSchedule={scheduleBatch}
