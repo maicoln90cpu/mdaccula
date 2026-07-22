@@ -66,6 +66,7 @@ const KINDS_QUE_DEVEM_RESPEITAR_HIDDEN: Array<Block> = [
   { id: "21", kind: "footer", text: "TEXTO_OCULTO_FOOTER", hidden: true } as any,
   { id: "22", kind: "image_with_link", image_url: "https://x/y.jpg", link_url: "https://x", hidden: true } as any,
   { id: "23", kind: "article_summary", hidden: true } as any,
+  { id: "24", kind: "pix_button", label: "TEXTO_OCULTO_PIX", hidden: true } as any,
 ];
 
 Deno.test("backend: hidden=true remove qualquer bloco do HTML final", () => {
@@ -141,6 +142,49 @@ Deno.test("backend: global_ref com hidden=true no wrapper também é ocultado", 
   const html = renderBlockedTemplate(blocks, mockEvent, null, null, { globals });
   assertEquals(html.includes("NAO_DEVE_APARECER"), false);
   assertStringIncludes(html, "DEVE_APARECER");
+});
+
+// ============================================
+// pix_button — some sozinho sem pixWhatsAppUrl, aparece só quando o evento
+// tem Pix habilitado (mesma regra do site — ver _shared/pixWhatsAppLink.ts).
+// ============================================
+
+const eventComPix: EventAnnouncementData = {
+  ...mockEvent,
+  pixWhatsAppUrl: "https://api.whatsapp.com/send?phone=5511997819194&text=teste",
+};
+
+Deno.test("pix_button: renderiza o link quando o evento tem pixWhatsAppUrl", () => {
+  const blocks: Block[] = [{ id: "1", kind: "pix_button" } as any];
+  const html = renderBlockedTemplate(blocks, eventComPix, null, null);
+  assertStringIncludes(html, "https://api.whatsapp.com/send?phone=5511997819194&amp;text=teste");
+  assertStringIncludes(html, "Comprar Sem Taxa via Pix");
+});
+
+Deno.test("pix_button: some sozinho quando o evento não tem pixWhatsAppUrl (sem Pix habilitado)", () => {
+  const blocks: Block[] = [{ id: "1", kind: "pix_button" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertEquals(html.includes("PIX"), false);
+});
+
+Deno.test("pix_button: hidden=true suprime mesmo com pixWhatsAppUrl presente", () => {
+  const blocks: Block[] = [{ id: "1", kind: "pix_button", hidden: true } as any];
+  const html = renderBlockedTemplate(blocks, eventComPix, null, null);
+  assertEquals(html.includes("PIX"), false);
+});
+
+Deno.test("pix_button: respeita label customizado", () => {
+  const blocks: Block[] = [{ id: "1", kind: "pix_button", label: "Pagar via Pix agora" } as any];
+  const html = renderBlockedTemplate(blocks, eventComPix, null, null);
+  assertStringIncludes(html, "Pagar via Pix agora");
+});
+
+Deno.test("pix_button (text): gera linha só quando há pixWhatsAppUrl", () => {
+  const blocks: Block[] = [{ id: "1", kind: "pix_button" } as any];
+  const comPix = renderBlockedTemplateText(blocks, eventComPix, null, null);
+  assertStringIncludes(comPix, "https://api.whatsapp.com/send?phone=5511997819194&text=teste");
+  const semPix = renderBlockedTemplateText(blocks, mockEvent, null, null);
+  assertEquals(semPix.includes("PIX"), false);
 });
 
 // ============================================

@@ -8,6 +8,7 @@ import {
 } from "./emailBlocks.ts";
 import { buildEmailMeta, type EmailMetaPlaceholderData } from "./emailMeta.ts";
 import { DEFAULT_EVENT_CTA_TYPE, getEventCtaButtonLabel } from "./eventCta.ts";
+import { buildPixWhatsAppLink } from "./pixWhatsAppLink.ts";
 
 export type EmailTemplateInput = {
   blocks: Block[];
@@ -50,6 +51,7 @@ export type EmailEventRow = {
   longitude: number | null;
   venue_lat: number | null;
   venue_lng: number | null;
+  pix_button_enabled?: boolean | null;
 };
 
 type BuildEventOptions = {
@@ -94,6 +96,9 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
   const ctaLabel = event.cta_type && event.cta_type !== DEFAULT_EVENT_CTA_TYPE
     ? getEventCtaButtonLabel(event.cta_type)
     : undefined;
+  const pixWhatsAppUrl = event.pix_button_enabled
+    ? buildPixWhatsAppLink(event.vip_link, event.title) ?? undefined
+    : undefined;
   return {
     eventTitle: event.title,
     eventSubtitle: event.subtitle?.trim() || undefined,
@@ -117,6 +122,7 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
     venueLat: toFiniteNumber(event.latitude, event.venue_lat),
     venueLng: toFiniteNumber(event.longitude, event.venue_lng),
     ctaLabel,
+    pixWhatsAppUrl,
   };
 }
 

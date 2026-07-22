@@ -19,6 +19,7 @@ import { parseSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { EVENT_PUBLIC_FIELDS } from '@/lib/eventSelectFields';
 import { getEventCtaButtonLabel, getEventCtaCardTitle } from '@shared/eventCta.ts';
+import { buildPixWhatsAppLink } from '@shared/pixWhatsAppLink.ts';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -293,21 +294,9 @@ const EventDetail = () => {
     event.tickets_per_day === true && !!event.end_date && event.end_date !== event.date;
 
   // Botão Pix sem taxa: reaproveita o número do WhatsApp do vip_link, trocando a mensagem.
-  const pixWhatsAppLink = (() => {
-    if (!event.pix_button_enabled || !event.vip_link) return null;
-    try {
-      const url = new URL(event.vip_link);
-      const phone = url.searchParams.get('phone');
-      if (!phone) return null;
-      const isGui = phone.includes('5511997819194');
-      const greeting = isGui ? 'Olá Gui' : 'Olá MD';
-      const message = `${greeting}, quero comprar ingresso sem taxa via Pix para ${event.title}`;
-      url.searchParams.set('text', message);
-      return url.toString();
-    } catch {
-      return null;
-    }
-  })();
+  const pixWhatsAppLink = event.pix_button_enabled
+    ? buildPixWhatsAppLink(event.vip_link, event.title)
+    : null;
 
   return (
     <>

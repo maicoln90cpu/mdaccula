@@ -196,7 +196,7 @@ const EmailConfig = () => {
         supabase
           .from('events')
           .select(
-            'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng,status'
+            'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng,status,pix_button_enabled'
           )
           // Só eventos ativos e futuros — descarta merged_inactive, arquivados
           // e passados (não faz sentido enviar e-mail de evento que já aconteceu).

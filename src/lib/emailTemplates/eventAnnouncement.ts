@@ -232,6 +232,8 @@ export const MOCK_EVENT_DATA: EventAnnouncementData = {
   })(),
   venueLat: -15.601411,
   venueLng: -56.097892,
+  pixWhatsAppUrl:
+    'https://api.whatsapp.com/send?phone=5511997819194&text=Ol%C3%A1%20Gui%2C%20quero%20comprar%20ingresso%20sem%20taxa%20via%20Pix%20para%20NEON%20GARDEN%3A%20MELODIC%20TECHNO',
   weekendEvents: [
     {
       id: 'w1',

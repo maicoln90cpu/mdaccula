@@ -87,6 +87,8 @@ export interface EventAnnouncementData {
   vipLink?: string;
   /** Rótulo do botão CTA definido pelo `cta_type` do evento (ex.: "Emitir Cortesia"). Só é setado quando o evento não usa o tipo padrão — ver `_shared/eventCta.ts`. */
   ctaLabel?: string;
+  /** Link de WhatsApp pro botão "Comprar Sem Taxa via Pix" — só setado quando o evento tem `pix_button_enabled` E `vip_link` (ver `_shared/pixWhatsAppLink.ts`). Ausente = bloco `pix_button` não renderiza. */
+  pixWhatsAppUrl?: string;
 }
 
 export interface EmailTemplateSettings {
@@ -119,6 +121,7 @@ export type Block =
   | { id: string; kind: "description"; align?: Align; text_color?: string }
   | { id: string; kind: "article_summary"; show_image?: boolean }
   | { id: string; kind: "cta_button"; label?: string; url_field?: "ticket_link" | "vip_link" | "event_url" | "custom"; custom_url?: string; align?: Align; full_width?: boolean; bg_style?: "gradient" | "solid"; bg_color?: string }
+  | { id: string; kind: "pix_button"; label?: string; align?: Align; full_width?: boolean }
   | { id: string; kind: "secondary_link"; label?: string; url_field?: "agenda_url" | "event_url" | "custom"; custom_url?: string; align?: Align }
   | { id: string; kind: "image_with_link"; image_url: string; link_url: string; alt?: string; max_width?: number; align?: Align; border_radius?: number }
   | { id: string; kind: "divider"; thickness?: number; color?: string }
@@ -394,6 +397,30 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       const bgSolid = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : solidPrimary;
       const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
       // Bulletproof button: VML para Outlook (cor sólida), <a> normal p/ o resto (gradiente).
+      const vmlWidth = fullWidth ? 480 : 240;
+      const vmlButton = `<!--[if mso]>
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
+          <w:anchorlock/>
+          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
+        </v:roundrect>
+      <![endif]-->`;
+      const htmlButton = `<!--[if !mso]><!-- -->
+        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;mso-hide:all;">${label}</a>
+      <!--<![endif]-->`;
+      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
+    }
+
+    case "pix_button": {
+      if (!event.pixWhatsAppUrl) return "";
+      const url = event.pixWhatsAppUrl;
+      const label = escape(block.label || "Comprar Sem Taxa via Pix");
+      const align = block.align ?? "center";
+      const fullWidth = block.full_width !== false;
+      // Verde WhatsApp fixo (não configurável) — reforça o reconhecimento
+      // visual de "Pix/sem taxa", igual ao botão do site.
+      const bgSolid = "#25D366";
+      const bg = `linear-gradient(90deg, #25D366 0%, #128C7E 100%)`;
+      const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
       const vmlWidth = fullWidth ? 480 : 240;
       const vmlButton = `<!--[if mso]>
         <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
@@ -1053,6 +1080,11 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
         event.ticketUrl;
       const label = block.label || event.ctaLabel || settings.cta_label || "Garantir ingresso";
       return `>> ${label.toUpperCase()}: ${url}`;
+    }
+    case "pix_button": {
+      if (!event.pixWhatsAppUrl) return "";
+      const label = block.label || "Comprar Sem Taxa via Pix";
+      return `>> ${label.toUpperCase()}: ${event.pixWhatsAppUrl}`;
     }
     case "secondary_link": {
       const url =
