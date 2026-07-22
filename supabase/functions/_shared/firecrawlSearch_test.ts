@@ -75,6 +75,30 @@ Deno.test("searchWithFirecrawl retorna array vazio quando não há resultados (n
   assertEquals(results, []);
 });
 
+Deno.test("searchWithFirecrawl descarta plataformas de streaming/social (R-025) mas mantém fontes reais", async () => {
+  const results = await withMockedFetch(
+    {
+      ok: true,
+      body: {
+        data: {
+          web: [
+            { title: "Dub Techno Essentials", url: "https://www.youtube.com/watch?v=abc123", markdown: "conteúdo" },
+            { title: "Dub Techno Playlist", url: "https://open.spotify.com/playlist/xyz", markdown: "conteúdo" },
+            { title: "Alok no Apple Music", url: "https://music.apple.com/us/artist/alok/123", markdown: "conteúdo" },
+            { title: "Alok no SoundCloud", url: "https://soundcloud.com/alok", markdown: "conteúdo" },
+            { title: "Perfil no Instagram", url: "https://www.instagram.com/alok/", markdown: "conteúdo" },
+            { title: "Matéria real sobre dub techno", url: "https://exemplo-noticias.com/dub-techno", markdown: "conteúdo real" },
+          ],
+        },
+      },
+    },
+    () => searchWithFirecrawl("dub techno", "fake-key", 10)
+  );
+
+  assertEquals(results.length, 1);
+  assertEquals(results[0].url, "https://exemplo-noticias.com/dub-techno");
+});
+
 Deno.test("searchWithFirecrawl lança erro em resposta HTTP não-ok", async () => {
   await assertRejects(
     () => withMockedFetch({ ok: false, status: 500, body: { error: "boom" } }, () => searchWithFirecrawl("termo", "fake-key", 5)),

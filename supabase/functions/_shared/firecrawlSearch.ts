@@ -17,6 +17,35 @@ export interface FirecrawlSearchResult {
 
 const MAX_CONTENT_LENGTH = 2000;
 
+// R-025: busca livre pra termos de música/artista (ex.: "dub techno", "Alok")
+// naturalmente traz páginas de player/playlist/perfil como resultado mais
+// relevante — não fontes jornalísticas. Isso já apareceu no modal "Fontes e
+// origem do artigo" como se fosse uma fonte real cadastrada, quando na
+// verdade nem passa perto do catálogo em `event_sources`. Bloqueadas aqui
+// (na busca compartilhada) pra beneficiar generate-blog-post-from-topic E o
+// guardrail de generate-blog-post-v2 ao mesmo tempo.
+const BLOCKED_HOSTNAMES = [
+  "youtube.com",
+  "youtu.be",
+  "spotify.com",
+  "music.apple.com",
+  "soundcloud.com",
+  "instagram.com",
+  "tiktok.com",
+  "facebook.com",
+  "twitter.com",
+  "x.com",
+];
+
+function isBlockedSource(url: string): boolean {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return BLOCKED_HOSTNAMES.some((blocked) => hostname === blocked || hostname.endsWith(`.${blocked}`));
+  } catch {
+    return false;
+  }
+}
+
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -65,7 +94,7 @@ export async function searchWithFirecrawl(
     const metadata = (r.metadata as Record<string, unknown>) || {};
     const url = (typeof r.url === 'string' && r.url) || (typeof metadata.sourceURL === 'string' && metadata.sourceURL) || '';
     const title = (typeof r.title === 'string' && r.title) || (typeof metadata.title === 'string' && metadata.title) || url;
-    if (markdown && url) {
+    if (markdown && url && !isBlockedSource(url)) {
       results.push({ title: String(title), url: String(url), content: markdown.substring(0, MAX_CONTENT_LENGTH) });
     }
   }

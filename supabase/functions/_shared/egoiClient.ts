@@ -45,16 +45,30 @@ export function egoiSendBodyIndicatesError(body: unknown): boolean {
 /**
  * Dispara uma campanha E-goi recém-criada via POST .../actions/send.
  * Retorna { ok: true } apenas se o corpo da resposta não indicar erro.
+ *
+ * `segments` é OBRIGATÓRIO nesse endpoint (confirmado contra a doc oficial —
+ * developers.e-goi.com/api/v3, Campaigns > Email > "Send email message").
+ * Sem esse campo a E-goi responde 422 `segments.isEmpty` mesmo com list_id
+ * correto — bug real de produção (campanhas nunca completavam o envio real).
+ * `{ type: "none" }` (lista inteira, sem segmentação) está confirmado no
+ * exemplo oficial da doc. `{ type: "segment", segment_id }` é best-effort —
+ * a doc não expandiu essa variante na página consultada; se o envio com
+ * segmento configurado falhar de novo especificamente em "segments", esse é
+ * o próximo ponto a revalidar contra a doc oficial.
  */
 export async function sendEgoiCampaign(
   campaignHash: string,
   listId: number,
   apiKey: string,
+  segmentId?: number | null,
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
+  const segments = segmentId
+    ? { type: "segment", segment_id: segmentId }
+    : { type: "none" };
   const res = await egoiRequest(
     `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
     apiKey,
-    { method: "POST", body: JSON.stringify({ list_id: listId }) },
+    { method: "POST", body: JSON.stringify({ list_id: listId, segments }) },
   );
   return {
     ok: res.ok && !egoiSendBodyIndicatesError(res.body),

@@ -7,7 +7,7 @@
 // Idempotência: se existe campanha 'sent' → cria nova; 'draft/failed/scheduled' → atualiza a existente.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { egoiRequest } from '../_shared/egoiClient.ts';
+import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -258,20 +258,19 @@ Deno.serve(async (req) => {
           'Campanha criada na E-goi, mas não foi possível extrair o hash pra confirmar o envio ' +
           `(campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
       } else if (sendNow && campaignHash) {
-        const sendRes = await egoiRequest(
-          `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
+        const sendRes = await sendEgoiCampaign(
+          campaignHash,
+          Number(cfg.list_id),
           apiKey,
-          { method: 'POST', body: JSON.stringify({ list_id: Number(cfg.list_id) }) },
+          cfg.segment_id ? Number(cfg.segment_id) : null,
         );
         egoiSendStatus = sendRes.status;
         egoiSendBody = sendRes.body;
-        // status 2xx sozinho não é suficiente — algumas APIs REST respondem 2xx com um
-        // corpo que ainda indica erro/pendência. Confirma sucesso real inspecionando o
-        // corpo também (R-007).
-        const bodyIndicatesError =
-          sendRes.body && typeof sendRes.body === 'object' &&
-          (sendRes.body.error || sendRes.body.errors || sendRes.body.status === 'error');
-        if (sendRes.ok && !bodyIndicatesError) {
+        // sendEgoiCampaign já confirma sucesso real inspecionando o corpo da
+        // resposta (2xx sozinho não é suficiente — R-007) e já inclui o
+        // `segments` obrigatório no payload (senão a E-goi responde 422
+        // segments.isEmpty mesmo com list_id certo).
+        if (sendRes.ok) {
           campaignStatus = 'sent';
           sentAt = new Date().toISOString();
         } else {

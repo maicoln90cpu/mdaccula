@@ -42,16 +42,26 @@ describe('Regressão R-008 — status real da E-goi antes de reportar sucesso', 
     ).toMatch(/sendNow\s*&&\s*!campaignHash/);
   });
 
-  it('create-event-email-campaign inspeciona o corpo da resposta de actions/send, não só o status HTTP', () => {
+  it('create-event-email-campaign usa sendEgoiCampaign (que já inspeciona o corpo da resposta, não só o status HTTP)', () => {
+    // R-024: a montagem do payload e a checagem de corpo-com-erro foram consolidadas em
+    // sendEgoiCampaign() (egoiClient.ts) — create-event-email-campaign não deve mais
+    // reimplementar essa checagem inline (era exatamente essa duplicação que permitia o
+    // mesmo bug reaparecer em pontos diferentes).
     const src = read('supabase/functions/create-event-email-campaign/index.ts');
-    const sendBlockMatch = src.match(/actions\/send[\s\S]{0,1200}/);
-    expect(sendBlockMatch, 'Não encontrei a chamada .../actions/send.').toBeTruthy();
     expect(
-      sendBlockMatch![0],
-      'A checagem de sucesso do envio deve inspecionar o corpo da resposta (ex.: body.error), ' +
-        'não confiar só em sendRes.ok — senão a E-goi pode responder 2xx com erro no corpo e ' +
+      src,
+      'Não encontrei a chamada sendEgoiCampaign(...) em create-event-email-campaign/index.ts.'
+    ).toMatch(/sendEgoiCampaign\(/);
+
+    const shared = read('supabase/functions/_shared/egoiClient.ts');
+    const sendFnMatch = shared.match(/export async function sendEgoiCampaign[\s\S]{0,1200}/);
+    expect(sendFnMatch, 'Não encontrei sendEgoiCampaign em egoiClient.ts.').toBeTruthy();
+    expect(
+      sendFnMatch![0],
+      'A checagem de sucesso do envio deve inspecionar o corpo da resposta (egoiSendBodyIndicatesError), ' +
+        'não confiar só em res.ok — senão a E-goi pode responder 2xx com erro no corpo e ' +
         'isso passa despercebido (regressão R-008).'
-    ).toMatch(/bodyIndicatesError|sendRes\.body\?\.error/);
+    ).toMatch(/egoiSendBodyIndicatesError/);
   });
 
   it('createPayload inclui segment_id quando configurado', () => {

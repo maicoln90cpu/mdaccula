@@ -12,7 +12,7 @@
 // weekly-digest-draft.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { egoiRequest, egoiSendBodyIndicatesError } from '../_shared/egoiClient.ts';
+import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { corsHeaders, handleCorsPreFlight } from '../_shared/index.ts';
 
 const MAX_ATTEMPTS = 3;
@@ -132,13 +132,14 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const sendRes = await egoiRequest(
-        `/campaigns/email/${encodeURIComponent(row.egoi_campaign_id)}/actions/send`,
+      const sendRes = await sendEgoiCampaign(
+        row.egoi_campaign_id,
+        Number(cfg.list_id),
         apiKey,
-        { method: 'POST', body: JSON.stringify({ list_id: Number(cfg.list_id) }) },
+        cfg.segment_id ? Number(cfg.segment_id) : null,
       );
 
-      if (sendRes.ok && !egoiSendBodyIndicatesError(sendRes.body)) {
+      if (sendRes.ok) {
         await admin
           .from('event_email_campaigns')
           .update({

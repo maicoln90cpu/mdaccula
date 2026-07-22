@@ -40,33 +40,48 @@ describe('Regressão — agendamento de disparo não regride R-004/R-007/R-008',
     ).toMatch(/scheduleAtIso\s*&&\s*!campaignHash/);
   });
 
-  it('send-scheduled-email-campaigns inclui list_id no body de actions/send (R-004)', () => {
+  it('send-scheduled-email-campaigns usa sendEgoiCampaign, que inclui list_id e segments no body de actions/send (R-004/R-024)', () => {
+    // R-024: a montagem do payload de actions/send foi consolidada em sendEgoiCampaign()
+    // (egoiClient.ts) — send-scheduled-email-campaigns não deve mais montar esse body inline.
     const src = read('supabase/functions/send-scheduled-email-campaigns/index.ts');
-    const sendCallMatch = src.match(/actions\/send[\s\S]{0,400}/);
     expect(
-      sendCallMatch,
-      'Não encontrei a chamada .../actions/send em send-scheduled-email-campaigns/index.ts.'
-    ).toBeTruthy();
+      src,
+      'Não encontrei a chamada sendEgoiCampaign(...) em send-scheduled-email-campaigns/index.ts.'
+    ).toMatch(/sendEgoiCampaign\(/);
+
+    const shared = read('supabase/functions/_shared/egoiClient.ts');
+    const sendCallMatch = shared.match(/actions\/send[\s\S]{0,400}/);
+    expect(sendCallMatch, 'Não encontrei a chamada .../actions/send em egoiClient.ts.').toBeTruthy();
     const snippet = sendCallMatch![0];
     expect(
       snippet,
       'A chamada .../actions/send não inclui list_id no body — REINTRODUZ a regressão R-004 ' +
         '(E-goi 422 list_id.isEmpty) no disparo agendado.'
     ).toMatch(/list_id/);
+    expect(
+      snippet,
+      'A chamada .../actions/send não inclui segments no body — REINTRODUZ a regressão R-024 ' +
+        '(E-goi 422 segments.isEmpty) no disparo agendado.'
+    ).toMatch(/segments/);
     expect(snippet).not.toMatch(/body:\s*JSON\.stringify\(\{\}\)/);
   });
 
-  it("send-scheduled-email-campaigns inspeciona o corpo da resposta antes de marcar 'sent' (R-007/R-008)", () => {
+  it("send-scheduled-email-campaigns confia em sendEgoiCampaign().ok, que já inspeciona o corpo antes de marcar 'sent' (R-007/R-008)", () => {
     const src = read('supabase/functions/send-scheduled-email-campaigns/index.ts');
     expect(
       src,
-      'send-scheduled-email-campaigns precisa checar egoiSendBodyIndicatesError (ou equivalente) ' +
-        "antes de marcar status:'sent' — confiar só em sendRes.ok REINTRODUZ R-007/R-008 no disparo agendado."
-    ).toMatch(/egoiSendBodyIndicatesError/);
+      "send-scheduled-email-campaigns precisa checar sendRes.ok antes de marcar status:'sent' — " +
+        'esse .ok já vem de sendEgoiCampaign() com a inspeção de corpo embutida (R-007/R-008).'
+    ).toMatch(/if\s*\(\s*sendRes\.ok\s*\)/);
+
+    const shared = read('supabase/functions/_shared/egoiClient.ts');
+    const sendFnMatch = shared.match(/export async function sendEgoiCampaign[\s\S]{0,1200}/);
+    expect(sendFnMatch, 'Não encontrei sendEgoiCampaign em egoiClient.ts.').toBeTruthy();
     expect(
-      src,
-      'A condição de sucesso deve combinar sendRes.ok E a ausência de erro no corpo.'
-    ).toMatch(/sendRes\.ok\s*&&\s*!egoiSendBodyIndicatesError/);
+      sendFnMatch![0],
+      'sendEgoiCampaign precisa combinar res.ok E a ausência de erro no corpo — confiar só no ' +
+        'status HTTP REINTRODUZ R-007/R-008.'
+    ).toMatch(/res\.ok\s*&&\s*!egoiSendBodyIndicatesError/);
   });
 
   it('_shared/egoiClient.ts centraliza a checagem de corpo-com-erro usada pelas duas funções', () => {

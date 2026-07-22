@@ -61,6 +61,7 @@ export const MergeEventsDialog = ({
   const [merging, setMerging] = useState(false);
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
   const [mergedTitle, setMergedTitle] = useState<string>('');
+  const [titleTouched, setTitleTouched] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -89,15 +90,27 @@ export const MergeEventsDialog = ({
     }
   }, [open, hasDistinctTicketLinks]);
 
-  // Sincroniza o campo "nome do festival" com o principal selecionado.
-  // O usuário pode sobrescrever livremente; se voltar a ficar vazio, cai no título do principal.
-  const primaryRef = useRef(primary?.id);
+  // Reseta a seleção de principal e o campo de nome sempre que o modal abre
+  // pra um NOVO grupo de eventos (o componente fica montado o tempo todo em
+  // EventsManager, então `events` pode ter sido `[]` no primeiro mount).
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (open && primary && primaryRef.current !== primary.id) {
-      primaryRef.current = primary.id;
+    if (open && !wasOpenRef.current) {
+      setPrimaryId(events[0]?.id || '');
+      setTitleTouched(false);
+    }
+    wasOpenRef.current = open;
+  }, [open, events]);
+
+  // Sincroniza o campo "nome do festival" com o principal selecionado — MAS
+  // só enquanto o admin não tiver digitado nada. Antes disso usava um ref
+  // que disparava em qualquer troca de principal, apagando o nome já
+  // customizado pelo admin (bug: nome digitado era descartado no merge real).
+  useEffect(() => {
+    if (open && primary && !titleTouched) {
       setMergedTitle(primary.title);
     }
-  }, [open, primary]);
+  }, [open, primary, titleTouched]);
 
   const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
   const effectiveTitle = (mergedTitle.trim() || primary?.title || '').trim();
@@ -334,7 +347,10 @@ export const MergeEventsDialog = ({
                 <Input
                   id="merged-title"
                   value={mergedTitle}
-                  onChange={(e) => setMergedTitle(e.target.value)}
+                  onChange={(e) => {
+                    setMergedTitle(e.target.value);
+                    setTitleTouched(true);
+                  }}
                   placeholder={primary?.title || 'Nome do festival'}
                   maxLength={200}
                 />
