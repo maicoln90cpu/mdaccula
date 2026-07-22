@@ -64,13 +64,21 @@ describe('Regressão R-008 — status real da E-goi antes de reportar sucesso', 
     ).toMatch(/egoiSendBodyIndicatesError/);
   });
 
-  it('createPayload inclui segment_id quando configurado', () => {
+  it('createPayload inclui segment_id quando configurado (global ou override por disparo)', () => {
     const src = read('supabase/functions/create-event-email-campaign/index.ts');
+    // resolvedSegmentId cai no segmento global (cfg.segment_id) quando o body
+    // não traz override por disparo (aba "Envio manual") — ver segmentIdOverride
+    // em dispatchEventDraft.ts.
     expect(
       src,
-      'createPayload não referencia mais cfg.segment_id — segmento configurado na agência ' +
+      'Não encontrei o cálculo de resolvedSegmentId a partir de cfg.segment_id — segmento ' +
+        'configurado na agência deixaria de ser o padrão quando nenhum override é enviado.'
+    ).toMatch(/resolvedSegmentId\s*=\s*segmentOverrideProvided[\s\S]{0,80}cfg\.segment_id/);
+    expect(
+      src,
+      'createPayload não referencia mais resolvedSegmentId — segmento (global ou por disparo) ' +
         'deixaria de ser enviado à E-goi.'
-    ).toMatch(/createPayload\.segment_id\s*=\s*Number\(cfg\.segment_id\)/);
+    ).toMatch(/createPayload\.segment_id\s*=\s*resolvedSegmentId/);
   });
 
   it("dispatchBatch (EmailConfig.tsx) só mostra 'enviado' quando res.status === 'sent'", () => {

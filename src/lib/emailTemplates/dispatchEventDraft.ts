@@ -59,6 +59,12 @@ export async function dispatchEventDraftEmail(
     flyerOverrideUrl?: string;
     /** B.8 — sobrescreve o assunto do e-mail (ex.: "ÚLTIMAS HORAS — {evento}"). */
     subjectOverride?: string;
+    /**
+     * Sobrescreve o segmento E-goi só para este disparo (aba "Envio manual").
+     * `null` = envia para toda a lista; `undefined`/ausente = usa o segmento
+     * global de egoi_config.segment_id (comportamento padrão).
+     */
+    segmentIdOverride?: number | null;
     /** Snapshot já exibido ao admin. Evita remontar HTML entre preview e clique. */
     preparedComposition?: { html: string; subject: string; preheader: string };
     /** B.10 — marca este disparo como uma variante de teste A/B. */
@@ -243,6 +249,9 @@ export async function dispatchEventDraftEmail(
   };
   if (opts.scheduleAt) {
     invokeBody.schedule_at = opts.scheduleAt;
+  }
+  if (opts.segmentIdOverride !== undefined) {
+    invokeBody.segment_id = opts.segmentIdOverride;
   }
   if (opts.abTest) {
     invokeBody.ab_group_id = opts.abTest.groupId;

@@ -21,6 +21,8 @@ export type Campaign = {
   ab_group_id?: string | null;
   ab_variant?: string | null;
   ab_test_config?: Record<string, unknown> | null;
+  /** Segmento E-goi usado neste envio (null = toda a lista). */
+  segment_id?: number | null;
   events?: { title: string | null } | null;
   /** Agendamento de disparo (aba "Envio manual" → "Agendar"). */
   scheduled_at?: string | null;
