@@ -318,6 +318,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** a montagem do payload de `actions/send` foi consolidada em `sendEgoiCampaign()` (`_shared/egoiClient.ts`), que agora monta `{ list_id, segments }` — `segments: { type: "none" }` quando não há `segment_id` configurado (confirmado contra a doc oficial), ou `{ type: "segment", segment_id }` quando há (best-effort — a doc não expandiu essa variante na página consultada). `create-event-email-campaign` e `send-scheduled-email-campaigns` passaram a chamar essa função em vez de duplicar a montagem do payload inline (a duplicação em 3 lugares foi o que permitiu o mesmo tipo de bug reaparecer depois de R-004).
 - **Proteção:** `src/__tests__/regression/egoi-send-missing-list-id.test.ts` (atualizado — agora cobre `list_id` E `segments`, e trava a duplicação verificando que os 2 call-sites usam `sendEgoiCampaign`), `src/__tests__/regression/egoi-false-success-on-draft.test.ts` e `src/__tests__/regression/scheduled-send-false-success-on-draft.test.ts` (atualizados pra apontar pro novo local centralizado).
 
+### R-027 — Warning `fetchPriority` no `<img>` do avatar de /links quebrava o smoke E2E
+- **Quando:** julho/2026
+- **Sintoma:** `e2e/smoke.spec.ts` ("/links renders at least one link card") falhava — `assertNoErrors` (`e2e/helpers/pageHealth.ts`) trata qualquer `console.error` como falha, e o `<img>` do avatar em `Links.tsx` passava a prop `fetchPriority="high"` (camelCase) direto pro elemento DOM, o que o React 18 não reconhece (suporte só chegou no React 19), gerando "React does not recognize the `fetchPriority` prop on a DOM element...".
+- **Causa:** `fetchPriority` é o nome da prop em JSX/TypeScript (é como o `@types/react` 18.3.x expõe o atributo), mas o React 18 (`react-dom` 18.3.1) ainda não faz a tradução dessa prop pro atributo HTML nativo `fetchpriority` — só passa por diante e loga o warning de prop desconhecida.
+- **Correção:** trocado para o atributo HTML nativo em minúsculo `fetchpriority="high"` em `Links.tsx` — TypeScript aceita porque `ImgHTMLAttributes` não restringe atributos desconhecidos em minúsculo, e o React não emite warning porque o nome já bate com o `lowerCasedName` esperado.
+- **Proteção:** `src/__tests__/regression/links-avatar-fetchpriority-lowercase.test.ts` (guarda estática — falha se `fetchPriority=` camelCase voltar a aparecer em `Links.tsx`).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
