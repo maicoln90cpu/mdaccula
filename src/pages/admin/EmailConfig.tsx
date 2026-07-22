@@ -139,6 +139,8 @@ const EmailConfig = () => {
   const [batchDispatching, setBatchDispatching] = useState(false);
   const [batchScheduleAt, setBatchScheduleAt] = useState<string>('');
   const [batchScheduling, setBatchScheduling] = useState(false);
+  /** undefined = usa o segmento global de egoi_config; null = toda a lista; number = segmento específico. */
+  const [batchSegmentId, setBatchSegmentId] = useState<number | null | undefined>(undefined);
   // Automações (Digest semanal + Agenda FDS + Blog news)
   // Automações (Digest semanal + Agenda FDS + Blog news) — estado + handlers
   // encapsulados no hook `useEmailAutomation` (Fase C).
@@ -645,6 +647,14 @@ const EmailConfig = () => {
     return typeof l?.total_contacts === 'number' ? l.total_contacts : null;
   }, [cfg.segment_id, segments, listTotal, lists, cfg.list_id]);
 
+  // Rótulo do segmento global atual, exibido na opção "padrão" do seletor
+  // de segmento da aba "Envio manual".
+  const globalSegmentLabel = useMemo(() => {
+    if (!cfg.segment_id) return 'toda a lista';
+    const s = segments.find((x) => x.segment_id === cfg.segment_id);
+    return s?.name ?? `segmento #${cfg.segment_id}`;
+  }, [cfg.segment_id, segments]);
+
   // B.8 — quando templates carregarem, pré-seleciona o primeiro ticket_batch
   useEffect(() => {
     if (batchTemplateId) return;
@@ -805,6 +815,7 @@ const EmailConfig = () => {
             : undefined,
         subjectOverride:
           selectedManualTemplate?.type === 'ticket_batch' ? batchSubject || undefined : undefined,
+        segmentIdOverride: batchSegmentId,
         preparedComposition: {
           html: manualComposition.html,
           subject: manualComposition.subject,
@@ -879,6 +890,7 @@ const EmailConfig = () => {
             : undefined,
         subjectOverride:
           selectedManualTemplate?.type === 'ticket_batch' ? batchSubject || undefined : undefined,
+        segmentIdOverride: batchSegmentId,
         preparedComposition: {
           html: manualComposition.html,
           subject: manualComposition.subject,
@@ -1363,7 +1375,13 @@ const EmailConfig = () => {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label>Evento</Label>
-                  <Select value={batchEventId} onValueChange={setBatchEventId}>
+                  <Select
+                    value={batchEventId}
+                    onValueChange={(id) => {
+                      setBatchEventId(id);
+                      setBatchSegmentId(undefined);
+                    }}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o evento" />
                     </SelectTrigger>
@@ -1385,6 +1403,7 @@ const EmailConfig = () => {
                       setBatchTemplateId(id);
                       setBatchSubject('');
                       setBatchArtworkUrl('');
+                      setBatchSegmentId(undefined);
                     }}
                   >
                     <SelectTrigger>
@@ -1407,6 +1426,55 @@ const EmailConfig = () => {
                   </Select>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Digest, Agenda FDS e Blog news ficam exclusivamente na aba Automações.
+                  </p>
+                </div>
+
+                <div>
+                  <Label className="flex items-center gap-2">
+                    Segmento de envio
+                    {fetchingSegments && <RefreshCw className="w-3 h-3 animate-spin" />}
+                  </Label>
+                  <Select
+                    value={
+                      batchSegmentId === undefined
+                        ? 'default'
+                        : batchSegmentId === null
+                          ? 'all'
+                          : batchSegmentId.toString()
+                    }
+                    onValueChange={(v) => {
+                      if (v === 'default') setBatchSegmentId(undefined);
+                      else if (v === 'all') setBatchSegmentId(null);
+                      else setBatchSegmentId(Number(v));
+                    }}
+                    disabled={!cfg.list_id}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        placeholder={
+                          cfg.list_id ? 'Padrão da configuração global' : 'Configure uma lista primeiro'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="default">
+                        Padrão da configuração global ({globalSegmentLabel})
+                      </SelectItem>
+                      <SelectItem value="all">
+                        Todos os contatos da lista
+                        {typeof listTotal === 'number' && ` — ${formatCount(listTotal)} contatos`}
+                      </SelectItem>
+                      {segments.map((s) => (
+                        <SelectItem key={s.segment_id} value={s.segment_id.toString()}>
+                          {s.name}
+                          {typeof s.total_contacts === 'number' &&
+                            ` — ${formatCount(s.total_contacts)} contatos`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Vale só para este disparo — não altera a configuração global.
                   </p>
                 </div>
 

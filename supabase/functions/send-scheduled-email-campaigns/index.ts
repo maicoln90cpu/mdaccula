@@ -23,6 +23,7 @@ type ScheduledRow = {
   event_id: string;
   egoi_campaign_id: string | null;
   scheduled_send_attempts: number;
+  segment_id: number | null;
 };
 
 Deno.serve(async (req) => {
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     const nowIso = new Date().toISOString();
     const { data: dueRows, error: dueErr } = await admin
       .from('event_email_campaigns')
-      .select('id, event_id, egoi_campaign_id, scheduled_send_attempts')
+      .select('id, event_id, egoi_campaign_id, scheduled_send_attempts, segment_id')
       .eq('status', 'scheduled')
       .is('scheduled_send_claimed_at', null)
       .lte('scheduled_at', nowIso)
@@ -132,11 +133,14 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      // Usa o segmento gravado nesta campanha (escolhido na hora do
+      // agendamento pela aba "Envio manual"), não o segmento global "atual"
+      // de egoi_config — eles podem ter divergido desde então.
       const sendRes = await sendEgoiCampaign(
         row.egoi_campaign_id,
         Number(cfg.list_id),
         apiKey,
-        cfg.segment_id ? Number(cfg.segment_id) : null,
+        row.segment_id != null ? Number(row.segment_id) : null,
       );
 
       if (sendRes.ok) {

@@ -62,6 +62,13 @@ Deno.serve(async (req) => {
     // Agendamento — cria o rascunho na E-goi agora, mas o envio real fica
     // para o poller send-scheduled-email-campaigns quando scheduled_at vencer.
     const scheduleAtRaw = (body?.schedule_at as string | undefined) || undefined;
+    // Segmento por disparo (aba "Envio manual") — quando o campo vem no body
+    // (mesmo que null, para "toda a lista"), sobrescreve o segmento global
+    // de egoi_config.segment_id só para este envio. Ausente = usa o global.
+    const segmentOverrideProvided = Object.prototype.hasOwnProperty.call(body, 'segment_id');
+    const segmentIdOverride = segmentOverrideProvided
+      ? (body?.segment_id != null ? Number(body.segment_id) : null)
+      : undefined;
 
     if (!eventId || !html) {
       return json({ error: 'event_id e html são obrigatórios' }, 400);
@@ -103,6 +110,11 @@ Deno.serve(async (req) => {
     if (!cfg || !cfg.is_enabled || !cfg.list_id || !cfg.sender_id) {
       return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
     }
+    const resolvedSegmentId = segmentOverrideProvided
+      ? segmentIdOverride
+      : cfg.segment_id != null
+        ? Number(cfg.segment_id)
+        : null;
 
     // Guard 3: UPDATE atômico do dispatched_at (pulado em A/B).
     // Só marca se ainda estiver NULL — anti-race e anti-double-click.
@@ -213,7 +225,7 @@ Deno.serve(async (req) => {
       tags,
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
-    if (cfg.segment_id) createPayload.segment_id = Number(cfg.segment_id);
+    if (resolvedSegmentId) createPayload.segment_id = resolvedSegmentId;
 
     const created = await egoiRequest('/campaigns/email', apiKey, {
       method: 'POST',
@@ -262,7 +274,7 @@ Deno.serve(async (req) => {
           campaignHash,
           Number(cfg.list_id),
           apiKey,
-          cfg.segment_id ? Number(cfg.segment_id) : null,
+          resolvedSegmentId,
         );
         egoiSendStatus = sendRes.status;
         egoiSendBody = sendRes.body;
@@ -298,6 +310,7 @@ Deno.serve(async (req) => {
       mode,
       error_message: errorMessage,
       sent_at: sentAt,
+      segment_id: resolvedSegmentId,
       campaign_type: isAbTest ? 'ab_subject' : 'standard',
       ab_group_id: abGroupId,
       ab_variant: abVariant,
