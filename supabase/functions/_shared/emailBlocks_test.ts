@@ -369,6 +369,12 @@ Deno.test("event_grid: renderiza 2 cards por linha (HTML)", () => {
   // 2 colunas: width="50%" deveria aparecer 2 vezes (uma por coluna)
   const widthOccurrences = (html.match(/width="50%"/g) || []).length;
   assertEquals(widthOccurrences, 2);
+  // Verifica que ambos os títulos estão no MESMO <tr> (não em filas separadas)
+  // Procura pelo padrão: <tr><td width="50%">...Evento A...</td><td width="50%">...Evento B...</td></tr>
+  // Se cada card tivesse seu próprio <tr>, não conseguiríamos achar este padrão (seria <tr>..A..</tr><tr>..B..</tr>)
+  const correctPairingPattern = /<tr[^>]*><td width="50%"[\s\S]*?Evento A[\s\S]*?<\/td><td width="50%"[\s\S]*?Evento B[\s\S]*?<\/td><\/tr>/;
+  const isCorrectlyPaired = correctPairingPattern.test(html);
+  assertEquals(isCorrectlyPaired, true, "Eventos devem estar em um <tr> com <td width=\"50%\"> para cada um (2 colunas em 1 linha, não separados em 2 linhas)");
 });
 
 Deno.test("event_grid: número ímpar de eventos deixa a última linha com 1 card só", () => {
