@@ -60,6 +60,7 @@ const KINDS_QUE_DEVEM_RESPEITAR_HIDDEN: Array<Block> = [
   { id: "15", kind: "ticker", messages: ["TEXTO_OCULTO_TICKER"], hidden: true } as any,
   { id: "16", kind: "static_map", hidden: true } as any,
   { id: "17", kind: "weekend_grid", title: "TEXTO_OCULTO_WEEKEND", hidden: true } as any,
+  { id: "17b", kind: "event_grid", title: "TEXTO_OCULTO_EVENT_GRID", hidden: true } as any,
   { id: "18", kind: "dedge_block", title: "TEXTO_OCULTO_DEDGE", hidden: true } as any,
   { id: "19", kind: "weekly_hero", eyebrow: "TEXTO_OCULTO_HERO", hidden: true } as any,
   { id: "20", kind: "blog_posts_list", title: "TEXTO_OCULTO_BLOG", hidden: true } as any,
@@ -345,4 +346,79 @@ Deno.test("proxyForEmail: imagem .jpg passa intacta (sem proxy desnecessário)",
   const html = renderBlockedTemplate(blocks, event, null, null);
   assertStringIncludes(html, `src="${jpgUrl}"`);
   assertEquals(html.includes("wsrv.nl"), false);
+});
+
+// ============================================
+// event_grid — bloco de 2 colunas para múltiplos eventos
+// ============================================
+
+Deno.test("event_grid: renderiza 2 cards por linha (HTML)", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento A", dayLabel: "23/08", timeLabel: "22h", venue: "Clube X", imageUrl: "https://x.com/a.jpg", eventUrl: "https://mdaccula.com/eventos/a", ticketUrl: "https://x.com/ingresso-a" },
+      { id: "2", title: "Evento B", dayLabel: "23/08", timeLabel: "23h", venue: "Clube Y", imageUrl: "https://x.com/b.jpg", eventUrl: "https://mdaccula.com/eventos/b", ticketUrl: "https://x.com/ingresso-b" },
+    ],
+  };
+  const blocks = [{ id: "g1", kind: "event_grid" as const }];
+  const html = renderBlockedTemplate(blocks, event as any, null, null, { preview: false });
+  assertStringIncludes(html, "Evento A");
+  assertStringIncludes(html, "Evento B");
+  assertStringIncludes(html, "https://x.com/ingresso-a");
+  assertStringIncludes(html, "https://x.com/ingresso-b");
+  // 2 colunas: width="50%" deveria aparecer 2 vezes (uma por coluna)
+  const widthOccurrences = (html.match(/width="50%"/g) || []).length;
+  assertEquals(widthOccurrences, 2);
+});
+
+Deno.test("event_grid: número ímpar de eventos deixa a última linha com 1 card só", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento A", dayLabel: "23/08", venue: "Clube X", imageUrl: "https://x.com/a.jpg", eventUrl: "https://mdaccula.com/eventos/a" },
+      { id: "2", title: "Evento B", dayLabel: "23/08", venue: "Clube Y", imageUrl: "https://x.com/b.jpg", eventUrl: "https://mdaccula.com/eventos/b" },
+      { id: "3", title: "Evento C", dayLabel: "24/08", venue: "Clube Z", imageUrl: "https://x.com/c.jpg", eventUrl: "https://mdaccula.com/eventos/c" },
+    ],
+  };
+  const blocks = [{ id: "g1", kind: "event_grid" as const }];
+  const html = renderBlockedTemplate(blocks, event as any, null, null, { preview: false });
+  assertStringIncludes(html, "Evento C");
+  // Só 2 pares de 50%: 3 eventos = 2 fileiras (2+1), não 4 células de 50%.
+  const widthOccurrences = (html.match(/width="50%"/g) || []).length;
+  assertEquals(widthOccurrences, 3);
+});
+
+Deno.test("event_grid: lista vazia não renderiza nada fora de preview", () => {
+  const event = { ...mockEvent, gridEvents: [] };
+  const blocks = [{ id: "g1", kind: "event_grid" as const }];
+  const html = renderBlockedTemplate(blocks, event as any, null, null, { preview: false });
+  // Nenhum conteúdo específico do event_grid deve aparecer
+  assertEquals(html.includes("🎟️"), false); // placeholder não aparece fora de preview
+  assertEquals(html.includes("width=\"50%\""), false); // nenhuma coluna de evento
+});
+
+Deno.test("event_grid: respeita eyebrow/title customizados", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento A", dayLabel: "23/08", venue: "Clube X", imageUrl: "https://x.com/a.jpg", eventUrl: "https://mdaccula.com/eventos/a" },
+    ],
+  };
+  const blocks = [{ id: "g1", kind: "event_grid" as const, eyebrow: "ÚLTIMAS HORAS", title: "Vira o lote hoje" }];
+  const html = renderBlockedTemplate(blocks, event as any, null, null, { preview: false });
+  assertStringIncludes(html, "ÚLTIMAS HORAS");
+  assertStringIncludes(html, "Vira o lote hoje");
+});
+
+Deno.test("event_grid: versão texto puro lista os eventos", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento A", dayLabel: "23/08", timeLabel: "22h", venue: "Clube X", imageUrl: "https://x.com/a.jpg", eventUrl: "https://mdaccula.com/eventos/a", ticketUrl: "https://x.com/ingresso-a" },
+    ],
+  };
+  const blocks = [{ id: "g1", kind: "event_grid" as const }];
+  const text = renderBlockedTemplateText(blocks, event as any, null, null);
+  assertStringIncludes(text, "Evento A");
+  assertStringIncludes(text, "https://x.com/ingresso-a");
 });

@@ -82,6 +82,8 @@ export interface EventAnnouncementData {
   venueLat?: number;
   venueLng?: number;
   weekendEvents?: WeekendEventItem[];
+  /** Eventos selecionados manualmente para o bloco `event_grid` (2 colunas) — usado pelo template "Virada de lote (múltiplos eventos)". Nome separado de `weekendEvents` de propósito: são features independentes, não acopladas. */
+  gridEvents?: WeekendEventItem[];
   blogPosts?: BlogPostItem[];
   dedge?: DedgeBlockData;
   vipLink?: string;
@@ -132,6 +134,7 @@ export type Block =
   | { id: string; kind: "ticker"; messages?: string[]; bg_color?: string; text_color?: string; animation?: "none" | "slide" | "fade"; align?: Align; icon?: "none" | "clock" | "fire" | "bolt" }
   | { id: string; kind: "static_map"; zoom?: number; height?: number; map_style?: "roadmap" | "terrain"; show_address_label?: boolean; border_radius?: number }
   | { id: string; kind: "weekend_grid"; layout?: "cartaz" | "timeline"; title?: string; eyebrow?: string; show_article_link?: boolean; day_bar_color?: string; align?: Align }
+  | { id: string; kind: "event_grid"; title?: string; eyebrow?: string; align?: Align }
   | { id: string; kind: "dedge_block"; override_content?: boolean; image_url?: string; eyebrow?: string; title?: string; description?: string; primary_label?: string; primary_url?: string; button_style?: "dark" | "primary" }
   | { id: string; kind: "weekly_hero"; source?: "first_weekend" | "main_event"; eyebrow?: string; cta_label?: string; show_venue?: boolean; show_cta?: boolean; overlay_intensity?: "soft" | "strong"; align?: Align }
   | { id: string; kind: "blog_posts_list"; title?: string; eyebrow?: string; max_items?: number; layout?: "list" | "cards"; show_excerpt?: boolean; show_category?: boolean; align?: Align }
@@ -763,6 +766,58 @@ function renderBlock(block: Block, ctx: RenderContext): string {
       return `${header}${cards}`;
     }
 
+    case "event_grid": {
+      const list = event.gridEvents || [];
+      const align = block.align ?? "left";
+      const eyebrow = escape(block.eyebrow || "");
+      const title = escape(block.title || "");
+      const showHeader = !!(block.eyebrow || block.title);
+      const header = showHeader ? `<tr><td style="padding:16px 32px 4px 32px;text-align:${align};">
+        ${eyebrow ? `<div style="color:${primary};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>` : ""}
+        ${title ? `<h2 style="margin:0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>` : ""}
+      </td></tr>` : "";
+
+      if (list.length === 0) {
+        if (!ctx.preview) return "";
+        return `${header}<tr><td style="padding:8px 32px;">
+          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
+            🎟️ Aqui aparece o grid de eventos selecionados quando o e-mail for montado.
+          </div>
+        </td></tr>`;
+      }
+
+      const card = (ev: WeekendEventItem) => {
+        const url = escape(ev.eventUrl || "#");
+        const ctaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+        const btn = ev.ticketUrl
+          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;width:100%;box-sizing:border-box;padding:10px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:8px;">${ctaLabel}</a>`
+          : "";
+        return `<td width="50%" style="padding:8px;vertical-align:top;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+            <tr><td style="padding:0;">
+              <a href="${url}" style="text-decoration:none;display:block;">
+                <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="260" border="0" style="display:block;width:100%;max-width:260px;height:auto;border:0;outline:none;">
+              </a>
+            </td></tr>
+            <tr><td style="padding:12px 14px 14px 14px;">
+              <div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+              <div style="color:#ffffff;font-size:14px;font-weight:800;line-height:1.2;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+              <div style="color:#a1a1aa;font-size:11px;margin-bottom:8px;">${escape(ev.venue)}</div>
+              ${btn}
+            </td></tr>
+          </table>
+        </td>`;
+      };
+
+      const rows: string[] = [];
+      for (let i = 0; i < list.length; i += 2) {
+        const pair = list.slice(i, i + 2);
+        const cells = pair.map(card).join("");
+        rows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
+      }
+      return `${header}${rows.join("")}`;
+    }
+
     case "dedge_block": {
       const d = event.dedge;
       const override = block.override_content === true;
@@ -1123,6 +1178,15 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       const header = (block.title || "Agenda do fim de semana").toUpperCase();
       const rows = list.map((ev) =>
         `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue}${ev.cityState ? " (" + ev.cityState + ")" : ""} — ${ev.eventUrl}`
+      );
+      return `${header}\n${rows.join("\n")}`;
+    }
+    case "event_grid": {
+      const list = event.gridEvents || [];
+      if (!list.length) return "";
+      const header = (block.title || "Eventos selecionados").toUpperCase();
+      const rows = list.map((ev) =>
+        `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue} — ${ev.ticketUrl || ev.eventUrl}`
       );
       return `${header}\n${rows.join("\n")}`;
     }
