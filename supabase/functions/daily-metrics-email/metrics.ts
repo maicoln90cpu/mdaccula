@@ -171,7 +171,7 @@ function buildMetricsRows(metrics: MetricResult[]): string {
     .join("");
 }
 
-function buildHighlightsSection(topEntities: TopEntity[]): string {
+function buildHighlightsSection(topEntities: TopEntity[], title = "🏆 Destaques de ontem"): string {
   const withData = topEntities.filter((t) => t.count > 0);
   if (withData.length === 0) return "";
 
@@ -194,7 +194,7 @@ function buildHighlightsSection(topEntities: TopEntity[]): string {
     <tr>
       <td style="padding:10px 20px;">
         <div style="background-color:#1a1a1a;border-radius:10px;padding:20px 22px;">
-          <p style="margin:0 0 14px;color:#a855f7;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">🏆 Destaques de ontem</p>
+          <p style="margin:0 0 14px;color:#a855f7;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;">${escapeHtml(title)}</p>
           ${rows}
         </div>
       </td>
@@ -232,9 +232,11 @@ export function buildEmailHtml(
   dateLabel: string,
   topEntities: TopEntity[] = [],
   periodCards: PeriodCardData[] = [],
+  topEntitiesMonth: TopEntity[] = [],
 ): string {
   const rows = buildMetricsRows(metrics);
   const highlights = buildHighlightsSection(topEntities);
+  const highlightsMonth = buildHighlightsSection(topEntitiesMonth, "🏆 Top do mês (30 dias)");
   const periodCardsHtml = periodCards.map(buildPeriodCardHtml).join("");
 
   // Estrutura table-based (não <div> solto) com bgcolor+style redundantes nos
@@ -286,6 +288,7 @@ export function buildEmailHtml(
               </td>
             </tr>
             ${highlights}
+            ${highlightsMonth}
             ${periodCardsHtml}
             <tr>
               <td style="padding:28px 20px 24px;">

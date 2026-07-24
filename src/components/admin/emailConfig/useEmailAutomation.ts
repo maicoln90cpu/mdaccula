@@ -103,6 +103,9 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
   const [testingWeekly, setTestingWeekly] = useState(false);
   const [testingWeekend, setTestingWeekend] = useState(false);
   const [testingBlog, setTestingBlog] = useState(false);
+  const [sendingWeekly, setSendingWeekly] = useState(false);
+  const [sendingWeekend, setSendingWeekend] = useState(false);
+  const [sendingBlog, setSendingBlog] = useState(false);
 
   // Últimos resultados de geração (exibidos como card verde)
   const [digestLastResult, setDigestLastResult] = useState<AutomationResult>(null);
@@ -404,6 +407,61 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     }
   };
 
+  // ---- Handler: Enviar agora (dispara pra lista real o rascunho já gerado) ----
+  // Diferente de sendAutomationTest (Resend, 1 destinatário fixo): chama
+  // send-automation-campaign-now, que reaproveita sendEgoiCampaign() e envia
+  // de verdade pra lista configurada na E-goi. Só faz sentido depois de já
+  // existir um rascunho (egoi_campaign_id) — quem chama deve garantir isso.
+  const sendAutomationNow = async (
+    egoiCampaignId: string | null | undefined,
+    label: string,
+    setBusy: (v: boolean) => void
+  ) => {
+    if (!egoiCampaignId) {
+      toast({
+        variant: 'destructive',
+        title: 'Nenhum rascunho pra enviar',
+        description: 'Gere o rascunho primeiro ("Gerar rascunho agora").',
+      });
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-automation-campaign-now', {
+        body: { egoi_campaign_id: egoiCampaignId },
+      });
+      if (error) throw error;
+      const res = data as {
+        success?: boolean;
+        skipped?: boolean;
+        reason?: string;
+        error?: string;
+      };
+      if (res?.skipped) {
+        const reasons: Record<string, string> = {
+          master_off: 'Master switch está OFF.',
+          config_disabled_or_incomplete: 'Configuração da agência incompleta ou desligada.',
+        };
+        toast({
+          variant: 'destructive',
+          title: 'Não enviado',
+          description: reasons[res.reason || ''] || res.reason || 'Motivo desconhecido',
+        });
+        return;
+      }
+      if (!res?.success) throw new Error(res?.error || 'Falha ao enviar');
+      toast({
+        title: `${label} enviado!`,
+        description: 'Campanha disparada para a lista real configurada na E-goi.',
+      });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast({ variant: 'destructive', title: `Erro ao enviar ${label}`, description: msg });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return {
     // configs + setters (setters expostos para o pai hidratar em loadAll)
     weeklyCfg,
@@ -425,6 +483,12 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     setTestingWeekend,
     testingBlog,
     setTestingBlog,
+    sendingWeekly,
+    setSendingWeekly,
+    sendingWeekend,
+    setSendingWeekend,
+    sendingBlog,
+    setSendingBlog,
     // resultados
     digestLastResult,
     weekendLastResult,
@@ -441,5 +505,6 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     generateWeekendNow,
     generateBlogNow,
     sendAutomationTest,
+    sendAutomationNow,
   };
 }

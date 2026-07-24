@@ -9,6 +9,17 @@
  * Toda a lógica de fetch/save continua no pai; aqui é só apresentação +
  * delegação via callbacks — não há chamada Supabase neste componente.
  */
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Mail, RefreshCw, Save, Send, ShieldAlert } from 'lucide-react';
+import { Mail, RefreshCw, Save, Send, SendHorizonal, ShieldAlert } from 'lucide-react';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { AutomationCfg, AutomationResult } from './types';
 
@@ -38,10 +49,12 @@ interface AutomationsTabProps {
   savingWeekly: boolean;
   digestGenerating: boolean;
   testingWeekly: boolean;
+  sendingWeekly: boolean;
   digestLastResult: AutomationResult;
   handleSaveWeekly: () => void | Promise<void>;
   generateDigestNow: () => void | Promise<void>;
   onTestWeekly: () => void;
+  onSendWeeklyNow: () => void;
 
   // Weekend agenda
   weekendCfg: AutomationCfg;
@@ -50,10 +63,12 @@ interface AutomationsTabProps {
   savingWeekend: boolean;
   weekendGenerating: boolean;
   testingWeekend: boolean;
+  sendingWeekend: boolean;
   weekendLastResult: AutomationResult;
   handleSaveWeekend: () => void | Promise<void>;
   generateWeekendNow: () => void | Promise<void>;
   onTestWeekend: () => void;
+  onSendWeekendNow: () => void;
 
   // Blog digest
   blogCfg: AutomationCfg;
@@ -62,10 +77,12 @@ interface AutomationsTabProps {
   savingBlog: boolean;
   blogGenerating: boolean;
   testingBlog: boolean;
+  sendingBlog: boolean;
   blogLastResult: AutomationResult;
   handleSaveBlog: () => void | Promise<void>;
   generateBlogNow: () => void | Promise<void>;
   onTestBlog: () => void;
+  onSendBlogNow: () => void;
 }
 
 export const AutomationsTab = ({
@@ -79,30 +96,36 @@ export const AutomationsTab = ({
   savingWeekly,
   digestGenerating,
   testingWeekly,
+  sendingWeekly,
   digestLastResult,
   handleSaveWeekly,
   generateDigestNow,
   onTestWeekly,
+  onSendWeeklyNow,
   weekendCfg,
   setWeekendCfg,
   weekendEffectiveTemplateId,
   savingWeekend,
   weekendGenerating,
   testingWeekend,
+  sendingWeekend,
   weekendLastResult,
   handleSaveWeekend,
   generateWeekendNow,
   onTestWeekend,
+  onSendWeekendNow,
   blogCfg,
   setBlogCfg,
   blogEffectiveTemplateId,
   savingBlog,
   blogGenerating,
   testingBlog,
+  sendingBlog,
   blogLastResult,
   handleSaveBlog,
   generateBlogNow,
   onTestBlog,
+  onSendBlogNow,
 }: AutomationsTabProps) => {
   const testTitle = `Envia via Resend para ${automationTestRecipient} — não toca a E-goi`;
 
@@ -282,6 +305,45 @@ export const AutomationsTab = ({
                   </>
                 )}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    disabled={!digestLastResult?.egoi_campaign_id || sendingWeekly}
+                    title={
+                      digestLastResult?.egoi_campaign_id
+                        ? 'Envia de verdade para toda a lista configurada na E-goi'
+                        : 'Gere o rascunho primeiro'
+                    }
+                  >
+                    {sendingWeekly ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando…
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizonal className="w-4 h-4 mr-2" />
+                        Enviar agora
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Enviar Digest semanal para toda a lista?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso dispara de verdade a campanha #{digestLastResult?.egoi_campaign_id} na
+                      E-goi para todos os contatos da lista configurada. Não é possível desfazer
+                      depois de enviado.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onSendWeeklyNow}>Enviar agora</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             {weeklyCfg.enabled && (
@@ -450,6 +512,45 @@ export const AutomationsTab = ({
                   </>
                 )}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    disabled={!weekendLastResult?.egoi_campaign_id || sendingWeekend}
+                    title={
+                      weekendLastResult?.egoi_campaign_id
+                        ? 'Envia de verdade para toda a lista configurada na E-goi'
+                        : 'Gere o rascunho primeiro'
+                    }
+                  >
+                    {sendingWeekend ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando…
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizonal className="w-4 h-4 mr-2" />
+                        Enviar agora
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Enviar Agenda do FDS para toda a lista?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso dispara de verdade a campanha #{weekendLastResult?.egoi_campaign_id} na
+                      E-goi para todos os contatos da lista configurada. Não é possível desfazer
+                      depois de enviado.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onSendWeekendNow}>Enviar agora</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             {weekendCfg.enabled && (
@@ -616,6 +717,45 @@ export const AutomationsTab = ({
                   </>
                 )}
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    disabled={!blogLastResult?.egoi_campaign_id || sendingBlog}
+                    title={
+                      blogLastResult?.egoi_campaign_id
+                        ? 'Envia de verdade para toda a lista configurada na E-goi'
+                        : 'Gere o rascunho primeiro'
+                    }
+                  >
+                    {sendingBlog ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                        Enviando…
+                      </>
+                    ) : (
+                      <>
+                        <SendHorizonal className="w-4 h-4 mr-2" />
+                        Enviar agora
+                      </>
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Enviar Blog news para toda a lista?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Isso dispara de verdade a campanha #{blogLastResult?.egoi_campaign_id} na
+                      E-goi para todos os contatos da lista configurada. Não é possível desfazer
+                      depois de enviado.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={onSendBlogNow}>Enviar agora</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
 
             {blogCfg.enabled && (

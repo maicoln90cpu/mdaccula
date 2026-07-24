@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.MD`](PENDENCIAS.MD).
 > Features novas planejadas (ainda não construídas) ficam em [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-**Última atualização:** 19/07/2026
+**Última atualização:** 24/07/2026
 
 ---
 
@@ -17,6 +17,39 @@
 ---
 
 ## Entradas Detalhadas
+
+### Botão "Enviar agora" na aba Automações (Digest semanal / Agenda FDS / Blog news)
+**Descrição:** Antes só existia "Gerar rascunho agora" (cria na E-goi) e "Enviar teste agora" (via Resend, 1 destinatário fixo) — pra disparar de verdade pra lista inteira, o admin precisava ir manualmente na plataforma da E-goi ou ligar "Enviar automaticamente no cron" e esperar o horário agendado.
+**Correção:** novo botão "Enviar agora" nos 3 cards, habilitado só quando já existe um rascunho gerado (`egoi_campaign_id`), com confirmação (`AlertDialog`) antes de disparar por ser irreversível. Nova Edge Function `send-automation-campaign-now` reaproveita `sendEgoiCampaign()` — a mesma função corrigida no bug 422 `segments.isEmpty` (R-026) — sem duplicar a montagem do payload.
+**Data:** 24/07/2026
+**Responsável:** IA
+**Impacto:** médio (elimina um passo manual fora do sistema pra completar o envio das 3 automações)
+
+**Arquivos alterados:** `supabase/functions/send-automation-campaign-now/index.ts` (novo), `supabase/config.toml`, `src/components/admin/emailConfig/useEmailAutomation.ts`, `src/components/admin/emailConfig/AutomationsTab.tsx`, `src/pages/admin/EmailConfig.tsx`, `src/__tests__/contracts/send-automation-campaign-now.test.ts` (novo).
+
+---
+
+### Top 30 dias no e-mail diário de métricas (item em destaque + card agregado)
+**Descrição:** o e-mail diário já tinha "Destaques de ontem" (item mais acessado do dia) e cards de período pra 7 dias/mês atual — faltava a janela de 30 dias, tanto pro item individual quanto pro agregado.
+**Correção:** `getTopEntity()` e `buildPeriodMetricResults()` (já genéricos, reaproveitados dos mecanismos de 7 dias/ontem) agora também rodam numa janela de 30 dias — novo bloco "🏆 Top do mês (30 dias)" (post/link/evento mais acessado) e novo card "Últimos 30 dias" (total agregado vs. os 30 dias anteriores).
+**Data:** 24/07/2026
+**Responsável:** IA
+**Impacto:** baixo-médio (mais contexto no e-mail diário, sem mudança de comportamento existente)
+
+**Arquivos alterados:** `supabase/functions/daily-metrics-email/metrics.ts`, `supabase/functions/daily-metrics-email/index.ts`, `supabase/functions/daily-metrics-email/metrics_test.ts` (5 testes novos).
+
+---
+
+### Favicon "revertia sozinho" pro ícone padrão do Lovable (R-028)
+**Descrição:** já tinha sido corrigido uma vez (14/07/2026), mas voltava a acontecer de forma recorrente. Causa raiz: `public/service-worker.js` tratava `.ico` como imagem e servia via `cacheFirst` — a única estratégia do arquivo que nunca revalida contra a rede. Um navegador que em algum momento cacheou uma versão errada ficava preso nela para sempre, mesmo com o servidor já servindo o arquivo certo.
+**Correção:** `.ico` removido de `IMAGE_PATTERNS` (cai no `networkFirst` padrão, sempre revalida) e `CACHE_VERSION` incrementado (`v13` → `v14`) pra forçar todo navegador já afetado a descartar o cache antigo na próxima visita.
+**Data:** 24/07/2026
+**Responsável:** IA
+**Impacto:** baixo-médio (cosmético, mas recorrente e visível a qualquer visitante)
+
+**Arquivos alterados:** `public/service-worker.js`, `src/__tests__/regression/service-worker-favicon-cache.test.ts` (novo), `docs/TESTING.md` (R-028).
+
+---
 
 ### "Blog news" enviava artigos de eventos já encerrados (R-022)
 **Descrição:** Usuário notou no e-mail Blog News de domingo (19/07) um artigo sobre o evento Krush, que era dia 17/07 — já passado e já desativado no site. A query que monta o Blog News só olhava se o post estava publicado dentro dos últimos N dias, sem nenhuma verificação sobre eventos vinculados a esses posts.

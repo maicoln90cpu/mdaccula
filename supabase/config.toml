@@ -163,6 +163,9 @@ verify_jwt = false
 [functions.send-scheduled-email-campaigns]
 verify_jwt = false
 
+[functions.send-automation-campaign-now]
+verify_jwt = false
+
 # compose-event-image é a única função que exige login (verify_jwt = true,
 # que é o padrão) — por isso não precisa de entrada aqui.
 

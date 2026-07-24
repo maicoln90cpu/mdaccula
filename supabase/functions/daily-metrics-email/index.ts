@@ -207,9 +207,16 @@ Deno.serve(async (req) => {
     const prev7Start = getBRTDayWindowUTC(14).startUTC;
     const prev7End = last7Start;
 
+    // Mesma ideia dos 7 dias, só que numa janela de 30 — dá o "top do mês" (item
+    // individual) e o card agregado "Últimos 30 dias", ambos vs. os 30 dias anteriores.
+    const last30Start = getBRTDayWindowUTC(30).startUTC;
+    const last30End = yesterday.endUTC;
+    const prev30Start = getBRTDayWindowUTC(60).startUTC;
+    const prev30End = last30Start;
+
     const monthWindows = getBRTMonthToDateWindows(yesterday.startUTC);
 
-    const [last7Rows, monthRows] = await Promise.all([
+    const [last7Rows, monthRows, last30Rows, topEntitiesMonthResults] = await Promise.all([
       buildPeriodMetricResults(admin, last7Start, last7End, prev7Start, prev7End),
       buildPeriodMetricResults(
         admin,
@@ -218,7 +225,10 @@ Deno.serve(async (req) => {
         monthWindows.previous.startUTC,
         monthWindows.previous.endUTC,
       ),
+      buildPeriodMetricResults(admin, last30Start, last30End, prev30Start, prev30End),
+      Promise.all(TOP_ENTITY_CONFIGS.map((config) => getTopEntity(admin, config, last30Start, last30End))),
     ]);
+    const topEntitiesMonth = topEntitiesMonthResults.filter((t): t is TopEntity => t !== null);
 
     const periodCards: PeriodCardData[] = [
       {
@@ -233,6 +243,12 @@ Deno.serve(async (req) => {
         rangeLabel: `${formatBRTDateRange(monthWindows.current.startUTC, monthWindows.current.endUTC)} · vs. ${formatBRTDateRange(monthWindows.previous.startUTC, monthWindows.previous.endUTC)}`,
         rows: monthRows,
       },
+      {
+        emoji: "📈",
+        title: "Últimos 30 dias",
+        rangeLabel: `${formatBRTDateRange(last30Start, last30End)} · vs. ${formatBRTDateRange(prev30Start, prev30End)}`,
+        rows: last30Rows,
+      },
     ];
 
     const dateLabel = yesterday.startUTC.toLocaleDateString("pt-BR", {
@@ -241,7 +257,7 @@ Deno.serve(async (req) => {
       month: "2-digit",
       year: "numeric",
     });
-    const html = buildEmailHtml(metrics, dateLabel, topEntities, periodCards);
+    const html = buildEmailHtml(metrics, dateLabel, topEntities, periodCards, topEntitiesMonth);
 
     let emailSent = false;
     let emailError: string | null = null;
@@ -279,7 +295,7 @@ Deno.serve(async (req) => {
     }
 
     await admin.from("daily_metrics_email_log").insert({
-      metrics: { date: dateLabel, results: metrics, topEntities, periodCards },
+      metrics: { date: dateLabel, results: metrics, topEntities, topEntitiesMonth, periodCards },
       email_sent: emailSent,
       email_error: emailError,
     });
@@ -289,6 +305,7 @@ Deno.serve(async (req) => {
       date: dateLabel,
       metrics,
       topEntities,
+      topEntitiesMonth,
       periodCards,
       email_sent: emailSent,
       email_error: emailError,

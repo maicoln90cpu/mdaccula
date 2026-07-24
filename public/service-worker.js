@@ -1,5 +1,5 @@
 // ============================================
-// MDAccula Service Worker v13
+// MDAccula Service Worker v14
 // Cache First with TTL + Egress Tracking
 //
 // REGRA 1: toda mutação (POST/PATCH/PUT/DELETE) em /rest/v1/<tabela> DEVE
@@ -9,10 +9,17 @@
 // REGRA 2: requisições originadas de páginas /admin/* fazem BYPASS do cache.
 //          Admin sempre vê dados frescos; visitantes públicos continuam com
 //          cache TTL para economizar egress.
+// REGRA 3: favicon.ico NUNCA entra em IMAGE_PATTERNS/cacheFirst — essa
+//          estratégia nunca revalida contra a rede, então um navegador que já
+//          cacheou uma versão errada (ex.: ícone padrão do Lovable sobre-
+//          escrevendo o arquivo) fica preso nela para sempre. Favicon cai no
+//          networkFirst padrão (fallback no fim do fetch handler), que sempre
+//          tenta a rede primeiro. Bump de CACHE_VERSION força quem já tinha o
+//          favicon errado em IMAGE_CACHE a descartar e buscar de novo.
 // ============================================
 
 const BUILD_TIMESTAMP = Date.now();
-const CACHE_VERSION = 'v13';
+const CACHE_VERSION = 'v14';
 const STATIC_CACHE = `mdaccula-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `mdaccula-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `mdaccula-images-${CACHE_VERSION}`;
@@ -28,7 +35,8 @@ const API_TTL = {
 
 const PRECACHE_URLS = ['/', '/offline.html'];
 const STATIC_PATTERNS = [/\.woff2?$/, /\.ttf$/, /\.otf$/, /\/assets\/.*\.(js|css)$/];
-const IMAGE_PATTERNS = [/\.(png|jpg|jpeg|gif|webp|avif|svg|ico)$/];
+// .ico de propósito FORA daqui — ver REGRA 3 no topo do arquivo.
+const IMAGE_PATTERNS = [/\.(png|jpg|jpeg|gif|webp|avif|svg)$/];
 
 const CACHEABLE_API_PATHS = [
   '/rest/v1/link_groups',

@@ -325,6 +325,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** trocado para o atributo HTML nativo em minúsculo `fetchpriority="high"` em `Links.tsx` — TypeScript aceita porque `ImgHTMLAttributes` não restringe atributos desconhecidos em minúsculo, e o React não emite warning porque o nome já bate com o `lowerCasedName` esperado.
 - **Proteção:** `src/__tests__/regression/links-avatar-fetchpriority-lowercase.test.ts` (guarda estática — falha se `fetchPriority=` camelCase voltar a aparecer em `Links.tsx`).
 
+### R-028 — Favicon "revertia sozinho" pro ícone padrão do Lovable
+- **Quando:** julho/2026
+- **Sintoma:** o favicon do site (logo MDAccula) periodicamente aparecia como o ícone padrão do Lovable (coração gradiente) para usuários, de forma aparentemente aleatória e recorrente — já tinha sido corrigido uma vez (14/07/2026, regenerando `public/favicon.ico`) mas voltava a acontecer.
+- **Causa:** `public/service-worker.js` tratava `.ico` como imagem (`IMAGE_PATTERNS`) e servia via `cacheFirst` — a única estratégia do arquivo que nunca revalida contra a rede. Um navegador que em algum momento cacheou uma versão errada do favicon (ex.: durante a janela em que o arquivo em produção estava sobrescrito pelo ícone padrão) ficava preso nela para sempre, mesmo com o servidor já servindo o arquivo correto. O efeito "fica alterando" vinha de cada bump de `CACHE_VERSION` do Service Worker forçar uma nova busca na rede — que então mostrava o que estivesse correto (ou não) naquele instante.
+- **Correção:** `.ico` removido de `IMAGE_PATTERNS` — favicon agora cai no `networkFirst` padrão (sempre tenta a rede primeiro). `CACHE_VERSION` incrementado (`v13` → `v14`) para forçar todo navegador já afetado a descartar o cache antigo na próxima visita.
+- **Proteção:** `src/__tests__/regression/service-worker-favicon-cache.test.ts` (guarda estática — falha se `.ico` voltar a entrar em `IMAGE_PATTERNS`, e confirma que `CACHE_VERSION` não regrediu abaixo de `v14`).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

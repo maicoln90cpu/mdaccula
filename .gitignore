@@ -41,3 +41,6 @@ supabase/functions/*/index.original.ts
 # CodeGraph / Graphify — índices e grafos gerados localmente, regeneráveis
 .codegraph/
 graphify-out/
+
+# Claude Code — config local de máquina (preview server, settings pessoais, worktrees)
+.claude/

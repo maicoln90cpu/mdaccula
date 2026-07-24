@@ -288,3 +288,49 @@ Deno.test("buildEmailHtml: sem períodos informados (default) não gera cards de
   assertEquals(html.includes("Últimos 7 dias"), false);
   assertEquals(html.includes("Mês atual"), false);
 });
+
+Deno.test("buildEmailHtml: card de período 'Últimos 30 dias' renderiza normalmente", () => {
+  const periodCards: PeriodCardData[] = [
+    {
+      emoji: "📈",
+      title: "Últimos 30 dias",
+      rangeLabel: "19/06 – 18/07 · vs. 20/05 – 18/06",
+      rows: [
+        { key: "blog_views", label: "Visualizações do Blog", current: 900, previous: 700, variancePct: computeVariancePct(900, 700) },
+      ],
+    },
+  ];
+  const html = buildEmailHtml([], "18/07/2026", [], periodCards);
+  assertStringIncludes(html, "Últimos 30 dias");
+  assertStringIncludes(html, "19/06 – 18/07 · vs. 20/05 – 18/06");
+  assertStringIncludes(html, "900");
+});
+
+Deno.test("buildEmailHtml: topEntitiesMonth gera um segundo bloco de destaques, separado do de ontem", () => {
+  const yesterdayTop: TopEntity[] = [
+    { emoji: "📰", label: "Artigo mais acessado", name: "Post de ontem", url: null, count: 5 },
+  ];
+  const monthTop: TopEntity[] = [
+    { emoji: "📰", label: "Artigo mais acessado", name: "Post campeão do mês", url: null, count: 450 },
+  ];
+  const html = buildEmailHtml([], "18/07/2026", yesterdayTop, [], monthTop);
+  assertStringIncludes(html, "Destaques de ontem");
+  assertStringIncludes(html, "Post de ontem");
+  assertStringIncludes(html, "Top do mês (30 dias)");
+  assertStringIncludes(html, "Post campeão do mês");
+  assertStringIncludes(html, "450");
+});
+
+Deno.test("buildEmailHtml: topEntitiesMonth omitido (default) não gera o bloco 'Top do mês'", () => {
+  const html = buildEmailHtml([], "18/07/2026");
+  assertEquals(html.includes("Top do mês"), false);
+});
+
+Deno.test("buildEmailHtml: topEntitiesMonth com count 0 é filtrado, igual ao de ontem", () => {
+  const monthTop: TopEntity[] = [
+    { emoji: "🎟️", label: "Evento mais visto", name: "Nunca visto no mês", url: null, count: 0 },
+  ];
+  const html = buildEmailHtml([], "18/07/2026", [], [], monthTop);
+  assertEquals(html.includes("Top do mês"), false);
+  assertEquals(html.includes("Nunca visto no mês"), false);
+});

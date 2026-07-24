@@ -163,6 +163,12 @@ const EmailConfig = () => {
     setTestingWeekend,
     testingBlog,
     setTestingBlog,
+    sendingWeekly,
+    setSendingWeekly,
+    sendingWeekend,
+    setSendingWeekend,
+    sendingBlog,
+    setSendingBlog,
     digestLastResult,
     weekendLastResult,
     blogLastResult,
@@ -176,6 +182,7 @@ const EmailConfig = () => {
     generateWeekendNow,
     generateBlogNow,
     sendAutomationTest,
+    sendAutomationNow,
   } = useEmailAutomation({ templates, toast });
 
   const loadAll = useCallback(async () => {
@@ -1652,6 +1659,7 @@ const EmailConfig = () => {
             savingWeekly={savingWeekly}
             digestGenerating={digestGenerating}
             testingWeekly={testingWeekly}
+            sendingWeekly={sendingWeekly}
             digestLastResult={digestLastResult}
             handleSaveWeekly={handleSaveWeekly}
             generateDigestNow={generateDigestNow}
@@ -1663,12 +1671,16 @@ const EmailConfig = () => {
                 weeklyEffectiveTemplateId
               )
             }
+            onSendWeeklyNow={() =>
+              sendAutomationNow(digestLastResult?.egoi_campaign_id, 'Digest semanal', setSendingWeekly)
+            }
             weekendCfg={weekendCfg}
             setWeekendCfg={setWeekendCfg}
             weekendEffectiveTemplateId={weekendEffectiveTemplateId}
             savingWeekend={savingWeekend}
             weekendGenerating={weekendGenerating}
             testingWeekend={testingWeekend}
+            sendingWeekend={sendingWeekend}
             weekendLastResult={weekendLastResult}
             handleSaveWeekend={handleSaveWeekend}
             generateWeekendNow={generateWeekendNow}
@@ -1680,12 +1692,16 @@ const EmailConfig = () => {
                 weekendEffectiveTemplateId
               )
             }
+            onSendWeekendNow={() =>
+              sendAutomationNow(weekendLastResult?.egoi_campaign_id, 'Agenda FDS', setSendingWeekend)
+            }
             blogCfg={blogCfg}
             setBlogCfg={setBlogCfg}
             blogEffectiveTemplateId={blogEffectiveTemplateId}
             savingBlog={savingBlog}
             blogGenerating={blogGenerating}
             testingBlog={testingBlog}
+            sendingBlog={sendingBlog}
             blogLastResult={blogLastResult}
             handleSaveBlog={handleSaveBlog}
             generateBlogNow={generateBlogNow}
@@ -1696,6 +1712,9 @@ const EmailConfig = () => {
                 setTestingBlog,
                 blogEffectiveTemplateId
               )
+            }
+            onSendBlogNow={() =>
+              sendAutomationNow(blogLastResult?.egoi_campaign_id, 'Blog news', setSendingBlog)
             }
           />
         </TabsContent>
