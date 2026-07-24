@@ -231,6 +231,40 @@ Rascunho em /admin/blog, com imagem composta — revisão manual como hoje (ou j
   possivelmente uma legenda curta de Instagram (novo prompt, mais curto, com hashtags) —
   a decidir se isso vira um campo novo em `ai_generated_posts` ou fica só no rascunho.
 
+### Validação prática realizada (23/07/2026) — pipeline confirmado funcional
+
+**O que foi feito**: pesquisa de ~36 perfis reais de Instagram da cena eletrônica/parceiros
+(16 espelhando fontes "site" já cadastradas + 20 novos, ex.: D-Edge, Crema Club, Mamba
+Negra, Tomorrowland Brasil, Vintage Culture, Alok, KVSH etc.), todos cadastrados em
+`event_sources` (`type='instagram'`). Para um teste seguro e barato, **35 foram
+desativados (`enabled=false`)**, deixando só **`Alataj` (`instagram.com/alataj`) ativa**
+para validar o pipeline ponta a ponta sem gastar créditos Apify em 36 contas de uma vez.
+
+`scan-event-sources` foi disparado manualmente com `force: true` contra essa única fonte
+ativa. Resultado observado:
+- Resposta da função: `instagramTriggered: 1` (o branch novo do Apify disparou
+  corretamente, sem erro).
+- Console da Apify: **2 execuções do ator `instaprism/instagram-post-monitor`, ambas
+  "Succeeded"**, ~US$0,70 cada, **0 resultados** (nenhum post novo encontrado pro Alataj
+  no momento do teste).
+- `event_sources.last_scanned_at` do Alataj atualizado para 23/07/2026 11:01 UTC,
+  confirmando que o ciclo completo (trigger → execução → retorno) funcionou.
+
+**Conclusão**: a integração Apify/Instagram (secret `APIFY_API_TOKEN`, disparo
+assíncrono, formato do payload) **está funcional em produção** — não é mais uma dúvida
+em aberto. O resultado "0 posts" nesse teste é esperado/normal (a conta simplesmente não
+tinha post novo no período), não um bug. O `apify-instagram-webhook` (callback de quando
+o ator *encontra* algo) ainda não foi exercido com um payload real nesta validação —
+só com payloads de teste manuais anteriores (ver rodada 2 de 17/07/2026). Próximo passo
+natural, quando o usuário quiser continuar a Fase B: manter Alataj (ou reativar mais
+fontes) ativas por mais tempo até um post real disparar o webhook, aí sim validar a
+extração/gravação em `event_watch_drafts` de ponta a ponta com dado real.
+
+**Estado atual do cadastro** (23/07/2026): 36 fontes `type='instagram'` em
+`event_sources`, **1 ativa (Alataj)**, 35 desativadas — prontas pra reativar quando o
+usuário decidir escalar o teste ou seguir para o resto da Fase B (webhook com post real
+→ `compose-event-image`, que segue bloqueado à espera do logo da MDAccula em PNG).
+
 ### Riscos já mapeados (do plano original)
 
 - **Direitos autorais de imagem**: mitigado — prioridade pra imagem enviada pelo
@@ -333,3 +367,9 @@ estiver testada na prática:
   configurar secret de Edge Function diretamente, usuário vai configurar via Dashboard);
   documentada pendência de "Sugestões Aleatórias" passar a ancorar em matéria real (fora
   do escopo do Event Watcher, ver seção própria acima).
+- **23/07/2026** — validação prática do Apify/Instagram: 36 perfis cadastrados em
+  `event_sources`, teste forçado com 1 fonte ativa (Alataj) confirmou o pipeline
+  funcional ponta a ponta (`instagramTriggered:1`, 2 execuções "Succeeded" no console da
+  Apify, 0 resultados — esperado). Deixado 35 fontes desativadas e 1 ativa pra não gastar
+  crédito à toa; próximo passo é deixar rodando até um post real disparar o
+  `apify-instagram-webhook`. Ver seção "Validação prática realizada" acima.

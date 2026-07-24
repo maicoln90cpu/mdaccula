@@ -1,8 +1,8 @@
 # Auditoria de Segurança - MDAccula
 
-**Data da última auditoria:** 2026-03-15  
+**Data da última auditoria:** 2026-03-15 (manual) / 2026-07-23 (re-scan automatizado via Supabase advisors)  
 **Responsável:** Sistema automatizado + Revisão manual  
-**Status:** ✅ Fase 2 Concluída
+**Status:** ✅ Fase 2 Concluída — novos achados do advisor em 23/07/2026, ver seção Pendências
 
 ---
 
@@ -224,6 +224,21 @@ export function escapeHtml(str: string): string {
 **Status:** ⚠️ Não implementado  
 **Risco:** Baixo (rate limiting mitiga spam automatizado)
 
+### Buckets públicos permitem listagem (achado em 23/07/2026)
+**Status:** ⚠️ Não corrigido  
+**Detalhe:** `event-images`, `link-thumbnails` e `team-images` têm policy de `SELECT` em `storage.objects` ampla o bastante pra listar todo o conteúdo do bucket, não só acessar por URL direta.
+**Risco:** Baixo (conteúdo já é público por design), mas expõe listagem além do necessário.
+**Ação:** restringir a policy pra permitir leitura por nome de objeto, sem `list`. Ver [lint 0025](https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing).
+
+### Funções SECURITY DEFINER expostas ao público (achado em 23/07/2026)
+**Status:** ⚠️ Pendente revisão função-a-função  
+**Detalhe:** ~14 funções (`has_role`, `is_admin`, contadores de view/click/like, `handle_new_user`, `is_valid_email`, `is_authenticated`, `update_blog_posts_search_vector`, `cleanup_old_egress`, `cleanup_old_logs`, `get_db_size`) são executáveis via RPC por `anon`/`authenticated`. A maioria é intencional (contadores públicos, checagem de role usada pelo frontend), mas `get_db_size`/`cleanup_old_*` parecem ferramentas administrativas que talvez não devessem ser públicas.
+**Ação:** decisão do usuário — ver [`PENDENCIAS.MD`](/PENDENCIAS.MD) → 🗳️ Decisões Pendentes. Ver [lint 0028/0029](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable).
+
+### Performance de RLS (achado em 23/07/2026, informativo)
+**Status:** ℹ️ Não é vulnerabilidade — otimização de custo de query  
+**Detalhe:** advisor de performance reportou 83 avisos de "Multiple Permissive Policies" e 28 de "Auth RLS Initialization Plan" (padrões conhecidos do Postgres/Supabase: várias policies permissivas na mesma tabela/comando forçam avaliação redundante; `auth.uid()` sem `(select ...)` reavalia por linha). Não bloqueia nada hoje; candidato a entrar no backlog de performance se o volume de dados crescer.
+
 ---
 
 ## 📋 Checklist de Segurança
@@ -251,6 +266,8 @@ export function escapeHtml(str: string): string {
 - [ ] CAPTCHA no formulário de contato
 - [ ] Rate limiting por fingerprint de dispositivo
 - [ ] 2FA (opcional)
+- [ ] Restringir listagem pública nos buckets `event-images`, `link-thumbnails`, `team-images`
+- [ ] Revisar exposição pública das funções `SECURITY DEFINER` (ver Pendências acima)
 
 ---
 
@@ -271,7 +288,8 @@ export function escapeHtml(str: string): string {
 | SYSTEM-DESIGN.md | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |
 | CODE_STYLE.md | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
 | tabelas.md | [/tabelas.md](/tabelas.md) |
+| PENDENCIAS.MD | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
 
 ---
 
-*Última auditoria: 15/03/2026*
+*Última auditoria manual: 15/03/2026 · Última re-checagem via advisor: 23/07/2026*

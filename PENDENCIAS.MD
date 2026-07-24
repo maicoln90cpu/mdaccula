@@ -4,7 +4,7 @@
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
 > **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
-**Última atualização:** 19/07/2026
+**Última atualização:** 23/07/2026
 
 ---
 
@@ -48,15 +48,35 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
+### Checkpoint: Apify/Instagram aguardando post real para validar o webhook
+**Checar em:** sem data fixa — depende de quando o Alataj (ou outra fonte reativada) postar algo novo
+**Contexto:** validação prática em 23/07/2026 confirmou que o disparo do ator Apify funciona ponta a ponta (`instagramTriggered:1`, execuções "Succeeded" no console da Apify), mas o teste caiu em "0 resultados" (sem post novo no momento) — o `apify-instagram-webhook` (callback de quando a Apify *encontra* algo) ainda não foi exercido com um payload real. Detalhes completos em [`docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md`](docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md) → seção "Validação prática realizada (23/07/2026)".
+**Passos:**
+1. Deixar a fonte Alataj (ou reativar mais fontes) ativa até um post novo disparar o webhook de verdade.
+2. Conferir em `application_logs` e `event_watch_drafts` se o rascunho foi gerado corretamente a partir de dado real.
+**Responsável:** IA confere quando solicitado
+
+---
+
 ## 🗳️ Decisões Pendentes do Usuário
 
-*(Nenhuma no momento)*
+### Funções `SECURITY DEFINER` executáveis por qualquer visitante anônimo
+**Contexto:** advisor de segurança do Supabase (rodado em 23/07/2026) aponta ~14 funções (`has_role`, `is_admin`, `increment_event_views`, `increment_link_clicks`, `increment_post_views`, `increment_redirect_clicks`, `toggle_post_like`, `user_liked_post`, `handle_new_user`, `is_valid_email`, `is_authenticated`, `update_blog_posts_search_vector`, `cleanup_old_egress`, `cleanup_old_logs`, `get_db_size`) chamáveis via `/rest/v1/rpc/...` por usuários não autenticados.
+**Por que é uma decisão, não um bug:** a maioria parece intencional (contadores públicos de clique/view, checagem de role usada pelo próprio frontend) — mas isso não foi confirmado função a função, e algumas (`get_db_size`, `cleanup_old_egress`, `cleanup_old_logs`) parecem ferramentas administrativas que talvez não devessem ser públicas.
+**Decisão necessária:** revisar a lista e confirmar quais devem continuar públicas vs. quais deveriam exigir `authenticated`/`admin`. Detalhe completo: [advisor do Supabase, lint `0028`/`0029`](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable).
 
 ---
 
 ## 🔧 Bugs Conhecidos
 
-*(Nenhum no momento)*
+### Leaked Password Protection desabilitado
+**Status:** ⚠️ Desabilitado (reconfirmado pelo advisor em 23/07/2026 — já documentado desde 15/03/2026 em [`docs/SECURITY-AUDIT.md`](docs/SECURITY-AUDIT.md), nunca foi corrigido)
+**Ação:** habilitar em Authentication → Providers → Email no painel do Supabase (1 clique, fora do alcance das ferramentas de código/MCP).
+
+### 3 buckets públicos permitem listar todos os arquivos
+**Status:** ⚠️ Identificado pelo advisor em 23/07/2026
+**Contexto:** `event-images`, `link-thumbnails` e `team-images` têm uma policy de `SELECT` ampla em `storage.objects` que permite listar todo o conteúdo do bucket, não só acessar arquivos por URL direta (que é tudo que o site precisa). Risco baixo (são imagens já públicas por design), mas expõe mais do que o necessário.
+**Correção sugerida:** restringir a policy de `SELECT` pra permitir `get`/acesso por nome, sem permitir `list` — ver [advisor do Supabase, lint `0025`](https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing).
 
 ---
 
