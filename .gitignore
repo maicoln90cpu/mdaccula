@@ -37,3 +37,7 @@ coverage/
 # usa o index.ts original, que resolve _shared/ pelo CLI da Supabase.
 supabase/functions/*/index.bundled.ts
 supabase/functions/*/index.original.ts
+
+# CodeGraph / Graphify — índices e grafos gerados localmente, regeneráveis
+.codegraph/
+graphify-out/
