@@ -1,7 +1,6 @@
 import type { createClient } from "npm:@supabase/supabase-js@2";
 
-export 
-function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
+export function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
   try {
     const bytes = data ? new TextEncoder().encode(JSON.stringify(data)).length : 0;
     const now = new Date();
@@ -16,4 +15,3 @@ function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, d
     }, { onConflict: 'period_start,api_path,source' }).then(() => {}).catch(() => {});
   } catch (_) { /* fire and forget */ }
 }
-

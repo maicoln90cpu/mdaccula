@@ -88,7 +88,7 @@ NÃO inclua texto, palavras ou números na imagem.`
 ];
 
 // Função para selecionar estilo aleatório sem repetir o último
-async function pickRandomStyle(supabase: ReturnType<typeof createClient>): Promise<{ index: number; prompt: string }> {
+export async function pickRandomStyle(supabase: ReturnType<typeof createClient>): Promise<{ index: number; prompt: string }> {
   // Buscar último estilo usado
   const { data: setting } = await supabase
     .from('site_settings')
@@ -113,3 +113,4 @@ async function pickRandomStyle(supabase: ReturnType<typeof createClient>): Promi
   console.log(`🎨 Estilo de imagem selecionado: ${nextIndex} (último: ${lastIndex})`);
   
   return { index: nextIndex, prompt: IMAGE_STYLE_PROMPTS[nextIndex] };
+}
