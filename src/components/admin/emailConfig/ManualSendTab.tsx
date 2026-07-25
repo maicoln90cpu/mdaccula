@@ -96,6 +96,7 @@ export function ManualSendTab(props: ManualSendTabProps) {
     setBatchArtworkUrl,
     setBatchSubject,
     setBatchSegmentId,
+    setBatchScheduleAt,
     uploadBatchArtwork,
     dispatchBatch,
     scheduleBatch,
