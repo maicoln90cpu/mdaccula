@@ -4,7 +4,7 @@ import {
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
 } from '@/lib/emailTemplates/eventAnnouncement';
-import { type Block, type ArticleSummary, type Template } from '@/lib/emailTemplates/blocks';
+import { type Block, type ArticleSummary, type Template, type GlobalBlock } from '@/lib/emailTemplates/blocks';
 import {
   buildEventAnnouncementData,
   composeEmail,
@@ -45,7 +45,7 @@ interface UseEmailPreviewParams {
   templates: Template[];
   activeTemplateId: string | null;
   tpl: unknown;
-  globalsMap: import('@/lib/emailTemplates/blocks').GlobalBlock extends never ? never : Map<string, import('@/lib/emailTemplates/blocks').GlobalBlock>;
+  globalsMap: Map<string, GlobalBlock>;
   realEvents: Array<EmailEventRow & { blog_post_id: string | null }>;
   toast: ToastFn;
 }
