@@ -28,8 +28,9 @@ Regras (iguais às ondas anteriores):
 ### Ordem sugerida (mais crítico → menos crítico)
 
 ```text
-Onda  9  EmailConfig.tsx                             1123 → <600
+Onda  9  EmailConfig.tsx                             1123 → 818 (PR-A ✅) → <600 (PR-B pendente)
 Onda 10  BlockPropsPanel.tsx                         1060 → <600
+
 Onda 11  RedirectsManager.tsx                         911 → <600
 Onda 12  EmailTemplateEditor.tsx                      903 → <600
 Onda 13  EmailEventsTab.tsx                           867 → <600
