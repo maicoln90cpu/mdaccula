@@ -1564,12 +1564,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/keinemusik-em-sao-paulo-festa-sabado-17-de-outubro-ao-meio-dia</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
@@ -1577,6 +1571,12 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
