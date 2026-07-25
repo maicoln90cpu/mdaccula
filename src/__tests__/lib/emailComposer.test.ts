@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildEventAnnouncementData,
+  buildMultiEventAnnouncementData,
   composeEmail,
   type EmailEventRow,
 } from '@shared/emailComposer.ts';
@@ -171,5 +172,71 @@ describe('compositor canonico de e-mail', () => {
     });
 
     expect(invalid.issues.map((issue) => issue.blockId)).toEqual(['lu', 'map', 'article']);
+  });
+});
+
+describe('buildMultiEventAnnouncementData', () => {
+  const baseEvent = (overrides: Partial<EmailEventRow> = {}): EmailEventRow => ({
+    id: 'evt-1',
+    title: 'Evento Base',
+    subtitle: null,
+    slug: 'evento-base',
+    date: '2026-08-23',
+    time: '22:00:00',
+    venue: 'Clube X',
+    location_city: 'São Paulo',
+    location_state: 'SP',
+    image_url: 'https://cdn.mdaccula.com/evento-base.webp',
+    description: null,
+    ticket_link: 'https://ingressos.com/evento-base',
+    vip_link: null,
+    cta_type: null,
+    lineup: null,
+    latitude: null,
+    longitude: null,
+    venue_lat: null,
+    venue_lng: null,
+    pix_button_enabled: null,
+    ...overrides,
+  });
+
+  it('gera título automático no singular para 1 evento', () => {
+    const result = buildMultiEventAnnouncementData([baseEvent()]);
+    expect(result.eventTitle).toBe('1 evento com novo lote hoje');
+  });
+
+  it('gera título automático no plural para N eventos', () => {
+    const result = buildMultiEventAnnouncementData([
+      baseEvent({ id: 'a' }),
+      baseEvent({ id: 'b' }),
+      baseEvent({ id: 'c' }),
+    ]);
+    expect(result.eventTitle).toBe('3 eventos com novo lote hoje');
+  });
+
+  it('mapeia cada evento para gridEvents com o shape de WeekendEventItem', () => {
+    const result = buildMultiEventAnnouncementData([baseEvent()], { baseUrl: 'https://mdaccula.com' });
+    expect(result.gridEvents).toHaveLength(1);
+    expect(result.gridEvents?.[0]).toMatchObject({
+      id: 'evt-1',
+      title: 'Evento Base',
+      venue: 'Clube X',
+      cityState: 'São Paulo-SP',
+      imageUrl: 'https://cdn.mdaccula.com/evento-base.webp',
+      eventUrl: 'https://mdaccula.com/eventos/evento-base',
+      ticketUrl: 'https://ingressos.com/evento-base',
+    });
+  });
+
+  it('usa a URL do evento como ticketUrl quando ticket_link está vazio', () => {
+    const result = buildMultiEventAnnouncementData([baseEvent({ ticket_link: null })], { baseUrl: 'https://mdaccula.com' });
+    expect(result.gridEvents?.[0].ticketUrl).toBe('https://mdaccula.com/eventos/evento-base');
+  });
+
+  it('preenche ctaLabel só quando cta_type é diferente do padrão', () => {
+    const result = buildMultiEventAnnouncementData([
+      baseEvent({ cta_type: 'buy_ticket_discount' }),
+    ]);
+    expect(result.gridEvents?.[0].ctaLabel).toBe('Comprar Ingresso com Desconto');
   });
 });

@@ -126,6 +126,56 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
   };
 }
 
+export function buildMultiEventAnnouncementData(
+  events: EmailEventRow[],
+  opts: { baseUrl?: string } = {},
+): EventAnnouncementData {
+  const baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL;
+  const count = events.length;
+  const eventTitle = count === 1
+    ? "1 evento com novo lote hoje"
+    : `${count} eventos com novo lote hoje`;
+
+  const gridEvents = events.map((event) => {
+    const date = new Date(`${event.date}T${event.time || "00:00"}`);
+    const dayLabel = date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    const eventUrl = `${baseUrl}/eventos/${event.slug}`;
+    const ctaLabel = event.cta_type && event.cta_type !== DEFAULT_EVENT_CTA_TYPE
+      ? getEventCtaButtonLabel(event.cta_type)
+      : undefined;
+    return {
+      id: event.id,
+      title: event.title,
+      dayLabel,
+      timeLabel: (event.time || "").slice(0, 5) || "22h",
+      venue: event.venue,
+      cityState: `${event.location_city}-${event.location_state}`,
+      imageUrl: event.image_url?.trim() || "",
+      eventUrl,
+      ticketUrl: event.ticket_link?.trim() || eventUrl,
+      ctaLabel,
+    };
+  });
+
+  return {
+    eventTitle,
+    flyerUrl: "",
+    dateLabel: "",
+    timeLabel: "",
+    venueName: "",
+    cityState: "",
+    description: "",
+    ticketUrl: "",
+    eventUrl: `${baseUrl}/eventos`,
+    agendaUrl: `${baseUrl}/eventos`,
+    instagramUrl: "https://instagram.com/mdaccula",
+    youtubeUrl: "https://youtube.com/@mdaccula",
+    tiktokUrl: "https://tiktok.com/@mdaccula",
+    unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
+    gridEvents,
+  };
+}
+
 const issue = (block: Block, code: string, message: string): EmailCompositionIssue => ({
   blockId: block.id,
   kind: block.kind,
@@ -208,6 +258,9 @@ export function validateEmailBlocks(
         break;
       case "weekend_grid":
         if (!(event.weekendEvents || []).length) issues.push(issue(block, "WEEKEND_EVENTS_MISSING", "Não há eventos para montar a agenda deste bloco."));
+        break;
+      case "event_grid":
+        if (!(event.gridEvents || []).length) issues.push(issue(block, "EVENT_GRID_MISSING", "Selecione ao menos 1 evento para o grid."));
         break;
       case "dedge_block": {
         const hasBlockContent = !!(block.image_url || block.primary_url);

@@ -7,6 +7,7 @@ export type {
 export {
   applyEmailBlockOverrides,
   buildEventAnnouncementData,
+  buildMultiEventAnnouncementData,
   composeEmail,
   validateEmailBlocks,
 } from '@shared/emailComposer.ts';
