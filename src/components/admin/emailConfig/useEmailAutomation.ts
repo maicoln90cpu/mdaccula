@@ -49,6 +49,22 @@ async function upsertSettings(rows: Array<{ key: string; value: string }>) {
   }
 }
 
+export type AutomationJob = 'weekly_digest' | 'weekend_agenda' | 'blog_digest';
+
+// Persiste o último rascunho gerado (por job) em site_settings, para que o
+// botão "Enviar agora" continue habilitado mesmo depois de um reload de
+// página — antes disso, digestLastResult/weekendLastResult/blogLastResult
+// eram só estado React em memória, então qualquer refresh derrubava o
+// rascunho já criado na E-goi e o botão ficava permanentemente desabilitado
+// (bug reportado: "Enviar agora fica travado, impossível de clicar").
+async function persistLastResult(job: AutomationJob, res: AutomationResult) {
+  try {
+    await upsertSettings([{ key: `${job}_last_result`, value: res ? JSON.stringify(res) : '' }]);
+  } catch (e) {
+    console.warn(`[useEmailAutomation] falha ao persistir último rascunho de ${job}:`, e);
+  }
+}
+
 async function saveAutomation(
   job: 'weekly_digest' | 'weekend_agenda' | 'blog_digest',
   cfg: AutomationCfg
@@ -238,6 +254,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao criar rascunho');
       setDigestLastResult(res);
+      void persistLastResult('weekly_digest', res);
       toast({
         title: 'Rascunho criado na E-goi',
         description: `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`,
@@ -285,6 +302,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao criar rascunho');
       setWeekendLastResult(res);
+      void persistLastResult('weekend_agenda', res);
       toast({
         title: 'Rascunho FDS criado na E-goi',
         description: `${res.events_count ?? 0} evento(s) no fim de semana${res.template_name ? ` · ${res.template_name}` : ''}.`,
@@ -332,6 +350,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao criar rascunho');
       setBlogLastResult(res);
+      void persistLastResult('blog_digest', res);
       toast({
         title: 'Rascunho Blog news criado na E-goi',
         description: `${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`,
@@ -412,7 +431,18 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
   // send-automation-campaign-now, que reaproveita sendEgoiCampaign() e envia
   // de verdade pra lista configurada na E-goi. Só faz sentido depois de já
   // existir um rascunho (egoi_campaign_id) — quem chama deve garantir isso.
+  // Setter local por job — usado para limpar o rascunho assim que ele é
+  // realmente enviado, fechando a janela de duplo-envio (ver comentário em
+  // persistLastResult acima: sem isso, um clique duplo ou um reload logo
+  // após "Enviar agora" reenviaria a MESMA campanha pra lista inteira).
+  const lastResultSetters: Record<AutomationJob, (r: AutomationResult) => void> = {
+    weekly_digest: setDigestLastResult,
+    weekend_agenda: setWeekendLastResult,
+    blog_digest: setBlogLastResult,
+  };
+
   const sendAutomationNow = async (
+    job: AutomationJob,
     egoiCampaignId: string | null | undefined,
     label: string,
     setBusy: (v: boolean) => void
@@ -450,6 +480,8 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         return;
       }
       if (!res?.success) throw new Error(res?.error || 'Falha ao enviar');
+      lastResultSetters[job](null);
+      void persistLastResult(job, null);
       toast({
         title: `${label} enviado!`,
         description: 'Campanha disparada para a lista real configurada na E-goi.',
@@ -470,6 +502,11 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     setWeekendCfg,
     blogCfg,
     setBlogCfg,
+    // setters de último rascunho (expostos para o pai hidratar em loadAll
+    // a partir de site_settings — ver persistLastResult acima)
+    setDigestLastResult,
+    setWeekendLastResult,
+    setBlogLastResult,
     // flags
     savingWeekly,
     savingWeekend,

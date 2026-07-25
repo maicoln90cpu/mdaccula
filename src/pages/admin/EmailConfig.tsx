@@ -177,6 +177,9 @@ const EmailConfig = () => {
     digestLastResult,
     weekendLastResult,
     blogLastResult,
+    setDigestLastResult,
+    setWeekendLastResult,
+    setBlogLastResult,
     weeklyEffectiveTemplateId,
     weekendEffectiveTemplateId,
     blogEffectiveTemplateId,
@@ -240,6 +243,9 @@ const EmailConfig = () => {
             'blog_digest_cron_hour',
             'blog_digest_template_id',
             'blog_digest_send_on_cron',
+            'weekly_digest_last_result',
+            'weekend_agenda_last_result',
+            'blog_digest_last_result',
           ]),
       ]);
 
@@ -271,6 +277,20 @@ const EmailConfig = () => {
         templateId: settingsMap.blog_digest_template_id || '',
         sendOnCron: settingsMap.blog_digest_send_on_cron === 'true',
       });
+      // Restaura o último rascunho gerado (se houver) pra sobreviver a reload
+      // — sem isso "Enviar agora" ficava travado até gerar um rascunho novo
+      // na mesma sessão, mesmo com uma campanha válida já criada na E-goi.
+      const parseLastResult = (raw: string | undefined) => {
+        if (!raw) return null;
+        try {
+          return JSON.parse(raw);
+        } catch {
+          return null;
+        }
+      };
+      setDigestLastResult(parseLastResult(settingsMap.weekly_digest_last_result));
+      setWeekendLastResult(parseLastResult(settingsMap.weekend_agenda_last_result));
+      setBlogLastResult(parseLastResult(settingsMap.blog_digest_last_result));
       if (tplRes?.data) setTpl(tplRes.data);
       if (cacheRes?.data) {
         setLists(Array.isArray(cacheRes.data.lists) ? (cacheRes.data.lists as unknown as ListItem[]) : []);
@@ -301,7 +321,15 @@ const EmailConfig = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, setWeeklyCfg, setWeekendCfg, setBlogCfg]);
+  }, [
+    toast,
+    setWeeklyCfg,
+    setWeekendCfg,
+    setBlogCfg,
+    setDigestLastResult,
+    setWeekendLastResult,
+    setBlogLastResult,
+  ]);
 
   useEffect(() => {
     void loadAll();
@@ -1783,7 +1811,12 @@ const EmailConfig = () => {
               )
             }
             onSendWeeklyNow={() =>
-              sendAutomationNow(digestLastResult?.egoi_campaign_id, 'Digest semanal', setSendingWeekly)
+              sendAutomationNow(
+                'weekly_digest',
+                digestLastResult?.egoi_campaign_id,
+                'Digest semanal',
+                setSendingWeekly
+              )
             }
             weekendCfg={weekendCfg}
             setWeekendCfg={setWeekendCfg}
@@ -1804,7 +1837,12 @@ const EmailConfig = () => {
               )
             }
             onSendWeekendNow={() =>
-              sendAutomationNow(weekendLastResult?.egoi_campaign_id, 'Agenda FDS', setSendingWeekend)
+              sendAutomationNow(
+                'weekend_agenda',
+                weekendLastResult?.egoi_campaign_id,
+                'Agenda FDS',
+                setSendingWeekend
+              )
             }
             blogCfg={blogCfg}
             setBlogCfg={setBlogCfg}
@@ -1825,7 +1863,12 @@ const EmailConfig = () => {
               )
             }
             onSendBlogNow={() =>
-              sendAutomationNow(blogLastResult?.egoi_campaign_id, 'Blog news', setSendingBlog)
+              sendAutomationNow(
+                'blog_digest',
+                blogLastResult?.egoi_campaign_id,
+                'Blog news',
+                setSendingBlog
+              )
             }
           />
         </TabsContent>

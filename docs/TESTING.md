@@ -332,6 +332,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `.ico` removido de `IMAGE_PATTERNS` — favicon agora cai no `networkFirst` padrão (sempre tenta a rede primeiro). `CACHE_VERSION` incrementado (`v13` → `v14`) para forçar todo navegador já afetado a descartar o cache antigo na próxima visita.
 - **Proteção:** `src/__tests__/regression/service-worker-favicon-cache.test.ts` (guarda estática — falha se `.ico` voltar a entrar em `IMAGE_PATTERNS`, e confirma que `CACHE_VERSION` não regrediu abaixo de `v14`).
 
+### R-029 — "Enviar agora" (aba Automações) ficava travado após reload
+- **Quando:** julho/2026
+- **Sintoma:** depois de gerar um rascunho de Digest semanal/Agenda FDS/Blog news e recarregar a página (ou só navegar e voltar), o botão "Enviar agora" voltava a aparecer desabilitado, exigindo gerar um novo rascunho antes de poder enviar — mesmo já existindo uma campanha válida criada na E-goi minutos antes.
+- **Causa:** `digestLastResult`/`weekendLastResult`/`blogLastResult` (`useEmailAutomation.ts`) eram só estado React em memória, nunca persistido — `loadAll()` (`EmailConfig.tsx`) nunca os restaurava, então todo mount zerava o valor e o botão (`disabled={!digestLastResult?.egoi_campaign_id}`) ficava preso em "sem rascunho".
+- **Correção:** o último rascunho de cada job passou a ser persistido em `site_settings` (`${job}_last_result`, JSON) logo após ser gerado, e restaurado em `loadAll()`. Para não abrir uma janela de reenvio duplicado (mesma campanha enviada duas vezes pra lista inteira), `sendAutomationNow` agora recebe o `job` e limpa tanto o estado local quanto o valor persistido assim que o envio é confirmado com sucesso.
+- **Proteção:** `src/__tests__/regression/automation-send-now-stuck-after-reload.test.ts` (guarda estática — falha se a persistência ou a limpeza pós-envio regredirem).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
