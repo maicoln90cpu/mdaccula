@@ -130,6 +130,9 @@ verify_jwt = false
 [functions.create-event-email-campaign]
 verify_jwt = false
 
+[functions.create-multi-event-email-campaign]
+verify_jwt = false
+
 [functions.egoi-campaign-stats]
 verify_jwt = false
 
