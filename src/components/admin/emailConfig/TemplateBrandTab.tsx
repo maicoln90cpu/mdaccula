@@ -15,7 +15,7 @@ import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
 import type {
   EventAnnouncementData,
   EmailTemplateSettings,
-} from '@/lib/emailTemplates/emailComposer';
+} from '@/lib/emailTemplates/eventAnnouncement';
 import type { Template } from '@/lib/emailTemplates/blocks';
 
 type TplState = EmailTemplateSettings & { id?: string };
