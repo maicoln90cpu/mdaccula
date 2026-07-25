@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,16 +8,14 @@ import { useToast } from '@/hooks/useToast';
 import {
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
-  type EmailTemplateSettings,
 } from '@/lib/emailTemplates/eventAnnouncement';
 
-import { type Template, type Block, type ArticleSummary } from '@/lib/emailTemplates/blocks';
+import { type Block, type ArticleSummary } from '@/lib/emailTemplates/blocks';
 import {
   applyEmailBlockOverrides,
   buildEventAnnouncementData,
   buildMultiEventAnnouncementData,
   composeEmail,
-  type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
 import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
@@ -36,13 +34,7 @@ import {
   DAY_LABELS,
   AUTOMATION_TEST_RECIPIENT,
 } from '@/components/admin/emailConfig/useEmailAutomation';
-import type {
-  Mode,
-  EgoiConfig,
-  ListItem,
-  SenderItem,
-  SegmentItem,
-} from '@/components/admin/emailConfig/types';
+import { useEmailConfigState } from '@/components/admin/emailConfig/useEmailConfigState';
 
 import { formatCount } from '@/lib/formatters';
 
@@ -59,6 +51,7 @@ interface DigestPreviewResponse {
   render_source?: string;
   template_name?: string | null;
 }
+
 
 const EmailConfig = () => {
   const { toast } = useToast();
