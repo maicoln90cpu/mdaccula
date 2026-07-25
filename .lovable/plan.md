@@ -79,14 +79,19 @@ Não obrigatório — arquivo já <900. Executar só se aparecerem novos requisi
 
 ---
 
-## Onda 4 — EgressMonitor.tsx (1272 linhas)
+## Onda 4 — EgressMonitor.tsx (1272 → 215 linhas) — ✅ CONCLUÍDA
 
-**PR-A: extrair cards e gráficos**
-- Novo diretório `src/pages/admin/egressMonitor/`
-- Cards de resumo, tabela de alertas e gráficos em arquivos separados.
+**PR-A — ✅ CONCLUÍDO**
+- Novo diretório `src/pages/admin/egressMonitor/` com:
+  `types.ts` (77), `constants.ts` (27), `formatters.ts` (21),
+  `BunnyTab.tsx` (347), `SupabaseTab.tsx` (257), `HistoryTab.tsx` (193), `InternalTab.tsx` (191).
+- `EgressMonitor.tsx` reduzido para **215 linhas** — apenas orquestrador (state, fetchers, header, shell de tabs).
+- Comportamento 100% preservado: mesmos fetchers, mesmo `defaultValue="bunny"`, mesmos gráficos/labels.
+- Validado: `tsgo --noEmit` limpo, `eslint` limpo.
 
-**PR-B: extrair queries**
-- Consolidar fetchs num hook `useEgressData.ts`.
+**PR-B (opcional): extrair fetchers para `useEgressData.ts`.**
+Não obrigatório — arquivo já muito abaixo do alvo.
+
 
 ---
 
