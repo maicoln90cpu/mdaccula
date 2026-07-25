@@ -38,6 +38,7 @@ import { type Template, type Block, type ArticleSummary } from '@/lib/emailTempl
 import {
   applyEmailBlockOverrides,
   buildEventAnnouncementData,
+  buildMultiEventAnnouncementData,
   composeEmail,
   type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
@@ -131,6 +132,7 @@ const EmailConfig = () => {
   const [editorDirty, setEditorDirty] = useState(false);
   // B.8 — Virada de lote
   const [batchEventId, setBatchEventId] = useState<string>('');
+  const [batchEventIds, setBatchEventIds] = useState<string[]>([]);
   const [batchTemplateId, setBatchTemplateId] = useState<string>('');
   const [batchArtworkUrl, setBatchArtworkUrl] = useState<string>('');
   const [batchSubject, setBatchSubject] = useState<string>('');
@@ -461,7 +463,9 @@ const EmailConfig = () => {
   const manualTemplates = useMemo(
     () =>
       templates.filter((template) =>
-        ['event_new', 'courtesy', 'ticket_batch', 'custom'].includes(template.type)
+        ['event_new', 'courtesy', 'ticket_batch', 'ticket_batch_multi', 'custom'].includes(
+          template.type
+        )
       ),
     [templates]
   );
@@ -473,8 +477,32 @@ const EmailConfig = () => {
     () => realEvents.find((event) => event.id === batchEventId) ?? null,
     [realEvents, batchEventId]
   );
+  const isMultiEventTemplate = selectedManualTemplate?.type === 'ticket_batch_multi';
+  const selectedManualEvents = useMemo(
+    () => realEvents.filter((event) => batchEventIds.includes(event.id)),
+    [realEvents, batchEventIds]
+  );
   const manualComposition = useMemo(() => {
-    if (!selectedManualTemplate || !selectedManualEvent) return null;
+    if (!selectedManualTemplate) return null;
+
+    if (isMultiEventTemplate) {
+      if (selectedManualEvents.length === 0) return null;
+      const event = buildMultiEventAnnouncementData(selectedManualEvents, {
+        baseUrl: 'https://mdaccula.com',
+      });
+      return composeEmail({
+        template: {
+          blocks: selectedManualTemplate.blocks as Block[],
+          subject_template: selectedManualTemplate.subject_template,
+          preheader_template: selectedManualTemplate.preheader_template,
+        },
+        event,
+        settings: tpl,
+        globals: globalsMap,
+      });
+    }
+
+    if (!selectedManualEvent) return null;
     const deadline = new Date();
     deadline.setHours(23, 59, 0, 0);
     const event = buildEventAnnouncementData(selectedManualEvent, {
@@ -515,6 +543,8 @@ const EmailConfig = () => {
   }, [
     selectedManualTemplate,
     selectedManualEvent,
+    isMultiEventTemplate,
+    selectedManualEvents,
     batchArtworkUrl,
     batchSubject,
     tpl,
@@ -1381,25 +1411,51 @@ const EmailConfig = () => {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <Label>Evento</Label>
-                  <Select
-                    value={batchEventId}
-                    onValueChange={(id) => {
-                      setBatchEventId(id);
-                      setBatchSegmentId(undefined);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o evento" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <Label>Evento{isMultiEventTemplate ? 's' : ''}</Label>
+                  {isMultiEventTemplate ? (
+                    <div className="border rounded-md p-2 max-h-48 overflow-y-auto space-y-1">
                       {realEvents.map((e) => (
-                        <SelectItem key={e.id} value={e.id}>
-                          {e.title} · {new Date(e.date).toLocaleDateString('pt-BR')}
-                        </SelectItem>
+                        <label key={e.id} className="flex items-center gap-2 text-sm py-1 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={batchEventIds.includes(e.id)}
+                            onChange={(ev) => {
+                              setBatchEventIds((prev) =>
+                                ev.target.checked ? [...prev, e.id] : prev.filter((id) => id !== e.id)
+                              );
+                            }}
+                          />
+                          <span>
+                            {e.title} · {new Date(e.date).toLocaleDateString('pt-BR')}
+                          </span>
+                        </label>
                       ))}
-                    </SelectContent>
-                  </Select>
+                      {realEvents.length === 0 && (
+                        <p className="text-xs text-muted-foreground p-2">
+                          Nenhum evento ativo/futuro encontrado.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <Select
+                      value={batchEventId}
+                      onValueChange={(id) => {
+                        setBatchEventId(id);
+                        setBatchSegmentId(undefined);
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o evento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {realEvents.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.title} · {new Date(e.date).toLocaleDateString('pt-BR')}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div>
@@ -1426,7 +1482,9 @@ const EmailConfig = () => {
                               ? 'Cortesia'
                               : t.type === 'ticket_batch'
                                 ? 'Virada'
-                                : 'Custom'}
+                                : t.type === 'ticket_batch_multi'
+                                  ? 'Virada (multi)'
+                                  : 'Custom'}
                         </SelectItem>
                       ))}
                     </SelectContent>
