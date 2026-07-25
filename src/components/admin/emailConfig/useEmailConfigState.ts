@@ -54,9 +54,15 @@ type AutomationSetters = {
 export function useEmailConfigState({
   toast,
   automation,
+  templates,
+  setTemplates,
+  setActiveTemplateId,
 }: {
   toast: ToastFn;
   automation: AutomationSetters;
+  templates: Template[];
+  setTemplates: React.Dispatch<React.SetStateAction<Template[]>>;
+  setActiveTemplateId: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -79,11 +85,10 @@ export function useEmailConfigState({
   const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
   const [tplSaving, setTplSaving] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [realEvents, setRealEvents] = useState<
     Array<EmailEventRow & { blog_post_id: string | null }>
   >([]);
+
 
   const {
     setWeeklyCfg,
