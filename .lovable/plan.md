@@ -29,7 +29,7 @@ Regras (iguais às ondas anteriores):
 
 ```text
 Onda  9  EmailConfig.tsx                             1123 → 818 (PR-A ✅) → 465 (PR-B ✅)
-Onda 10  BlockPropsPanel.tsx                         1060 → <600
+Onda 10  BlockPropsPanel.tsx                         1060 → 38 (✅ dispatcher; 5 sub-painéis 158-323 linhas)
 
 Onda 11  RedirectsManager.tsx                         911 → <600
 Onda 12  EmailTemplateEditor.tsx                      903 → <600

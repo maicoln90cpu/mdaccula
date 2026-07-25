@@ -45,7 +45,7 @@ describe('regressao - fidelidade entre preview, teste, rascunho e envio', () => 
   });
 
   it('cada preview de automacao chama sua propria funcao', () => {
-    const source = read('src/pages/admin/EmailConfig.tsx');
+    const source = read('src/components/admin/emailConfig/useEmailPreview.ts');
     expect(source).toMatch(/src === 'weekend'[\s\S]{0,20}\?\s*'weekend-agenda-draft'/);
     expect(source).toMatch(/src === 'blog'[\s\S]{0,20}\?\s*'blog-digest-draft'/);
     expect(source).toContain(": 'weekly-digest-draft'");
