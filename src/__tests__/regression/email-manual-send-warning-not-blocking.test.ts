@@ -30,8 +30,8 @@ import type { EmailCompositionIssue } from '@/lib/emailTemplates/emailComposer';
 const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
 describe('Regressão R-023 — botões de envio manual não travam mais por warning', () => {
-  it('EmailConfig.tsx não usa mais manualComposition.issues.length bruto pra desabilitar os controles de envio', () => {
-    const src = read('src/pages/admin/EmailConfig.tsx');
+  it('ManualSendTab.tsx não usa mais manualComposition.issues.length bruto pra desabilitar os controles de envio', () => {
+    const src = read('src/components/admin/emailConfig/ManualSendTab.tsx');
     const sendControlsBlock = src.slice(
       src.indexOf('flex flex-wrap items-center justify-end gap-2 pt-2 border-t'),
       src.indexOf('O disparo é registrado no')
