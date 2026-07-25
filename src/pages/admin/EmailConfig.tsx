@@ -42,7 +42,10 @@ import {
   composeEmail,
   type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
-import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
+import {
+  dispatchEventDraftEmail,
+  dispatchMultiEventDraftEmail,
+} from '@/lib/emailTemplates/dispatchEventDraft';
 import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
@@ -819,9 +822,12 @@ const EmailConfig = () => {
   };
 
   // B.8 — Dispara virada de lote (rascunho ou envio real)
+  // Task 9: agora bifurca no topo para o fluxo multi-evento (isMultiEventTemplate),
+  // que usa dispatchMultiEventDraftEmail + batchEventIds em vez de
+  // dispatchEventDraftEmail + batchEventId/batchTemplateId (single-event, inalterado).
   const dispatchBatch = async (sendNow: boolean) => {
-    if (!batchEventId || !batchTemplateId || !manualComposition) {
-      toast({ variant: 'destructive', title: 'Selecione o evento e o template' });
+    if (!manualComposition) {
+      toast({ variant: 'destructive', title: 'Selecione o(s) evento(s) e o template' });
       return;
     }
     const preCheck = partitionIssues(manualComposition.issues);
@@ -834,14 +840,49 @@ const EmailConfig = () => {
       return;
     }
     if (preCheck.warnings.length > 0) {
-      toast({
-        title: 'Aviso',
-        description: preCheck.warnings.map((item) => item.message).join(' '),
-      });
+      toast({ title: 'Aviso', description: preCheck.warnings.map((item) => item.message).join(' ') });
     }
     setBatchDispatching(true);
 
     try {
+      if (isMultiEventTemplate) {
+        if (selectedManualEvents.length === 0) {
+          toast({ variant: 'destructive', title: 'Selecione ao menos 1 evento' });
+          return;
+        }
+        const res = await dispatchMultiEventDraftEmail(batchEventIds, {
+          sendNow,
+          preparedComposition: {
+            html: manualComposition.html,
+            subject: manualComposition.subject,
+            preheader: manualComposition.preheader,
+          },
+        });
+        if (res.ok && res.status === 'sent') {
+          toast({
+            title: 'E-mail multi-evento enviado!',
+            description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
+          });
+          void loadAll();
+        } else if (res.ok && res.status === 'draft') {
+          toast({
+            variant: sendNow ? 'destructive' : 'default',
+            title: sendNow ? 'Campanha criada, mas não enviada' : 'Rascunho criado na E-goi',
+            description: res.egoi_campaign_id
+              ? `Campanha #${res.egoi_campaign_id}${res.error ? ` — ${res.error}` : ''}`
+              : res.error,
+          });
+          void loadAll();
+        } else {
+          toast({ variant: 'destructive', title: 'Falha', description: res.error || 'Erro desconhecido' });
+        }
+        return;
+      }
+
+      if (!batchEventId || !batchTemplateId) {
+        toast({ variant: 'destructive', title: 'Selecione o evento e o template' });
+        return;
+      }
       const res = await dispatchEventDraftEmail(batchEventId, {
         forceResend: true,
         sendNow,
@@ -1671,7 +1712,11 @@ const EmailConfig = () => {
                   {batchDispatching ? 'Criando...' : 'Criar rascunho na E-goi'}
                 </Button>
                 <SendNowButton
-                  eventTitle={realEvents.find((e) => e.id === batchEventId)?.title || '(selecione)'}
+                  eventTitle={
+                    isMultiEventTemplate
+                      ? `${selectedManualEvents.length} evento(s) selecionado(s)`
+                      : realEvents.find((e) => e.id === batchEventId)?.title || '(selecione)'
+                  }
                   disabled={
                     !manualComposition ||
                     manualIssuePartition.blockers.length > 0 ||
@@ -1681,7 +1726,12 @@ const EmailConfig = () => {
                 />
               </div>
 
-              {batchEventId && (
+              {/* Task 9: agendamento (Agendar) é V1-out-of-scope para o fluxo
+                  multi-evento — apenas teste/rascunho/envio imediato. Não há
+                  controle de Teste A/B nesta aba (dispatchAbTest vive em
+                  EmailEventsTab.tsx, na aba Histórico, e só opera sobre um
+                  evento único do tipo event_new — não aplicável aqui). */}
+              {!isMultiEventTemplate && batchEventId && (
                 <ScheduleSendPanel
                   eventId={batchEventId}
                   scheduleAt={batchScheduleAt}
