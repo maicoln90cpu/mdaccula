@@ -56,34 +56,10 @@ interface DigestPreviewResponse {
 const EmailConfig = () => {
   const { toast } = useToast();
   const { globalsMap } = useEmailGlobalBlocks();
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [saving, setSaving] = useState(false);
-  const [masterEnabled, setMasterEnabled] = useState(false);
-  const [cfg, setCfg] = useState<EgoiConfig>({
-    list_id: null,
-    sender_id: null,
-    segment_id: null,
-    mode: 'draft',
-    is_enabled: false,
-    scheduled_days_before: 3,
-  });
-  const [lists, setLists] = useState<ListItem[]>([]);
-  const [senders, setSenders] = useState<SenderItem[]>([]);
-  const [segments, setSegments] = useState<SegmentItem[]>([]);
-  const [listTotal, setListTotal] = useState<number | null>(null);
-  const [fetchingResources, setFetchingResources] = useState(false);
-  const [fetchingSegments, setFetchingSegments] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
-  const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
-  const [tplSaving, setTplSaving] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<import('@/lib/emailTemplates/blocks').Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [realEvents, setRealEvents] = useState<
-    Array<EmailEventRow & { blog_post_id: string | null }>
-  >([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>('mock');
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [digestTemplateId, setDigestTemplateId] = useState<string>('');
@@ -113,9 +89,8 @@ const EmailConfig = () => {
   const [batchScheduling, setBatchScheduling] = useState(false);
   /** undefined = usa o segmento global de egoi_config; null = toda a lista; number = segmento específico. */
   const [batchSegmentId, setBatchSegmentId] = useState<number | null | undefined>(undefined);
-  // Automações (Digest semanal + Agenda FDS + Blog news)
-  // Automações (Digest semanal + Agenda FDS + Blog news) — estado + handlers
-  // encapsulados no hook `useEmailAutomation` (Fase C).
+
+  // Automações — estado + handlers encapsulados no hook `useEmailAutomation` (Fase C).
   const {
     weeklyCfg,
     setWeeklyCfg,
@@ -159,6 +134,52 @@ const EmailConfig = () => {
     sendAutomationTest,
     sendAutomationNow,
   } = useEmailAutomation({ templates, toast });
+
+  // Camada de dados (loadAll, CRUD egoi_config, upload logo, listas/segmentos)
+  // extraída para `useEmailConfigState` na Onda 9 PR-A.
+  const {
+    loading,
+    saving,
+    masterEnabled,
+    cfg,
+    setCfg,
+    lists,
+    senders,
+    segments,
+    listTotal,
+    lastSyncedAt,
+    fetchingResources,
+    fetchingSegments,
+    tpl,
+    setTpl,
+    tplSaving,
+    uploadingLogo,
+    realEvents,
+    canEnableAuto,
+    reachEstimate,
+    globalSegmentLabel,
+    loadAll,
+    reloadTemplates,
+    fetchEgoiResources,
+    save,
+    toggleMaster,
+    saveTemplate,
+    uploadLogo,
+  } = useEmailConfigState({
+    toast,
+    templates,
+    setTemplates,
+    setActiveTemplateId,
+    automation: {
+      setWeeklyCfg,
+      setWeekendCfg,
+      setBlogCfg,
+      setDigestLastResult,
+      setWeekendLastResult,
+      setBlogLastResult,
+    },
+  });
+
 
   const loadAll = useCallback(async () => {
     setLoading(true);
