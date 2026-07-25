@@ -408,72 +408,7 @@ const EmailConfig = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewSource, activeTemplateId]);
 
-  const saveTemplate = async () => {
-    setTplSaving(true);
-    try {
-      const { id, ...payload } = tpl;
-      const table = supabase.from('email_template_settings');
-      const { error } = id
-        ? await table.update(payload).eq('id', id)
-        : await table.insert({ ...payload, singleton: true });
-      if (error) throw error;
-      toast({ title: 'Template salvo' });
-      void loadAll();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro ao salvar template', description: message });
-    } finally {
-      setTplSaving(false);
-    }
-  };
 
-  const uploadLogo = async (file: File) => {
-    if (file.size > 500 * 1024) {
-      toast({
-        variant: 'destructive',
-        title: 'Arquivo muito grande',
-        description: 'Máximo 500KB para logos.',
-      });
-      return;
-    }
-    setUploadingLogo(true);
-    try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `email-template/logo-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('link-thumbnails').upload(path, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('link-thumbnails').getPublicUrl(path);
-      setTpl({ ...tpl, logo_url: pub.publicUrl });
-      toast({ title: 'Logo enviada', description: 'Clique em Salvar para aplicar.' });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro no upload', description: message });
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  // Alcance estimado: segmento tem prioridade; senão pega o total da lista (do detalhe ou do cache do select).
-  const reachEstimate = useMemo(() => {
-    if (cfg.segment_id) {
-      const s = segments.find((x) => x.segment_id === cfg.segment_id);
-      return s?.total_contacts ?? null;
-    }
-    if (listTotal !== null) return listTotal;
-    const l = lists.find((x) => x.list_id === cfg.list_id);
-    return typeof l?.total_contacts === 'number' ? l.total_contacts : null;
-  }, [cfg.segment_id, segments, listTotal, lists, cfg.list_id]);
-
-  // Rótulo do segmento global atual, exibido na opção "padrão" do seletor
-  // de segmento da aba "Envio manual".
-  const globalSegmentLabel = useMemo(() => {
-    if (!cfg.segment_id) return 'toda a lista';
-    const s = segments.find((x) => x.segment_id === cfg.segment_id);
-    return s?.name ?? `segmento #${cfg.segment_id}`;
-  }, [cfg.segment_id, segments]);
 
   // B.8 — quando templates carregarem, pré-seleciona o primeiro ticket_batch
   useEffect(() => {
