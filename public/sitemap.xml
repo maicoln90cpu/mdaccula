@@ -1540,12 +1540,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
@@ -1565,6 +1559,12 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/techno-organico-como-instrumentos-acusticos-reconfiguram-pistas-do-underground</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
