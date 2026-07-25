@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,12 +19,10 @@ import {
   ArrowLeft,
   RefreshCw,
   Save,
-  ShieldAlert,
   Send,
   Palette,
   Image as ImageIcon,
   LayoutGrid,
-  Mail,
   BarChart3,
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
@@ -42,20 +40,16 @@ import {
   composeEmail,
   type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
-import {
-  dispatchEventDraftEmail,
-  dispatchMultiEventDraftEmail,
-} from '@/lib/emailTemplates/dispatchEventDraft';
 import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
 import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
 import { EmailDashboard } from '@/components/admin/EmailDashboard';
-import { SendNowButton } from '@/components/admin/emailConfig/SendNowButton';
-import { ScheduleSendPanel } from '@/components/admin/emailConfig/ScheduleSendPanel';
 import { EmailEventsTab } from '@/components/admin/emailConfig/EmailEventsTab';
 import { AutomationsTab } from '@/components/admin/emailConfig/AutomationsTab';
 import { ConfigTab } from '@/components/admin/emailConfig/ConfigTab';
+import { ManualSendTab } from '@/components/admin/emailConfig/ManualSendTab';
+import { useEmailDispatch } from '@/components/admin/emailConfig/useEmailDispatch';
 import {
   useEmailAutomation,
   DAY_LABELS,
@@ -69,7 +63,7 @@ import type {
   SegmentItem,
 } from '@/components/admin/emailConfig/types';
 
-import { formatCount, formatDateTimeBR } from '@/lib/formatters';
+import { formatCount } from '@/lib/formatters';
 
 interface DigestPreviewResponse {
   skipped?: boolean;
@@ -87,7 +81,6 @@ interface DigestPreviewResponse {
 
 const EmailConfig = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { globalsMap } = useEmailGlobalBlocks();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -591,6 +584,24 @@ const EmailConfig = () => {
     [manualComposition]
   );
 
+  const { dispatchBatch, scheduleBatch } = useEmailDispatch({
+    batchEventId,
+    batchEventIds,
+    batchTemplateId,
+    batchArtworkUrl,
+    batchSubject,
+    batchSegmentId,
+    batchScheduleAt,
+    isMultiEventTemplate,
+    selectedManualEvents,
+    selectedManualTemplate,
+    manualComposition,
+    loadAll,
+    setBatchDispatching,
+    setBatchScheduling,
+    setBatchScheduleAt,
+  });
+
   const loadDigestPreview = async (opts?: {
     source?: 'digest' | 'weekend' | 'blog';
     templateId?: string;
@@ -849,185 +860,7 @@ const EmailConfig = () => {
     }
   };
 
-  // B.8 — Dispara virada de lote (rascunho ou envio real)
-  // Task 9: agora bifurca no topo para o fluxo multi-evento (isMultiEventTemplate),
-  // que usa dispatchMultiEventDraftEmail + batchEventIds em vez de
-  // dispatchEventDraftEmail + batchEventId/batchTemplateId (single-event, inalterado).
-  const dispatchBatch = async (sendNow: boolean) => {
-    if (!manualComposition) {
-      toast({ variant: 'destructive', title: 'Selecione o(s) evento(s) e o template' });
-      return;
-    }
-    const preCheck = partitionIssues(manualComposition.issues);
-    if (preCheck.blockers.length > 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Envio bloqueado',
-        description: preCheck.blockers.map((item) => item.message).join(' '),
-      });
-      return;
-    }
-    if (preCheck.warnings.length > 0) {
-      toast({ title: 'Aviso', description: preCheck.warnings.map((item) => item.message).join(' ') });
-    }
-    setBatchDispatching(true);
-
-    try {
-      if (isMultiEventTemplate) {
-        if (selectedManualEvents.length === 0) {
-          toast({ variant: 'destructive', title: 'Selecione ao menos 1 evento' });
-          return;
-        }
-        const res = await dispatchMultiEventDraftEmail(batchEventIds, {
-          sendNow,
-          forceResend: true,
-          segmentIdOverride: batchSegmentId,
-          preparedComposition: {
-            html: manualComposition.html,
-            subject: manualComposition.subject,
-            preheader: manualComposition.preheader,
-          },
-        });
-        if (res.ok && res.status === 'sent') {
-          toast({
-            title: 'E-mail multi-evento enviado!',
-            description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
-          });
-          void loadAll();
-        } else if (res.ok && res.status === 'draft') {
-          toast({
-            variant: sendNow ? 'destructive' : 'default',
-            title: sendNow ? 'Campanha criada, mas não enviada' : 'Rascunho criado na E-goi',
-            description: res.egoi_campaign_id
-              ? `Campanha #${res.egoi_campaign_id}${res.error ? ` — ${res.error}` : ''}`
-              : res.error,
-          });
-          void loadAll();
-        } else {
-          toast({ variant: 'destructive', title: 'Falha', description: res.error || 'Erro desconhecido' });
-          void loadAll();
-        }
-        return;
-      }
-
-      if (!batchEventId || !batchTemplateId) {
-        toast({ variant: 'destructive', title: 'Selecione o evento e o template' });
-        return;
-      }
-      const res = await dispatchEventDraftEmail(batchEventId, {
-        forceResend: true,
-        sendNow,
-        templateIdOverride: batchTemplateId || undefined,
-        flyerOverrideUrl:
-          selectedManualTemplate?.type === 'ticket_batch'
-            ? batchArtworkUrl || undefined
-            : undefined,
-        subjectOverride:
-          selectedManualTemplate?.type === 'ticket_batch' ? batchSubject || undefined : undefined,
-        segmentIdOverride: batchSegmentId,
-        preparedComposition: {
-          html: manualComposition.html,
-          subject: manualComposition.subject,
-          preheader: manualComposition.preheader,
-        },
-      });
-      if (res.ok && res.status === 'sent') {
-        toast({
-          title: 'E-mail enviado!',
-          description: res.egoi_campaign_id ? `Campanha #${res.egoi_campaign_id}` : undefined,
-        });
-        void loadAll();
-      } else if (res.ok && res.status === 'draft') {
-        toast({
-          // Ainda que sendNow tenha sido pedido, a E-goi manteve a campanha em rascunho
-          // (envio não confirmado) — nunca comemorar isso como "enviado" (regressão R-007).
-          variant: sendNow ? 'destructive' : 'default',
-          title: sendNow ? 'Campanha criada, mas não enviada' : 'Rascunho criado na E-goi',
-          description: res.egoi_campaign_id
-            ? `Campanha #${res.egoi_campaign_id}${res.error ? ` — ${res.error}` : ''}`
-            : res.error,
-        });
-        void loadAll();
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Falha',
-          description: res.error || res.reason || 'Erro desconhecido',
-        });
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro', description: message });
-    } finally {
-      setBatchDispatching(false);
-    }
-  };
-
-  // Agenda o disparo do envio manual para uma data/hora futura em vez de
-  // enviar agora — o poller send-scheduled-email-campaigns dispara depois.
-  const scheduleBatch = async () => {
-    if (!batchEventId || !batchTemplateId || !manualComposition || !batchScheduleAt) {
-      toast({ variant: 'destructive', title: 'Selecione o evento, o template e a data/hora' });
-      return;
-    }
-    const preCheckSched = partitionIssues(manualComposition.issues);
-    if (preCheckSched.blockers.length > 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Agendamento bloqueado',
-        description: preCheckSched.blockers.map((item) => item.message).join(' '),
-      });
-      return;
-    }
-    if (preCheckSched.warnings.length > 0) {
-      toast({
-        title: 'Aviso',
-        description: preCheckSched.warnings.map((item) => item.message).join(' '),
-      });
-    }
-
-    setBatchScheduling(true);
-    try {
-      const scheduleAtIso = new Date(batchScheduleAt).toISOString();
-      const res = await dispatchEventDraftEmail(batchEventId, {
-        forceResend: true,
-        scheduleAt: scheduleAtIso,
-        templateIdOverride: batchTemplateId || undefined,
-        flyerOverrideUrl:
-          selectedManualTemplate?.type === 'ticket_batch'
-            ? batchArtworkUrl || undefined
-            : undefined,
-        subjectOverride:
-          selectedManualTemplate?.type === 'ticket_batch' ? batchSubject || undefined : undefined,
-        segmentIdOverride: batchSegmentId,
-        preparedComposition: {
-          html: manualComposition.html,
-          subject: manualComposition.subject,
-          preheader: manualComposition.preheader,
-        },
-      });
-      if (res.ok && res.status === 'scheduled') {
-        toast({
-          title: 'Disparo agendado!',
-          description: `Será enviado em ${formatDateTimeBR(res.scheduled_at ?? scheduleAtIso)}.`,
-        });
-        setBatchScheduleAt('');
-        queryClient.invalidateQueries({ queryKey: ['scheduled-sends', batchEventId] });
-        void loadAll();
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Falha ao agendar',
-          description: res.error || res.reason || 'Erro desconhecido',
-        });
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro', description: message });
-    } finally {
-      setBatchScheduling(false);
-    }
-  };
+  // Lógica de disparo manual extraída para useEmailDispatch (Onda 2 PR-A).
 
   // Nota: não retornamos mais uma tela de loading que desmonta os Tabs. O
   // spinner aparece dentro do conteúdo da aba ativa, para que salvar/atualizar
@@ -1462,327 +1295,43 @@ const EmailConfig = () => {
         {/* ================= HISTÓRICO ================= */}
         {/* ================= B.8 — VIRADA DE LOTE ================= */}
         <TabsContent value="batch" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Envio manual</CardTitle>
-              <CardDescription>
-                Escolha um evento e um modelo salvo. A prévia abaixo é exatamente o HTML usado no
-                teste, no rascunho e no envio pela E-goi.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!masterEnabled && (
-                <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
-                  <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
-                  <span>
-                    Master switch está OFF — o disparo será recusado. Ligue em "Configuração" antes
-                    de tentar.
-                  </span>
-                </div>
-              )}
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label>Evento{isMultiEventTemplate ? 's' : ''}</Label>
-                  {isMultiEventTemplate ? (
-                    <div className="border rounded-md p-2 max-h-48 overflow-y-auto space-y-1">
-                      {realEvents.map((e) => (
-                        <label key={e.id} className="flex items-center gap-2 text-sm py-1 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={batchEventIds.includes(e.id)}
-                            onChange={(ev) => {
-                              setBatchEventIds((prev) =>
-                                ev.target.checked ? [...prev, e.id] : prev.filter((id) => id !== e.id)
-                              );
-                            }}
-                          />
-                          <span>
-                            {e.title} · {new Date(e.date).toLocaleDateString('pt-BR')}
-                          </span>
-                        </label>
-                      ))}
-                      {realEvents.length === 0 && (
-                        <p className="text-xs text-muted-foreground p-2">
-                          Nenhum evento ativo/futuro encontrado.
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <Select
-                      value={batchEventId}
-                      onValueChange={(id) => {
-                        setBatchEventId(id);
-                        setBatchSegmentId(undefined);
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o evento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {realEvents.map((e) => (
-                          <SelectItem key={e.id} value={e.id}>
-                            {e.title} · {new Date(e.date).toLocaleDateString('pt-BR')}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-
-                <div>
-                  <Label>Template</Label>
-                  <Select
-                    value={batchTemplateId}
-                    onValueChange={(id) => {
-                      setBatchTemplateId(id);
-                      setBatchSubject('');
-                      setBatchArtworkUrl('');
-                      setBatchSegmentId(undefined);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {manualTemplates.map((t) => (
-                        <SelectItem key={t.id!} value={t.id!}>
-                          {t.name} ·{' '}
-                          {t.type === 'event_new'
-                            ? 'Evento'
-                            : t.type === 'courtesy'
-                              ? 'Cortesia'
-                              : t.type === 'ticket_batch'
-                                ? 'Virada'
-                                : t.type === 'ticket_batch_multi'
-                                  ? 'Virada (multi)'
-                                  : 'Custom'}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Digest, Agenda FDS e Blog news ficam exclusivamente na aba Automações.
-                  </p>
-                </div>
-
-                <div>
-                  <Label className="flex items-center gap-2">
-                    Segmento de envio
-                    {fetchingSegments && <RefreshCw className="w-3 h-3 animate-spin" />}
-                  </Label>
-                  <Select
-                    value={
-                      batchSegmentId === undefined
-                        ? 'default'
-                        : batchSegmentId === null
-                          ? 'all'
-                          : batchSegmentId.toString()
-                    }
-                    onValueChange={(v) => {
-                      if (v === 'default') setBatchSegmentId(undefined);
-                      else if (v === 'all') setBatchSegmentId(null);
-                      else setBatchSegmentId(Number(v));
-                    }}
-                    disabled={!cfg.list_id}
-                  >
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          cfg.list_id ? 'Padrão da configuração global' : 'Configure uma lista primeiro'
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="default">
-                        Padrão da configuração global ({globalSegmentLabel})
-                      </SelectItem>
-                      <SelectItem value="all">
-                        Todos os contatos da lista
-                        {typeof listTotal === 'number' && ` — ${formatCount(listTotal)} contatos`}
-                      </SelectItem>
-                      {segments.map((s) => (
-                        <SelectItem key={s.segment_id} value={s.segment_id.toString()}>
-                          {s.name}
-                          {typeof s.total_contacts === 'number' &&
-                            ` — ${formatCount(s.total_contacts)} contatos`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    Vale só para este disparo — não altera a configuração global.
-                  </p>
-                </div>
-
-                {selectedManualTemplate?.type === 'ticket_batch' && (
-                  <>
-                    <div className="md:col-span-2">
-                      <Label>Assunto desta virada (opcional)</Label>
-                      <Input
-                        value={batchSubject}
-                        placeholder="Ex.: ÚLTIMAS HORAS — lote 2 acabando"
-                        onChange={(e) => setBatchSubject(e.target.value)}
-                      />
-                      <p className="text-[11px] text-muted-foreground mt-1">
-                        Se vazio, usa o assunto salvo no template.
-                      </p>
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label>Arte específica da virada (opcional)</Label>
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp"
-                          disabled={batchUploadingArt}
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) void uploadBatchArtwork(f);
-                          }}
-                        />
-                        {batchArtworkUrl && (
-                          <Button size="sm" variant="ghost" onClick={() => setBatchArtworkUrl('')}>
-                            Remover
-                          </Button>
-                        )}
-                      </div>
-                      {batchArtworkUrl && (
-                        <div className="mt-2 flex items-center gap-3">
-                          <img
-                            src={batchArtworkUrl}
-                            alt="Preview arte virada"
-                            className="w-32 h-32 object-contain rounded border bg-muted/30"
-                          />
-                          <p className="text-[11px] text-muted-foreground">
-                            Esta arte substitui o flyer padrão somente neste disparo.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {manualComposition && (
-                <div className="grid gap-4 border-t pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,600px)]">
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        Revisão final
-                      </div>
-                      <div className="mt-1 text-sm font-medium">
-                        {manualComposition.subject || 'Assunto não preenchido'}
-                      </div>
-                      {manualComposition.preheader && (
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {manualComposition.preheader}
-                        </div>
-                      )}
-                    </div>
-                    {manualIssuePartition.blockers.length > 0 ? (
-                      <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300">
-                        <div className="font-semibold">Corrija antes de enviar:</div>
-                        <ul className="mt-1 list-disc space-y-1 pl-4">
-                          {manualIssuePartition.blockers.map((item) => (
-                            <li key={`${item.blockId}-${item.code}`}>{item.message}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : manualIssuePartition.warnings.length > 0 ? (
-                      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
-                        <div className="font-semibold">Pendências (não impedem o envio):</div>
-                        <ul className="mt-1 list-disc space-y-1 pl-4">
-                          {manualIssuePartition.warnings.map((item) => (
-                            <li key={`${item.blockId}-${item.code}`}>{item.message}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs text-emerald-700 dark:text-emerald-300">
-                        Modelo validado. Teste, rascunho e envio usarão exatamente esta prévia.
-                      </div>
-                    )}
-                  </div>
-                  <div className="overflow-x-auto rounded-lg border bg-[#050505] p-2">
-                    <iframe
-                      title="Prévia final do envio manual"
-                      srcDoc={manualComposition.html}
-                      sandbox=""
-                      width={600}
-                      className="mx-auto block h-[720px] bg-white"
-                      style={{ width: 600, minWidth: 600, border: 0 }}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
-                <Button
-                  variant="secondary"
-                  disabled={
-                    !manualComposition || manualIssuePartition.blockers.length > 0 || sendingTest
-                  }
-                  onClick={() =>
-                    manualComposition &&
-                    void sendTestEmail(manualComposition.html, manualComposition.subject)
-                  }
-                >
-                  <Mail className="w-4 h-4 mr-2" />
-                  {sendingTest ? 'Enviando...' : 'Enviar teste'}
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={
-                    !manualComposition ||
-                    manualIssuePartition.blockers.length > 0 ||
-                    batchDispatching
-                  }
-                  onClick={() => dispatchBatch(false)}
-                >
-                  <Send className="w-4 h-4 mr-2" />
-                  {batchDispatching ? 'Criando...' : 'Criar rascunho na E-goi'}
-                </Button>
-                <SendNowButton
-                  eventTitle={
-                    isMultiEventTemplate
-                      ? `${selectedManualEvents.length} evento(s) selecionado(s)`
-                      : realEvents.find((e) => e.id === batchEventId)?.title || '(selecione)'
-                  }
-                  disabled={
-                    !manualComposition ||
-                    manualIssuePartition.blockers.length > 0 ||
-                    batchDispatching
-                  }
-                  onConfirm={() => dispatchBatch(true)}
-                />
-              </div>
-
-              {/* Task 9: agendamento (Agendar) é V1-out-of-scope para o fluxo
-                  multi-evento — apenas teste/rascunho/envio imediato. Não há
-                  controle de Teste A/B nesta aba (dispatchAbTest vive em
-                  EmailEventsTab.tsx, na aba Histórico, e só opera sobre um
-                  evento único do tipo event_new — não aplicável aqui). */}
-              {!isMultiEventTemplate && batchEventId && (
-                <ScheduleSendPanel
-                  eventId={batchEventId}
-                  scheduleAt={batchScheduleAt}
-                  onScheduleAtChange={setBatchScheduleAt}
-                  disabled={
-                    !masterEnabled ||
-                    !manualComposition ||
-                    manualIssuePartition.blockers.length > 0
-                  }
-                  scheduling={batchScheduling}
-                  onSchedule={scheduleBatch}
-                />
-              )}
-
-              <p className="text-[11px] text-muted-foreground">
-                O disparo é registrado no <b>Histórico</b> como uma nova campanha (o histórico
-                anterior do evento é preservado).
-              </p>
-            </CardContent>
-          </Card>
+          <ManualSendTab
+            masterEnabled={masterEnabled}
+            batchEventId={batchEventId}
+            batchEventIds={batchEventIds}
+            batchTemplateId={batchTemplateId}
+            batchArtworkUrl={batchArtworkUrl}
+            batchSubject={batchSubject}
+            batchSegmentId={batchSegmentId}
+            batchScheduleAt={batchScheduleAt}
+            batchDispatching={batchDispatching}
+            batchScheduling={batchScheduling}
+            batchUploadingArt={batchUploadingArt}
+            sendingTest={sendingTest}
+            isMultiEventTemplate={isMultiEventTemplate}
+            selectedManualTemplate={selectedManualTemplate}
+            selectedManualEvents={selectedManualEvents}
+            manualComposition={manualComposition}
+            manualIssuePartition={manualIssuePartition}
+            cfgListId={cfg.list_id}
+            segments={segments}
+            listTotal={listTotal}
+            globalSegmentLabel={globalSegmentLabel}
+            fetchingSegments={fetchingSegments}
+            realEvents={realEvents}
+            manualTemplates={manualTemplates}
+            setBatchEventId={setBatchEventId}
+            setBatchEventIds={setBatchEventIds}
+            setBatchTemplateId={setBatchTemplateId}
+            setBatchArtworkUrl={setBatchArtworkUrl}
+            setBatchSubject={setBatchSubject}
+            setBatchSegmentId={setBatchSegmentId}
+            setBatchScheduleAt={setBatchScheduleAt}
+            uploadBatchArtwork={uploadBatchArtwork}
+            dispatchBatch={dispatchBatch}
+            scheduleBatch={scheduleBatch}
+            sendTestEmail={sendTestEmail}
+          />
         </TabsContent>
 
         {/* ================= B.11 — DIGEST SEMANAL ================= */}

@@ -81,10 +81,10 @@ describe('Regressão R-008 — status real da E-goi antes de reportar sucesso', 
     ).toMatch(/createPayload\.segment_id\s*=\s*resolvedSegmentId/);
   });
 
-  it("dispatchBatch (EmailConfig.tsx) só mostra 'enviado' quando res.status === 'sent'", () => {
-    const src = read('src/pages/admin/EmailConfig.tsx');
-    const fnMatch = src.match(/const dispatchBatch[\s\S]*?\n  };/);
-    expect(fnMatch, 'Não encontrei a função dispatchBatch em EmailConfig.tsx.').toBeTruthy();
+  it("dispatchBatch (useEmailDispatch.ts) só mostra 'enviado' quando res.status === 'sent'", () => {
+    const src = read('src/components/admin/emailConfig/useEmailDispatch.ts');
+    const fnMatch = src.match(/const dispatchBatch = async[\s\S]*?\n  };/);
+    expect(fnMatch, 'Não encontrei a função dispatchBatch em useEmailDispatch.ts.').toBeTruthy();
     const fnSrc = fnMatch![0];
     expect(
       fnSrc,

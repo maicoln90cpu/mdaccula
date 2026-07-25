@@ -48,16 +48,23 @@ Bônus   AIContent2.tsx                 919 → só se sobrar tempo
 
 ---
 
-## Onda 2 — EmailConfig.tsx (1901 linhas)
+## Onda 2 — EmailConfig.tsx (1901 → 1450 linhas, alvo <900)
 
-Já foi parcialmente feita antes (HistoryTab, AutomationsTab, ConfigTab, useEmailAutomation). Restam a aba de "Envio manual" e a aba de "Envio agendado".
+Já foi parcialmente feita antes (HistoryTab, AutomationsTab, ConfigTab, useEmailAutomation).
 
-**PR-A: extrair EmailEventsTab restante**
-- Consolidar toda a aba `EmailEventsTab` num único componente que já recebe props do pai.
-- Mover `dispatchBatch`/`scheduleBatch` para um hook `useEmailDispatch.ts`.
+**PR-A — ✅ CONCLUÍDO**
+- Extrair a aba "Envio manual" (`batch`) para `src/components/admin/emailConfig/ManualSendTab.tsx`.
+- Mover `dispatchBatch`/`scheduleBatch` para `src/components/admin/emailConfig/useEmailDispatch.ts`.
+- Atualizar testes de regressão R-008 e R-023 para apontar para os novos arquivos.
+- Validado: `npx tsc --noEmit`, `npm run lint`, `npm test` (85 arquivos / 381 tests) verdes.
 
-**PR-B: extrair query central de eventos**
-- Novo hook `useEmailActiveEvents.ts` (com o filtro `.eq('status','active').gte('date', hoje)`) reutilizado por todos os selects.
+**PR-B — PENDENTE (próxima onda segura)**
+- Ainda restam na página as abas de **Template (marca)** e **Editor + Preview**, mantendo `EmailConfig.tsx` com 1450 linhas (acima do limite de 1000).
+- Opções para PR-B:
+  1. Extrair aba "Template (marca)" para `TemplateBrandTab.tsx`.
+  2. Extrair aba "Editor + Preview" para `TemplateEditorTab.tsx`.
+  3. Extrair query central de eventos ativos para `useEmailActiveEvents.ts` (reutilizável nos selects da aba manual e de automações).
+- Recomendação: começar pela aba "Template (marca)" (self-contained, sem dependências de estado complexas).
 
 ---
 
