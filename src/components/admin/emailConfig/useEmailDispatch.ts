@@ -5,7 +5,6 @@ import { useToast } from '@/hooks/useToast';
 import { formatDateTimeBR } from '@/lib/formatters';
 import type { EmailComposition } from '@/lib/emailTemplates/emailComposer';
 import type { EmailEventRow } from '@/lib/emailTemplates/emailComposer';
-import type { ArticleSummary } from '@/lib/emailTemplates/blocks';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { Campaign } from './types';
 
