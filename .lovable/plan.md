@@ -1,168 +1,94 @@
+# Plano — Refatoração para &lt;600 linhas por arquivo
 
-# Plano — Slim-down dos arquivos gigantes (&lt;1000 linhas cada)
+## Ondas antigas (&lt;1000 linhas) — ✅ TODAS CONCLUÍDAS
 
-## Regras gerais (valem para todas as ondas)
-
-- **1 arquivo por onda.** Nunca mexer em 2 arquivos gigantes ao mesmo tempo.
-- **Máx. 2 PRs por onda.** PR-A = extrair sem mudar comportamento. PR-B (se necessário) = ajustes finos e limpezas.
-- **Zero mudança de comportamento.** Só mover código para novos arquivos e reimportar.
-- **Checklist obrigatório antes de fechar cada onda:**
-  - `npx tsc --noEmit` verde
-  - `npm run lint` sem novos erros
-  - `npm test` verde (com foco nos testes do arquivo alterado)
-  - Validação manual no `localhost:8080` da tela/fluxo afetado
-  - Se for Edge Function: rodar `scripts/bundle-edge-functions.mjs` e conferir bundle
-- **Arquivo excluído do plano:** `src/integrations/supabase/types.ts` (auto-gerado, nunca editar).
+| Onda | Arquivo | Antes → Depois | Status |
+|------|---------|----------------|--------|
+| 1 | EmailTemplateEditor.tsx | 2243 → 909 | ✅ |
+| 2 | EmailConfig.tsx | 1901 → 1123 | ✅ |
+| 3 | EventForm.tsx | 1602 → 816 | ✅ |
+| 4 | EgressMonitor.tsx | 1272 → 215 | ✅ |
+| 5 | _shared/emailBlocks.ts | 1243 → 32 | ✅ |
+| 6 | generate-blog-post-v2/index.ts | 1220 → 737 | ✅ |
+| 7 | MediaSettings.tsx | 1168 → 317 | ✅ |
+| 8 | LinksManager.tsx | 1060 → 716 | ✅ |
+| Bônus | AIContent2.tsx | 919 → 445 | ✅ |
 
 ---
 
-## Ordem das ondas (do mais crítico ao menos crítico)
+## Nova meta: **&lt;600 linhas por arquivo**
 
-Prioridade = tamanho × risco de regressão × frequência de edição.
+Regras (iguais às ondas anteriores):
+- **1 arquivo por onda**, no máximo 2 PRs cada.
+- Zero mudança de comportamento — só mover código e reimportar.
+- Checklist obrigatório: `tsgo --noEmit` + `eslint` + `vitest run` + validação manual no `localhost:8080`.
+- Se for Edge Function: rodar `scripts/bundle-edge-functions.mjs` e conferir bundle.
+- Excluídos: `src/integrations/supabase/types.ts` (auto-gerado), `src/components/ui/sidebar.tsx` (shadcn intocado).
+
+### Ordem sugerida (mais crítico → menos crítico)
 
 ```text
-Onda 1  EmailTemplateEditor.tsx       2243 → alvo <900
-Onda 2  EmailConfig.tsx               1901 → alvo <900   (já iniciado antes)
-Onda 3  EventForm.tsx                 1602 → alvo <900
-Onda 4  EgressMonitor.tsx             1272 → alvo <800
-Onda 5  _shared/emailBlocks.ts        1243 → alvo <900
-Onda 6  generate-blog-post-v2/index   1220 → alvo <800
-Onda 7  MediaSettings.tsx             1168 → alvo <800
-Onda 8  LinksManager.tsx              1060 → alvo <800
-Bônus   AIContent2.tsx                 919 → só se sobrar tempo
+Onda  9  EmailConfig.tsx                             1123 → <600
+Onda 10  BlockPropsPanel.tsx                         1060 → <600
+Onda 11  RedirectsManager.tsx                         911 → <600
+Onda 12  EmailTemplateEditor.tsx                      903 → <600
+Onda 13  EmailEventsTab.tsx                           867 → <600
+Onda 14  EventDetail.tsx                              854 → <600
+Onda 15  LinksAnalytics.tsx                           849 → <600
+Onda 16  EventForm.tsx                                816 → <600
+Onda 17  Eventos.tsx                                  802 → <600
+Onda 18  AutomationsTab.tsx                           793 → <600
+Onda 19  TemplatesPanel.tsx (ai-content)              771 → <600
+Onda 20  generate-multi-event-article/index.ts       762 → <600
+Onda 21  EventsManager.tsx                            755 → <600
+Onda 22  generate-blog-post-v2/index.ts               737 → <600
+Onda 23  _shared/emailBlocks/renderBlock.ts           735 → <600
+Onda 24  LinksManager.tsx                             716 → <600
+Onda 25  Podcast.tsx                                  711 → <600
+Onda 26  emailTemplates/blocks.ts                     689 → <600
+Onda 27  PodcastManager.tsx                           686 → <600
+Onda 28  BlogManager.tsx                              659 → <600
+Onda 29  weekly-digest-draft/index.ts                 654 → <600
+Onda 30  RecurringEventsManager.tsx                   646 → <600
+Onda 31  Blog.tsx                                     645 → <600
+Onda 32  CustomLinkForm.tsx                           624 → <600
+Onda 33  AutoGenerationPanel.tsx                      620 → <600
+Onda 34  EventTemplates.tsx                           602 → <600
 ```
 
----
+Total: **26 arquivos** ainda acima da nova meta.
 
-## Onda 1 — EmailTemplateEditor.tsx (2243 → 909 linhas) — ✅ CONCLUÍDA
+### Estratégia por tipo de arquivo
 
-## Onda 3 — EventForm.tsx (1602 → 816 linhas) — ✅ PR-A CONCLUÍDO
-
-**PR-A — ✅ CONCLUÍDO**
-- Criado diretório `src/components/events/eventForm/` com 7 arquivos:
-  `constants.ts` (GENRES, STATES, normalizeUrl, EventFormData),
-  `BasicInfoSection.tsx`, `DateTimeSection.tsx`, `GenresChecklist.tsx`,
-  `LineupSection.tsx` (line-up + programação por dia), `TicketAndCtaSection.tsx`
-  (ticket/vip/cta/pix/tickets_per_day), `DescriptionBlogSection.tsx`,
-  `CreationOptionsSection.tsx` (createLink + generateBlogPost + dispatchEmail).
-- Adotado `FormProvider` do react-hook-form para reduzir prop drilling.
-- `EventForm.tsx`: **1602 → 816 linhas** (−49%). Abaixo do alvo <900.
-- Allowlist do teste de cores atualizado para cobrir os 2 subcomponentes admin.
-- 381 testes verdes, tsgo limpo.
-
-**PR-B (opcional): extrair schema + submit para `useEventForm.ts`.**
-Não obrigatório — arquivo já <900. Executar só se aparecerem novos requisitos.
-
-**PR-A — ✅ CONCLUÍDO**
-- Extraída aba "Envio manual" para `ManualSendTab.tsx` + hook `useEmailDispatch.ts`.
-- Testes R-008 e R-023 atualizados.
-
-**PR-B — ✅ CONCLUÍDO**
-- Extraída aba "Template (marca)" → `TemplateBrandTab.tsx` (254 linhas).
-- Extraída aba "Editor + Preview" → `TemplateEditorTab.tsx` (~230 linhas).
-- Removidos imports órfãos (Button, Card, Label, Select*, EmailTemplateEditor).
-- Teste de regressão `email-flow-parity` atualizado para apontar para o novo componente.
-- `EmailConfig.tsx`: **1901 → 1123 linhas** (−41%). Ainda acima do alvo <900 por causa do estado central (~800 linhas de state + handlers). Considerar **Onda 2 PR-C opcional** no futuro para extrair `useEmailConfigState.ts` (hook orquestrador) se sobrar tempo — porém já está bem abaixo do limite inicial de "gigante".
-- Validado: `tsgo --noEmit`, `eslint` e 381 testes passando.
-
+- **Páginas admin (EmailConfig, RedirectsManager, LinksAnalytics, etc.)** → extrair abas/cards para pasta dedicada `pages/admin/&lt;pagina&gt;/`.
+- **Editores complexos (BlockPropsPanel, EmailTemplateEditor)** → separar por tipo de bloco (um arquivo por painel especializado).
+- **Páginas públicas grandes (EventDetail, Eventos, Podcast, Blog)** → extrair seções visuais para `components/&lt;pagina&gt;/`.
+- **Edge Functions (generate-multi-event-article, weekly-digest-draft)** → extrair helpers puros para `_shared/&lt;funcao&gt;/`, deixar só o handler HTTP no `index.ts`.
+- **Renderers (renderBlock, blocks)** → dividir o switch por família de bloco (`renderBlockHero.ts`, `renderBlockWeekend.ts`, etc.).
 
 ---
 
-## Onda 3 — EventForm.tsx (1602 linhas)
+## Pendências do plano original que ainda estão em aberto
 
-**PR-A: extrair secções do formulário**
-- Novo diretório `src/components/events/eventForm/`
-- Secções sugeridas: `BasicInfoSection.tsx`, `DateTimeSection.tsx`, `LocationSection.tsx`, `LineupSection.tsx`, `TicketSection.tsx`, `MediaSection.tsx`.
+1. **F2 (dispensado)** — Migrar `eventAnnouncement.ts` para `_shared` só se edge precisar. Ainda dispensado.
+2. **F3 (opcional)** — ESLint rule proibindo novo `blocks.ts` em `src/lib/emailTemplates/`. Não implementado (guardião via teste de paridade cumpre a função).
+3. **Onda 5 PR-B (pendente)** — Redeploy das 3 edges (`weekly-digest-draft`, `weekend-agenda-draft`, `blog-digest-draft`) após split de `_shared/emailBlocks/`. **Ação sugerida:** rodar `scripts/bundle-edge-functions.mjs` + deploy quando iniciar a Onda 23 ou 29.
+4. **Onda 3 PR-B (opcional)** — Extrair schema Zod + submit do `EventForm` para `useEventForm.ts`. Vira parte da Onda 16.
+5. **Onda 4 PR-B (opcional)** — Extrair fetchers do `EgressMonitor` para `useEgressData.ts`. Já abaixo da nova meta, dispensado.
+6. **Onda 2 PR-C (opcional)** — Extrair `useEmailConfigState.ts` do `EmailConfig`. Vira a Onda 9.
 
-**PR-B: extrair schema + submit**
-- Mover schema Zod e `handleSubmit` para `useEventForm.ts`.
+### Pendências operacionais herdadas (não são de refatoração)
 
----
-
-## Onda 4 — EgressMonitor.tsx (1272 → 215 linhas) — ✅ CONCLUÍDA
-
-**PR-A — ✅ CONCLUÍDO**
-- Novo diretório `src/pages/admin/egressMonitor/` com:
-  `types.ts` (77), `constants.ts` (27), `formatters.ts` (21),
-  `BunnyTab.tsx` (347), `SupabaseTab.tsx` (257), `HistoryTab.tsx` (193), `InternalTab.tsx` (191).
-- `EgressMonitor.tsx` reduzido para **215 linhas** — apenas orquestrador (state, fetchers, header, shell de tabs).
-- Comportamento 100% preservado: mesmos fetchers, mesmo `defaultValue="bunny"`, mesmos gráficos/labels.
-- Validado: `tsgo --noEmit` limpo, `eslint` limpo.
-
-**PR-B (opcional): extrair fetchers para `useEgressData.ts`.**
-Não obrigatório — arquivo já muito abaixo do alvo.
-
+Levantadas em `PENDENCIAS.MD`:
+- Checkpoint prerender SEO (~20/07/2026).
+- Checkpoint redução de banda Bunny CDN (~02/08/2026).
+- Checkpoint webhook Apify/Instagram (sem data).
+- Revisão de funções `SECURITY DEFINER` públicas.
+- Habilitar Leaked Password Protection no Supabase (1 clique manual).
+- Restringir policies de `SELECT` dos buckets públicos (evitar `LIST`).
 
 ---
-
-## Onda 5 — supabase/functions/_shared/emailBlocks.ts (1243 → 32 linhas) — ✅ CONCLUÍDA
-
-**PR-A — ✅ CONCLUÍDO**
-- Novo diretório `supabase/functions/_shared/emailBlocks/`:
-  `types.ts` (189), `utils.ts` (61), `preheader.ts` (13),
-  `renderBlock.ts` (735 — switch principal preservado 1:1),
-  `renderBlockedTemplate.ts` (73), `renderBlockedTemplateText.ts` (159).
-- `emailBlocks.ts` virou **barrel** de 32 linhas reexportando a API pública 1:1.
-- Nenhum consumidor precisou mudar (frontend `@shared/emailBlocks.ts` + edges).
-- Guard arquitetural `email-composer-guard` atualizado com o novo caminho legítimo.
-- Testes de paridade byte-a-byte (`frontend-edge-render-parity`, `emailComposer`, `email-blocks-limits`, `email-map-geocode-on-dispatch`) e suíte completa (381 verdes) confirmam zero regressão visual.
-- ⚠️ **Pendente**: redeploy das 3 edges que importam do `_shared/` (weekly-digest-draft, weekend-agenda-draft, blog-digest-draft) para inline dos novos arquivos.
-
-
-**PR-B: rodar `scripts/bundle-edge-functions.mjs`** e redeployar todas as funções que importam esse shared.
-
----
-
-## Onda 6 — supabase/functions/generate-blog-post-v2/index.ts (1220 linhas)
-
-**PR-A: extrair helpers puros**
-- Novos arquivos ao lado: `prompts.ts`, `firecrawl.ts`, `postBuilder.ts`, `imageGenerator.ts`.
-- `index.ts` fica só com o handler HTTP.
-
-**PR-B: bundle + deploy da função + rodar testes de contrato `edge-generate-blog-post-from-topic.test.ts`.**
-
----
-
-## Onda 7 — MediaSettings.tsx (1168 linhas)
-
-**PR-A: extrair sub-abas**
-- Bunny CDN, Placeholders, Upload defaults, Egress rules em componentes separados sob `src/components/admin/settings/media/`.
-
-**PR-B (opcional):** consolidar hooks de mutation em `useMediaSettings.ts`.
-
----
-
-## Onda 8 — LinksManager.tsx (1060 → 716 linhas) — ✅ CONCLUÍDA
-
-**PR-A — ✅ CONCLUÍDO**
-- Novo diretório `src/pages/admin/linksManager/` com:
-  `types.ts` (40), `LinkRow.tsx` (118), `GroupCard.tsx` (135),
-  `BulkSizeDialog.tsx` (73), `AddToGroupDialog.tsx` (67).
-- `LinksManager.tsx` reduzido para **716 linhas** — apenas orquestrador (estado, DnD, fetchers, handlers de CRUD).
-- Comportamento 100% preservado: mesmos handlers, mesma UX de drag-and-drop entre grupos, mesmos filtros de status.
-- Validado: `tsgo --noEmit` limpo, `eslint` limpo, 381 testes verdes.
-
-**PR-B:** desnecessário — arquivo já abaixo do alvo <800.
-
----
-
-## Bônus — AIContent2.tsx (919 linhas)
-
-Está abaixo de 1000, mas próximo. Só refatorar se sobrar orçamento; aplicar o mesmo padrão (extrair abas para pasta dedicada).
-
----
-
-## Como acompanhar
-
-- Marcar cada onda como `[ ] pendente / [~] em andamento / [x] concluída` no `plan.md` do projeto.
-- Ao final de cada onda, entregar o relatório padrão (Antes vs Depois, melhorias, vantagens/desvantagens, checklist manual, pendências, prevenção de regressão) exatamente como definido no `mem://~user`.
-
-## Riscos conhecidos
-
-- **Onda 5** (emailBlocks shared) é a mais arriscada: qualquer erro quebra várias funções de e-mail. Redeploy imediato + testes de contrato são obrigatórios.
-- **Onda 3** (EventForm) e **Onda 2** (EmailConfig) tocam telas de uso diário: validação manual no preview antes do publish.
-- Ondas 1, 4, 7, 8 são puramente visuais/admin — risco baixo.
 
 ## Próximo passo
 
-Aprovar a **Onda 1 (EmailTemplateEditor.tsx — PR-A)** para eu começar pela maior redução (2243 → ~600).
+Aprovar **Onda 9 — EmailConfig.tsx (1123 → &lt;600)** para começar pela maior redução da nova meta.
