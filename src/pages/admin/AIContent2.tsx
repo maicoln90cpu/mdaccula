@@ -3,18 +3,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2, Loader2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { GenerateForm } from '@/components/admin/ai-content/GenerateForm';
-import type { GenerationProgress } from '@/components/admin/ai-content/SuggestionsList';
 import { SuggestionsList } from '@/components/admin/ai-content/SuggestionsList';
 import { PostsHistory } from '@/components/admin/ai-content/PostsHistory';
 import { TopicSearchForm } from '@/components/admin/ai-content/TopicSearchForm';
@@ -23,61 +15,9 @@ import { AutoGenerationPanel } from '@/components/admin/ai-content/AutoGeneratio
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { normalizePromptTemplateFields, getEdgeFunctionErrorMessage } from '@/lib';
 import { logger } from '@/lib/logger';
-
-interface Suggestion {
-  title: string;
-  summary: string;
-  category: string;
-  keywords?: string[];
-  mood?: string;
-  visualElements?: string[];
-  searchQuery?: string;
-}
-
-// Categorias que têm sinais reais próprios vindos de event_sources/scan (não da
-// sugestão gerada por IA em generate-blog-suggestions) e continuam usando
-// generate-blog-post-v2 + template dedicado.
-// "eventos"/"festivais"/"lançamentos" saíram daqui: quando a sugestão vem da aba
-// Sugestões, essas categorias não carregam nenhum dado estruturado real (lineup,
-// data, venue) — iam pro template de evento sem fonte, com risco de inventar
-// esses detalhes. Agora caem no catch-all abaixo, igual ao cron automático já fazia.
-const TEMPLATE_ROUTED_CATEGORIES = ['entrevistas', 'labels'];
-
-// "Sugestões" (e qualquer categoria não mapeada) passou a ser ancorada em
-// matéria real via generate-blog-post-from-topic, em vez do antigo template
-// editorial sem fonte.
-function isSugestoesCatchAll(category: string): boolean {
-  const cat = (category || '').toLowerCase().trim();
-  return !TEMPLATE_ROUTED_CATEGORIES.includes(cat);
-}
-
-interface BlogPost {
-  id: string;
-  title: string;
-  slug: string;
-  category: string;
-  published: boolean;
-  created_at: string;
-  image_url?: string | null;
-  ai_data?: {
-    model_used?: string;
-    total_tokens?: number;
-    image_tokens?: number;
-    generated_at?: string;
-    source_urls?: string[] | null;
-  };
-}
-
-interface PromptTemplate {
-  id: string;
-  name: string;
-  description: string;
-  /** Todos os campos configurados no template (obrigatórios + opcionais) — usado para renderizar o formulário. */
-  allFields: string[];
-  /** Só os campos marcados como obrigatórios (`required_fields[campo] === true`) — usado para bloquear a geração. */
-  required_fields: string[];
-  category: string;
-}
+import { SourcesPreviewDialog } from './aiContent/SourcesPreviewDialog';
+import { useSuggestionActions } from './aiContent/useSuggestionActions';
+import { getFieldLabel, type BlogPost, type PromptTemplate } from './aiContent/types';
 
 export default function AIContent2() {
   const navigate = useNavigate();
@@ -92,25 +32,15 @@ export default function AIContent2() {
   // States
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
   const [generatedPosts, setGeneratedPosts] = useState<BlogPost[]>([]);
   const [templates, setTemplates] = useState<PromptTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<PromptTemplate | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [generateWithImage, setGenerateWithImage] = useState(true);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [generationProgress, setGenerationProgress] = useState<GenerationProgress | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [topicQuery, setTopicQuery] = useState('');
   const [isGeneratingFromTopic, setIsGeneratingFromTopic] = useState(false);
   const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
-  const [sourcesPreview, setSourcesPreview] = useState<{
-    query: string;
-    isLoading: boolean;
-    sources: { title: string; url: string }[] | null;
-    error: string | null;
-  } | null>(null);
 
   const fetchSuggestionsAutoPublish = async () => {
     try {
@@ -148,7 +78,6 @@ export default function AIContent2() {
         id: t.id,
         name: t.name,
         description: t.description || '',
-        // Normalizar required_fields - pode ser objeto ({campo: boolean}) ou array (legado, tudo obrigatório)
         ...(() => {
           const { allFields, requiredFields } = normalizePromptTemplateFields(t.required_fields);
           return { allFields, required_fields: requiredFields };
@@ -158,7 +87,6 @@ export default function AIContent2() {
 
       setTemplates(mappedTemplates);
 
-      // Set default template
       const defaultTemplate =
         mappedTemplates.find((t) => t.category === 'default') || mappedTemplates[0];
       if (defaultTemplate) {
@@ -179,7 +107,6 @@ export default function AIContent2() {
     try {
       setIsLoading(true);
 
-      // Fetch recent blog posts
       const { data: posts, error: postsError } = await supabase
         .from('blog_posts')
         .select('id, title, slug, category, published, created_at, image_url')
@@ -188,7 +115,6 @@ export default function AIContent2() {
 
       if (postsError) throw postsError;
 
-      // Fetch AI generation data for these posts
       const postIds = posts?.map((p) => p.id) || [];
       const { data: aiData, error: aiError } = await supabase
         .from('ai_generated_posts')
@@ -197,7 +123,6 @@ export default function AIContent2() {
 
       if (aiError) throw aiError;
 
-      // Merge data
       const mergedPosts: BlogPost[] = (posts || []).map((post) => {
         const ai = aiData?.find((a) => a.blog_post_id === post.id);
         return {
@@ -227,17 +152,22 @@ export default function AIContent2() {
     }
   }, [toast]);
 
-  // Fetch initial data
   useEffect(() => {
     fetchTemplates();
     fetchGeneratedPosts();
     fetchSuggestionsAutoPublish();
   }, [fetchTemplates, fetchGeneratedPosts]);
 
-  // Realtime: substitui o polling de 15s. Qualquer INSERT/UPDATE/DELETE em
-  // blog_posts (incluindo a edge function que escreve image_url no background)
-  // dispara um refresh imediato.
+  // Realtime: substitui o polling de 15s.
   useRealtimeTable('blog_posts', () => fetchGeneratedPosts());
+
+  const suggestionActions = useSuggestionActions({
+    templates,
+    generateWithImage,
+    suggestionsAutoPublish,
+    onPostsChanged: fetchGeneratedPosts,
+    setIsGenerating,
+  });
 
   const handleTemplateChange = (templateId: string) => {
     const template = templates.find((t) => t.id === templateId);
@@ -251,20 +181,6 @@ export default function AIContent2() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const getFieldLabel = (field: string): string => {
-    const labels: Record<string, string> = {
-      topic: 'Tópico',
-      artist_name: 'Nome do Artista',
-      event_name: 'Nome do Evento',
-      track_name: 'Nome da Track',
-      genre: 'Gênero',
-      label_name: 'Nome da Label',
-      news_topic: 'Tópico da Notícia',
-      source_url: 'URL da Fonte',
-    };
-    return labels[field] || field.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  };
-
   const handleGenerate = async () => {
     if (!selectedTemplate) {
       toast({
@@ -275,7 +191,6 @@ export default function AIContent2() {
       return;
     }
 
-    // Validate required fields
     const missingFields = selectedTemplate.required_fields.filter(
       (field) => !formData[field]?.trim()
     );
@@ -313,10 +228,7 @@ export default function AIContent2() {
         description: `"${data.title}" foi criado e salvo como rascunho.`,
       });
 
-      // Refresh posts list
       fetchGeneratedPosts();
-
-      // Clear form
       initializeFormData(selectedTemplate.allFields);
     } catch (error: unknown) {
       const message = await getEdgeFunctionErrorMessage(error);
@@ -366,205 +278,6 @@ export default function AIContent2() {
     }
   };
 
-  const handleGenerateSuggestions = async () => {
-    setIsLoadingSuggestions(true);
-
-    try {
-      interface RawSuggestion {
-        keywords?: string | string[];
-        visualElements?: string | string[];
-        [key: string]: unknown;
-      }
-      const { data, error } = await supabase.functions.invoke<{ suggestions?: RawSuggestion[] }>(
-        'generate-blog-suggestions',
-        {
-          body: { count: 5 },
-        }
-      );
-
-      if (error) throw error;
-
-      // Normalizar keywords e visualElements (podem vir como string ou array)
-      const normalizedSuggestions = (data.suggestions || []).map((s) => ({
-        ...s,
-        keywords:
-          typeof s.keywords === 'string'
-            ? s.keywords
-                .split(',')
-                .map((k: string) => k.trim())
-                .filter(Boolean)
-            : Array.isArray(s.keywords)
-              ? s.keywords
-              : [],
-        visualElements:
-          typeof s.visualElements === 'string'
-            ? s.visualElements
-                .split(',')
-                .map((v: string) => v.trim())
-                .filter(Boolean)
-            : Array.isArray(s.visualElements)
-              ? s.visualElements
-              : [],
-      }));
-
-      setSuggestions(normalizedSuggestions as unknown as Suggestion[]);
-
-      toast({
-        title: 'Sugestões geradas!',
-        description: `${data.suggestions?.length || 0} ideias de artigos foram geradas.`,
-      });
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erro desconhecido';
-      logger.error('Error generating suggestions:', error);
-      toast({
-        title: 'Erro ao gerar sugestões',
-        description: message || 'Ocorreu um erro ao buscar sugestões.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingSuggestions(false);
-    }
-  };
-
-  /**
-   * Escolhe o template correto para uma sugestão com base na categoria.
-   * Evita o bug de TODA sugestão usar o template "Evento Padrão" — o que
-   * forçava artigos editoriais a saírem com seção "Lineup" / "Local e horário".
-   */
-  const pickTemplateForSuggestion = (suggestion: Suggestion): PromptTemplate | null => {
-    const cat = (suggestion.category || '').toLowerCase().trim();
-    // Mapa categoria da sugestão → categoria do template no banco
-    const findByCategory = (catName: string) =>
-      templates.find((t) => t.category?.toLowerCase() === catName.toLowerCase());
-
-    if (cat === 'entrevistas') {
-      return findByCategory('Entrevistas') || findByCategory('Sugestões') || templates[0] || null;
-    }
-    if (cat === 'labels') {
-      return findByCategory('Labels') || findByCategory('Sugestões') || templates[0] || null;
-    }
-    // Cultura, Tecnologia, Produtores, Cena e qualquer outra → template editorial "Sugestões"
-    return (
-      findByCategory('Sugestões') ||
-      templates.find((t) => t.category?.toLowerCase() !== 'eventos') ||
-      templates[0] ||
-      null
-    );
-  };
-
-  const handlePreviewSources = async (suggestion: Suggestion) => {
-    const query = suggestion.searchQuery || suggestion.title;
-    setSourcesPreview({ query, isLoading: true, sources: null, error: null });
-
-    try {
-      const { data, error } = await supabase.functions.invoke('preview-topic-sources', {
-        body: { query },
-      });
-
-      if (error) throw error;
-
-      setSourcesPreview({ query, isLoading: false, sources: data?.sources ?? [], error: null });
-    } catch (error) {
-      logger.error('[AIContent2] Erro ao pré-visualizar fontes:', error);
-      setSourcesPreview({
-        query,
-        isLoading: false,
-        sources: null,
-        error: await getEdgeFunctionErrorMessage(error),
-      });
-    }
-  };
-
-  const handleGenerateFromSuggestion = async (suggestion: Suggestion, index: number) => {
-    setIsGenerating(true);
-    setGeneratingIndex(index);
-
-    try {
-      if (isSugestoesCatchAll(suggestion.category)) {
-        // Sugestões (e categorias não mapeadas) agora são ancoradas em matéria
-        // real via busca, em vez do template editorial antigo sem fonte.
-        const query = suggestion.searchQuery || suggestion.title;
-        logger.debug(
-          `[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → busca real: "${query}"`
-        );
-
-        const { data, error } = await supabase.functions.invoke('generate-blog-post-from-topic', {
-          body: {
-            query,
-            generateImage: generateWithImage,
-            publishImmediately: suggestionsAutoPublish,
-          },
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: 'Artigo gerado!',
-          description: `"${data.post?.title}" foi criado a partir de ${data.sourcesUsed?.length ?? 0} fontes reais.`,
-        });
-      } else {
-        // Eventos/Festivais/Entrevistas/Labels continuam no fluxo de template dedicado.
-        const template = pickTemplateForSuggestion(suggestion);
-
-        if (!template) {
-          throw new Error('Nenhum template disponível');
-        }
-        logger.debug(
-          `[AIContent2] Sugestão "${suggestion.title}" (categoria=${suggestion.category}) → template "${template.name}"`
-        );
-
-        const { data, error } = await supabase.functions.invoke('generate-blog-post-v2', {
-          body: {
-            templateId: template.id,
-            // Campos no root level que a edge function espera
-            title: suggestion.title,
-            eventName: suggestion.title,
-            summary: suggestion.summary,
-            category: suggestion.category,
-            keywords: Array.isArray(suggestion.keywords)
-              ? suggestion.keywords.join(', ')
-              : suggestion.keywords || '',
-            mood: suggestion.mood || '',
-            visualElements: Array.isArray(suggestion.visualElements)
-              ? suggestion.visualElements.join(', ')
-              : suggestion.visualElements || '',
-            generateImage: generateWithImage,
-            // Manter formData para compatibilidade
-            formData: {
-              topic: suggestion.title,
-              summary: suggestion.summary,
-              category: suggestion.category,
-            },
-          },
-        });
-
-        if (error) throw error;
-
-        toast({
-          title: 'Artigo gerado!',
-          description: `"${data.title}" foi criado a partir da sugestão.`,
-        });
-      }
-
-      // Remove from suggestions
-      setSuggestions((prev) => prev.filter((_, i) => i !== index));
-
-      // Refresh posts
-      fetchGeneratedPosts();
-    } catch (error: unknown) {
-      const message = await getEdgeFunctionErrorMessage(error);
-      logger.error('Error generating from suggestion:', error);
-      toast({
-        title: 'Erro ao gerar artigo',
-        description: message || 'Ocorreu um erro durante a geração.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-      setGeneratingIndex(null);
-    }
-  };
-
   const handleRegenerateImage = async (postId: string) => {
     setRegeneratingId(postId);
     try {
@@ -579,8 +292,6 @@ export default function AIContent2() {
         description: 'A nova capa foi gerada e salva.',
       });
 
-      // O realtime já vai atualizar a lista quando o image_url mudar no banco,
-      // mas forçamos um refresh imediato para feedback visual.
       fetchGeneratedPosts();
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -592,154 +303,6 @@ export default function AIContent2() {
       });
     } finally {
       setRegeneratingId(null);
-    }
-  };
-
-  const handleGenerateSelected = async (selected: Suggestion[]) => {
-    if (selected.length === 0) return;
-
-    setIsGenerating(true);
-
-    // Initialize progress tracking
-    const progress: GenerationProgress = {
-      current: 0,
-      total: selected.length,
-      currentTitle: '',
-      completed: [],
-      failed: [],
-    };
-    setGenerationProgress(progress);
-
-    try {
-      for (let i = 0; i < selected.length; i++) {
-        const suggestion = selected[i];
-        const originalIndex = suggestions.findIndex((s) => s.title === suggestion.title);
-
-        // Update progress
-        progress.current = i + 1;
-        progress.currentTitle = suggestion.title;
-        setGenerationProgress({ ...progress });
-        setGeneratingIndex(originalIndex);
-
-        const useRealSearch = isSugestoesCatchAll(suggestion.category);
-        const template = useRealSearch ? null : pickTemplateForSuggestion(suggestion);
-
-        if (!useRealSearch && !template) {
-          logger.debug(
-            `[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → nenhum template disponível`
-          );
-          progress.failed.push(suggestion.title);
-          setGenerationProgress({ ...progress });
-          continue;
-        }
-
-        logger.debug(
-          `[AIContent2 batch ${i + 1}/${selected.length}] "${suggestion.title}" (categoria=${suggestion.category}) → ${
-            useRealSearch
-              ? `busca real: "${suggestion.searchQuery || suggestion.title}"`
-              : `template "${template?.name}"`
-          }`
-        );
-
-        try {
-          const { data, error } = useRealSearch
-            ? await supabase.functions.invoke('generate-blog-post-from-topic', {
-                body: {
-                  query: suggestion.searchQuery || suggestion.title,
-                  generateImage: generateWithImage,
-                  publishImmediately: suggestionsAutoPublish,
-                },
-              })
-            : await supabase.functions.invoke('generate-blog-post-v2', {
-                body: {
-                  templateId: template!.id,
-                  title: suggestion.title,
-                  eventName: suggestion.title,
-                  summary: suggestion.summary,
-                  category: suggestion.category,
-                  keywords: Array.isArray(suggestion.keywords)
-                    ? suggestion.keywords.join(', ')
-                    : suggestion.keywords || '',
-                  mood: suggestion.mood || '',
-                  visualElements: Array.isArray(suggestion.visualElements)
-                    ? suggestion.visualElements.join(', ')
-                    : suggestion.visualElements || '',
-                  generateImage: generateWithImage,
-                  formData: {
-                    topic: suggestion.title,
-                    summary: suggestion.summary,
-                    category: suggestion.category,
-                  },
-                },
-              });
-
-          if (error) {
-            logger.error(`Error generating "${suggestion.title}":`, error);
-            progress.failed.push(suggestion.title);
-            setGenerationProgress({ ...progress });
-
-            const batchErrorMessage = await getEdgeFunctionErrorMessage(error);
-            toast({
-              title: `Erro: ${suggestion.title.slice(0, 30)}...`,
-              description: batchErrorMessage || 'Falha ao gerar artigo',
-              variant: 'destructive',
-            });
-          } else {
-            progress.completed.push(suggestion.title);
-            setGenerationProgress({ ...progress });
-
-            // Remove generated suggestion
-            setSuggestions((prev) => prev.filter((s) => s.title !== suggestion.title));
-
-            const generatedTitle = data.post?.title || data.title || suggestion.title;
-            toast({
-              title: `Gerado: ${generatedTitle.slice(0, 30)}...`,
-              description: 'Artigo criado com sucesso!',
-            });
-          }
-        } catch (err: unknown) {
-          const message = await getEdgeFunctionErrorMessage(err);
-          logger.error(`Error generating "${suggestion.title}":`, err);
-          progress.failed.push(suggestion.title);
-          setGenerationProgress({ ...progress });
-
-          toast({
-            title: `Erro: ${suggestion.title.slice(0, 30)}...`,
-            description: message || 'Falha ao gerar artigo',
-            variant: 'destructive',
-          });
-        }
-
-        // Wait a bit between requests
-        if (i < selected.length - 1) {
-          await new Promise((r) => setTimeout(r, 2000));
-        }
-      }
-
-      // Final summary toast
-      const successCount = progress.completed.length;
-      const failCount = progress.failed.length;
-
-      toast({
-        title: 'Geração em lote concluída!',
-        description: `${successCount} artigos gerados com sucesso${failCount > 0 ? `, ${failCount} falhas` : ''}.`,
-        variant: failCount > 0 && successCount === 0 ? 'destructive' : 'default',
-      });
-
-      fetchGeneratedPosts();
-    } catch (error: unknown) {
-      const message = await getEdgeFunctionErrorMessage(error);
-      logger.error('Error in batch generation:', error);
-      toast({
-        title: 'Erro na geração em lote',
-        description: message || 'Alguns artigos podem não ter sido gerados.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsGenerating(false);
-      setGeneratingIndex(null);
-      // Clear progress after a delay so user can see final state
-      setTimeout(() => setGenerationProgress(null), 3000);
     }
   };
 
@@ -823,17 +386,17 @@ export default function AIContent2() {
             <TabsContent value="suggestions">
               <div className="w-full">
                 <SuggestionsList
-                  suggestions={suggestions}
+                  suggestions={suggestionActions.suggestions}
                   generateWithImage={generateWithImage}
-                  isLoadingSuggestions={isLoadingSuggestions}
+                  isLoadingSuggestions={suggestionActions.isLoadingSuggestions}
                   isGenerating={isGenerating}
-                  generatingIndex={generatingIndex}
-                  generationProgress={generationProgress}
-                  onGenerateSuggestions={handleGenerateSuggestions}
+                  generatingIndex={suggestionActions.generatingIndex}
+                  generationProgress={suggestionActions.generationProgress}
+                  onGenerateSuggestions={suggestionActions.handleGenerateSuggestions}
                   onGenerateWithImageChange={setGenerateWithImage}
-                  onGenerateFromSuggestion={handleGenerateFromSuggestion}
-                  onGenerateSelected={handleGenerateSelected}
-                  onPreviewSources={handlePreviewSources}
+                  onGenerateFromSuggestion={suggestionActions.handleGenerateFromSuggestion}
+                  onGenerateSelected={suggestionActions.handleGenerateSelected}
+                  onPreviewSources={suggestionActions.handlePreviewSources}
                 />
               </div>
             </TabsContent>
@@ -873,47 +436,10 @@ export default function AIContent2() {
         </div>
       </div>
 
-      <Dialog open={!!sourcesPreview} onOpenChange={(open) => !open && setSourcesPreview(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Fontes encontradas
-            </DialogTitle>
-            <DialogDescription>
-              Resultado de uma busca aberta na web (Firecrawl) para "{sourcesPreview?.query}",
-              feita agora. Não é o catálogo de Fontes cadastradas em Fontes / Event Watcher — o
-              artigo final usará o que estiver disponível no momento em que for gerado, que pode
-              variar em relação a esta prévia.
-            </DialogDescription>
-          </DialogHeader>
-          {sourcesPreview?.isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
-            </div>
-          ) : sourcesPreview?.error ? (
-            <p className="text-sm text-destructive">{sourcesPreview.error}</p>
-          ) : !sourcesPreview?.sources?.length ? (
-            <p className="text-sm text-muted-foreground">Nenhuma fonte encontrada para este termo.</p>
-          ) : (
-            <ul className="space-y-3">
-              {sourcesPreview.sources.map((source, i) => (
-                <li key={i} className="space-y-0.5">
-                  <p className="font-medium text-sm">{source.title}</p>
-                  <a
-                    href={source.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline break-all"
-                  >
-                    {source.url}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          )}
-        </DialogContent>
-      </Dialog>
+      <SourcesPreviewDialog
+        state={suggestionActions.sourcesPreview}
+        onClose={() => suggestionActions.setSourcesPreview(null)}
+      />
     </>
   );
 }

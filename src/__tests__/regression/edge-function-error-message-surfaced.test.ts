@@ -21,19 +21,23 @@ const OLD_GENERIC_PATTERN = "error instanceof Error ? error.message : 'Erro desc
 
 describe('Regressão — mensagens de erro reais das Edge Functions chegam ao admin', () => {
   it('AIContent2.tsx usa getEdgeFunctionErrorMessage nos handlers de geração de conteúdo', () => {
-    const content = read('src/pages/admin/AIContent2.tsx');
+    // Onda Bônus: handlers de sugestão migraram para o hook useSuggestionActions.ts.
+    const pageContent = read('src/pages/admin/AIContent2.tsx');
+    const hookContent = read('src/pages/admin/aiContent/useSuggestionActions.ts');
 
-    expect(content).toContain("getEdgeFunctionErrorMessage } from '@/lib'");
+    expect(pageContent).toContain("getEdgeFunctionErrorMessage } from '@/lib'");
+    expect(hookContent).toContain("getEdgeFunctionErrorMessage } from '@/lib'");
 
-    const handlers = [
-      'handleGenerate',
-      'handleGenerateFromTopic',
-      'handleGenerateFromSuggestion',
-      'handleGenerateSelected',
-    ];
-    for (const handlerName of handlers) {
-      const fnMatch = content.match(new RegExp(`const ${handlerName} = async[\\s\\S]*?\\n  \\};`));
-      expect(fnMatch, `Não encontrei a função ${handlerName} em AIContent2.tsx.`).toBeTruthy();
+    const handlerSources: Record<string, string> = {
+      handleGenerate: pageContent,
+      handleGenerateFromTopic: pageContent,
+      handleGenerateFromSuggestion: hookContent,
+      handleGenerateSelected: hookContent,
+    };
+
+    for (const [handlerName, source] of Object.entries(handlerSources)) {
+      const fnMatch = source.match(new RegExp(`const ${handlerName} = async[\\s\\S]*?\\n  \\};`));
+      expect(fnMatch, `Não encontrei a função ${handlerName}.`).toBeTruthy();
 
       const snippet = fnMatch![0];
       expect(snippet, `${handlerName} usa getEdgeFunctionErrorMessage?`).toContain(
