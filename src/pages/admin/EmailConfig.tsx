@@ -591,6 +591,24 @@ const EmailConfig = () => {
     [manualComposition]
   );
 
+  const { dispatchBatch, scheduleBatch } = useEmailDispatch({
+    batchEventId,
+    batchEventIds,
+    batchTemplateId,
+    batchArtworkUrl,
+    batchSubject,
+    batchSegmentId,
+    batchScheduleAt,
+    isMultiEventTemplate,
+    selectedManualEvents,
+    selectedManualTemplate,
+    manualComposition,
+    loadAll,
+    setBatchDispatching,
+    setBatchScheduling,
+    setBatchScheduleAt,
+  });
+
   const loadDigestPreview = async (opts?: {
     source?: 'digest' | 'weekend' | 'blog';
     templateId?: string;
