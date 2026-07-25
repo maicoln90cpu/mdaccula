@@ -51,11 +51,11 @@ import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
 import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
 import { EmailDashboard } from '@/components/admin/EmailDashboard';
-import { SendNowButton } from '@/components/admin/emailConfig/SendNowButton';
-import { ScheduleSendPanel } from '@/components/admin/emailConfig/ScheduleSendPanel';
 import { EmailEventsTab } from '@/components/admin/emailConfig/EmailEventsTab';
 import { AutomationsTab } from '@/components/admin/emailConfig/AutomationsTab';
 import { ConfigTab } from '@/components/admin/emailConfig/ConfigTab';
+import { ManualSendTab } from '@/components/admin/emailConfig/ManualSendTab';
+import { useEmailDispatch } from '@/components/admin/emailConfig/useEmailDispatch';
 import {
   useEmailAutomation,
   DAY_LABELS,
