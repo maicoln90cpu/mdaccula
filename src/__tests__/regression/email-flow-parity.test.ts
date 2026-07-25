@@ -52,7 +52,7 @@ describe('regressao - fidelidade entre preview, teste, rascunho e envio', () => 
   });
 
   it('alteracoes nao salvas bloqueiam o teste do editor', () => {
-    const source = read('src/pages/admin/EmailConfig.tsx');
+    const source = read('src/components/admin/emailConfig/TemplateEditorTab.tsx');
     expect(source).toMatch(/disabled=\{[\s\S]{0,40}sendingTest[\s\S]{0,40}editorDirty/);
     expect(source).toMatch(/Somente a versão\s+salva pode ser enviada/);
   });
