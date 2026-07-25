@@ -57,6 +57,7 @@ interface ManualSendTabProps {
   setBatchArtworkUrl: (url: string) => void;
   setBatchSubject: (subject: string) => void;
   setBatchSegmentId: (id: number | null | undefined) => void;
+  setBatchScheduleAt: (v: string) => void;
   uploadBatchArtwork: (file: File) => Promise<void>;
   dispatchBatch: (sendNow: boolean) => Promise<void>;
   scheduleBatch: () => Promise<void>;
