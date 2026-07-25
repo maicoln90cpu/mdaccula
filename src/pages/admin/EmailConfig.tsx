@@ -10,7 +10,7 @@ import {
   type EventAnnouncementData,
   type EmailTemplateSettings,
 } from '@/lib/emailTemplates/eventAnnouncement';
-import { EmailTemplateEditor } from '@/components/admin/EmailTemplateEditor';
+
 import { type Template, type Block, type ArticleSummary } from '@/lib/emailTemplates/blocks';
 import {
   applyEmailBlockOverrides,
