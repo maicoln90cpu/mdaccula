@@ -40,10 +40,6 @@ import {
   composeEmail,
   type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
-import {
-  dispatchEventDraftEmail,
-  dispatchMultiEventDraftEmail,
-} from '@/lib/emailTemplates/dispatchEventDraft';
 import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
