@@ -12,11 +12,10 @@ import { shouldRequireSourceVerification, buildGuardrailSearchQuery } from "../_
 // abaixo de 900 linhas. Comportamento preservado 1:1 — se editar, replique
 // o teste correspondente em src/__tests__/regression/ ou supabase/functions/_shared/*_test.ts.
 import { logEgress } from "../_shared/generateBlogPostV2/egress.ts";
-import { corsHeaders, handleCorsPreFlight, jsonSuccess, jsonError, fetchWithTimeout, scrapeWithFirecrawl } from "../_shared/generateBlogPostV2/http.ts";
+import { handleCorsPreFlight, jsonSuccess, jsonError, fetchWithTimeout, scrapeWithFirecrawl } from "../_shared/generateBlogPostV2/http.ts";
 import { extractKeywords, inferMood } from "../_shared/generateBlogPostV2/contentAnalysis.ts";
-import { IMAGE_STYLE_PROMPTS, pickRandomStyle } from "../_shared/generateBlogPostV2/imageStyles.ts";
 import { replaceVariables, FAKE_DOMAINS, restrictLinkToFirstMention, removeFakeLinks } from "../_shared/generateBlogPostV2/textUtils.ts";
-import { generateAndAttachImage, type BackgroundImageOpts } from "../_shared/generateBlogPostV2/imageGeneration.ts";
+import { generateAndAttachImage } from "../_shared/generateBlogPostV2/imageGeneration.ts";
 
 const FUNCTION_TIMEOUT_MS = 140000; // 140 seconds - margem de segurança de 10s
 
