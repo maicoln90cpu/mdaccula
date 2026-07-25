@@ -1,71 +1,146 @@
-## Plano — 3 correções na gestão de e-mail e mesclagem
 
-### 1) Envio manual: aviso não-bloqueante em vez de erro
+# Plano — Slim-down dos arquivos gigantes (&lt;1000 linhas cada)
 
-**Hoje:** em `src/lib/emailTemplates/dispatchEventDraft.ts` (linha 218), qualquer `composition.issues` (ex.: `ARTICLE_MISSING` — "Vincule uma matéria ao evento ou oculte o resumo.") aborta o envio com `ok:false`.
+## Regras gerais (valem para todas as ondas)
 
-**Depois:** classificar as issues em duas categorias:
-- **Bloqueantes** (permanecem impedindo o envio): faltar template, faltar bloco obrigatório, etc.
-- **Avisos** (permitem envio, mas retornam mensagem visível): `ARTICLE_MISSING`.
-
-Implementação:
-- Adicionar constante `WARNING_ISSUE_CODES = new Set(['ARTICLE_MISSING'])` em `dispatchEventDraft.ts`.
-- Filtrar `composition.issues`; se houver só warnings, seguir com o envio e retornar `{ ok: true, warnings: [...] }`.
-- Estender `DispatchEventDraftResult` com campo opcional `warnings?: EmailCompositionIssue[]`.
-- Nos consumidores (envio manual em `EmailConfig.tsx` e `EmailEventsTab.tsx`), quando `result.ok && result.warnings?.length`, mostrar toast **amarelo** com a mensagem, sem impedir a operação.
-
-### 2) Evento mesclado ainda mostra nome antigo em /eventos
-
-**Diagnóstico confirmado:** o `title` é atualizado corretamente no banco (linha 199 de `MergeEventsDialog.tsx`). O nome antigo persiste porque:
-- `useEvents` grava `mdaccula-events-cache` em `localStorage` (30 min de staleTime) e usa como `placeholderData`.
-- O Service Worker (`public/service-worker.js`) pode manter respostas antigas do Supabase em cache.
-- A página `/eventos` não é notificada quando a mesclagem acontece em outra aba (admin).
-
-**Correção:**
-- Ao final do `handleMerge` em `MergeEventsDialog.tsx`, além do `onSuccess()`, executar:
-  - `localStorage.removeItem('mdaccula-events-cache')`
-  - Notificar o SW via `postMessage({ type: 'CLEAR_EVENTS_CACHE' })` (adicionar handler simples no `service-worker.js` que dá `caches.delete` nas entradas de eventos).
-  - `queryClient.invalidateQueries({ queryKey: ['events'] })` — injetar `useQueryClient` no dialog.
-- No `useEvents.ts`, adicionar `refetchOnMount: 'always'` quando o cache local for mais antigo que 5 min OU quando a chave de cache tiver um marcador de "invalidado".
-
-Escopo mínimo suficiente na maioria dos casos: limpar `localStorage` + invalidar query. O SW só é problema se o usuário tiver a página aberta há muito tempo — tratar em fallback.
-
-### 3) Selects de e-mail: mostrar apenas eventos ativos
-
-**Hoje:** em `src/pages/admin/EmailConfig.tsx` (linhas 195-207) a query filtra `.neq('status','merged_inactive')` e mantém últimos 7 dias.
-
-**Depois:**
-- Trocar por `.eq('status', 'active')` (elimina `merged_inactive`, `draft`, `archived`, etc. — só ativos).
-- Remover a janela de -7 dias: passar a filtrar `.gte('date', hoje)`.
-- Manter ordenação crescente e limite 500.
-- Aplicar o mesmo padrão no select "real event" do preview (mesmo arquivo) — a query já é a mesma, então é uma alteração única.
-- Verificar se `EmailEventsTab.tsx` (linhas 205-211) usa a mesma query para o dropdown de envio ou é só para a tabela de histórico; se for para dropdown, aplicar o mesmo filtro.
+- **1 arquivo por onda.** Nunca mexer em 2 arquivos gigantes ao mesmo tempo.
+- **Máx. 2 PRs por onda.** PR-A = extrair sem mudar comportamento. PR-B (se necessário) = ajustes finos e limpezas.
+- **Zero mudança de comportamento.** Só mover código para novos arquivos e reimportar.
+- **Checklist obrigatório antes de fechar cada onda:**
+  - `npx tsc --noEmit` verde
+  - `npm run lint` sem novos erros
+  - `npm test` verde (com foco nos testes do arquivo alterado)
+  - Validação manual no `localhost:8080` da tela/fluxo afetado
+  - Se for Edge Function: rodar `scripts/bundle-edge-functions.mjs` e conferir bundle
+- **Arquivo excluído do plano:** `src/integrations/supabase/types.ts` (auto-gerado, nunca editar).
 
 ---
 
-### Detalhes técnicos
+## Ordem das ondas (do mais crítico ao menos crítico)
 
-- Arquivos alterados: `src/lib/emailTemplates/dispatchEventDraft.ts`, `src/pages/admin/EmailConfig.tsx`, `src/components/admin/emailConfig/EmailEventsTab.tsx`, `src/components/admin/MergeEventsDialog.tsx`, `src/hooks/useEvents.ts`, opcionalmente `public/service-worker.js`.
-- Nenhuma mudança de schema, nenhuma edge function tocada.
-- Nenhum teste existente deve quebrar; adicionar 1 teste em `src/__tests__/lib/` cobrindo a classificação warning-vs-blocker em `dispatchEventDraft`.
+Prioridade = tamanho × risco de regressão × frequência de edição.
 
-### Antes vs Depois (resumo)
+```text
+Onda 1  EmailTemplateEditor.tsx       2243 → alvo <900
+Onda 2  EmailConfig.tsx               1901 → alvo <900   (já iniciado antes)
+Onda 3  EventForm.tsx                 1602 → alvo <900
+Onda 4  EgressMonitor.tsx             1272 → alvo <800
+Onda 5  _shared/emailBlocks.ts        1243 → alvo <900
+Onda 6  generate-blog-post-v2/index   1220 → alvo <800
+Onda 7  MediaSettings.tsx             1168 → alvo <800
+Onda 8  LinksManager.tsx              1060 → alvo <800
+Bônus   AIContent2.tsx                 919 → só se sobrar tempo
+```
 
-| Item | Antes | Depois |
-|---|---|---|
-| Envio manual sem matéria | Erro bloqueia | Aviso amarelo, envio segue |
-| Nome do festival mesclado | Mochakk (cache antigo) | Nome renomeado aparece imediatamente |
-| Select de eventos | Ativos + inativos recentes | Só ativos futuros |
+---
 
-### Riscos / trade-offs
+## Onda 1 — EmailTemplateEditor.tsx (2243 linhas)
 
-- Envio manual sem matéria pode gerar e-mail com bloco `article_summary` vazio — o composer já trata como bloco oculto, então visual fica ok.
-- Filtro `status='active'` esconde `merged_inactive` e qualquer outro status não-ativo. Se no futuro criarmos status `draft`, também some do select (comportamento desejado).
-- Limpar `localStorage` do cache de eventos custa 1 requisição extra por usuário quando a página /eventos abrir depois de uma mesclagem — irrelevante.
+**PR-A: extrair painéis de propriedades**
+- Novo diretório `src/components/admin/emailTemplateEditor/`
+- Mover `BlockPropsPanel` (linhas ~1054-2102) → `BlockPropsPanel.tsx`
+- Mover `GlobalRefPropsPanel` (linhas ~2103-fim) → `GlobalRefPropsPanel.tsx`
+- Mover controles reutilizados (`AlignControl`, `ColorControl`, `SortableRow`) → `controls.tsx`
+- Estimativa: editor cai para ~600 linhas.
 
-### Checklist manual (após aprovado)
+**PR-B (se necessário): extrair presets + defaults**
+- Mover `defaultForKind` e helpers de preset para `blockDefaults.ts`.
 
-- [ ] Envio manual num evento sem matéria vinculada mostra toast amarelo mas envia.
-- [ ] Envio manual num evento com template inválido continua bloqueando.
-- [ ] Mesclar 2+ eventos com nome custom → abrir /eventos em outra aba → nome novo aparece.
-- [ ] Selects da aba E-mail não mostram nenhum evento com data passada nem mesclado.
+---
+
+## Onda 2 — EmailConfig.tsx (1901 linhas)
+
+Já foi parcialmente feita antes (HistoryTab, AutomationsTab, ConfigTab, useEmailAutomation). Restam a aba de "Envio manual" e a aba de "Envio agendado".
+
+**PR-A: extrair EmailEventsTab restante**
+- Consolidar toda a aba `EmailEventsTab` num único componente que já recebe props do pai.
+- Mover `dispatchBatch`/`scheduleBatch` para um hook `useEmailDispatch.ts`.
+
+**PR-B: extrair query central de eventos**
+- Novo hook `useEmailActiveEvents.ts` (com o filtro `.eq('status','active').gte('date', hoje)`) reutilizado por todos os selects.
+
+---
+
+## Onda 3 — EventForm.tsx (1602 linhas)
+
+**PR-A: extrair secções do formulário**
+- Novo diretório `src/components/events/eventForm/`
+- Secções sugeridas: `BasicInfoSection.tsx`, `DateTimeSection.tsx`, `LocationSection.tsx`, `LineupSection.tsx`, `TicketSection.tsx`, `MediaSection.tsx`.
+
+**PR-B: extrair schema + submit**
+- Mover schema Zod e `handleSubmit` para `useEventForm.ts`.
+
+---
+
+## Onda 4 — EgressMonitor.tsx (1272 linhas)
+
+**PR-A: extrair cards e gráficos**
+- Novo diretório `src/pages/admin/egressMonitor/`
+- Cards de resumo, tabela de alertas e gráficos em arquivos separados.
+
+**PR-B: extrair queries**
+- Consolidar fetchs num hook `useEgressData.ts`.
+
+---
+
+## Onda 5 — supabase/functions/_shared/emailBlocks.ts (1243 linhas)
+
+**Atenção:** arquivo `_shared` — testar bundling depois.
+
+**PR-A: dividir por família de bloco**
+- Novo diretório `supabase/functions/_shared/emailBlocks/`
+- Um arquivo por família (`hero.ts`, `event.ts`, `countdown.ts`, `dedge.ts`, `weekend.ts`, `article.ts`, `footer.ts`) + `index.ts` reexportando tudo.
+- Manter API pública idêntica.
+
+**PR-B: rodar `scripts/bundle-edge-functions.mjs`** e redeployar todas as funções que importam esse shared.
+
+---
+
+## Onda 6 — supabase/functions/generate-blog-post-v2/index.ts (1220 linhas)
+
+**PR-A: extrair helpers puros**
+- Novos arquivos ao lado: `prompts.ts`, `firecrawl.ts`, `postBuilder.ts`, `imageGenerator.ts`.
+- `index.ts` fica só com o handler HTTP.
+
+**PR-B: bundle + deploy da função + rodar testes de contrato `edge-generate-blog-post-from-topic.test.ts`.**
+
+---
+
+## Onda 7 — MediaSettings.tsx (1168 linhas)
+
+**PR-A: extrair sub-abas**
+- Bunny CDN, Placeholders, Upload defaults, Egress rules em componentes separados sob `src/components/admin/settings/media/`.
+
+**PR-B (opcional):** consolidar hooks de mutation em `useMediaSettings.ts`.
+
+---
+
+## Onda 8 — LinksManager.tsx (1060 linhas)
+
+**PR-A: extrair listagem e modais**
+- Extrair tabela de links, modal de edição e modal de reordenação para `src/pages/admin/linksManager/`.
+
+**PR-B:** sem necessidade prevista (só se ainda passar de 900 linhas).
+
+---
+
+## Bônus — AIContent2.tsx (919 linhas)
+
+Está abaixo de 1000, mas próximo. Só refatorar se sobrar orçamento; aplicar o mesmo padrão (extrair abas para pasta dedicada).
+
+---
+
+## Como acompanhar
+
+- Marcar cada onda como `[ ] pendente / [~] em andamento / [x] concluída` no `plan.md` do projeto.
+- Ao final de cada onda, entregar o relatório padrão (Antes vs Depois, melhorias, vantagens/desvantagens, checklist manual, pendências, prevenção de regressão) exatamente como definido no `mem://~user`.
+
+## Riscos conhecidos
+
+- **Onda 5** (emailBlocks shared) é a mais arriscada: qualquer erro quebra várias funções de e-mail. Redeploy imediato + testes de contrato são obrigatórios.
+- **Onda 3** (EventForm) e **Onda 2** (EmailConfig) tocam telas de uso diário: validação manual no preview antes do publish.
+- Ondas 1, 4, 7, 8 são puramente visuais/admin — risco baixo.
+
+## Próximo passo
+
+Aprovar a **Onda 1 (EmailTemplateEditor.tsx — PR-A)** para eu começar pela maior redução (2243 → ~600).
