@@ -34,7 +34,7 @@ import {
 import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
-import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
+
 import { EmailDashboard } from '@/components/admin/EmailDashboard';
 import { EmailEventsTab } from '@/components/admin/emailConfig/EmailEventsTab';
 import { AutomationsTab } from '@/components/admin/emailConfig/AutomationsTab';
