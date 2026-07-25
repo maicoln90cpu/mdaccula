@@ -236,7 +236,6 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
       </div>
     );
   }
-  }
 
   if (block.kind === 'static_map') {
     return (
