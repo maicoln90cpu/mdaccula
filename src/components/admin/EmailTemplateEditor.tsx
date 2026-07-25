@@ -10,9 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
 import {
   Select,
   SelectContent,
@@ -33,11 +30,9 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  useSortable,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Plus, Trash2, Copy, Save, Eye, EyeOff, Library, Unlink } from 'lucide-react';
+import { Plus, Trash2, Copy, Save } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import {
   type Block,
@@ -46,7 +41,6 @@ import {
   AVAILABLE_BLOCKS,
   newBlockId,
   type ArticleSummary,
-  type GlobalBlock,
   TEMPLATE_PRESETS,
   buildPresetBlocks,
   type PresetKey,
