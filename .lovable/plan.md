@@ -48,23 +48,20 @@ Bônus   AIContent2.tsx                 919 → só se sobrar tempo
 
 ---
 
-## Onda 2 — EmailConfig.tsx (1901 → 1450 linhas, alvo <900)
-
-Já foi parcialmente feita antes (HistoryTab, AutomationsTab, ConfigTab, useEmailAutomation).
+## Onda 2 — EmailConfig.tsx (1901 → 1123 linhas, alvo <900) — ✅ CONCLUÍDA
 
 **PR-A — ✅ CONCLUÍDO**
-- Extrair a aba "Envio manual" (`batch`) para `src/components/admin/emailConfig/ManualSendTab.tsx`.
-- Mover `dispatchBatch`/`scheduleBatch` para `src/components/admin/emailConfig/useEmailDispatch.ts`.
-- Atualizar testes de regressão R-008 e R-023 para apontar para os novos arquivos.
-- Validado: `npx tsc --noEmit`, `npm run lint`, `npm test` (85 arquivos / 381 tests) verdes.
+- Extraída aba "Envio manual" para `ManualSendTab.tsx` + hook `useEmailDispatch.ts`.
+- Testes R-008 e R-023 atualizados.
 
-**PR-B — PENDENTE (próxima onda segura)**
-- Ainda restam na página as abas de **Template (marca)** e **Editor + Preview**, mantendo `EmailConfig.tsx` com 1450 linhas (acima do limite de 1000).
-- Opções para PR-B:
-  1. Extrair aba "Template (marca)" para `TemplateBrandTab.tsx`.
-  2. Extrair aba "Editor + Preview" para `TemplateEditorTab.tsx`.
-  3. Extrair query central de eventos ativos para `useEmailActiveEvents.ts` (reutilizável nos selects da aba manual e de automações).
-- Recomendação: começar pela aba "Template (marca)" (self-contained, sem dependências de estado complexas).
+**PR-B — ✅ CONCLUÍDO**
+- Extraída aba "Template (marca)" → `TemplateBrandTab.tsx` (254 linhas).
+- Extraída aba "Editor + Preview" → `TemplateEditorTab.tsx` (~230 linhas).
+- Removidos imports órfãos (Button, Card, Label, Select*, EmailTemplateEditor).
+- Teste de regressão `email-flow-parity` atualizado para apontar para o novo componente.
+- `EmailConfig.tsx`: **1901 → 1123 linhas** (−41%). Ainda acima do alvo <900 por causa do estado central (~800 linhas de state + handlers). Considerar **Onda 2 PR-C opcional** no futuro para extrair `useEmailConfigState.ts` (hook orquestrador) se sobrar tempo — porém já está bem abaixo do limite inicial de "gigante".
+- Validado: `tsgo --noEmit`, `eslint` e 381 testes passando.
+
 
 ---
 
