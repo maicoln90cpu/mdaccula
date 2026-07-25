@@ -217,7 +217,7 @@ Deno.serve(async (req) => {
     }
 
     return json({
-      ok: campaignStatus !== 'failed' && !insertError,
+      ok: campaignStatus !== 'failed',
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
       error: finalErrorMessage,

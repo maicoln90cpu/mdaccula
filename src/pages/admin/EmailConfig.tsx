@@ -877,6 +877,7 @@ const EmailConfig = () => {
           void loadAll();
         } else {
           toast({ variant: 'destructive', title: 'Falha', description: res.error || 'Erro desconhecido' });
+          void loadAll();
         }
         return;
       }
