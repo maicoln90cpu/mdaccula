@@ -49,6 +49,7 @@ import { EmailEventsTab } from '@/components/admin/emailConfig/EmailEventsTab';
 import { AutomationsTab } from '@/components/admin/emailConfig/AutomationsTab';
 import { ConfigTab } from '@/components/admin/emailConfig/ConfigTab';
 import { ManualSendTab } from '@/components/admin/emailConfig/ManualSendTab';
+import { TemplateBrandTab } from '@/components/admin/emailConfig/TemplateBrandTab';
 import { useEmailDispatch } from '@/components/admin/emailConfig/useEmailDispatch';
 import {
   useEmailAutomation,
