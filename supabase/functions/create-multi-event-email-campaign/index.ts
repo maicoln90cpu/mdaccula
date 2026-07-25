@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const eventIds = Array.isArray(body?.event_ids)
-      ? (body.event_ids as unknown[]).filter((id): id is string => typeof id === 'string' && id.length > 0)
+      ? [...new Set((body.event_ids as unknown[]).filter((id): id is string => typeof id === 'string' && id.length > 0))]
       : [];
     const html = body?.html as string | undefined;
     const subject = (body?.subject as string | undefined) || undefined;
