@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,16 +8,14 @@ import { useToast } from '@/hooks/useToast';
 import {
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
-  type EmailTemplateSettings,
 } from '@/lib/emailTemplates/eventAnnouncement';
 
-import { type Template, type Block, type ArticleSummary } from '@/lib/emailTemplates/blocks';
+import { type Block, type ArticleSummary } from '@/lib/emailTemplates/blocks';
 import {
   applyEmailBlockOverrides,
   buildEventAnnouncementData,
   buildMultiEventAnnouncementData,
   composeEmail,
-  type EmailEventRow,
 } from '@/lib/emailTemplates/emailComposer';
 import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
@@ -36,13 +34,7 @@ import {
   DAY_LABELS,
   AUTOMATION_TEST_RECIPIENT,
 } from '@/components/admin/emailConfig/useEmailAutomation';
-import type {
-  Mode,
-  EgoiConfig,
-  ListItem,
-  SenderItem,
-  SegmentItem,
-} from '@/components/admin/emailConfig/types';
+import { useEmailConfigState } from '@/components/admin/emailConfig/useEmailConfigState';
 
 import { formatCount } from '@/lib/formatters';
 
@@ -60,37 +52,14 @@ interface DigestPreviewResponse {
   template_name?: string | null;
 }
 
+
 const EmailConfig = () => {
   const { toast } = useToast();
   const { globalsMap } = useEmailGlobalBlocks();
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [saving, setSaving] = useState(false);
-  const [masterEnabled, setMasterEnabled] = useState(false);
-  const [cfg, setCfg] = useState<EgoiConfig>({
-    list_id: null,
-    sender_id: null,
-    segment_id: null,
-    mode: 'draft',
-    is_enabled: false,
-    scheduled_days_before: 3,
-  });
-  const [lists, setLists] = useState<ListItem[]>([]);
-  const [senders, setSenders] = useState<SenderItem[]>([]);
-  const [segments, setSegments] = useState<SegmentItem[]>([]);
-  const [listTotal, setListTotal] = useState<number | null>(null);
-  const [fetchingResources, setFetchingResources] = useState(false);
-  const [fetchingSegments, setFetchingSegments] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
-  const [tpl, setTpl] = useState<EmailTemplateSettings & { id?: string }>({});
-  const [tplSaving, setTplSaving] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = useState<import('@/lib/emailTemplates/blocks').Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [realEvents, setRealEvents] = useState<
-    Array<EmailEventRow & { blog_post_id: string | null }>
-  >([]);
   const [selectedRealEventId, setSelectedRealEventId] = useState<string>('mock');
   const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
   const [digestTemplateId, setDigestTemplateId] = useState<string>('');
@@ -120,9 +89,8 @@ const EmailConfig = () => {
   const [batchScheduling, setBatchScheduling] = useState(false);
   /** undefined = usa o segmento global de egoi_config; null = toda a lista; number = segmento específico. */
   const [batchSegmentId, setBatchSegmentId] = useState<number | null | undefined>(undefined);
-  // Automações (Digest semanal + Agenda FDS + Blog news)
-  // Automações (Digest semanal + Agenda FDS + Blog news) — estado + handlers
-  // encapsulados no hook `useEmailAutomation` (Fase C).
+
+  // Automações — estado + handlers encapsulados no hook `useEmailAutomation` (Fase C).
   const {
     weeklyCfg,
     setWeeklyCfg,
@@ -167,261 +135,53 @@ const EmailConfig = () => {
     sendAutomationNow,
   } = useEmailAutomation({ templates, toast });
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [master, config, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
-        supabase
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'egoi_email_enabled')
-          .maybeSingle(),
-        supabase.from('egoi_config').select('*').maybeSingle(),
-        supabase.from('email_template_settings').select('*').maybeSingle(),
-        supabase.from('egoi_resources_cache').select('*').maybeSingle(),
-        supabase
-          .from('email_templates')
-          .select('*')
-          .order('is_default', { ascending: false })
-          .order('created_at', { ascending: true }),
-        supabase
-          .from('events')
-          .select(
-            'id,title,slug,date,time,venue,location_city,location_state,image_url,description,subtitle,ticket_link,vip_link,cta_type,blog_post_id,lineup,latitude,longitude,venue_lat,venue_lng,status,pix_button_enabled'
-          )
-          // Só eventos ativos e futuros — descarta merged_inactive, arquivados
-          // e passados (não faz sentido enviar e-mail de evento que já aconteceu).
-          .eq('status', 'active')
-          .gte('date', new Date().toISOString().slice(0, 10))
-          // Mais próximos primeiro (crescente por data e hora).
-          .order('date', { ascending: true })
-          .order('time', { ascending: true })
-          .limit(500),
-
-        supabase
-          .from('site_settings')
-          .select('key, value')
-          .in('key', [
-            'weekly_digest_enabled',
-            'weekly_digest_cron_day',
-            'weekly_digest_cron_hour',
-            'weekly_digest_template_id',
-            'weekly_digest_send_on_cron',
-            'weekend_agenda_enabled',
-            'weekend_agenda_cron_day',
-            'weekend_agenda_cron_hour',
-            'weekend_agenda_template_id',
-            'weekend_agenda_send_on_cron',
-            'blog_digest_enabled',
-            'blog_digest_cron_day',
-            'blog_digest_cron_hour',
-            'blog_digest_template_id',
-            'blog_digest_send_on_cron',
-            'weekly_digest_last_result',
-            'weekend_agenda_last_result',
-            'blog_digest_last_result',
-          ]),
-      ]);
-
-      setMasterEnabled(master.data?.value === 'true');
-      const settingsMap: Record<string, string> = {};
-      for (const r of digestRow.data ?? []) settingsMap[r.key] = r.value ?? '';
-      const parseInt10 = (v: string | undefined, fallback: number) => {
-        const n = parseInt(v ?? '', 10);
-        return Number.isFinite(n) ? n : fallback;
-      };
-      setWeeklyCfg({
-        enabled: settingsMap.weekly_digest_enabled === 'true',
-        day: parseInt10(settingsMap.weekly_digest_cron_day, 4),
-        hour: parseInt10(settingsMap.weekly_digest_cron_hour, 18),
-        templateId: settingsMap.weekly_digest_template_id || '',
-        sendOnCron: settingsMap.weekly_digest_send_on_cron === 'true',
-      });
-      setWeekendCfg({
-        enabled: settingsMap.weekend_agenda_enabled === 'true',
-        day: parseInt10(settingsMap.weekend_agenda_cron_day, 4),
-        hour: parseInt10(settingsMap.weekend_agenda_cron_hour, 12),
-        templateId: settingsMap.weekend_agenda_template_id || '',
-        sendOnCron: settingsMap.weekend_agenda_send_on_cron === 'true',
-      });
-      setBlogCfg({
-        enabled: settingsMap.blog_digest_enabled === 'true',
-        day: parseInt10(settingsMap.blog_digest_cron_day, 0),
-        hour: parseInt10(settingsMap.blog_digest_cron_hour, 12),
-        templateId: settingsMap.blog_digest_template_id || '',
-        sendOnCron: settingsMap.blog_digest_send_on_cron === 'true',
-      });
-      // Restaura o último rascunho gerado (se houver) pra sobreviver a reload
-      // — sem isso "Enviar agora" ficava travado até gerar um rascunho novo
-      // na mesma sessão, mesmo com uma campanha válida já criada na E-goi.
-      const parseLastResult = (raw: string | undefined) => {
-        if (!raw) return null;
-        try {
-          return JSON.parse(raw);
-        } catch {
-          return null;
-        }
-      };
-      setDigestLastResult(parseLastResult(settingsMap.weekly_digest_last_result));
-      setWeekendLastResult(parseLastResult(settingsMap.weekend_agenda_last_result));
-      setBlogLastResult(parseLastResult(settingsMap.blog_digest_last_result));
-      if (tplRes?.data) setTpl(tplRes.data);
-      if (cacheRes?.data) {
-        setLists(Array.isArray(cacheRes.data.lists) ? (cacheRes.data.lists as unknown as ListItem[]) : []);
-        setSenders(Array.isArray(cacheRes.data.senders) ? (cacheRes.data.senders as unknown as SenderItem[]) : []);
-        setLastSyncedAt(cacheRes.data.last_synced_at ?? null);
-      }
-      const tplArr = (tplList?.data as unknown as Template[]) ?? [];
-      setTemplates(tplArr);
-      setActiveTemplateId(
-        (prev) => prev || tplArr.find((t) => t.is_default)?.id || tplArr[0]?.id || null
-      );
-      setRealEvents(evts.data ?? []);
-      if (config.data) {
-        setCfg({
-          id: config.data.id,
-          list_id: config.data.list_id,
-          sender_id: config.data.sender_id,
-          segment_id: config.data.segment_id ?? null,
-          mode: (config.data.mode as Mode) ?? 'draft',
-          is_enabled: !!config.data.is_enabled,
-          scheduled_days_before: config.data.scheduled_days_before ?? 3,
-          default_event_template_id: (config.data as unknown as { default_event_template_id?: string | null }).default_event_template_id ?? null,
-        });
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro ao carregar', description: message });
-    } finally {
-      setLoading(false);
-    }
-  }, [
+  // Camada de dados (loadAll, CRUD egoi_config, upload logo, listas/segmentos)
+  // extraída para `useEmailConfigState` na Onda 9 PR-A.
+  const {
+    loading,
+    saving,
+    masterEnabled,
+    cfg,
+    setCfg,
+    lists,
+    senders,
+    segments,
+    listTotal,
+    lastSyncedAt,
+    fetchingResources,
+    fetchingSegments,
+    tpl,
+    setTpl,
+    tplSaving,
+    uploadingLogo,
+    realEvents,
+    canEnableAuto,
+    reachEstimate,
+    globalSegmentLabel,
+    loadAll,
+    reloadTemplates,
+    fetchEgoiResources,
+    save,
+    toggleMaster,
+    saveTemplate,
+    uploadLogo,
+  } = useEmailConfigState({
     toast,
-    setWeeklyCfg,
-    setWeekendCfg,
-    setBlogCfg,
-    setDigestLastResult,
-    setWeekendLastResult,
-    setBlogLastResult,
-  ]);
+    templates,
+    setTemplates,
+    setActiveTemplateId,
+    automation: {
+      setWeeklyCfg,
+      setWeekendCfg,
+      setBlogCfg,
+      setDigestLastResult,
+      setWeekendLastResult,
+      setBlogLastResult,
+    },
+  });
 
-  useEffect(() => {
-    void loadAll();
-  }, [loadAll]);
 
-  // Quando a lista muda, recarrega segmentos automaticamente
-  useEffect(() => {
-    if (cfg.list_id) void fetchSegments(cfg.list_id);
-    else {
-      setSegments([]);
-      setListTotal(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cfg.list_id]);
 
-  const reloadTemplates = async () => {
-    const { data } = await supabase
-      .from('email_templates')
-      .select('*')
-      .order('is_default', { ascending: false })
-      .order('created_at', { ascending: true });
-    setTemplates((data as unknown as Template[]) ?? []);
-  };
-
-  const fetchEgoiResources = async () => {
-    setFetchingResources(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('egoi-resources');
-      if (error) throw error;
-      setLists(Array.isArray(data?.lists) ? data.lists : []);
-      setSenders(Array.isArray(data?.senders) ? data.senders : []);
-      setLastSyncedAt(data?.last_synced_at ?? new Date().toISOString());
-      toast({
-        title: 'Recursos E-goi atualizados',
-        description: `${data?.lists?.length ?? 0} listas · ${data?.senders?.length ?? 0} remetentes.`,
-      });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Falha ao buscar E-goi', description: message });
-    } finally {
-      setFetchingResources(false);
-    }
-  };
-
-  const fetchSegments = async (listId: number) => {
-    setFetchingSegments(true);
-    try {
-      const { data: sess } = await supabase.auth.getSession();
-      const token = sess.session?.access_token;
-      if (!token) throw new Error('Sessão expirada');
-      const projectUrl = 'https://xfvpuzlspvvsmmunznxw.supabase.co';
-      const res = await fetch(`${projectUrl}/functions/v1/egoi-resources?list_id=${listId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      setSegments(Array.isArray(json?.segments) ? json.segments : []);
-      setListTotal(typeof json?.list_total_contacts === 'number' ? json.list_total_contacts : null);
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Falha ao buscar segmentos', description: message });
-      setSegments([]);
-    } finally {
-      setFetchingSegments(false);
-    }
-  };
-
-  const canEnableAuto = cfg.list_id !== null && cfg.sender_id !== null;
-
-  const save = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        list_id: cfg.list_id,
-        sender_id: cfg.sender_id,
-        segment_id: cfg.segment_id,
-        mode: cfg.mode,
-        is_enabled: canEnableAuto ? cfg.is_enabled : false,
-        scheduled_days_before: cfg.scheduled_days_before,
-        default_event_template_id: cfg.default_event_template_id || null,
-        singleton: true,
-      };
-      const { error } = cfg.id
-        ? await supabase.from('egoi_config').update(payload).eq('id', cfg.id)
-        : await supabase.from('egoi_config').insert(payload);
-      if (error) throw error;
-      toast({ title: 'Configuração salva' });
-      void loadAll();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro ao salvar', description: message });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const toggleMaster = async (v: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('site_settings')
-        .upsert({ key: 'egoi_email_enabled', value: v ? 'true' : 'false' }, { onConflict: 'key' });
-      if (error) throw error;
-      setMasterEnabled(v);
-      toast({
-        title: v ? 'Master ligado' : 'Master desligado',
-        description: v
-          ? 'Automação de e-mail habilitada globalmente.'
-          : 'Nenhum disparo automático será feito.',
-      });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao alterar master switch',
-        description: message,
-      });
-    }
-  };
 
   // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
   const activeTemplate = useMemo(
@@ -648,72 +408,7 @@ const EmailConfig = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [previewSource, activeTemplateId]);
 
-  const saveTemplate = async () => {
-    setTplSaving(true);
-    try {
-      const { id, ...payload } = tpl;
-      const table = supabase.from('email_template_settings');
-      const { error } = id
-        ? await table.update(payload).eq('id', id)
-        : await table.insert({ ...payload, singleton: true });
-      if (error) throw error;
-      toast({ title: 'Template salvo' });
-      void loadAll();
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro ao salvar template', description: message });
-    } finally {
-      setTplSaving(false);
-    }
-  };
 
-  const uploadLogo = async (file: File) => {
-    if (file.size > 500 * 1024) {
-      toast({
-        variant: 'destructive',
-        title: 'Arquivo muito grande',
-        description: 'Máximo 500KB para logos.',
-      });
-      return;
-    }
-    setUploadingLogo(true);
-    try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `email-template/logo-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from('link-thumbnails').upload(path, file, {
-        cacheControl: '3600',
-        upsert: true,
-      });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('link-thumbnails').getPublicUrl(path);
-      setTpl({ ...tpl, logo_url: pub.publicUrl });
-      toast({ title: 'Logo enviada', description: 'Clique em Salvar para aplicar.' });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro no upload', description: message });
-    } finally {
-      setUploadingLogo(false);
-    }
-  };
-
-  // Alcance estimado: segmento tem prioridade; senão pega o total da lista (do detalhe ou do cache do select).
-  const reachEstimate = useMemo(() => {
-    if (cfg.segment_id) {
-      const s = segments.find((x) => x.segment_id === cfg.segment_id);
-      return s?.total_contacts ?? null;
-    }
-    if (listTotal !== null) return listTotal;
-    const l = lists.find((x) => x.list_id === cfg.list_id);
-    return typeof l?.total_contacts === 'number' ? l.total_contacts : null;
-  }, [cfg.segment_id, segments, listTotal, lists, cfg.list_id]);
-
-  // Rótulo do segmento global atual, exibido na opção "padrão" do seletor
-  // de segmento da aba "Envio manual".
-  const globalSegmentLabel = useMemo(() => {
-    if (!cfg.segment_id) return 'toda a lista';
-    const s = segments.find((x) => x.segment_id === cfg.segment_id);
-    return s?.name ?? `segmento #${cfg.segment_id}`;
-  }, [cfg.segment_id, segments]);
 
   // B.8 — quando templates carregarem, pré-seleciona o primeiro ticket_batch
   useEffect(() => {

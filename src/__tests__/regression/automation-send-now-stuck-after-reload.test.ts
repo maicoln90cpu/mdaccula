@@ -60,8 +60,10 @@ describe('Regressão R-029 — "Enviar agora" sobrevive a reload sem permitir re
     expect(fnBody).toContain('persistLastResult(job, null)');
   });
 
-  it('EmailConfig.tsx busca e restaura o último rascunho persistido de cada job', () => {
-    const content = read('src/pages/admin/EmailConfig.tsx');
+  it('useEmailConfigState (loadAll) busca e restaura o último rascunho persistido de cada job', () => {
+    // A hidratação foi extraída de EmailConfig.tsx para o hook useEmailConfigState
+    // na Onda 9 PR-A (mesma lógica, apenas relocação para reduzir o arquivo).
+    const content = read('src/components/admin/emailConfig/useEmailConfigState.ts');
 
     expect(content).toContain("'weekly_digest_last_result'");
     expect(content).toContain("'weekend_agenda_last_result'");
@@ -74,3 +76,4 @@ describe('Regressão R-029 — "Enviar agora" sobrevive a reload sem permitir re
     expect(content).toContain('setBlogLastResult(parseLastResult(settingsMap.blog_digest_last_result))');
   });
 });
+
