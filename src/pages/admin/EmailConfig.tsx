@@ -193,24 +193,6 @@ const EmailConfig = () => {
     sendAutomationNow,
   } = useEmailAutomation({ templates, toast });
 
-  const { dispatchBatch, scheduleBatch } = useEmailDispatch({
-    batchEventId,
-    batchEventIds,
-    batchTemplateId,
-    batchArtworkUrl,
-    batchSubject,
-    batchSegmentId,
-    batchScheduleAt,
-    isMultiEventTemplate,
-    selectedManualEvents,
-    selectedManualTemplate,
-    manualComposition,
-    loadAll,
-    setBatchDispatching,
-    setBatchScheduling,
-    setBatchScheduleAt,
-  });
-
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
