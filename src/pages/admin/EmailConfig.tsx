@@ -15,16 +15,7 @@ import {
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NavLink } from 'react-router-dom';
-import {
-  ArrowLeft,
-  RefreshCw,
-  Save,
-  Send,
-  Palette,
-  Image as ImageIcon,
-  LayoutGrid,
-  BarChart3,
-} from 'lucide-react';
+import { ArrowLeft, Send, LayoutGrid, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 import {
   MOCK_EVENT_DATA,
