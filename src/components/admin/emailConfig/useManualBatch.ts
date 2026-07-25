@@ -21,7 +21,7 @@ interface UseManualBatchParams {
   templates: Template[];
   realEvents: Array<EmailEventRow & { blog_post_id: string | null }>;
   tpl: unknown;
-  globalsMap: Record<string, unknown>;
+  globalsMap: import('@/lib/emailTemplates/blocks').GlobalBlock extends never ? never : Map<string, import('@/lib/emailTemplates/blocks').GlobalBlock>;
   toast: ToastFn;
   loadAll: () => Promise<void>;
 }
