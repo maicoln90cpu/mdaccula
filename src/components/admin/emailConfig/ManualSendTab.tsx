@@ -413,10 +413,8 @@ export function ManualSendTab(props: ManualSendTabProps) {
           </p>
         </CardContent>
       </Card>
-    </TabsContent>
+    </>
   );
 }
 
-// Precisamos importar TabsContent para manter o escopo de abas, mas como
-// ManualSendTab é renderizado dentro de <Tabs>, o componente funciona normalmente.
 import { TabsContent } from '@/components/ui/tabs';
