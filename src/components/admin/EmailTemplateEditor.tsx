@@ -373,6 +373,7 @@ function SortableRow({
 type TypeFilterKey =
   | 'event_new'
   | 'ticket_batch'
+  | 'ticket_batch_multi'
   | 'weekend_agenda'
   | 'weekly_digest'
   | 'blog_digest'
@@ -381,6 +382,7 @@ type TypeFilterKey =
 const TYPE_FILTER_ORDER: TypeFilterKey[] = [
   'event_new',
   'ticket_batch',
+  'ticket_batch_multi',
   'weekend_agenda',
   'weekly_digest',
   'blog_digest',
@@ -390,6 +392,7 @@ const TYPE_FILTER_ORDER: TypeFilterKey[] = [
 const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
   event_new: 'Evento',
   ticket_batch: 'Virada',
+  ticket_batch_multi: 'Virada (multi)',
   weekend_agenda: 'Agenda FDS',
   weekly_digest: 'Digest',
   blog_digest: 'Blog news',
@@ -442,6 +445,7 @@ export function EmailTemplateEditor({
     const counts: Record<TypeFilterKey, number> = {
       event_new: 0,
       ticket_batch: 0,
+      ticket_batch_multi: 0,
       weekend_agenda: 0,
       weekly_digest: 0,
       blog_digest: 0,

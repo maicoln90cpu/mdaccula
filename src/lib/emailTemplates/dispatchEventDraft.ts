@@ -336,17 +336,34 @@ export async function dispatchMultiEventDraftEmail(
   eventIds: string[],
   opts: {
     sendNow?: boolean;
+    /** Mesma semântica do dispatchEventDraftEmail: força reenvio mesmo se
+     * algum evento selecionado já tiver email_campaign_dispatched_at setado
+     * (comum numa virada de lote, já que os eventos costumam ter sido
+     * anunciados individualmente antes). */
+    forceResend?: boolean;
+    /**
+     * Sobrescreve o segmento E-goi só para este disparo (aba "Envio manual").
+     * `null` = envia para toda a lista; `undefined`/ausente = usa o segmento
+     * global de egoi_config.segment_id (comportamento padrão).
+     */
+    segmentIdOverride?: number | null;
     preparedComposition: { html: string; subject: string; preheader: string };
   }
 ): Promise<DispatchEventDraftResult> {
+  const invokeBody: Record<string, unknown> = {
+    event_ids: eventIds,
+    html: opts.preparedComposition.html,
+    subject: opts.preparedComposition.subject,
+    preheader: opts.preparedComposition.preheader,
+    send_now: opts.sendNow === true,
+    force_resend: opts.forceResend === true,
+  };
+  if (opts.segmentIdOverride !== undefined) {
+    invokeBody.segment_id = opts.segmentIdOverride;
+  }
+
   const { data, error } = await supabase.functions.invoke('create-multi-event-email-campaign', {
-    body: {
-      event_ids: eventIds,
-      html: opts.preparedComposition.html,
-      subject: opts.preparedComposition.subject,
-      preheader: opts.preparedComposition.preheader,
-      send_now: opts.sendNow === true,
-    },
+    body: invokeBody,
   });
   if (error) return { ok: false, error: error.message };
   return (data as DispatchEventDraftResult) ?? { ok: false, error: 'Resposta vazia' };

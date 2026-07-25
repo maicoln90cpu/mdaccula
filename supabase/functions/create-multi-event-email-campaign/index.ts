@@ -51,6 +51,15 @@ Deno.serve(async (req) => {
     const subject = (body?.subject as string | undefined) || undefined;
     const preheader = (body?.preheader as string | undefined) || undefined;
     const sendNow = body?.send_now === true;
+    const forceResend = body?.force_resend === true;
+    // Segmento por disparo (aba "Envio manual") — mesma semântica do
+    // create-event-email-campaign sibling: quando a chave vem no body (mesmo
+    // que null, para "toda a lista"), sobrescreve o segmento global de
+    // egoi_config.segment_id só para este envio. Ausente = usa o global.
+    const segmentOverrideProvided = Object.prototype.hasOwnProperty.call(body, 'segment_id');
+    const segmentIdOverride = segmentOverrideProvided
+      ? (body?.segment_id != null ? Number(body.segment_id) : null)
+      : undefined;
 
     if (eventIds.length === 0 || !html || !subject) {
       return json({ error: 'event_ids (array não vazio), html e subject são obrigatórios' }, 400);
@@ -71,10 +80,25 @@ Deno.serve(async (req) => {
     if (!cfg || !cfg.is_enabled || !cfg.list_id || !cfg.sender_id) {
       return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
     }
-    const resolvedSegmentId = cfg.segment_id != null ? Number(cfg.segment_id) : null;
+    const resolvedSegmentId = segmentOverrideProvided
+      ? segmentIdOverride
+      : cfg.segment_id != null
+        ? Number(cfg.segment_id)
+        : null;
 
     const apiKey = Deno.env.get('EGOI_API_KEY');
     if (!apiKey) return json({ error: 'EGOI_API_KEY não configurada' }, 500);
+
+    // force_resend permite reenviar para eventos já anunciados (ex.: virada de
+    // lote de eventos que já tiveram e-mail individual disparado antes) —
+    // mesmo padrão do create-event-email-campaign sibling. Limpa ANTES do
+    // claim atômico abaixo.
+    if (forceResend) {
+      await admin
+        .from('events')
+        .update({ email_campaign_dispatched_at: null })
+        .in('id', eventIds);
+    }
 
     // Guard 3: claim tudo-ou-nada dos N eventos.
     const now = new Date().toISOString();
@@ -179,15 +203,24 @@ Deno.serve(async (req) => {
       segment_id: resolvedSegmentId,
       campaign_type: 'multi_event',
     }));
-    if (created.ok) {
-      await admin.from('event_email_campaigns').insert(rows);
+    // Grava o histórico mesmo quando a criação na E-goi falhou (campaignStatus
+    // 'failed' com errorMessage preenchido) — mesmo padrão do
+    // create-event-email-campaign sibling, que sempre persiste uma linha para
+    // o admin ver o erro no histórico/dashboard, em vez de não deixar rastro.
+    const { error: insertError } = await admin.from('event_email_campaigns').insert(rows);
+
+    let finalErrorMessage = errorMessage;
+    if (insertError) {
+      finalErrorMessage = finalErrorMessage
+        ? `${finalErrorMessage} (aviso: falha ao gravar histórico: ${insertError.message})`
+        : `Aviso: falha ao gravar histórico: ${insertError.message}`;
     }
 
     return json({
-      ok: campaignStatus !== 'failed',
+      ok: campaignStatus !== 'failed' && !insertError,
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
-      error: errorMessage,
+      error: finalErrorMessage,
       event_ids: eventIds,
     });
   } catch (e) {

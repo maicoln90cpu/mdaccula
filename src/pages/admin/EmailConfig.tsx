@@ -852,6 +852,8 @@ const EmailConfig = () => {
         }
         const res = await dispatchMultiEventDraftEmail(batchEventIds, {
           sendNow,
+          forceResend: true,
+          segmentIdOverride: batchSegmentId,
           preparedComposition: {
             html: manualComposition.html,
             subject: manualComposition.subject,
