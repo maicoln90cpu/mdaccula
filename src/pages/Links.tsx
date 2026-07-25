@@ -160,7 +160,7 @@ export default function Links() {
                 alt="Avatar"
                 loading="eager"
                 decoding="async"
-                fetchpriority="high"
+                fetchPriority="high"
                 width={128}
                 height={128}
                 className="w-28 h-28 md:w-32 md:h-32 rounded-full mx-auto mb-4 border-4 border-white/30 shadow-2xl object-cover animate-glow"
