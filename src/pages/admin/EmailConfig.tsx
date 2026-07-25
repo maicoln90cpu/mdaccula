@@ -81,7 +81,6 @@ interface DigestPreviewResponse {
 
 const EmailConfig = () => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const { globalsMap } = useEmailGlobalBlocks();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>('dashboard');
