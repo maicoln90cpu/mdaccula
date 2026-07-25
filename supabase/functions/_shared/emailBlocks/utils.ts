@@ -1,11 +1,11 @@
 // Utilidades puras usadas pelo renderer HTML. Extraído sem mudanças.
 import type { Block, EventAnnouncementData } from "./types.ts";
 
-const escape = (s: string) =>
+export const escape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
-const sanitizeCustomHtml = (raw: string) =>
+export const sanitizeCustomHtml = (raw: string) =>
   raw
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -14,7 +14,7 @@ const sanitizeCustomHtml = (raw: string) =>
     .replace(/on\w+\s*=\s*'[^']*'/gi, "")
     .replace(/javascript:/gi, "");
 
-const resolveCtaUrl = (block: Extract<Block, { kind: "cta_button" }>, event: EventAnnouncementData) => {
+export const resolveCtaUrl = (block: Extract<Block, { kind: "cta_button" }>, event: EventAnnouncementData) => {
   switch (block.url_field) {
     case "vip_link":
       return event.vipLink || event.ticketUrl;
@@ -28,7 +28,7 @@ const resolveCtaUrl = (block: Extract<Block, { kind: "cta_button" }>, event: Eve
   }
 };
 
-const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, event: EventAnnouncementData) => {
+export const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, event: EventAnnouncementData) => {
   switch (block.url_field) {
     case "event_url":
       return event.eventUrl;
