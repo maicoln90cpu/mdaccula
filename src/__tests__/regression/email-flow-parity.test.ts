@@ -27,11 +27,12 @@ describe('regressao - fidelidade entre preview, teste, rascunho e envio', () => 
 
   it('o snapshot exibido no envio manual segue sem remontagem ate a E-goi', () => {
     const page = read('src/pages/admin/EmailConfig.tsx');
+    const dispatchLogic = read('src/components/admin/emailConfig/useEmailDispatch.ts');
     const dispatch = read('src/lib/emailTemplates/dispatchEventDraft.ts');
     const edge = read('supabase/functions/create-event-email-campaign/index.ts');
 
-    expect(page).toContain('preparedComposition:');
-    expect(page).toContain('html: manualComposition.html');
+    expect(page + dispatchLogic).toContain('preparedComposition:');
+    expect(dispatchLogic).toContain('html: manualComposition.html');
     expect(dispatch).toContain('const finalComposition = opts.preparedComposition ?? composition');
     expect(dispatch).toContain('html: finalComposition.html');
     expect(edge).toContain('body: html');
