@@ -46,7 +46,7 @@ describe('Regressão R-023 — botões de envio manual não travam mais por warn
   });
 
   it('manualIssuePartition é derivado de partitionIssues sobre manualComposition.issues', () => {
-    const src = read('src/pages/admin/EmailConfig.tsx');
+    const src = read('src/components/admin/emailConfig/useManualBatch.ts');
     expect(src).toMatch(/partitionIssues\(manualComposition\?\.issues\s*\?\?\s*\[\]\)/);
   });
 
@@ -67,7 +67,7 @@ describe('Regressão R-023 — botões de envio manual não travam mais por warn
   });
 
   it('EmailConfig.tsx aplica o mesmo filtro de blocos de agenda na prévia do envio manual', () => {
-    const src = read('src/pages/admin/EmailConfig.tsx');
+    const src = read('src/components/admin/emailConfig/useManualBatch.ts');
     const manualCompositionBlock = src.slice(
       src.indexOf('const manualComposition = useMemo'),
       src.indexOf('const manualIssuePartition')

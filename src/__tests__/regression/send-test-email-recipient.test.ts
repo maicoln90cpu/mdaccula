@@ -55,7 +55,7 @@ describe('Regressão R-009 — destino fixo e confirmação de entrega no teste 
   });
 
   it('EmailConfig.tsx (sendTestEmail) não envia mais to_email e valida o ID de retorno', () => {
-    const src = read('src/pages/admin/EmailConfig.tsx');
+    const src = read('src/components/admin/emailConfig/useEmailPreview.ts');
     const fnMatch = src.match(/const sendTestEmail[\s\S]*?\n  };/);
     expect(fnMatch, 'Não encontrei a função sendTestEmail em EmailConfig.tsx.').toBeTruthy();
     const fnSrc = fnMatch![0];
