@@ -700,12 +700,6 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/nova-era-no-barraco-sp-em-sao-paulo-sabado-25-de-julho-de-2026</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/blog/raves-sustentaveis-ganham-espaco-como-a-cena-eletronica-se-adapta</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
@@ -935,6 +929,12 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/carnaval-eletronico-no-coracao-do-rio-boma-unifica-cultura-e-batida-eletrizante-no-museu-do-amanha</loc>
+    <lastmod>2026-07-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://mdaccula.com/blog/nova-era-no-barraco-sp-em-sao-paulo-sabado-25-de-julho-de-2026</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

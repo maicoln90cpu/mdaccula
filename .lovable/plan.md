@@ -38,7 +38,7 @@ Onda 14  EventDetail.tsx                              854 → <600
 Onda 15  LinksAnalytics.tsx                           849 → <600
 Onda 16  EventForm.tsx                                816 → <600
 Onda 17  Eventos.tsx                                  802 → <600
-Onda 18  AutomationsTab.tsx                           793 → <600
+Onda 18  AutomationsTab.tsx                           793 → 224 (✅ feita antecipada como "Onda 11"; + AutomationCard 296, SendOnCronToggle 25)
 Onda 19  TemplatesPanel.tsx (ai-content)              771 → <600
 Onda 20  generate-multi-event-article/index.ts       762 → <600
 Onda 21  EventsManager.tsx                            755 → <600
