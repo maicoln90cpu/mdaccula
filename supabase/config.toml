@@ -163,6 +163,9 @@ verify_jwt = false
 [functions.generate-blog-post-from-topic]
 verify_jwt = false
 
+[functions.preview-topic-sources]
+verify_jwt = false
+
 [functions.send-scheduled-email-campaigns]
 verify_jwt = false
 

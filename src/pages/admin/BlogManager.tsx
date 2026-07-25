@@ -629,7 +629,9 @@ const BlogManager = () => {
                       {sourcesInfo.sources.map((source, i) => (
                         <li key={i} className="space-y-0.5">
                           <p className="text-xs text-muted-foreground">
-                            {source.kind === 'origin' ? 'Fonte de origem' : 'Contexto adicional'}
+                            {source.kind === 'origin'
+                              ? 'Fonte cadastrada (Fontes / Event Watcher)'
+                              : 'Resultado de busca na web (não é uma Fonte cadastrada)'}
                           </p>
                           <p className="font-medium">{source.name}</p>
                           <a

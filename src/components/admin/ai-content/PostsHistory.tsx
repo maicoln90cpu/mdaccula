@@ -237,7 +237,9 @@ export function PostsHistory({
               Fontes usadas
             </DialogTitle>
             <DialogDescription>
-              Sites raspados pelo Firecrawl e usados como base para "{sourcesDialogPost?.title}".
+              Resultado de uma busca aberta na web (Firecrawl) para o termo do artigo, usada como
+              base para "{sourcesDialogPost?.title}". Não é o catálogo de Fontes cadastradas em
+              Fontes / Event Watcher.
             </DialogDescription>
           </DialogHeader>
           <ul className="space-y-2">

@@ -24,6 +24,12 @@ const MAX_CONTENT_LENGTH = 2000;
 // verdade nem passa perto do catálogo em `event_sources`. Bloqueadas aqui
 // (na busca compartilhada) pra beneficiar generate-blog-post-from-topic E o
 // guardrail de generate-blog-post-v2 ao mesmo tempo.
+//
+// R-031: nomes ambíguos de DJ/produtor (ex.: "DJ Chus", "Anna de Lucc")
+// colidem com verbetes de enciclopédia e bases de filme/TV que rankeiam alto
+// pro nome literal mas não têm nenhuma relação com música eletrônica.
+// O bloqueio por lista de streaming acima não cobria esse caso — daí
+// artigos citando Wikipédia ou sinopse de filme como se fossem "fonte real".
 const BLOCKED_HOSTNAMES = [
   "youtube.com",
   "youtu.be",
@@ -35,6 +41,14 @@ const BLOCKED_HOSTNAMES = [
   "facebook.com",
   "twitter.com",
   "x.com",
+  "wikipedia.org",
+  "wikimedia.org",
+  "wikiwand.com",
+  "imdb.com",
+  "themoviedb.org",
+  "rottentomatoes.com",
+  "letterboxd.com",
+  "fandom.com",
 ];
 
 function isBlockedSource(url: string): boolean {

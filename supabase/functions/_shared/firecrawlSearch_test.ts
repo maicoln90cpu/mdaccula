@@ -99,6 +99,29 @@ Deno.test("searchWithFirecrawl descarta plataformas de streaming/social (R-025) 
   assertEquals(results[0].url, "https://exemplo-noticias.com/dub-techno");
 });
 
+Deno.test("searchWithFirecrawl descarta enciclopédias e bases de filme/TV (R-031) mas mantém fontes reais", async () => {
+  const results = await withMockedFetch(
+    {
+      ok: true,
+      body: {
+        data: {
+          web: [
+            { title: "DJ Chus", url: "https://en.wikipedia.org/wiki/DJ_Chus", markdown: "conteúdo" },
+            { title: "Anna de Lucc (2019)", url: "https://www.imdb.com/title/tt1234567/", markdown: "conteúdo" },
+            { title: "Anna de Lucc", url: "https://www.themoviedb.org/person/12345", markdown: "conteúdo" },
+            { title: "Verbete", url: "https://pt.wikiwand.com/pt/DJ_Chus", markdown: "conteúdo" },
+            { title: "Matéria real sobre DJ Chus", url: "https://exemplo-noticias.com/dj-chus", markdown: "conteúdo real" },
+          ],
+        },
+      },
+    },
+    () => searchWithFirecrawl("dj chus", "fake-key", 10)
+  );
+
+  assertEquals(results.length, 1);
+  assertEquals(results[0].url, "https://exemplo-noticias.com/dj-chus");
+});
+
 Deno.test("searchWithFirecrawl lança erro em resposta HTTP não-ok", async () => {
   await assertRejects(
     () => withMockedFetch({ ok: false, status: 500, body: { error: "boom" } }, () => searchWithFirecrawl("termo", "fake-key", 5)),

@@ -3,9 +3,16 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { GenerateForm } from '@/components/admin/ai-content/GenerateForm';
 import type { GenerationProgress } from '@/components/admin/ai-content/SuggestionsList';
 import { SuggestionsList } from '@/components/admin/ai-content/SuggestionsList';
@@ -98,6 +105,12 @@ export default function AIContent2() {
   const [topicQuery, setTopicQuery] = useState('');
   const [isGeneratingFromTopic, setIsGeneratingFromTopic] = useState(false);
   const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
+  const [sourcesPreview, setSourcesPreview] = useState<{
+    query: string;
+    isLoading: boolean;
+    sources: { title: string; url: string }[] | null;
+    error: string | null;
+  } | null>(null);
 
   const fetchSuggestionsAutoPublish = async () => {
     try {
@@ -437,6 +450,29 @@ export default function AIContent2() {
       templates[0] ||
       null
     );
+  };
+
+  const handlePreviewSources = async (suggestion: Suggestion) => {
+    const query = suggestion.searchQuery || suggestion.title;
+    setSourcesPreview({ query, isLoading: true, sources: null, error: null });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('preview-topic-sources', {
+        body: { query },
+      });
+
+      if (error) throw error;
+
+      setSourcesPreview({ query, isLoading: false, sources: data?.sources ?? [], error: null });
+    } catch (error) {
+      logger.error('[AIContent2] Erro ao pré-visualizar fontes:', error);
+      setSourcesPreview({
+        query,
+        isLoading: false,
+        sources: null,
+        error: await getEdgeFunctionErrorMessage(error),
+      });
+    }
   };
 
   const handleGenerateFromSuggestion = async (suggestion: Suggestion, index: number) => {
@@ -797,6 +833,7 @@ export default function AIContent2() {
                   onGenerateWithImageChange={setGenerateWithImage}
                   onGenerateFromSuggestion={handleGenerateFromSuggestion}
                   onGenerateSelected={handleGenerateSelected}
+                  onPreviewSources={handlePreviewSources}
                 />
               </div>
             </TabsContent>
@@ -835,6 +872,48 @@ export default function AIContent2() {
           </Tabs>
         </div>
       </div>
+
+      <Dialog open={!!sourcesPreview} onOpenChange={(open) => !open && setSourcesPreview(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="h-4 w-4" />
+              Fontes encontradas
+            </DialogTitle>
+            <DialogDescription>
+              Resultado de uma busca aberta na web (Firecrawl) para "{sourcesPreview?.query}",
+              feita agora. Não é o catálogo de Fontes cadastradas em Fontes / Event Watcher — o
+              artigo final usará o que estiver disponível no momento em que for gerado, que pode
+              variar em relação a esta prévia.
+            </DialogDescription>
+          </DialogHeader>
+          {sourcesPreview?.isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : sourcesPreview?.error ? (
+            <p className="text-sm text-destructive">{sourcesPreview.error}</p>
+          ) : !sourcesPreview?.sources?.length ? (
+            <p className="text-sm text-muted-foreground">Nenhuma fonte encontrada para este termo.</p>
+          ) : (
+            <ul className="space-y-3">
+              {sourcesPreview.sources.map((source, i) => (
+                <li key={i} className="space-y-0.5">
+                  <p className="font-medium text-sm">{source.title}</p>
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline break-all"
+                  >
+                    {source.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

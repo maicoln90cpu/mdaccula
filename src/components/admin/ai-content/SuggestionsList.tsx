@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, Lightbulb, Sparkles, CheckCircle2, XCircle } from 'lucide-react';
+import { Loader2, Lightbulb, Sparkles, CheckCircle2, XCircle, Search } from 'lucide-react';
 
 interface Suggestion {
   title: string;
@@ -37,6 +37,7 @@ interface SuggestionsListProps {
   onGenerateWithImageChange: (checked: boolean) => void;
   onGenerateFromSuggestion: (suggestion: Suggestion, index: number) => void;
   onGenerateSelected: (selected: Suggestion[]) => void;
+  onPreviewSources?: (suggestion: Suggestion) => void;
 }
 
 export function SuggestionsList({
@@ -50,6 +51,7 @@ export function SuggestionsList({
   onGenerateWithImageChange,
   onGenerateFromSuggestion,
   onGenerateSelected,
+  onPreviewSources,
 }: SuggestionsListProps) {
   const [selectedSuggestions, setSelectedSuggestions] = useState<number[]>([]);
 
@@ -269,25 +271,37 @@ export function SuggestionsList({
                               }
                             </p>
                           )}
-                          <Button
-                            onClick={() => onGenerateFromSuggestion(suggestion, index)}
-                            disabled={isGenerating}
-                            size="sm"
-                            variant="ghost"
-                            className="mt-2"
-                          >
-                            {isBeingGenerated ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Gerando...
-                              </>
-                            ) : (
-                              <>
-                                <Sparkles className="mr-2 h-3 w-3" />
-                                Gerar Este
-                              </>
+                          <div className="flex items-center gap-2 mt-2">
+                            <Button
+                              onClick={() => onGenerateFromSuggestion(suggestion, index)}
+                              disabled={isGenerating}
+                              size="sm"
+                              variant="ghost"
+                            >
+                              {isBeingGenerated ? (
+                                <>
+                                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                  Gerando...
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="mr-2 h-3 w-3" />
+                                  Gerar Este
+                                </>
+                              )}
+                            </Button>
+                            {suggestion.searchQuery && onPreviewSources && (
+                              <Button
+                                onClick={() => onPreviewSources(suggestion)}
+                                disabled={isGenerating}
+                                size="sm"
+                                variant="ghost"
+                              >
+                                <Search className="mr-2 h-3 w-3" />
+                                Ver fontes
+                              </Button>
                             )}
-                          </Button>
+                          </div>
                         </div>
                       </div>
                     </div>

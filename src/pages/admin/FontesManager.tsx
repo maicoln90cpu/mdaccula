@@ -253,8 +253,9 @@ const FontesManager = () => {
                 Fontes
               </h1>
               <p className="text-muted-foreground mt-1">
-                Sites e perfis monitorados pelo Event Watcher e usados pela IA como referência para
-                gerar posts do blog
+                Sites e perfis monitorados pelo Event Watcher para detectar eventos automaticamente.
+                Não é usada pela geração via "Sugestões" ou "Gerar por Tema" — essas buscam a web
+                livremente, sem relação com esta lista.
               </p>
             </div>
 
