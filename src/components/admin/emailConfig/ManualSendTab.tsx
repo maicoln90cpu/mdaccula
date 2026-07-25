@@ -416,5 +416,3 @@ export function ManualSendTab(props: ManualSendTabProps) {
     </>
   );
 }
-
-import { TabsContent } from '@/components/ui/tabs';
