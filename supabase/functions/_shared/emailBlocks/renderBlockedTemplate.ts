@@ -5,7 +5,7 @@ import { escape, sanitizeCustomHtml } from "./utils.ts";
 import { renderBlock } from "./renderBlock.ts";
 import { computePreheader } from "./preheader.ts";
 
-export export function renderBlockedTemplate(
+export function renderBlockedTemplate(
   blocks: Block[],
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,

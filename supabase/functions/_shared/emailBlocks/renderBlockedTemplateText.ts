@@ -138,7 +138,7 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
  * Versão plain-text do template para o campo `content.text` da E-goi.
  * Melhora entregabilidade (multipart), acessibilidade e fallback em clientes sem HTML.
  */
-export export function renderBlockedTemplateText(
+export function renderBlockedTemplateText(
   blocks: Block[],
   event: EventAnnouncementData,
   settings: EmailTemplateSettings | null | undefined,
