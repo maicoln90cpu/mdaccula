@@ -17,7 +17,7 @@ import type { EmailComposition } from '@/lib/emailTemplates/emailComposer';
 import type { EmailEventRow } from '@/lib/emailTemplates/emailComposer';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { SegmentItem } from './types';
-import type { Dispatch, SetStateAction } from 'react';
+
 
 interface ManualSendEvent extends EmailEventRow {
   blog_post_id: string | null;
