@@ -468,11 +468,8 @@ export function useEmailConfigState({
     setTpl,
     tplSaving,
     uploadingLogo,
-    templates,
-    setTemplates,
-    activeTemplateId,
-    setActiveTemplateId,
     realEvents,
+
     // derived
     canEnableAuto,
     reachEstimate,
