@@ -21,10 +21,14 @@ describe('guard arquitetural do compositor de e-mail', () => {
     const allowed = new Set([
       'supabase/functions/_shared/emailComposer.ts',
       'supabase/functions/_shared/emailBlocks.ts',
+      // Após Onda 5, o barrel `emailBlocks.ts` reexporta dos módulos abaixo.
+      // A chamada `renderBlockedTemplate(` legítima passou a viver aqui.
+      'supabase/functions/_shared/emailBlocks/renderBlockedTemplate.ts',
       // Definicao mantida temporariamente para compatibilidade de imports antigos;
       // nenhum fluxo de producao pode chama-la.
       'src/lib/emailTemplates/eventAnnouncement.ts',
     ]);
+
     const violations = files.filter((file) => {
       if (allowed.has(file)) return false;
       const source = fs.readFileSync(path.join(process.cwd(), file), 'utf8');
