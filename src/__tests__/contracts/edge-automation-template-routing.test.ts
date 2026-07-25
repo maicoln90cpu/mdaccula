@@ -5,18 +5,19 @@ const read = (path: string) => fs.readFileSync(`${process.cwd()}/${path}`, 'utf-
 
 describe('Contract: automações de e-mail respeitam template selecionado', () => {
   it('frontend envia template_id nos testes e rascunhos manuais dos 3 cards', () => {
-    const content = read('src/pages/admin/EmailConfig.tsx');
+    const page = read('src/pages/admin/EmailConfig.tsx');
+    const preview = read('src/components/admin/emailConfig/useEmailPreview.ts');
 
-    // Helper único que injeta template_id no body (refatorado em 2024/2025).
-    expect(content).toContain('body.template_id = tplId');
+    // Helper único que injeta template_id no body (Onda 9 PR-B: vive em useEmailPreview).
+    expect(preview).toContain('body.template_id = tplId');
     // Os 3 cards continuam disparando testes com o template efetivo próprio.
-    expect(content).toMatch(
+    expect(page).toMatch(
       /sendAutomationTest\(\s*'weekly-digest-draft',\s*'Digest semanal',\s*setTestingWeekly,\s*weeklyEffectiveTemplateId/
     );
-    expect(content).toMatch(
+    expect(page).toMatch(
       /sendAutomationTest\(\s*'weekend-agenda-draft',\s*'Agenda FDS',\s*setTestingWeekend,\s*weekendEffectiveTemplateId/
     );
-    expect(content).toMatch(
+    expect(page).toMatch(
       /sendAutomationTest\(\s*'blog-digest-draft',\s*'Blog news',\s*setTestingBlog,\s*blogEffectiveTemplateId/
     );
   });
