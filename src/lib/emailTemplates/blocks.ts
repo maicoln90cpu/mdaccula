@@ -43,6 +43,7 @@ export type Template = {
   type:
     | 'event_new'
     | 'ticket_batch'
+    | 'ticket_batch_multi'
     | 'weekly_digest'
     | 'weekly_digest_editorial'
     | 'weekend_agenda'
@@ -83,6 +84,7 @@ export const BLOCK_LABELS: Record<Block['kind'], string> = {
   text: 'Bloco de texto livre',
   social_icons: 'Redes sociais',
   weekend_grid: 'Agenda do fim de semana',
+  event_grid: 'Grid de eventos (2 colunas)',
   weekly_hero: 'Destaque da semana (hero)',
   blog_posts_list: 'Últimos posts do blog',
   dedge_block: 'Bloco Dedge (residência)',
@@ -104,6 +106,7 @@ export const AVAILABLE_BLOCKS: Block['kind'][] = [
   'ticker',
   'static_map',
   'weekend_grid',
+  'event_grid',
   'weekly_hero',
   'blog_posts_list',
   'dedge_block',
@@ -124,6 +127,7 @@ export const AVAILABLE_BLOCKS: Block['kind'][] = [
 export type PresetKey =
   | 'event_new'
   | 'ticket_batch'
+  | 'ticket_batch_multi'
   | 'weekly_digest'
   | 'weekly_digest_poster'
   | 'weekly_digest_editorial'
@@ -209,6 +213,23 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
       { id: newBlockId(), kind: 'divider' },
       { id: newBlockId(), kind: 'social_icons', networks: defaultSocials },
       { id: newBlockId(), kind: 'footer', include_unsubscribe: true },
+    ];
+  }
+
+  if (type === 'ticket_batch_multi') {
+    return [
+      { id: newBlockId(), kind: 'header', logo_height: 56 },
+      { id: newBlockId(), kind: 'eyebrow', text: 'ÚLTIMAS HORAS · VIRADA DE LOTE', align: 'center' },
+      { id: newBlockId(), kind: 'title', align: 'center' },
+      {
+        id: newBlockId(),
+        kind: 'event_grid',
+        eyebrow: '',
+        title: '',
+      },
+      { id: newBlockId(), kind: 'divider' },
+      { id: newBlockId(), kind: 'social_icons', networks: defaultSocials, align: 'center' },
+      { id: newBlockId(), kind: 'footer', include_unsubscribe: true, align: 'center' },
     ];
   }
 
@@ -561,6 +582,7 @@ export const TEMPLATE_PRESETS: Array<{
   template_type:
     | 'event_new'
     | 'ticket_batch'
+    | 'ticket_batch_multi'
     | 'weekly_digest'
     | 'weekend_agenda'
     | 'courtesy'
@@ -584,6 +606,15 @@ export const TEMPLATE_PRESETS: Array<{
     subject_template: '⏰ Últimas horas do lote — {{event_title}}',
     preheader_template: 'O lote atual está acabando. Garanta antes da próxima virada de preço.',
     template_type: 'ticket_batch',
+  },
+  {
+    key: 'ticket_batch_multi',
+    name: 'Virada de lote — múltiplos eventos',
+    description:
+      'Um e-mail só cobrindo vários eventos que viram de lote no mesmo dia, em grid de 2 colunas — em vez de um e-mail por evento.',
+    subject_template: '⏰ {{event_title}}',
+    preheader_template: 'O lote atual está acabando em vários eventos. Garanta antes da próxima virada de preço.',
+    template_type: 'ticket_batch_multi',
   },
   {
     key: 'weekly_digest',
