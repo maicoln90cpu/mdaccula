@@ -323,3 +323,31 @@ export async function dispatchAbSubjectTest(
 
   return { variantA, variantB, groupId };
 }
+
+
+/**
+ * Dispara (rascunho ou envio real) o e-mail multi-evento de "Virada de lote".
+ * Diferente de dispatchEventDraftEmail, a composição (HTML/assunto/preheader)
+ * já vem pronta de fora (montada no client via buildMultiEventAnnouncementData
+ * + composeEmail, na aba Envio Manual) — esta função só invoca a Edge
+ * Function, sem recompor nada.
+ */
+export async function dispatchMultiEventDraftEmail(
+  eventIds: string[],
+  opts: {
+    sendNow?: boolean;
+    preparedComposition: { html: string; subject: string; preheader: string };
+  }
+): Promise<DispatchEventDraftResult> {
+  const { data, error } = await supabase.functions.invoke('create-multi-event-email-campaign', {
+    body: {
+      event_ids: eventIds,
+      html: opts.preparedComposition.html,
+      subject: opts.preparedComposition.subject,
+      preheader: opts.preparedComposition.preheader,
+      send_now: opts.sendNow === true,
+    },
+  });
+  if (error) return { ok: false, error: error.message };
+  return (data as DispatchEventDraftResult) ?? { ok: false, error: 'Resposta vazia' };
+}
