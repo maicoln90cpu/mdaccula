@@ -19,12 +19,10 @@ import {
   ArrowLeft,
   RefreshCw,
   Save,
-  ShieldAlert,
   Send,
   Palette,
   Image as ImageIcon,
   LayoutGrid,
-  Mail,
   BarChart3,
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
