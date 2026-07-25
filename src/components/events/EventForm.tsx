@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -11,15 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { Plus, X, Loader2, Search } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { generateEventGroupName } from '@/lib/eventGroupHelper';
 import { useNavigate } from 'react-router-dom';
-import { parseLocalDateTime, formatEventDateRange } from '@/lib/dateUtils';
+import { parseLocalDateTime } from '@/lib/dateUtils';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { reconcileSchedule, parseSchedule, type EventSchedule } from '@/lib/eventScheduleHelper';
@@ -27,126 +24,26 @@ import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
 import { dispatchEventDraftEmail } from '@/lib/emailTemplates/dispatchEventDraft';
 import { logger } from '@/lib/logger';
-import {
-  EVENT_CTA_TYPES,
-  EVENT_CTA_CONFIG,
-  DEFAULT_EVENT_CTA_TYPE,
-  type EventCtaType,
-} from '@shared/eventCta.ts';
+import { DEFAULT_EVENT_CTA_TYPE, type EventCtaType } from '@shared/eventCta.ts';
 import type { Event } from '@/types';
 import type { Tables, TablesUpdate } from '@/integrations/supabase/types';
-
-interface BlogPostOption {
-  id: string;
-  title: string;
-  category: string;
-}
-
-interface EventFormData {
-  title: string;
-  venue: string;
-  address?: string;
-  location_state: string;
-  location_city: string;
-  venue_lat?: number | null;
-  venue_lng?: number | null;
-  date: string;
-  end_date?: string;
-  time: string;
-  end_time?: string;
-  ticket_link?: string;
-  vip_link?: string;
-  pix_button_enabled?: boolean;
-  tickets_per_day?: boolean;
-  cta_type?: EventCtaType;
-  description?: string;
-  slug?: string;
-  blog_post_id?: string;
-  subtitle?: string;
-}
+import { normalizeUrl, type EventFormData } from './eventForm/constants';
+import { BasicInfoSection } from './eventForm/BasicInfoSection';
+import { DateTimeSection } from './eventForm/DateTimeSection';
+import { GenresChecklist } from './eventForm/GenresChecklist';
+import { LineupSection } from './eventForm/LineupSection';
+import { TicketAndCtaSection } from './eventForm/TicketAndCtaSection';
+import {
+  DescriptionBlogSection,
+  type BlogPostOption,
+} from './eventForm/DescriptionBlogSection';
+import { CreationOptionsSection } from './eventForm/CreationOptionsSection';
 
 interface EventFormProps {
   event?: Partial<Event>;
   onSuccess: () => void;
   onCancel: () => void;
 }
-
-const GENRES = [
-  'Techno',
-  'House',
-  'Tech House',
-  'Deep House',
-  'Progressive',
-  'Trance',
-  'Psytrance',
-  'Drum & Bass',
-  'Dubstep',
-  'Trap',
-  'Hip Hop',
-  'Funk',
-  'Sertanejo',
-  'Pagode',
-  'Samba',
-  'Rock',
-  'Pop',
-  'Eletrônica',
-  'EDM',
-  'Open Format',
-  'Festival',
-  'Outros',
-];
-
-const STATES = [
-  'SP',
-  'RJ',
-  'MG',
-  'RS',
-  'PR',
-  'SC',
-  'BA',
-  'GO',
-  'PE',
-  'CE',
-  'PA',
-  'MA',
-  'PB',
-  'ES',
-  'PI',
-  'AL',
-  'RN',
-  'MT',
-  'MS',
-  'DF',
-  'SE',
-  'RO',
-  'TO',
-  'AC',
-  'AM',
-  'RR',
-  'AP',
-];
-
-// Normaliza URLs antes de salvar: garante protocolo https:// para qualquer domínio
-// digitado sem ele (ex: sympla.com.br/x, bit.ly/x). Mantém em sincronia com
-// src/lib/safeExternalUrl.ts (defesa em runtime).
-const normalizeUrl = (url: string | undefined): string | undefined => {
-  if (!url) return url;
-  const trimmed = url.trim();
-  if (!trimmed) return undefined;
-
-  const lower = trimmed.toLowerCase();
-  if (
-    lower.startsWith('http://') ||
-    lower.startsWith('https://') ||
-    lower.startsWith('mailto:') ||
-    lower.startsWith('tel:') ||
-    lower.startsWith('sms:')
-  ) {
-    return trimmed;
-  }
-
-  return `https://${trimmed}`;
-};
 
 export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const [lineup, setLineup] = useState<string[]>(normalizeLineup(event?.lineup));
@@ -182,14 +79,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    control,
-    formState: { errors },
-  } = useForm<EventFormData>({
+  const methods = useForm<EventFormData>({
     defaultValues: event
       ? {
           title: event.title,
@@ -217,12 +107,12 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           cta_type: DEFAULT_EVENT_CTA_TYPE,
         },
   });
+  const { handleSubmit, setValue, watch } = methods;
 
   const isEditing = !!event?.id;
 
   useEffect(() => {
     const fetchData = async () => {
-      // Fetch initial blog posts (for pre-selected post)
       const { data: posts } = await supabase
         .from('blog_posts')
         .select('id, title, category')
@@ -232,7 +122,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
       if (posts) setBlogPosts(posts);
 
-      // If editing and has blog_post_id, fetch the selected post
       if (event?.blog_post_id && event.blog_post_id !== 'none') {
         const { data: selectedPost } = await supabase
           .from('blog_posts')
@@ -242,7 +131,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         if (selectedPost) setSelectedBlogPost(selectedPost);
       }
 
-      // Fetch link groups
       const { data: groups } = await supabase
         .from('link_groups')
         .select('*')
@@ -250,13 +138,11 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
       if (groups) setLinkGroups(groups);
 
-      // Fetch event templates
       const { data: templates } = await supabase.from('event_templates').select('*').order('name');
 
       if (templates) setEventTemplates(templates);
 
       // B.6 — Descobrir se a automação de e-mail está pronta.
-      // Só habilita o toggle se: master ON + agência ON + list/sender/template preenchidos.
       try {
         const [{ data: master }, { data: cfg }] = await Promise.all([
           supabase
@@ -315,23 +201,14 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     return () => clearTimeout(timer);
   }, [blogSearchTerm, blogPosts]);
 
-  const addLineupItem = () => {
-    if (newLineupItem.trim()) {
-      setLineup([...lineup, newLineupItem.trim()]);
-      setNewLineupItem('');
-    }
-  };
-
   // ===== Programação por dia (festival) =====
   const watchedDate = watch('date');
   const watchedEndDate = watch('end_date');
   const watchedTime = watch('time');
   const watchedEndTime = watch('end_time');
 
-  // Reconcilia schedule quando intervalo muda. Preserva line-up das datas que continuam.
   useEffect(() => {
     if (!watchedDate || !watchedEndDate || watchedEndDate === watchedDate) {
-      // Sem festival → limpa schedule
       if (schedule !== null) setSchedule(null);
       return;
     }
@@ -343,7 +220,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
       watchedTime,
       watchedEndTime || null
     );
-    // Só atualiza se mudou (evita loop)
     if (JSON.stringify(next) !== JSON.stringify(schedule)) {
       setSchedule(next);
     }
@@ -400,10 +276,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
     });
   };
 
-  const removeLineupItem = (index: number) => {
-    setLineup(lineup.filter((_, i) => i !== index));
-  };
-
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -431,7 +303,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
   };
 
   const onSubmit = async (data: EventFormData) => {
-    // 🔍 LOG DE DIAGNÓSTICO: Início do submit
     logger.debug('[EventForm] 📝 Iniciando submit do formulário', {
       isEditing,
       eventId: event?.id,
@@ -455,7 +326,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         logger.debug('[EventForm] ✅ Upload de imagem concluído:', { imageUrl });
       }
 
-      // Generate slug with timestamp to ensure uniqueness when duplicating
       const baseSlug = data.title
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
@@ -466,11 +336,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
       const blogPostId = data.blog_post_id === 'none' ? null : data.blog_post_id || null;
 
-      // Normalize URLs
       const normalizedTicketLink = normalizeUrl(data.ticket_link);
       const normalizedVipLink = normalizeUrl(data.vip_link);
 
-      // Validação: end_date precisa ser >= date (segurança extra além do CHECK no banco)
       if (data.end_date && data.end_date < data.date) {
         toast({
           title: 'Data final inválida',
@@ -481,10 +349,8 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         return;
       }
 
-      // Normaliza lineup principal (split em vírgulas que o admin tenha colado num único chip)
       const normalizedLineup = normalizeLineup(lineup);
 
-      // Schedule só é salvo quando há festival válido (end_date > date)
       const finalSchedule =
         data.end_date && data.end_date > data.date && schedule && schedule.length > 0
           ? schedule.map((e) => ({ ...e, lineup: normalizeLineup(e.lineup) }))
@@ -513,12 +379,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         subtitle: data.subtitle || null,
         ai_context: aiContext.trim() || null,
         schedule: finalSchedule,
-        // Garante envio explícito do toggle Pix (evita perda caso react-hook-form não inclua no spread)
         pix_button_enabled: data.pix_button_enabled === true,
-        // Fase 5: só faz sentido p/ multi-dia; força false se não houver end_date posterior.
         tickets_per_day:
           data.tickets_per_day === true && !!data.end_date && data.end_date > data.date,
-        // Garante envio explícito do tipo de CTA (evita perda caso react-hook-form não inclua no spread)
         cta_type: data.cta_type ?? DEFAULT_EVENT_CTA_TYPE,
       };
 
@@ -538,7 +401,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
         if (error) throw error;
 
-        // 🔁 Se o slug mudou, registra redirect do antigo → novo (preserva SEO e links externos)
         if (previousSlug && previousSlug !== eventSlug) {
           const { error: redirErr } = await supabase
             .from('event_slug_redirects')
@@ -555,7 +417,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           }
         }
 
-        // 🔗 Sincronizar TODOS os campos com links vinculados
         logger.debug('[EventForm] 🔗 Sincronizando campos com links vinculados...');
         const linkUpdateData: TablesUpdate<'custom_links'> = {
           title: data.title,
@@ -565,12 +426,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           updated_at: new Date().toISOString(),
         };
 
-        // Sincronizar imagem se foi alterada
         if (imageFile && imageUrl) {
           linkUpdateData.thumbnail_url = imageUrl;
         }
 
-        // Sincronizar URL do ticket se existir
         if (normalizedTicketLink) {
           linkUpdateData.url = normalizedTicketLink;
         }
@@ -588,9 +447,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
         logger.debug('[EventForm] ✅ Evento atualizado com sucesso');
 
-        // Invalidar cache de eventos para refletir mudanças imediatamente
         try {
-          // Clear localStorage cache
           localStorage.removeItem('mdaccula-events-cache');
           logger.debug('[EventForm] 🗑️ Cache localStorage de eventos limpo');
         } catch {
@@ -601,7 +458,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           title: 'Evento atualizado com sucesso!',
         });
 
-        // IndexNow: avisa Bing/Yandex que o evento foi atualizado
         notifyEventChange(eventSlug);
       } else {
         logger.debug('[EventForm] ➕ Criando novo evento...');
@@ -619,12 +475,9 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           title: 'Evento criado com sucesso!',
         });
 
-        // IndexNow: avisa Bing/Yandex sobre o novo evento
         notifyEventChange(eventSlug);
       }
 
-      // Generate blog post AFTER event creation if checkbox is checked and creating new event
-      // 🔍 LOG DE DIAGNÓSTICO: Verificação de geração de blog post
       logger.debug('[EventForm] 🔍 Verificando se deve gerar blog post:', {
         generateBlogPost,
         isEditing,
@@ -664,9 +517,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           const startTime = Date.now();
           const { data: blogPostData, error: blogError } = await supabase.functions.invoke(
             'generate-blog-post-v2',
-            {
-              body: blogPayload,
-            }
+            { body: blogPayload }
           );
           const duration = Date.now() - startTime;
 
@@ -682,7 +533,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
 
           if (blogPostData?.post?.id) {
             logger.debug('[EventForm] 🔗 Vinculando blog post ao evento...');
-            // Update event with blog_post_id
             const { error: updateError } = await supabase
               .from('events')
               .update({ blog_post_id: blogPostData.post.id })
@@ -727,13 +577,10 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         });
       }
 
-      // Create link automatically if checkbox is checked
       if (createLink && !isEditing && data.date && normalizedTicketLink && createdEventId) {
         try {
-          // Generate group name based on event date
           const groupName = generateEventGroupName(data.date);
 
-          // Check if group exists, if not create it
           const { data: existingGroup, error: _groupError } = await supabase
             .from('link_groups')
             .select('id')
@@ -743,7 +590,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
           let groupId = existingGroup?.id;
 
           if (!existingGroup) {
-            // Calculate chronological display_order: YYYY*100+MM
             const eventDate = new Date(data.date + 'T12:00:00');
             const chronologicalOrder = eventDate.getFullYear() * 100 + (eventDate.getMonth() + 1);
 
@@ -760,15 +606,11 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
             );
           }
 
-          // Calculate display_order as timestamp (usando parseLocalDateTime para consistência)
-          // Sem horário definido → usa 00:00 só para ordenar (mantém ordenação por data)
           const eventDateTime = parseLocalDateTime(data.date, data.time || '00:00');
           const displayOrder = Math.floor(eventDateTime.getTime() / 1000);
 
-          // Determine URL based on selection
           const linkUrl = linkUrlType === 'ticket' ? normalizedTicketLink : `/eventos/${eventSlug}`;
 
-          // Create the link
           const { error: linkError } = await supabase.from('custom_links').insert([
             {
               title: data.title,
@@ -781,7 +623,7 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
               is_internal: linkUrlType === 'slug',
               enabled: true,
               icon: 'Calendar',
-              color_gradient: null, // Herda cor do template
+              color_gradient: null,
               card_height: 80,
               event_id: createdEventId,
               override_date: data.date,
@@ -804,8 +646,6 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         }
       }
 
-      // B.6 — Se admin marcou o toggle e a automação está pronta, cria rascunho na E-goi.
-      // Falha aqui NÃO reverte o evento — apenas mostra toast. Histórico grava error_message.
       if (dispatchEmail && emailAutomationReady && createdEventId) {
         try {
           const result = await dispatchEventDraftEmail(createdEventId);
@@ -882,720 +722,94 @@ export const EventForm = ({ event, onSuccess, onCancel }: EventFormProps) => {
         )}
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="title">Nome do Evento *</Label>
-              <Input
-                id="title"
-                {...register('title', { required: 'Nome é obrigatório' })}
-                placeholder="Nome do evento"
-              />
-              {errors.title && (
-                <span className="text-sm text-destructive">{errors.title.message}</span>
-              )}
-            </div>
+        <FormProvider {...methods}>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <BasicInfoSection />
 
-            <div className="space-y-2">
-              <Label htmlFor="venue">Local *</Label>
-              <Input
-                id="venue"
-                {...register('venue', { required: 'Local é obrigatório' })}
-                placeholder="Nome do local"
-              />
-              {errors.venue && (
-                <span className="text-sm text-destructive">{errors.venue.message}</span>
-              )}
-            </div>
-          </div>
+            {/* As coordenadas do venue são preenchidas automaticamente pela geocodificação
+                quando o evento é visualizado ou quando o e-mail é disparado. */}
 
-          <div className="space-y-2">
-            <Label htmlFor="address">Endereço Completo</Label>
-            <Input id="address" {...register('address')} placeholder="Rua, número - Bairro" />
-            <p className="text-xs text-muted-foreground">
-              Endereço aparecerá apenas na página de detalhes do evento
-            </p>
-          </div>
+            <DateTimeSection />
 
-          <div className="space-y-2">
-            <Label htmlFor="subtitle">Subtítulo (Opcional)</Label>
-            <Input
-              id="subtitle"
-              {...register('subtitle')}
-              placeholder="Ex: Ingresso antecipado com 30% OFF"
+            <GenresChecklist
+              selectedGenres={selectedGenres}
+              setSelectedGenres={setSelectedGenres}
             />
-            <p className="text-xs text-muted-foreground">
-              Texto chamativo que aparecerá no card do evento
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="location_state">Estado *</Label>
-              <Controller
-                name="location_state"
-                control={control}
-                defaultValue="SP"
-                rules={{ required: 'Estado é obrigatório' }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATES.map((state) => (
-                        <SelectItem key={state} value={state}>
-                          {state}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.location_state && (
-                <span className="text-sm text-destructive">{errors.location_state.message}</span>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location_city">Cidade *</Label>
-              <Input
-                id="location_city"
-                {...register('location_city', { required: 'Cidade é obrigatória' })}
-                placeholder="Nome da cidade"
-              />
-              {errors.location_city && (
-                <span className="text-sm text-destructive">{errors.location_city.message}</span>
-              )}
-            </div>
-          </div>
-
-          {/* As coordenadas do venue são preenchidas automaticamente pela geocodificação
-              quando o evento é visualizado ou quando o e-mail é disparado. */}
-
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="date">Data Inicial *</Label>
-              <Input
-                id="date"
-                type="date"
-                {...register('date', { required: 'Data é obrigatória' })}
-              />
-              {errors.date && (
-                <span className="text-sm text-destructive">{errors.date.message}</span>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="end_date">Data Final (festival) — opcional</Label>
-              <Input
-                id="end_date"
-                type="date"
-                {...register('end_date')}
-                min={watch('date') || undefined}
-              />
-              <p className="text-xs text-muted-foreground">
-                Preencha apenas se for festival de múltiplos dias (ex.: So Track Boa 05 e 06/06).
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="time">Horário de Início (Opcional)</Label>
-              <Input id="time" type="time" {...register('time')} />
-              <p className="text-xs text-muted-foreground">
-                Deixe vazio se a produtora ainda não divulgou o horário
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="end_time">Horário de Término (Opcional)</Label>
-              <Input id="end_time" type="time" {...register('end_time')} />
-              <p className="text-xs text-muted-foreground">
-                Deixe vazio se o evento não tiver horário definido de término
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Vertentes de Som * (selecione uma ou mais)</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4 border rounded-lg">
-              {GENRES.map((genre) => (
-                <div key={genre} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id={`genre-${genre}`}
-                    checked={selectedGenres.includes(genre)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedGenres([...selectedGenres, genre]);
-                      } else {
-                        setSelectedGenres(selectedGenres.filter((g) => g !== genre));
-                      }
-                    }}
-                    className="w-4 h-4 rounded border-input"
-                  />
-                  <label htmlFor={`genre-${genre}`} className="text-sm cursor-pointer">
-                    {genre}
-                  </label>
-                </div>
-              ))}
-            </div>
-            {selectedGenres.length === 0 && (
-              <span className="text-sm text-destructive">Selecione pelo menos uma vertente</span>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="slug">Slug (URL personalizada) - Opcional</Label>
-            <Input
-              id="slug"
-              value={manualSlug}
-              onChange={(e) => {
-                const sanitized = e.target.value
-                  .toLowerCase()
-                  .normalize('NFD')
-                  .replace(/[\u0300-\u036f]/g, '')
-                  .replace(/[^a-z0-9-]/g, '-')
-                  .replace(/-+/g, '-')
-                  .replace(/(^-|-$)/g, '');
-                setManualSlug(sanitized);
-              }}
-              placeholder="meu-evento-personalizado"
+            <LineupSection
+              manualSlug={manualSlug}
+              setManualSlug={setManualSlug}
+              lineup={lineup}
+              setLineup={setLineup}
+              newLineupItem={newLineupItem}
+              setNewLineupItem={setNewLineupItem}
+              schedule={schedule}
+              watchedDate={watchedDate}
+              watchedEndDate={watchedEndDate}
+              newScheduleArtist={newScheduleArtist}
+              setNewScheduleArtist={setNewScheduleArtist}
+              updateScheduleEntry={updateScheduleEntry}
+              addScheduleArtist={addScheduleArtist}
+              removeScheduleArtist={removeScheduleArtist}
             />
-            <p className="text-xs text-muted-foreground">
-              Se vazio, será gerado automaticamente do título. Use apenas letras minúsculas, números
-              e hífens.
-            </p>
-          </div>
 
-          <div className="space-y-2">
-            <Label>Line-up</Label>
-            <div className="flex gap-2">
-              <Input
-                value={newLineupItem}
-                onChange={(e) => setNewLineupItem(e.target.value)}
-                placeholder="Nome do artista"
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addLineupItem())}
-              />
-              <Button type="button" onClick={addLineupItem} size="sm">
-                <Plus className="w-4 h-4" />
+            <div className="space-y-2">
+              <Label htmlFor="image">Imagem do Evento</Label>
+              <div className="flex items-center gap-4">
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="flex-1"
+                />
+                {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
+              </div>
+            </div>
+
+            <TicketAndCtaSection />
+
+            <DescriptionBlogSection
+              aiContext={aiContext}
+              setAiContext={setAiContext}
+              blogSearchTerm={blogSearchTerm}
+              setBlogSearchTerm={setBlogSearchTerm}
+              blogSearchResults={blogSearchResults}
+              setBlogSearchResults={setBlogSearchResults}
+              selectedBlogPost={selectedBlogPost}
+              setSelectedBlogPost={setSelectedBlogPost}
+              showBlogDropdown={showBlogDropdown}
+              setShowBlogDropdown={setShowBlogDropdown}
+              blogPosts={blogPosts}
+            />
+
+            <CreationOptionsSection
+              createLink={createLink}
+              setCreateLink={setCreateLink}
+              linkUrlType={linkUrlType}
+              setLinkUrlType={setLinkUrlType}
+              generateBlogPost={generateBlogPost}
+              setGenerateBlogPost={setGenerateBlogPost}
+              aiContext={aiContext}
+              setAiContext={setAiContext}
+              dispatchEmail={dispatchEmail}
+              setDispatchEmail={setDispatchEmail}
+              emailAutomationReady={emailAutomationReady}
+              emailAutomationReason={emailAutomationReason}
+              showCreationBlocks={!event?.id}
+            />
+
+            <div className="flex gap-4 pt-4">
+              <Button type="submit" disabled={submitting || uploading} className="flex-1">
+                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {event ? 'Atualizar' : 'Criar'} Evento
+              </Button>
+              <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
+                Cancelar
               </Button>
             </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {lineup.map((artist, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-1 bg-secondary px-3 py-1 rounded-full text-sm"
-                >
-                  {artist}
-                  <button
-                    type="button"
-                    onClick={() => removeLineupItem(index)}
-                    className="ml-1 hover:text-destructive"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-            {schedule && schedule.length > 1 && (
-              <p className="text-xs text-muted-foreground">
-                Esse line-up serve como padrão. Use a "Programação por dia" abaixo para variar por
-                dia.
-              </p>
-            )}
-          </div>
-
-          {/* Programação por dia (festival multi-dias) */}
-          {schedule && schedule.length > 1 && (
-            <div className="space-y-3 border rounded-lg p-4 bg-muted/20">
-              <div>
-                <Label className="text-base">📅 Programação por dia (festival)</Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Festival de {formatEventDateRange(watchedDate, watchedEndDate)}. Defina horário e
-                  line-up de cada dia. Se um dia ficar sem line-up próprio, usa o line-up principal
-                  acima.
-                </p>
-              </div>
-              {schedule.map((entry) => (
-                <div key={entry.date} className="border rounded-md p-3 bg-background space-y-3">
-                  <div className="font-semibold text-sm">
-                    {parseLocalDateTime(entry.date, '00:00').toLocaleDateString('pt-BR', {
-                      weekday: 'long',
-                      day: '2-digit',
-                      month: 'long',
-                    })}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Início</Label>
-                      <Input
-                        type="time"
-                        value={entry.time?.slice(0, 5) || ''}
-                        onChange={(e) => updateScheduleEntry(entry.date, { time: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Término</Label>
-                      <Input
-                        type="time"
-                        value={entry.end_time?.slice(0, 5) || ''}
-                        onChange={(e) =>
-                          updateScheduleEntry(entry.date, { end_time: e.target.value || null })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Line-up deste dia</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        value={newScheduleArtist[entry.date] || ''}
-                        onChange={(e) =>
-                          setNewScheduleArtist((s) => ({ ...s, [entry.date]: e.target.value }))
-                        }
-                        placeholder="Nome do artista"
-                        onKeyPress={(e) =>
-                          e.key === 'Enter' && (e.preventDefault(), addScheduleArtist(entry.date))
-                        }
-                      />
-                      <Button type="button" size="sm" onClick={() => addScheduleArtist(entry.date)}>
-                        <Plus className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 mt-1">
-                      {(entry.lineup || []).map((artist, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                        >
-                          {artist}
-                          <button
-                            type="button"
-                            onClick={() => removeScheduleArtist(entry.date, idx)}
-                            className="ml-0.5 hover:text-destructive"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {(!entry.lineup || entry.lineup.length === 0) && (
-                        <span className="text-xs text-muted-foreground italic">
-                          Vazio → usa line-up principal
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="image">Imagem do Evento</Label>
-            <div className="flex items-center gap-4">
-              <Input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="flex-1"
-              />
-              {uploading && <Loader2 className="w-4 h-4 animate-spin" />}
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="ticket_link">Link Ingresso</Label>
-              <Input
-                id="ticket_link"
-                {...register('ticket_link')}
-                placeholder="https://... ou bit.ly/..."
-                onBlur={(e) => {
-                  const normalized = normalizeUrl(e.target.value);
-                  if (normalized && normalized !== e.target.value) {
-                    setValue('ticket_link', normalized);
-                  }
-                }}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="vip_link">Link Camarote</Label>
-              <Controller
-                name="vip_link"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={
-                      field.value?.includes('5511999136884')
-                        ? 'maicoln'
-                        : field.value?.includes('5511997819194')
-                          ? 'guilherme'
-                          : field.value
-                            ? 'none'
-                            : ''
-                    }
-                    onValueChange={(value) => {
-                      if (value === 'none' || !value) {
-                        field.onChange('');
-                      } else if (value === 'maicoln') {
-                        const message = `Olá MD, queria ver um camarote para ${watch('title') || 'evento'}`;
-                        field.onChange(
-                          `https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`
-                        );
-                      } else if (value === 'guilherme') {
-                        const message = `Olá Gui, queria ver um camarote para ${watch('title') || 'evento'}`;
-                        field.onChange(
-                          `https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`
-                        );
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma opção" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhum</SelectItem>
-                      <SelectItem value="maicoln">Maicoln Douglas</SelectItem>
-                      <SelectItem value="guilherme">Guilherme Accula</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="cta_type">Botão do evento (site e e-mail)</Label>
-            <Controller
-              name="cta_type"
-              control={control}
-              render={({ field }) => (
-                <Select
-                  value={field.value ?? DEFAULT_EVENT_CTA_TYPE}
-                  onValueChange={field.onChange}
-                >
-                  <SelectTrigger id="cta_type">
-                    <SelectValue placeholder="Selecione uma opção" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EVENT_CTA_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {EVENT_CTA_CONFIG[type].buttonLabel}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              Define o texto do botão principal na Home, em /eventos, na página do evento e nos
-              e-mails deste evento (disparo único e resumos semanais).
-            </p>
-          </div>
-
-          {(() => {
-            const pixEnabled = watch('pix_button_enabled') === true;
-            const vipLinkVal = (watch('vip_link') || '').trim();
-            const missingVip = pixEnabled && !vipLinkVal;
-            return (
-              <div
-                className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
-                  missingVip ? 'border-amber-500/60 bg-amber-500/10' : 'border-input bg-muted/30'
-                }`}
-              >
-                <Controller
-                  name="pix_button_enabled"
-                  control={control}
-                  render={({ field }) => (
-                    <Switch
-                      id="pix_button_enabled"
-                      checked={!!field.value}
-                      onCheckedChange={(v) => field.onChange(v === true)}
-                      className="mt-0.5 data-[state=checked]:bg-[#25D366]"
-                    />
-                  )}
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="pix_button_enabled" className="cursor-pointer">
-                    Mostrar botão "Comprar Sem Taxa via Pix"
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Exibe um terceiro botão verde na página do evento que abre o mesmo WhatsApp
-                    configurado em Link Camarote, com mensagem de Pix sem taxa.
-                  </p>
-                  {missingVip && (
-                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                      ⚠️ O botão NÃO vai aparecer no evento até você preencher um "Link Camarote"
-                      acima (Maicoln ou Guilherme).
-                    </p>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {(() => {
-            const startDate = watch('date');
-            const endDate = watch('end_date');
-            const isMultiDay = !!endDate && !!startDate && endDate > startDate;
-            if (!isMultiDay) return null;
-            return (
-              <div className="flex items-start gap-3 rounded-md border border-input bg-muted/30 p-3">
-                <Controller
-                  name="tickets_per_day"
-                  control={control}
-                  render={({ field }) => (
-                    <Switch
-                      id="tickets_per_day"
-                      checked={!!field.value}
-                      onCheckedChange={(v) => field.onChange(v === true)}
-                      className="mt-0.5"
-                    />
-                  )}
-                />
-                <div className="space-y-1">
-                  <Label htmlFor="tickets_per_day" className="cursor-pointer">
-                    Um link de venda por dia (festival)
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Ative quando cada dia do festival tem ingresso vendido separadamente. Na página
-                    do evento, o botão "Comprar Ingresso" abrirá um modal para a pessoa escolher o
-                    dia. Os links por dia precisam estar cadastrados em <strong>Links</strong> com o
-                    evento vinculado e a data de override preenchida.
-                  </p>
-                </div>
-              </div>
-            );
-          })()}
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Textarea
-              id="description"
-              {...register('description')}
-              placeholder="Descrição do evento..."
-              rows={4}
-            />
-            {(watch('description')?.trim().length ?? 0) > 0 &&
-              (watch('description')?.trim().length ?? 0) < 80 && (
-                <p className="text-xs text-amber-500">
-                  Descrição curta — eventos com um texto único e mais detalhado (line-up, o que
-                  esperar da noite, diferenciais do local) tendem a se sair melhor no Google. Não é
-                  obrigatório, só uma sugestão.
-                </p>
-              )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="blog_post_id">Post do Blog Relacionado (Opcional)</Label>
-            <Controller
-              name="blog_post_id"
-              control={control}
-              render={({ field }) => (
-                <div className="relative">
-                  {selectedBlogPost ? (
-                    <div className="flex items-center gap-2 p-2 border rounded-md bg-muted/30">
-                      <span className="text-sm flex-1 truncate">
-                        [{selectedBlogPost.category}] {selectedBlogPost.title}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => {
-                          setSelectedBlogPost(null);
-                          field.onChange('none');
-                          setBlogSearchTerm('');
-                        }}
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Buscar artigo por título..."
-                        className="pl-9"
-                        value={blogSearchTerm}
-                        onChange={(e) => {
-                          setBlogSearchTerm(e.target.value);
-                          setShowBlogDropdown(true);
-                        }}
-                        onFocus={() => {
-                          setShowBlogDropdown(true);
-                          if (!blogSearchTerm) setBlogSearchResults(blogPosts.slice(0, 10));
-                        }}
-                        onBlur={() => {
-                          // Delay to allow click on dropdown item
-                          setTimeout(() => setShowBlogDropdown(false), 200);
-                        }}
-                      />
-                    </div>
-                  )}
-                  {showBlogDropdown && !selectedBlogPost && blogSearchResults.length > 0 && (
-                    <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-background border rounded-md shadow-lg">
-                      {blogSearchResults.map((post) => (
-                        <button
-                          key={post.id}
-                          type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 truncate"
-                          onMouseDown={(e) => {
-                            e.preventDefault();
-                            setSelectedBlogPost(post);
-                            field.onChange(post.id);
-                            setShowBlogDropdown(false);
-                            setBlogSearchTerm('');
-                          }}
-                        >
-                          <span className="text-muted-foreground">[{post.category}]</span>{' '}
-                          {post.title}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            />
-            <p className="text-xs text-muted-foreground">
-              Vincule este evento a um post do blog para exibir informações adicionais.
-            </p>
-          </div>
-
-          {/* Contexto para IA — sempre visível, persiste em events.ai_context */}
-          <div className="space-y-2 p-4 border rounded-lg bg-muted/50">
-            <Label htmlFor="aiContextAlways">Contexto para IA (opcional)</Label>
-            <Textarea
-              id="aiContextAlways"
-              value={aiContext}
-              onChange={(e) => setAiContext(e.target.value)}
-              placeholder="Ex: Ingresso cortesia pelo link, 5% de desconto com cupom MDACCULA, open bar até 01h, evento beneficente..."
-              rows={3}
-            />
-            <p className="text-xs text-muted-foreground">
-              Salvo no evento e respeitado em toda geração/regeneração de artigo. Tem prioridade
-              máxima sobre o template.
-            </p>
-          </div>
-
-          {!event?.id && (
-            <>
-              {/* Criar Link Automaticamente */}
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="createLink"
-                    checked={createLink}
-                    onCheckedChange={(checked) => setCreateLink(checked as boolean)}
-                  />
-                  <Label htmlFor="createLink" className="cursor-pointer font-medium">
-                    Criar link automaticamente em /links
-                  </Label>
-                </div>
-
-                {createLink && (
-                  <div className="space-y-2 pl-6">
-                    <Label htmlFor="linkUrlType">URL do Link</Label>
-                    <Select
-                      value={linkUrlType}
-                      onValueChange={(value: 'ticket' | 'slug') => setLinkUrlType(value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ticket">Link do Ingresso</SelectItem>
-                        <SelectItem value="slug">Página do Evento (/eventos/...)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-muted-foreground">
-                      O grupo será criado automaticamente baseado no mês do evento
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Gerar Post do Blog */}
-              <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="generateBlogPost"
-                    checked={generateBlogPost}
-                    onCheckedChange={(checked) => setGenerateBlogPost(checked as boolean)}
-                  />
-                  <Label htmlFor="generateBlogPost" className="cursor-pointer font-medium">
-                    Gerar post do blog automaticamente com IA
-                  </Label>
-                </div>
-
-                {generateBlogPost && (
-                  <div className="space-y-3 pl-6">
-                    <p className="text-xs text-muted-foreground">
-                      Um post do blog será criado como rascunho e vinculado a este evento. Você
-                      poderá editá-lo após a criação.
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="aiContext">Contexto para IA (opcional)</Label>
-                      <Textarea
-                        id="aiContext"
-                        value={aiContext}
-                        onChange={(e) => setAiContext(e.target.value)}
-                        placeholder="Ex: Ingresso cortesia pelo link, 50% de desconto no primeiro lote, open bar até 01h, evento beneficente..."
-                        rows={3}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Informações extras que a IA deve considerar ao gerar o artigo. Essas
-                        instruções têm prioridade máxima.
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          {/* B.6 — Toggle rascunho E-goi. Default OFF; só habilita se automação pronta. */}
-          <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
-            <div className="flex items-start gap-3">
-              <Checkbox
-                id="dispatchEmail"
-                checked={dispatchEmail}
-                disabled={!emailAutomationReady}
-                onCheckedChange={(checked) => setDispatchEmail(checked as boolean)}
-              />
-              <div className="flex-1 space-y-1">
-                <Label
-                  htmlFor="dispatchEmail"
-                  className={`cursor-pointer font-medium ${!emailAutomationReady ? 'text-muted-foreground' : ''}`}
-                >
-                  Criar rascunho de e-mail na E-goi ao salvar
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {emailAutomationReady
-                    ? 'Um rascunho será criado na sua conta E-goi usando o template padrão. Você revisa e envia manualmente pela E-goi.'
-                    : emailAutomationReason || 'Automação de e-mail indisponível.'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex gap-4 pt-4">
-            <Button type="submit" disabled={submitting || uploading} className="flex-1">
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {event ? 'Atualizar' : 'Criar'} Evento
-            </Button>
-            <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-              Cancelar
-            </Button>
-          </div>
-        </form>
+          </form>
+        </FormProvider>
       </CardContent>
     </Card>
   );

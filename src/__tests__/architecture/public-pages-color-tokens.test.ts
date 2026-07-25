@@ -49,6 +49,8 @@ const ALLOWLIST = new Set([
   'src/pages/Admin.tsx', // hub do painel admin, protegido por isAdmin
   'src/pages/Analytics.tsx', // paleta categórica de gráfico (pizza/barras), não é cor de marca
   'src/components/events/EventForm.tsx', // formulário de criação/edição de evento (admin)
+  'src/components/events/eventForm/TicketAndCtaSection.tsx', // subcomponente do EventForm (admin) — cor WhatsApp/aviso amber
+  'src/components/events/eventForm/DescriptionBlogSection.tsx', // subcomponente do EventForm (admin) — aviso amber
   'src/components/links/CustomLinkForm.tsx', // editor de link customizado (admin) — gradiente é escolha do admin por link
   'src/components/links/SortableLinkCard.tsx', // reordenação de links por drag-and-drop (admin)
 
