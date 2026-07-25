@@ -103,7 +103,7 @@ export function ManualSendTab(props: ManualSendTabProps) {
   } = props;
 
   return (
-    <TabsContent value="batch" className="space-y-4">
+    <>
       <Card>
         <CardHeader>
           <CardTitle>Envio manual</CardTitle>
