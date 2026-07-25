@@ -54,11 +54,14 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
   });
 
   it('admin (AIContent2) roteia categorias catch-all de Sugestões pra busca real', () => {
-    const content = read('src/pages/admin/AIContent2.tsx');
+    // Onda Bônus: handlers migraram para o hook useSuggestionActions.ts.
+    const hook = read('src/pages/admin/aiContent/useSuggestionActions.ts');
+    const page = read('src/pages/admin/AIContent2.tsx');
 
-    expect(content).toContain('isSugestoesCatchAll');
-    expect(content).toContain('generate-blog-post-from-topic');
-    expect(content).toContain('suggestionsAutoPublish');
+    expect(hook).toContain('isSugestoesCatchAll');
+    expect(hook).toContain('generate-blog-post-from-topic');
+    expect(hook).toContain('suggestionsAutoPublish');
+    expect(page).toContain('suggestionsAutoPublish');
   });
 
   it('eventos/festivais/lançamentos não ficam mais presos ao template sem fonte real', () => {
@@ -66,7 +69,8 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     // sem lineup/data/venue reais) caíam em generate-blog-post-v2 sem busca de fontes,
     // com risco de inventar detalhes de evento. Devem cair no catch-all ancorado em
     // busca real, igual ao cron automático já faz para toda categoria.
-    const content = read('src/pages/admin/AIContent2.tsx');
+    // Onda Bônus: TEMPLATE_ROUTED_CATEGORIES migrou para aiContent/types.ts.
+    const content = read('src/pages/admin/aiContent/types.ts');
     const match = content.match(/const TEMPLATE_ROUTED_CATEGORIES = (\[[^\]]*\]);/);
     expect(match).not.toBeNull();
 
