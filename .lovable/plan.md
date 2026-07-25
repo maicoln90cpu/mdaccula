@@ -34,21 +34,24 @@ Bônus   AIContent2.tsx                 919 → só se sobrar tempo
 
 ---
 
-## Onda 1 — EmailTemplateEditor.tsx (2243 linhas)
+## Onda 1 — EmailTemplateEditor.tsx (2243 → 909 linhas) — ✅ CONCLUÍDA
 
-**PR-A: extrair painéis de propriedades**
-- Novo diretório `src/components/admin/emailTemplateEditor/`
-- Mover `BlockPropsPanel` (linhas ~1054-2102) → `BlockPropsPanel.tsx`
-- Mover `GlobalRefPropsPanel` (linhas ~2103-fim) → `GlobalRefPropsPanel.tsx`
-- Mover controles reutilizados (`AlignControl`, `ColorControl`, `SortableRow`) → `controls.tsx`
-- Estimativa: editor cai para ~600 linhas.
+## Onda 3 — EventForm.tsx (1602 → 816 linhas) — ✅ PR-A CONCLUÍDO
 
-**PR-B (se necessário): extrair presets + defaults**
-- Mover `defaultForKind` e helpers de preset para `blockDefaults.ts`.
+**PR-A — ✅ CONCLUÍDO**
+- Criado diretório `src/components/events/eventForm/` com 7 arquivos:
+  `constants.ts` (GENRES, STATES, normalizeUrl, EventFormData),
+  `BasicInfoSection.tsx`, `DateTimeSection.tsx`, `GenresChecklist.tsx`,
+  `LineupSection.tsx` (line-up + programação por dia), `TicketAndCtaSection.tsx`
+  (ticket/vip/cta/pix/tickets_per_day), `DescriptionBlogSection.tsx`,
+  `CreationOptionsSection.tsx` (createLink + generateBlogPost + dispatchEmail).
+- Adotado `FormProvider` do react-hook-form para reduzir prop drilling.
+- `EventForm.tsx`: **1602 → 816 linhas** (−49%). Abaixo do alvo <900.
+- Allowlist do teste de cores atualizado para cobrir os 2 subcomponentes admin.
+- 381 testes verdes, tsgo limpo.
 
----
-
-## Onda 2 — EmailConfig.tsx (1901 → 1123 linhas, alvo <900) — ✅ CONCLUÍDA
+**PR-B (opcional): extrair schema + submit para `useEventForm.ts`.**
+Não obrigatório — arquivo já <900. Executar só se aparecerem novos requisitos.
 
 **PR-A — ✅ CONCLUÍDO**
 - Extraída aba "Envio manual" para `ManualSendTab.tsx` + hook `useEmailDispatch.ts`.
