@@ -95,14 +95,19 @@ Não obrigatório — arquivo já muito abaixo do alvo.
 
 ---
 
-## Onda 5 — supabase/functions/_shared/emailBlocks.ts (1243 linhas)
+## Onda 5 — supabase/functions/_shared/emailBlocks.ts (1243 → 32 linhas) — ✅ CONCLUÍDA
 
-**Atenção:** arquivo `_shared` — testar bundling depois.
+**PR-A — ✅ CONCLUÍDO**
+- Novo diretório `supabase/functions/_shared/emailBlocks/`:
+  `types.ts` (189), `utils.ts` (61), `preheader.ts` (13),
+  `renderBlock.ts` (735 — switch principal preservado 1:1),
+  `renderBlockedTemplate.ts` (73), `renderBlockedTemplateText.ts` (159).
+- `emailBlocks.ts` virou **barrel** de 32 linhas reexportando a API pública 1:1.
+- Nenhum consumidor precisou mudar (frontend `@shared/emailBlocks.ts` + edges).
+- Guard arquitetural `email-composer-guard` atualizado com o novo caminho legítimo.
+- Testes de paridade byte-a-byte (`frontend-edge-render-parity`, `emailComposer`, `email-blocks-limits`, `email-map-geocode-on-dispatch`) e suíte completa (381 verdes) confirmam zero regressão visual.
+- ⚠️ **Pendente**: redeploy das 3 edges que importam do `_shared/` (weekly-digest-draft, weekend-agenda-draft, blog-digest-draft) para inline dos novos arquivos.
 
-**PR-A: dividir por família de bloco**
-- Novo diretório `supabase/functions/_shared/emailBlocks/`
-- Um arquivo por família (`hero.ts`, `event.ts`, `countdown.ts`, `dedge.ts`, `weekend.ts`, `article.ts`, `footer.ts`) + `index.ts` reexportando tudo.
-- Manter API pública idêntica.
 
 **PR-B: rodar `scripts/bundle-edge-functions.mjs`** e redeployar todas as funções que importam esse shared.
 
