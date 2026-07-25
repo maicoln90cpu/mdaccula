@@ -1,22 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  ArrowLeft,
-  Plus,
-  GripVertical,
-  Edit,
-  Trash2,
-  Eye,
-  EyeOff,
-  Settings,
-  Copy,
-  CopyPlus,
-  Palette,
-  FolderPlus,
-  RotateCcw,
-} from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Plus, Settings, Palette } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -37,8 +23,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { LinkGroupForm } from '@/components/links/LinkGroupForm';
 import { CustomLinkForm } from '@/components/links/CustomLinkForm';
 import type { DragEndEvent } from '@dnd-kit/core';
@@ -56,7 +40,6 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { SortableItem } from '@/components/links/SortableItem';
 import { LinksPageSettings } from '@/components/links/LinksPageSettings';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import LinksDisplaySettings from '@/components/admin/links/LinksDisplaySettings';
@@ -64,47 +47,10 @@ import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { isEventVisible } from '@/lib/eventDateHelper';
 import { processLinks, sortLinkGroups } from '@/hooks/useLinks';
 import { useAdminRealtime } from '@/hooks/useAdminRealtime';
-
-// Helper para extrair mensagem de erro de forma segura
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) return error.message;
-  if (typeof error === 'string') return error;
-  return 'Erro desconhecido';
-};
-interface LinkGroup {
-  id: string;
-  name: string;
-  slug: string;
-  display_order: number;
-  enabled: boolean;
-  custom_links?: CustomLink[];
-}
-
-interface CustomLink {
-  id: string;
-  title: string;
-  url: string;
-  group_id: string | null;
-  thumbnail_url: string | null;
-  icon: string;
-  color_gradient: string;
-  clicks: number;
-  enabled: boolean;
-  display_order: number;
-  is_internal: boolean;
-  subtitle?: string | null;
-  is_featured?: boolean;
-  card_height?: number;
-  card_width?: number;
-  event_id?: string | null;
-  events?: {
-    date: string;
-    end_date?: string | null;
-    time: string;
-    end_time?: string | null;
-  } | null;
-  manual_order_override?: boolean;
-}
+import { GroupCard } from './linksManager/GroupCard';
+import { BulkSizeDialog } from './linksManager/BulkSizeDialog';
+import { AddToGroupDialog } from './linksManager/AddToGroupDialog';
+import { getErrorMessage, type CustomLink, type LinkGroup } from './linksManager/types';
 
 const LinksManager = () => {
   const [groups, setGroups] = useState<LinkGroup[]>([]);
@@ -121,21 +67,21 @@ const LinksManager = () => {
   const [bulkWidth, setBulkWidth] = useState<number>(650);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active');
   const [showTemplateSettings, setShowTemplateSettings] = useState(false);
+  const [showAddToGroupDialog, setShowAddToGroupDialog] = useState(false);
+  const [linkToAddToGroup, setLinkToAddToGroup] = useState<CustomLink | null>(null);
+  const [targetGroupId, setTargetGroupId] = useState<string>('');
   const { settings } = useSiteSettings();
+  const { toast } = useToast();
 
   const openBulkSizeDialog = () => {
-    // Usar altura global do settings se disponível
     const globalHeight = parseInt(settings?.links_page_card_default_height || '100');
     setBulkHeight(globalHeight);
-
-    // Buscar largura do primeiro link disponível
     const allLinks = groups.flatMap((g) => g.custom_links || []);
     if (allLinks.length > 0) {
       setBulkWidth(allLinks[0].card_width || 650);
     }
     setShowBulkSizeDialog(true);
   };
-  const { toast } = useToast();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -144,7 +90,6 @@ const LinksManager = () => {
     })
   );
 
-  // Filtrar grupos e links baseado na visibilidade do evento associado
   const filteredGroups = useMemo(() => {
     const hoursAfterStart = parseInt(settings?.event_hours_after_start || '12');
     const hoursWithoutTime = parseInt(settings?.event_hours_without_time || '24');
@@ -155,26 +100,17 @@ const LinksManager = () => {
         const filteredLinks =
           group.custom_links?.filter((link) => {
             if (statusFilter === 'all') return true;
-
-            // Se o link não tem evento associado, considerar como "ativo"
             if (!link.event_id || !link.events?.date) {
               return statusFilter === 'active';
             }
-
-            // Usar helper de visibilidade
             const isActive = isEventVisible(
-              {
-                date: link.events.date,
-                time: link.events.time,
-              },
+              { date: link.events.date, time: link.events.time },
               { hoursAfterStart, hoursWithoutTime, timezoneOffset }
             );
-
             if (statusFilter === 'active') return isActive;
             if (statusFilter === 'inactive') return !isActive;
             return true;
           }) || [];
-
         return { ...group, custom_links: filteredLinks };
       })
       .filter((group) => {
@@ -200,9 +136,6 @@ const LinksManager = () => {
 
       if (error) throw error;
 
-      // Reaproveita EXATAMENTE os helpers usados em /links (processLinks + sortLinkGroups),
-      // para que /admin/links-manager e /links fiquem 100% sincronizados.
-      // includeDisabled=true garante que o admin veja também os links desabilitados.
       const hoursAfterStart = parseInt(settings?.event_hours_after_start || '12');
       const hoursWithoutTime = parseInt(settings?.event_hours_without_time || '24');
       const timezoneOffset = parseInt(settings?.timezone_offset || '-3');
@@ -217,11 +150,10 @@ const LinksManager = () => {
 
       setGroups(sortLinkGroups(withProcessed));
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         variant: 'destructive',
         title: 'Erro ao carregar grupos',
-        description: errorMessage,
+        description: getErrorMessage(error),
       });
     } finally {
       setLoading(false);
@@ -232,18 +164,15 @@ const LinksManager = () => {
     fetchGroups();
   }, [fetchGroups]);
 
-  // Realtime unificado: 1 canal cobrindo custom_links + link_groups
   useAdminRealtime(['custom_links', 'link_groups'], () => fetchGroups());
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-
     if (!over || active.id === over.id) return;
 
     const activeId = String(active.id);
     const overId = String(over.id);
 
-    // Reordenar grupos
     if (activeId.startsWith('group-') && overId.startsWith('group-')) {
       const activeIndex = groups.findIndex((g) => `group-${g.id}` === activeId);
       const overIndex = groups.findIndex((g) => `group-${g.id}` === overId);
@@ -251,28 +180,21 @@ const LinksManager = () => {
       if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
         const newGroups = arrayMove(groups, activeIndex, overIndex);
         setGroups(newGroups);
-
-        // Atualizar display_order dos grupos no banco
         for (let i = 0; i < newGroups.length; i++) {
           await supabase.from('link_groups').update({ display_order: i }).eq('id', newGroups[i].id);
         }
-
         toast({ title: 'Ordem dos grupos atualizada' });
       }
-
       return;
     }
 
-    // Reordenar links (dentro do mesmo grupo ou entre grupos)
     const activeGroup = groups.find((g) => g.custom_links?.some((l) => l.id === activeId));
     const overGroup = groups.find((g) => g.custom_links?.some((l) => l.id === overId));
-
     if (!activeGroup || !overGroup) return;
 
     const newGroups = [...groups];
 
     if (activeGroup.id !== overGroup.id) {
-      // Movendo link entre grupos diferentes
       const activeGroupIndex = newGroups.findIndex((g) => g.id === activeGroup.id);
       const overGroupIndex = newGroups.findIndex((g) => g.id === overGroup.id);
 
@@ -281,7 +203,6 @@ const LinksManager = () => {
 
       const linkIndex = activeLinks.findIndex((l) => l.id === activeId);
       const overLinkIndex = overLinks.findIndex((l) => l.id === overId);
-
       if (linkIndex === -1 || overLinkIndex === -1) return;
 
       const [movedLink] = activeLinks.splice(linkIndex, 1);
@@ -299,21 +220,16 @@ const LinksManager = () => {
         .update({ group_id: overGroup.id, manual_order_override: true })
         .eq('id', activeId);
     } else {
-      // Movendo link dentro do mesmo grupo
       const groupIndex = newGroups.findIndex((g) => g.id === activeGroup.id);
       const links = [...(newGroups[groupIndex].custom_links || [])];
-
       const oldIndex = links.findIndex((l) => l.id === activeId);
       const newIndex = links.findIndex((l) => l.id === overId);
-
       if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
-
       const reordered = arrayMove(links, oldIndex, newIndex);
       newGroups[groupIndex] = { ...newGroups[groupIndex], custom_links: reordered };
     }
 
     const affectedGroupIds = new Set([activeGroup.id, overGroup.id]);
-
     for (const group of newGroups) {
       if (affectedGroupIds.has(group.id) && group.custom_links) {
         for (let i = 0; i < group.custom_links.length; i++) {
@@ -340,7 +256,6 @@ const LinksManager = () => {
         .from('link_groups')
         .update({ enabled: !enabled })
         .eq('id', groupId);
-
       if (error) throw error;
       fetchGroups();
       toast({ title: enabled ? 'Grupo desabilitado' : 'Grupo habilitado' });
@@ -355,7 +270,6 @@ const LinksManager = () => {
         .from('custom_links')
         .update({ enabled: !enabled })
         .eq('id', linkId);
-
       if (error) throw error;
       fetchGroups();
       toast({ title: enabled ? 'Link desabilitado' : 'Link habilitado' });
@@ -370,7 +284,6 @@ const LinksManager = () => {
         .from('custom_links')
         .update({ manual_order_override: false })
         .eq('id', linkId);
-
       if (error) throw error;
       fetchGroups();
       toast({
@@ -384,12 +297,9 @@ const LinksManager = () => {
 
   const handleDeleteGroup = async () => {
     if (!deleteGroupId) return;
-
     try {
       const { error } = await supabase.from('link_groups').delete().eq('id', deleteGroupId);
-
       if (error) throw error;
-
       fetchGroups();
       toast({ title: 'Grupo excluído com sucesso' });
     } catch (error: unknown) {
@@ -406,24 +316,18 @@ const LinksManager = () => {
   const handleDeleteLink = async () => {
     if (!deleteLinkId) return;
     const idToDelete = deleteLinkId;
-
-    // Atualização otimista: remove da UI imediatamente
     setGroups((prev) =>
       prev.map((g) => ({
         ...g,
         custom_links: (g.custom_links || []).filter((l) => l.id !== idToDelete),
       }))
     );
-
     try {
       const { error } = await supabase.from('custom_links').delete().eq('id', idToDelete);
-
       if (error) throw error;
-
       fetchGroups();
       toast({ title: 'Link excluído com sucesso' });
     } catch (error: unknown) {
-      // Reverte buscando do banco
       fetchGroups();
       toast({
         variant: 'destructive',
@@ -437,7 +341,6 @@ const LinksManager = () => {
 
   const handleDuplicateLink = async (link: CustomLink) => {
     try {
-      // Buscar maior display_order do grupo
       const groupLinks = groups.find((g) => g.id === link.group_id)?.custom_links || [];
       const maxOrder =
         groupLinks.length > 0 ? Math.max(...groupLinks.map((l) => l.display_order)) : 0;
@@ -456,11 +359,9 @@ const LinksManager = () => {
         is_featured: link.is_featured,
         card_height: link.card_height,
         card_width: link.card_width,
-        event_id: link.event_id, // Copiar event_id para manter dados do evento
+        event_id: link.event_id,
       });
-
       if (error) throw error;
-
       fetchGroups();
       toast({ title: 'Link duplicado com sucesso' });
     } catch (error: unknown) {
@@ -472,22 +373,16 @@ const LinksManager = () => {
     }
   };
 
-  const [showAddToGroupDialog, setShowAddToGroupDialog] = useState(false);
-  const [linkToAddToGroup, setLinkToAddToGroup] = useState<CustomLink | null>(null);
-  const [targetGroupId, setTargetGroupId] = useState<string>('');
-
   const handleAddToAnotherGroup = async () => {
     if (!linkToAddToGroup || !targetGroupId) return;
-
     try {
-      // Buscar maior display_order do grupo destino
       const targetGroup = groups.find((g) => g.id === targetGroupId);
       const maxOrder = targetGroup?.custom_links?.length
         ? Math.max(...targetGroup.custom_links.map((l) => l.display_order))
         : 0;
 
       const { error } = await supabase.from('custom_links').insert({
-        title: linkToAddToGroup.title, // Sem "(cópia)"
+        title: linkToAddToGroup.title,
         url: linkToAddToGroup.url,
         group_id: targetGroupId,
         thumbnail_url: linkToAddToGroup.thumbnail_url,
@@ -502,9 +397,7 @@ const LinksManager = () => {
         card_width: linkToAddToGroup.card_width,
         event_id: linkToAddToGroup.event_id,
       });
-
       if (error) throw error;
-
       fetchGroups();
       setShowAddToGroupDialog(false);
       setLinkToAddToGroup(null);
@@ -521,21 +414,17 @@ const LinksManager = () => {
 
   const handleBulkSizeUpdate = async () => {
     try {
-      // Salvar altura global em site_settings
       const { error: heightError } = await supabase
         .from('site_settings')
         .upsert(
           { key: 'links_page_card_default_height', value: String(bulkHeight) },
           { onConflict: 'key' }
         );
-
       if (heightError) throw heightError;
 
-      // Atualizar largura em todos os links (largura ainda é individual)
       const { data: allLinks, error: fetchError } = await supabase
         .from('custom_links')
         .select('id');
-
       if (fetchError) throw fetchError;
 
       const { error: updateError } = await supabase
@@ -545,7 +434,6 @@ const LinksManager = () => {
           'id',
           allLinks.map((link) => link.id)
         );
-
       if (updateError) throw updateError;
 
       fetchGroups();
@@ -616,7 +504,6 @@ const LinksManager = () => {
                 </Button>
               </div>
 
-              {/* Filtro de status */}
               <div className="flex items-center gap-2 mt-4">
                 <span className="text-sm text-muted-foreground">Filtrar:</span>
                 <Select
@@ -653,202 +540,35 @@ const LinksManager = () => {
                       strategy={verticalListSortingStrategy}
                     >
                       {filteredGroups.map((group) => (
-                        <Card key={group.id} className={!group.enabled ? 'opacity-50' : ''}>
-                          <CardHeader>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 flex-1">
-                                <SortableItem id={`group-${group.id}`}>
-                                  <GripVertical className="w-5 h-5 text-muted-foreground cursor-grab" />
-                                </SortableItem>
-                                <div>
-                                  <CardTitle className="text-xl">{group.name}</CardTitle>
-                                  <p className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
-                                    /links/{group.slug}
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 px-2"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(
-                                          `${window.location.origin}/links/${group.slug}`
-                                        );
-                                        toast({ title: 'Link copiado!' });
-                                      }}
-                                    >
-                                      <Copy className="w-3 h-3" />
-                                    </Button>
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => toggleGroupEnabled(group.id, group.enabled)}
-                                >
-                                  {group.enabled ? (
-                                    <Eye className="w-4 h-4" />
-                                  ) : (
-                                    <EyeOff className="w-4 h-4" />
-                                  )}
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setEditingGroup(group);
-                                    setShowGroupForm(true);
-                                  }}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setDeleteGroupId(group.id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="space-y-2">
-                              <SortableContext
-                                items={group.custom_links?.map((l) => l.id) || []}
-                                strategy={verticalListSortingStrategy}
-                              >
-                                {group.custom_links?.map((link) => (
-                                  <div
-                                    key={link.id}
-                                    className={`flex items-center justify-between p-3 rounded-lg border bg-card ${!link.enabled ? 'opacity-50' : ''}`}
-                                  >
-                                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                                      <SortableItem id={link.id}>
-                                        <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab flex-shrink-0" />
-                                      </SortableItem>
-                                      {link.thumbnail_url && (
-                                        <img
-                                          src={link.thumbnail_url}
-                                          alt={link.title}
-                                          className="w-10 h-10 rounded object-cover flex-shrink-0"
-                                          loading="lazy"
-                                        />
-                                      )}
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                          <p className="font-medium truncate">{link.title}</p>
-                                          {link.manual_order_override && (
-                                            <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded">
-                                              manual
-                                            </span>
-                                          )}
-                                        </div>
-                                        {link.events?.date && (
-                                          <p className="text-xs text-primary font-medium">
-                                            📅{' '}
-                                            {new Date(
-                                              link.events.date + 'T00:00:00'
-                                            ).toLocaleDateString('pt-BR')}{' '}
-                                            • {link.events.time?.slice(0, 5) || ''}
-                                          </p>
-                                        )}
-                                        <p className="text-xs text-muted-foreground truncate">
-                                          {link.url}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          👁️ {link.clicks} clicks
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-1 flex-shrink-0">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => toggleLinkEnabled(link.id, link.enabled)}
-                                        title={link.enabled ? 'Desativar' : 'Ativar'}
-                                      >
-                                        {link.enabled ? (
-                                          <Eye className="w-4 h-4" />
-                                        ) : (
-                                          <EyeOff className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                      {link.manual_order_override && (
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={() => resetManualOrder(link.id)}
-                                          title="Resetar ordenação manual"
-                                        >
-                                          <RotateCcw className="w-4 h-4" />
-                                        </Button>
-                                      )}
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                          setLinkToAddToGroup(link);
-                                          setTargetGroupId('');
-                                          setShowAddToGroupDialog(true);
-                                        }}
-                                        title="Adicionar a outro grupo"
-                                      >
-                                        <FolderPlus className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => handleDuplicateLink(link)}
-                                        title="Duplicar"
-                                      >
-                                        <CopyPlus className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => {
-                                          setEditingLink(link);
-                                          setSelectedGroupId(link.group_id);
-                                          setShowLinkForm(true);
-                                        }}
-                                        title="Editar"
-                                      >
-                                        <Edit className="w-4 h-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setDeleteLinkId(link.id)}
-                                        title="Excluir"
-                                      >
-                                        <Trash2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </SortableContext>
-
-                              {(!group.custom_links || group.custom_links.length === 0) && (
-                                <div className="text-center py-8 text-muted-foreground">
-                                  <p className="mb-2">Nenhum link neste grupo</p>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                      setSelectedGroupId(group.id);
-                                      setEditingLink(null);
-                                      setShowLinkForm(true);
-                                    }}
-                                  >
-                                    <Plus className="w-4 h-4 mr-2" />
-                                    Adicionar Link
-                                  </Button>
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <GroupCard
+                          key={group.id}
+                          group={group}
+                          onToggleGroupEnabled={toggleGroupEnabled}
+                          onEditGroup={(g) => {
+                            setEditingGroup(g);
+                            setShowGroupForm(true);
+                          }}
+                          onRequestDeleteGroup={setDeleteGroupId}
+                          onAddLinkToGroup={(groupId) => {
+                            setSelectedGroupId(groupId);
+                            setEditingLink(null);
+                            setShowLinkForm(true);
+                          }}
+                          onToggleLinkEnabled={toggleLinkEnabled}
+                          onResetManualOrder={resetManualOrder}
+                          onRequestAddToGroup={(link) => {
+                            setLinkToAddToGroup(link);
+                            setTargetGroupId('');
+                            setShowAddToGroupDialog(true);
+                          }}
+                          onDuplicateLink={handleDuplicateLink}
+                          onEditLink={(link) => {
+                            setEditingLink(link);
+                            setSelectedGroupId(link.group_id);
+                            setShowLinkForm(true);
+                          }}
+                          onRequestDeleteLink={setDeleteLinkId}
+                        />
                       ))}
                     </SortableContext>
 
@@ -955,54 +675,16 @@ const LinksManager = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={showBulkSizeDialog} onOpenChange={setShowBulkSizeDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Ajustar Tamanho dos Cards</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="bulk-width">Largura (px)</Label>
-              <Input
-                id="bulk-width"
-                type="number"
-                value={bulkWidth}
-                onChange={(e) => setBulkWidth(Number(e.target.value))}
-                min={300}
-                max={1200}
-              />
-              <p className="text-xs text-muted-foreground">Recomendado: 650px</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="bulk-height">Altura (px)</Label>
-              <Input
-                id="bulk-height"
-                type="number"
-                value={bulkHeight}
-                onChange={(e) => setBulkHeight(Number(e.target.value))}
-                min={60}
-                max={300}
-              />
-              <p className="text-xs text-muted-foreground">
-                Recomendado: 80px (cards normais) ou 200px (cards em destaque)
-              </p>
-            </div>
-            <div className="bg-muted p-3 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                ⚠️ Esta ação aplicará os tamanhos para <strong>todos os cards</strong> existentes.
-              </p>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowBulkSizeDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleBulkSizeUpdate}>Aplicar a Todos</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <BulkSizeDialog
+        open={showBulkSizeDialog}
+        onOpenChange={setShowBulkSizeDialog}
+        bulkWidth={bulkWidth}
+        bulkHeight={bulkHeight}
+        onBulkWidthChange={setBulkWidth}
+        onBulkHeightChange={setBulkHeight}
+        onApply={handleBulkSizeUpdate}
+      />
 
-      {/* Template Settings Modal */}
       <LinksPageSettings
         open={showTemplateSettings}
         onOpenChange={setShowTemplateSettings}
@@ -1018,41 +700,15 @@ const LinksManager = () => {
         currentCardBorderColor={settings.links_page_card_border_color}
       />
 
-      {/* Dialog para adicionar link a outro grupo */}
-      <Dialog open={showAddToGroupDialog} onOpenChange={setShowAddToGroupDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Adicionar a Outro Grupo</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Selecione o grupo onde deseja adicionar o link "{linkToAddToGroup?.title}":
-            </p>
-            <Select value={targetGroupId} onValueChange={setTargetGroupId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o grupo" />
-              </SelectTrigger>
-              <SelectContent>
-                {groups
-                  .filter((g) => g.id !== linkToAddToGroup?.group_id)
-                  .map((g) => (
-                    <SelectItem key={g.id} value={g.id}>
-                      {g.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowAddToGroupDialog(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddToAnotherGroup} disabled={!targetGroupId}>
-              Adicionar
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddToGroupDialog
+        open={showAddToGroupDialog}
+        onOpenChange={setShowAddToGroupDialog}
+        linkToAddToGroup={linkToAddToGroup}
+        targetGroupId={targetGroupId}
+        onTargetGroupIdChange={setTargetGroupId}
+        groups={groups}
+        onConfirm={handleAddToAnotherGroup}
+      />
     </>
   );
 };

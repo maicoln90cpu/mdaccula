@@ -132,12 +132,17 @@ Não obrigatório — arquivo já muito abaixo do alvo.
 
 ---
 
-## Onda 8 — LinksManager.tsx (1060 linhas)
+## Onda 8 — LinksManager.tsx (1060 → 716 linhas) — ✅ CONCLUÍDA
 
-**PR-A: extrair listagem e modais**
-- Extrair tabela de links, modal de edição e modal de reordenação para `src/pages/admin/linksManager/`.
+**PR-A — ✅ CONCLUÍDO**
+- Novo diretório `src/pages/admin/linksManager/` com:
+  `types.ts` (40), `LinkRow.tsx` (118), `GroupCard.tsx` (135),
+  `BulkSizeDialog.tsx` (73), `AddToGroupDialog.tsx` (67).
+- `LinksManager.tsx` reduzido para **716 linhas** — apenas orquestrador (estado, DnD, fetchers, handlers de CRUD).
+- Comportamento 100% preservado: mesmos handlers, mesma UX de drag-and-drop entre grupos, mesmos filtros de status.
+- Validado: `tsgo --noEmit` limpo, `eslint` limpo, 381 testes verdes.
 
-**PR-B:** sem necessidade prevista (só se ainda passar de 900 linhas).
+**PR-B:** desnecessário — arquivo já abaixo do alvo <800.
 
 ---
 
