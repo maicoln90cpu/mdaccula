@@ -1,23 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 
-import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NavLink } from 'react-router-dom';
 import { ArrowLeft, Send, LayoutGrid, BarChart3 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
-import {
-  MOCK_EVENT_DATA,
-  type EventAnnouncementData,
-} from '@/lib/emailTemplates/eventAnnouncement';
-
-import { type Block, type ArticleSummary } from '@/lib/emailTemplates/blocks';
-import {
-  applyEmailBlockOverrides,
-  buildEventAnnouncementData,
-  buildMultiEventAnnouncementData,
-  composeEmail,
-} from '@/lib/emailTemplates/emailComposer';
-import { partitionIssues } from '@/lib/emailTemplates/issueClassifier';
 
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
 
@@ -28,67 +14,25 @@ import { ConfigTab } from '@/components/admin/emailConfig/ConfigTab';
 import { ManualSendTab } from '@/components/admin/emailConfig/ManualSendTab';
 import { TemplateBrandTab } from '@/components/admin/emailConfig/TemplateBrandTab';
 import { TemplateEditorTab } from '@/components/admin/emailConfig/TemplateEditorTab';
-import { useEmailDispatch } from '@/components/admin/emailConfig/useEmailDispatch';
 import {
   useEmailAutomation,
   DAY_LABELS,
   AUTOMATION_TEST_RECIPIENT,
 } from '@/components/admin/emailConfig/useEmailAutomation';
 import { useEmailConfigState } from '@/components/admin/emailConfig/useEmailConfigState';
+import { useEmailPreview } from '@/components/admin/emailConfig/useEmailPreview';
+import { useManualBatch } from '@/components/admin/emailConfig/useManualBatch';
 
 import { formatCount } from '@/lib/formatters';
-
-interface DigestPreviewResponse {
-  skipped?: boolean;
-  reason?: string;
-  html?: string;
-  error?: string;
-  subject?: string;
-  preheader?: string;
-  events_count?: number;
-  posts_count?: number;
-  range?: string;
-  render_source?: string;
-  template_name?: string | null;
-}
-
+import type { Template } from '@/lib/emailTemplates/blocks';
 
 const EmailConfig = () => {
   const { toast } = useToast();
   const { globalsMap } = useEmailGlobalBlocks();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [previewData, setPreviewData] = useState<EventAnnouncementData>(MOCK_EVENT_DATA);
-  const [templates, setTemplates] = useState<import('@/lib/emailTemplates/blocks').Template[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
-  const [selectedRealEventId, setSelectedRealEventId] = useState<string>('mock');
-  const [previewArticle, setPreviewArticle] = useState<ArticleSummary | null>(null);
-  const [digestTemplateId, setDigestTemplateId] = useState<string>('');
-  const [digestPreviewHtml, setDigestPreviewHtml] = useState<string>('');
-  const [digestPreviewMeta, setDigestPreviewMeta] = useState<{
-    subject?: string;
-    preheader?: string;
-    events_count?: number;
-    posts_count?: number;
-    range?: string;
-    render_source?: string;
-    template_name?: string | null;
-  } | null>(null);
-  const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
-  const [sendingTest, setSendingTest] = useState(false);
   const [editorDirty, setEditorDirty] = useState(false);
-  // B.8 — Virada de lote
-  const [batchEventId, setBatchEventId] = useState<string>('');
-  const [batchEventIds, setBatchEventIds] = useState<string[]>([]);
-  const [batchTemplateId, setBatchTemplateId] = useState<string>('');
-  const [batchArtworkUrl, setBatchArtworkUrl] = useState<string>('');
-  const [batchSubject, setBatchSubject] = useState<string>('');
-  const [batchArticle, setBatchArticle] = useState<ArticleSummary | null>(null);
-  const [batchUploadingArt, setBatchUploadingArt] = useState(false);
-  const [batchDispatching, setBatchDispatching] = useState(false);
-  const [batchScheduleAt, setBatchScheduleAt] = useState<string>('');
-  const [batchScheduling, setBatchScheduling] = useState(false);
-  /** undefined = usa o segmento global de egoi_config; null = toda a lista; number = segmento específico. */
-  const [batchSegmentId, setBatchSegmentId] = useState<number | null | undefined>(undefined);
 
   // Automações — estado + handlers encapsulados no hook `useEmailAutomation` (Fase C).
   const {
@@ -180,367 +124,71 @@ const EmailConfig = () => {
     },
   });
 
-
-
-
-  // Preview usa o template ativo (por blocos) quando existir; senão cai no layout original.
-  const activeTemplate = useMemo(
-    () => templates.find((t) => t.id === activeTemplateId) || null,
-    [templates, activeTemplateId]
-  );
-
-  // Fonte do preview é derivada do TIPO do template ativo (evita 2 seletores conflitantes).
-  //   digest / editorial → "digest"     (usa weekly-digest-draft com range de 7 dias)
-  //   weekend_agenda    → "weekend"     (mesma função, range weekend)
-  //   demais            → "event"       (mock/real do evento selecionado)
-  const previewSource: 'event' | 'digest' | 'weekend' | 'blog' = useMemo(() => {
-    const t = activeTemplate?.type;
-    if (t === 'weekly_digest' || t === 'weekly_digest_editorial') return 'digest';
-    if (t === 'weekend_agenda') return 'weekend';
-    if (t === 'blog_digest') return 'blog';
-    return 'event';
-  }, [activeTemplate?.type]);
-
-  const eventPreviewComposition = useMemo(
-    () =>
-      composeEmail({
-        template: {
-          blocks: (activeTemplate?.blocks as Block[] | undefined) ?? [],
-          subject_template: activeTemplate?.subject_template,
-          preheader_template: activeTemplate?.preheader_template,
-        },
-        event: previewData,
-        settings: tpl,
-        article: previewArticle,
-        globals: globalsMap,
-      }),
-    [activeTemplate, previewData, tpl, previewArticle, globalsMap]
-  );
-  const eventPreviewMeta = useMemo(
-    () => ({
-      subject: eventPreviewComposition.subject,
-      preheader: eventPreviewComposition.preheader,
-    }),
-    [eventPreviewComposition]
-  );
-  const previewHtml = eventPreviewComposition.html;
-
-  const manualTemplates = useMemo(
-    () =>
-      templates.filter((template) =>
-        ['event_new', 'courtesy', 'ticket_batch', 'ticket_batch_multi', 'custom'].includes(
-          template.type
-        )
-      ),
-    [templates]
-  );
-  const selectedManualTemplate = useMemo(
-    () => manualTemplates.find((template) => template.id === batchTemplateId) ?? null,
-    [manualTemplates, batchTemplateId]
-  );
-  const selectedManualEvent = useMemo(
-    () => realEvents.find((event) => event.id === batchEventId) ?? null,
-    [realEvents, batchEventId]
-  );
-  const isMultiEventTemplate = selectedManualTemplate?.type === 'ticket_batch_multi';
-  const selectedManualEvents = useMemo(
-    () => realEvents.filter((event) => batchEventIds.includes(event.id)),
-    [realEvents, batchEventIds]
-  );
-  const manualComposition = useMemo(() => {
-    if (!selectedManualTemplate) return null;
-
-    if (isMultiEventTemplate) {
-      if (selectedManualEvents.length === 0) return null;
-      const event = buildMultiEventAnnouncementData(selectedManualEvents, {
-        baseUrl: 'https://mdaccula.com',
-      });
-      return composeEmail({
-        template: {
-          blocks: selectedManualTemplate.blocks as Block[],
-          subject_template: selectedManualTemplate.subject_template,
-          preheader_template: selectedManualTemplate.preheader_template,
-        },
-        event,
-        settings: tpl,
-        globals: globalsMap,
-      });
-    }
-
-    if (!selectedManualEvent) return null;
-    const deadline = new Date();
-    deadline.setHours(23, 59, 0, 0);
-    const event = buildEventAnnouncementData(selectedManualEvent, {
-      flyerOverrideUrl:
-        selectedManualTemplate.type === 'ticket_batch' ? batchArtworkUrl || undefined : undefined,
-      ticketBatchDeadlineIso: deadline.toISOString(),
-    });
-    let blocks = applyEmailBlockOverrides(selectedManualTemplate.blocks as Block[], {
-      artworkUrl:
-        selectedManualTemplate.type === 'ticket_batch'
-          ? batchArtworkUrl || event.flyerUrl || undefined
-          : undefined,
-      defaultLink: event.ticketUrl,
-    });
-    // Mesmo filtro de dispatchEventDraft.ts: templates de evento único nunca
-    // devem renderizar blocos de digest/agenda multi-evento — sem isso, a
-    // prévia do envio manual mostra um aviso que o disparo real já não tem.
-    const eventOnlyTemplateTypes = new Set(['event_new', 'event_reminder', 'last_hours', 'ticket_batch']);
-    if (eventOnlyTemplateTypes.has(String(selectedManualTemplate.type))) {
-      blocks = blocks.filter(
-        (b) => !['weekend_grid', 'weekly_hero', 'blog_posts_list', 'dedge_block'].includes(b.kind)
-      );
-    }
-    return composeEmail({
-      template: {
-        blocks,
-        subject_template:
-          selectedManualTemplate.type === 'ticket_batch'
-            ? batchSubject || selectedManualTemplate.subject_template
-            : selectedManualTemplate.subject_template,
-        preheader_template: selectedManualTemplate.preheader_template,
-      },
-      event,
-      settings: tpl,
-      article: batchArticle,
-      globals: globalsMap,
-    });
-  }, [
-    selectedManualTemplate,
-    selectedManualEvent,
-    isMultiEventTemplate,
-    selectedManualEvents,
-    batchArtworkUrl,
-    batchSubject,
+  // Preview (Onda 9 PR-B) — encapsula previewData, digest preview, sendTestEmail
+  // e a lógica de aplicação de evento real ao preview.
+  const {
+    previewData,
+    setPreviewData,
+    selectedRealEventId,
+    setSelectedRealEventId,
+    previewArticle,
+    activeTemplate,
+    previewSource,
+    eventPreviewComposition,
+    eventPreviewMeta,
+    previewHtml,
+    digestPreviewHtml,
+    digestPreviewMeta,
+    digestPreviewLoading,
+    loadDigestPreview,
+    sendingTest,
+    sendTestEmail,
+  } = useEmailPreview({
+    templates,
+    activeTemplateId,
     tpl,
-    batchArticle,
     globalsMap,
-  ]);
-
-  // Só blockers reais devem desabilitar os botões de envio — warnings (ex.:
-  // descrição vazia) já não impedem o disparo em dispatchBatch/scheduleBatch,
-  // então os botões não podem ficar travados por eles também.
-  const manualIssuePartition = useMemo(
-    () => partitionIssues(manualComposition?.issues ?? []),
-    [manualComposition]
-  );
-
-  const { dispatchBatch, scheduleBatch } = useEmailDispatch({
-    batchEventId,
-    batchEventIds,
-    batchTemplateId,
-    batchArtworkUrl,
-    batchSubject,
-    batchSegmentId,
-    batchScheduleAt,
-    isMultiEventTemplate,
-    selectedManualEvents,
-    selectedManualTemplate,
-    manualComposition,
-    loadAll,
-    setBatchDispatching,
-    setBatchScheduling,
-    setBatchScheduleAt,
+    realEvents,
+    toast,
   });
 
-  const loadDigestPreview = async (opts?: {
-    source?: 'digest' | 'weekend' | 'blog';
-    templateId?: string;
-  }) => {
-    const src =
-      opts?.source ??
-      (previewSource === 'weekend' ? 'weekend' : previewSource === 'blog' ? 'blog' : 'digest');
-    const tplId = opts?.templateId ?? digestTemplateId;
-    setDigestPreviewLoading(true);
-    try {
-      const body: Record<string, unknown> = { dry_run: true, force: true };
-      if (src === 'weekend') body.range = 'weekend';
-      if (tplId) body.template_id = tplId;
-      const functionName =
-        src === 'weekend'
-          ? 'weekend-agenda-draft'
-          : src === 'blog'
-            ? 'blog-digest-draft'
-            : 'weekly-digest-draft';
-      const { data, error } = await supabase.functions.invoke<DigestPreviewResponse>(functionName, {
-        body,
-      });
-      if (error) throw error;
-      if (data?.skipped) {
-        toast({
-          title: 'Preview indisponível',
-          description: `Motivo: ${data.reason}`,
-          variant: 'destructive',
-        });
-        setDigestPreviewHtml('');
-        setDigestPreviewMeta(null);
-        return;
-      }
-      if (!data?.html) throw new Error(data?.error || 'Sem HTML retornado');
-      setDigestPreviewHtml(data.html);
-      setDigestPreviewMeta({
-        subject: data.subject,
-        preheader: data.preheader,
-        events_count: data.events_count,
-        posts_count: data.posts_count,
-        range: data.range,
-        render_source: data.render_source,
-        template_name: data.template_name,
-      });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({
-        title: 'Erro ao carregar preview',
-        description: message ?? String(e),
-        variant: 'destructive',
-      });
-    } finally {
-      setDigestPreviewLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (previewSource === 'event') return;
-    // Fonte digest/weekend: usa o próprio template ativo como fonte do preview.
-    const tplId = activeTemplateId || '';
-    setDigestTemplateId(tplId);
-    loadDigestPreview({ source: previewSource, templateId: tplId });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewSource, activeTemplateId]);
-
-
-
-  // B.8 — quando templates carregarem, pré-seleciona o primeiro ticket_batch
-  useEffect(() => {
-    if (batchTemplateId) return;
-    const tb = templates.find((t) => t.type === 'ticket_batch');
-    if (tb?.id) setBatchTemplateId(tb.id);
-  }, [templates, batchTemplateId]);
-
-  useEffect(() => {
-    const event = realEvents.find((item) => item.id === batchEventId);
-    if (!event?.blog_post_id) {
-      setBatchArticle(null);
-      return;
-    }
-    let cancelled = false;
-    void supabase
-      .from('blog_posts')
-      .select('title,excerpt,slug,image_url')
-      .eq('id', event.blog_post_id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (cancelled) return;
-        setBatchArticle(
-          data
-            ? {
-                title: data.title,
-                excerpt: data.excerpt || '',
-                url: `https://mdaccula.com/blog/${data.slug}`,
-                image_url: data.image_url || undefined,
-              }
-            : null
-        );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [batchEventId, realEvents]);
-
-  // Aplica dados de um evento real ao previewData quando seleciona no dropdown.
-  useEffect(() => {
-    const applyEvent = async () => {
-      if (selectedRealEventId === 'mock' || !selectedRealEventId) {
-        setPreviewData(MOCK_EVENT_DATA);
-        setPreviewArticle(null);
-        return;
-      }
-      const ev = realEvents.find((e) => e.id === selectedRealEventId);
-      if (!ev) return;
-      const baseUrl = 'https://mdaccula.com';
-      const batchDeadline = new Date();
-      batchDeadline.setHours(23, 59, 0, 0);
-      setPreviewData(
-        buildEventAnnouncementData(ev, {
-          baseUrl,
-          ticketBatchDeadlineIso: batchDeadline.toISOString(),
-        })
-      );
-      // Se o evento tem matéria vinculada, busca o resumo
-      if (ev.blog_post_id) {
-        const { data: post } = await supabase
-          .from('blog_posts')
-          .select('title,excerpt,slug,image_url')
-          .eq('id', ev.blog_post_id)
-          .maybeSingle();
-        if (post) {
-          setPreviewArticle({
-            title: post.title,
-            excerpt: post.excerpt || '',
-            url: `${baseUrl}/blog/${post.slug}`,
-            image_url: post.image_url || undefined,
-          });
-        } else setPreviewArticle(null);
-      } else setPreviewArticle(null);
-    };
-    void applyEvent();
-  }, [selectedRealEventId, realEvents]);
-
-  const sendTestEmail = async (html: string, subject: string) => {
-    setSendingTest(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-test-email', {
-        body: { html, subject },
-      });
-      if (error) throw error;
-      if (!data?.ok || !data?.id) {
-        throw new Error(data?.error || 'Resend não confirmou o envio (sem ID de mensagem)');
-      }
-      toast({
-        title: 'E-mail de teste enviado',
-        description: `Enviado para ${data.sent_to} (Resend #${data.id})`,
-      });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Falha no envio de teste', description: message });
-    } finally {
-      setSendingTest(false);
-    }
-  };
-
-  // B.8 — Upload da arte específica da virada de lote
-  const uploadBatchArtwork = async (file: File) => {
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ variant: 'destructive', title: 'Arquivo muito grande', description: 'Máximo 2MB.' });
-      return;
-    }
-    setBatchUploadingArt(true);
-    try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `email-template/batch-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('link-thumbnails')
-        .upload(path, file, { cacheControl: '3600', upsert: true });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('link-thumbnails').getPublicUrl(path);
-      setBatchArtworkUrl(pub.publicUrl);
-      toast({
-        title: 'Arte enviada',
-        description: 'Ela vai substituir o flyer padrão neste disparo.',
-      });
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
-      toast({ variant: 'destructive', title: 'Erro no upload', description: message });
-    } finally {
-      setBatchUploadingArt(false);
-    }
-  };
-
-  // Lógica de disparo manual extraída para useEmailDispatch (Onda 2 PR-A).
-
-  // Nota: não retornamos mais uma tela de loading que desmonta os Tabs. O
-  // spinner aparece dentro do conteúdo da aba ativa, para que salvar/atualizar
-  // não force o usuário de volta para "Configuração".
+  // Envio manual / Virada de lote (Onda 9 PR-B) — encapsula todo o estado do
+  // batch + composição + dispatch/schedule + upload de arte.
+  const {
+    batchEventId,
+    setBatchEventId,
+    batchEventIds,
+    setBatchEventIds,
+    batchTemplateId,
+    setBatchTemplateId,
+    batchArtworkUrl,
+    setBatchArtworkUrl,
+    batchSubject,
+    setBatchSubject,
+    batchSegmentId,
+    setBatchSegmentId,
+    batchScheduleAt,
+    setBatchScheduleAt,
+    batchUploadingArt,
+    batchDispatching,
+    batchScheduling,
+    manualTemplates,
+    selectedManualTemplate,
+    selectedManualEvents,
+    isMultiEventTemplate,
+    manualComposition,
+    manualIssuePartition,
+    uploadBatchArtwork,
+    dispatchBatch,
+    scheduleBatch,
+  } = useManualBatch({
+    templates,
+    realEvents,
+    tpl,
+    globalsMap,
+    toast,
+    loadAll,
+  });
 
   return (
     <main className="w-full px-4 md:px-6 py-6 space-y-6">
@@ -660,7 +308,6 @@ const EmailConfig = () => {
           />
         </TabsContent>
 
-        {/* ================= HISTÓRICO ================= */}
         {/* ================= B.8 — VIRADA DE LOTE ================= */}
         <TabsContent value="batch" className="space-y-4">
           <ManualSendTab
