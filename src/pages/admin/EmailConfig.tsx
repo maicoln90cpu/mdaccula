@@ -63,7 +63,7 @@ import type {
   SegmentItem,
 } from '@/components/admin/emailConfig/types';
 
-import { formatCount, formatDateTimeBR } from '@/lib/formatters';
+import { formatCount } from '@/lib/formatters';
 
 interface DigestPreviewResponse {
   skipped?: boolean;
