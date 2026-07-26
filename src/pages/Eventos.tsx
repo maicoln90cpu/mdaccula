@@ -1,34 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
 import Navigation from '@/components/ui/navigation';
 import Footer from '@/components/ui/footer';
 import { SEOHead } from '@/components/SEOHead';
 import { StructuredData } from '@/components/StructuredData';
 import { PageHeader } from '@/components/ui/page-header';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Calendar as CalendarIcon,
-  MapPin,
-  Clock,
-  Search,
-  Plus,
-  Edit,
-  Copy,
-  Save,
-  X,
-} from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuthContext';
 import { EventForm } from '@/components/events/EventForm';
@@ -36,75 +14,42 @@ import { EventModal } from '@/components/events/EventModal';
 import EventsCarousel from '@/components/events/EventsCarousel';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import djImage from '@/assets/dj-performance.jpg';
-import { getOptimizedImageUrl, getThumbnailUrl, handleThumbImageFallback } from '@/lib/imageUtils';
-import { parseLocalDate } from '@/lib/utils';
-import { formatEventDateRange } from '@/lib/dateUtils';
 import { useEvents } from '@/hooks/useEvents';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { Event } from '@/types';
-
-const getEffectiveEventEndDate = (event: Pick<Event, 'date'> & { end_date?: string | null }) =>
-  event.end_date && event.end_date >= event.date ? event.end_date : event.date;
-
-const eventOccursOnDate = (
-  event: Pick<Event, 'date'> & { end_date?: string | null },
-  date: string
-) => event.date <= date && date <= getEffectiveEventEndDate(event);
-
-const formatDateKey = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-// Sexta a domingo do fim de semana mais próximo — se hoje já é sex/sáb/dom,
-// usa o fim de semana em curso (a partir de hoje) em vez de pular pro próximo.
-const getThisWeekendDates = (): string[] => {
-  const today = new Date();
-  const day = today.getDay(); // 0=dom ... 6=sáb
-  const daysUntilFriday = day <= 5 ? 5 - day : 0; // já é sex/sáb/dom -> 0
-  const friday = new Date(today);
-  friday.setDate(today.getDate() + daysUntilFriday);
-
-  return [0, 1, 2]
-    .map((offset) => {
-      const d = new Date(friday);
-      d.setDate(friday.getDate() + offset);
-      return formatDateKey(d);
-    })
-    .filter((dateKey) => dateKey >= formatDateKey(today));
-};
+import {
+  computeEventDateCounts,
+  eventOccursOnDate,
+  filterUpcomingEvents,
+} from '@/components/eventos/eventosHelpers';
+import { FiltersSection } from '@/components/eventos/FiltersSection';
+import { CalendarSection, type CalendarView } from '@/components/eventos/CalendarSection';
+import { EventListCard } from '@/components/eventos/EventListCard';
 
 const Eventos = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  // React Query hook for events with caching
   const { events, isLoading: loading, refetch: refetchEvents } = useEvents();
 
-  // Input states (raw user input)
   const [searchTerm, setSearchTerm] = useState('');
   const [cityFilter, setCityFilter] = useState('');
 
-  // Debounced values for filtering (reduces re-renders during typing)
   const debouncedSearchTerm = useDebouncedValue(searchTerm, 300);
   const debouncedCityFilter = useDebouncedValue(cityFilter, 300);
 
-  // Select states (no debounce needed - immediate selection)
   const [genreFilter, setGenreFilter] = useState('Todos');
   const [stateFilter, setStateFilter] = useState('Todos');
   const [dateFilter, setDateFilter] = useState<string>('');
   const [weekendDates, setWeekendDates] = useState<string[]>([]);
 
-  // UI states
   const [showEventForm, setShowEventForm] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Partial<Event> | null>(null);
-  const [calendarView, setCalendarView] = useState<'events-only' | 'monthly' | 'timeline'>(
-    'timeline'
-  );
+  const [calendarView, setCalendarView] = useState<CalendarView>('timeline');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
-  // Derived data using useMemo (consolidated from multiple useEffects)
   const availableStates = useMemo(
     () => [...new Set(events.map((e) => e.location_state))].sort(),
     [events]
@@ -115,7 +60,6 @@ const Eventos = () => {
     [events]
   );
 
-  // Cities filtered by state (cascading filter logic)
   const availableCities = useMemo(() => {
     if (stateFilter && stateFilter !== 'Todos') {
       return [
@@ -127,11 +71,9 @@ const Eventos = () => {
     return [...new Set(events.map((e) => e.location_city))].sort();
   }, [events, stateFilter]);
 
-  // Filter events using useMemo with debounced values for text inputs
   const filteredEvents = useMemo(() => {
     let filtered = events;
 
-    // Use debounced search term to reduce re-renders during typing
     if (debouncedSearchTerm) {
       filtered = filtered.filter(
         (event) =>
@@ -140,13 +82,10 @@ const Eventos = () => {
       );
     }
 
-    // Filtro por data específica (do calendário)
     if (dateFilter) {
       filtered = filtered.filter((event) => eventOccursOnDate(event, dateFilter));
     }
 
-    // Atalho "este fim de semana" — evento aparece se ocorrer em qualquer
-    // um dos dias sex/sáb/dom do fim de semana mais próximo
     if (weekendDates.length > 0) {
       filtered = filtered.filter((event) =>
         weekendDates.some((weekendDate) => eventOccursOnDate(event, weekendDate))
@@ -161,7 +100,6 @@ const Eventos = () => {
       filtered = filtered.filter((event) => event.location_state === stateFilter);
     }
 
-    // Use debounced city filter for text input scenarios
     if (debouncedCityFilter && debouncedCityFilter !== 'Todos') {
       filtered = filtered.filter((event) => event.location_city === debouncedCityFilter);
     }
@@ -177,14 +115,14 @@ const Eventos = () => {
     debouncedCityFilter,
   ]);
 
-  // Reset city filter when state changes and city is not in new state
   useEffect(() => {
     if (cityFilter && !availableCities.includes(cityFilter)) {
       setCityFilter('');
     }
   }, [availableCities, cityFilter]);
 
-  // Note: refetchEvents comes from useEvents hook
+  const eventDates = useMemo(() => computeEventDateCounts(filteredEvents), [filteredEvents]);
+  const upcomingEvents = useMemo(() => filterUpcomingEvents(filteredEvents), [filteredEvents]);
 
   const handleEventClick = (event: Event) => {
     navigate(`/eventos/${event.slug}`);
@@ -197,7 +135,6 @@ const Eventos = () => {
   };
 
   const handleDuplicateEvent = (event: Event) => {
-    // Criar cópia do evento sem o ID para criar um novo
     const { id: _id, ...eventWithoutId } = event;
     const duplicatedEvent: Partial<Event> = {
       ...eventWithoutId,
@@ -237,55 +174,6 @@ const Eventos = () => {
       toast.error('Erro ao salvar template');
     }
   };
-
-  const formatDate = (dateStr: string) => {
-    return parseLocalDate(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = (timeStr?: string | null) => {
-    if (!timeStr) return 'Horário a confirmar';
-    return timeStr.slice(0, 5);
-  };
-
-  const getEventDates = () => {
-    const eventDates: { date: string; count: number }[] = [];
-    const dateCount: { [key: string]: number } = {};
-
-    filteredEvents.forEach((event) => {
-      const start = parseLocalDate(event.date);
-      const end = parseLocalDate(getEffectiveEventEndDate(event));
-
-      for (const day = new Date(start); day <= end; day.setDate(day.getDate() + 1)) {
-        const date = formatDateKey(day);
-        dateCount[date] = (dateCount[date] || 0) + 1;
-      }
-    });
-
-    Object.entries(dateCount).forEach(([date, count]) => {
-      eventDates.push({ date, count });
-    });
-
-    return eventDates.sort(
-      (a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
-    );
-  };
-
-  const getUpcomingEvents = () => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return filteredEvents
-      .filter((event) => {
-        return parseLocalDate(getEffectiveEventEndDate(event)) >= now;
-      })
-      .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
-  };
-
-  // Note: Calendar date filtering now uses the filteredEvents useMemo
-  // by updating the searchTerm or other filters as needed
 
   return (
     <>
@@ -336,308 +224,39 @@ const Eventos = () => {
           <section className="md:hidden py-6 bg-background">
             <div className="container mx-auto px-4">
               <h3 className="text-lg font-semibold mb-4">Próximos Eventos</h3>
-              <EventsCarousel events={getUpcomingEvents().slice(0, 6)} />
+              <EventsCarousel events={upcomingEvents.slice(0, 6)} />
             </div>
           </section>
 
-          {/* Filters */}
-          <section className="py-8 bg-card/50">
-            <div className="container mx-auto px-4">
-              <h3 className="text-base sm:text-lg font-semibold mb-4">Filtros</h3>
-              <div className="flex flex-col gap-4">
-                {/* Search bar */}
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Buscar eventos..."
-                    className="pl-10 h-12 w-full"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {dateFilter && (
-                    <Badge
-                      variant="secondary"
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 gap-1 cursor-pointer hover:bg-destructive/20"
-                      onClick={() => setDateFilter('')}
-                    >
-                      <CalendarIcon className="w-3 h-3" />
-                      {parseLocalDate(dateFilter).toLocaleDateString('pt-BR', {
-                        day: '2-digit',
-                        month: 'short',
-                      })}
-                      <X className="w-3 h-3" />
-                    </Badge>
-                  )}
-                </div>
+          <FiltersSection
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            weekendDates={weekendDates}
+            setWeekendDates={setWeekendDates}
+            genreFilter={genreFilter}
+            setGenreFilter={setGenreFilter}
+            stateFilter={stateFilter}
+            setStateFilter={setStateFilter}
+            cityFilter={cityFilter}
+            setCityFilter={setCityFilter}
+            availableGenres={availableGenres}
+            availableStates={availableStates}
+            availableCities={availableCities}
+          />
 
-                {/* Atalho fim de semana */}
-                <div>
-                  {weekendDates.length > 0 ? (
-                    <Badge
-                      variant="secondary"
-                      className="gap-1 cursor-pointer hover:bg-destructive/20 h-9 px-3"
-                      onClick={() => setWeekendDates([])}
-                    >
-                      <CalendarIcon className="w-3 h-3" />
-                      Este fim de semana
-                      <X className="w-3 h-3" />
-                    </Badge>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setWeekendDates(getThisWeekendDates());
-                        setDateFilter('');
-                      }}
-                    >
-                      <CalendarIcon className="w-3.5 h-3.5 mr-2" />
-                      Este fim de semana
-                    </Button>
-                  )}
-                </div>
-
-                {/* Dropdown filters */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm">Vertente de som</Label>
-                    <Select value={genreFilter} onValueChange={setGenreFilter}>
-                      <SelectTrigger className="w-full h-12">
-                        <SelectValue placeholder="Vertente de som" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        {availableGenres.map((genre) => (
-                          <SelectItem key={genre} value={genre}>
-                            {genre}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="Todos">Todos</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm">Estado</Label>
-                    <Select value={stateFilter} onValueChange={setStateFilter}>
-                      <SelectTrigger className="w-full h-12">
-                        <SelectValue placeholder="Estado" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background z-50">
-                        <SelectItem value="Todos">Todos</SelectItem>
-                        {availableStates.map((state) => (
-                          <SelectItem key={state} value={state}>
-                            {state}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm">Cidade</Label>
-                    <Select value={cityFilter} onValueChange={setCityFilter}>
-                      <SelectTrigger className="w-full h-12">
-                        <SelectValue placeholder="Todas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Todos">Todas</SelectItem>
-                        {availableCities.map((city) => (
-                          <SelectItem key={city} value={city}>
-                            {city}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label className="text-sm">&nbsp;</Label>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSearchTerm('');
-                        setDateFilter('');
-                        setWeekendDates([]);
-                        setGenreFilter('Todos');
-                        setStateFilter('Todos');
-                        setCityFilter('Todos');
-                      }}
-                      className="w-full h-12"
-                    >
-                      Limpar Filtros
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Genre buttons */}
-                <div className="flex flex-col gap-2">
-                  <Label className="text-sm">Filtrar por vertente</Label>
-                  <div className="flex items-center flex-wrap gap-2">
-                    {availableGenres.map((genre) => (
-                      <Badge
-                        key={genre}
-                        variant={genreFilter === genre ? 'default' : 'outline'}
-                        className="cursor-pointer min-h-[36px] px-4 text-sm"
-                        onClick={() => setGenreFilter(genreFilter === genre ? 'Todos' : genre)}
-                      >
-                        {genre}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Calendar Section */}
-          <section className="py-8 bg-background">
-            <div className="container mx-auto px-4">
-              <Card>
-                <CardHeader className="pb-3 sm:pb-6">
-                  <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center">
-                      <CalendarIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-primary" />
-                      <span className="text-base sm:text-lg">Calendário de Eventos</span>
-                    </div>
-                    <div className="flex gap-1 sm:gap-2">
-                      <Button
-                        variant={calendarView === 'events-only' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCalendarView('events-only')}
-                        className="text-[10px] sm:text-xs min-h-[32px] sm:min-h-[36px] px-2 sm:px-3 flex-1 sm:flex-none"
-                      >
-                        Datas
-                      </Button>
-                      <Button
-                        variant={calendarView === 'monthly' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCalendarView('monthly')}
-                        className="text-[10px] sm:text-xs min-h-[32px] sm:min-h-[36px] px-2 sm:px-3 flex-1 sm:flex-none"
-                      >
-                        Mensal
-                      </Button>
-                      <Button
-                        variant={calendarView === 'timeline' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setCalendarView('timeline')}
-                        className="text-[10px] sm:text-xs min-h-[32px] sm:min-h-[36px] px-2 sm:px-3 flex-1 sm:flex-none"
-                      >
-                        Timeline
-                      </Button>
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {calendarView === 'events-only' && (
-                    <div className="space-y-2">
-                      {getEventDates().length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          Nenhum evento encontrado
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-                          {getEventDates().map((eventDate, index) => (
-                            <div
-                              key={index}
-                              className="text-center p-2 sm:p-3 border rounded bg-primary/10 hover:bg-primary/20 cursor-pointer transition-colors active:scale-95"
-                              onClick={() => {
-                                setDateFilter(eventDate.date);
-                                setWeekendDates([]);
-                              }}
-                            >
-                              <div className="text-xs sm:text-sm font-medium text-primary">
-                                {formatDate(eventDate.date)}
-                              </div>
-                              <div className="text-[10px] sm:text-xs text-muted-foreground">
-                                {eventDate.count} evento{eventDate.count > 1 ? 's' : ''}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {calendarView === 'monthly' && (
-                    <div className="flex justify-center overflow-x-auto">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        className="rounded-md border pointer-events-auto mx-auto"
-                        modifiers={{
-                          hasEvent: getEventDates().map((ed) => parseLocalDate(ed.date)),
-                        }}
-                        modifiersClassNames={{
-                          hasEvent: 'font-bold text-primary bg-primary/20 hover:bg-primary/30',
-                        }}
-                        onDayClick={(date) => {
-                          const dateStr = date.toISOString().split('T')[0];
-                          setDateFilter(dateStr);
-                          setWeekendDates([]);
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {calendarView === 'timeline' && (
-                    <div className="space-y-3 sm:space-y-4">
-                      <h4 className="font-semibold text-base sm:text-lg">Próximos Eventos</h4>
-                      {getUpcomingEvents().length === 0 ? (
-                        <p className="text-center text-muted-foreground py-8">
-                          Nenhum evento próximo encontrado
-                        </p>
-                      ) : (
-                        <div className="space-y-2 sm:space-y-3">
-                          {getUpcomingEvents()
-                            .slice(0, 5)
-                            .map((event) => (
-                              <div
-                                key={event.id}
-                                className="flex items-start sm:items-center justify-between p-2 sm:p-3 border rounded hover:bg-muted/50 cursor-pointer transition-colors active:scale-[0.99] gap-2"
-                                onClick={() => handleEventClick(event)}
-                              >
-                                <div className="flex items-start sm:items-center gap-2 sm:space-x-3 flex-1 min-w-0">
-                                  <div className="text-center min-w-[45px] sm:min-w-[60px] flex-shrink-0">
-                                    <div className="text-xs sm:text-sm font-bold text-primary">
-                                      {parseLocalDate(event.date).getDate()}
-                                    </div>
-                                    <div className="text-[10px] sm:text-xs text-muted-foreground">
-                                      {parseLocalDate(event.date).toLocaleDateString('pt-BR', {
-                                        month: 'short',
-                                      })}
-                                    </div>
-                                  </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="font-medium text-sm sm:text-base truncate">
-                                      {event.title}
-                                    </div>
-                                    <div className="text-xs sm:text-sm text-muted-foreground truncate">
-                                      {event.venue} • {formatTime(event.time)}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="hidden sm:flex flex-wrap gap-1 flex-shrink-0">
-                                  {event.genres &&
-                                    event.genres.length > 0 &&
-                                    event.genres.slice(0, 2).map((genre: string, idx: number) => (
-                                      <Badge key={idx} variant="outline" className="text-xs">
-                                        {genre}
-                                      </Badge>
-                                    ))}
-                                </div>
-                              </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          </section>
+          <CalendarSection
+            calendarView={calendarView}
+            setCalendarView={setCalendarView}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            eventDates={eventDates}
+            upcomingEvents={upcomingEvents}
+            setDateFilter={setDateFilter}
+            setWeekendDates={setWeekendDates}
+            onEventClick={handleEventClick}
+          />
 
           {/* Events List */}
           <section className="py-12 bg-background">
@@ -653,114 +272,16 @@ const Eventos = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                   {filteredEvents.map((event, index) => (
-                    <Card
+                    <EventListCard
                       key={event.id}
-                      className="event-card group cursor-pointer"
-                      style={{ animationDelay: `${index * 0.1}s` }}
-                      onClick={() => handleEventClick(event)}
-                    >
-                      <div className="relative overflow-hidden rounded-t-lg aspect-[3/4] bg-muted/20">
-                        <img
-                          src={getThumbnailUrl(event.image_url) || djImage}
-                          alt={event.title}
-                          className="w-full h-full object-contain"
-                          loading="lazy"
-                          decoding="async"
-                          onError={(e) =>
-                            handleThumbImageFallback(
-                              e,
-                              getOptimizedImageUrl(event.image_url) || djImage,
-                              djImage
-                            )
-                          }
-                        />
-                        <div className="absolute top-4 left-4 flex flex-wrap gap-1">
-                          {event.genres &&
-                            event.genres.length > 0 &&
-                            event.genres.slice(0, 2).map((genre: string, idx: number) => (
-                              <Badge
-                                key={idx}
-                                className="bg-primary/20 text-primary border-primary/30"
-                              >
-                                {genre}
-                              </Badge>
-                            ))}
-                        </div>
-                        {isAdmin && (
-                          <div className="absolute top-4 right-4 flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEditEvent(event);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDuplicateEvent(event);
-                              }}
-                            >
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleSaveAsTemplate(event);
-                              }}
-                            >
-                              <Save className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      <CardHeader className="pb-3">
-                        <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-2">
-                          {event.title}
-                        </CardTitle>
-                        <div className="flex items-center text-base font-semibold text-white mt-2">
-                          <CalendarIcon className="w-4 h-4 mr-2 text-primary" />
-                          {formatEventDateRange(event.date, event.end_date)}
-                        </div>
-                        {event.subtitle && (
-                          <p className="text-sm text-muted-foreground mt-2">{event.subtitle}</p>
-                        )}
-                      </CardHeader>
-
-                      <CardContent className="space-y-3 pt-0">
-                        <div className="space-y-1">
-                          <div className="flex items-center text-xs text-muted-foreground">
-                            <Clock className="w-3 h-3 mr-1 text-secondary" />
-                            {formatTime(event.time)}
-                          </div>
-                          <div className="flex items-center text-xs text-muted-foreground truncate">
-                            <MapPin className="w-3 h-3 mr-1 text-accent flex-shrink-0" />
-                            <span className="truncate">
-                              {event.venue}, {event.location_city} - {event.location_state}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-border">
-                          <span className="text-xs text-muted-foreground">Ver detalhes</span>
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Ver
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                      event={event}
+                      index={index}
+                      isAdmin={isAdmin}
+                      onClick={handleEventClick}
+                      onEdit={handleEditEvent}
+                      onDuplicate={handleDuplicateEvent}
+                      onSaveAsTemplate={handleSaveAsTemplate}
+                    />
                   ))}
                 </div>
               )}
