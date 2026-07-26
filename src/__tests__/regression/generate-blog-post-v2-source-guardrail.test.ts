@@ -48,11 +48,18 @@ describe('Regressão — generate-blog-post-v2 não gera evento sem fonte real q
   });
 
   it('grava source_urls reais quando o guardrail encontra fontes (não fica sempre null)', () => {
-    const content = read('supabase/functions/generate-blog-post-v2/index.ts');
+    const indexContent = read('supabase/functions/generate-blog-post-v2/index.ts');
+    // Após a Onda 22, o insert em ai_generated_posts foi extraído para
+    // _shared/generateBlogPostV2/savePost.ts. O index passa guardrailSourceUrls
+    // como parâmetro para logAiGeneration, que grava em source_urls.
+    expect(indexContent).toContain('guardrailSourceUrls,');
+    expect(indexContent).toContain('logAiGeneration(');
 
-    expect(content).toContain('source_urls: guardrailSourceUrls,');
+    const saveContent = read('supabase/functions/_shared/generateBlogPostV2/savePost.ts');
+    expect(saveContent).toContain('source_urls: params.guardrailSourceUrls');
     // Regressão: se isso voltar a ser `source_urls: null,` hardcoded, o admin
     // perde a rastreabilidade da fonte real usada pelo guardrail.
-    expect(content).not.toContain('source_urls: null,');
+    expect(saveContent).not.toContain('source_urls: null,');
+    expect(indexContent).not.toContain('source_urls: null,');
   });
 });
