@@ -1,21 +1,23 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
-import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 import { shouldScrapeForContext } from "../_shared/scrapeGate.ts";
 import { searchWithFirecrawl } from "../_shared/firecrawlSearch.ts";
 import { shouldRequireSourceVerification, buildGuardrailSearchQuery } from "../_shared/eventSourceGuardrail.ts";
 
 
-// ============= HELPERS EXTRAÍDOS PARA _shared/generateBlogPostV2 (Onda 6) =============
+// ============= HELPERS EXTRAÍDOS PARA _shared/generateBlogPostV2 (Ondas 6 e 22) =============
 // Os módulos abaixo foram separados do index.ts para manter este arquivo
-// abaixo de 900 linhas. Comportamento preservado 1:1 — se editar, replique
+// abaixo de 600 linhas. Comportamento preservado 1:1 — se editar, replique
 // o teste correspondente em src/__tests__/regression/ ou supabase/functions/_shared/*_test.ts.
 import { logEgress } from "../_shared/generateBlogPostV2/egress.ts";
 import { handleCorsPreFlight, jsonSuccess, jsonError, fetchWithTimeout, scrapeWithFirecrawl } from "../_shared/generateBlogPostV2/http.ts";
 import { extractKeywords, inferMood } from "../_shared/generateBlogPostV2/contentAnalysis.ts";
 import { replaceVariables, FAKE_DOMAINS, restrictLinkToFirstMention, removeFakeLinks } from "../_shared/generateBlogPostV2/textUtils.ts";
 import { generateAndAttachImage } from "../_shared/generateBlogPostV2/imageGeneration.ts";
+import { computeWeekday, computeDateFormatted } from "../_shared/generateBlogPostV2/dateHelpers.ts";
+import { applyTemplateVariables, buildOfficialDataBlock, buildSystemPrompt } from "../_shared/generateBlogPostV2/promptBuilder.ts";
+import { generateUniqueSlug, saveOrUpdatePost, logAiGeneration } from "../_shared/generateBlogPostV2/savePost.ts";
 
 const FUNCTION_TIMEOUT_MS = 140000; // 140 seconds - margem de segurança de 10s
 
