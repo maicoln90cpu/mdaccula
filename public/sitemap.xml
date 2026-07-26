@@ -46,36 +46,6 @@
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/eventos/helvetia2509</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/caos250726</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/d-edge-apres-nave-uy76pr</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/rooftech2507</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/eventos/novaera2507</loc>
-    <lastmod>2026-07-25</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://mdaccula.com/eventos/d-edge-apres-superafter-f3md48</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>weekly</changefreq>
@@ -83,7 +53,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/saara0108</loc>
-    <lastmod>2026-07-25</lastmod>
+    <lastmod>2026-07-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -185,7 +155,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/solomunsp</loc>
-    <lastmod>2026-07-25</lastmod>
+    <lastmod>2026-07-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -203,7 +173,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/dna051226</loc>
-    <lastmod>2026-07-25</lastmod>
+    <lastmod>2026-07-26</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -1570,13 +1540,13 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
+    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
+    <loc>https://mdaccula.com/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho</loc>
     <lastmod>2026-07-25</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
