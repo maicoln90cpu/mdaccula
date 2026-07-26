@@ -26,7 +26,7 @@ export type {
 } from "./emailBlocks/types.ts";
 
 export { expandGlobalRefs } from "./emailBlocks/types.ts";
-export { proxyForEmail } from "./emailBlocks/utils.ts";
+export { proxyForEmail, DEFAULT_SOCIAL_ICON_URLS } from "./emailBlocks/utils.ts";
 export { computePreheader } from "./emailBlocks/preheader.ts";
 export { renderBlockedTemplate } from "./emailBlocks/renderBlockedTemplate.ts";
 export { renderBlockedTemplateText } from "./emailBlocks/renderBlockedTemplateText.ts";

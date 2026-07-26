@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { type Block } from '@/lib/emailTemplates/blocks';
+import { DEFAULT_SOCIAL_ICON_URLS, type Block } from '@/lib/emailTemplates/blocks';
 import { AlignControl, ColorControl } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
@@ -237,45 +237,53 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         <p className="text-xs text-muted-foreground">
           Ative e informe a URL de cada rede. Somente as ativadas com URL aparecem no e-mail.
-          {block.style === 'icon' && ' Informe também a URL da imagem do ícone de cada rede.'}
+          {block.style === 'icon' &&
+            ' Redes conhecidas (Instagram, YouTube, TikTok, SoundCloud, Spotify, Linktree, WhatsApp) já vêm com ícone padrão — informe uma URL própria só se quiser trocar.'}
         </p>
-        {(block.networks || []).map((n, i) => (
-          <div key={n.id} className="flex items-center gap-2 p-2 rounded border">
-            <Switch
-              checked={n.enabled}
-              onCheckedChange={(v) => {
-                const next = [...(block.networks || [])];
-                next[i] = { ...n, enabled: v };
-                patch({ networks: next });
-              }}
-            />
-            <div className="flex-1 space-y-1">
-              <div className="text-xs font-medium">{n.label}</div>
-              <Input
-                className="h-7 text-xs"
-                value={n.url}
-                placeholder="https://…"
-                onChange={(e) => {
+        {(block.networks || []).map((n, i) => {
+          const defaultIcon = DEFAULT_SOCIAL_ICON_URLS[n.id];
+          const previewIcon = n.icon_url || defaultIcon;
+          return (
+            <div key={n.id} className="flex items-center gap-2 p-2 rounded border">
+              <Switch
+                checked={n.enabled}
+                onCheckedChange={(v) => {
                   const next = [...(block.networks || [])];
-                  next[i] = { ...n, url: e.target.value };
+                  next[i] = { ...n, enabled: v };
                   patch({ networks: next });
                 }}
               />
-              {block.style === 'icon' && (
+              {block.style === 'icon' && previewIcon && (
+                <img src={previewIcon} alt="" className="w-6 h-6 rounded shrink-0" />
+              )}
+              <div className="flex-1 space-y-1">
+                <div className="text-xs font-medium">{n.label}</div>
                 <Input
                   className="h-7 text-xs"
-                  value={n.icon_url || ''}
-                  placeholder="URL do ícone (PNG/SVG, ~40×40px)"
+                  value={n.url}
+                  placeholder="https://…"
                   onChange={(e) => {
                     const next = [...(block.networks || [])];
-                    next[i] = { ...n, icon_url: e.target.value };
+                    next[i] = { ...n, url: e.target.value };
                     patch({ networks: next });
                   }}
                 />
-              )}
+                {block.style === 'icon' && (
+                  <Input
+                    className="h-7 text-xs"
+                    value={n.icon_url || ''}
+                    placeholder={defaultIcon ? 'Ícone padrão já aplicado — cole uma URL pra trocar' : 'URL do ícone (PNG, ~64×64px)'}
+                    onChange={(e) => {
+                      const next = [...(block.networks || [])];
+                      next[i] = { ...n, icon_url: e.target.value };
+                      patch({ networks: next });
+                    }}
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   }

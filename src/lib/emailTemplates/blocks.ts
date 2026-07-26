@@ -27,6 +27,7 @@ export {
   proxyForEmail,
   renderBlockedTemplate,
   computePreheader,
+  DEFAULT_SOCIAL_ICON_URLS,
 } from '@shared/emailBlocks.ts';
 
 import type { Block } from '@shared/emailBlocks.ts';

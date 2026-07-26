@@ -1,7 +1,7 @@
 // Família "interactive" — botões CTA, ticker, countdown, links sociais, mapa, lineup.
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import type { Block, RenderContext } from "../types.ts";
-import { escape, proxyForEmail, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
+import { DEFAULT_SOCIAL_ICON_URLS, escape, proxyForEmail, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 export function renderInteractiveBlock(
@@ -81,8 +81,9 @@ export function renderInteractiveBlock(
       const colors = [primary, accent, "#60a5fa", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#fb923c"];
       const cells = list.map((n, i) => {
         const href = escape(n.url || "#");
-        if (style2 === "icon" && n.icon_url) {
-          const iconSrc = escape(proxyForEmail(n.icon_url));
+        const resolvedIconUrl = style2 === "icon" ? (n.icon_url || DEFAULT_SOCIAL_ICON_URLS[n.id]) : undefined;
+        if (resolvedIconUrl) {
+          const iconSrc = escape(proxyForEmail(resolvedIconUrl));
           return `<td style="padding:4px 8px;"><a href="${href}" style="display:inline-block;text-decoration:none;"><img src="${iconSrc}" alt="${escape(n.label)}" width="${iconPx}" height="${iconPx}" border="0" style="display:block;width:${iconPx}px;height:${iconPx}px;border:0;outline:none;"></a></td>`;
         }
         if (style2 === "pill") {

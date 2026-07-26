@@ -59,3 +59,18 @@ export function proxyForEmail(url: string): string {
   const clean = url.replace(/^https?:\/\//i, "");
   return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
 }
+
+/**
+ * Ícones padrão do bloco `social_icons` (style: "icon") por id de rede conhecida.
+ * PNG 64x64, hospedados como assets estáticos do site (public/email-icons/) —
+ * sem depender de bucket/auth. `icon_url` por rede sobrescreve o padrão.
+ */
+export const DEFAULT_SOCIAL_ICON_URLS: Record<string, string> = {
+  instagram: "https://mdaccula.com/email-icons/instagram.png",
+  youtube: "https://mdaccula.com/email-icons/youtube.png",
+  tiktok: "https://mdaccula.com/email-icons/tiktok.png",
+  soundcloud: "https://mdaccula.com/email-icons/soundcloud.png",
+  spotify: "https://mdaccula.com/email-icons/spotify.png",
+  linktree: "https://mdaccula.com/email-icons/linktree.png",
+  whatsapp: "https://mdaccula.com/email-icons/whatsapp.png",
+};
