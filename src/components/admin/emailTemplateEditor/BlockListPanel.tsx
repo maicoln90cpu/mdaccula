@@ -38,7 +38,7 @@ interface BlockListPanelProps {
   blocks: Block[];
   selectedBlockId: string | null;
   selectedBlock: Block | null;
-  globalsMap: Map<string, EmailGlobalBlock>;
+  globalsMap: Map<string, GlobalBlock>;
   onSelect: (id: string) => void;
   onRemove: (id: string) => void;
   onDuplicate: (id: string) => void;
