@@ -1,4 +1,4 @@
-declare const process: { env: Record<string, string | undefined> };
+declare const Deno: { env: { get(k: string): string | undefined } };
 import { defineTool } from "@lovable.dev/mcp-js";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
@@ -12,8 +12,8 @@ export default defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async () => {
     const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
     const { data, error } = await supabase

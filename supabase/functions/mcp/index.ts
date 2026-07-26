@@ -19,8 +19,8 @@ var list_upcoming_events_default = defineTool({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit }) => {
     const supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
+      Deno.env.get("SUPABASE_URL"),
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
     const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
@@ -51,8 +51,8 @@ var get_event_default = defineTool2({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ slug }) => {
     const supabase = createClient2(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
+      Deno.env.get("SUPABASE_URL"),
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
     const { data, error } = await supabase.from("events").select(
@@ -87,8 +87,8 @@ var list_blog_posts_default = defineTool3({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ limit, category, search }) => {
     const supabase = createClient3(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
+      Deno.env.get("SUPABASE_URL"),
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
     let query = supabase.from("blog_posts").select("id, title, slug, excerpt, category, image_url, views, likes, published_at").eq("published", true).order("published_at", { ascending: false }).limit(limit);
@@ -119,8 +119,8 @@ var get_blog_post_default = defineTool4({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async ({ slug }) => {
     const supabase = createClient4(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
+      Deno.env.get("SUPABASE_URL"),
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
     const { data, error } = await supabase.from("blog_posts").select(
@@ -150,8 +150,8 @@ var list_links_default = defineTool5({
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   handler: async () => {
     const supabase = createClient5(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_PUBLISHABLE_KEY,
+      Deno.env.get("SUPABASE_URL"),
+      Deno.env.get("SUPABASE_PUBLISHABLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } }
     );
     const { data, error } = await supabase.from("link_groups").select(
