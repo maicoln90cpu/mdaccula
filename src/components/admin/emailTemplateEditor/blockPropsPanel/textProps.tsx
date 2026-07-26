@@ -4,7 +4,6 @@
  */
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -15,7 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { type Block } from '@/lib/emailTemplates/blocks';
-import { AlignControl, ColorControl } from '../controls';
+import { AlignControl, ColorControl, RichHtmlEditor } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
@@ -235,15 +234,12 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
     return (
       <div className="space-y-3">
         <div>
-          <Label className="text-xs">HTML (tags básicas)</Label>
-          <Textarea
+          <Label className="text-xs">Texto</Label>
+          <RichHtmlEditor
             rows={6}
             value={block.html || ''}
-            onChange={(e) => patch({ html: e.target.value })}
+            onChange={(v) => patch({ html: v })}
           />
-          <p className="text-xs text-muted-foreground mt-1">
-            Tags de script, style, iframe e handlers on* são removidos.
-          </p>
         </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         <ColorControl
