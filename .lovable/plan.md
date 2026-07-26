@@ -49,7 +49,7 @@ Onda 25  Podcast.tsx                                  711 → <600
 Onda 26  emailTemplates/blocks.ts                     689 → <600
 Onda 27  PodcastManager.tsx                           686 → <600
 Onda 28  BlogManager.tsx                              659 → <600
-Onda 29  weekly-digest-draft/index.ts                 654 → <600
+Onda 29  weekly-digest-draft/index.ts                 654 → 416 (✅; +2 módulos em _shared/weeklyDigestDraft/: legacyHtml 158, buildEventPayload 139)
 Onda 30  RecurringEventsManager.tsx                   646 → <600
 Onda 31  Blog.tsx                                     645 → <600
 Onda 32  CustomLinkForm.tsx                           624 → <600
