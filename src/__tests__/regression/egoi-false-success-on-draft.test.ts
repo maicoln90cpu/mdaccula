@@ -95,10 +95,10 @@ describe('Regressão R-008 — status real da E-goi antes de reportar sucesso', 
     expect(fnSrc).toMatch(/res\.status\s*===\s*["']draft["']/);
   });
 
-  it('dispatchAbTest (EmailEventsTab.tsx) checa status por variante, não só .ok', () => {
-    const src = read('src/components/admin/emailConfig/EmailEventsTab.tsx');
+  it('dispatchAbTest (useEventActions.ts) checa status por variante, não só .ok', () => {
+    const src = read('src/components/admin/emailConfig/emailEventsTab/useEventActions.ts');
     const fnMatch = src.match(/async function dispatchAbTest[\s\S]*?\n  \}/);
-    expect(fnMatch, 'Não encontrei a função dispatchAbTest em EmailEventsTab.tsx.').toBeTruthy();
+    expect(fnMatch, 'Não encontrei a função dispatchAbTest em useEventActions.ts.').toBeTruthy();
     const fnSrc = fnMatch![0];
     expect(
       fnSrc,

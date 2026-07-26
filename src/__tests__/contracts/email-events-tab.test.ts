@@ -12,15 +12,17 @@ describe("Contract: aba unificada 'Histórico e controle'", () => {
   });
 
   it('EmailEventsTab usa apenas campos existentes de event_email_campaigns', () => {
-    const c = read('src/components/admin/emailConfig/EmailEventsTab.tsx');
-    expect(c).toContain("from('event_email_campaigns')");
-    expect(c).toContain("from('events')");
+    const data = read('src/components/admin/emailConfig/emailEventsTab/useEmailEventsData.ts');
+    const actions = read('src/components/admin/emailConfig/emailEventsTab/useEventActions.ts');
+    expect(data).toContain("from('event_email_campaigns')");
+    expect(data).toContain("from('events')");
     // Marcação manual grava mode/status/campaign_type
-    expect(c).toMatch(/mode:\s*'manual'/);
-    expect(c).toMatch(/status:\s*'sent'/);
-    expect(c).toMatch(/campaign_type:\s*'manual'/);
+    expect(actions).toMatch(/mode:\s*'manual'/);
+    expect(actions).toMatch(/status:\s*'sent'/);
+    expect(actions).toMatch(/campaign_type:\s*'manual'/);
     // Não referencia colunas inexistentes
-    expect(c).not.toMatch(/\bsubject\b\s*:/);
-    expect(c).not.toMatch(/\brecipient_count\b/);
+    const all = data + actions;
+    expect(all).not.toMatch(/\bsubject\b\s*:/);
+    expect(all).not.toMatch(/\brecipient_count\b/);
   });
 });
