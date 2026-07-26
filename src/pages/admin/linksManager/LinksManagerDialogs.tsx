@@ -12,9 +12,8 @@ import {
 import { LinkGroupForm } from '@/components/links/LinkGroupForm';
 import { CustomLinkForm } from '@/components/links/CustomLinkForm';
 import { LinksPageSettings } from '@/components/links/LinksPageSettings';
+import type { SiteSettings } from '@/contexts/siteSettingsContextValue';
 import type { CustomLink, LinkGroup } from './types';
-
-type Settings = Record<string, string | undefined>;
 
 interface LinksManagerDialogsProps {
   groups: LinkGroup[];
