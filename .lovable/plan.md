@@ -36,7 +36,7 @@ Onda 12  EmailTemplateEditor.tsx                      903 → 462 (✅; +5 módu
 Onda 13  EmailEventsTab.tsx                           867 → 161 (✅; +6 módulos em emailEventsTab/: helpers 112, useEmailEventsData 52, useEventActions 195, HeaderFilters 125, EventRow 231, CampaignHistoryRow 140)
 Onda 14  EventDetail.tsx                              854 → 448 (✅; +8 módulos em components/eventDetail/: types 38, TicketCtaButton 43, HeroImage 37, TicketCard 71, EventDetailsCard 60, ScheduleOrLineup 115, RelatedBlogPostCard 45, RelatedEventsCard 63)
 Onda 15  LinksAnalytics.tsx                           849 → <600
-Onda 16  EventForm.tsx                                816 → <600
+Onda 16  EventForm.tsx                                816 → 413 (✅; +useEventFormSubmit.tsx 476 em eventForm/)
 Onda 17  Eventos.tsx                                  802 → <600
 Onda 18  AutomationsTab.tsx                           793 → 224 (✅ feita antecipada como "Onda 11"; + AutomationCard 296, SendOnCronToggle 25)
 Onda 19  TemplatesPanel.tsx (ai-content)              771 → <600
