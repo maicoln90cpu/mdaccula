@@ -40,7 +40,7 @@ Onda 16  EventForm.tsx                                816 → 413 (✅; +useEven
 Onda 17  Eventos.tsx                                  802 → <600
 Onda 18  AutomationsTab.tsx                           793 → 224 (✅ feita antecipada como "Onda 11"; + AutomationCard 296, SendOnCronToggle 25)
 Onda 19  TemplatesPanel.tsx (ai-content)              771 → 292 (✅; +3 módulos em templatesPanel/: types 53, TemplatesTable 145, TemplateFormDialog 255, TemplatePreviewDialog 109)
-Onda 20  generate-multi-event-article/index.ts       762 → <600
+Onda 20  generate-multi-event-article/index.ts       762 → 454 (✅; +prompts.ts 242 em _shared/generateMultiEventArticle/; reuso de http.ts, egress.ts e imageStyles.ts do generateBlogPostV2)
 Onda 21  EventsManager.tsx                            755 → <600
 Onda 22  generate-blog-post-v2/index.ts               737 → <600
 Onda 23  _shared/emailBlocks/renderBlock.ts           735 → 27 (✅ dispatcher; +4 módulos em renderBlock/: style 20, basic 178, interactive 271, digest 312)
