@@ -1,44 +1,23 @@
 /**
- * Editor de blocos para templates de e-mail.
+ * Editor de blocos para templates de e-mail (orquestrador).
  *
- * Layout: lista drag-and-drop à esquerda, painel de propriedades à direita,
- * preview ao vivo abaixo. Usa dnd-kit (já no projeto).
+ * Onda 12 (slim-down): 903 → ~340 linhas. Extraído em `./emailTemplateEditor/`:
+ *   - blockDefaults.ts   → configurações iniciais por tipo de bloco
+ *   - typeFilter.ts      → constantes/labels/helpers do Passo 1
+ *   - EditorHeader.tsx   → Passo 1 + Passo 2 + inputs de nome/assunto/preheader
+ *   - BlockListPanel.tsx → coluna esquerda (DnD + adicionar + biblioteca globais)
+ *   - PreviewPanel.tsx   → coluna direita (iframe preview + banners)
+ *   - BlockPropsPanel + GlobalRefPropsPanel (já existentes)
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { Plus, Trash2, Copy, Save } from 'lucide-react';
+import { arrayMove } from '@dnd-kit/sortable';
+import type { DragEndEvent } from '@dnd-kit/core';
 import { useToast } from '@/hooks/useToast';
 import {
   type Block,
   type Template,
-  BLOCK_LABELS,
-  AVAILABLE_BLOCKS,
   newBlockId,
   type ArticleSummary,
   TEMPLATE_PRESETS,
@@ -50,21 +29,19 @@ import {
   type EventAnnouncementData,
   type EmailTemplateSettings,
 } from '@/lib/emailTemplates/eventAnnouncement';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useEmailGlobalBlocks } from '@/hooks/useEmailGlobalBlocks';
-import { GlobalBlocksLibrary } from './GlobalBlocksLibrary';
-import { InboxPreviewHeader } from './InboxPreviewHeader';
-import { PlaceholdersHelpDialog } from './PlaceholdersHelpDialog';
 import { BlockPropsPanel } from './emailTemplateEditor/BlockPropsPanel';
 import { GlobalRefPropsPanel } from './emailTemplateEditor/GlobalRefPropsPanel';
-import { SortableRow } from './emailTemplateEditor/controls';
+import { BlockListPanel } from './emailTemplateEditor/BlockListPanel';
+import { PreviewPanel } from './emailTemplateEditor/PreviewPanel';
+import { EditorHeader } from './emailTemplateEditor/EditorHeader';
+import { defaultForKind } from './emailTemplateEditor/blockDefaults';
+import {
+  TYPE_FILTER_ORDER,
+  TYPE_FILTER_STORAGE_KEY,
+  normalizeType,
+  type TypeFilterKey,
+} from './emailTemplateEditor/typeFilter';
 
 interface Props {
   templates: Template[];
@@ -78,189 +55,6 @@ interface Props {
   overrideHtml?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
 }
-
-const defaultForKind = (kind: Block['kind']): Block => {
-  const id = newBlockId();
-  switch (kind) {
-    case 'header':
-      return { id, kind, logo_height: 64, align: 'center', padding_y: 32 };
-    case 'hero_image':
-      return { id, kind, max_width: 552, border_radius: 12 };
-    case 'eyebrow':
-      return { id, kind, text: 'Novo evento', align: 'left' };
-    case 'title':
-      return { id, kind, align: 'left', font_size: 28 };
-    case 'subtitle':
-      return { id, kind, align: 'left' };
-    case 'event_meta':
-      return { id, kind, layout: 'columns' };
-    case 'description':
-      return { id, kind, align: 'left' };
-    case 'article_summary':
-      return { id, kind, show_image: true };
-    case 'cta_button':
-      return {
-        id,
-        kind,
-        label: 'Garantir ingresso',
-        url_field: 'ticket_link',
-        align: 'center',
-        full_width: true,
-        bg_style: 'gradient',
-      };
-    case 'secondary_link':
-      return { id, kind, label: 'Ver agenda completa', url_field: 'agenda_url', align: 'center' };
-    case 'image_with_link':
-      return {
-        id,
-        kind,
-        image_url: '',
-        link_url: '',
-        alt: '',
-        max_width: 552,
-        align: 'center',
-        border_radius: 8,
-      };
-    case 'divider':
-      return { id, kind, thickness: 1 };
-    case 'text':
-      return { id, kind, html: '<p>Texto livre — suporta HTML básico.</p>', align: 'left' };
-    case 'social_icons':
-      return {
-        id,
-        kind,
-        style: 'text',
-        align: 'center',
-        networks: [
-          {
-            id: 'instagram',
-            label: 'Instagram',
-            url: 'https://instagram.com/mdaccula',
-            enabled: true,
-          },
-          { id: 'youtube', label: 'YouTube', url: 'https://youtube.com/@mdaccula', enabled: true },
-          { id: 'tiktok', label: 'TikTok', url: 'https://tiktok.com/@mdaccula', enabled: false },
-          { id: 'soundcloud', label: 'SoundCloud', url: '', enabled: false },
-          { id: 'spotify', label: 'Spotify', url: '', enabled: false },
-          { id: 'linktree', label: 'Linktree', url: '', enabled: false },
-        ],
-      };
-    case 'lineup':
-      return { id, kind, title: 'Line-up', layout: 'chips', align: 'center' };
-    case 'countdown':
-      return {
-        id,
-        kind,
-        label: 'Lote atual encerra em',
-        deadline_source: 'today_2359',
-        bg_style: 'gradient',
-        align: 'center',
-        size: 'large',
-      };
-    case 'ticker':
-      return {
-        id,
-        kind,
-        messages: ['Últimas horas', 'Ingressos limitados', 'Restam poucos'],
-        animation: 'fade',
-        align: 'center',
-        icon: 'clock',
-      };
-    case 'static_map':
-      return {
-        id,
-        kind,
-        zoom: 15,
-        height: 300,
-        map_style: 'roadmap',
-        show_address_label: true,
-        border_radius: 12,
-      };
-    case 'weekend_grid':
-      return {
-        id,
-        kind,
-        layout: 'cartaz',
-        title: '',
-        eyebrow: '',
-        show_article_link: true,
-        align: 'left',
-      };
-    case 'weekly_hero':
-      return {
-        id,
-        kind,
-        source: 'first_weekend',
-        eyebrow: 'DESTAQUE DA SEMANA',
-        cta_label: 'Garantir ingresso',
-        show_venue: true,
-        show_cta: true,
-        overlay_intensity: 'strong',
-        align: 'left',
-      };
-    case 'blog_posts_list':
-      return {
-        id,
-        kind,
-        title: 'Do blog nesta semana',
-        eyebrow: 'MATÉRIAS',
-        max_items: 3,
-        layout: 'list',
-        show_excerpt: true,
-        show_category: true,
-        align: 'left',
-      };
-    case 'dedge_block':
-      return { id, kind, button_style: 'dark', override_content: false };
-    case 'footer':
-      return { id, kind, include_unsubscribe: true, align: 'center' };
-    default:
-      return { id, kind } as Block;
-  }
-};
-
-
-// Fase 3 — Fluxo Editor em 2 passos:
-//   1º) tipo do template (Evento / Virada / Agenda FDS / Digest / Custom)
-//   2º) template daquele tipo
-// Persistimos a escolha em localStorage para lembrar entre sessões.
-type TypeFilterKey =
-  | 'event_new'
-  | 'ticket_batch'
-  | 'ticket_batch_multi'
-  | 'weekend_agenda'
-  | 'weekly_digest'
-  | 'blog_digest'
-  | 'courtesy'
-  | 'custom';
-const TYPE_FILTER_ORDER: TypeFilterKey[] = [
-  'event_new',
-  'ticket_batch',
-  'ticket_batch_multi',
-  'weekend_agenda',
-  'weekly_digest',
-  'blog_digest',
-  'courtesy',
-  'custom',
-];
-const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
-  event_new: 'Evento',
-  ticket_batch: 'Virada',
-  ticket_batch_multi: 'Virada (multi)',
-  weekend_agenda: 'Agenda FDS',
-  weekly_digest: 'Digest',
-  blog_digest: 'Blog news',
-  courtesy: 'Cortesia',
-  custom: 'Custom',
-};
-const TYPE_FILTER_STORAGE_KEY = 'mdaccula_email_editor_type';
-
-/** weekly_digest_editorial é uma variação de weekly_digest para o filtro. */
-const normalizeType = (t: Template['type'] | undefined): TypeFilterKey => {
-  if (!t) return 'custom';
-  if (t === 'weekly_digest_editorial') return 'weekly_digest';
-  return t as TypeFilterKey;
-};
 
 export function EmailTemplateEditor({
   templates,
@@ -327,11 +121,6 @@ export function EmailTemplateEditor({
   const currentSubject = localSubject !== null ? localSubject : (activeTpl?.subject_template ?? '');
   const currentPreheader =
     localPreheader !== null ? localPreheader : (activeTpl?.preheader_template ?? '');
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
   const handleDragEnd = useCallback(
     (e: DragEndEvent) => {
@@ -406,7 +195,7 @@ export function EmailTemplateEditor({
       const defaultName = preset ? preset.name : 'Novo template';
       const name = prompt('Nome do novo template:', defaultName);
       if (!name) return;
-      const blocks = preset
+      const newBlocks = preset
         ? buildPresetBlocks(preset.key)
         : [
             defaultForKind('header'),
@@ -420,7 +209,7 @@ export function EmailTemplateEditor({
         .insert({
           name,
           type: preset ? preset.template_type : 'custom',
-          blocks,
+          blocks: newBlocks,
           subject_template: preset?.subject_template ?? null,
           preheader_template: preset?.preheader_template ?? null,
         })
@@ -579,224 +368,46 @@ export function EmailTemplateEditor({
 
   return (
     <div className="space-y-4">
-      {/* Passo 1 — escolher o TIPO do template */}
-      <div>
-        <Label className="text-xs mb-1.5 block">1º Tipo de template</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {TYPE_FILTER_ORDER.map((key) => {
-            const active = typeFilter === key;
-            const count = countsByType[key];
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleTypeFilterChange(key)}
-                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
-                  active
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card text-foreground/80 border-border hover:border-primary/50'
-                }`}
-              >
-                {TYPE_FILTER_LABELS[key]}{' '}
-                <span className={active ? 'opacity-80' : 'text-muted-foreground'}>({count})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Passo 2 — escolher o template daquele tipo + ações */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex-1 min-w-[240px]">
-          <Label className="text-xs flex items-center gap-2">
-            2º Template de {TYPE_FILTER_LABELS[typeFilter]}
-            {isDirty && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-                • não salvo
-              </span>
-            )}
-          </Label>
-          {filteredTemplates.length === 0 ? (
-            <div className="text-xs text-muted-foreground border border-dashed border-border rounded px-3 py-2">
-              Nenhum template de "{TYPE_FILTER_LABELS[typeFilter]}" ainda. Use "Novo" para criar.
-            </div>
-          ) : (
-            <Select value={activeId || ''} onValueChange={handleActiveChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um template" />
-              </SelectTrigger>
-              <SelectContent>
-                {filteredTemplates.map((t) => (
-                  <SelectItem key={t.id!} value={t.id!}>
-                    {t.name} {t.is_default && '· padrão'}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline">
-              <Plus className="w-4 h-4 mr-1" />
-              Novo
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-72">
-            <DropdownMenuLabel>Criar a partir de preset</DropdownMenuLabel>
-            {TEMPLATE_PRESETS.map((p) => (
-              <DropdownMenuItem
-                key={p.key}
-                onClick={() => createTemplate(p.key)}
-                className="flex-col items-start gap-0.5"
-              >
-                <span className="font-medium">{p.name}</span>
-                <span className="text-[11px] text-muted-foreground whitespace-normal">
-                  {p.description}
-                </span>
-              </DropdownMenuItem>
-            ))}
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => createTemplate()}>Em branco</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button size="sm" variant="outline" onClick={duplicateTemplate} disabled={!activeTpl}>
-          <Copy className="w-4 h-4 mr-1" />
-          Duplicar
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={deleteTemplate}
-          disabled={!activeTpl || activeTpl.is_default}
-        >
-          <Trash2 className="w-4 h-4 mr-1" />
-          Excluir
-        </Button>
-        <Button
-          size="sm"
-          variant={isDirty ? 'default' : 'outline'}
-          onClick={saveTemplate}
-          disabled={!activeTpl || saving || !isDirty}
-          className={isDirty ? 'ring-2 ring-amber-500/40' : ''}
-        >
-          <Save className="w-4 h-4 mr-1" />
-          {saving ? 'Salvando…' : isDirty ? 'Salvar alterações' : 'Salvo'}
-        </Button>
-      </div>
-
-      {activeTpl && (
-        <div className="space-y-3">
-          <div>
-            <Label className="text-xs">Nome do template</Label>
-            <Input
-              value={currentName}
-              onChange={(e) => setLocalName(e.target.value)}
-              placeholder="Nome do template"
-            />
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <Label className="text-xs">Assunto do e-mail</Label>
-                <PlaceholdersHelpDialog />
-              </div>
-              <Input
-                value={currentSubject}
-                onChange={(e) => setLocalSubject(e.target.value)}
-                placeholder="Ex.: Novo evento: {{event_title}}"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Aceita <code>{'{{event_title}}'}</code>, <code>{'{{date_label}}'}</code>,{' '}
-                <code>{'{{venue_name}}'}</code>, <code>{'{{city_state}}'}</code>,{' '}
-                <code>{'{{weekend_range}}'}</code> e mais — clique em <b>Ver placeholders</b>.
-              </p>
-            </div>
-            <div>
-              <Label className="text-xs">Preheader (preview na caixa de entrada)</Label>
-              <Input
-                value={currentPreheader}
-                onChange={(e) => setLocalPreheader(e.target.value)}
-                placeholder="Ex.: {{event_title}} em {{venue_name}} — ingressos abertos"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Texto curto exibido ao lado do assunto. Aceita os mesmos placeholders.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditorHeader
+        typeFilter={typeFilter}
+        countsByType={countsByType}
+        onTypeFilterChange={handleTypeFilterChange}
+        filteredTemplates={filteredTemplates}
+        activeId={activeId}
+        activeTpl={activeTpl}
+        isDirty={isDirty}
+        saving={saving}
+        currentName={currentName}
+        currentSubject={currentSubject}
+        currentPreheader={currentPreheader}
+        onActiveChange={handleActiveChange}
+        onCreateTemplate={createTemplate}
+        onDuplicateTemplate={duplicateTemplate}
+        onDeleteTemplate={deleteTemplate}
+        onSaveTemplate={saveTemplate}
+        onNameChange={setLocalName}
+        onSubjectChange={setLocalSubject}
+        onPreheaderChange={setLocalPreheader}
+      />
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr_1fr]">
-        {/* Lista de blocos */}
-        <Card>
-          <CardContent className="p-3 space-y-2">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-              Blocos do e-mail
-            </div>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={blocks.map((b) => b.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div className="space-y-1.5">
-                  {blocks.map((b) => {
-                    const isGlobal = b.kind === 'global_ref';
-                    const resolvedName =
-                      b.kind === 'global_ref'
-                        ? (globalsMap.get(b.global_id)?.name ?? b._cached_name ?? 'Bloco global')
-                        : BLOCK_LABELS[b.kind];
-                    return (
-                      <SortableRow
-                        key={b.id}
-                        block={b}
-                        active={selectedBlockId === b.id}
-                        label={resolvedName}
-                        isGlobal={isGlobal}
-                        onSelect={() => setSelectedBlockId(b.id)}
-                        onRemove={() => removeBlock(b.id)}
-                        onDuplicate={() => duplicateBlock(b.id)}
-                        onToggleHidden={() =>
-                          updateBlock(b.id, {
-                            hidden: !(b as { hidden?: boolean }).hidden,
-                          } as unknown as Partial<Block>)
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              </SortableContext>
-            </DndContext>
-
-            <div className="pt-3 border-t mt-3">
-              <Label className="text-xs mb-1 block">Adicionar bloco</Label>
-              <Select onValueChange={(v) => addBlock(v as Block['kind'])}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolher tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {AVAILABLE_BLOCKS.map((k) => (
-                    <SelectItem key={k} value={k}>
-                      {BLOCK_LABELS[k]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Biblioteca de blocos globais - Fase C */}
-            <div className="pt-3 border-t mt-3">
-              <GlobalBlocksLibrary
-                selectedBlock={selectedBlock}
-                onInsert={(b) => setLocalBlocks([...(blocks as Block[]), b])}
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <BlockListPanel
+          blocks={blocks}
+          selectedBlockId={selectedBlockId}
+          selectedBlock={selectedBlock}
+          globalsMap={globalsMap}
+          onSelect={setSelectedBlockId}
+          onRemove={removeBlock}
+          onDuplicate={duplicateBlock}
+          onToggleHidden={(b) =>
+            updateBlock(b.id, {
+              hidden: !(b as { hidden?: boolean }).hidden,
+            } as unknown as Partial<Block>)
+          }
+          onDragEnd={handleDragEnd}
+          onAddBlock={addBlock}
+          onInsertFromLibrary={(b) => setLocalBlocks([...(blocks as Block[]), b])}
+        />
 
         {/* Painel de propriedades */}
         <Card>
@@ -836,68 +447,16 @@ export function EmailTemplateEditor({
           </CardContent>
         </Card>
 
-        {/* Preview — A2 fix: iframe fixado em 600px (largura real do e-mail).
-            Container com scroll horizontal em telas estreitas, para que o logo
-            e todas as imagens apareçam no mesmo tamanho que o cliente receberá.
-
-            Fallback local: quando o override (HTML da edge function) existe mas
-            o template tem alterações não salvas, o HTML do servidor está
-            desatualizado — mostramos o render local + banner alertando. */}
-        <Card>
-          <CardContent className="p-2">
-            <div className="flex items-center justify-between mb-2 px-2">
-              <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {overrideHtml && !isDirty
-                  ? 'Preview real (dados do disparo)'
-                  : 'Preview ao vivo (600px reais)'}
-              </div>
-              <div className="text-[10px] text-muted-foreground">
-                ≈ largura real na caixa de entrada
-              </div>
-            </div>
-            {overrideHtml && isDirty && (
-              <div className="mx-1 mb-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700 dark:text-amber-300">
-                ⚠ Alterações não salvas — o preview real usa o template já salvo. Mostrando{' '}
-                <b>render local</b> com os blocos atuais. Salve para atualizar o preview real.
-              </div>
-            )}
-            {previewComposition.issues.length > 0 && (
-              <div className="mx-1 mb-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] text-red-700 dark:text-red-300">
-                <div className="font-semibold">Este modelo ainda não pode ser enviado:</div>
-                <ul className="mt-1 list-disc space-y-0.5 pl-4">
-                  {previewComposition.issues.map((item) => (
-                    <li key={`${item.blockId}-${item.code}`}>{item.message}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <div className="px-1">
-              <InboxPreviewHeader
-                subjectTemplate={currentSubject}
-                preheaderTemplate={currentPreheader}
-                data={{
-                  eventTitle: previewEvent.eventTitle,
-                  dateLabel: previewEvent.dateLabel,
-                  timeLabel: previewEvent.timeLabel,
-                  venueName: previewEvent.venueName,
-                  cityState: previewEvent.cityState,
-                }}
-              />
-            </div>
-            <div className="overflow-x-auto rounded border bg-[#050505] p-2">
-              <iframe
-                title="preview"
-                srcDoc={overrideHtml && !isDirty ? overrideHtml : previewComposition.html}
-                width={600}
-                className="block mx-auto h-[900px] bg-white"
-                style={{ width: 600, minWidth: 600, border: 0 }}
-                sandbox=""
-              />
-            </div>
-          </CardContent>
-        </Card>
+        <PreviewPanel
+          html={previewComposition.html}
+          overrideHtml={overrideHtml}
+          isDirty={isDirty}
+          issues={previewComposition.issues}
+          currentSubject={currentSubject}
+          currentPreheader={currentPreheader}
+          previewEvent={previewEvent}
+        />
       </div>
     </div>
   );
 }
-
