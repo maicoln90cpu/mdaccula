@@ -1,21 +1,23 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
-import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 import { shouldScrapeForContext } from "../_shared/scrapeGate.ts";
 import { searchWithFirecrawl } from "../_shared/firecrawlSearch.ts";
 import { shouldRequireSourceVerification, buildGuardrailSearchQuery } from "../_shared/eventSourceGuardrail.ts";
 
 
-// ============= HELPERS EXTRAÍDOS PARA _shared/generateBlogPostV2 (Onda 6) =============
+// ============= HELPERS EXTRAÍDOS PARA _shared/generateBlogPostV2 (Ondas 6 e 22) =============
 // Os módulos abaixo foram separados do index.ts para manter este arquivo
-// abaixo de 900 linhas. Comportamento preservado 1:1 — se editar, replique
+// abaixo de 600 linhas. Comportamento preservado 1:1 — se editar, replique
 // o teste correspondente em src/__tests__/regression/ ou supabase/functions/_shared/*_test.ts.
 import { logEgress } from "../_shared/generateBlogPostV2/egress.ts";
 import { handleCorsPreFlight, jsonSuccess, jsonError, fetchWithTimeout, scrapeWithFirecrawl } from "../_shared/generateBlogPostV2/http.ts";
 import { extractKeywords, inferMood } from "../_shared/generateBlogPostV2/contentAnalysis.ts";
 import { replaceVariables, FAKE_DOMAINS, restrictLinkToFirstMention, removeFakeLinks } from "../_shared/generateBlogPostV2/textUtils.ts";
 import { generateAndAttachImage } from "../_shared/generateBlogPostV2/imageGeneration.ts";
+import { computeWeekday, computeDateFormatted } from "../_shared/generateBlogPostV2/dateHelpers.ts";
+import { applyTemplateVariables, buildOfficialDataBlock, buildSystemPrompt } from "../_shared/generateBlogPostV2/promptBuilder.ts";
+import { generateUniqueSlug, saveOrUpdatePost, logAiGeneration } from "../_shared/generateBlogPostV2/savePost.ts";
 
 const FUNCTION_TIMEOUT_MS = 140000; // 140 seconds - margem de segurança de 10s
 
@@ -182,23 +184,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ===== Helper: weekday em PT-BR a partir de YYYY-MM-DD (defesa em profundidade) =====
-    const WEEKDAYS_PT = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
-    const MONTHS_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    function computeWeekday(dateStr: string): string {
-      if (!dateStr || typeof dateStr !== 'string') return '';
-      const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (!m) return '';
-      const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-      return WEEKDAYS_PT[dt.getDay()] || '';
-    }
-    function computeDateFormatted(dateStr: string): string {
-      const m = dateStr?.match?.(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (!m) return dateStr || '';
-      const wd = computeWeekday(dateStr);
-      return `${Number(m[3])} de ${MONTHS_PT[Number(m[2]) - 1]} de ${m[1]}${wd ? ` (${wd})` : ''}`;
-    }
-
     // Garantir weekday/dateFormatted mesmo quando o caller não envia
     if (formFields.eventDate && !formFields.weekday) {
       formFields.weekday = computeWeekday(String(formFields.eventDate));
@@ -208,22 +193,7 @@ Deno.serve(async (req) => {
     }
 
     // Substituir variáveis no user_prompt_template
-    let userPrompt = template.user_prompt_template;
-    for (const [key, value] of Object.entries(formFields)) {
-      if (value) {
-        userPrompt = userPrompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value as string);
-        userPrompt = userPrompt.replace(new RegExp(`\\{${key}\\}`, 'g'), value as string);
-        userPrompt = userPrompt.replace(
-          new RegExp(`\\{\\{#if ${key}\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}`, 'g'),
-          '$1'
-        );
-      } else {
-        userPrompt = userPrompt.replace(
-          new RegExp(`\\{\\{#if ${key}\\}\\}[\\s\\S]*?\\{\\{/if\\}\\}`, 'g'),
-          ''
-        );
-      }
-    }
+    let userPrompt = applyTemplateVariables(template.user_prompt_template, formFields);
 
     // ===== DETECTAR MODO: evento real vs artigo editorial/notícia =====
     // Modo "evento" só liga quando há sinais concretos de evento (data, venue, lineup,
@@ -279,52 +249,15 @@ Deno.serve(async (req) => {
     }
 
     // ===== BLOCO "DADOS OFICIAIS" — só injetado em MODO EVENTO =====
-    if (isEventMode) {
-      const officialDataLines: string[] = [];
-      const pushIf = (label: string, val: unknown) => {
-        if (val !== undefined && val !== null && String(val).trim() !== '') {
-          officialDataLines.push(`- ${label}: ${val}`);
-        }
-      };
-      pushIf('Nome do evento', formFields.eventName || formFields.title);
-      pushIf('Subtítulo/Promoção', formFields.subtitle);
-      pushIf('Data', formFields.dateFormatted || formFields.eventDate);
-      pushIf('Dia da semana', formFields.weekday);
-      pushIf('Horário de início', formFields.eventTime);
-      pushIf('Horário de término', formFields.endTime);
-      pushIf('Local', formFields.eventLocation);
-      // Se venue e cidade forem a mesma string (evento cadastrado sem venue
-      // real, só a cidade), não empurra "Cidade" separadamente — evita o
-      // modelo tratar isso como dois fatos distintos ("em São Paulo, na
-      // cidade de São Paulo").
-      const venueEqualsCity = Boolean(
-        formFields.venue && formFields.locationCity &&
-        String(formFields.venue).trim().toLowerCase() === String(formFields.locationCity).trim().toLowerCase()
-      );
-      pushIf('Casa/Venue', formFields.venue);
-      pushIf('Endereço', formFields.address);
-      if (!venueEqualsCity) {
-        pushIf('Cidade', formFields.locationCity);
-      }
-      pushIf('Estado', formFields.locationState);
-      pushIf('Gêneros musicais', formFields.genres);
-      pushIf('Lineup confirmado', formFields.lineup);
-      pushIf('Link de ingressos', formFields.ticketLink);
-      pushIf('Link VIP/camarote', formFields.vipLink);
-      pushIf('Descrição oficial', formFields.description);
-
-      if (officialDataLines.length > 0) {
-        const officialDataBlock = `\n\n📋 DADOS OFICIAIS DO EVENTO (use literalmente, NUNCA invente, NUNCA contradiga):\n${officialDataLines.join('\n')}\n\n⚠️ Se algum dado acima estiver presente, ele DEVE aparecer no artigo. Não escreva "a confirmar" para informações que constam aqui.\n`;
-        userPrompt = officialDataBlock + userPrompt;
-      }
-    }
+    const officialDataBlock = buildOfficialDataBlock(formFields, isEventMode);
+    if (officialDataBlock) userPrompt = officialDataBlock + userPrompt;
 
     // Log do prompt após substituições
     console.log('[generate-blog-post-v2] User prompt após substituições (preview):', userPrompt.substring(0, 1200));
 
     // Determinar se há link de ingresso real
-    const hasRealTicketLink = formFields.ticketLink && 
-      typeof formFields.ticketLink === 'string' && 
+    const hasRealTicketLink = formFields.ticketLink &&
+      typeof formFields.ticketLink === 'string' &&
       formFields.ticketLink.length > 5 &&
       !FAKE_DOMAINS.some(domain => formFields.ticketLink.includes(domain));
 
@@ -333,91 +266,21 @@ Deno.serve(async (req) => {
     const isCourtesy = /\b(cortesia|free|gratuito|gratuita|sem venda|sem ingresso|guest list|lista de convidados|open list)\b/.test(aiCtxLower);
 
     // Construir bloco de contexto do admin (aiContext) — vale para qualquer modo
-    const aiContextBlock = formFields.aiContext 
+    const aiContextBlock = formFields.aiContext
       ? `\n\n🎯 INSTRUÇÕES ESPECIAIS DO ADMIN (PRIORIDADE MÁXIMA — respeite literalmente, sobrepõe template e conhecimento prévio):
 ${formFields.aiContext}`
       : '';
 
-    // ===== Blocos condicionais de evento (anti-hedging, ingressos, cupom) =====
-    const eventAntiHedgingBlock = isEventMode ? `
-
-🚨 ANTI-HEDGING (proibido falar "a confirmar" quando o dado existe):
-${formFields.lineup ? '- Lineup foi fornecido: NÃO escreva "lineup a confirmar" ou "line-up completo ainda não oficializado". Liste os artistas exatos.' : ''}
-${formFields.endTime ? '- Horário de término foi fornecido: mencione-o ("até XX:XX").' : ''}
-${formFields.eventTime ? '- Horário de início foi fornecido: mencione-o.' : ''}
-${formFields.address ? '- Endereço completo foi fornecido: inclua-o.' : ''}
-${formFields.subtitle ? '- Subtítulo/promoção foi fornecido: incorpore essa informação no artigo.' : ''}
-${formFields.vipLink ? '- Link VIP foi fornecido: mencione a opção de camarote/VIP em UM ÚNICO ponto do artigo — nunca repita a mesma menção em duas seções diferentes (ex: não repita na conclusão se já mencionou na seção de ingressos). Use um texto de link natural e curto (ex: "reserve sua área VIP", "fale sobre o camarote"). NUNCA copie a frase "área VIP/camarote" literalmente como texto do link.' : ''}
-${formFields.weekday ? `- Dia da semana CORRETO é "${formFields.weekday}". NUNCA escreva outro dia da semana.` : ''}
-
-🚨 PRIORIDADE DOS CAMPOS ESTRUTURADOS:
-- Em caso de conflito entre "description" e os dados estruturados (venue, eventLocation, eventDate, weekday), PRIORIZE os dados estruturados.
-- Não use seu conhecimento de treinamento sobre locais/datas/lineup do evento — use APENAS os DADOS OFICIAIS.` : '';
-
-    const editorialModeBlock = !isEventMode ? `
-
-📰 MODO EDITORIAL/NOTÍCIA (NÃO é evento/festa):
-- Este artigo é uma matéria jornalística, opinativa ou de tendências — NÃO é divulgação de festa.
-- PROIBIDO criar seções "Lineup", "Local e horário", "Ingressos", "Como chegar".
-- PROIBIDO escrever "a confirmar", "lineup a confirmar", "venue a confirmar" — não há evento concreto.
-- Estrutura esperada: introdução cativante + 3-4 seções <h3> com análise/contexto + conclusão com perspectiva.
-- Cite artistas, labels, faixas, eventos passados ou tecnologias quando relevante para argumentar.
-- Foque no tema do título e do resumo. Nunca force o texto para um formato de divulgação de evento.` : '';
-
-    const ticketsBlock = !isEventMode
-      ? `\n\n🚨 LINKS E CTA (modo editorial):
-- NÃO inclua seção de "Ingressos" nem mencione cupom MDACCULA — não é divulgação de evento.
-- NUNCA invente URLs.
-- CTA final sugerido: "Acompanhe a MDAccula para mais novidades da cena eletrônica."`
-      : isCourtesy
-        ? `\n\n🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
-- ⚠️ ESTE EVENTO É CORTESIA / SEM VENDA DE INGRESSOS (conforme aiContext acima).
-- NÃO mencione cupom de desconto MDACCULA.
-- NÃO escreva "garanta seu ingresso", "compre antecipado", "lotes" ou similares.
-- Se houver link, descreva-o como "link para confirmar presença / lista" e não como compra.
-- Ignore qualquer instrução do template que force menção a cupom de desconto.`
-        : hasRealTicketLink
-          ? `\n\n🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
-- Link de ingressos REAL fornecido: ${formFields.ticketLink}
-- Você PODE incluir seção de ingressos com cupom MDACCULA usando este link.`
-          : `\n\n🚨 REGRAS CRÍTICAS SOBRE LINKS DE INGRESSOS E CUPOM:
-- NÃO há link de ingressos fornecido para este artigo.
-- NUNCA INVENTE URLs de ingressos como "ticketlink.com.br", "ingressos.com.br", etc.
-- NÃO inclua seção de "Ingressos", "Onde comprar" ou "Garanta seu lugar".
-- NÃO mencione cupom de desconto MDACCULA se não houver link real.
-- Use CTA alternativo: "Acompanhe a MDAccula para mais novidades da cena eletrônica."`;
-
     // Adicionar instrução de tamanho máximo + regras de título ao system prompt
-    const systemPromptWithLength = template.system_prompt + 
-      `\n\n🚨 HIERARQUIA DE PRIORIDADE (ordem absoluta):
-1. INSTRUÇÕES ESPECIAIS DO ADMIN (aiContext)
-2. ${isEventMode ? 'DADOS OFICIAIS DO EVENTO (bloco no user prompt)' : 'Tema do título/resumo da sugestão'}
-3. Template
-4. Conhecimento prévio (use APENAS para complementar, nunca para contradizer)
-
-IMPORTANTE: 
-- O artigo deve ter no máximo ${maxArticleLength} caracteres.
-- NUNCA use placeholders como {{eventName}}, {{eventDate}}, {{lineup}}, etc. no texto gerado.
-- ${isEventMode ? 'Use os valores REAIS fornecidos no bloco "DADOS OFICIAIS".' : 'Baseie-se no título e resumo fornecidos.'}
-- Se um campo NÃO existe nos dados fornecidos, omita — NUNCA invente.${eventAntiHedgingBlock}${editorialModeBlock}
-${EDITORIAL_QUALITY_BLOCK}
-
-🎬 REGRAS OBRIGATÓRIAS PARA O TÍTULO (campo "title" do JSON):
-O título precisa ser EDITORIAL, envolvente e chamativo — como manchete de revista de música eletrônica.
-
-PROIBIDO no título:
-- Emojis (☀️, 👁️, 🎵, ⭐ etc.)
-- Separar campos com " | ", " — " ou " - " no estilo "Nome | DD/MM | Cidade"
-- Datas no formato "DD/MM/AAAA" ou "DD/MM" (use linguagem temporal natural)
-- Começar com "Confira", "Não perca", "Saiba tudo sobre", "Tudo sobre"
-- Inventar adjetivos não embasados nos dados
-
-OBRIGATÓRIO no título:
-- 50 a 80 caracteres
-- Voz ativa, sugerindo clima/atmosfera${formFields.weekday && isEventMode ? ` (dia correto: "${formFields.weekday}")` : ''}
-- Sempre baseado em fatos reais — nunca inventar
-
-${aiContextBlock}${ticketsBlock}`;
+    const systemPromptWithLength = buildSystemPrompt({
+      templateSystemPrompt: template.system_prompt,
+      maxArticleLength,
+      isEventMode,
+      hasRealTicketLink: Boolean(hasRealTicketLink),
+      isCourtesy,
+      formFields,
+      aiContextBlock,
+    });
     
     // Determinar qual API usar baseado no modelo selecionado
     const isOpenAIModel = selectedModel.startsWith('openai/');
@@ -594,78 +457,18 @@ ${aiContextBlock}${ticketsBlock}`;
     console.log(`📸 Imagem em background: ${shouldQueueImage}`);
 
     // Gerar slug único
-    const baseSlug = eventData.title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    
-    // Verificar se slug já existe e adicionar sufixo único se necessário
-    let slug = baseSlug;
-    let slugExists = true;
-    let attempts = 0;
-    
-    while (slugExists && attempts < 5) {
-      const { data: existingPost } = await supabase
-        .from('blog_posts')
-        .select('id')
-        .eq('slug', slug)
-        .maybeSingle();
-      
-      if (existingPost) {
-        slug = `${baseSlug}-${Date.now().toString(36)}`;
-        attempts++;
-      } else {
-        slugExists = false;
-      }
-    }
-    
+    const slug = await generateUniqueSlug(supabase, eventData.title);
     console.log('[generate-blog-post-v2] Slug gerado:', slug);
 
     // Salvar ou atualizar no banco
-    let post;
-    let insertError;
-    
-    if (formFields.existingPostId) {
-      // Atualizar post existente
-      console.log('[generate-blog-post-v2] Atualizando post existente:', formFields.existingPostId);
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .update({
-          title: eventData.title,
-          excerpt: eventData.excerpt,
-          content: eventData.content,
-          category: finalCategory,
-          // Manter imagem existente se não gerou nova
-          ...(generatedImageUrl && { image_url: generatedImageUrl }),
-        })
-        .eq('id', formFields.existingPostId)
-        .select()
-        .single();
-      
-      post = data;
-      insertError = error;
-    } else {
-      // Criar novo post
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .insert({
-          title: eventData.title,
-          slug: slug,
-          excerpt: eventData.excerpt,
-          content: eventData.content,
-          category: finalCategory,
-          published: publishImmediately === false ? false : true,
-          published_at: publishImmediately === false ? null : new Date().toISOString(),
-          image_url: generatedImageUrl
-        })
-        .select()
-        .single();
-      
-      post = data;
-      insertError = error;
-    }
+    const { post, error: insertError } = await saveOrUpdatePost(supabase, {
+      existingPostId: formFields.existingPostId,
+      publishImmediately,
+      eventData,
+      finalCategory,
+      generatedImageUrl,
+      slug,
+    });
 
     if (insertError) {
       console.error('Erro ao salvar post:', insertError);
@@ -673,33 +476,20 @@ ${aiContextBlock}${ticketsBlock}`;
     }
 
     // Registrar na tabela de posts gerados por IA
-    const promptFieldsSummary = Object.entries(formFields)
-      .filter(([_, value]) => value)
-      .map(([key, value]) => `${key}: ${String(value).substring(0, 50)}`)
-      .join(' | ');
-
-    const { error: aiLogError } = await supabase
-      .from('ai_generated_posts')
-      .insert({
-        blog_post_id: post.id,
-        prompt_used: `Template: ${template.name} | ${promptFieldsSummary}`,
-        model_used: selectedModel,
-        template_id: template.id,
-        input_tokens: usage.prompt_tokens || null,
-        output_tokens: usage.completion_tokens || null,
-        total_tokens: usage.total_tokens || null,
-        image_tokens: imageTokensUsed > 0 ? imageTokensUsed : null,
-        // scrapedContext (tom/estilo genérico) nunca é gravado aqui — não são citações
-        // factuais. guardrailSourceUrls só é não-nulo quando o guardrail acima
-        // (isEventMode && !hasEventSignals) encontrou fonte real de verdade pra esse
-        // evento específico — mesmo padrão do que generate-blog-post-from-topic já
-        // grava pra sugestões ancoradas em busca real.
-        source_urls: guardrailSourceUrls,
-      });
-
-    if (aiLogError) {
-      console.error('Erro ao registrar log de IA:', aiLogError);
-    }
+    // scrapedContext (tom/estilo genérico) nunca é gravado — não são citações
+    // factuais. guardrailSourceUrls só é não-nulo quando o guardrail acima
+    // (isEventMode && !hasEventSignals) encontrou fonte real de verdade pra esse
+    // evento específico — mesmo padrão do que generate-blog-post-from-topic grava.
+    await logAiGeneration(supabase, {
+      postId: post.id,
+      templateName: template.name,
+      templateId: template.id,
+      formFields,
+      selectedModel,
+      usage,
+      imageTokensUsed,
+      guardrailSourceUrls,
+    });
 
     const totalTime = Date.now() - startTime;
     console.log(`Post V2 gerado com sucesso: ${post.id} (${totalTime}ms) imageQueued=${!!imageBgOpts}`);
