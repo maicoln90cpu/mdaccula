@@ -29,7 +29,7 @@ import {
   type Block,
   BLOCK_LABELS,
   AVAILABLE_BLOCKS,
-  type EmailGlobalBlock,
+  type GlobalBlock,
 } from '@/lib/emailTemplates/blocks';
 import { GlobalBlocksLibrary } from '../GlobalBlocksLibrary';
 import { SortableRow } from './controls';
