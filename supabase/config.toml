@@ -175,3 +175,6 @@ verify_jwt = false
 # compose-event-image é a única função que exige login (verify_jwt = true,
 # que é o padrão) — por isso não precisa de entrada aqui.
 
+
+[functions.mcp]
+verify_jwt = false
