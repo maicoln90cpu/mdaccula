@@ -128,12 +128,6 @@ export function renderBasicBlock(
       </td></tr>`;
     }
 
-    case "secondary_link": {
-      const { resolveSecondaryUrl } = ctx as never as { resolveSecondaryUrl?: never };
-      // Nota: usa helper importado abaixo — mantido para agrupar imports.
-      void resolveSecondaryUrl;
-      return null;
-    }
 
     case "image_with_link": {
       if (!block.image_url) return "";
