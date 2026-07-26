@@ -118,19 +118,19 @@ export type Block =
   | { id: string; kind: "pix_button"; label?: string; align?: Align; full_width?: boolean }
   | { id: string; kind: "secondary_link"; label?: string; url_field?: "agenda_url" | "event_url" | "custom"; custom_url?: string; align?: Align; variant?: "underline" | "ghost"; text_color?: string }
   | { id: string; kind: "image_with_link"; image_url: string; link_url: string; alt?: string; max_width?: number; align?: Align; border_radius?: number; border_color?: string; caption?: string }
-  | { id: string; kind: "divider"; thickness?: number; color?: string }
-  | { id: string; kind: "text"; html: string; align?: Align; text_color?: string }
+  | { id: string; kind: "divider"; thickness?: number; color?: string; spacing?: "compact" | "normal" | "wide"; width?: "full" | "short" }
+  | { id: string; kind: "text"; html: string; align?: Align; text_color?: string; font_size?: number; bg_highlight?: boolean }
   | { id: string; kind: "social_icons"; networks: SocialNetwork[]; style?: "text" | "pill" | "icon"; icon_size?: "small" | "medium"; align?: Align }
-  | { id: string; kind: "lineup"; title?: string; layout?: "chips" | "list" | "grid"; align?: Align; title_color?: string; text_color?: string }
-  | { id: string; kind: "countdown"; label?: string; deadline_source?: "today_2359" | "event_start" | "batch_deadline" | "custom"; custom_deadline?: string; bg_style?: "gradient" | "solid"; bg_color?: string; align?: Align; size?: "large" | "medium" | "minimal" }
-  | { id: string; kind: "ticker"; messages?: string[]; bg_color?: string; text_color?: string; animation?: "none" | "slide" | "fade"; align?: Align; icon?: "none" | "clock" | "fire" | "bolt" }
-  | { id: string; kind: "static_map"; zoom?: number; height?: number; map_style?: "roadmap" | "terrain"; show_address_label?: boolean; border_radius?: number }
-  | { id: string; kind: "weekend_grid"; layout?: "cartaz" | "timeline"; title?: string; eyebrow?: string; show_article_link?: boolean; day_bar_color?: string; align?: Align }
+  | { id: string; kind: "lineup"; title?: string; layout?: "chips" | "list" | "grid"; align?: Align; title_color?: string; text_color?: string; highlight_headliner?: boolean; section_bg?: boolean }
+  | { id: string; kind: "countdown"; label?: string; deadline_source?: "today_2359" | "event_start" | "batch_deadline" | "custom"; custom_deadline?: string; bg_style?: "gradient" | "solid"; bg_color?: string; align?: Align; size?: "large" | "medium" | "minimal"; number_color?: string; show_unit_labels?: boolean }
+  | { id: string; kind: "ticker"; messages?: string[]; bg_color?: string; text_color?: string; animation?: "none" | "slide" | "fade"; align?: Align; icon?: "none" | "clock" | "fire" | "bolt"; speed?: "slow" | "normal" | "fast"; shape?: "bar" | "pill" }
+  | { id: string; kind: "static_map"; zoom?: number; height?: number; map_style?: "roadmap" | "terrain"; show_address_label?: boolean; border_radius?: number; pin_color?: string; directions_label?: string }
+  | { id: string; kind: "weekend_grid"; layout?: "cartaz" | "timeline"; title?: string; eyebrow?: string; show_article_link?: boolean; day_bar_color?: string; align?: Align; show_time?: boolean }
   | { id: string; kind: "event_grid"; title?: string; eyebrow?: string; align?: Align }
   | { id: string; kind: "dedge_block"; override_content?: boolean; image_url?: string; eyebrow?: string; title?: string; description?: string; primary_label?: string; primary_url?: string; button_style?: "dark" | "primary"; card_style?: "featured" | "compact"; show_description?: boolean }
-  | { id: string; kind: "weekly_hero"; source?: "first_weekend" | "main_event"; eyebrow?: string; cta_label?: string; show_venue?: boolean; show_cta?: boolean; overlay_intensity?: "soft" | "strong"; align?: Align }
-  | { id: string; kind: "blog_posts_list"; title?: string; eyebrow?: string; max_items?: number; layout?: "list" | "cards"; show_excerpt?: boolean; show_category?: boolean; align?: Align }
-  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align }
+  | { id: string; kind: "weekly_hero"; source?: "first_weekend" | "main_event"; eyebrow?: string; cta_label?: string; show_venue?: boolean; show_cta?: boolean; overlay_intensity?: "soft" | "strong"; align?: Align; accent_color?: string; show_datetime?: boolean }
+  | { id: string; kind: "blog_posts_list"; title?: string; eyebrow?: string; max_items?: number; layout?: "list" | "cards"; show_excerpt?: boolean; show_category?: boolean; align?: Align; category_color?: string; show_read_more_link?: boolean }
+  | { id: string; kind: "footer"; text?: string; include_unsubscribe?: boolean; align?: Align; text_color?: string; font_size?: number }
   | { id: string; kind: "global_ref"; global_id: string; _cached_name?: string };
 
 /** Bloco global salvo na biblioteca — reutilizável entre templates. */

@@ -252,6 +252,23 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           onChange={(v) => patch({ text_color: v })}
           placeholder="#a1a1aa"
         />
+        <div>
+          <Label className="text-xs">Tamanho da fonte: {block.font_size ?? 14}px</Label>
+          <Slider
+            min={11}
+            max={22}
+            step={1}
+            value={[block.font_size ?? 14]}
+            onValueChange={(v) => patch({ font_size: v[0] })}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.bg_highlight === true}
+            onCheckedChange={(v) => patch({ bg_highlight: v })}
+          />
+          <Label className="text-xs">Fundo em caixa (destaque)</Label>
+        </div>
       </div>
     );
   }

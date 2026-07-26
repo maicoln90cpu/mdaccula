@@ -55,6 +55,20 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
           onChange={(v) => patch({ text_color: v })}
           placeholder="#ffffff"
         />
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.highlight_headliner === true}
+            onCheckedChange={(v) => patch({ highlight_headliner: v })}
+          />
+          <Label className="text-xs">Destacar 1º nome (headliner maior)</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.section_bg === true}
+            onCheckedChange={(v) => patch({ section_bg: v })}
+          />
+          <Label className="text-xs">Fundo da seção (caixa sutil)</Label>
+        </div>
         <p className="text-xs text-muted-foreground">
           Os artistas vêm do campo "Line-up" do evento. Se estiver vazio, o bloco some.
         </p>
@@ -144,6 +158,19 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
             placeholder="#a855f7"
           />
         )}
+        <ColorControl
+          label="Cor do texto/números"
+          value={block.number_color}
+          onChange={(v) => patch({ number_color: v })}
+          placeholder="#ffffff"
+        />
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.show_unit_labels !== false}
+            onCheckedChange={(v) => patch({ show_unit_labels: v })}
+          />
+          <Label className="text-xs">Mostrar rótulos (dias/horas/min)</Label>
+        </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         <p className="text-xs text-muted-foreground">
           E-mail não roda JavaScript — o contador é <strong>congelado no momento do envio</strong>{' '}
@@ -232,6 +259,31 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
           onChange={(v) => patch({ text_color: v })}
           placeholder="#ffffff"
         />
+        <div>
+          <Label className="text-xs">Velocidade da animação</Label>
+          <Select value={block.speed || 'normal'} onValueChange={(v) => patch({ speed: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="slow">Lenta</SelectItem>
+              <SelectItem value="normal">Normal (padrão)</SelectItem>
+              <SelectItem value="fast">Rápida</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Formato</Label>
+          <Select value={block.shape || 'bar'} onValueChange={(v) => patch({ shape: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="bar">Barra reta (padrão)</SelectItem>
+              <SelectItem value="pill">Pílula arredondada</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );
@@ -310,6 +362,20 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
             onCheckedChange={(v) => patch({ show_address_label: v })}
           />
           <Label className="text-xs">Mostrar nome do venue e cidade abaixo do mapa</Label>
+        </div>
+        <ColorControl
+          label="Cor do marcador/pin"
+          value={block.pin_color}
+          onChange={(v) => patch({ pin_color: v })}
+          placeholder="cor padrão do Maps"
+        />
+        <div>
+          <Label className="text-xs">Texto do botão "Como chegar"</Label>
+          <Input
+            value={block.directions_label || ''}
+            onChange={(e) => patch({ directions_label: e.target.value })}
+            placeholder="Como chegar"
+          />
         </div>
       </div>
     );

@@ -187,9 +187,16 @@ export function renderBasicBlock(
     case "divider": {
       const thickness = Math.max(1, Math.min(8, block.thickness ?? 1));
       const color = escape(block.color || "#3f3f46");
-      return `<tr><td style="padding:8px 32px;">
+      const vPad = block.spacing === "compact" ? 4 : block.spacing === "wide" ? 16 : 8;
+      const width = block.width === "short" ? "33%" : "100%";
+      const hPad = block.width === "short" ? "0 32px" : "0";
+      return `<tr><td style="padding:${vPad}px 32px;">
         <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
-          <tr><td bgcolor="${color}" height="${thickness}" style="height:${thickness}px;line-height:${thickness}px;font-size:0;background-color:${color};">&nbsp;</td></tr>
+          <tr><td align="center" style="padding:${hPad};">
+            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="${width}" style="border-collapse:collapse;">
+              <tr><td bgcolor="${color}" height="${thickness}" style="height:${thickness}px;line-height:${thickness}px;font-size:0;background-color:${color};">&nbsp;</td></tr>
+            </table>
+          </td></tr>
         </table>
       </td></tr>`;
     }
@@ -198,17 +205,26 @@ export function renderBasicBlock(
       const safe = sanitizeCustomHtml(block.html || "");
       const color = escape(block.text_color || "#a1a1aa");
       const align = block.align ?? "left";
-      return `<tr><td style="padding:8px 32px;color:${color};font-size:14px;line-height:1.6;text-align:${align};">${safe}</td></tr>`;
+      const size = Math.max(11, Math.min(22, block.font_size ?? 14));
+      const bg = block.bg_highlight
+        ? "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;"
+        : "";
+      const padding = block.bg_highlight ? "16px 20px" : "0";
+      return `<tr><td style="padding:8px 32px;text-align:${align};">
+        <div style="${bg}padding:${padding};color:${color};font-size:${size}px;line-height:1.6;">${safe}</div>
+      </td></tr>`;
     }
 
     case "footer": {
       const txt = escape(block.text || settings.footer_text || "");
       const align = block.align ?? "center";
+      const color = escape(block.text_color || "#52525b");
+      const size = Math.max(9, Math.min(14, block.font_size ?? 11));
       const unsubscribe = block.include_unsubscribe !== false
-        ? `<p style="margin:8px 0 0 0;font-size:11px;"><a href="[E-GOI_UNSUBSCRIBE_LINK]" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a></p>`
+        ? `<p style="margin:8px 0 0 0;font-size:${size}px;"><a href="[E-GOI_UNSUBSCRIBE_LINK]" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a></p>`
         : "";
       return `<tr><td align="${align}" style="padding:24px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);text-align:${align};">
-        <p style="margin:0;color:#52525b;font-size:11px;line-height:1.6;max-width:400px;display:inline-block;">${txt}</p>
+        <p style="margin:0;color:${color};font-size:${size}px;line-height:1.6;max-width:400px;display:inline-block;">${txt}</p>
         ${unsubscribe}
       </td></tr>`;
     }

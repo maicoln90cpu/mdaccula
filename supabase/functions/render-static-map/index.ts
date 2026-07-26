@@ -26,6 +26,11 @@ Deno.serve(async (req) => {
     const h = Math.max(150, Math.min(400, Number(url.searchParams.get('h') || '300')));
     const style = (url.searchParams.get('style') || 'roadmap');
     const mapType = ['roadmap', 'terrain', 'satellite', 'hybrid'].includes(style) ? style : 'roadmap';
+    // Cor do pin: aceita nome de cor do Google (ex.: red, blue) ou hex #RRGGBB (convertido pra 0xRRGGBB).
+    const rawPinColor = (url.searchParams.get('pincolor') || '').trim();
+    const pinColor = /^#[0-9a-fA-F]{6}$/.test(rawPinColor)
+      ? `0x${rawPinColor.slice(1)}`
+      : /^[a-zA-Z]+$/.test(rawPinColor) ? rawPinColor : 'red';
 
     if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
       return new Response(JSON.stringify({ error: 'Invalid lat/lng' }), {
@@ -49,7 +54,7 @@ Deno.serve(async (req) => {
     staticMapUrl.searchParams.set('size', `${w}x${h}`);
     staticMapUrl.searchParams.set('scale', '2'); // retina
     staticMapUrl.searchParams.set('maptype', mapType);
-    staticMapUrl.searchParams.set('markers', `color:red|${lat},${lng}`);
+    staticMapUrl.searchParams.set('markers', `color:${pinColor}|${lat},${lng}`);
 
     const upstream = await fetch(staticMapUrl.toString(), {
       headers: {

@@ -104,27 +104,39 @@ export function renderInteractiveBlock(
       const textColor = escape(block.text_color || "#ffffff");
       const title = escape(block.title || "Line-up");
       const layout = block.layout || "chips";
+      const highlightHeadliner = block.highlight_headliner === true;
       let body = "";
       if (layout === "chips") {
-        body = artists.map((a) =>
-          `<span style="display:inline-block;margin:4px 4px;padding:8px 14px;background:rgba(168,85,247,0.12);border:1px solid ${primary};border-radius:999px;color:${textColor};font-size:13px;font-weight:700;letter-spacing:0.02em;">${escape(a)}</span>`
-        ).join("");
+        body = artists.map((a, i) => {
+          const isHeadliner = highlightHeadliner && i === 0;
+          const fontSize = isHeadliner ? 16 : 13;
+          const padding = isHeadliner ? "10px 18px" : "8px 14px";
+          return `<span style="display:inline-block;margin:4px 4px;padding:${padding};background:rgba(168,85,247,0.12);border:1px solid ${primary};border-radius:999px;color:${textColor};font-size:${fontSize}px;font-weight:700;letter-spacing:0.02em;">${escape(a)}</span>`;
+        }).join("");
       } else if (layout === "list") {
-        body = `<ul style="list-style:none;padding:0;margin:0;">${artists.map((a) =>
-          `<li style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:${textColor};font-size:15px;font-weight:600;">${escape(a)}</li>`
-        ).join("")}</ul>`;
+        body = `<ul style="list-style:none;padding:0;margin:0;">${artists.map((a, i) => {
+          const isHeadliner = highlightHeadliner && i === 0;
+          const fontSize = isHeadliner ? 19 : 15;
+          return `<li style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:${textColor};font-size:${fontSize}px;font-weight:${isHeadliner ? 800 : 600};">${escape(a)}</li>`;
+        }).join("")}</ul>`;
       } else {
         const rows: string[] = [];
         for (let i = 0; i < artists.length; i += 2) {
+          const aHeadliner = highlightHeadliner && i === 0;
+          const bHeadliner = highlightHeadliner && i + 1 === 0;
           const a = escape(artists[i]);
           const b = artists[i + 1] ? escape(artists[i + 1]) : "";
-          rows.push(`<tr><td width="50%" style="padding:8px 12px 8px 0;color:${textColor};font-size:15px;font-weight:700;">${a}</td><td width="50%" style="padding:8px 0 8px 12px;color:${textColor};font-size:15px;font-weight:700;">${b}</td></tr>`);
+          rows.push(`<tr><td width="50%" style="padding:8px 12px 8px 0;color:${textColor};font-size:${aHeadliner ? 18 : 15}px;font-weight:700;">${a}</td><td width="50%" style="padding:8px 0 8px 12px;color:${textColor};font-size:${bHeadliner ? 18 : 15}px;font-weight:700;">${b}</td></tr>`);
         }
         body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows.join("")}</table>`;
       }
+      const wrapStart = block.section_bg
+        ? `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">`
+        : "";
+      const wrapEnd = block.section_bg ? "</div>" : "";
       return `<tr><td style="padding:8px 32px 16px 32px;text-align:${align};">
-        <div style="color:${titleColor};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${title}</div>
-        <div style="text-align:${align};">${body}</div>
+        ${wrapStart}<div style="color:${titleColor};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${title}</div>
+        <div style="text-align:${align};">${body}</div>${wrapEnd}
       </td></tr>`;
     }
 
@@ -154,6 +166,8 @@ export function renderInteractiveBlock(
         day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
       });
       const size = block.size || "large";
+      const numberColor = escape(block.number_color || "#ffffff");
+      const showUnitLabels = block.show_unit_labels !== false;
 
       if (size === "minimal") {
         const inline = `${days > 0 ? `${days}d ` : ""}${hours}h ${minutes.toString().padStart(2, "0")}m`;
@@ -169,8 +183,8 @@ export function renderInteractiveBlock(
         ];
         const boxes = parts.map((p) =>
           `<td style="padding:0 4px;"><div style="min-width:56px;padding:7px 9px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:8px;text-align:center;">
-            <div style="color:#ffffff;font-size:16px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
-            <div style="color:#ffffff;opacity:0.85;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">${p.label}</div>
+            <div style="color:${numberColor};font-size:16px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
+            ${showUnitLabels ? `<div style="color:${numberColor};opacity:0.85;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">${p.label}</div>` : ""}
           </div></td>`
         ).join("");
         return `<tr><td style="padding:6px 32px;">
@@ -190,8 +204,8 @@ export function renderInteractiveBlock(
       parts.push({ v: minutes, label: "min" });
       const boxes = parts.map((p) =>
         `<td style="padding:0 6px;"><div style="min-width:64px;padding:12px 10px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
-          <div style="color:#ffffff;font-size:26px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
-          <div style="color:#ffffff;opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>
+          <div style="color:${numberColor};font-size:26px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
+          ${showUnitLabels ? `<div style="color:${numberColor};opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>` : ""}
         </div></td>`
       ).join("");
       return `<tr><td style="padding:8px 32px;">
@@ -216,6 +230,12 @@ export function renderInteractiveBlock(
       const anim = block.animation || "fade";
       const iconMap: Record<string, string> = { none: "", clock: "⏰ ", fire: "🔥 ", bolt: "⚡ " };
       const icon = iconMap[block.icon || "clock"] ?? "⏰ ";
+      const speedFactor = block.speed === "slow" ? 1.5 : block.speed === "fast" ? 0.6 : 1;
+      const fadeDur = Math.round(9 * speedFactor);
+      const fadeOffset2 = Math.round(-3 * speedFactor);
+      const fadeOffset3 = Math.round(-6 * speedFactor);
+      const slideDur = Math.round(18 * speedFactor);
+      const radius = block.shape === "pill" ? 999 : 8;
 
       const staticLine = msgs.join(" · ");
       const animatedSpans = anim === "fade"
@@ -227,17 +247,17 @@ export function renderInteractiveBlock(
       const keyframes = anim === "fade" && msgs.length > 1
         ? `<style>@media screen{
           .ticker-anim .tk{display:none;}
-          .ticker-anim .tk0{display:inline;animation:tkf 9s infinite;}
-          ${msgs.length >= 2 ? ".ticker-anim .tk1{display:inline;animation:tkf 9s infinite -3s;}" : ""}
-          ${msgs.length >= 3 ? ".ticker-anim .tk2{display:inline;animation:tkf 9s infinite -6s;}" : ""}
+          .ticker-anim .tk0{display:inline;animation:tkf ${fadeDur}s infinite;}
+          ${msgs.length >= 2 ? `.ticker-anim .tk1{display:inline;animation:tkf ${fadeDur}s infinite ${fadeOffset2}s;}` : ""}
+          ${msgs.length >= 3 ? `.ticker-anim .tk2{display:inline;animation:tkf ${fadeDur}s infinite ${fadeOffset3}s;}` : ""}
           @keyframes tkf{0%,25%{opacity:1}33%,92%{opacity:0}100%{opacity:1}}
         }</style>`
         : anim === "slide"
-        ? `<style>@media screen{.ticker-anim .tk-slide{display:inline-block;animation:tks 18s linear infinite;}@keyframes tks{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}}</style>`
+        ? `<style>@media screen{.ticker-anim .tk-slide{display:inline-block;animation:tks ${slideDur}s linear infinite;}@keyframes tks{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}}</style>`
         : "";
 
       return `${keyframes}<tr><td align="${align}" style="padding:0 32px;">
-        <div class="ticker-anim" style="background:${bg};color:${color};padding:10px 16px;border-radius:8px;font-size:12px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;text-align:${align};overflow:hidden;white-space:nowrap;">
+        <div class="ticker-anim" style="background:${bg};color:${color};padding:10px 16px;border-radius:${radius}px;font-size:12px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;text-align:${align};overflow:hidden;white-space:nowrap;">
           <!--[if mso]>${icon}${escape(msgs[0])}<![endif]-->
           <!--[if !mso]><!-->${animatedSpans}<!--<![endif]-->
         </div>
@@ -261,12 +281,14 @@ export function renderInteractiveBlock(
       const radius = block.border_radius ?? 12;
       const showLabel = block.show_address_label !== false;
       const projectId = ctx.projectId || "xfvpuzlspvvsmmunznxw";
-      const mapSrc = `https://${projectId}.supabase.co/functions/v1/render-static-map?lat=${lat}&lng=${lng}&zoom=${zoom}&w=600&h=${height}&style=${style2}`;
+      const pinColorParam = block.pin_color ? `&pincolor=${encodeURIComponent(block.pin_color)}` : "";
+      const mapSrc = `https://${projectId}.supabase.co/functions/v1/render-static-map?lat=${lat}&lng=${lng}&zoom=${zoom}&w=600&h=${height}&style=${style2}${pinColorParam}`;
       const mapsDeepLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      const directionsLabel = escape(block.directions_label || "Toque para abrir no mapa →");
       const label = showLabel
         ? `<div style="padding:10px 14px;color:#a1a1aa;font-size:13px;line-height:1.4;text-align:center;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);">
             <strong style="color:#ffffff;">${escape(event.venueName)}</strong> · ${escape(event.cityState)}<br>
-            <span style="color:${primary};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">Toque para abrir no mapa →</span>
+            <span style="color:${primary};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">${directionsLabel}</span>
           </div>`
         : "";
       return `<tr><td style="padding:8px 32px;">

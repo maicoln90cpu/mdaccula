@@ -128,6 +128,31 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
           onChange={(v) => patch({ color: v })}
           placeholder="rgba(255,255,255,0.08)"
         />
+        <div>
+          <Label className="text-xs">Espaçamento vertical</Label>
+          <Select value={block.spacing || 'normal'} onValueChange={(v) => patch({ spacing: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="compact">Compacto</SelectItem>
+              <SelectItem value="normal">Normal (padrão)</SelectItem>
+              <SelectItem value="wide">Largo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Largura</Label>
+          <Select value={block.width || 'full'} onValueChange={(v) => patch({ width: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="full">Linha inteira (padrão)</SelectItem>
+              <SelectItem value="short">Centralizada curta</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     );
   }
@@ -144,6 +169,22 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
           />
         </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <ColorControl
+          label="Cor do texto"
+          value={block.text_color}
+          onChange={(v) => patch({ text_color: v })}
+          placeholder="#52525b"
+        />
+        <div>
+          <Label className="text-xs">Tamanho da fonte: {block.font_size ?? 11}px</Label>
+          <Slider
+            min={9}
+            max={14}
+            step={1}
+            value={[block.font_size ?? 11]}
+            onValueChange={(v) => patch({ font_size: v[0] })}
+          />
+        </div>
         <div className="flex items-center gap-2">
           <Switch
             checked={block.include_unsubscribe !== false}

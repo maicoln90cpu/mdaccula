@@ -23,6 +23,7 @@ export function renderDigestBlock(
       const title = escape(block.title || "O que rola no fds");
       const showArticle = block.show_article_link !== false;
       const layout = block.layout || "cartaz";
+      const showTime = block.show_time !== false;
 
       if (list.length === 0) {
         if (!ctx.preview) return "";
@@ -54,7 +55,7 @@ export function renderDigestBlock(
                   <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
                 </td>
                 <td style="padding:12px 14px;vertical-align:top;">
-                  <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+                  <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
                   <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
                   <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
                   ${(ev.ctas && ev.ctas.length > 1) ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">${ev.ctas.map((c) => `<tr><td style="padding:3px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:9px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:6px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso")}</a></td></tr>`).join("")}</table>` : ""}
@@ -87,7 +88,7 @@ export function renderDigestBlock(
               </a>
             </td></tr>
             <tr><td style="padding:16px 18px 18px 18px;">
-              <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+              <div style="color:${escape(block.day_bar_color || accent)};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
               <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
               <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
               ${ticketBtn}${article}
@@ -232,6 +233,8 @@ export function renderDigestBlock(
       const align = block.align || "left";
       const showVenue = block.show_venue !== false;
       const showCta = block.show_cta !== false;
+      const showDatetime = block.show_datetime !== false;
+      const accentColor = escape(block.accent_color || accent);
       const ctaLabel = escape((useWeekend && w?.ctaLabel) || block.cta_label || settings.cta_label || "Garantir ingresso");
       const overlayBg = block.overlay_intensity === "soft"
         ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)"
@@ -254,8 +257,8 @@ export function renderDigestBlock(
             </a>
           </td></tr>
           <tr><td style="padding:20px 22px 22px 22px;text-align:${align};background-image:${overlayBg};">
-            <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:8px;">${eyebrow}</div>
-            <div style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;opacity:0.85;">${escape(dayLabel)}${timeLabel ? ` · ${escape(timeLabel)}` : ""}</div>
+            <div style="color:${accentColor};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:8px;">${eyebrow}</div>
+            ${showDatetime ? `<div style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;opacity:0.85;">${escape(dayLabel)}${timeLabel ? ` · ${escape(timeLabel)}` : ""}</div>` : ""}
             <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:26px;line-height:1.15;font-weight:900;letter-spacing:-0.02em;">
               <a href="${escape(url)}" style="color:#ffffff;text-decoration:none;">${escape(title)}</a>
             </h1>
@@ -276,6 +279,8 @@ export function renderDigestBlock(
       const showExcerpt = block.show_excerpt !== false;
       const showCategory = block.show_category !== false;
       const align = block.align || "left";
+      const categoryColor = escape(block.category_color || accent);
+      const showReadMore = block.show_read_more_link === true;
 
       if (posts.length === 0) {
         if (!ctx.preview) return "";
@@ -298,7 +303,7 @@ export function renderDigestBlock(
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
               ${p.imageUrl ? `<tr><td style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(p.imageUrl))}" alt="${escape(p.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></a></td></tr>` : ""}
               <tr><td style="padding:14px 16px 16px 16px;">
-                ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : "")}
+                ${showCategory && p.category ? `<div style="color:${categoryColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : "")}
                 <div style="color:#ffffff;font-size:16px;font-weight:800;line-height:1.25;margin-bottom:4px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
                 ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(p.excerpt)}</div>` : ""}
                 <a href="${url}" style="display:inline-block;margin-top:8px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">Ler matéria →</a>
@@ -316,9 +321,10 @@ export function renderDigestBlock(
             <tr>
               ${p.imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(p.imageUrl))}" alt="${escape(p.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
               <td style="padding:12px 14px;vertical-align:top;">
-                ${showCategory && p.category ? `<div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : "")}
+                ${showCategory && p.category ? `<div style="color:${categoryColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : "")}
                 <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
                 ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${escape(p.excerpt)}</div>` : ""}
+                ${showReadMore ? `<a href="${url}" style="display:inline-block;margin-top:6px;color:${primary};font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">Ler matéria →</a>` : ""}
               </td>
             </tr>
           </table>

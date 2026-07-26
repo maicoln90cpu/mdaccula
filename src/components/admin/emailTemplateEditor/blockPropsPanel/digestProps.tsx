@@ -67,14 +67,19 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
             Mostrar link "Ler matéria" quando o evento tiver artigo
           </Label>
         </div>
-        {block.layout === 'timeline' && (
-          <ColorControl
-            label="Cor da barra do dia"
-            value={block.day_bar_color}
-            onChange={(v) => patch({ day_bar_color: v })}
-            placeholder="Cor de destaque"
+        <ColorControl
+          label="Cor de destaque (barra do dia / badges)"
+          value={block.day_bar_color}
+          onChange={(v) => patch({ day_bar_color: v })}
+          placeholder="Cor de destaque"
+        />
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.show_time !== false}
+            onCheckedChange={(v) => patch({ show_time: v })}
           />
-        )}
+          <Label className="text-xs">Mostrar horário nos cards</Label>
+        </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );
@@ -175,11 +180,24 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
         </div>
         <div className="flex items-center gap-2">
           <Switch
+            checked={block.show_datetime !== false}
+            onCheckedChange={(v) => patch({ show_datetime: v })}
+          />
+          <Label className="text-xs">Mostrar dia/hora</Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
             checked={block.show_cta !== false}
             onCheckedChange={(v) => patch({ show_cta: v })}
           />
           <Label className="text-xs">Mostrar botão CTA</Label>
         </div>
+        <ColorControl
+          label="Cor da etiqueta/destaque"
+          value={block.accent_color}
+          onChange={(v) => patch({ accent_color: v })}
+          placeholder="Cor de destaque"
+        />
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );
@@ -251,6 +269,21 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
             onCheckedChange={(v) => patch({ show_category: v })}
           />
           <Label className="text-xs">Mostrar categoria + data</Label>
+        </div>
+        <ColorControl
+          label="Cor de destaque da categoria"
+          value={block.category_color}
+          onChange={(v) => patch({ category_color: v })}
+          placeholder="Cor de destaque"
+        />
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.show_read_more_link === true}
+            onCheckedChange={(v) => patch({ show_read_more_link: v })}
+          />
+          <Label className="text-xs">
+            Mostrar link "Ler matéria →" também no layout lista
+          </Label>
         </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
