@@ -58,6 +58,7 @@ const ALLOWLIST = new Set([
   // src/lib/brandColors.ts, deliberadamente independente do tema do site.
   'src/pages/Podcast.tsx',
   'src/pages/EventDetail.tsx',
+  'src/components/eventDetail/TicketCard.tsx', // botão PIX/WhatsApp (#25D366/#128C7E) — cor de marca de terceiros
 
   // Paleta categórica intencional (uma cor por categoria de post/força de
   // senha), não é "cor de marca" que devesse seguir --primary/--accent.
