@@ -31,7 +31,7 @@ Regras (iguais às ondas anteriores):
 Onda  9  EmailConfig.tsx                             1123 → 818 (PR-A ✅) → 465 (PR-B ✅)
 Onda 10  BlockPropsPanel.tsx                         1060 → 38 (✅ dispatcher; 5 sub-painéis 158-323 linhas)
 
-Onda 11  RedirectsManager.tsx                         911 → <600
+Onda 11  RedirectsManager.tsx                         911 → 365 (✅; +5 subcomponentes 62-238 linhas em pages/admin/redirectsManager/)
 Onda 12  EmailTemplateEditor.tsx                      903 → <600
 Onda 13  EmailEventsTab.tsx                           867 → <600
 Onda 14  EventDetail.tsx                              854 → <600
