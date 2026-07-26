@@ -457,78 +457,18 @@ ${formFields.aiContext}`
     console.log(`📸 Imagem em background: ${shouldQueueImage}`);
 
     // Gerar slug único
-    const baseSlug = eventData.title
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-    
-    // Verificar se slug já existe e adicionar sufixo único se necessário
-    let slug = baseSlug;
-    let slugExists = true;
-    let attempts = 0;
-    
-    while (slugExists && attempts < 5) {
-      const { data: existingPost } = await supabase
-        .from('blog_posts')
-        .select('id')
-        .eq('slug', slug)
-        .maybeSingle();
-      
-      if (existingPost) {
-        slug = `${baseSlug}-${Date.now().toString(36)}`;
-        attempts++;
-      } else {
-        slugExists = false;
-      }
-    }
-    
+    const slug = await generateUniqueSlug(supabase, eventData.title);
     console.log('[generate-blog-post-v2] Slug gerado:', slug);
 
     // Salvar ou atualizar no banco
-    let post;
-    let insertError;
-    
-    if (formFields.existingPostId) {
-      // Atualizar post existente
-      console.log('[generate-blog-post-v2] Atualizando post existente:', formFields.existingPostId);
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .update({
-          title: eventData.title,
-          excerpt: eventData.excerpt,
-          content: eventData.content,
-          category: finalCategory,
-          // Manter imagem existente se não gerou nova
-          ...(generatedImageUrl && { image_url: generatedImageUrl }),
-        })
-        .eq('id', formFields.existingPostId)
-        .select()
-        .single();
-      
-      post = data;
-      insertError = error;
-    } else {
-      // Criar novo post
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .insert({
-          title: eventData.title,
-          slug: slug,
-          excerpt: eventData.excerpt,
-          content: eventData.content,
-          category: finalCategory,
-          published: publishImmediately === false ? false : true,
-          published_at: publishImmediately === false ? null : new Date().toISOString(),
-          image_url: generatedImageUrl
-        })
-        .select()
-        .single();
-      
-      post = data;
-      insertError = error;
-    }
+    const { post, error: insertError } = await saveOrUpdatePost(supabase, {
+      existingPostId: formFields.existingPostId,
+      publishImmediately,
+      eventData,
+      finalCategory,
+      generatedImageUrl,
+      slug,
+    });
 
     if (insertError) {
       console.error('Erro ao salvar post:', insertError);
@@ -536,33 +476,20 @@ ${formFields.aiContext}`
     }
 
     // Registrar na tabela de posts gerados por IA
-    const promptFieldsSummary = Object.entries(formFields)
-      .filter(([_, value]) => value)
-      .map(([key, value]) => `${key}: ${String(value).substring(0, 50)}`)
-      .join(' | ');
-
-    const { error: aiLogError } = await supabase
-      .from('ai_generated_posts')
-      .insert({
-        blog_post_id: post.id,
-        prompt_used: `Template: ${template.name} | ${promptFieldsSummary}`,
-        model_used: selectedModel,
-        template_id: template.id,
-        input_tokens: usage.prompt_tokens || null,
-        output_tokens: usage.completion_tokens || null,
-        total_tokens: usage.total_tokens || null,
-        image_tokens: imageTokensUsed > 0 ? imageTokensUsed : null,
-        // scrapedContext (tom/estilo genérico) nunca é gravado aqui — não são citações
-        // factuais. guardrailSourceUrls só é não-nulo quando o guardrail acima
-        // (isEventMode && !hasEventSignals) encontrou fonte real de verdade pra esse
-        // evento específico — mesmo padrão do que generate-blog-post-from-topic já
-        // grava pra sugestões ancoradas em busca real.
-        source_urls: guardrailSourceUrls,
-      });
-
-    if (aiLogError) {
-      console.error('Erro ao registrar log de IA:', aiLogError);
-    }
+    // scrapedContext (tom/estilo genérico) nunca é gravado — não são citações
+    // factuais. guardrailSourceUrls só é não-nulo quando o guardrail acima
+    // (isEventMode && !hasEventSignals) encontrou fonte real de verdade pra esse
+    // evento específico — mesmo padrão do que generate-blog-post-from-topic grava.
+    await logAiGeneration(supabase, {
+      postId: post.id,
+      templateName: template.name,
+      templateId: template.id,
+      formFields,
+      selectedModel,
+      usage,
+      imageTokensUsed,
+      guardrailSourceUrls,
+    });
 
     const totalTime = Date.now() - startTime;
     console.log(`Post V2 gerado com sucesso: ${post.id} (${totalTime}ms) imageQueued=${!!imageBgOpts}`);
