@@ -39,7 +39,7 @@ Onda 15  LinksAnalytics.tsx                           849 → <600
 Onda 16  EventForm.tsx                                816 → 413 (✅; +useEventFormSubmit.tsx 476 em eventForm/)
 Onda 17  Eventos.tsx                                  802 → <600
 Onda 18  AutomationsTab.tsx                           793 → 224 (✅ feita antecipada como "Onda 11"; + AutomationCard 296, SendOnCronToggle 25)
-Onda 19  TemplatesPanel.tsx (ai-content)              771 → <600
+Onda 19  TemplatesPanel.tsx (ai-content)              771 → 292 (✅; +3 módulos em templatesPanel/: types 53, TemplatesTable 145, TemplateFormDialog 255, TemplatePreviewDialog 109)
 Onda 20  generate-multi-event-article/index.ts       762 → <600
 Onda 21  EventsManager.tsx                            755 → <600
 Onda 22  generate-blog-post-v2/index.ts               737 → <600
