@@ -43,7 +43,23 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
             onValueChange={(v) => patch({ padding_y: v[0] })}
           />
         </div>
+        <div>
+          <Label className="text-xs">Espaçamento inferior: {block.padding_bottom ?? 0}px</Label>
+          <Slider
+            min={0}
+            max={80}
+            step={4}
+            value={[block.padding_bottom ?? 0]}
+            onValueChange={(v) => patch({ padding_bottom: v[0] })}
+          />
+        </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <ColorControl
+          label="Cor de fundo do cabeçalho (opcional)"
+          value={block.bg_color}
+          onChange={(v) => patch({ bg_color: v })}
+          placeholder="transparente"
+        />
         <p className="text-xs text-muted-foreground">
           O logo em si é definido na aba "Template (marca)".
         </p>
@@ -72,6 +88,20 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
             step={2}
             value={[block.border_radius ?? 12]}
             onValueChange={(v) => patch({ border_radius: v[0] })}
+          />
+        </div>
+        <ColorControl
+          label="Borda sutil ao redor (opcional)"
+          value={block.border_color}
+          onChange={(v) => patch({ border_color: v })}
+          placeholder="sem borda"
+        />
+        <div>
+          <Label className="text-xs">Legenda abaixo da imagem (opcional)</Label>
+          <Input
+            value={block.caption || ''}
+            onChange={(e) => patch({ caption: e.target.value })}
+            placeholder="Ex.: Foto do line-up anterior"
           />
         </div>
         <p className="text-xs text-muted-foreground">A imagem vem do flyer do evento.</p>
@@ -142,12 +172,31 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
             <SelectContent>
               <SelectItem value="text">Texto colorido (padrão)</SelectItem>
               <SelectItem value="pill">Pílulas coloridas</SelectItem>
+              <SelectItem value="icon">Ícone da rede (imagem)</SelectItem>
             </SelectContent>
           </Select>
         </div>
+        {block.style === 'icon' && (
+          <div>
+            <Label className="text-xs">Tamanho do ícone</Label>
+            <Select
+              value={block.icon_size || 'medium'}
+              onValueChange={(v) => patch({ icon_size: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="small">Pequeno (24px)</SelectItem>
+                <SelectItem value="medium">Médio (32px — padrão)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         <p className="text-xs text-muted-foreground">
           Ative e informe a URL de cada rede. Somente as ativadas com URL aparecem no e-mail.
+          {block.style === 'icon' && ' Informe também a URL da imagem do ícone de cada rede.'}
         </p>
         {(block.networks || []).map((n, i) => (
           <div key={n.id} className="flex items-center gap-2 p-2 rounded border">
@@ -159,10 +208,10 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
                 patch({ networks: next });
               }}
             />
-            <div className="flex-1">
+            <div className="flex-1 space-y-1">
               <div className="text-xs font-medium">{n.label}</div>
               <Input
-                className="h-7 text-xs mt-1"
+                className="h-7 text-xs"
                 value={n.url}
                 placeholder="https://…"
                 onChange={(e) => {
@@ -171,6 +220,18 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
                   patch({ networks: next });
                 }}
               />
+              {block.style === 'icon' && (
+                <Input
+                  className="h-7 text-xs"
+                  value={n.icon_url || ''}
+                  placeholder="URL do ícone (PNG/SVG, ~40×40px)"
+                  onChange={(e) => {
+                    const next = [...(block.networks || [])];
+                    next[i] = { ...n, icon_url: e.target.value };
+                    patch({ networks: next });
+                  }}
+                />
+              )}
             </div>
           </div>
         ))}

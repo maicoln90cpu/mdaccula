@@ -84,6 +84,59 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
             placeholder="#a855f7"
           />
         )}
+        <div>
+          <Label className="text-xs">Tamanho do botão</Label>
+          <Select value={block.size || 'medium'} onValueChange={(v) => patch({ size: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Pequeno</SelectItem>
+              <SelectItem value="medium">Médio (padrão)</SelectItem>
+              <SelectItem value="large">Grande</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Formato</Label>
+          <Select value={block.shape || 'rounded'} onValueChange={(v) => patch({ shape: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rounded">Arredondado (padrão)</SelectItem>
+              <SelectItem value="pill">Pílula (bem arredondado)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+    );
+  }
+
+  if (block.kind === 'pix_button') {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Só aparece no e-mail quando o evento tem Pix sem taxa habilitado (link de WhatsApp
+          configurado). A cor verde do botão é fixa — reforça o reconhecimento visual de
+          "Pix/sem taxa", igual ao site.
+        </p>
+        <div>
+          <Label className="text-xs">Texto do botão</Label>
+          <Input
+            value={block.label || ''}
+            onChange={(e) => patch({ label: e.target.value })}
+            placeholder="Comprar Sem Taxa via Pix"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.full_width !== false}
+            onCheckedChange={(v) => patch({ full_width: v })}
+          />
+          <Label className="text-xs">Ocupar toda a largura</Label>
+        </div>
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );
   }
@@ -118,6 +171,27 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
             placeholder="https://…"
           />
         )}
+        <div>
+          <Label className="text-xs">Estilo</Label>
+          <Select
+            value={block.variant || 'underline'}
+            onValueChange={(v) => patch({ variant: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="underline">Sublinhado (padrão)</SelectItem>
+              <SelectItem value="ghost">Botão fantasma (com borda)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <ColorControl
+          label="Cor do texto"
+          value={block.text_color}
+          onChange={(v) => patch({ text_color: v })}
+          placeholder="#71717a"
+        />
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );
@@ -167,6 +241,16 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
             value={[block.border_radius ?? 8]}
             onValueChange={(v) => patch({ border_radius: v[0] })}
           />
+        </div>
+        <ColorControl
+          label="Borda sutil ao redor (opcional)"
+          value={block.border_color}
+          onChange={(v) => patch({ border_color: v })}
+          placeholder="sem borda"
+        />
+        <div>
+          <Label className="text-xs">Legenda abaixo da imagem (opcional)</Label>
+          <Input value={block.caption || ''} onChange={(e) => patch({ caption: e.target.value })} />
         </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>

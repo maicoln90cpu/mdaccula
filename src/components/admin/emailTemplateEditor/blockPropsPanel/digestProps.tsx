@@ -80,6 +80,33 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
     );
   }
 
+  if (block.kind === 'event_grid') {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Grade de 2 colunas para vários eventos que viram de lote no mesmo dia. Os eventos são
+          selecionados manualmente no disparo (não vêm da agenda automática).
+        </p>
+        <div>
+          <Label className="text-xs">Etiqueta (topo — opcional)</Label>
+          <Input
+            value={block.eyebrow || ''}
+            onChange={(e) => patch({ eyebrow: e.target.value })}
+            placeholder="ÚLTIMAS HORAS · VIRADA DE LOTE"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Título (opcional)</Label>
+          <Input
+            value={block.title || ''}
+            onChange={(e) => patch({ title: e.target.value })}
+          />
+        </div>
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+      </div>
+    );
+  }
+
   if (block.kind === 'weekly_hero') {
     return (
       <div className="space-y-3">
@@ -239,24 +266,54 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
           aqui.
         </p>
         <div>
-          <Label className="text-xs">Estilo dos botões das noites</Label>
+          <Label className="text-xs">Estilo do card</Label>
           <Select
-            value={block.button_style || 'dark'}
-            onValueChange={(v) => patch({ button_style: v })}
+            value={block.card_style || 'featured'}
+            onValueChange={(v) => patch({ card_style: v })}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="dark">
-                Preto minimalista (padrão — combina com layout cartaz)
+              <SelectItem value="featured">
+                Destaque (padrão — imagem grande, caixa preta)
               </SelectItem>
-              <SelectItem value="primary">
-                Gradiente da marca (combina com layout timeline)
+              <SelectItem value="compact">
+                Compacto (discreto — como os cards do resumo de blog)
               </SelectItem>
             </SelectContent>
           </Select>
         </div>
+        {block.card_style !== 'compact' && (
+          <div>
+            <Label className="text-xs">Estilo dos botões das noites</Label>
+            <Select
+              value={block.button_style || 'dark'}
+              onValueChange={(v) => patch({ button_style: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dark">
+                  Preto minimalista (padrão — combina com layout cartaz)
+                </SelectItem>
+                <SelectItem value="primary">
+                  Gradiente da marca (combina com layout timeline)
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {block.card_style === 'compact' && (
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={block.show_description !== false}
+              onCheckedChange={(v) => patch({ show_description: v })}
+            />
+            <Label className="text-xs">Mostrar descrição no card compacto</Label>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Switch
             checked={block.override_content === true}

@@ -1,7 +1,7 @@
 // Família "interactive" — botões CTA, ticker, countdown, links sociais, mapa, lineup.
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import type { Block, RenderContext } from "../types.ts";
-import { escape, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
+import { escape, proxyForEmail, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 export function renderInteractiveBlock(
@@ -22,14 +22,19 @@ export function renderInteractiveBlock(
       const bgSolid = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : solidPrimary;
       const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
       const vmlWidth = fullWidth ? 480 : 240;
+      const sizePad = block.size === "small" ? "12px 18px" : block.size === "large" ? "22px 30px" : "18px 24px";
+      const sizeFont = block.size === "small" ? 13 : block.size === "large" ? 18 : 16;
+      const sizeHeight = block.size === "small" ? 44 : block.size === "large" ? 64 : 56;
+      const radius = block.shape === "pill" ? 999 : 12;
+      const arcsize = block.shape === "pill" ? "50%" : "21%";
       const vmlButton = `<!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
+        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:${sizeHeight}px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="${arcsize}" stroke="f" fillcolor="${bgSolid}">
           <w:anchorlock/>
-          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
+          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:${sizeFont}px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
         </v:roundrect>
       <![endif]-->`;
       const htmlButton = `<!--[if !mso]><!-- -->
-        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;mso-hide:all;">${label}</a>
+        <a href="${escape(url)}" style="${widthStyle}padding:${sizePad};box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:${sizeFont}px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:${radius}px;mso-hide:all;">${label}</a>
       <!--<![endif]-->`;
       return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
     }
@@ -60,9 +65,11 @@ export function renderInteractiveBlock(
       const url = resolveSecondaryUrl(block, event);
       const label = escape(block.label || "Ver mais");
       const align = block.align ?? "center";
-      return `<tr><td align="${align}" style="padding:8px 32px 24px 32px;text-align:${align};">
-        <a href="${escape(url)}" style="display:inline-block;color:#71717a;font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${label}</a>
-      </td></tr>`;
+      const color = escape(block.text_color || "#71717a");
+      const linkHtml = block.variant === "ghost"
+        ? `<a href="${escape(url)}" style="display:inline-block;padding:10px 20px;border:1px solid ${color};color:${color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${label}</a>`
+        : `<a href="${escape(url)}" style="display:inline-block;color:${color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${label}</a>`;
+      return `<tr><td align="${align}" style="padding:8px 32px 24px 32px;text-align:${align};">${linkHtml}</td></tr>`;
     }
 
     case "social_icons": {
@@ -70,9 +77,14 @@ export function renderInteractiveBlock(
       if (list.length === 0) return "";
       const align = block.align ?? "center";
       const style2 = block.style || "text";
+      const iconPx = block.icon_size === "small" ? 24 : 32;
       const colors = [primary, accent, "#60a5fa", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#fb923c"];
       const cells = list.map((n, i) => {
         const href = escape(n.url || "#");
+        if (style2 === "icon" && n.icon_url) {
+          const iconSrc = escape(proxyForEmail(n.icon_url));
+          return `<td style="padding:4px 8px;"><a href="${href}" style="display:inline-block;text-decoration:none;"><img src="${iconSrc}" alt="${escape(n.label)}" width="${iconPx}" height="${iconPx}" border="0" style="display:block;width:${iconPx}px;height:${iconPx}px;border:0;outline:none;"></a></td>`;
+        }
         if (style2 === "pill") {
           return `<td style="padding:4px 6px;"><a href="${href}" style="display:inline-block;padding:8px 14px;background:${colors[i % colors.length]};color:#ffffff;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:999px;">${escape(n.label)}</a></td>`;
         }

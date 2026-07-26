@@ -86,30 +86,31 @@ export const BLOCK_LABELS: Record<Block['kind'], string> = {
   footer: 'Rodapé + descadastrar',
 };
 
+// Ordem alfabética pelo texto exibido (BLOCK_LABELS) — facilita achar o bloco no dropdown.
 export const AVAILABLE_BLOCKS: Block['kind'][] = [
-  'header',
-  'hero_image',
-  'eyebrow',
-  'title',
-  'subtitle',
-  'event_meta',
-  'description',
-  'lineup',
-  'article_summary',
-  'countdown',
-  'ticker',
-  'static_map',
-  'weekend_grid',
-  'event_grid',
-  'weekly_hero',
-  'blog_posts_list',
-  'dedge_block',
-  'cta_button',
-  'pix_button',
-  'secondary_link',
-  'image_with_link',
-  'divider',
-  'text',
-  'social_icons',
-  'footer',
+  'weekend_grid', // Agenda do fim de semana
+  'text', // Bloco de texto livre
+  'dedge_block', // Bloco Dedge (residência)
+  'cta_button', // Botão CTA (ingresso)
+  'pix_button', // Botão Pix sem taxa
+  'header', // Cabeçalho (logo)
+  'countdown', // Contagem regressiva
+  'event_meta', // Data, hora e local
+  'description', // Descrição do evento
+  'weekly_hero', // Destaque da semana (hero)
+  'divider', // Divisor
+  'eyebrow', // Etiqueta (texto pequeno)
+  'hero_image', // Flyer do evento
+  'event_grid', // Grid de eventos (2 colunas)
+  'image_with_link', // Imagem com link
+  'lineup', // Line-up do evento
+  'secondary_link', // Link secundário
+  'static_map', // Mapa estático do local
+  'social_icons', // Redes sociais
+  'article_summary', // Resumo da matéria (se houver)
+  'footer', // Rodapé + descadastrar
+  'subtitle', // Subtítulo do evento
+  'ticker', // Ticker de urgência (barra)
+  'title', // Título do evento
+  'blog_posts_list', // Últimos posts do blog
 ];

@@ -34,6 +34,18 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           onChange={(v) => patch({ text_color: v })}
           placeholder="#a855f7"
         />
+        <div>
+          <Label className="text-xs">Fundo</Label>
+          <Select value={block.bg_style || 'none'} onValueChange={(v) => patch({ bg_style: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Sem fundo (padrão)</SelectItem>
+              <SelectItem value="pill">Fundo tipo "tag"</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     );
   }
@@ -58,6 +70,28 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           onChange={(v) => patch({ text_color: v })}
           placeholder="#ffffff"
         />
+        <div>
+          <Label className="text-xs">Peso da fonte</Label>
+          <Select
+            value={block.font_weight || 'black'}
+            onValueChange={(v) => patch({ font_weight: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="black">Extra-negrito (padrão)</SelectItem>
+              <SelectItem value="bold">Negrito</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.uppercase === true}
+            onCheckedChange={(v) => patch({ uppercase: v })}
+          />
+          <Label className="text-xs">Caixa alta (uppercase)</Label>
+        </div>
         <p className="text-xs text-muted-foreground">O texto vem do título do evento.</p>
       </div>
     );
@@ -73,6 +107,23 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           onChange={(v) => patch({ text_color: v })}
           placeholder="#a1a1aa"
         />
+        <div>
+          <Label className="text-xs">Tamanho da fonte: {block.font_size ?? 16}px</Label>
+          <Slider
+            min={12}
+            max={24}
+            step={1}
+            value={[block.font_size ?? 16]}
+            onValueChange={(v) => patch({ font_size: v[0] })}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.italic === true}
+            onCheckedChange={(v) => patch({ italic: v })}
+          />
+          <Label className="text-xs">Itálico</Label>
+        </div>
         <p className="text-xs text-muted-foreground">
           O texto vem do subtítulo do evento (some se vazio).
         </p>
@@ -95,6 +146,19 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
             </SelectContent>
           </Select>
         </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={block.show_icons !== false}
+            onCheckedChange={(v) => patch({ show_icons: v })}
+          />
+          <Label className="text-xs">Mostrar ícones (📅 data / 📍 local)</Label>
+        </div>
+        <ColorControl
+          label="Cor de destaque dos rótulos"
+          value={block.accent_color}
+          onChange={(v) => patch({ accent_color: v })}
+          placeholder="Cor de destaque"
+        />
       </div>
     );
   }
@@ -109,6 +173,31 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           onChange={(v) => patch({ text_color: v })}
           placeholder="#a1a1aa"
         />
+        <div>
+          <Label className="text-xs">Tamanho da fonte: {block.font_size ?? 15}px</Label>
+          <Slider
+            min={12}
+            max={20}
+            step={1}
+            value={[block.font_size ?? 15]}
+            onValueChange={(v) => patch({ font_size: v[0] })}
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Espaçamento entre linhas</Label>
+          <Select
+            value={block.line_height || 'normal'}
+            onValueChange={(v) => patch({ line_height: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="normal">Normal (padrão)</SelectItem>
+              <SelectItem value="compact">Compacto</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     );
   }
@@ -122,6 +211,18 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
             onCheckedChange={(v) => patch({ show_image: v })}
           />
           <Label className="text-xs">Mostrar imagem da matéria</Label>
+        </div>
+        <div>
+          <Label className="text-xs">Layout</Label>
+          <Select value={block.layout || 'card'} onValueChange={(v) => patch({ layout: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="card">Card com destaque (padrão)</SelectItem>
+              <SelectItem value="compact">Lista compacta</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <p className="text-xs text-muted-foreground">
           Bloco só aparece quando o evento tem matéria vinculada.

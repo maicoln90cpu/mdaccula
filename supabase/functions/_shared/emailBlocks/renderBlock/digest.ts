@@ -161,6 +161,8 @@ export function renderDigestBlock(
       const primaryLabel = escape((override ? block.primary_label : d?.primaryLabel) || block.primary_label || d?.primaryLabel || "Ver todos os eventos Dedge");
       const nights = (d?.nights || []).filter((n) => n.enabled && n.url);
       const buttonStyle = block.button_style || "dark";
+      const cardStyle = block.card_style || "featured";
+      const showDescription = block.show_description !== false;
 
       if (!imageUrl && nights.length === 0 && !primaryUrl) {
         if (!ctx.preview) return "";
@@ -168,6 +170,25 @@ export function renderDigestBlock(
           <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
             🎧 Bloco Dedge — configure a imagem e os links das noites nas propriedades do bloco.
           </div>
+        </td></tr>`;
+      }
+
+      // Variante compacta — no padrão dos cards do "Últimos posts do blog" (layout list):
+      // thumbnail pequena, título discreto, sem caixa preta full-width nem botões grandes.
+      if (cardStyle === "compact") {
+        const linkUrl = primaryUrl || nights[0]?.url || "#";
+        return `<tr><td style="padding:8px 32px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+            <tr>
+              ${imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${escape(linkUrl)}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(imageUrl))}" alt="${title}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
+              <td style="padding:12px 14px;vertical-align:top;">
+                <div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${eyebrow}</div>
+                <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${escape(linkUrl)}" style="color:#ffffff;text-decoration:none;">${title}</a></div>
+                ${showDescription && description ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${description}</div>` : ""}
+                <a href="${escape(linkUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">Ver eventos Dedge →</a>
+              </td>
+            </tr>
+          </table>
         </td></tr>`;
       }
 
