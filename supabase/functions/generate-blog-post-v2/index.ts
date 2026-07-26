@@ -184,23 +184,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ===== Helper: weekday em PT-BR a partir de YYYY-MM-DD (defesa em profundidade) =====
-    const WEEKDAYS_PT = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
-    const MONTHS_PT = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
-    function computeWeekday(dateStr: string): string {
-      if (!dateStr || typeof dateStr !== 'string') return '';
-      const m = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (!m) return '';
-      const dt = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-      return WEEKDAYS_PT[dt.getDay()] || '';
-    }
-    function computeDateFormatted(dateStr: string): string {
-      const m = dateStr?.match?.(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (!m) return dateStr || '';
-      const wd = computeWeekday(dateStr);
-      return `${Number(m[3])} de ${MONTHS_PT[Number(m[2]) - 1]} de ${m[1]}${wd ? ` (${wd})` : ''}`;
-    }
-
     // Garantir weekday/dateFormatted mesmo quando o caller não envia
     if (formFields.eventDate && !formFields.weekday) {
       formFields.weekday = computeWeekday(String(formFields.eventDate));
@@ -210,22 +193,7 @@ Deno.serve(async (req) => {
     }
 
     // Substituir variáveis no user_prompt_template
-    let userPrompt = template.user_prompt_template;
-    for (const [key, value] of Object.entries(formFields)) {
-      if (value) {
-        userPrompt = userPrompt.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value as string);
-        userPrompt = userPrompt.replace(new RegExp(`\\{${key}\\}`, 'g'), value as string);
-        userPrompt = userPrompt.replace(
-          new RegExp(`\\{\\{#if ${key}\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}`, 'g'),
-          '$1'
-        );
-      } else {
-        userPrompt = userPrompt.replace(
-          new RegExp(`\\{\\{#if ${key}\\}\\}[\\s\\S]*?\\{\\{/if\\}\\}`, 'g'),
-          ''
-        );
-      }
-    }
+    let userPrompt = applyTemplateVariables(template.user_prompt_template, formFields);
 
     // ===== DETECTAR MODO: evento real vs artigo editorial/notícia =====
     // Modo "evento" só liga quando há sinais concretos de evento (data, venue, lineup,
