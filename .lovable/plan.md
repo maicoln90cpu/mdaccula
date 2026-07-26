@@ -44,7 +44,7 @@ Onda 20  generate-multi-event-article/index.ts       762 → 454 (✅; +prompts.
 Onda 21  EventsManager.tsx                            755 → 266 ✅
 Onda 22  generate-blog-post-v2/index.ts               737 → 527 (✅; +3 módulos em _shared/generateBlogPostV2/: dateHelpers 44, promptBuilder 174, savePost 116)
 Onda 23  _shared/emailBlocks/renderBlock.ts           735 → 27 (✅ dispatcher; +4 módulos em renderBlock/: style 20, basic 178, interactive 271, digest 312)
-Onda 24  LinksManager.tsx                             716 → <600
+Onda 24  LinksManager.tsx                             716 → 262 (✅; +3 módulos em linksManager/: useLinksManager 419, LinksManagerHeader 76, LinksManagerDialogs 154)
 Onda 25  Podcast.tsx                                  711 → <600
 Onda 26  emailTemplates/blocks.ts                     689 → <600
 Onda 27  PodcastManager.tsx                           686 → <600
