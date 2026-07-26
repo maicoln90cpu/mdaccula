@@ -249,128 +249,21 @@ Deno.serve(async (req) => {
         }, 400);
       }
       try {
-        // Templates "Cartaz" mostram 1 imagem grande por card → agrupar eventos
-        // recorrentes (mesmo venue) em UM card com todas as datas.
-        // DEDGE é SEMPRE consolidado (todo template) — regra da casa: 1 card
-        // com todos os links (cada data com CTA "Enviar Nomes Para Lista").
-        const tplName = String((activeTpl as any)?.name || '').toLowerCase();
-        const isCartazTemplate = tplName.includes('cartaz');
-        const isDedgeVenue = (v: string) => /d\.?\s*edge/i.test((v || '').trim());
-
-        // Agrupa por venue; consolida se cartaz OU se é DEDGE.
-        const groupsMap = evs.reduce<Record<string, EventRow[]>>((acc, e) => {
-          const key = (e.venue || '').trim().toLowerCase() || e.id;
-          (acc[key] ||= []).push(e);
-          return acc;
-        }, {});
-
-        const evsForRender = Object.values(groupsMap)
-          .map((group) => group.sort((a, b) => a.date.localeCompare(b.date)))
-          .flatMap((group) => {
-            const head = group[0];
-            const shouldMerge = group.length > 1 && (isCartazTemplate || isDedgeVenue(head.venue));
-            if (!shouldMerge) return group;
-            const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(' · ');
-            // Preserva sub-eventos para renderizar 1 CTA por data (ex.: DEDGE quinta/sex/sáb/dom).
-            const subEvents = group.map((g) => ({
-              label: g.title,
-              url: g.ticket_link || `${SITE_URL}/eventos/${g.slug}`,
-              dayLabel: formatDatePt(g.date, g.time),
-              timeLabel: (g.time || '').slice(0, 5) || '22h',
-            }));
-            return [{
-              ...head,
-              title: head.venue,
-              date: head.date,
-              __joinedDates: joinedDates,
-              __isDedge: isDedgeVenue(head.venue),
-              __subEvents: subEvents,
-            } as EventRow & { __joinedDates?: string; __isDedge?: boolean; __subEvents?: Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> }];
-          })
-          .sort((a, b) => a.date.localeCompare(b.date));
-
-        // Separa DEDGE dos demais eventos — DEDGE só aparece via bloco `dedge_block`.
-        const dedgeGroup = evsForRender.filter((e) => (e as any).__isDedge || isDedgeVenue(e.venue));
-        const nonDedge = evsForRender.filter((e) => !((e as any).__isDedge || isDedgeVenue(e.venue)));
-        const first = nonDedge[0] ?? evsForRender[0];
-        const weekendEvents: WeekendEventItem[] = nonDedge.map((e) => {
-          return {
-            id: e.id,
-            title: e.title,
-            dayLabel: (e as any).__joinedDates
-              ? (e as any).__joinedDates
-              : (e.end_date && e.end_date !== e.date
-                  ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
-                  : formatDatePt(e.date, e.time)),
-            timeLabel: (e.time || '').slice(0, 5) || '22h',
-            venue: e.venue,
-            cityState: `${e.location_city}-${e.location_state}`,
-            imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
-            eventUrl: `${SITE_URL}/eventos/${e.slug}`,
-            ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
-            ctaLabel: e.cta_type && e.cta_type !== DEFAULT_EVENT_CTA_TYPE ? getEventCtaButtonLabel(e.cta_type) : undefined,
-          };
-        });
-        // Monta payload dedicado do bloco Dedge com todas as noites da semana.
-        const dedgeHead = dedgeGroup[0];
-        const dedgeSubs = dedgeHead
-          ? (((dedgeHead as any).__subEvents as Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> | undefined)
-              ?? [{
-                label: dedgeHead.title,
-                url: dedgeHead.ticket_link || `${SITE_URL}/eventos/${dedgeHead.slug}`,
-                dayLabel: formatDatePt(dedgeHead.date, dedgeHead.time),
-                timeLabel: (dedgeHead.time || '').slice(0, 5) || '22h',
-              }])
-          : [];
-        const dedgePayload = dedgeHead ? {
-          imageUrl: dedgeHead.image_url || `${SITE_URL}/placeholder.svg`,
-          eyebrow: 'TODA SEMANA · RESIDÊNCIA',
-          title: 'Dedge — sua residência da semana',
-          description: '',
-          nights: dedgeSubs.map((s) => ({
-            label: `${s.dayLabel} — ${s.label}`,
-            url: s.url,
-            enabled: true,
-          })),
-          primaryUrl: `${SITE_URL}/eventos?venue=dedge`,
-          primaryLabel: 'Ver todos os eventos Dedge',
-        } : undefined;
-        const blogPosts: BlogPostItem[] = pts.map((p) => ({
-          id: p.id,
-          title: p.title,
-          excerpt: p.excerpt ?? undefined,
-          imageUrl: p.image_url ?? undefined,
-          url: `${SITE_URL}/blog/${p.slug}`,
-        }));
-
-        const eventPayload: EventAnnouncementData = {
-          eventTitle: first?.title || (range === 'weekend' ? 'Agenda do fim de semana' : 'O que rola na semana'),
-          eventSubtitle: `${digestLabel} · ${rangeLabel}`,
-          flyerUrl: first?.image_url || (settings as any).logo_url || `${SITE_URL}/placeholder.svg`,
-          dateLabel: rangeLabel,
-          timeLabel: first ? ((first.time || '').slice(0, 5) || '22h') : '',
-          venueName: first?.venue || 'São Paulo',
-          cityState: first ? `${first.location_city}-${first.location_state}` : 'São Paulo-SP',
-          description: 'Os destaques da agenda e do blog nos próximos dias em São Paulo.',
-          ticketUrl: first ? (first.ticket_link || `${SITE_URL}/eventos/${first.slug}`) : `${SITE_URL}/eventos`,
-          eventUrl: first ? `${SITE_URL}/eventos/${first.slug}` : `${SITE_URL}/eventos`,
-          agendaUrl: `${SITE_URL}/eventos`,
-          instagramUrl: (settings as any).instagram_url || '',
-          youtubeUrl: (settings as any).youtube_url || '',
-          tiktokUrl: (settings as any).tiktok_url || '',
-          unsubscribeUrl: '[E-GOI_UNSUBSCRIBE_LINK]',
-          weekendEvents,
-          blogPosts,
-          dedge: dedgePayload,
-        };
-
-        renderedEventPayload = eventPayload;
+        renderedEventPayload = buildEventPayload(
+          evs,
+          pts,
+          settings,
+          { name: (activeTpl as any)?.name },
+          rangeLabel,
+          digestLabel,
+        );
         renderSource = 'template';
       } catch (err) {
         console.error('[weekly-digest-draft] template render failed, using legacy HTML:', err);
         html = '';
       }
     }
+
 
     if (!html && !renderedEventPayload) {
       html = renderDigestHtml(evs, pts, settings, rangeLabel);
