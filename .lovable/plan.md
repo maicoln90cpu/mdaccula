@@ -33,7 +33,7 @@ Onda 10  BlockPropsPanel.tsx                         1060 → 38 (✅ dispatcher
 
 Onda 11  RedirectsManager.tsx                         911 → 365 (✅; +5 subcomponentes 62-238 linhas em pages/admin/redirectsManager/)
 Onda 12  EmailTemplateEditor.tsx                      903 → 462 (✅; +5 módulos em emailTemplateEditor/: blockDefaults 145, typeFilter 46, EditorHeader 225, BlockListPanel 125, PreviewPanel 85)
-Onda 13  EmailEventsTab.tsx                           867 → <600
+Onda 13  EmailEventsTab.tsx                           867 → 161 (✅; +6 módulos em emailEventsTab/: helpers 112, useEmailEventsData 52, useEventActions 195, HeaderFilters 125, EventRow 231, CampaignHistoryRow 140)
 Onda 14  EventDetail.tsx                              854 → <600
 Onda 15  LinksAnalytics.tsx                           849 → <600
 Onda 16  EventForm.tsx                                816 → <600
