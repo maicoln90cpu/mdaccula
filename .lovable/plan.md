@@ -43,7 +43,7 @@ Onda 19  TemplatesPanel.tsx (ai-content)              771 → <600
 Onda 20  generate-multi-event-article/index.ts       762 → <600
 Onda 21  EventsManager.tsx                            755 → <600
 Onda 22  generate-blog-post-v2/index.ts               737 → <600
-Onda 23  _shared/emailBlocks/renderBlock.ts           735 → <600
+Onda 23  _shared/emailBlocks/renderBlock.ts           735 → 27 (✅ dispatcher; +4 módulos em renderBlock/: style 20, basic 178, interactive 271, digest 312)
 Onda 24  LinksManager.tsx                             716 → <600
 Onda 25  Podcast.tsx                                  711 → <600
 Onda 26  emailTemplates/blocks.ts                     689 → <600
