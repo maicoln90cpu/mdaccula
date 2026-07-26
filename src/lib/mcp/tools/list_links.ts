@@ -13,7 +13,7 @@ export default defineTool({
   handler: async () => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
     const { data, error } = await supabase

@@ -21,7 +21,7 @@ export default defineTool({
   handler: async ({ limit }) => {
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
     const today = new Date().toISOString().slice(0, 10);
