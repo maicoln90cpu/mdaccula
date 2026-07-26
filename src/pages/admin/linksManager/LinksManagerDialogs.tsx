@@ -34,7 +34,7 @@ interface LinksManagerDialogsProps {
   onConfirmDeleteLink: () => void;
   showTemplateSettings: boolean;
   onShowTemplateSettingsChange: (open: boolean) => void;
-  settings: Settings;
+  settings: SiteSettings;
   onRefetch: () => void;
 }
 
