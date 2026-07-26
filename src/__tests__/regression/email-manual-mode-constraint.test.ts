@@ -46,8 +46,8 @@ function latestModeCheckConstraint(): string | null {
 }
 
 describe("Regressão R-003 — mode 'manual' em event_email_campaigns", () => {
-  it('EmailEventsTab.markManual continua gravando mode: "manual"', () => {
-    const c = read('src/components/admin/emailConfig/EmailEventsTab.tsx');
+  it('markManual (useEventActions.ts) continua gravando mode: "manual"', () => {
+    const c = read('src/components/admin/emailConfig/emailEventsTab/useEventActions.ts');
     expect(c).toMatch(/mode:\s*'manual'/);
   });
 
