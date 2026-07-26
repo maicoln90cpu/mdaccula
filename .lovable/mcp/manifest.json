@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "mdaccula-mcp",
+      "version": "0.1.0",
+      "title": "MDAccula MCP"
+    },
+    "tools": [
+      {
+        "name": "list_upcoming_events",
+        "title": "Listar próximos eventos",
+        "description": "Retorna os próximos eventos publicados da MDAccula (São Paulo), ordenados por data crescente. Inclui título, local, data, gêneros e link do evento.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "description": "Quantidade máxima de eventos a retornar (1-50)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_event",
+        "title": "Detalhes de um evento",
+        "description": "Retorna os detalhes completos de um evento MDAccula pelo slug (ex.: 'parador-reveillon'). Inclui line-up, descrição, horários e link de ingresso.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Slug do evento (URL)."
+            }
+          },
+          "required": [
+            "slug"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_blog_posts",
+        "title": "Listar posts do blog",
+        "description": "Lista os posts publicados no blog da MDAccula, do mais recente ao mais antigo. Suporta filtro por categoria e busca por palavra-chave.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "category": {
+              "type": "string",
+              "description": "Filtrar por categoria (opcional)."
+            },
+            "search": {
+              "type": "string",
+              "description": "Buscar por termo no título ou resumo (opcional)."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_blog_post",
+        "title": "Detalhes de um post do blog",
+        "description": "Retorna o conteúdo completo de um post publicado no blog MDAccula, buscado pelo slug.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "slug": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Slug do post (URL)."
+            }
+          },
+          "required": [
+            "slug"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_links",
+        "title": "Listar links públicos (Linktree)",
+        "description": "Lista os links públicos ativos da página de links da MDAccula (estilo Linktree), agrupados por seção.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
