@@ -7,7 +7,7 @@ import { defineMcp } from "npm:@lovable.dev/mcp-js@0.24.0";
 
 // src/lib/mcp/tools/list_upcoming_events.ts
 import { defineTool } from "npm:@lovable.dev/mcp-js@0.24.0";
-import { createClient } from "npm:@supabase/supabase-js@^2.97.0";
+import { createClient } from "npm:@supabase/supabase-js@^2.111.0";
 import { z } from "npm:zod@^3.25.76";
 var list_upcoming_events_default = defineTool({
   name: "list_upcoming_events",
@@ -39,7 +39,7 @@ var list_upcoming_events_default = defineTool({
 
 // src/lib/mcp/tools/get_event.ts
 import { defineTool as defineTool2 } from "npm:@lovable.dev/mcp-js@0.24.0";
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.97.0";
+import { createClient as createClient2 } from "npm:@supabase/supabase-js@^2.111.0";
 import { z as z2 } from "npm:zod@^3.25.76";
 var get_event_default = defineTool2({
   name: "get_event",
@@ -73,7 +73,7 @@ var get_event_default = defineTool2({
 
 // src/lib/mcp/tools/list_blog_posts.ts
 import { defineTool as defineTool3 } from "npm:@lovable.dev/mcp-js@0.24.0";
-import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.97.0";
+import { createClient as createClient3 } from "npm:@supabase/supabase-js@^2.111.0";
 import { z as z3 } from "npm:zod@^3.25.76";
 var list_blog_posts_default = defineTool3({
   name: "list_blog_posts",
@@ -107,7 +107,7 @@ var list_blog_posts_default = defineTool3({
 
 // src/lib/mcp/tools/get_blog_post.ts
 import { defineTool as defineTool4 } from "npm:@lovable.dev/mcp-js@0.24.0";
-import { createClient as createClient4 } from "npm:@supabase/supabase-js@^2.97.0";
+import { createClient as createClient4 } from "npm:@supabase/supabase-js@^2.111.0";
 import { z as z4 } from "npm:zod@^3.25.76";
 var get_blog_post_default = defineTool4({
   name: "get_blog_post",
@@ -141,7 +141,7 @@ var get_blog_post_default = defineTool4({
 
 // src/lib/mcp/tools/list_links.ts
 import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.24.0";
-import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.97.0";
+import { createClient as createClient5 } from "npm:@supabase/supabase-js@^2.111.0";
 var list_links_default = defineTool5({
   name: "list_links",
   title: "Listar links p\xFAblicos (Linktree)",
