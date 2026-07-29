@@ -1,95 +1,72 @@
-# Plano — Refatoração para &lt;600 linhas por arquivo
+## O que eu encontrei (auditoria, sem alterar nada ainda)
 
-## Ondas antigas (&lt;1000 linhas) — ✅ TODAS CONCLUÍDAS
+### 1) Coordenadas dos eventos
+Consultei o banco: **30 eventos ativos e futuros; 4 estão sem latitude/longitude**:
+- D.EDGE apres. Moving — 30/07
+- D.EDGE apres. FreakChic — 31/07
+- D.EDGE apres. Nave — 01/08
+- D.EDGE apres. SuperAfter — 02/08
 
-| Onda | Arquivo | Antes → Depois | Status |
-|------|---------|----------------|--------|
-| 1 | EmailTemplateEditor.tsx | 2243 → 909 | ✅ |
-| 2 | EmailConfig.tsx | 1901 → 1123 | ✅ |
-| 3 | EventForm.tsx | 1602 → 816 | ✅ |
-| 4 | EgressMonitor.tsx | 1272 → 215 | ✅ |
-| 5 | _shared/emailBlocks.ts | 1243 → 32 | ✅ |
-| 6 | generate-blog-post-v2/index.ts | 1220 → 737 | ✅ |
-| 7 | MediaSettings.tsx | 1168 → 317 | ✅ |
-| 8 | LinksManager.tsx | 1060 → 716 | ✅ |
-| Bônus | AIContent2.tsx | 919 → 445 | ✅ |
+Todos são do mesmo local (D.EDGE, Barra Funda), e outros eventos do mesmo endereço **já têm** coordenadas. Ou seja: não é problema de endereço, é que a geocodificação parou de rodar (ver item 2). Os 4 são exatamente os criados depois da troca de workspace.
 
----
+### 2) Google Maps depois da troca de workspace — 2 problemas reais
+- **A conexão Google Maps existe no workspace, mas NÃO está vinculada a este projeto.** Isso significa que a chave `GOOGLE_MAPS_API_KEY` que as funções usam é a antiga (órfã) — igual ao que aconteceu com a `LOVABLE_API_KEY`. É por isso que os 4 eventos novos não geocodificaram.
+- **A função `render-static-map` (imagem do mapa no e-mail) está exigindo login no servidor.** Testei o endereço público e ele respondeu "401 não autorizado". O arquivo de configuração diz que ela deve ser pública, mas o que está publicado no servidor não bate. Resultado prático: **a imagem do mapa não carrega no e-mail** (cliente de e-mail nunca envia login).
+- Já funciona OK: `public-maps-config` responde normalmente e devolve a chave do navegador (mapa do site tende a funcionar; confirmo visualmente depois do conserto).
 
-## Nova meta: **&lt;600 linhas por arquivo**
+### 3) Problemas de segurança — em linguagem simples
 
-Regras (iguais às ondas anteriores):
-- **1 arquivo por onda**, no máximo 2 PRs cada.
-- Zero mudança de comportamento — só mover código e reimportar.
-- Checklist obrigatório: `tsgo --noEmit` + `eslint` + `vitest run` + validação manual no `localhost:8080`.
-- Se for Edge Function: rodar `scripts/bundle-edge-functions.mjs` e conferir bundle.
-- Excluídos: `src/integrations/supabase/types.ts` (auto-gerado), `src/components/ui/sidebar.tsx` (shadcn intocado).
+**Os 4 "Críticos" (mesma causa)** — tabelas `blog_view_events`, `event_view_events`, `link_click_events`, `redirect_click_events`:
+Existe uma regra chamada "Service role can manage ..." que **deveria** valer só para o servidor, mas foi criada valendo para **todo mundo** (inclusive visitante anônimo). Na prática: qualquer pessoa poderia ler, alterar ou **apagar todas as estatísticas** de visualizações e cliques. Confirmei isso direto no banco.
+Correção sem quebrar nada: trocar essas regras para valerem apenas para o servidor. Os registros de clique/visualização continuam funcionando, porque eles passam pelas Edge Functions (`track-view`, `track-link-click`, `track-redirect-click`), que usam a chave de servidor. Também existe regra separada de "qualquer um pode inserir", que será mantida.
+Observação: `redirect_click_events` hoje **não tem** regra de inserção pública — depende inteiramente da regra permissiva. Então nesse caso preciso criar a regra de inserção antes de restringir, senão o rastreio de redirects para de gravar.
 
-### Ordem sugerida (mais crítico → menos crítico)
+**Avisos:**
+- *Servidor MCP público sem autenticação* — foi escolha sua ("público, sem login"). Os dados expostos já são públicos no site. Pode ficar como está (eu marco como "aceito conscientemente") ou ativamos OAuth.
+- *Qualquer usuário logado lê as regras de bloqueio de e-mail* — hoje só admins usam essa tela; a leitura pode ser restrita a admin sem impacto.
+- *Configurações do site são públicas* — a página pública precisa de várias dessas chaves (fuso, tema, etc). Mexer aqui tem risco de quebrar o site; recomendo **não mexer agora** e tratar em etapa separada.
+- *Funções SECURITY DEFINER executáveis / RLS sempre verdadeiro / Bucket público lista arquivos* — são avisos genéricos do robô da Supabase. A maioria é intencional (ex.: buckets de imagens são públicos de propósito). Reviso um a um e ignoro os que forem falso-positivo, com justificativa registrada.
+- *Proteção contra senha vazada desligada* — é um botão nas configurações de autenticação; você liga e ninguém é afetado (só bloqueia senhas já vazadas na internet em novos cadastros).
 
-```text
-Onda  9  EmailConfig.tsx                             1123 → 818 (PR-A ✅) → 465 (PR-B ✅)
-Onda 10  BlockPropsPanel.tsx                         1060 → 38 (✅ dispatcher; 5 sub-painéis 158-323 linhas)
+### 4) Dependências com vulnerabilidade — em linguagem simples
 
-Onda 11  RedirectsManager.tsx                         911 → 365 (✅; +5 subcomponentes 62-238 linhas em pages/admin/redirectsManager/)
-Onda 12  EmailTemplateEditor.tsx                      903 → 462 (✅; +5 módulos em emailTemplateEditor/: blockDefaults 145, typeFilter 46, EditorHeader 225, BlockListPanel 125, PreviewPanel 85)
-Onda 13  EmailEventsTab.tsx                           867 → 161 (✅; +6 módulos em emailEventsTab/: helpers 112, useEmailEventsData 52, useEventActions 195, HeaderFilters 125, EventRow 231, CampaignHistoryRow 140)
-Onda 14  EventDetail.tsx                              854 → 448 (✅; +8 módulos em components/eventDetail/: types 38, TicketCtaButton 43, HeroImage 37, TicketCard 71, EventDetailsCard 60, ScheduleOrLineup 115, RelatedBlogPostCard 45, RelatedEventsCard 63)
-Onda 15  LinksAnalytics.tsx                           849 → 98 (✅; +7 módulos em linksAnalytics/: types 43, useLinksAnalytics 221, SummaryCards 117, LinksSection 150, EventsSection 83, RedirectsSection 80, BlogSection 151)
-Onda 16  EventForm.tsx                                816 → 413 (✅; +useEventFormSubmit.tsx 476 em eventForm/)
-Onda 17  Eventos.tsx                                  802 → 323 (✅; +4 módulos em components/eventos/: eventosHelpers 73, FiltersSection 201, CalendarSection 184, EventListCard 135)
-Onda 18  AutomationsTab.tsx                           793 → 224 (✅ feita antecipada como "Onda 11"; + AutomationCard 296, SendOnCronToggle 25)
-Onda 19  TemplatesPanel.tsx (ai-content)              771 → 292 (✅; +3 módulos em templatesPanel/: types 53, TemplatesTable 145, TemplateFormDialog 255, TemplatePreviewDialog 109)
-Onda 20  generate-multi-event-article/index.ts       762 → 454 (✅; +prompts.ts 242 em _shared/generateMultiEventArticle/; reuso de http.ts, egress.ts e imageStyles.ts do generateBlogPostV2)
-Onda 21  EventsManager.tsx                            755 → 266 ✅
-Onda 22  generate-blog-post-v2/index.ts               737 → 527 (✅; +3 módulos em _shared/generateBlogPostV2/: dateHelpers 44, promptBuilder 174, savePost 116)
-Onda 23  _shared/emailBlocks/renderBlock.ts           735 → 27 (✅ dispatcher; +4 módulos em renderBlock/: style 20, basic 178, interactive 271, digest 312)
-Onda 24  LinksManager.tsx                             716 → 262 (✅; +3 módulos em linksManager/: useLinksManager 419, LinksManagerHeader 76, LinksManagerDialogs 154)
-Onda 25  Podcast.tsx                                  711 → <600
-Onda 26  emailTemplates/blocks.ts                     689 → <600
-Onda 27  PodcastManager.tsx                           686 → <600
-Onda 28  BlogManager.tsx                              659 → <600
-Onda 29  weekly-digest-draft/index.ts                 654 → 416 (✅; +2 módulos em _shared/weeklyDigestDraft/: legacyHtml 158, buildEventPayload 139)
-Onda 30  RecurringEventsManager.tsx                   646 → 274 (✅; +4 módulos em recurringEventsManager/: types 30, ScheduleConfigCard 94, RecurringConfigCard 80, EditConfigDialog 246)
-Onda 31  Blog.tsx                                     645 → <600
-Onda 32  CustomLinkForm.tsx                           624 → <600
-Onda 33  AutoGenerationPanel.tsx                      620 → <600
-Onda 34  EventTemplates.tsx                           602 → <600
-```
+| Pacote | Onde é usado | Risco real aqui | Como corrigir |
+|---|---|---|---|
+| `vitest` 4.0.16 (Crítico) | Só para rodar testes na sua máquina | Falha só existe se você abrir a "UI de testes"; **não vai para o site publicado** | Atualizar para a versão mais recente do 4.x |
+| `@tiptap/*` 3.10.7 | Editor de texto do blog | Médio — falhas de conteúdo colado | Atualizar linha 3.x |
+| `react-router-dom` 6.30.1 | Navegação do site | Baixo/médio | Atualizar dentro do 6.x (não migrar para 7 agora) |
+| `dompurify` 3.3.1 | Limpeza de HTML | Médio | Atualizar patch |
+| `recharts` 2.15.4 | Gráficos do admin | Baixo | Atualizar dentro do 2.x |
+| `@supabase/supabase-js` 2.97.0 | Conexão com o banco | Baixo | Atualizar patch |
 
-Total: **26 arquivos** ainda acima da nova meta.
-
-### Estratégia por tipo de arquivo
-
-- **Páginas admin (EmailConfig, RedirectsManager, LinksAnalytics, etc.)** → extrair abas/cards para pasta dedicada `pages/admin/&lt;pagina&gt;/`.
-- **Editores complexos (BlockPropsPanel, EmailTemplateEditor)** → separar por tipo de bloco (um arquivo por painel especializado).
-- **Páginas públicas grandes (EventDetail, Eventos, Podcast, Blog)** → extrair seções visuais para `components/&lt;pagina&gt;/`.
-- **Edge Functions (generate-multi-event-article, weekly-digest-draft)** → extrair helpers puros para `_shared/&lt;funcao&gt;/`, deixar só o handler HTTP no `index.ts`.
-- **Renderers (renderBlock, blocks)** → dividir o switch por família de bloco (`renderBlockHero.ts`, `renderBlockWeekend.ts`, etc.).
+Regra que vou seguir: **só atualizações compatíveis** (sem mudar versão principal), uma leva por vez, rodando testes e build entre elas.
 
 ---
 
-## Pendências do plano original que ainda estão em aberto
+## Plano de execução (fases, uma de cada vez)
 
-1. **F2 (dispensado)** — Migrar `eventAnnouncement.ts` para `_shared` só se edge precisar. Ainda dispensado.
-2. **F3 (opcional)** — ESLint rule proibindo novo `blocks.ts` em `src/lib/emailTemplates/`. Não implementado (guardião via teste de paridade cumpre a função).
-3. **Onda 5 PR-B (pendente)** — Redeploy das 3 edges (`weekly-digest-draft`, `weekend-agenda-draft`, `blog-digest-draft`) após split de `_shared/emailBlocks/`. **Ação sugerida:** rodar `scripts/bundle-edge-functions.mjs` + deploy quando iniciar a Onda 23 ou 29.
-4. **Onda 3 PR-B (opcional)** — Extrair schema Zod + submit do `EventForm` para `useEventForm.ts`. Vira parte da Onda 16.
-5. **Onda 4 PR-B (opcional)** — Extrair fetchers do `EgressMonitor` para `useEgressData.ts`. Já abaixo da nova meta, dispensado.
-6. **Onda 2 PR-C (opcional)** — Extrair `useEmailConfigState.ts` do `EmailConfig`. Vira a Onda 9.
+**Fase 1 — Reconectar o Google Maps e recuperar os mapas** (risco baixo)
+1. Vincular a conexão Google Maps a este projeto (card de conexão aparece no chat).
+2. Republicar `geocode-event`, `render-static-map` e `public-maps-config` garantindo que continuem públicas.
+3. Rodar a geocodificação dos 4 eventos sem coordenadas e conferir no banco.
+4. Testar a imagem do mapa sem login e o mapa na página do evento.
 
-### Pendências operacionais herdadas (não são de refatoração)
+**Fase 2 — Corrigir as 4 falhas críticas de segurança** (risco baixo, com um cuidado)
+- Migração que: cria regra de inserção pública faltante em `redirect_click_events`, depois troca as 4 regras permissivas para valerem só ao servidor.
+- Validação: registrar um clique de link, um clique de redirect e uma visualização, e confirmar que gravaram.
 
-Levantadas em `PENDENCIAS.MD`:
-- Checkpoint prerender SEO (~20/07/2026).
-- Checkpoint redução de banda Bunny CDN (~02/08/2026).
-- Checkpoint webhook Apify/Instagram (sem data).
-- Revisão de funções `SECURITY DEFINER` públicas.
-- Habilitar Leaked Password Protection no Supabase (1 clique manual).
-- Restringir policies de `SELECT` dos buckets públicos (evitar `LIST`).
+**Fase 3 — Avisos de segurança** (risco baixo)
+- Restringir leitura de `email_global_blocks` a admin.
+- Revisar os avisos genéricos e marcar os falso-positivos com justificativa.
+- Te oriento a ligar a "proteção de senha vazada" (é um clique na configuração).
+- `site_settings` fica documentado como pendência consciente.
 
----
+**Fase 4 — Dependências** (risco médio, dividida em 2 levas)
+- Leva A (não afeta o site): `vitest` + `@vitest/coverage-v8`.
+- Leva B (afeta o site): `dompurify`, `@supabase/supabase-js`, `recharts`, `react-router-dom`, `@tiptap/*` — com testes, typecheck e conferência visual do blog/admin.
 
-## Próximo passo
-
-Aprovar **Onda 9 — EmailConfig.tsx (1123 → &lt;600)** para começar pela maior redução da nova meta.
+## Detalhes técnicos
+- Confirmado por consulta: `pg_policies` mostra as 4 políticas "Service role can manage ..." com `roles = {public}`, `USING(true)`, `WITH CHECK(true)`, `cmd = ALL`.
+- `redirect_click_events` não possui política de INSERT anônima (as outras 3 possuem "Anyone can insert ...").
+- `render-static-map` tem `verify_jwt = false` em `supabase/config.toml`, mas a versão publicada responde 401 → precisa redeploy via CLI.
+- `standard_connectors--list_connections` mostra `google_maps` com `is linked to project: no` → secret `GOOGLE_MAPS_API_KEY` do projeto é do workspace antigo.
