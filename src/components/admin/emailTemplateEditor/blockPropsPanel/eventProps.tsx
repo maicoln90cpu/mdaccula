@@ -297,9 +297,10 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
         <Alert variant="destructive" className="text-xs">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Cada abertura de e-mail com este mapa gera um custo no Google Cloud. A solução
-            definitiva é pré-gerar a imagem no Bunny (Fase C). Enquanto isso, use este bloco apenas
-            para campanhas pequenas ou remova-o para zerar o custo.
+            O mapa estático no e-mail usa o Google Maps Static API, que é cobrado por cada abertura.
+            Para evitar custos recorrentes, a imagem agora é pré-gerada automaticamente no Bunny CDN
+            no momento do disparo (paga apenas 1x por campanha). Use com moderação e remova o bloco
+            se quiser zerar o custo.
           </AlertDescription>
         </Alert>
         <p className="text-xs text-muted-foreground">
