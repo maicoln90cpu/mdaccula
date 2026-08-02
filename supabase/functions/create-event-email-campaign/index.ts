@@ -8,6 +8,7 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
+import { cacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
