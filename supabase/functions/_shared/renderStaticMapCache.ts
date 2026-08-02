@@ -22,15 +22,22 @@ export interface MapRenderParams {
  */
 export function parseRenderStaticMapUrl(url: string): MapRenderParams | null {
   try {
-    const u = new URL(url, "https://localhost"); // base fallback para caminhos relativos
-    const lat = Number(u.searchParams.get("lat"));
-    const lng = Number(u.searchParams.get("lng"));
+    const u = new URL(url, "https://localhost");
+    const latRaw = u.searchParams.get("lat");
+    const lngRaw = u.searchParams.get("lng");
+    if (latRaw === null || lngRaw === null) return null;
+
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+
     const zoom = Math.max(10, Math.min(19, Number(u.searchParams.get("zoom") || "15")));
     const w = Math.max(200, Math.min(640, Number(u.searchParams.get("w") || "600")));
     const h = Math.max(150, Math.min(400, Number(u.searchParams.get("h") || "300")));
-    const style = ["roadmap", "terrain", "satellite", "hybrid"].includes(u.searchParams.get("style") || "roadmap")
-      ? (u.searchParams.get("style") || "roadmap")
-      : "roadmap";
+    const rawStyle = u.searchParams.get("style") || "roadmap";
+    const style = ["roadmap", "terrain", "satellite", "hybrid"].includes(rawStyle) ? rawStyle : "roadmap";
     const rawPinColor = (u.searchParams.get("pincolor") || "").trim();
     const pinColor = /^#[0-9a-fA-F]{6}$/.test(rawPinColor)
       ? rawPinColor
@@ -38,9 +45,6 @@ export function parseRenderStaticMapUrl(url: string): MapRenderParams | null {
       ? rawPinColor
       : "red";
 
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return null;
-    }
     return { lat, lng, zoom, w, h, style, pinColor };
   } catch {
     return null;
