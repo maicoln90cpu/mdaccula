@@ -294,6 +294,14 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
   if (block.kind === 'static_map') {
     return (
       <div className="space-y-3">
+        <Alert variant="destructive" className="text-xs">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Cada abertura de e-mail com este mapa gera um custo no Google Cloud. A solução
+            definitiva é pré-gerar a imagem no Bunny (Fase C). Enquanto isso, use este bloco apenas
+            para campanhas pequenas ou remova-o para zerar o custo.
+          </AlertDescription>
+        </Alert>
         <p className="text-xs text-muted-foreground">
           Mini-mapa do venue, clicável — abre no Waze/Google Maps do celular. Só aparece se o
           evento tiver <strong>coordenadas (latitude/longitude)</strong> preenchidas. Você
