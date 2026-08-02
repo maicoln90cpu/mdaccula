@@ -16,7 +16,8 @@ describe('guard arquitetural do compositor de e-mail', () => {
   it('codigo de producao nao chama renderizadores de HTML fora do compositor canonico', () => {
     const files = [...listTypeScriptFiles('src'), ...listTypeScriptFiles('supabase/functions')]
       .filter((file) => !file.includes('__tests__'))
-      .filter((file) => !file.endsWith('_test.ts'));
+      .filter((file) => !file.endsWith('_test.ts'))
+      .filter((file) => !file.endsWith('.bundled.ts')); // artefatos de build do bundle de deploy
 
     const allowed = new Set([
       'supabase/functions/_shared/emailComposer.ts',
