@@ -212,6 +212,19 @@ Deno.serve(async (req) => {
       tags.push('ab-test', `variante-${abVariant}`);
     }
 
+    // B.11 — Pré-renderiza imagens de mapa estático no Bunny CDN, trocando
+    // URLs do render-static-map por URLs do Bunny. Assim o Google Static Maps
+    // é cobrado apenas uma vez por campanha, e não a cada abertura de e-mail.
+    let processedHtml = html;
+    try {
+      processedHtml = await cacheStaticMapImagesInHtml(html);
+    } catch (cacheErr) {
+      const msg = cacheErr instanceof Error ? cacheErr.message : String(cacheErr);
+      console.warn('[create-event-email-campaign] cacheStaticMapImagesInHtml fallback:', msg);
+      // Falha no cache não pode bloquear o envio; mantém HTML original.
+      processedHtml = html;
+    }
+
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
@@ -219,7 +232,7 @@ Deno.serve(async (req) => {
       sender_id: Number(cfg.sender_id),
       content: {
         type: 'html',
-        body: html,
+        body: processedHtml,
         ...(preheader ? { preheader } : {}),
         ...(textVersion ? { text: textVersion } : {}),
       },
