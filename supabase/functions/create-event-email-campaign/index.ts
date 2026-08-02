@@ -1,323 +1,358 @@
-// B.6 — Cria rascunho de campanha na E-goi para um evento.
-// Guards (defesa em profundidade):
-//  1. Auth admin (getUser + has_role).
-//  2. Master switch site_settings.egoi_email_enabled = true.
-//  3. Agência: egoi_config.is_enabled + list_id + sender_id preenchidos.
-//  4. UPDATE atômico em events.email_campaign_dispatched_at (WHERE IS NULL) — previne race.
-// Idempotência: se existe campanha 'sent' → cria nova; 'draft/failed/scheduled' → atualiza a existente.
+// supabase/functions/create-event-email-campaign/index.ts
+import { createClient } from "npm:@supabase/supabase-js@2";
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
-import { cacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-type Mode = 'draft' | 'immediate' | 'scheduled';
-
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-
-  const json = (data: unknown, status = 200) =>
-    new Response(JSON.stringify(data), {
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+// supabase/functions/_shared/egoiClient.ts
+var EGOI_BASE_URL = "https://api.egoiapp.com";
+async function egoiRequest(path, apiKey, init = {}) {
+  const res = await fetch(`${EGOI_BASE_URL}${path}`, {
+    ...init,
+    headers: {
+      Apikey: apiKey,
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...init.headers || {}
+    }
+  });
+  const text = await res.text();
+  let body = text;
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return json({ error: 'Não autenticado' }, 401);
+    body = JSON.parse(text);
+  } catch {
+  }
+  return { status: res.status, ok: res.ok, body };
+}
+function egoiSendBodyIndicatesError(body) {
+  return !!(body && typeof body === "object" && (body.error || body.errors || body.status === "error"));
+}
+async function sendEgoiCampaign(campaignHash, listId, apiKey, segmentId) {
+  const segments = segmentId ? { type: "segment", segment_id: segmentId } : { type: "none" };
+  const res = await egoiRequest(
+    `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
+    apiKey,
+    { method: "POST", body: JSON.stringify({ list_id: listId, segments }) }
+  );
+  return {
+    ok: res.ok && !egoiSendBodyIndicatesError(res.body),
+    status: res.status,
+    body: res.body
+  };
+}
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+// supabase/functions/_shared/bunnyUploadBytes.ts
+var BUNNY_STORAGE_ZONE = "mdaccula";
+var BUNNY_CDN_HOST = "https://mdaccula.b-cdn.net";
+function getBunnyStorageHost() {
+  const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");
+  return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
+}
+async function bunnyFileExists(path) {
+  const apiKey = getBunnyStorageApiKey();
+  const url = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${path}`;
+  try {
+    const res = await fetch(url, {
+      method: "HEAD",
+      headers: { AccessKey: apiKey }
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+async function uploadBytesToBunny(buffer, path, contentType) {
+  const apiKey = getBunnyStorageApiKey();
+  if (!apiKey) {
+    throw new Error("BUNNY_STORAGE_API_KEY not configured");
+  }
+  const url = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${path}`;
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      AccessKey: apiKey,
+      "Content-Type": contentType
+    },
+    body: buffer
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "unknown");
+    throw new Error(`Bunny upload failed (${res.status}): ${text}`);
+  }
+  return { url: `${BUNNY_CDN_HOST}/${path}`, path };
+}
+function getBunnyStorageApiKey() {
+  const raw = Deno.env.get("BUNNY_STORAGE_API_KEY") || "";
+  return raw.trim().replace(/^["']|["']$/g, "").replace(/[^\x20-\x7E]/g, "");
+}
+
+// supabase/functions/_shared/renderStaticMapCache.ts
+function parseRenderStaticMapUrl(url) {
+  try {
+    const u = new URL(url, "https://localhost");
+    const latRaw = u.searchParams.get("lat");
+    const lngRaw = u.searchParams.get("lng");
+    if (latRaw === null || lngRaw === null) return null;
+    const lat = Number(latRaw);
+    const lng = Number(lngRaw);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+      return null;
+    }
+    const zoom = Math.max(10, Math.min(19, Number(u.searchParams.get("zoom") || "15")));
+    const w = Math.max(200, Math.min(640, Number(u.searchParams.get("w") || "600")));
+    const h = Math.max(150, Math.min(400, Number(u.searchParams.get("h") || "300")));
+    const rawStyle = u.searchParams.get("style") || "roadmap";
+    const style = ["roadmap", "terrain", "satellite", "hybrid"].includes(rawStyle) ? rawStyle : "roadmap";
+    const rawPinColor = (u.searchParams.get("pincolor") || "").trim();
+    const pinColor = /^#[0-9a-fA-F]{6}$/.test(rawPinColor) ? rawPinColor : /^[a-zA-Z]+$/.test(rawPinColor) ? rawPinColor : "red";
+    return { lat, lng, zoom, w, h, style, pinColor };
+  } catch {
+    return null;
+  }
+}
+function hashParams(params) {
+  const data = `${params.lat.toFixed(6)},${params.lng.toFixed(6)},${params.zoom},${params.w}x${params.h},${params.style},${params.pinColor}`;
+  const encoder = new TextEncoder();
+  const buffer = encoder.encode(data);
+  return Array.from(new Uint8Array(buffer)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+}
+function buildMapPath(params) {
+  const h = hashParams(params);
+  return `email-map-images/map-${h}-${params.lat.toFixed(4)}-${params.lng.toFixed(4)}-z${params.zoom}-${params.w}x${params.h}-${params.style}-${params.pinColor.replace("#", "")}.png`;
+}
+async function ensureCachedMapImage(params, renderStaticMapUrl) {
+  const path = buildMapPath(params);
+  if (await bunnyFileExists(path)) {
+    return `https://mdaccula.b-cdn.net/${path}`;
+  }
+  const response = await fetch(renderStaticMapUrl);
+  if (!response.ok) {
+    const text = await response.text().catch(() => "unknown");
+    throw new Error(`render-static-map failed (${response.status}): ${text}`);
+  }
+  const contentType = response.headers.get("Content-Type") || "image/png";
+  const buffer = await response.arrayBuffer();
+  const { url } = await uploadBytesToBunny(buffer, path, contentType);
+  return url;
+}
+async function cacheStaticMapImagesInHtml(html) {
+  if (!html.includes("render-static-map")) return html;
+  const imgUrlRegex = /<img[^>]+src=["']([^"']*render-static-map[^"']*)["'][^>]*>/gi;
+  const matches = [];
+  let match;
+  while ((match = imgUrlRegex.exec(html)) !== null) {
+    matches.push({ fullMatch: match[0], url: match[1] });
+  }
+  if (matches.length === 0) return html;
+  let result = html;
+  for (const { fullMatch, url } of matches) {
+    try {
+      const params = parseRenderStaticMapUrl(url);
+      if (!params) continue;
+      const cachedUrl = await ensureCachedMapImage(params, url);
+      result = result.replaceAll(fullMatch, fullMatch.replaceAll(url, cachedUrl));
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[cacheStaticMapImagesInHtml] failed to cache ${url}: ${msg}`);
+    }
+  }
+  return result;
+}
+
+// supabase/functions/create-event-email-campaign/index.ts
+var corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+};
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const json = (data, status = 200) => new Response(JSON.stringify(data), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" }
+  });
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) return json({ error: "N\xE3o autenticado" }, 401);
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
     const anonClient = createClient(supabaseUrl, anonKey);
     const admin = createClient(supabaseUrl, serviceKey);
-
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace("Bearer ", "");
     const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
-    if (userErr || !userData.user) return json({ error: 'Token inválido' }, 401);
-
-    const { data: isAdmin } = await admin.rpc('has_role', {
+    if (userErr || !userData.user) return json({ error: "Token inv\xE1lido" }, 401);
+    const { data: isAdmin } = await admin.rpc("has_role", {
       _user_id: userData.user.id,
-      _role: 'admin',
+      _role: "admin"
     });
-    if (!isAdmin) return json({ error: 'Apenas admins' }, 403);
-
+    if (!isAdmin) return json({ error: "Apenas admins" }, 403);
     const body = await req.json().catch(() => ({}));
-    const eventId = body?.event_id as string | undefined;
-    const html = body?.html as string | undefined;
-    const subject = (body?.subject as string | undefined) || undefined;
-    const preheader = (body?.preheader as string | undefined) || undefined;
-    const textVersion = (body?.text as string | undefined) || undefined;
-    const templateType = (body?.template_type as string | undefined) || 'event_new';
+    const eventId = body?.event_id;
+    const html = body?.html;
+    const subject = body?.subject || void 0;
+    const preheader = body?.preheader || void 0;
+    const textVersion = body?.text || void 0;
+    const templateType = body?.template_type || "event_new";
     const forceResend = body?.force_resend === true;
     const sendNow = body?.send_now === true;
-    // B.10 — teste A/B de assunto
-    const abGroupId = (body?.ab_group_id as string | undefined) || null;
-    const abVariant = (body?.ab_variant as string | undefined) || null; // 'A' | 'B'
-    const abTestConfig = (body?.ab_test_config as Record<string, unknown> | undefined) || null;
+    const abGroupId = body?.ab_group_id || null;
+    const abVariant = body?.ab_variant || null;
+    const abTestConfig = body?.ab_test_config || null;
     const isAbTest = !!abGroupId && !!abVariant;
-    // Agendamento — cria o rascunho na E-goi agora, mas o envio real fica
-    // para o poller send-scheduled-email-campaigns quando scheduled_at vencer.
-    const scheduleAtRaw = (body?.schedule_at as string | undefined) || undefined;
-    // Segmento por disparo (aba "Envio manual") — quando o campo vem no body
-    // (mesmo que null, para "toda a lista"), sobrescreve o segmento global
-    // de egoi_config.segment_id só para este envio. Ausente = usa o global.
-    const segmentOverrideProvided = Object.prototype.hasOwnProperty.call(body, 'segment_id');
-    const segmentIdOverride = segmentOverrideProvided
-      ? (body?.segment_id != null ? Number(body.segment_id) : null)
-      : undefined;
-
+    const scheduleAtRaw = body?.schedule_at || void 0;
+    const segmentOverrideProvided = Object.prototype.hasOwnProperty.call(body, "segment_id");
+    const segmentIdOverride = segmentOverrideProvided ? body?.segment_id != null ? Number(body.segment_id) : null : void 0;
     if (!eventId || !html) {
-      return json({ error: 'event_id e html são obrigatórios' }, 400);
+      return json({ error: "event_id e html s\xE3o obrigat\xF3rios" }, 400);
     }
-    if (isAbTest && !['A', 'B'].includes(abVariant!)) {
-      return json({ error: 'ab_variant deve ser A ou B' }, 400);
+    if (isAbTest && !["A", "B"].includes(abVariant)) {
+      return json({ error: "ab_variant deve ser A ou B" }, 400);
     }
     if (scheduleAtRaw && sendNow) {
-      return json({ error: 'schedule_at e send_now são mutuamente exclusivos' }, 400);
+      return json({ error: "schedule_at e send_now s\xE3o mutuamente exclusivos" }, 400);
     }
-    let scheduleAtIso: string | null = null;
+    let scheduleAtIso = null;
     if (scheduleAtRaw) {
       const scheduleAtMs = Date.parse(scheduleAtRaw);
       if (Number.isNaN(scheduleAtMs)) {
-        return json({ error: 'schedule_at inválido' }, 400);
+        return json({ error: "schedule_at inv\xE1lido" }, 400);
       }
-      if (scheduleAtMs < Date.now() + 60_000) {
-        return json({ error: 'schedule_at precisa ser pelo menos 1 minuto no futuro' }, 400);
+      if (scheduleAtMs < Date.now() + 6e4) {
+        return json({ error: "schedule_at precisa ser pelo menos 1 minuto no futuro" }, 400);
       }
       scheduleAtIso = new Date(scheduleAtMs).toISOString();
     }
-
-
-    // Guard 1: Master switch
-    const { data: masterRow } = await admin
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'egoi_email_enabled')
-      .maybeSingle();
-    if (masterRow?.value !== 'true') {
-      return json({ skipped: true, reason: 'master_off' });
+    const { data: masterRow } = await admin.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle();
+    if (masterRow?.value !== "true") {
+      return json({ skipped: true, reason: "master_off" });
     }
-
-    // Guard 2: Agência config
-    const { data: cfg } = await admin
-      .from('egoi_config')
-      .select('*')
-      .maybeSingle();
+    const { data: cfg } = await admin.from("egoi_config").select("*").maybeSingle();
     if (!cfg || !cfg.is_enabled || !cfg.list_id || !cfg.sender_id) {
-      return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
+      return json({ skipped: true, reason: "config_disabled_or_incomplete" });
     }
-    const resolvedSegmentId = segmentOverrideProvided
-      ? segmentIdOverride
-      : cfg.segment_id != null
-        ? Number(cfg.segment_id)
-        : null;
-
-    // Guard 3: UPDATE atômico do dispatched_at (pulado em A/B).
-    // Só marca se ainda estiver NULL — anti-race e anti-double-click.
-    // force_resend permite botão "Reenviar" limpar antes de chamar novamente.
-    // B.10 — A/B: as duas variantes são intencionais, então bypass do claim; usa fetch para pegar title/status.
-    let claimedTitle: string | null = null;
-    let claimedStatus: string | null = null;
-    const now = new Date().toISOString();
-
+    const resolvedSegmentId = segmentOverrideProvided ? segmentIdOverride : cfg.segment_id != null ? Number(cfg.segment_id) : null;
+    let claimedTitle = null;
+    let claimedStatus = null;
+    const now = (/* @__PURE__ */ new Date()).toISOString();
     if (isAbTest) {
-      const { data: ev } = await admin
-        .from('events')
-        .select('id,title,status')
-        .eq('id', eventId)
-        .maybeSingle();
-      if (!ev) return json({ error: 'Evento não encontrado' }, 404);
-      if (ev.status !== 'active') return json({ skipped: true, reason: 'event_not_active' });
+      const { data: ev } = await admin.from("events").select("id,title,status").eq("id", eventId).maybeSingle();
+      if (!ev) return json({ error: "Evento n\xE3o encontrado" }, 404);
+      if (ev.status !== "active") return json({ skipped: true, reason: "event_not_active" });
       claimedTitle = ev.title;
       claimedStatus = ev.status;
     } else {
       if (forceResend) {
-        await admin
-          .from('events')
-          .update({ email_campaign_dispatched_at: null })
-          .eq('id', eventId);
+        await admin.from("events").update({ email_campaign_dispatched_at: null }).eq("id", eventId);
       }
-
-      const { data: claimed, error: claimErr } = await admin
-        .from('events')
-        .update({ email_campaign_dispatched_at: now })
-        .eq('id', eventId)
-        .is('email_campaign_dispatched_at', null)
-        .select('id,title,status')
-        .maybeSingle();
-
+      const { data: claimed, error: claimErr } = await admin.from("events").update({ email_campaign_dispatched_at: now }).eq("id", eventId).is("email_campaign_dispatched_at", null).select("id,title,status").maybeSingle();
       if (claimErr) throw claimErr;
       if (!claimed) {
-        return json({ skipped: true, reason: 'already_dispatched' });
+        return json({ skipped: true, reason: "already_dispatched" });
       }
-      if (claimed.status !== 'active') {
-        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
-        return json({ skipped: true, reason: 'event_not_active' });
+      if (claimed.status !== "active") {
+        await admin.from("events").update({ email_campaign_dispatched_at: null }).eq("id", eventId);
+        return json({ skipped: true, reason: "event_not_active" });
       }
       claimedTitle = claimed.title;
       claimedStatus = claimed.status;
     }
-
-    const apiKey = Deno.env.get('EGOI_API_KEY');
+    const apiKey = Deno.env.get("EGOI_API_KEY");
     if (!apiKey) {
       if (!isAbTest) {
-        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+        await admin.from("events").update({ email_campaign_dispatched_at: null }).eq("id", eventId);
       }
-      return json({ error: 'EGOI_API_KEY não configurada' }, 500);
+      return json({ error: "EGOI_API_KEY n\xE3o configurada" }, 500);
     }
-
-    // Idempotência: em A/B, NUNCA reutiliza linha (cada variante é um registro novo).
-    let reuseRow: any = null;
+    let reuseRow = null;
     if (!isAbTest) {
-      const { data: lastCampaign } = await admin
-        .from('event_email_campaigns')
-        .select('*')
-        .eq('event_id', eventId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      reuseRow = lastCampaign && lastCampaign.status !== 'sent' ? lastCampaign : null;
+      const { data: lastCampaign } = await admin.from("event_email_campaigns").select("*").eq("event_id", eventId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      reuseRow = lastCampaign && lastCampaign.status !== "sent" ? lastCampaign : null;
     }
-
-    const mode: Mode = sendNow ? 'immediate' : scheduleAtIso ? 'scheduled' : ((cfg.mode as Mode) || 'draft');
-    const abSuffix = isAbTest ? ` • A/B ${abVariant}` : '';
-    const internalName = `MDAccula • ${claimedTitle || 'Evento'} • ${now.slice(0, 10)}${abSuffix}`;
+    const mode = sendNow ? "immediate" : scheduleAtIso ? "scheduled" : cfg.mode || "draft";
+    const abSuffix = isAbTest ? ` \u2022 A/B ${abVariant}` : "";
+    const internalName = `MDAccula \u2022 ${claimedTitle || "Evento"} \u2022 ${now.slice(0, 10)}${abSuffix}`;
     const finalSubject = subject?.trim();
     if (!finalSubject) {
       if (!isAbTest) {
-        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+        await admin.from("events").update({ email_campaign_dispatched_at: null }).eq("id", eventId);
       }
-      return json({ error: 'Assunto do template está vazio' }, 400);
+      return json({ error: "Assunto do template est\xE1 vazio" }, 400);
     }
-
-    // E-goi v3: POST /campaigns/email
-    // Doc: https://developers.e-goi.com/api/v3/#tag/Email/operation/createEmailCampaign
-    // content deve ser { type: 'html', body: '<html>...' } (NÃO "html").
-    // Tag por tipo de template (courtesy, event_new, etc.) + A/B quando aplicável.
-    const typeTagMap: Record<string, string> = {
-      event_new: 'evento-novo',
-      courtesy: 'cortesia',
-      weekly_digest: 'digest-semanal',
-      weekly_digest_editorial: 'digest-editorial',
-      weekend_agenda: 'agenda-fds',
+    const typeTagMap = {
+      event_new: "evento-novo",
+      courtesy: "cortesia",
+      weekly_digest: "digest-semanal",
+      weekly_digest_editorial: "digest-editorial",
+      weekend_agenda: "agenda-fds"
     };
-    const typeTag = typeTagMap[templateType] || 'evento-novo';
-    const tags: string[] = ['mdaccula', typeTag];
+    const typeTag = typeTagMap[templateType] || "evento-novo";
+    const tags = ["mdaccula", typeTag];
     if (isAbTest) {
-      tags.push('ab-test', `variante-${abVariant}`);
+      tags.push("ab-test", `variante-${abVariant}`);
     }
-
-    // B.11 — Pré-renderiza imagens de mapa estático no Bunny CDN, trocando
-    // URLs do render-static-map por URLs do Bunny. Assim o Google Static Maps
-    // é cobrado apenas uma vez por campanha, e não a cada abertura de e-mail.
     let processedHtml = html;
     try {
       processedHtml = await cacheStaticMapImagesInHtml(html);
     } catch (cacheErr) {
       const msg = cacheErr instanceof Error ? cacheErr.message : String(cacheErr);
-      console.warn('[create-event-email-campaign] cacheStaticMapImagesInHtml fallback:', msg);
-      // Falha no cache não pode bloquear o envio; mantém HTML original.
+      console.warn("[create-event-email-campaign] cacheStaticMapImagesInHtml fallback:", msg);
       processedHtml = html;
     }
-
-    const createPayload: Record<string, unknown> = {
+    const createPayload = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
       subject: finalSubject,
       sender_id: Number(cfg.sender_id),
       content: {
-        type: 'html',
+        type: "html",
         body: processedHtml,
-        ...(preheader ? { preheader } : {}),
-        ...(textVersion ? { text: textVersion } : {}),
+        ...preheader ? { preheader } : {},
+        ...textVersion ? { text: textVersion } : {}
       },
-      tags,
+      tags
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
     if (resolvedSegmentId) createPayload.segment_id = resolvedSegmentId;
-
-    const created = await egoiRequest('/campaigns/email', apiKey, {
-      method: 'POST',
-      body: JSON.stringify(createPayload),
+    const created = await egoiRequest("/campaigns/email", apiKey, {
+      method: "POST",
+      body: JSON.stringify(createPayload)
     });
-
-    let campaignHash: string | null = null;
-    let campaignStatus: 'draft' | 'failed' | 'sent' | 'scheduled' = 'failed';
-    let errorMessage: string | null = null;
-    let sentAt: string | null = null;
-    let egoiSendStatus: number | null = null;
-    let egoiSendBody: unknown = null;
-
+    let campaignHash = null;
+    let campaignStatus = "failed";
+    let errorMessage = null;
+    let sentAt = null;
+    let egoiSendStatus = null;
+    let egoiSendBody = null;
     if (created.ok) {
-      campaignHash =
-        created.body?.campaign_hash ||
-        created.body?.hash ||
-        created.body?.data?.campaign_hash ||
-        (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
-        (created.body?.id != null ? String(created.body.id) : null);
-      campaignStatus = 'draft';
-
-      // Agendamento — a campanha já foi criada como rascunho na E-goi acima;
-      // o disparo real fica para o poller send-scheduled-email-campaigns
-      // quando scheduled_at vencer. Mesma exigência de hash que o envio imediato:
-      // sem hash, não há como o poller confirmar o envio depois (R-007).
+      campaignHash = created.body?.campaign_hash || created.body?.hash || created.body?.data?.campaign_hash || (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) || (created.body?.id != null ? String(created.body.id) : null);
+      campaignStatus = "draft";
       if (scheduleAtIso && !campaignHash) {
-        errorMessage =
-          'Campanha criada na E-goi, mas não foi possível extrair o hash pra agendar o envio ' +
-          `(campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
+        errorMessage = `Campanha criada na E-goi, mas n\xE3o foi poss\xEDvel extrair o hash pra agendar o envio (campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
       } else if (scheduleAtIso && campaignHash) {
-        campaignStatus = 'scheduled';
+        campaignStatus = "scheduled";
       }
-
-      // B.7 — Envio imediato (opcional).
       if (sendNow && !campaignHash) {
-        // Campanha foi criada (created.ok) mas nenhum dos campos esperados de hash
-        // veio na resposta — sem hash não há como chamar actions/send. Isso NÃO pode
-        // ficar silencioso: sem isso, o envio é pulado e a UI mostrava "enviado" mesmo
-        // assim (regressão R-007).
-        errorMessage =
-          'Campanha criada na E-goi, mas não foi possível extrair o hash pra confirmar o envio ' +
-          `(campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
+        errorMessage = `Campanha criada na E-goi, mas n\xE3o foi poss\xEDvel extrair o hash pra confirmar o envio (campos esperados ausentes na resposta): ${JSON.stringify(created.body).slice(0, 500)}`;
       } else if (sendNow && campaignHash) {
         const sendRes = await sendEgoiCampaign(
           campaignHash,
           Number(cfg.list_id),
           apiKey,
-          resolvedSegmentId,
+          resolvedSegmentId
         );
         egoiSendStatus = sendRes.status;
         egoiSendBody = sendRes.body;
-        // sendEgoiCampaign já confirma sucesso real inspecionando o corpo da
-        // resposta (2xx sozinho não é suficiente — R-007) e já inclui o
-        // `segments` obrigatório no payload (senão a E-goi responde 422
-        // segments.isEmpty mesmo com list_id certo).
         if (sendRes.ok) {
-          campaignStatus = 'sent';
-          sentAt = new Date().toISOString();
+          campaignStatus = "sent";
+          sentAt = (/* @__PURE__ */ new Date()).toISOString();
         } else {
-          // Criou o rascunho mas falhou o envio — mantém como draft e devolve erro.
-          errorMessage = `E-goi send ${sendRes.status}: ${
-            typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body)
-          }`.slice(0, 1000);
+          errorMessage = `E-goi send ${sendRes.status}: ${typeof sendRes.body === "string" ? sendRes.body : JSON.stringify(sendRes.body)}`.slice(0, 1e3);
         }
       }
     } else {
-      // Falha na criação — libera o dispatched_at para nova tentativa não ficar bloqueada.
       if (!isAbTest) {
-        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+        await admin.from("events").update({ email_campaign_dispatched_at: null }).eq("id", eventId);
       }
-      errorMessage = `E-goi ${created.status}: ${
-        typeof created.body === 'string' ? created.body : JSON.stringify(created.body)
-      }`.slice(0, 1000);
+      errorMessage = `E-goi ${created.status}: ${typeof created.body === "string" ? created.body : JSON.stringify(created.body)}`.slice(0, 1e3);
     }
-
-    // Persistência do histórico
-    const rowPayload: Record<string, unknown> = {
+    const rowPayload = {
       event_id: eventId,
       egoi_campaign_id: campaignHash,
       status: campaignStatus,
@@ -325,7 +360,7 @@ Deno.serve(async (req) => {
       error_message: errorMessage,
       sent_at: sentAt,
       segment_id: resolvedSegmentId,
-      campaign_type: isAbTest ? 'ab_subject' : 'standard',
+      campaign_type: isAbTest ? "ab_subject" : "standard",
       ab_group_id: abGroupId,
       ab_variant: abVariant,
       ab_test_config: abTestConfig,
@@ -334,28 +369,22 @@ Deno.serve(async (req) => {
       // anterior caso esta linha esteja sendo reaproveitada (reuseRow).
       scheduled_at: scheduleAtIso,
       scheduled_send_claimed_at: null,
-      scheduled_send_attempts: 0,
+      scheduled_send_attempts: 0
     };
-
     if (reuseRow) {
-      await admin
-        .from('event_email_campaigns')
-        .update(rowPayload)
-        .eq('id', (reuseRow as any).id);
+      await admin.from("event_email_campaigns").update(rowPayload).eq("id", reuseRow.id);
     } else {
-      await admin.from('event_email_campaigns').insert(rowPayload);
+      await admin.from("event_email_campaigns").insert(rowPayload);
     }
-
     return json({
-      ok: campaignStatus !== 'failed',
+      ok: campaignStatus !== "failed",
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
       error: errorMessage,
-      scheduled_at: campaignStatus === 'scheduled' ? scheduleAtIso : null,
-      _debug: { egoi_status: created.status, egoi_send_status: egoiSendStatus, egoi_send_body: egoiSendBody },
+      scheduled_at: campaignStatus === "scheduled" ? scheduleAtIso : null,
+      _debug: { egoi_status: created.status, egoi_send_status: egoiSendStatus, egoi_send_body: egoiSendBody }
     });
   } catch (e) {
-    return json({ error: (e as Error).message }, 500);
+    return json({ error: e.message }, 500);
   }
 });
-
