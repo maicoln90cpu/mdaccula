@@ -5,6 +5,8 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -292,6 +294,15 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
   if (block.kind === 'static_map') {
     return (
       <div className="space-y-3">
+        <Alert variant="destructive" className="text-xs">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            O mapa estático no e-mail usa o Google Maps Static API, que é cobrado por cada abertura.
+            Para evitar custos recorrentes, a imagem agora é pré-gerada automaticamente no Bunny CDN
+            no momento do disparo (paga apenas 1x por campanha). Use com moderação e remova o bloco
+            se quiser zerar o custo.
+          </AlertDescription>
+        </Alert>
         <p className="text-xs text-muted-foreground">
           Mini-mapa do venue, clicável — abre no Waze/Google Maps do celular. Só aparece se o
           evento tiver <strong>coordenadas (latitude/longitude)</strong> preenchidas. Você

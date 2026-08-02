@@ -422,15 +422,6 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
       { id: newBlockId(), kind: 'description', align: 'left' },
       {
         id: newBlockId(),
-        kind: 'static_map',
-        zoom: 15,
-        height: 260,
-        map_style: 'roadmap',
-        show_address_label: true,
-        border_radius: 12,
-      },
-      {
-        id: newBlockId(),
         kind: 'cta_button',
         label: 'Quero minha cortesia',
         url_field: 'ticket_link',

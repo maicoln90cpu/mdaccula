@@ -35,7 +35,9 @@ describe('regressao - fidelidade entre preview, teste, rascunho e envio', () => 
     expect(dispatchLogic).toContain('html: manualComposition.html');
     expect(dispatch).toContain('const finalComposition = opts.preparedComposition ?? composition');
     expect(dispatch).toContain('html: finalComposition.html');
-    expect(edge).toContain('body: html');
+    // B.11: o HTML passa por um processador que só substitui URLs de mapa estático
+    // por versões cacheadas no Bunny CDN; o corpo do e-mail não é remontado.
+    expect(edge).toMatch(/body:\s*(html|processedHtml)/);
   });
 
   it('o teste envia o HTML recebido sem sanitizar ou remontar', () => {
