@@ -266,12 +266,13 @@ As policies de `SELECT` em `storage.objects` para `event-images`, `link-thumbnai
 
 ### Pendente ⚠️
 
-- [ ] Habilitar Leaked Password Protection
+- [ ] ~~Habilitar Leaked Password Protection~~ (decisão: fica OFF)
 - [ ] CAPTCHA no formulário de contato
 - [ ] Rate limiting por fingerprint de dispositivo
 - [ ] 2FA (opcional)
-- [ ] Restringir listagem pública nos buckets `event-images`, `link-thumbnails`, `team-images`
-- [ ] Revisar exposição pública das funções `SECURITY DEFINER` (ver Pendências acima)
+- [x] Listagem pública bloqueada nos buckets `event-images`, `link-thumbnails`, `team-images`
+- [x] Funções administrativas (`get_db_size`, `cleanup_old_*`) fechadas ao público
+
 
 ---
 
