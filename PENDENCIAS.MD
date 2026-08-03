@@ -60,23 +60,18 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🗳️ Decisões Pendentes do Usuário
 
-### Funções `SECURITY DEFINER` executáveis por qualquer visitante anônimo
-**Contexto:** advisor de segurança do Supabase (rodado em 23/07/2026) aponta ~14 funções (`has_role`, `is_admin`, `increment_event_views`, `increment_link_clicks`, `increment_post_views`, `increment_redirect_clicks`, `toggle_post_like`, `user_liked_post`, `handle_new_user`, `is_valid_email`, `is_authenticated`, `update_blog_posts_search_vector`, `cleanup_old_egress`, `cleanup_old_logs`, `get_db_size`) chamáveis via `/rest/v1/rpc/...` por usuários não autenticados.
-**Por que é uma decisão, não um bug:** a maioria parece intencional (contadores públicos de clique/view, checagem de role usada pelo próprio frontend) — mas isso não foi confirmado função a função, e algumas (`get_db_size`, `cleanup_old_egress`, `cleanup_old_logs`) parecem ferramentas administrativas que talvez não devessem ser públicas.
-**Decisão necessária:** revisar a lista e confirmar quais devem continuar públicas vs. quais deveriam exigir `authenticated`/`admin`. Detalhe completo: [advisor do Supabase, lint `0028`/`0029`](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable).
+_Nenhuma no momento._
 
 ---
 
 ## 🔧 Bugs Conhecidos
 
 ### Leaked Password Protection desabilitado
-**Status:** ⚠️ Desabilitado (reconfirmado pelo advisor em 23/07/2026 — já documentado desde 15/03/2026 em [`docs/SECURITY-AUDIT.md`](docs/SECURITY-AUDIT.md), nunca foi corrigido)
-**Ação:** habilitar em Authentication → Providers → Email no painel do Supabase (1 clique, fora do alcance das ferramentas de código/MCP).
+**Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
+**Contexto:** o recurso exige configuração no painel do Supabase e o projeto não tem assinatura para isso. Fica intencionalmente **OFF**; não reabrir como pendência em auditorias futuras.
+**Mitigação existente:** acesso ao `/admin` é restrito por `user_roles` + `has_role()`; não há cadastro público de usuários no site.
 
-### 3 buckets públicos permitem listar todos os arquivos
-**Status:** ⚠️ Identificado pelo advisor em 23/07/2026
-**Contexto:** `event-images`, `link-thumbnails` e `team-images` têm uma policy de `SELECT` ampla em `storage.objects` que permite listar todo o conteúdo do bucket, não só acessar arquivos por URL direta (que é tudo que o site precisa). Risco baixo (são imagens já públicas por design), mas expõe mais do que o necessário.
-**Correção sugerida:** restringir a policy de `SELECT` pra permitir `get`/acesso por nome, sem permitir `list` — ver [advisor do Supabase, lint `0025`](https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing).
+
 
 ---
 
