@@ -14,6 +14,7 @@
  */
 import { useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { AutomationCfg, AutomationResult } from './types';
 
@@ -172,7 +173,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           : 'As chaves foram salvas; nenhum cron ativo.',
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao salvar', description: msg });
     } finally {
       setSavingWeekly(false);
@@ -193,7 +194,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           : 'As chaves foram salvas; nenhum cron ativo.',
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao salvar', description: msg });
     } finally {
       setSavingWeekend(false);
@@ -211,7 +212,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           : 'As chaves foram salvas; nenhum cron ativo.',
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao salvar', description: msg });
     } finally {
       setSavingBlog(false);
@@ -260,7 +261,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         description: `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`,
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao gerar digest', description: msg });
     } finally {
       setDigestGenerating(false);
@@ -308,7 +309,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         description: `${res.events_count ?? 0} evento(s) no fim de semana${res.template_name ? ` · ${res.template_name}` : ''}.`,
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao gerar agenda FDS', description: msg });
     } finally {
       setWeekendGenerating(false);
@@ -356,7 +357,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         description: `${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`,
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao gerar Blog news', description: msg });
     } finally {
       setBlogGenerating(false);
@@ -419,7 +420,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         description: `Enviado para ${sentTo}${res.template_name ? ` · ${res.template_name}` : ''}`,
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: `Erro no teste de ${label}`, description: msg });
     } finally {
       setBusy(false);
@@ -487,7 +488,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         description: 'Campanha disparada para a lista real configurada na E-goi.',
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: `Erro ao enviar ${label}`, description: msg });
     } finally {
       setBusy(false);

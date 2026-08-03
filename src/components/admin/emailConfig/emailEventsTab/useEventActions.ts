@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
+import { getEdgeFunctionErrorMessage } from '@/lib';
 import { dispatchAbSubjectTest } from '@/lib/emailTemplates/dispatchEventDraft';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { CampaignStats, CampaignStatsMap } from '../types';
@@ -117,7 +118,7 @@ export function useEventActions(templates: Template[]) {
       }));
       toast({ title: 'Métricas atualizadas' });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      const message = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao atualizar métricas', description: message });
     } finally {
       setRefreshingStatsId(null);

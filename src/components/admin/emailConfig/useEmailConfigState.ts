@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
+import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { useToast } from '@/hooks/useToast';
 import {
   MOCK_EVENT_DATA,
@@ -314,7 +315,7 @@ export function useEmailConfigState({
         description: `${data?.lists?.length ?? 0} listas · ${data?.senders?.length ?? 0} remetentes.`,
       });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      const message = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Falha ao buscar E-goi', description: message });
     } finally {
       setFetchingResources(false);

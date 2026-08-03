@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getEdgeFunctionErrorMessage } from '@/lib';
 import {
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
@@ -151,10 +152,10 @@ export function useEmailPreview({
         template_name: data.template_name,
       });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      const message = await getEdgeFunctionErrorMessage(e);
       toast({
         title: 'Erro ao carregar preview',
-        description: message ?? String(e),
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -223,7 +224,7 @@ export function useEmailPreview({
         description: `Enviado para ${data.sent_to} (Resend #${data.id})`,
       });
     } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Erro desconhecido';
+      const message = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Falha no envio de teste', description: message });
     } finally {
       setSendingTest(false);
