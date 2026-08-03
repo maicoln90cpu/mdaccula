@@ -13,6 +13,13 @@ import { addHours } from 'date-fns';
 import { cn } from '@/lib';
 import { parseLocalDateTime, formatEventDateRange } from '@/lib/dateUtils';
 import { EVENT_PUBLIC_FIELDS } from '@/lib/eventSelectFields';
+
+// EVENT_PUBLIC_FIELDS exclui colunas `merged_*` de propósito (não são
+// exibidas em listas/cards). A página de detalhe é a única consumidora que
+// PRECISA de `status`/`merged_into_id` para redirecionar eventos mesclados
+// para o evento principal — por isso estende localmente em vez de mudar a
+// constante compartilhada.
+const EVENT_DETAIL_FIELDS = `${EVENT_PUBLIC_FIELDS}, merged_into_id`;
 import { getEventCtaButtonLabel, getEventCtaCardTitle } from '@shared/eventCta.ts';
 import { buildPixWhatsAppLink } from '@shared/pixWhatsAppLink.ts';
 import {
@@ -59,7 +66,7 @@ const EventDetail = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select(EVENT_DETAIL_FIELDS)
         .eq('slug', slug)
         .maybeSingle();
       if (error) throw error;
@@ -68,7 +75,7 @@ const EventDetail = () => {
       if (data && data.status === 'merged_inactive' && data.merged_into_id) {
         const { data: target, error: targetErr } = await supabase
           .from('events')
-          .select('*')
+          .select(EVENT_DETAIL_FIELDS)
           .eq('id', data.merged_into_id)
           .maybeSingle();
         if (targetErr) throw targetErr;
@@ -86,7 +93,7 @@ const EventDetail = () => {
 
       const { data: target, error: targetErr } = await supabase
         .from('events')
-        .select('*')
+        .select(EVENT_DETAIL_FIELDS)
         .eq('id', redir.event_id)
         .maybeSingle();
       if (targetErr) throw targetErr;

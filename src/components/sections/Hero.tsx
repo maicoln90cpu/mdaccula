@@ -63,6 +63,7 @@ const FlyerMural = () => {
                   alt=""
                   className="w-full h-full"
                   objectFit="cover"
+                  priority={i === 0}
                 />
                 {event.genres?.[0] && (
                   <span className="absolute top-2 left-2 text-[0.65rem] font-mono uppercase tracking-wide font-bold bg-accent text-accent-foreground px-2 py-0.5 rounded-full">

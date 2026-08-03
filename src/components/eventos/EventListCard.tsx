@@ -1,6 +1,7 @@
 /**
  * Card de evento na listagem do /eventos — extraído de src/pages/Eventos.tsx (Onda 17).
  */
+import { memo } from 'react';
 import { Calendar as CalendarIcon, Clock, Copy, Edit, MapPin, Save } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ interface EventListCardProps {
   onSaveAsTemplate: (event: Event) => void;
 }
 
-export const EventListCard = ({
+export const EventListCard = memo(function EventListCard({
   event,
   index,
   isAdmin,
@@ -29,7 +30,7 @@ export const EventListCard = ({
   onEdit,
   onDuplicate,
   onSaveAsTemplate,
-}: EventListCardProps) => {
+}: EventListCardProps) {
   return (
     <Card
       className="event-card group cursor-pointer"
@@ -132,4 +133,4 @@ export const EventListCard = ({
       </CardContent>
     </Card>
   );
-};
+});

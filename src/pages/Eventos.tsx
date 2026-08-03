@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import Navigation from '@/components/ui/navigation';
@@ -124,17 +124,20 @@ const Eventos = () => {
   const eventDates = useMemo(() => computeEventDateCounts(filteredEvents), [filteredEvents]);
   const upcomingEvents = useMemo(() => filterUpcomingEvents(filteredEvents), [filteredEvents]);
 
-  const handleEventClick = (event: Event) => {
-    navigate(`/eventos/${event.slug}`);
-  };
+  const handleEventClick = useCallback(
+    (event: Event) => {
+      navigate(`/eventos/${event.slug}`);
+    },
+    [navigate]
+  );
 
-  const handleEditEvent = (event: Event) => {
+  const handleEditEvent = useCallback((event: Event) => {
     setEditingEvent(event);
     setShowEventForm(true);
     setShowEventModal(false);
-  };
+  }, []);
 
-  const handleDuplicateEvent = (event: Event) => {
+  const handleDuplicateEvent = useCallback((event: Event) => {
     const { id: _id, ...eventWithoutId } = event;
     const duplicatedEvent: Partial<Event> = {
       ...eventWithoutId,
@@ -145,7 +148,7 @@ const Eventos = () => {
     setEditingEvent(duplicatedEvent);
     setShowEventForm(true);
     setShowEventModal(false);
-  };
+  }, []);
 
   const handleFormSuccess = () => {
     setShowEventForm(false);
@@ -153,7 +156,7 @@ const Eventos = () => {
     refetchEvents();
   };
 
-  const handleSaveAsTemplate = async (event: Event) => {
+  const handleSaveAsTemplate = useCallback(async (event: Event) => {
     try {
       const { error } = await supabase.from('event_templates').insert({
         name: event.title,
@@ -173,7 +176,7 @@ const Eventos = () => {
       console.error('Erro ao salvar template:', error);
       toast.error('Erro ao salvar template');
     }
-  };
+  }, []);
 
   return (
     <>
