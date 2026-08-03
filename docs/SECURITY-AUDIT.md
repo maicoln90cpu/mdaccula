@@ -217,27 +217,31 @@ export function escapeHtml(str: string): string {
 ## ⚠️ Pendências
 
 ### Leaked Password Protection
-**Status:** ⚠️ Desabilitado  
-**Ação:** Habilitar em Authentication > Providers > Email no painel Supabase
+**Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026), fica OFF permanentemente.
+**Motivo:** exige configuração/assinatura no painel Supabase. Mitigado por acesso admin restrito via `user_roles`.
 
 ### CAPTCHA no Contato
-**Status:** ⚠️ Não implementado  
+**Status:** ⚠️ Não implementado
 **Risco:** Baixo (rate limiting mitiga spam automatizado)
 
-### Buckets públicos permitem listagem (achado em 23/07/2026)
-**Status:** ⚠️ Não corrigido  
-**Detalhe:** `event-images`, `link-thumbnails` e `team-images` têm policy de `SELECT` em `storage.objects` ampla o bastante pra listar todo o conteúdo do bucket, não só acessar por URL direta.
-**Risco:** Baixo (conteúdo já é público por design), mas expõe listagem além do necessário.
-**Ação:** restringir a policy pra permitir leitura por nome de objeto, sem `list`. Ver [lint 0025](https://supabase.com/docs/guides/database/database-linter?lint=0025_public_bucket_allows_listing).
+---
 
-### Funções SECURITY DEFINER expostas ao público (achado em 23/07/2026)
-**Status:** ⚠️ Pendente revisão função-a-função  
-**Detalhe:** ~14 funções (`has_role`, `is_admin`, contadores de view/click/like, `handle_new_user`, `is_valid_email`, `is_authenticated`, `update_blog_posts_search_vector`, `cleanup_old_egress`, `cleanup_old_logs`, `get_db_size`) são executáveis via RPC por `anon`/`authenticated`. A maioria é intencional (contadores públicos, checagem de role usada pelo frontend), mas `get_db_size`/`cleanup_old_*` parecem ferramentas administrativas que talvez não devessem ser públicas.
-**Ação:** decisão do usuário — ver [`PENDENCIAS.MD`](/PENDENCIAS.MD) → 🗳️ Decisões Pendentes. Ver [lint 0028/0029](https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable).
+## ✅ Corrigido em 03/08/2026
+
+### Funções administrativas fechadas ao público
+`get_db_size` e `cleanup_old_egress` agora só executam com `service_role`. `cleanup_old_logs` exige admin (checagem interna via `has_role`) e não aceita `anon`.
+As demais funções `SECURITY DEFINER` (`has_role`, `is_admin`, `is_authenticated`, `is_valid_email`, contadores de view/click, `toggle_post_like`, `user_liked_post`, `handle_new_user`, `update_blog_posts_search_vector`) permanecem executáveis por `anon` **por design** — são contadores públicos e checagens usadas pelo próprio frontend. Não reabrir como pendência.
+
+### Buckets públicos não permitem mais listagem
+As policies de `SELECT` em `storage.objects` para `event-images`, `link-thumbnails` e `team-images` passaram a exigir admin. Imagens continuam abrindo por URL pública (buckets públicos são servidos sem passar por RLS); listagem interna (limpeza de storage, migração Bunny) roda por `service_role` nas Edge Functions.
+
+### Realtime em tabelas sensíveis — avaliado e mantido
+`newsletter_subscribers` e `podcast_submissions` continuam na publicação `supabase_realtime` porque os painéis `/admin` dependem disso para atualização ao vivo. O Realtime respeita RLS: como nenhuma policy libera leitura anônima nessas tabelas, um visitante não recebe nenhum evento. Decisão consciente, não é pendência.
 
 ### Performance de RLS (achado em 23/07/2026, informativo)
-**Status:** ℹ️ Não é vulnerabilidade — otimização de custo de query  
-**Detalhe:** advisor de performance reportou 83 avisos de "Multiple Permissive Policies" e 28 de "Auth RLS Initialization Plan" (padrões conhecidos do Postgres/Supabase: várias policies permissivas na mesma tabela/comando forçam avaliação redundante; `auth.uid()` sem `(select ...)` reavalia por linha). Não bloqueia nada hoje; candidato a entrar no backlog de performance se o volume de dados crescer.
+**Status:** ℹ️ Não é vulnerabilidade — otimização de custo de query
+**Detalhe:** advisor de performance reportou 83 avisos de "Multiple Permissive Policies" e 28 de "Auth RLS Initialization Plan" (padrões conhecidos do Postgres/Supabase). Não bloqueia nada hoje; candidato a backlog de performance se o volume crescer.
+
 
 ---
 
