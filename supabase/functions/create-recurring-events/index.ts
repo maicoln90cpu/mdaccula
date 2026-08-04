@@ -57,7 +57,7 @@ function generateSlug(title: string): string {
 // ============= CONTEÚDO ÚNICO POR INSTÂNCIA =============
 // Sem isso, toda semana o campo `description` era copiado 1:1 do template
 // (config.description), gerando conteúdo praticamente duplicado entre as
-// edições de um mesmo evento recorrente (achado de SEO, ver PENDENCIAS.MD).
+// edições de um mesmo evento recorrente (achado de SEO, ver docs/PENDENCIAS.md).
 // Aqui a gente insere uma abertura variável (data por extenso + frase
 // rotativa) antes do texto fixo do config, sem custo de IA extra.
 const WEEKDAYS_PT = [

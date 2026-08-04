@@ -1,7 +1,7 @@
 # Capacidades da hospedagem Lovable
 
 > Documento de rastreamento. Criado em 14/07/2026 durante a implementação das correções da
-> auditoria SEO (ver `PENDENCIAS.MD` e o histórico de commits "fase 1 seo" / "fase 2 seo" /
+> auditoria SEO (ver `docs/PENDENCIAS.md` e o histórico de commits "fase 1 seo" / "fase 2 seo" /
 > "fase 3 seo"). **Respondido em 14/07/2026** com base na documentação oficial
 > (docs.lovable.dev).
 

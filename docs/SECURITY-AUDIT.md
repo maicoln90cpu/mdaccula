@@ -292,8 +292,8 @@ As policies de `SELECT` em `storage.objects` para `event-images`, `link-thumbnai
 | README.md | [/README.md](/README.md) |
 | SYSTEM-DESIGN.md | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |
 | CODE_STYLE.md | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
-| tabelas.md | [/tabelas.md](/tabelas.md) |
-| PENDENCIAS.MD | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
+| tabelas.md | [tabelas.md](tabelas.md) |
+| PENDENCIAS.md | [PENDENCIAS.md](PENDENCIAS.md) |
 
 ---
 

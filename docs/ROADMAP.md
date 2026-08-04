@@ -142,7 +142,7 @@
 | README.md completo | ✅ | 13/07/2026 |
 | PRD.md atualizado | ✅ | 13/07/2026 |
 | ROADMAP.md atualizado | ✅ | 18/07/2026 |
-| PENDENCIAS.MD atualizado | ✅ | 18/07/2026 |
+| PENDENCIAS.md atualizado | ✅ | 18/07/2026 |
 | SYSTEM-DESIGN.md | ✅ | 15/03/2026 |
 | CODE_STYLE.md | ✅ | 18/07/2026 |
 | SECURITY-AUDIT.md | ✅ | 15/03/2026 |
@@ -312,8 +312,8 @@ removendo esse agrupamento — Rollup volta a fazer chunking automático por uso
 |-----------|-----------|------|
 | README.md | Documentação técnica | [/README.md](/README.md) |
 | PRD.md | Requisitos do produto | [/docs/PRD.md](/docs/PRD.md) |
-| CHANGELOG.md | Histórico do que já foi entregue | [/CHANGELOG.md](/CHANGELOG.md) |
-| PENDENCIAS.MD | Itens em aberto (decisões, bugs, monitoramento) | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
+| CHANGELOG.md | Histórico do que já foi entregue | [CHANGELOG.md](CHANGELOG.md) |
+| PENDENCIAS.md | Itens em aberto (decisões, bugs, monitoramento) | [PENDENCIAS.md](PENDENCIAS.md) |
 | CODE_STYLE.md | Guia de código | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
 | SECURITY-AUDIT.md | Auditoria segurança | [/docs/SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) |
 | SYSTEM-DESIGN.md | Arquitetura técnica | [/docs/SYSTEM-DESIGN.md](/docs/SYSTEM-DESIGN.md) |

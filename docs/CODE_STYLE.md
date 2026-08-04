@@ -59,7 +59,7 @@ Configuração em `eslint.config.js`. Desde 18/07/2026 o projeto roda com **zero
 }
 ```
 
-Ver histórico completo da limpeza (392 → 0, em 6 fases) no [`CHANGELOG.md`](../CHANGELOG.md).
+Ver histórico completo da limpeza (392 → 0, em 6 fases) no [`CHANGELOG.md`](CHANGELOG.md).
 
 ### Prettier
 

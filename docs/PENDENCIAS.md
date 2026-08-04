@@ -2,7 +2,7 @@
 
 > Só itens em aberto que precisam de ação, decisão ou revisão em alguma data futura.
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
-> **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`docs/ROADMAP.md`](docs/ROADMAP.md).
+> **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`ROADMAP.md`](ROADMAP.md).
 
 **Última atualização:** 23/07/2026
 
@@ -66,6 +66,16 @@ _Nenhuma no momento._
 
 ## 🔧 Bugs Conhecidos
 
+### Várias Edge Functions admin não têm checagem de autenticação no código
+**Status:** 🔧 Não corrigido — plano de fases definido (04/08/2026, via skill `auditoria-backend`), aguardando aprovação da Fase 1 pra começar a implementar.
+**Contexto:** `verify_jwt` é `false` em todas as functions do projeto (auth é responsabilidade de cada function). ~20 funções pensadas como "só admin usa" não verificam token nenhum: `send-mass-newsletter`, `import-csv-data`, `upload-csv`, `diagnose-media`, `cleanup-storage`, `batch-convert-webp`, `convert-to-webp`, `import-storage`, `fetch-link-metadata`, `systemhealth`, `generate-blog-post-v2`, `generate-blog-post-from-topic`, `generate-blog-suggestions`, `generate-multi-event-article`, `regenerate-blog-image`, `preview-topic-sources`, `auto-article-cron`, `create-recurring-events`, `cleanup-sync-logs`. O projeto já tem o mecanismo certo pronto (`authorizeAdminOrCron()` em `supabase/functions/_shared/index.ts`, aceita admin JWT + `has_role()` OU cron secret) — só falta cada function chamá-lo.
+**Casos à parte** (não é "esqueceram auth", precisam de tratamento diferente):
+- `send-podcast-notification` — chamada por formulário público real (`Podcast.tsx`); precisa de rate limiting (como `send-contact-email`/`request-data-deletion` já têm), não admin-auth.
+- `compose-event-image` — tem 2 chamadores server-to-server sem sessão de usuário (`scan-event-sources`, `apify-instagram-webhook`); exigir admin JWT quebraria essas automações. Precisa de secret interno compartilhado, não é cópia mecânica do padrão admin.
+- `import-storage` (ferramenta de migração one-off, pode já ter cumprido o papel) e `convert-to-webp` (placeholder no-op) — decidir entre proteger ou remover.
+**Passos:** plano de 8 fases (detalhado na conversa de 04/08/2026) — Fase 1 (`send-mass-newsletter`, `import-csv-data`, `upload-csv`) é a de maior risco de abuso real, prioridade sugerida.
+**Responsável:** usuário aprova cada fase antes da IA implementar (uma de cada vez — nunca em lote, por regra do próprio `CLAUDE.md`).
+
 ### Leaked Password Protection desabilitado
 **Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
 **Contexto:** o recurso exige configuração no painel do Supabase e o projeto não tem assinatura para isso. Fica intencionalmente **OFF**; não reabrir como pendência em auditorias futuras.
@@ -79,10 +89,12 @@ _Nenhuma no momento._
 
 | Documento | Descrição | Link |
 |-----------|-----------|------|
-| CHANGELOG.md | Histórico do que já foi entregue | [/CHANGELOG.md](/CHANGELOG.md) |
-| docs/ROADMAP.md | Features novas planejadas, fases e cronograma | [/docs/ROADMAP.md](/docs/ROADMAP.md) |
-| README.md | Documentação técnica | [/README.md](/README.md) |
-| docs/PRD.md | Requisitos do produto | [/docs/PRD.md](/docs/PRD.md) |
-| docs/CODE_STYLE.md | Guia de código | [/docs/CODE_STYLE.md](/docs/CODE_STYLE.md) |
-| docs/SECURITY-AUDIT.md | Auditoria segurança | [/docs/SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) |
-| tabelas.md | Documentação do banco | [/tabelas.md](/tabelas.md) |
+| CHANGELOG.md | Histórico do que já foi entregue | [CHANGELOG.md](CHANGELOG.md) |
+| ROADMAP.md | Features novas planejadas, fases e cronograma | [ROADMAP.md](ROADMAP.md) |
+| README.md | Documentação técnica | [../README.md](../README.md) |
+| PRD.md | Requisitos do produto | [PRD.md](PRD.md) |
+| CODE_STYLE.md | Guia de código | [CODE_STYLE.md](CODE_STYLE.md) |
+| SECURITY-AUDIT.md | Auditoria segurança | [SECURITY-AUDIT.md](SECURITY-AUDIT.md) |
+| DATABASE_SCHEMA.md | Índice das tabelas por domínio | [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) |
+| EDGE_FUNCTIONS.md | Índice das Edge Functions | [EDGE_FUNCTIONS.md](EDGE_FUNCTIONS.md) |
+| tabelas.md | Documentação SQL do banco | [tabelas.md](tabelas.md) |

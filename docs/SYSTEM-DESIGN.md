@@ -469,7 +469,7 @@ quebra cron jobs/webhooks/chamadas públicas silenciosamente.
 
 ## Banco de Dados
 
-### Schema Principal (ver [tabelas.md](/tabelas.md) para SQL completo)
+### Schema Principal (ver [tabelas.md](tabelas.md) para SQL completo)
 
 **25 tabelas** organizadas em:
 - **Conteúdo:** events, blog_posts, custom_links, link_groups, redirect_links
@@ -675,9 +675,11 @@ Provider global com cache em localStorage. Carrega uma vez, revalida em backgrou
 | [ROADMAP.md](/docs/ROADMAP.md) | Cronograma de desenvolvimento |
 | [CODE_STYLE.md](/docs/CODE_STYLE.md) | Guia de estilo |
 | [SECURITY-AUDIT.md](/docs/SECURITY-AUDIT.md) | Auditoria de segurança |
-| [tabelas.md](/tabelas.md) | Schema SQL completo |
-| [CHANGELOG.md](/CHANGELOG.md) | Histórico do que já foi entregue |
-| [PENDENCIAS.MD](/PENDENCIAS.MD) | Itens em aberto (decisões, bugs, monitoramento) |
+| [tabelas.md](tabelas.md) | Schema SQL completo |
+| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | Índice das tabelas por domínio |
+| [EDGE_FUNCTIONS.md](EDGE_FUNCTIONS.md) | Índice das Edge Functions |
+| [CHANGELOG.md](CHANGELOG.md) | Histórico do que já foi entregue |
+| [PENDENCIAS.md](PENDENCIAS.md) | Itens em aberto (decisões, bugs, monitoramento) |
 
 ---
 

@@ -23,13 +23,18 @@
 |-----------|-----------|
 | [📋 PRD.md](docs/PRD.md) | Requisitos do produto, objetivos e backlog |
 | [🗺️ ROADMAP.md](docs/ROADMAP.md) | Fases de desenvolvimento e cronograma |
-| [📜 CHANGELOG.md](CHANGELOG.md) | Histórico do que já foi entregue |
-| [📝 PENDENCIAS.MD](PENDENCIAS.MD) | Itens em aberto (decisões, bugs, monitoramento) |
+| [📜 CHANGELOG.md](docs/CHANGELOG.md) | Histórico do que já foi entregue |
+| [📝 PENDENCIAS.md](docs/PENDENCIAS.md) | Itens em aberto (decisões, bugs, monitoramento) |
 | [🎨 CODE_STYLE.md](docs/CODE_STYLE.md) | Guia de estilo e convenções de código |
 | [🔒 SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) | Auditoria de segurança e políticas RLS |
 | [🏗️ SYSTEM-DESIGN.md](docs/SYSTEM-DESIGN.md) | Arquitetura técnica e fluxos de dados |
-| [🗃️ tabelas.md](tabelas.md) | Documentação SQL do banco de dados |
+| [🗺️ FEATURE_MAP.md](docs/FEATURE_MAP.md) | Mapa de funcionalidades e status |
+| [🗃️ DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Índice das 41 tabelas por domínio |
+| [🗃️ tabelas.md](docs/tabelas.md) | DDL SQL completa do banco de dados |
+| [⚡ EDGE_FUNCTIONS.md](docs/EDGE_FUNCTIONS.md) | Índice das 57 Edge Functions |
+| [🎨 guides/design-system.md](docs/guides/design-system.md) | Tokens e componentes do design system |
 | [🧪 TESTING.md](docs/TESTING.md) | Como rodar testes, coverage ratchet e catálogo de regressões |
+| [🚀 ONBOARDING.md](docs/ONBOARDING.md) | Guia de setup para dev novo |
 
 ---
 
@@ -261,53 +266,24 @@ O projeto inclui um servidor Express mínimo (`server.js`) que serve a build est
 │   └── main.tsx             # Entry point com ErrorBoundary global
 ├── supabase/
 │   ├── config.toml          # Configuração Supabase (NÃO EDITAR)
-│   └── functions/           # 20+ Edge Functions (Deno)
+│   └── functions/           # 57 Edge Functions (Deno) — ver docs/EDGE_FUNCTIONS.md
 │       ├── _shared/         # Módulos compartilhados (cors, rate-limit, etc)
 │       └── [function-name]/index.ts
 ├── public/
 │   ├── service-worker.js    # PWA (Network-First, v5)
 │   ├── robots.txt           # SEO
 │   └── sitemap.xml          # Sitemap estático
-├── docs/                    # Documentação técnica
-├── tailwind.config.ts       # Tokens e animações Tailwind
-└── tabelas.md               # SQL para recriar banco do zero
+├── docs/                    # Documentação técnica (inclui tabelas.md — SQL para recriar banco do zero)
+└── tailwind.config.ts       # Tokens e animações Tailwind
 ```
 
 ---
 
 ## Banco de Dados
 
-### Tabelas (25 tabelas)
+### Tabelas
 
-| Tabela | Descrição | RLS |
-|--------|-----------|-----|
-| `events` | Eventos da agência | ✅ Público leitura, Admin CRUD |
-| `recurring_event_configs` | Configurações de eventos recorrentes | ✅ Admin apenas |
-| `blog_posts` | Artigos do blog | ✅ Publicados = público, Admin CRUD |
-| `blog_post_likes` | Likes em posts | ✅ Próprio usuário |
-| `blog_view_events` | Log de views de posts | ✅ Insert público |
-| `event_view_events` | Log de views de eventos | ✅ Insert público |
-| `custom_links` | Links personalizáveis | ✅ Habilitados = público, Admin CRUD |
-| `link_groups` | Grupos de links | ✅ Habilitados = público |
-| `link_click_events` | Log de cliques em links | ✅ Insert via Edge Function |
-| `redirect_links` | Links curtos com UTM | ✅ Admin CRUD |
-| `redirect_click_events` | Log de cliques em redirects | ✅ Insert via Edge Function |
-| `profiles` | Perfis de usuários | ✅ Próprio usuário apenas |
-| `user_roles` | Roles (admin, moderator, user) | ✅ Próprio usuário leitura |
-| `site_settings` | Configurações key-value | ✅ Público leitura, Admin CRUD |
-| `team_members` | Membros da equipe | ✅ Ativos = público |
-| `event_templates` | Templates de eventos | ✅ Admin apenas |
-| `ai_prompt_templates` | Templates de prompts IA | ✅ Admin apenas |
-| `ai_generated_posts` | Logs de geração IA (tokens, custo) | ✅ Admin apenas |
-| `newsletter_subscribers` | Inscritos newsletter | ✅ Insert público (rate limited) |
-| `newsletter_popup_variants` | Variantes A/B | ✅ Habilitados = público |
-| `newsletter_popup_analytics` | Analytics popup | ✅ Insert público |
-| `news_sources` | Fontes de notícias para IA | ✅ Admin apenas |
-| `share_analytics` | Analytics de compartilhamentos | ✅ Insert via Edge Function |
-| `sync_logs` | Logs de sincronização | ✅ Admin leitura |
-| `podcast_submissions` | Inscrições do programa de podcast | ✅ Insert público, Admin CRUD |
-| `application_logs` | Logs da aplicação | ✅ Insert via Edge Function |
-| `performance_metrics` | Métricas de performance | ✅ Insert via Edge Function |
+Índice completo e agrupado por domínio em [`docs/DATABASE_SCHEMA.md`](docs/DATABASE_SCHEMA.md) (42 tabelas, RLS habilitada em 100% delas). A DDL completa para recriar o banco do zero está em [`docs/tabelas.md`](docs/tabelas.md).
 
 ### Funções SQL Importantes
 
@@ -736,14 +712,15 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 
 1. Criar SQL via migration tool
 2. Incluir RLS policies
-3. Documentar em `tabelas.md`
+3. Documentar em `docs/tabelas.md` e `docs/DATABASE_SCHEMA.md`
 4. Tipos gerados automaticamente em `types.ts`
 
 ### Adicionando Nova Edge Function
 
 1. Criar pasta `supabase/functions/nome-funcao/index.ts`
 2. Usar módulos `_shared/` (CORS, rate limiting, etc)
-3. Deploy automático via Lovable
+3. Documentar em `docs/EDGE_FUNCTIONS.md`
+4. Deploy automático via GitHub Actions ao dar push em `supabase/functions/**` — nunca usar o deployer da Lovable UI nem o MCP `deploy_edge_function` (bug conhecido: derruba imports de `_shared/`)
 
 ---
 
@@ -791,12 +768,17 @@ const NovaPagina = lazy(() => import("./pages/NovaPagina"));
 |-----------|-----------|
 | [docs/PRD.md](docs/PRD.md) | Product Requirements Document |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Roadmap de desenvolvimento |
-| [CHANGELOG.md](CHANGELOG.md) | Histórico do que já foi entregue |
-| [PENDENCIAS.MD](PENDENCIAS.MD) | Itens em aberto (decisões, bugs, monitoramento) |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Histórico do que já foi entregue |
+| [docs/PENDENCIAS.md](docs/PENDENCIAS.md) | Itens em aberto (decisões, bugs, monitoramento) |
 | [docs/CODE_STYLE.md](docs/CODE_STYLE.md) | Guia de estilo de código |
 | [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) | Auditoria de segurança |
 | [docs/SYSTEM-DESIGN.md](docs/SYSTEM-DESIGN.md) | Arquitetura técnica e fluxos de dados |
-| [tabelas.md](tabelas.md) | Documentação do banco de dados |
+| [docs/FEATURE_MAP.md](docs/FEATURE_MAP.md) | Mapa de funcionalidades e status |
+| [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Índice das tabelas por domínio |
+| [docs/tabelas.md](docs/tabelas.md) | Documentação SQL completa do banco de dados |
+| [docs/EDGE_FUNCTIONS.md](docs/EDGE_FUNCTIONS.md) | Índice das Edge Functions |
+| [docs/guides/design-system.md](docs/guides/design-system.md) | Tokens e componentes do design system |
+| [docs/ONBOARDING.md](docs/ONBOARDING.md) | Guia de setup para dev novo |
 
 ---
 

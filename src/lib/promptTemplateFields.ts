@@ -2,7 +2,7 @@
  * Normaliza `ai_prompt_templates.required_fields` (coluna JSON `{campo: boolean}`,
  * ou array legado onde todo campo é obrigatório) em duas listas: todos os campos
  * configurados (pra renderizar o formulário) e só os campos com `true` (pra bloquear
- * a geração). Ver PENDENCIAS.MD/CHANGELOG — antes disso, `Object.keys()` tratava
+ * a geração). Ver docs/PENDENCIAS.md/docs/CHANGELOG.md — antes disso, `Object.keys()` tratava
  * campo opcional como obrigatório por descartar o booleano.
  */
 export function normalizePromptTemplateFields(requiredFields: unknown): {

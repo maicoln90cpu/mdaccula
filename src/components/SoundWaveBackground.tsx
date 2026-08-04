@@ -1,7 +1,7 @@
 /**
  * Fundo decorativo de ondas sonoras em CSS/SVG puro — sem imagem, sem lib nova,
  * custo de banda zero. Teste isolado em EventDetail.tsx antes de considerar
- * aplicar em outras páginas (ver PENDENCIAS.MD/CHANGELOG).
+ * aplicar em outras páginas (ver docs/PENDENCIAS.md/docs/CHANGELOG.md).
  *
  * `fixed` (não `absolute`) de propósito: a página de evento é bem longa, então
  * ancorar ao fim do documento inteiro deixava as ondas escondidas lá embaixo,

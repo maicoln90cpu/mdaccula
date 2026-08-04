@@ -1,8 +1,8 @@
 # Changelog - MDAccula
 
 > Histórico cronológico do que já foi entregue no projeto. Só registro — nenhum item aqui precisa de ação.
-> Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.MD`](PENDENCIAS.MD).
-> Features novas planejadas (ainda não construídas) ficam em [`docs/ROADMAP.md`](docs/ROADMAP.md).
+> Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
+> Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
 **Última atualização:** 24/07/2026
 
@@ -17,6 +17,17 @@
 ---
 
 ## Entradas Detalhadas
+
+### `docs/tabelas.md` recebe DDL retroativa de 25 tabelas (gap de documentação)
+**Descrição:** auditoria de documentação de 03/08/2026 achou que `tabelas.md` (script "recriar o banco do zero") só tinha DDL de 18 das 42 tabelas reais — as 25 mais recentes (E-goi/e-mail, tracking granular, observabilidade, `event_sources`/`event_watch_drafts`) nunca tinham sido documentadas ali, e o arquivo ainda citava `news_sources`, tabela que não existe mais (substituída por `event_sources`).
+**Correção:** escrita a DDL completa (colunas, tipos, PKs, FKs, CHECKs, índices, RLS policies e triggers) das 25 tabelas, levantada ao vivo via Supabase MCP e organizada nos mesmos domínios de `docs/DATABASE_SCHEMA.md`, numa nova seção "1.2-B" em `tabelas.md`. O bloco `news_sources` foi mantido (não apagado) mas marcado como obsoleto em todos os pontos onde aparece.
+**Data:** 04/08/2026
+**Responsável:** IA
+**Impacto:** baixo-médio (documentação, não afeta código em produção; reduz risco de alguém tentar recriar o banco do zero com DDL incompleta)
+
+**Arquivos alterados:** `docs/tabelas.md`, `docs/PENDENCIAS.md` (pendência correspondente removida).
+
+---
 
 ### Botão "Enviar agora" na aba Automações (Digest semanal / Agenda FDS / Blog news)
 **Descrição:** Antes só existia "Gerar rascunho agora" (cria na E-goi) e "Enviar teste agora" (via Resend, 1 destinatário fixo) — pra disparar de verdade pra lista inteira, o admin precisava ir manualmente na plataforma da E-goi ou ligar "Enviar automaticamente no cron" e esperar o horário agendado.
@@ -176,7 +187,7 @@
 6. Correção: `EventForm.tsx`/`RecurringEventsManager.tsx`/`EventTemplates.tsx` não geravam a variante `medium` (hero ficava sem ela) — corrigido
 7. Ferramenta de backfill em `/admin/settings` → aba Mídia → "Backfill de Variantes — Eventos Ativos": gera variantes pra eventos com data futura + configs de evento recorrente (imagem compartilhada por toda instância gerada). Idempotente.
 
-**Baseline anotado pra comparação futura:** ~337KB/requisição, ~90GB/mês, ~$4-5/mês no item de banda do Bunny (de um total de ~$10/mês que o usuário paga "pelo projeto"). Checkpoint de acompanhamento em [`PENDENCIAS.MD`](PENDENCIAS.MD).
+**Baseline anotado pra comparação futura:** ~337KB/requisição, ~90GB/mês, ~$4-5/mês no item de banda do Bunny (de um total de ~$10/mês que o usuário paga "pelo projeto"). Checkpoint de acompanhamento em [`PENDENCIAS.md`](PENDENCIAS.md).
 
 ---
 
@@ -926,12 +937,12 @@
 
 | Documento | Descrição | Link |
 |-----------|-----------|------|
-| PENDENCIAS.MD | Itens em aberto (decisões, bugs, monitoramento) | [/PENDENCIAS.MD](/PENDENCIAS.MD) |
-| docs/ROADMAP.md | Features novas planejadas, fases e cronograma | [/docs/ROADMAP.md](/docs/ROADMAP.md) |
-| README.md | Documentação técnica | [/README.md](/README.md) |
-| docs/PRD.md | Requisitos do produto | [/docs/PRD.md](/docs/PRD.md) |
-| tabelas.md | Documentação do banco | [/tabelas.md](/tabelas.md) |
+| PENDENCIAS.md | Itens em aberto (decisões, bugs, monitoramento) | [PENDENCIAS.md](PENDENCIAS.md) |
+| ROADMAP.md | Features novas planejadas, fases e cronograma | [ROADMAP.md](ROADMAP.md) |
+| README.md | Documentação técnica | [../README.md](../README.md) |
+| PRD.md | Requisitos do produto | [PRD.md](PRD.md) |
+| tabelas.md | Documentação do banco | [tabelas.md](tabelas.md) |
 
 ---
 
-*Registre uma entrada nova aqui sempre que uma implementação relevante for concluída — não deixe pendurado em `PENDENCIAS.MD`.*
+*Registre uma entrada nova aqui sempre que uma implementação relevante for concluída — não deixe pendurado em `PENDENCIAS.md`.*

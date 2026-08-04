@@ -2,7 +2,7 @@
 
 > **Status geral: ✅ 100% CONCLUÍDO em 13/07/2026.**
 > Este arquivo é mantido como registro histórico. Novas iniciativas devem
-> ser adicionadas em `docs/ROADMAP.md` (Fase 3) e não aqui.
+> ser adicionadas em `ROADMAP.md` (Fase 3) e não aqui.
 
 ---
 

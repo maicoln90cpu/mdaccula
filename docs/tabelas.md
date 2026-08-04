@@ -35,6 +35,9 @@ DROP TABLE IF EXISTS public.profiles CASCADE;
 -- Deletar tipos personalizados
 DROP TYPE IF EXISTS public.app_role CASCADE;
 
+-- news_sources acima é obsoleta (substituída por event_sources) — não é
+-- mais criada por este script, então não precisa ser dropada num banco novo.
+
 -- Deletar funções
 DROP FUNCTION IF EXISTS public.handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS public.update_updated_at_column() CASCADE;
@@ -188,6 +191,10 @@ CREATE TABLE public.team_members (
 -- ============================================
 -- TABELA: news_sources
 -- ============================================
+-- ⚠️ OBSOLETA (04/08/2026): esta tabela NÃO EXISTE no schema real de produção.
+-- Foi substituída por `event_sources` (ver seção "Tabelas adicionadas em
+-- 04/08/2026" mais abaixo). Mantida aqui só como registro histórico — não
+-- execute este CREATE TABLE ao recriar o banco do zero.
 CREATE TABLE public.news_sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
@@ -369,6 +376,862 @@ ALTER TABLE public.events
 ADD CONSTRAINT events_blog_post_id_fkey
 FOREIGN KEY (blog_post_id) REFERENCES public.blog_posts(id) ON DELETE SET NULL;
 ```
+
+---
+
+### 1.2-B Tabelas adicionadas em 04/08/2026
+
+> As 25 tabelas abaixo foram criadas depois deste script original e nunca tinham ganho DDL aqui —
+> gap identificado e corrigido em 04/08/2026 (ver `docs/PENDENCIAS.md` e `docs/DATABASE_SCHEMA.md`).
+> Levantadas a partir do schema real via Supabase MCP (`information_schema`, `pg_policies`,
+> `pg_indexes`). Agrupadas pelos mesmos domínios de `docs/DATABASE_SCHEMA.md`.
+
+#### 🎪 Eventos
+
+```sql
+-- ============================================
+-- TABELA: recurring_event_configs
+-- ============================================
+-- Configuração de eventos automáticos recorrentes (ex.: toda sexta-feira);
+-- o cron gera instâncias em `events` a partir daqui.
+CREATE TABLE public.recurring_event_configs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  subtitle TEXT,
+  description TEXT,
+  venue TEXT NOT NULL,
+  address TEXT,
+  location_city TEXT NOT NULL,
+  location_state TEXT NOT NULL,
+  weekday INTEGER NOT NULL, -- 0=domingo .. 6=sábado
+  time TIME NOT NULL,
+  end_time TIME,
+  genres TEXT[] DEFAULT '{}',
+  ticket_link TEXT,
+  vip_link TEXT,
+  image_url TEXT,
+  link_group_id UUID REFERENCES public.link_groups(id), -- sem ON DELETE definido (NO ACTION) — ver observação abaixo
+  enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+ALTER TABLE public.recurring_event_configs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage recurring configs"
+  ON public.recurring_event_configs FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+-- ============================================
+-- TABELA: event_sources
+-- ============================================
+-- Fontes externas (sites/perfis) monitoradas automaticamente para descobrir
+-- novos eventos a publicar. Substitui a antiga `news_sources` (obsoleta).
+CREATE TABLE public.event_sources (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL DEFAULT 'site' CHECK (type IN ('site', 'instagram')),
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  last_scanned_at TIMESTAMP WITH TIME ZONE,
+  last_seen_post_id TEXT, -- cursor/checkpoint da última página/post já processado
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_event_sources_enabled ON public.event_sources(enabled);
+
+ALTER TABLE public.event_sources ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins manage event sources"
+  ON public.event_sources FOR ALL
+  TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE TRIGGER trg_event_sources_updated_at
+  BEFORE UPDATE ON public.event_sources
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: event_watch_drafts
+-- ============================================
+-- Rascunhos extraídos automaticamente de `event_sources` aguardando revisão
+-- humana antes de virarem `events`/`blog_posts` publicados.
+CREATE TABLE public.event_watch_drafts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_id UUID REFERENCES public.event_sources(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'pending_review'
+    CHECK (status IN ('pending_review', 'approved', 'rejected', 'published')),
+  extracted_title TEXT NOT NULL,
+  extracted_date DATE NOT NULL,
+  extracted_time TIME,
+  extracted_venue TEXT,
+  extracted_address TEXT,
+  extracted_city TEXT,
+  extracted_state TEXT,
+  extracted_lineup TEXT[] DEFAULT '{}',
+  extracted_ticket_link TEXT,
+  extracted_description TEXT,
+  extracted_confidence TEXT NOT NULL DEFAULT 'low'
+    CHECK (extracted_confidence IN ('high', 'medium', 'low')), -- confiança da extração por IA
+  source_raw_excerpt TEXT, -- trecho bruto da fonte usado como evidência na revisão
+  source_page_url TEXT,
+  reviewed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMP WITH TIME ZONE,
+  published_event_id UUID REFERENCES public.events(id) ON DELETE SET NULL,
+  published_blog_post_id UUID REFERENCES public.blog_posts(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_event_watch_drafts_source_id ON public.event_watch_drafts(source_id);
+CREATE INDEX idx_event_watch_drafts_status ON public.event_watch_drafts(status);
+
+ALTER TABLE public.event_watch_drafts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins manage event watch drafts"
+  ON public.event_watch_drafts FOR ALL
+  TO authenticated
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE TRIGGER trg_event_watch_drafts_updated_at
+  BEFORE UPDATE ON public.event_watch_drafts
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: event_slug_redirects
+-- ============================================
+-- Mapeia slugs antigos de evento para o evento atual, evitando 404 quando
+-- um slug muda (ex.: evento renomeado/mesclado).
+CREATE TABLE public.event_slug_redirects (
+  old_slug TEXT PRIMARY KEY,
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  reason TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_event_slug_redirects_event ON public.event_slug_redirects(event_id);
+
+ALTER TABLE public.event_slug_redirects ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can view slug redirects"
+  ON public.event_slug_redirects FOR SELECT
+  USING (true);
+
+CREATE POLICY "Admins can manage slug redirects"
+  ON public.event_slug_redirects FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+
+CREATE POLICY "Service role can manage slug redirects"
+  ON public.event_slug_redirects FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+```
+
+#### 🔗 Links/Redirect
+
+```sql
+-- ============================================
+-- TABELA: redirect_links
+-- ============================================
+-- Encurtador/redirecionador de UTM links de campanha (rota `/r/slug`) com
+-- contagem de cliques agregada (ver `redirect_click_events` para granular).
+CREATE TABLE public.redirect_links (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug TEXT NOT NULL UNIQUE,
+  destination_url TEXT NOT NULL,
+  description TEXT,
+  clicks INTEGER NOT NULL DEFAULT 0,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  utm_source TEXT,
+  utm_medium TEXT,
+  utm_campaign TEXT,
+  utm_content TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.redirect_links ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can view enabled redirect links"
+  ON public.redirect_links FOR SELECT
+  USING (enabled = true OR is_admin());
+
+CREATE POLICY "Admins can manage redirect links"
+  ON public.redirect_links FOR ALL
+  USING (is_admin())
+  WITH CHECK (is_admin());
+```
+
+#### 📊 Tracking/Analytics
+
+```sql
+-- ============================================
+-- TABELA: redirect_click_events
+-- ============================================
+-- Evento individual de clique num redirect link (granular, além do contador
+-- agregado em redirect_links.clicks).
+CREATE TABLE public.redirect_click_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  redirect_link_id UUID NOT NULL REFERENCES public.redirect_links(id) ON DELETE CASCADE,
+  clicked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  ip_hash TEXT -- hash do IP, nunca o IP em texto puro
+);
+
+CREATE INDEX idx_redirect_click_events_link_clicked
+  ON public.redirect_click_events(redirect_link_id, clicked_at DESC);
+
+ALTER TABLE public.redirect_click_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert redirect clicks"
+  ON public.redirect_click_events FOR INSERT
+  TO anon, authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can view click events"
+  ON public.redirect_click_events FOR SELECT
+  USING (is_admin());
+
+CREATE POLICY "Service role can manage redirect_click_events"
+  ON public.redirect_click_events FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================
+-- TABELA: link_click_events
+-- ============================================
+-- Evento individual de clique num link da página de links (Linktree-style).
+CREATE TABLE public.link_click_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  link_id UUID NOT NULL REFERENCES public.custom_links(id) ON DELETE CASCADE,
+  clicked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  ip_hash TEXT
+);
+
+CREATE INDEX idx_link_click_events_link_id ON public.link_click_events(link_id);
+CREATE INDEX idx_link_click_events_clicked_at ON public.link_click_events(clicked_at);
+
+ALTER TABLE public.link_click_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert link clicks"
+  ON public.link_click_events FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can view link click events"
+  ON public.link_click_events FOR SELECT
+  USING (is_admin());
+
+CREATE POLICY "Service role can manage link_click_events"
+  ON public.link_click_events FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================
+-- TABELA: blog_view_events
+-- ============================================
+-- Evento individual de visualização de post do blog.
+CREATE TABLE public.blog_view_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id UUID NOT NULL REFERENCES public.blog_posts(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  ip_hash TEXT
+);
+
+CREATE INDEX idx_blog_view_events_post_id ON public.blog_view_events(post_id);
+CREATE INDEX idx_blog_view_events_viewed_at ON public.blog_view_events(viewed_at);
+
+ALTER TABLE public.blog_view_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert blog views"
+  ON public.blog_view_events FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can view blog view events"
+  ON public.blog_view_events FOR SELECT
+  USING (is_admin());
+
+CREATE POLICY "Service role can manage blog_view_events"
+  ON public.blog_view_events FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================
+-- TABELA: event_view_events
+-- ============================================
+-- Evento individual de visualização de página de evento.
+CREATE TABLE public.event_view_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  viewed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  ip_hash TEXT
+);
+
+CREATE INDEX idx_event_view_events_event_id ON public.event_view_events(event_id);
+CREATE INDEX idx_event_view_events_viewed_at ON public.event_view_events(viewed_at);
+
+ALTER TABLE public.event_view_events ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert event views"
+  ON public.event_view_events FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can view event view events"
+  ON public.event_view_events FOR SELECT
+  USING (is_admin());
+
+CREATE POLICY "Service role can manage event_view_events"
+  ON public.event_view_events FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================
+-- TABELA: egress_metrics
+-- ============================================
+-- Métricas agregadas de egress/banda (Supabase/Bunny) por rota e período,
+-- usadas para monitorar custo de infraestrutura.
+CREATE TABLE public.egress_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  period_start TIMESTAMP WITH TIME ZONE NOT NULL,
+  api_path TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'sw', -- ex.: 'sw' (service worker), 'edge', etc.
+  cache_hits INTEGER NOT NULL DEFAULT 0,
+  cache_misses INTEGER NOT NULL DEFAULT 0,
+  egress_bytes BIGINT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX idx_egress_metrics_unique
+  ON public.egress_metrics(period_start, api_path, source);
+CREATE INDEX idx_egress_metrics_period ON public.egress_metrics(period_start DESC);
+
+ALTER TABLE public.egress_metrics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can insert egress metrics"
+  ON public.egress_metrics FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can view egress metrics"
+  ON public.egress_metrics FOR SELECT
+  USING (is_admin());
+
+CREATE POLICY "Service role can manage egress_metrics"
+  ON public.egress_metrics FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================
+-- TABELA: metrics_snapshots
+-- ============================================
+-- Snapshot diário consolidado de uso/custo de Supabase e Bunny CDN.
+CREATE TABLE public.metrics_snapshots (
+  day DATE PRIMARY KEY,
+  supabase JSONB NOT NULL DEFAULT '{}'::jsonb,
+  bunny JSONB NOT NULL DEFAULT '{}'::jsonb,
+  captured_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_metrics_snapshots_day_desc ON public.metrics_snapshots(day DESC);
+
+ALTER TABLE public.metrics_snapshots ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view metrics_snapshots"
+  ON public.metrics_snapshots FOR SELECT
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Service role can manage metrics_snapshots"
+  ON public.metrics_snapshots FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+```
+
+#### 📧 E-mail/E-goi
+
+```sql
+-- ============================================
+-- TABELA: email_templates
+-- ============================================
+-- Templates de e-mail (estrutura em blocos) usados para montar campanhas de
+-- divulgação. Definida ANTES de egoi_config porque este referencia aquele.
+CREATE TABLE public.email_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN (
+    'event_new', 'ticket_batch', 'ticket_batch_multi', 'weekly_digest',
+    'weekly_digest_editorial', 'weekend_agenda', 'courtesy', 'custom', 'blog_digest'
+  )),
+  blocks JSONB NOT NULL DEFAULT '[]'::jsonb, -- estrutura em blocos editável no admin
+  is_default BOOLEAN NOT NULL DEFAULT false,
+  subject_template TEXT,
+  preheader_template TEXT,
+  created_by UUID, -- sem FK para profiles/auth.users (ver observações)
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.email_templates ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins manage templates"
+  ON public.email_templates FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE TRIGGER update_email_templates_updated_at
+  BEFORE UPDATE ON public.email_templates
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: egoi_config
+-- ============================================
+-- Configuração singleton de integração com a plataforma de e-mail marketing
+-- E-goi (lista, remetente, agendamento).
+CREATE TABLE public.egoi_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  list_id INTEGER,
+  sender_id INTEGER,
+  mode TEXT NOT NULL DEFAULT 'draft' CHECK (mode IN ('draft', 'immediate', 'scheduled')),
+  is_enabled BOOLEAN NOT NULL DEFAULT false,
+  scheduled_days_before INTEGER,
+  segment_id INTEGER,
+  default_event_template_id UUID REFERENCES public.email_templates(id) ON DELETE SET NULL,
+  singleton BOOLEAN NOT NULL DEFAULT true UNIQUE CHECK (singleton = true), -- garante linha única
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.egoi_config ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage egoi_config"
+  ON public.egoi_config FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Service role manages egoi_config"
+  ON public.egoi_config FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+CREATE TRIGGER update_egoi_config_updated_at
+  BEFORE UPDATE ON public.egoi_config
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: event_email_campaigns
+-- ============================================
+-- Uma campanha de e-mail disparada (ou agendada) na E-goi para divulgar um
+-- evento específico, com suporte a teste A/B.
+CREATE TABLE public.event_email_campaigns (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  egoi_campaign_id TEXT,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sent', 'failed')),
+  mode TEXT NOT NULL DEFAULT 'draft' CHECK (mode IN ('draft', 'immediate', 'scheduled', 'manual')),
+  error_message TEXT,
+  sent_at TIMESTAMP WITH TIME ZONE,
+  campaign_type TEXT NOT NULL DEFAULT 'standard',
+  ab_group_id UUID, -- agrupa as variantes de um mesmo teste A/B
+  ab_variant TEXT,
+  ab_test_config JSONB,
+  scheduled_at TIMESTAMP WITH TIME ZONE,
+  scheduled_send_claimed_at TIMESTAMP WITH TIME ZONE, -- lock otimista contra double-send do cron
+  scheduled_send_attempts INTEGER NOT NULL DEFAULT 0,
+  segment_id INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX event_email_campaigns_event_created_idx
+  ON public.event_email_campaigns(event_id, created_at DESC);
+CREATE INDEX event_email_campaigns_ab_group_idx
+  ON public.event_email_campaigns(ab_group_id) WHERE (ab_group_id IS NOT NULL);
+CREATE INDEX event_email_campaigns_scheduled_due_idx
+  ON public.event_email_campaigns(scheduled_at)
+  WHERE (status = 'scheduled' AND scheduled_send_claimed_at IS NULL);
+
+ALTER TABLE public.event_email_campaigns ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage event_email_campaigns"
+  ON public.event_email_campaigns FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Service role manages event_email_campaigns"
+  ON public.event_email_campaigns FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+CREATE TRIGGER update_event_email_campaigns_updated_at
+  BEFORE UPDATE ON public.event_email_campaigns
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: event_email_campaign_stats
+-- ============================================
+-- Estatísticas de entrega/abertura/clique de uma campanha, sincronizadas
+-- periodicamente da E-goi.
+CREATE TABLE public.event_email_campaign_stats (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  campaign_id UUID NOT NULL UNIQUE REFERENCES public.event_email_campaigns(id) ON DELETE CASCADE,
+  stats_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  fetched_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+-- Índice redundante com a UNIQUE acima (mantido pois existe assim no banco real)
+CREATE INDEX idx_event_email_campaign_stats_campaign_id
+  ON public.event_email_campaign_stats(campaign_id);
+
+ALTER TABLE public.event_email_campaign_stats ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage campaign stats"
+  ON public.event_email_campaign_stats FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can select campaign stats"
+  ON public.event_email_campaign_stats FOR SELECT
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+-- ============================================
+-- TABELA: email_template_settings
+-- ============================================
+-- Configuração visual singleton (branding) aplicada a todos os templates de
+-- e-mail gerados.
+CREATE TABLE public.email_template_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  singleton BOOLEAN NOT NULL DEFAULT true UNIQUE,
+  brand_name TEXT NOT NULL DEFAULT 'MDACCULA',
+  logo_url TEXT,
+  primary_color TEXT NOT NULL DEFAULT '#a855f7',
+  accent_color TEXT NOT NULL DEFAULT '#ec4899',
+  background_color TEXT NOT NULL DEFAULT '#050505',
+  footer_text TEXT NOT NULL DEFAULT 'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de Cuiabá-MT.',
+  cta_label TEXT NOT NULL DEFAULT 'Garantir ingresso',
+  instagram_url TEXT DEFAULT 'https://instagram.com/mdaccula',
+  youtube_url TEXT DEFAULT 'https://youtube.com/@mdaccula',
+  tiktok_url TEXT DEFAULT 'https://tiktok.com/@mdaccula',
+  show_subtitle BOOLEAN NOT NULL DEFAULT true,
+  show_description BOOLEAN NOT NULL DEFAULT true,
+  show_socials BOOLEAN NOT NULL DEFAULT true,
+  show_secondary_link BOOLEAN NOT NULL DEFAULT true,
+  secondary_link_label TEXT NOT NULL DEFAULT 'Ver agenda completa no site',
+  custom_html_header TEXT,
+  custom_html_footer TEXT,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.email_template_settings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can read email template settings"
+  ON public.email_template_settings FOR SELECT
+  USING (true);
+
+CREATE POLICY "Admins can insert email template settings"
+  ON public.email_template_settings FOR INSERT
+  TO authenticated
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can update email template settings"
+  ON public.email_template_settings FOR UPDATE
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can delete email template settings"
+  ON public.email_template_settings FOR DELETE
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE TRIGGER trg_update_email_template_settings_updated_at
+  BEFORE UPDATE ON public.email_template_settings
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: egoi_resources_cache
+-- ============================================
+-- Cache local singleton das listas/remetentes vindos da API da E-goi,
+-- evitando chamadas repetidas.
+CREATE TABLE public.egoi_resources_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  singleton BOOLEAN NOT NULL DEFAULT true UNIQUE,
+  lists JSONB NOT NULL DEFAULT '[]'::jsonb,
+  senders JSONB NOT NULL DEFAULT '[]'::jsonb,
+  last_synced_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.egoi_resources_cache ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins read egoi cache"
+  ON public.egoi_resources_cache FOR SELECT
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins write egoi cache"
+  ON public.egoi_resources_cache FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE TRIGGER update_egoi_resources_cache_updated_at
+  BEFORE UPDATE ON public.egoi_resources_cache
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+-- ============================================
+-- TABELA: daily_metrics_email_log
+-- ============================================
+-- Log de envio do e-mail diário de métricas para a equipe (sucesso/erro do
+-- disparo, escrito apenas pelo cron via service_role).
+CREATE TABLE public.daily_metrics_email_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sent_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  metrics JSONB NOT NULL DEFAULT '{}'::jsonb,
+  email_sent BOOLEAN NOT NULL DEFAULT false,
+  email_error TEXT
+);
+
+CREATE INDEX idx_daily_metrics_email_log_sent_at ON public.daily_metrics_email_log(sent_at DESC);
+
+ALTER TABLE public.daily_metrics_email_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view daily metrics email log"
+  ON public.daily_metrics_email_log FOR SELECT
+  TO authenticated
+  USING (is_admin());
+```
+
+#### 🖥️ Sistema/Infra
+
+```sql
+-- ============================================
+-- TABELA: application_logs
+-- ============================================
+-- Log centralizado de aplicação (frontend/edge functions) para o `logger`
+-- do projeto (src/lib/logger.ts).
+CREATE TABLE public.application_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  level TEXT NOT NULL, -- 'debug' | 'info' | 'warn' | 'error'
+  message TEXT NOT NULL,
+  error_message TEXT,
+  context JSONB DEFAULT '{}'::jsonb,
+  session_id TEXT,
+  user_agent TEXT,
+  logged_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.application_logs ENABLE ROW LEVEL SECURITY;
+
+-- Nome da policy diz "Service role" mas roles={public} — qualquer
+-- role (inclusive anon) pode inserir logs de erro do frontend. Nome
+-- desatualizado, não é bug funcional (esperado que o `logger` do frontend
+-- grave direto via anon key).
+CREATE POLICY "Service role can insert logs"
+  ON public.application_logs FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can read logs"
+  ON public.application_logs FOR SELECT
+  USING (is_admin());
+
+-- ============================================
+-- TABELA: performance_metrics
+-- ============================================
+-- Métricas de performance (ex.: tempo de carregamento, duração de operações)
+-- reportadas pelo frontend.
+CREATE TABLE public.performance_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  duration_ms INTEGER NOT NULL,
+  context JSONB DEFAULT '{}'::jsonb,
+  session_id TEXT,
+  measured_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.performance_metrics ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role can insert metrics"
+  ON public.performance_metrics FOR INSERT
+  WITH CHECK (true);
+
+CREATE POLICY "Admins can read metrics"
+  ON public.performance_metrics FOR SELECT
+  USING (is_admin());
+
+-- ============================================
+-- TABELA: image_hashes
+-- ============================================
+-- Índice de hashes de imagens já enviadas ao Storage, usado para deduplicar
+-- uploads.
+CREATE TABLE public.image_hashes (
+  hash TEXT PRIMARY KEY,
+  url TEXT NOT NULL,
+  bucket TEXT NOT NULL,
+  file_size INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.image_hashes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view image_hashes"
+  ON public.image_hashes FOR SELECT
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Service role can manage image_hashes"
+  ON public.image_hashes FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================
+-- TABELA: internal_cron_secrets
+-- ============================================
+-- Segredos usados para autenticar chamadas internas de cron/webhook às Edge
+-- Functions. RLS habilitada SEM NENHUMA policy — nenhum papel (anon,
+-- authenticated, nem admin autenticado via app) consegue ler/gravar por
+-- PostgREST; somente o service_role (que ignora RLS) acessa esta tabela.
+CREATE TABLE public.internal_cron_secrets (
+  name TEXT PRIMARY KEY,
+  secret TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.internal_cron_secrets ENABLE ROW LEVEL SECURITY;
+-- (nenhuma CREATE POLICY — deny-all intencional, ver comentário acima)
+
+-- ============================================
+-- TABELA: egress_alerts
+-- ============================================
+-- Alertas disparados quando o egress/banda ultrapassa um limiar configurado,
+-- com envio de e-mail de notificação.
+CREATE TABLE public.egress_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  triggered_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  reason TEXT NOT NULL,
+  api_path TEXT,
+  source TEXT,
+  window_bytes BIGINT NOT NULL DEFAULT 0,
+  baseline_bytes BIGINT NOT NULL DEFAULT 0,
+  ratio NUMERIC(10,2),
+  threshold_mb INTEGER,
+  email_sent BOOLEAN NOT NULL DEFAULT false,
+  email_error TEXT,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_egress_alerts_triggered ON public.egress_alerts(triggered_at DESC);
+
+ALTER TABLE public.egress_alerts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view egress alerts"
+  ON public.egress_alerts FOR SELECT
+  TO authenticated
+  USING (is_admin());
+
+-- ============================================
+-- TABELA: email_global_blocks
+-- ============================================
+-- Bloqueios globais de envio de e-mail (ex.: categoria/tipo de e-mail
+-- suspenso administrativamente).
+CREATE TABLE public.email_global_blocks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL DEFAULT 'geral',
+  block JSONB NOT NULL, -- sem valor default; todo insert deve informar
+  created_by UUID, -- sem FK para profiles/auth.users (ver observações)
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX idx_email_global_blocks_category ON public.email_global_blocks(category);
+
+ALTER TABLE public.email_global_blocks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can read global blocks"
+  ON public.email_global_blocks FOR SELECT
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins manage global blocks"
+  ON public.email_global_blocks FOR ALL
+  TO authenticated
+  USING (has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (has_role(auth.uid(), 'admin'::app_role));
+
+CREATE TRIGGER trg_email_global_blocks_updated_at
+  BEFORE UPDATE ON public.email_global_blocks
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+```
+
+#### 🎤 Outros
+
+```sql
+-- ============================================
+-- TABELA: podcast_submissions
+-- ============================================
+-- Inscrições de DJs no programa de podcast (formulário público), com
+-- revisão administrativa via `status`/`admin_notes`.
+CREATE TABLE public.podcast_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  full_name TEXT NOT NULL,
+  city TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT NOT NULL,
+  project_name TEXT NOT NULL,
+  project_age TEXT NOT NULL, -- tempo de existência do projeto/carreira
+  genre TEXT NOT NULL,
+  project_description TEXT NOT NULL,
+  has_original_track BOOLEAN DEFAULT false,
+  original_track_link TEXT,
+  instagram TEXT,
+  spotify TEXT,
+  soundcloud TEXT,
+  tiktok TEXT,
+  admin_notes TEXT,
+  notification_sent BOOLEAN DEFAULT false,
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.podcast_submissions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Anyone can submit podcast registration"
+  ON public.podcast_submissions FOR INSERT
+  WITH CHECK (
+    is_valid_email(email)
+    AND length(email) <= 320
+    AND length(full_name) >= 3
+    AND length(project_name) >= 2
+    AND length(project_description) >= 20
+  );
+
+CREATE POLICY "Admins can view podcast submissions"
+  ON public.podcast_submissions FOR SELECT
+  USING (is_admin());
+
+CREATE POLICY "Admins can update podcast submissions"
+  ON public.podcast_submissions FOR UPDATE
+  USING (is_admin());
+
+CREATE POLICY "Admins can delete podcast submissions"
+  ON public.podcast_submissions FOR DELETE
+  USING (is_admin());
+```
+
+**Particularidades encontradas (conferir antes de tratar como definitivo):**
+
+1. `internal_cron_secrets` — RLS habilitada mas **zero policies** (deny-all via PostgREST; só `service_role` acessa). Parece intencional para uma tabela de segredos — confirmar que nenhuma function depende de acesso via `anon`/`authenticated`.
+2. `recurring_event_configs.link_group_id` — FK sem `ON DELETE` explícito (`NO ACTION`), diferente do padrão `SET NULL`/`CASCADE` do resto do schema. Deletar um `link_group` referenciado vai falhar por FK em vez de fazer `SET NULL`.
+3. `application_logs`/`performance_metrics` — a policy de INSERT se chama "Service role can insert..." mas na prática aceita qualquer role (`WITH CHECK (true)`, sem restrição de role). Nome desatualizado, não é bug funcional.
+4. Sem FK apesar do nome sugerir relação: `email_templates.created_by`, `email_global_blocks.created_by` (ambos `uuid`, sem constraint) — inconsistente com `events.created_by`, que tem FK.
+5. Tabelas com `updated_at` mas **sem trigger automático**: `recurring_event_configs`, `redirect_links`, `podcast_submissions`, `internal_cron_secrets`, `event_email_campaign_stats`. Nessas, `updated_at` só muda se a aplicação setar manualmente.
 
 ---
 
@@ -783,6 +1646,7 @@ ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.team_members ENABLE ROW LEVEL SECURITY;
+-- news_sources: obsoleta, ver nota acima em "1.2 Criar Tabelas Principais".
 ALTER TABLE public.news_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_prompt_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_generated_posts ENABLE ROW LEVEL SECURITY;
@@ -901,7 +1765,7 @@ CREATE POLICY "Admins podem deletar membros"
   USING (has_role(auth.uid(), 'admin'::app_role));
 
 -- ============================================
--- POLICIES: news_sources
+-- POLICIES: news_sources (obsoleta, ver nota em "1.2 Criar Tabelas Principais")
 -- ============================================
 CREATE POLICY "Admins can manage news sources"
   ON public.news_sources FOR ALL
@@ -1161,6 +2025,7 @@ CREATE POLICY "Service role can manage ai_generated_posts"
 ON public.ai_generated_posts FOR ALL TO service_role
 USING (true) WITH CHECK (true);
 
+-- Obsoleta, ver nota em "1.2 Criar Tabelas Principais".
 CREATE POLICY "Service role can manage news_sources"
 ON public.news_sources FOR ALL TO service_role
 USING (true) WITH CHECK (true);
@@ -1335,7 +2200,8 @@ ON CONFLICT DO NOTHING;
 
 ## 📚 Tabelas Criadas
 
-Total: **18 tabelas**
+Total original deste script: **18 tabelas** (+ 25 tabelas adicionadas retroativamente em 04/08/2026,
+ver seção logo abaixo — total real em produção: 42 tabelas, confirmado via Supabase MCP).
 
 1. `profiles` - Perfis de usuário
 2. `user_roles` - Roles de usuário (admin, moderator, user)
@@ -1343,7 +2209,7 @@ Total: **18 tabelas**
 4. `blog_posts` - Posts do blog
 5. `events` - Eventos
 6. `team_members` - Membros da equipe
-7. `news_sources` - Fontes de notícias
+7. ~~`news_sources` - Fontes de notícias~~ — **obsoleta, não existe mais em produção** (substituída por `event_sources`, ver abaixo)
 8. `ai_prompt_templates` - Templates de prompts para IA
 9. `ai_generated_posts` - Posts gerados por IA
 10. `link_groups` - Grupos de links personalizados
@@ -1355,6 +2221,16 @@ Total: **18 tabelas**
 16. `newsletter_popup_analytics` - Analytics do popup
 17. `share_analytics` - Analytics de compartilhamento
 18. `sync_logs` - Logs de sincronização
+
+---
+
+## 🆕 Atualização de 04/08/2026
+
+As 25 tabelas da seção **"1.2-B Tabelas adicionadas em 04/08/2026"** foram incluídas retroativamente
+neste arquivo, a partir do schema real de produção (via Supabase MCP), corrigindo o gap registrado em
+`docs/PENDENCIAS.md` e apontado em `docs/DATABASE_SCHEMA.md`. A tabela `news_sources` (item 7 da
+lista acima) está marcada como **obsoleta** — não existe mais em produção, foi substituída por
+`event_sources`.
 
 ---
 

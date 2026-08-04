@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-MDAccula — web platform for a Brazilian electronic-music agency: events (incl. automated recurring events), an AI-generated blog, a Linktree-style links page, a UTM link redirector, and a DJ podcast submission program. React SPA frontend + Supabase (Lovable Cloud) backend. Full architecture reference: `README.md` (very detailed — read it before large changes). Deeper docs live in `docs/` (`SYSTEM-DESIGN.md`, `CODE_STYLE.md`, `SECURITY-AUDIT.md`, `TESTING.md`, `PRD.md`, `ROADMAP.md`) and `tabelas.md` (full DB DDL).
+MDAccula — web platform for a Brazilian electronic-music agency: events (incl. automated recurring events), an AI-generated blog, a Linktree-style links page, a UTM link redirector, and a DJ podcast submission program. React SPA frontend + Supabase (Lovable Cloud) backend. Full architecture reference: `README.md` (very detailed — read it before large changes). Deeper docs live in `docs/` (`SYSTEM-DESIGN.md`, `CODE_STYLE.md`, `SECURITY-AUDIT.md`, `TESTING.md`, `PRD.md`, `ROADMAP.md`, `FEATURE_MAP.md`, `DATABASE_SCHEMA.md`, `EDGE_FUNCTIONS.md`, `ONBOARDING.md`, `guides/design-system.md`) and `docs/tabelas.md` (full DB DDL).
 
 ## Commands
 
@@ -32,7 +32,7 @@ Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:co
 
 **Frontend**: React 18 + TypeScript + Vite + Tailwind + Shadcn/UI, React Router with every page lazy-loaded in `src/App.tsx`, TanStack Query for server state. Path aliases: `@/*` → `src/*`, `@shared/*` → `supabase/functions/_shared/*` (same aliases in both `tsconfig.json` and `vitest.config.ts`).
 
-**Backend**: Supabase/Lovable Cloud — PostgreSQL (25 tables, RLS everywhere), 20+ Deno Edge Functions in `supabase/functions/`, Storage for images, pg_cron for scheduled jobs (recurring events, AI article generation, log cleanup). `supabase/config.toml`, `src/integrations/supabase/client.ts`, and `src/integrations/supabase/types.ts` are auto-managed/generated — never hand-edit them.
+**Backend**: Supabase/Lovable Cloud — PostgreSQL (42 tables, RLS everywhere — see `docs/DATABASE_SCHEMA.md` and `docs/tabelas.md` for full DDL), 57 Deno Edge Functions in `supabase/functions/` (see `docs/EDGE_FUNCTIONS.md` — note several admin-only functions still lack server-side auth checks, tracked in `docs/PENDENCIAS.md`), Storage for images, pg_cron for scheduled jobs (recurring events, AI article generation, log cleanup). `supabase/config.toml`, `src/integrations/supabase/client.ts`, and `src/integrations/supabase/types.ts` are auto-managed/generated — never hand-edit them.
 
 **Barrel exports**: `src/hooks/index.ts`, `src/lib/index.ts`, `src/types/index.ts` — import from these (`@/hooks`, `@/lib`, `@/types`), not from individual files, matching the import order convention in `docs/CODE_STYLE.md` (React → external libs → UI components → hooks → lib/utils → supabase client → types → local assets).
 
@@ -58,7 +58,7 @@ Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:co
 - Prefer Tailwind semantic tokens (`bg-background`, `text-primary`, etc.) over hardcoded colors — the dark neon design system is defined in `src/index.css`.
 - Avoid `any`; in catch blocks type the error as `unknown` and narrow with `error instanceof Error`.
 - New pages: add under `src/pages/`, then register a lazy-loaded route in `src/App.tsx` wrapped in `<PageWithError>`.
-- New tables: write RLS policies, document in `tabelas.md`, and regenerate `src/integrations/supabase/types.ts` (auto-generated, don't hand-edit).
+- New tables: write RLS policies, document in `docs/tabelas.md` (and `docs/DATABASE_SCHEMA.md`), and regenerate `src/integrations/supabase/types.ts` (auto-generated, don't hand-edit).
 
 
 ## Relatório Obrigatório ao Final de Cada Tarefa
