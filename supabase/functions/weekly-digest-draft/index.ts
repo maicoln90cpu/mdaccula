@@ -10,6 +10,7 @@
 // Modo padrão: cria rascunho (não envia). Admin pode enviar depois via aba Histórico da E-goi.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { safeCacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import {
   renderBlockedTemplateText,
   expandGlobalRefs,
@@ -315,6 +316,9 @@ Deno.serve(async (req) => {
     } else if (html && preheaderFromTpl) {
       html = injectEmailPreheader(html, preheaderFromTpl);
     }
+
+    // Pré-renderiza mapas estáticos no Bunny CDN (custo fixo por campanha).
+    html = await safeCacheStaticMapImagesInHtml(html, 'weekly-digest-draft');
 
     if (dryRun) {
       return json({
