@@ -9,6 +9,7 @@
 //   4. egoi_config habilitado + list_id + sender_id (só para envio real, não dry_run).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { safeCacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import {
   renderBlockedTemplateText,
   expandGlobalRefs,
@@ -490,6 +491,9 @@ Deno.serve(async (req) => {
     } else if (html && preheaderFromTpl) {
       html = injectEmailPreheader(html, preheaderFromTpl);
     }
+
+    // Pré-renderiza mapas estáticos no Bunny CDN (custo fixo por campanha).
+    html = await safeCacheStaticMapImagesInHtml(html, 'weekend-agenda-draft');
 
     if (dryRun) {
       return json({

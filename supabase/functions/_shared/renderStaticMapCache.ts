@@ -121,3 +121,20 @@ export async function cacheStaticMapImagesInHtml(html: string): Promise<string> 
   }
   return result;
 }
+
+/**
+ * Wrapper defensivo: nunca lança e nunca bloqueia um envio de e-mail.
+ * Em caso de erro inesperado, retorna o HTML original.
+ */
+export async function safeCacheStaticMapImagesInHtml(
+  html: string,
+  tag: string,
+): Promise<string> {
+  try {
+    return await cacheStaticMapImagesInHtml(html);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[${tag}] safeCacheStaticMapImagesInHtml fallback: ${msg}`);
+    return html;
+  }
+}

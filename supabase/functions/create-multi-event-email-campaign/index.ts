@@ -7,6 +7,7 @@
 // "enviado" no histórico (EmailEventsTab.tsx), sem precisar de tabela de
 // relacionamento nova.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { safeCacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 
 const corsHeaders = {
@@ -133,6 +134,9 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
+    // Pré-renderiza mapas estáticos no Bunny CDN (custo fixo por campanha).
+    const processedHtml = await safeCacheStaticMapImagesInHtml(html, 'create-multi-event-email-campaign');
+
     const internalName = `MDAccula • Virada de lote (${eventIds.length} eventos) • ${now.slice(0, 10)}`;
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
@@ -141,7 +145,7 @@ Deno.serve(async (req) => {
       sender_id: Number(cfg.sender_id),
       content: {
         type: 'html',
-        body: html,
+        body: processedHtml,
         ...(preheader ? { preheader } : {}),
       },
       tags: ['mdaccula', 'virada-de-lote-multi'],
