@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Fase 1 de auth em Edge Functions + fix do pipeline de deploy
+**Descrição:** auditoria de documentação de 03/08/2026 achou ~20 Edge Functions "só pra admin" sem NENHUMA checagem de autenticação no código (`verify_jwt` é `false` em todo o projeto — auth é responsabilidade de cada function). Ao tentar deployar a correção, descobri que o pipeline de deploy já estava quebrado antes desta sessão: a function `mcp` (auto-gerada por `@lovable.dev/mcp-js`) gera um bundle de ~26MB (a lib traz `esbuild` como dependência direta) e a API do Supabase rejeita com 413 — como o deploy antigo rodava tudo num comando só em ordem alfabética, isso travava o deploy de TODA function depois de "mcp" (inclusive as que eu estava corrigindo).
+**Correção:** `send-mass-newsletter`, `import-csv-data` e `upload-csv` agora exigem admin autenticado (reaproveitando `authorizeAdminOrCron()` já existente em `_shared/index.ts`), com contract tests novos confirmando 401/403 em produção. `.github/workflows/deploy-edge-functions.yml` dividido em 2 passos — todas as functions exceto `mcp` deployam juntas; `mcp` isolada com `continue-on-error`, então uma falha nela não trava mais as outras 56.
+**Data:** 04/08/2026
+**Responsável:** IA (plano via skill `auditoria-backend`, aprovado pelo usuário fase a fase)
+**Impacto:** alto (fecha 3 buracos reais de segurança + destrava o deploy automático de toda a infraestrutura de edge functions, que estava silenciosamente quebrado)
+
+**Arquivos alterados:** `supabase/functions/send-mass-newsletter/index.ts`, `supabase/functions/import-csv-data/index.ts`, `supabase/functions/upload-csv/index.ts`, `.github/workflows/deploy-edge-functions.yml`, `src/__tests__/contracts/send-mass-newsletter.test.ts` (novo), `src/__tests__/contracts/import-csv-data.test.ts` (novo), `src/__tests__/contracts/upload-csv.test.ts` (novo), `docs/PENDENCIAS.md`.
+
+---
+
 ### `docs/tabelas.md` recebe DDL retroativa de 25 tabelas (gap de documentação)
 **Descrição:** auditoria de documentação de 03/08/2026 achou que `tabelas.md` (script "recriar o banco do zero") só tinha DDL de 18 das 42 tabelas reais — as 25 mais recentes (E-goi/e-mail, tracking granular, observabilidade, `event_sources`/`event_watch_drafts`) nunca tinham sido documentadas ali, e o arquivo ainda citava `news_sources`, tabela que não existe mais (substituída por `event_sources`).
 **Correção:** escrita a DDL completa (colunas, tipos, PKs, FKs, CHECKs, índices, RLS policies e triggers) das 25 tabelas, levantada ao vivo via Supabase MCP e organizada nos mesmos domínios de `docs/DATABASE_SCHEMA.md`, numa nova seção "1.2-B" em `tabelas.md`. O bloco `news_sources` foi mantido (não apagado) mas marcado como obsoleto em todos os pontos onde aparece.

@@ -74,13 +74,13 @@ _Nenhuma no momento._
 **Responsável:** decisão do usuário sobre qual caminho (esperar fix upstream vs. reescrever à mão), depois IA implementa.
 
 ### Várias Edge Functions admin não têm checagem de autenticação no código
-**Status:** 🔧 Não corrigido — plano de fases definido (04/08/2026, via skill `auditoria-backend`), aguardando aprovação da Fase 1 pra começar a implementar.
-**Contexto:** `verify_jwt` é `false` em todas as functions do projeto (auth é responsabilidade de cada function). ~20 funções pensadas como "só admin usa" não verificam token nenhum: `send-mass-newsletter`, `import-csv-data`, `upload-csv`, `diagnose-media`, `cleanup-storage`, `batch-convert-webp`, `convert-to-webp`, `import-storage`, `fetch-link-metadata`, `systemhealth`, `generate-blog-post-v2`, `generate-blog-post-from-topic`, `generate-blog-suggestions`, `generate-multi-event-article`, `regenerate-blog-image`, `preview-topic-sources`, `auto-article-cron`, `create-recurring-events`, `cleanup-sync-logs`. O projeto já tem o mecanismo certo pronto (`authorizeAdminOrCron()` em `supabase/functions/_shared/index.ts`, aceita admin JWT + `has_role()` OU cron secret) — só falta cada function chamá-lo.
+**Status:** 🔧 Fase 1 de 8 concluída (04/08/2026) — `send-mass-newsletter`, `import-csv-data` e `upload-csv` já exigem admin autenticado em produção (confirmado por contract tests). Fases 2-8 (~17 functions restantes) ainda abertas.
+**Contexto:** `verify_jwt` é `false` em todas as functions do projeto (auth é responsabilidade de cada function). Funções ainda sem checagem, pensadas como "só admin usa": `diagnose-media`, `cleanup-storage`, `batch-convert-webp`, `convert-to-webp`, `import-storage`, `fetch-link-metadata`, `systemhealth`, `generate-blog-post-v2`, `generate-blog-post-from-topic`, `generate-blog-suggestions`, `generate-multi-event-article`, `regenerate-blog-image`, `preview-topic-sources`, `auto-article-cron`, `create-recurring-events`, `cleanup-sync-logs`. O padrão usado na Fase 1 (`authorizeAdminOrCron()` em `supabase/functions/_shared/index.ts`) é reaproveitável nas próximas.
 **Casos à parte** (não é "esqueceram auth", precisam de tratamento diferente):
 - `send-podcast-notification` — chamada por formulário público real (`Podcast.tsx`); precisa de rate limiting (como `send-contact-email`/`request-data-deletion` já têm), não admin-auth.
 - `compose-event-image` — tem 2 chamadores server-to-server sem sessão de usuário (`scan-event-sources`, `apify-instagram-webhook`); exigir admin JWT quebraria essas automações. Precisa de secret interno compartilhado, não é cópia mecânica do padrão admin.
 - `import-storage` (ferramenta de migração one-off, pode já ter cumprido o papel) e `convert-to-webp` (placeholder no-op) — decidir entre proteger ou remover.
-**Passos:** plano de 8 fases (detalhado na conversa de 04/08/2026) — Fase 1 (`send-mass-newsletter`, `import-csv-data`, `upload-csv`) é a de maior risco de abuso real, prioridade sugerida.
+**Passos:** Fases 2-8 do plano original (detalhado na conversa de 04/08/2026), uma por vez com aprovação antes de cada uma.
 **Responsável:** usuário aprova cada fase antes da IA implementar (uma de cada vez — nunca em lote, por regra do próprio `CLAUDE.md`).
 
 ### Leaked Password Protection desabilitado
