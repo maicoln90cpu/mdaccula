@@ -109,9 +109,15 @@ export async function cacheStaticMapImagesInHtml(html: string): Promise<string> 
   let result = html;
   for (const { fullMatch, url } of matches) {
     try {
-      const params = parseRenderStaticMapUrl(url);
+      // O atributo src vem do HTML com "&" escapado como "&amp;" (ex.: escape()
+      // do emailBlocks). URLSearchParams não decodifica entidades HTML, então
+      // "&amp;" quebra o parsing dos parâmetros após o primeiro (lat funciona,
+      // lng/zoom/etc. viram "amp;lng" e são perdidos). Decodifica antes de
+      // parsear e de buscar a imagem — sem isso o cache nunca acontecia.
+      const decodedUrl = url.replace(/&amp;/g, "&");
+      const params = parseRenderStaticMapUrl(decodedUrl);
       if (!params) continue;
-      const cachedUrl = await ensureCachedMapImage(params, url);
+      const cachedUrl = await ensureCachedMapImage(params, decodedUrl);
       result = result.replaceAll(fullMatch, fullMatch.replaceAll(url, cachedUrl));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

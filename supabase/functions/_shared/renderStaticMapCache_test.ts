@@ -32,3 +32,17 @@ Deno.test("cacheStaticMapImagesInHtml: mantém HTML original quando URL do mapa 
   const result = await cacheStaticMapImagesInHtml(html);
   assertEquals(result, html);
 });
+
+Deno.test("parseRenderStaticMapUrl: extrai parâmetros mesmo com '&' escapado como '&amp;' (atributo HTML real)", () => {
+  // src="..." gerado por escape() no emailBlocks vem com "&amp;" entre os
+  // parâmetros. Sem decodificar antes de montar a URLSearchParams, apenas
+  // "lat" é reconhecido e os demais viram chaves como "amp;lng" — regressão
+  // que fazia o cache de mapas nunca funcionar em e-mails reais.
+  const rawFromHtmlAttr =
+    "https://x.supabase.co/functions/v1/render-static-map?lat=-23.5557714&amp;lng=-46.6395571&amp;zoom=15&amp;w=600&amp;h=300&amp;style=roadmap";
+  const decoded = rawFromHtmlAttr.replace(/&amp;/g, "&");
+  const params = parseRenderStaticMapUrl(decoded);
+  assertEquals(params?.lat, -23.5557714);
+  assertEquals(params?.lng, -46.6395571);
+  assertEquals(params?.zoom, 15);
+});
