@@ -1,4 +1,6 @@
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,6 +94,17 @@ Deno.serve(async (req) => {
   const startTime = Date.now();
 
   try {
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    const auth = await authorizeAdminOrCron(req, admin, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "send_mass_newsletter_cron",
+      cronJobHeaderValue: "send-mass-newsletter",
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
+
     const { subject, body, recipients }: MassEmailRequest = await req.json();
 
     console.log(`Sending mass email to ${recipients.length} recipients`);
