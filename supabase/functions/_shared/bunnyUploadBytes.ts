@@ -20,8 +20,16 @@ export async function bunnyFileExists(path: string): Promise<boolean> {
   const url = `${BUNNY_CDN_HOST}/${path}`;
   try {
     const res = await fetch(url, { method: "HEAD" });
+    if (!res.ok) {
+      // Diagnóstico temporário (2ª rodada): a checagem pelo CDN público
+      // ainda está dando falso negativo em produção mesmo o arquivo
+      // existindo (confirmado via curl manual). Logar o status real.
+      console.warn(`[bunnyFileExists] HEAD ${url} -> ${res.status}`);
+    }
     return res.ok;
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[bunnyFileExists] HEAD ${url} threw: ${msg}`);
     return false;
   }
 }
