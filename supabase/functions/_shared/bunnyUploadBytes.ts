@@ -20,8 +20,15 @@ export async function bunnyFileExists(path: string): Promise<boolean> {
       method: "HEAD",
       headers: { AccessKey: apiKey },
     });
+    if (!res.ok) {
+      // Diagnóstico temporário: confirmar se o cache de mapas está
+      // reaproveitando arquivos já enviados ou refazendo upload sempre.
+      console.warn(`[bunnyFileExists] HEAD ${url} -> ${res.status}`);
+    }
     return res.ok;
-  } catch {
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[bunnyFileExists] HEAD ${url} threw: ${msg}`);
     return false;
   }
 }
