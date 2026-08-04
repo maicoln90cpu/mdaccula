@@ -1,6 +1,7 @@
 // Envia um e-mail de teste do template para o próprio admin logado.
 // Não envolve E-goi — usa Resend, mais simples para preview real na caixa de entrada.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { safeCacheStaticMapImagesInHtml } from "../_shared/renderStaticMapCache.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,9 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "RESEND_API_KEY não configurada" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Pré-renderiza mapas estáticos no Bunny CDN (evita cobrança por abertura).
+    const processedHtml = await safeCacheStaticMapImagesInHtml(html, 'send-test-email');
+
     const destination = TEST_RECIPIENT;
 
     const resp = await fetch("https://api.resend.com/emails", {
@@ -56,7 +60,7 @@ Deno.serve(async (req) => {
         from: "MDAccula <onboarding@resend.dev>",
         to: [destination],
         subject: subject.trim(),
-        html,
+        html: processedHtml,
       }),
     });
 
