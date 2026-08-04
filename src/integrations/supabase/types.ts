@@ -724,6 +724,7 @@ export type Database = {
           scheduled_at: string | null
           scheduled_send_attempts: number
           scheduled_send_claimed_at: string | null
+          segment_id: number | null
           sent_at: string | null
           status: string
           updated_at: string
@@ -742,6 +743,7 @@ export type Database = {
           scheduled_at?: string | null
           scheduled_send_attempts?: number
           scheduled_send_claimed_at?: string | null
+          segment_id?: number | null
           sent_at?: string | null
           status?: string
           updated_at?: string
@@ -760,6 +762,7 @@ export type Database = {
           scheduled_at?: string | null
           scheduled_send_attempts?: number
           scheduled_send_claimed_at?: string | null
+          segment_id?: number | null
           sent_at?: string | null
           status?: string
           updated_at?: string
