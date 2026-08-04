@@ -13,22 +13,15 @@ function getBunnyStorageHost(): string {
 }
 
 export async function bunnyFileExists(path: string): Promise<boolean> {
-  const apiKey = getBunnyStorageApiKey();
-  const url = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${path}`;
+  // Verifica pelo CDN público (pull zone), não pelo storage origin: a API de
+  // Storage do Bunny responde 401 em HEAD nesta zona mesmo com a AccessKey
+  // correta (upload via PUT funciona normalmente), então a checagem sempre
+  // dava falso negativo e o arquivo era baixado/reenviado a cada envio.
+  const url = `${BUNNY_CDN_HOST}/${path}`;
   try {
-    const res = await fetch(url, {
-      method: "HEAD",
-      headers: { AccessKey: apiKey },
-    });
-    if (!res.ok) {
-      // Diagnóstico temporário: confirmar se o cache de mapas está
-      // reaproveitando arquivos já enviados ou refazendo upload sempre.
-      console.warn(`[bunnyFileExists] HEAD ${url} -> ${res.status}`);
-    }
+    const res = await fetch(url, { method: "HEAD" });
     return res.ok;
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[bunnyFileExists] HEAD ${url} threw: ${msg}`);
+  } catch {
     return false;
   }
 }
