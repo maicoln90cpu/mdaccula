@@ -61,7 +61,7 @@ function hashParams(params: MapRenderParams): string {
     .slice(0, 16);
 }
 
-function buildMapPath(params: MapRenderParams): string {
+export function buildMapPath(params: MapRenderParams): string {
   const h = hashParams(params);
   return `email-map-images/map-${h}-${params.lat.toFixed(4)}-${params.lng.toFixed(4)}-z${params.zoom}-${params.w}x${params.h}-${params.style}-${params.pinColor.replace("#", "")}.png`;
 }
