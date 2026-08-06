@@ -63,7 +63,7 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | create-recurring-events | Cron que materializa a próxima instância de cada evento recorrente configurado, com descrição única por edição | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
 | scan-event-sources | Raspa fontes de eventos cadastradas (sites/Instagram via Apify), extrai por IA e cria rascunhos de artigo | Frontend (admin) / Cron | Admin ou cron secret | Padrão `_shared` |
 | apify-instagram-webhook | Recebe callback da Apify quando encontra post novo de evento no Instagram; extrai, compõe imagem e gera rascunho | Webhook externo (Apify) | Secret na query string (`internal_cron_secrets`) | Próprio (inline) |
-| geocode-event | Geocodifica venue/cidade/estado de um evento via Google Maps Geocoding API e salva lat/lng | Frontend (admin) / interno / auto-geocode idempotente | Aceita admin, service role ou anônimo (idempotente) | Próprio (inline) |
+| geocode-event | Geocodifica venue/cidade/estado de um evento via Google Maps Geocoding API e salva lat/lng | Frontend (admin) / interno / auto-geocode idempotente. Re-geocode forçado (`force: true`) disparado por `useEventFormSubmit` quando venue/cidade/estado mudam num edit — muda lat/lng, o que troca a chave de cache do mapa e força uma imagem nova | Aceita admin, service role ou anônimo (idempotente) | Próprio (inline) |
 
 ## Mídia / Storage
 
@@ -86,7 +86,7 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | sitemap | Gera `sitemap.xml` dinâmico com posts publicados e eventos ativos | Público / crawler | Público | Próprio (inline) |
 | blog-rss | Gera feed RSS 2.0 dos posts publicados do blog | Público / leitor RSS | Público | Próprio (inline) |
 | indexnow-notify | Notifica IndexNow (Bing/Yandex) sobre conteúdo novo; GET expõe a chave para o arquivo de verificação | Frontend (admin, ao publicar) / build | Público (chave IndexNow é pública por design) | Próprio (inline) |
-| render-static-map | Proxy para Google Static Maps via connector gateway (contorna restrição de referrer da chave browser) | Frontend / clientes de e-mail | Público (`verify_jwt=false` deliberado) | Próprio (inline) |
+| render-static-map | Proxy para Google Static Maps via connector gateway (contorna restrição de referrer da chave browser). Cache-first via `resolveMapImage` (`_shared/renderStaticMapCache.ts`): Bunny CDN → fallback Supabase Storage (bucket `event-map-images`, self-heal de volta pro Bunny) → só chama o Google em cache miss real (confirmado ausente nos dois, ou indeterminado por erro de rede nos dois). Mesma função é reusada no pré-aquecimento de campanhas (`ensureCachedMapImage`) | Frontend / clientes de e-mail | Público (`verify_jwt=false` deliberado) | Próprio (inline) |
 | public-maps-config | Devolve a chave pública (referrer-restricted) do Google Maps para o navegador | Frontend | Público | Próprio (inline) |
 
 ## Admin / Import

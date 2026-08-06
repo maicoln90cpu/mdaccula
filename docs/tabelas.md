@@ -1633,6 +1633,13 @@ ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('link-thumbnails', 'link-thumbnails', true)
 ON CONFLICT (id) DO NOTHING;
+
+-- Bucket de fallback para imagens de mapa estático de evento (2ª fonte de
+-- verdade quando o Bunny CDN não confirma o cache, evita re-chamar a API
+-- do Google Maps por causa de um hiccup do Bunny)
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('event-map-images', 'event-map-images', true)
+ON CONFLICT (id) DO NOTHING;
 ```
 
 ---
@@ -1971,6 +1978,25 @@ CREATE POLICY "Admins podem atualizar link thumbnails"
 CREATE POLICY "Admins podem deletar link thumbnails"
   ON storage.objects FOR DELETE
   USING (bucket_id = 'link-thumbnails' AND has_role(auth.uid(), 'admin'::app_role));
+
+-- ============================================
+-- STORAGE POLICIES: event-map-images
+-- ============================================
+CREATE POLICY "Public can view event map images"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'event-map-images');
+
+CREATE POLICY "Admins can upload event map images"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'event-map-images' AND has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can update event map images"
+  ON storage.objects FOR UPDATE
+  USING (bucket_id = 'event-map-images' AND has_role(auth.uid(), 'admin'::app_role));
+
+CREATE POLICY "Admins can delete event map images"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'event-map-images' AND has_role(auth.uid(), 'admin'::app_role));
 ```
 
 ---

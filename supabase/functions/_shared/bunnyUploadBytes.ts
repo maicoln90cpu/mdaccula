@@ -12,7 +12,16 @@ function getBunnyStorageHost(): string {
   return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
 }
 
-export async function bunnyFileExists(path: string): Promise<boolean> {
+export type BunnyCheckResult = "exists" | "not-found" | "error";
+
+/**
+ * Checa a existência de um arquivo no Bunny CDN via HEAD, distinguindo
+ * "confirmado ausente" (404) de "indeterminado" (timeout/erro de rede/outro
+ * status). Colapsar os dois em `false` fazia o chamador re-gerar a imagem
+ * (rechamando a API do Google) sempre que o Bunny tinha um hiccup, mesmo com
+ * o arquivo já existindo — daí o tri-state.
+ */
+export async function checkBunnyFile(path: string): Promise<BunnyCheckResult> {
   // Verifica pelo CDN público (pull zone), não pelo storage origin: a API de
   // Storage do Bunny responde 401 em HEAD nesta zona mesmo com a AccessKey
   // correta (upload via PUT funciona normalmente), então a checagem sempre
@@ -20,17 +29,14 @@ export async function bunnyFileExists(path: string): Promise<boolean> {
   const url = `${BUNNY_CDN_HOST}/${path}`;
   try {
     const res = await fetch(url, { method: "HEAD" });
-    if (!res.ok) {
-      // Diagnóstico temporário (2ª rodada): a checagem pelo CDN público
-      // ainda está dando falso negativo em produção mesmo o arquivo
-      // existindo (confirmado via curl manual). Logar o status real.
-      console.warn(`[bunnyFileExists] HEAD ${url} -> ${res.status}`);
-    }
-    return res.ok;
+    if (res.ok) return "exists";
+    if (res.status === 404) return "not-found";
+    console.warn(`[checkBunnyFile] HEAD ${url} -> ${res.status}`);
+    return "error";
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[bunnyFileExists] HEAD ${url} threw: ${msg}`);
-    return false;
+    console.warn(`[checkBunnyFile] HEAD ${url} threw: ${msg}`);
+    return "error";
   }
 }
 

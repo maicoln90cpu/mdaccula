@@ -1,5 +1,5 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { parseRenderStaticMapUrl, cacheStaticMapImagesInHtml } from "./renderStaticMapCache.ts";
+import { parseRenderStaticMapUrl, cacheStaticMapImagesInHtml, resolveMapImage } from "./renderStaticMapCache.ts";
 
 Deno.test("parseRenderStaticMapUrl: extrai parâmetros de URL absoluta", () => {
   const url = "https://xfvpuzlspvvsmmunznxw.supabase.co/functions/v1/render-static-map?lat=-23.5&lng=-46.6&zoom=15&w=600&h=300&style=roadmap&pincolor=%23a855f7";
@@ -45,4 +45,26 @@ Deno.test("parseRenderStaticMapUrl: extrai parâmetros mesmo com '&' escapado co
   assertEquals(params?.lat, -23.5557714);
   assertEquals(params?.lng, -46.6395571);
   assertEquals(params?.zoom, 15);
+});
+
+Deno.test("resolveMapImage: cache HIT no Bunny nunca chama a API do Google (generateImage não é invocado)", async () => {
+  const original = globalThis.fetch;
+  let generateImageCalls = 0;
+  try {
+    // Qualquer HEAD ao Bunny CDN responde 200 (arquivo já existe).
+    globalThis.fetch = () => Promise.resolve(new Response(null, { status: 200 }));
+
+    const result = await resolveMapImage(
+      { lat: -23.5, lng: -46.6, zoom: 15, w: 600, h: 300, style: "roadmap", pinColor: "red" },
+      () => {
+        generateImageCalls++;
+        return Promise.resolve(new Response(new ArrayBuffer(0), { status: 200 }));
+      },
+    );
+
+    assertEquals(generateImageCalls, 0);
+    assertEquals(result.source, "bunny");
+  } finally {
+    globalThis.fetch = original;
+  }
 });

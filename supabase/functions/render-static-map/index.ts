@@ -14,11 +14,11 @@
 // verify_jwt = false (público). Só GET. Rate limit natural via cache.
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
-import { bunnyFileExists, uploadBytesToBunny } from '../_shared/bunnyUploadBytes.ts';
-import { buildMapPath, type MapRenderParams } from '../_shared/renderStaticMapCache.ts';
+import { resolveMapImage, type MapRenderParams } from '../_shared/renderStaticMapCache.ts';
 
 const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
-const BUNNY_CDN_HOST = 'https://mdaccula.b-cdn.net';
+
+class GoogleConnectorNotConfiguredError extends Error {}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -55,59 +55,52 @@ Deno.serve(async (req) => {
     }
 
     const cacheParams: MapRenderParams = { lat, lng, zoom, w, h, style: mapType, pinColor: cachePinColor };
-    const cachePath = buildMapPath(cacheParams);
-    if (await bunnyFileExists(cachePath)) {
-      return Response.redirect(`${BUNNY_CDN_HOST}/${cachePath}`, 302);
-    }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
-    if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
-      return new Response(JSON.stringify({ error: 'Google Maps connector not configured' }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const generateImage = () => {
+      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+      const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
+      if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
+        throw new GoogleConnectorNotConfiguredError();
+      }
+
+      const staticMapUrl = new URL(`${GATEWAY_URL}/maps/api/staticmap`);
+      staticMapUrl.searchParams.set('center', `${lat},${lng}`);
+      staticMapUrl.searchParams.set('zoom', String(zoom));
+      staticMapUrl.searchParams.set('size', `${w}x${h}`);
+      staticMapUrl.searchParams.set('scale', '2'); // retina
+      staticMapUrl.searchParams.set('maptype', mapType);
+      staticMapUrl.searchParams.set('markers', `color:${pinColor}|${lat},${lng}`);
+
+      return fetch(staticMapUrl.toString(), {
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          'X-Connection-Api-Key': GOOGLE_MAPS_API_KEY,
+        },
       });
-    }
+    };
 
-    const staticMapUrl = new URL(`${GATEWAY_URL}/maps/api/staticmap`);
-    staticMapUrl.searchParams.set('center', `${lat},${lng}`);
-    staticMapUrl.searchParams.set('zoom', String(zoom));
-    staticMapUrl.searchParams.set('size', `${w}x${h}`);
-    staticMapUrl.searchParams.set('scale', '2'); // retina
-    staticMapUrl.searchParams.set('maptype', mapType);
-    staticMapUrl.searchParams.set('markers', `color:${pinColor}|${lat},${lng}`);
-
-    const upstream = await fetch(staticMapUrl.toString(), {
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'X-Connection-Api-Key': GOOGLE_MAPS_API_KEY,
-      },
-    });
-
-    if (!upstream.ok) {
-      const errText = await upstream.text();
-      console.error(`[render-static-map] gateway failed ${upstream.status}: ${errText}`);
-      return new Response(JSON.stringify({ error: 'Upstream failed', status: upstream.status, details: errText }), {
-        status: upstream.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const bytes = await upstream.arrayBuffer();
-    const contentType = upstream.headers.get('Content-Type') || 'image/png';
-
+    let resolved;
     try {
-      await uploadBytesToBunny(bytes, cachePath, contentType);
-    } catch (cacheErr) {
-      // Não bloqueia a resposta ao usuário se o cache falhar — só loga.
-      console.warn('[render-static-map] failed to cache to Bunny:', cacheErr);
+      resolved = await resolveMapImage(cacheParams, generateImage);
+    } catch (err) {
+      if (err instanceof GoogleConnectorNotConfiguredError) {
+        return new Response(JSON.stringify({ error: 'Google Maps connector not configured' }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw err;
     }
 
-    return new Response(bytes, {
+    if (resolved.source === 'bunny') {
+      return Response.redirect(resolved.bunnyUrl, 302);
+    }
+
+    return new Response(resolved.bytes, {
       status: 200,
       headers: {
         ...corsHeaders,
-        'Content-Type': contentType,
+        'Content-Type': resolved.contentType,
         // Cache 7 dias no CDN + no cliente de e-mail
         'Cache-Control': 'public, max-age=604800, s-maxage=604800',
       },

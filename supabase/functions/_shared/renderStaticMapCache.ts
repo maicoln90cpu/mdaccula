@@ -4,7 +4,8 @@
  * custo do Maps Static API de "por abertura de e-mail" para "por campanha".
  */
 
-import { bunnyFileExists, uploadBytesToBunny } from "./bunnyUploadBytes.ts";
+import { checkBunnyFile, uploadBytesToBunny } from "./bunnyUploadBytes.ts";
+import { getStoragePublicUrl, storageGetFile, storageUploadFile } from "./mapImageStorage.ts";
 
 export interface MapRenderParams {
   lat: number;
@@ -66,28 +67,80 @@ export function buildMapPath(params: MapRenderParams): string {
   return `email-map-images/map-${h}-${params.lat.toFixed(4)}-${params.lng.toFixed(4)}-z${params.zoom}-${params.w}x${params.h}-${params.style}-${params.pinColor.replace("#", "")}.png`;
 }
 
+export type ResolvedMapImage =
+  | { source: "bunny"; bunnyUrl: string }
+  | { source: "storage"; bytes: ArrayBuffer; contentType: string; storageUrl: string }
+  | { source: "generated"; bytes: ArrayBuffer; contentType: string; bunnyUrl: string };
+
 /**
- * Garante que a imagem do mapa exista no Bunny CDN, retornando a URL pública.
- * Se já existir, reutiliza; se não, chama o render-static-map e faz upload.
+ * Fonte única de verdade do cache-first de mapas: Bunny CDN → Supabase
+ * Storage (fallback quando o Bunny não confirma) → API do Google (só em
+ * cache miss real, confirmado ausente ou indeterminado nos dois lugares).
+ * Usada tanto pelo proxy público (render-static-map) quanto pelo
+ * pré-aquecimento de campanhas (ensureCachedMapImage) — antes eram duas
+ * implementações paralelas da mesma lógica, o que já causou dois bugs de
+ * cache em produção.
+ */
+export async function resolveMapImage(
+  params: MapRenderParams,
+  generateImage: () => Promise<Response>,
+): Promise<ResolvedMapImage> {
+  const path = buildMapPath(params);
+  const bunnyCheck = await checkBunnyFile(path);
+
+  if (bunnyCheck === "exists") {
+    return { source: "bunny", bunnyUrl: `https://mdaccula.b-cdn.net/${path}` };
+  }
+
+  const storageHit = await storageGetFile(path);
+  if (storageHit) {
+    // Self-heal: o Bunny não confirmou (ausente ou erro), mas o Storage tem —
+    // repõe no Bunny em segundo plano pra próxima consulta já achar lá.
+    uploadBytesToBunny(storageHit.bytes, path, storageHit.contentType).catch((err) => {
+      console.warn(`[resolveMapImage] self-heal upload to Bunny failed for ${path}:`, err);
+    });
+    return {
+      source: "storage",
+      bytes: storageHit.bytes,
+      contentType: storageHit.contentType,
+      storageUrl: `${path}`,
+    };
+  }
+
+  // Cache miss real: nem o Bunny confirmou, nem o Storage tem uma cópia.
+  // Isso cobre tanto "nunca foi gerado" (bunnyCheck === 'not-found') quanto
+  // "Bunny e Storage indisponíveis ao mesmo tempo" (bunnyCheck === 'error') —
+  // não dá pra travar o mapa indefinidamente por uma falha de rede.
+  const response = await generateImage();
+  if (!response.ok) {
+    const text = await response.text().catch(() => "unknown");
+    throw new Error(`map image generation failed (${response.status}): ${text}`);
+  }
+  const contentType = response.headers.get("Content-Type") || "image/png";
+  const buffer = await response.arrayBuffer();
+
+  const { url: bunnyUrl } = await uploadBytesToBunny(buffer, path, contentType);
+  storageUploadFile(buffer, path, contentType).catch((err) => {
+    console.warn(`[resolveMapImage] Storage backup failed for ${path}:`, err);
+  });
+
+  return { source: "generated", bytes: buffer, contentType, bunnyUrl };
+}
+
+/**
+ * Garante que a imagem do mapa exista no Bunny CDN (ou, se o Bunny estiver
+ * indisponível, no Supabase Storage), retornando uma URL pública embutível
+ * no HTML do e-mail.
  */
 export async function ensureCachedMapImage(
   params: MapRenderParams,
   renderStaticMapUrl: string,
 ): Promise<string> {
-  const path = buildMapPath(params);
-  if (await bunnyFileExists(path)) {
-    return `https://mdaccula.b-cdn.net/${path}`;
+  const resolved = await resolveMapImage(params, () => fetch(renderStaticMapUrl));
+  if (resolved.source === "bunny" || resolved.source === "generated") {
+    return resolved.bunnyUrl;
   }
-
-  const response = await fetch(renderStaticMapUrl);
-  if (!response.ok) {
-    const text = await response.text().catch(() => "unknown");
-    throw new Error(`render-static-map failed (${response.status}): ${text}`);
-  }
-  const contentType = response.headers.get("Content-Type") || "image/png";
-  const buffer = await response.arrayBuffer();
-  const { url } = await uploadBytesToBunny(buffer, path, contentType);
-  return url;
+  return getStoragePublicUrl(resolved.storageUrl);
 }
 
 /**

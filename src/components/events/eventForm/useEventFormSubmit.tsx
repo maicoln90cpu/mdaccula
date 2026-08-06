@@ -178,9 +178,40 @@ export function useEventFormSubmit(opts: UseEventFormSubmitOptions) {
       if (event?.id) {
         logger.debug('[EventForm] 🔄 Atualizando evento existente:', { eventId: event.id });
         const previousSlug = event?.slug;
+        const addressChanged =
+          (event.venue ?? '') !== (data.venue ?? '') ||
+          (event.location_city ?? '') !== (data.location_city ?? '') ||
+          (event.location_state ?? '') !== (data.location_state ?? '');
         const { error } = await supabase.from('events').update(eventData).eq('id', event.id);
 
         if (error) throw error;
+
+        if (addressChanged) {
+          // Endereço mudou: força re-geocode (novas coordenadas mudam a chave
+          // de cache do mapa estático, então a próxima renderização já gera a
+          // imagem nova). Fire-and-forget — não trava o salvamento do evento.
+          logger.debug('[EventForm] 📍 Endereço alterado, disparando re-geocode', {
+            eventId: event.id,
+          });
+          supabase.functions
+            .invoke('geocode-event', { body: { event_id: event.id, force: true } })
+            .then(({ error: geoError }) => {
+              if (geoError) {
+                logger.warn('[EventForm] Falha ao re-geocodificar evento após edição de endereço', {
+                  eventId: event.id,
+                  error: String(geoError?.message ?? geoError),
+                });
+              } else {
+                logger.debug('[EventForm] ✅ Re-geocode concluído', { eventId: event.id });
+              }
+            })
+            .catch((geoErr) => {
+              logger.warn('[EventForm] Erro ao chamar geocode-event após edição de endereço', {
+                eventId: event.id,
+                error: String(geoErr),
+              });
+            });
+        }
 
         if (previousSlug && previousSlug !== eventSlug) {
           const { error: redirErr } = await supabase
