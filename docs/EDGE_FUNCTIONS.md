@@ -36,6 +36,7 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | send-contact-email | Envia e-mail do formulário de contato do site via Resend | Frontend (anônimo) | Público (rate limit por IP) | Próprio (inline) |
 | send-mass-newsletter | Envia e-mail em massa via Resend para uma lista de destinatários | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
 | send-podcast-notification | Envia e-mails de confirmação (artista) e notificação (agência) na submissão do podcast | Frontend (formulário público) | Nenhuma ⚠️ | Próprio (inline) |
+| send-event-reminder-campaigns | Poller de cron (de hora em hora) que dispara o e-mail de cada evento ativo/não-recorrente N dias antes da data (`site_settings.event_reminder_*`) | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
 | send-scheduled-email-campaigns | Poller de cron (5 em 5 min) que dispara e-mails agendados (`event_email_campaigns.status='scheduled'`) | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
 | send-test-email | Envia e-mail de teste do template para o próprio admin logado, via Resend | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | update-digest-schedule | Reconfigura os cron jobs de digest semanal/agenda FDS/blog digest a partir de `site_settings` | Frontend (admin) | Admin autenticado | Próprio (inline) |

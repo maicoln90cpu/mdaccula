@@ -97,6 +97,7 @@ export function EmailTemplateEditor({
       weekend_agenda: 0,
       weekly_digest: 0,
       blog_digest: 0,
+      event_reminder: 0,
       courtesy: 0,
       custom: 0,
     };
@@ -234,7 +235,7 @@ export function EmailTemplateEditor({
         .from('email_templates')
         .insert({
           name: `${activeTpl.name} (cópia)`,
-          type: 'custom',
+          type: activeTpl.type,
           blocks: activeTpl.blocks,
           subject_template: activeTpl.subject_template,
           preheader_template: activeTpl.preheader_template,

@@ -11,6 +11,7 @@ export type TypeFilterKey =
   | 'weekend_agenda'
   | 'weekly_digest'
   | 'blog_digest'
+  | 'event_reminder'
   | 'courtesy'
   | 'custom';
 
@@ -21,6 +22,7 @@ export const TYPE_FILTER_ORDER: TypeFilterKey[] = [
   'weekend_agenda',
   'weekly_digest',
   'blog_digest',
+  'event_reminder',
   'courtesy',
   'custom',
 ];
@@ -32,6 +34,7 @@ export const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
   weekend_agenda: 'Agenda FDS',
   weekly_digest: 'Digest',
   blog_digest: 'Blog news',
+  event_reminder: 'Lembrete de evento',
   courtesy: 'Cortesia',
   custom: 'Custom',
 };

@@ -2,10 +2,11 @@
  * Controles reutilizáveis do editor de blocos de e-mail.
  * Extraídos de EmailTemplateEditor.tsx (Onda 1 PR-A) sem mudança de comportamento.
  */
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/select';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Trash2, Copy, Eye, EyeOff, Library, Bold, Italic, Link2, Pilcrow } from 'lucide-react';
+import { GripVertical, Trash2, Copy, Eye, EyeOff, Library, Bold, Italic, Link2, Heading2, List, Quote } from 'lucide-react';
 import { type Block } from '@/lib/emailTemplates/blocks';
 
 // Controle reutilizável de alinhamento (esq/centro/dir)
@@ -164,81 +165,100 @@ export function SortableRow({
 }
 
 /**
- * Editor de HTML com barra de formatação — negrito/itálico/link/parágrafo
- * inserem os códigos automaticamente na seleção, sem o usuário precisar
- * digitar as tags na mão. O bloco `text` continua salvando HTML puro
- * (mesmo formato que o renderer de e-mail já espera), só a edição fica
- * mais fácil.
+ * Editor visual (rich text) do bloco `text` — sem exibir tags HTML pro
+ * usuário. Continua salvando/recebendo HTML puro (mesmo formato que o
+ * renderer de e-mail já espera via `sanitizeCustomHtml`), só a edição vira
+ * WYSIWYG em vez de textarea com código.
  */
 export function RichHtmlEditor({
   value,
   onChange,
-  rows = 6,
 }: {
   value: string;
   onChange: (v: string) => void;
   rows?: number;
 }) {
-  const ref = useRef<HTMLTextAreaElement>(null);
+  const lastValueRef = useRef(value);
 
-  const wrapSelection = (before: string, after: string) => {
-    const el = ref.current;
-    if (!el) return;
-    const start = el.selectionStart ?? el.value.length;
-    const end = el.selectionEnd ?? el.value.length;
-    const selected = el.value.slice(start, end);
-    const next = el.value.slice(0, start) + before + selected + after + el.value.slice(end);
-    onChange(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(start + before.length, start + before.length + selected.length);
-    });
-  };
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [2] },
+        orderedList: false,
+        codeBlock: false,
+        link: { openOnClick: false },
+      }),
+    ],
+    content: value,
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML();
+      lastValueRef.current = html;
+      onChange(html);
+    },
+    editorProps: {
+      attributes: {
+        class:
+          'max-w-none min-h-[120px] px-3 py-2 text-sm text-foreground focus:outline-none ' +
+          '[&_h2]:text-base [&_h2]:font-bold [&_h2]:mt-2 [&_h2]:mb-1 ' +
+          '[&_p]:mb-2 [&_p:last-child]:mb-0 ' +
+          '[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 ' +
+          '[&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground ' +
+          '[&_a]:text-primary [&_a]:underline',
+      },
+    },
+  });
 
-  const insertLink = () => {
-    const url = window.prompt('URL do link:', 'https://');
-    if (!url) return;
-    wrapSelection(`<a href="${url}">`, '</a>');
-  };
+  // Bloco selecionado pode trocar sem remount do componente — sincroniza o
+  // conteúdo do editor quando `value` muda por fora (ex.: trocar de bloco).
+  useEffect(() => {
+    if (!editor) return;
+    if (value !== lastValueRef.current && value !== editor.getHTML()) {
+      lastValueRef.current = value;
+      editor.commands.setContent(value, { emitUpdate: false });
+    }
+  }, [value, editor]);
 
-  const insertParagraphBreak = () => {
-    const el = ref.current;
-    if (!el) return;
-    const pos = el.selectionStart ?? el.value.length;
-    const next = `${el.value.slice(0, pos)}</p>\n<p>${el.value.slice(pos)}`;
-    onChange(next);
-    requestAnimationFrame(() => {
-      el.focus();
-      el.setSelectionRange(pos + 8, pos + 8);
-    });
+  if (!editor) return null;
+
+  const toggleLink = () => {
+    const previousUrl = (editor.getAttributes('link').href as string | undefined) || '';
+    const url = window.prompt('URL do link:', previousUrl || 'https://');
+    if (url === null) return;
+    if (url === '') {
+      editor.chain().focus().unsetLink().run();
+      return;
+    }
+    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
   return (
     <div>
-      <div className="flex items-center gap-1 mb-1">
-        <Button type="button" size="icon" variant="outline" className="h-7 w-7" title="Negrito" onClick={() => wrapSelection('<strong>', '</strong>')}>
+      <div className="flex items-center gap-1 mb-1 flex-wrap">
+        <Button type="button" size="icon" variant={editor.isActive('bold') ? 'default' : 'outline'} className="h-7 w-7" title="Negrito" onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="w-3.5 h-3.5" />
         </Button>
-        <Button type="button" size="icon" variant="outline" className="h-7 w-7" title="Itálico" onClick={() => wrapSelection('<em>', '</em>')}>
+        <Button type="button" size="icon" variant={editor.isActive('italic') ? 'default' : 'outline'} className="h-7 w-7" title="Itálico" onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="w-3.5 h-3.5" />
         </Button>
-        <Button type="button" size="icon" variant="outline" className="h-7 w-7" title="Link" onClick={insertLink}>
+        <Button type="button" size="icon" variant={editor.isActive('heading', { level: 2 }) ? 'default' : 'outline'} className="h-7 w-7" title="Subtítulo" onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+          <Heading2 className="w-3.5 h-3.5" />
+        </Button>
+        <Button type="button" size="icon" variant={editor.isActive('bulletList') ? 'default' : 'outline'} className="h-7 w-7" title="Lista" onClick={() => editor.chain().focus().toggleBulletList().run()}>
+          <List className="w-3.5 h-3.5" />
+        </Button>
+        <Button type="button" size="icon" variant={editor.isActive('blockquote') ? 'default' : 'outline'} className="h-7 w-7" title="Citação" onClick={() => editor.chain().focus().toggleBlockquote().run()}>
+          <Quote className="w-3.5 h-3.5" />
+        </Button>
+        <Button type="button" size="icon" variant={editor.isActive('link') ? 'default' : 'outline'} className="h-7 w-7" title="Link" onClick={toggleLink}>
           <Link2 className="w-3.5 h-3.5" />
         </Button>
-        <Button type="button" size="icon" variant="outline" className="h-7 w-7" title="Novo parágrafo" onClick={insertParagraphBreak}>
-          <Pilcrow className="w-3.5 h-3.5" />
-        </Button>
       </div>
-      <Textarea
-        ref={ref}
-        rows={rows}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="font-mono text-xs"
-      />
+      <div className="rounded-md border border-input bg-background">
+        <EditorContent editor={editor} />
+      </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Selecione um texto e clique em Negrito/Itálico/Link — as tags são inseridas
-        automaticamente. Tags de script, style, iframe e handlers on* são removidos.
+        Editor visual — formate direto, sem digitar código. Tags de script, style, iframe e
+        handlers on* são removidos automaticamente ao salvar.
       </p>
     </div>
   );

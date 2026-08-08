@@ -50,7 +50,8 @@ export type Template = {
     | 'weekend_agenda'
     | 'courtesy'
     | 'custom'
-    | 'blog_digest';
+    | 'blog_digest'
+    | 'event_reminder';
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;

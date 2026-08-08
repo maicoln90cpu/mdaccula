@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,6 +104,26 @@ export function ManualSendTab(props: ManualSendTabProps) {
     sendTestEmail,
   } = props;
 
+  // Rótulo do segmento que será usado de fato neste disparo — exibido na
+  // revisão final e na confirmação de envio pra evitar que um reset (ou
+  // esquecimento) do segmento escolhido passe despercebido. Item 3 da
+  // melhoria de disparo de e-mail.
+  const resolvedSegmentLabel = useMemo(() => {
+    if (batchSegmentId === undefined) {
+      return `Padrão da configuração global (${globalSegmentLabel})`;
+    }
+    if (batchSegmentId === null) {
+      return `Todos os contatos da lista${
+        typeof listTotal === 'number' ? ` — ${formatCount(listTotal)} contatos` : ''
+      }`;
+    }
+    const s = segments.find((x) => x.segment_id === batchSegmentId);
+    if (!s) return `Segmento #${batchSegmentId}`;
+    return `${s.name}${
+      typeof s.total_contacts === 'number' ? ` — ${formatCount(s.total_contacts)} contatos` : ''
+    }`;
+  }, [batchSegmentId, globalSegmentLabel, listTotal, segments]);
+
   return (
     <>
       <Card>
@@ -154,10 +175,7 @@ export function ManualSendTab(props: ManualSendTabProps) {
               ) : (
                 <Select
                   value={batchEventId}
-                  onValueChange={(id) => {
-                    setBatchEventId(id);
-                    setBatchSegmentId(undefined);
-                  }}
+                  onValueChange={(id) => setBatchEventId(id)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o evento" />
@@ -181,7 +199,6 @@ export function ManualSendTab(props: ManualSendTabProps) {
                   setBatchTemplateId(id);
                   setBatchSubject('');
                   setBatchArtworkUrl('');
-                  setBatchSegmentId(undefined);
                 }}
               >
                 <SelectTrigger>
@@ -199,7 +216,9 @@ export function ManualSendTab(props: ManualSendTabProps) {
                             ? 'Virada'
                             : t.type === 'ticket_batch_multi'
                               ? 'Virada (multi)'
-                              : 'Custom'}
+                              : t.type === 'event_reminder'
+                                ? 'Lembrete'
+                                : 'Custom'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -321,6 +340,10 @@ export function ManualSendTab(props: ManualSendTabProps) {
                       {manualComposition.preheader}
                     </div>
                   )}
+                  <div className="mt-2 text-xs">
+                    <span className="text-muted-foreground">Segmento: </span>
+                    <span className="font-medium">{resolvedSegmentLabel}</span>
+                  </div>
                 </div>
                 {manualIssuePartition.blockers.length > 0 ? (
                   <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-700 dark:text-red-300">
@@ -388,6 +411,7 @@ export function ManualSendTab(props: ManualSendTabProps) {
                   ? `${selectedManualEvents.length} evento(s) selecionado(s)`
                   : realEvents.find((e) => e.id === batchEventId)?.title || '(selecione)'
               }
+              segmentLabel={resolvedSegmentLabel}
               disabled={
                 !manualComposition || manualIssuePartition.blockers.length > 0 || batchDispatching
               }

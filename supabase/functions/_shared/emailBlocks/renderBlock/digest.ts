@@ -68,6 +68,70 @@ export function renderDigestBlock(
         return `${header}${rows}`;
       }
 
+      if (layout === "grid") {
+        if (list.length === 1) {
+          const ev = list[0];
+          const url = escape(ev.eventUrl || "#");
+          const article = showArticle && ev.articleUrl
+            ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
+            : "";
+          const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+          const multiCtas = (ev.ctas && ev.ctas.length > 1) ? ev.ctas : null;
+          const ticketBtn = multiCtas
+            ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:12px 16px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:8px;">${escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : ""))} — ${singleCtaLabel}</a></td></tr>`).join("")}</table>`
+            : (ev.ticketUrl
+              ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${singleCtaLabel}</a>`
+              : "");
+          const singleCard = `<tr><td style="padding:10px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
+              <tr><td style="padding:0;position:relative;">
+                <a href="${url}" style="text-decoration:none;display:block;">
+                  <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
+                </a>
+              </td></tr>
+              <tr><td style="padding:16px 18px 18px 18px;">
+                <div style="color:${escape(block.day_bar_color || accent)};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+                <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+                <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
+                ${ticketBtn}${article}
+              </td></tr>
+            </table>
+          </td></tr>`;
+          return `${header}${singleCard}`;
+        }
+
+        const gridCard = (ev: WeekendEventItem) => {
+          const url = escape(ev.eventUrl || "#");
+          const ctaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
+          const btn = ev.ticketUrl
+            ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;width:100%;box-sizing:border-box;padding:10px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:8px;">${ctaLabel}</a>`
+            : "";
+          return `<td width="50%" style="padding:8px;vertical-align:top;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+              <tr><td style="padding:0;">
+                <a href="${url}" style="text-decoration:none;display:block;">
+                  <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="260" border="0" style="display:block;width:100%;max-width:260px;height:auto;border:0;outline:none;">
+                </a>
+              </td></tr>
+              <tr><td style="padding:12px 14px 14px 14px;">
+                <div style="color:${escape(block.day_bar_color || accent)};font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+                <div style="color:#ffffff;font-size:14px;font-weight:800;line-height:1.2;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
+                <div style="color:#a1a1aa;font-size:11px;margin-bottom:8px;">${escape(ev.venue)}</div>
+                ${btn}
+              </td></tr>
+            </table>
+          </td>`;
+        };
+
+        const gridRows: string[] = [];
+        for (let i = 0; i < list.length; i += 2) {
+          const pair = list.slice(i, i + 2);
+          const cells = pair.map(gridCard).join("");
+          gridRows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
+        }
+        return `${header}${gridRows.join("")}`;
+      }
+
       const cards = list.map((ev) => {
         const url = escape(ev.eventUrl || "#");
         const article = showArticle && ev.articleUrl

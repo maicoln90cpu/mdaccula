@@ -39,6 +39,9 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
               <SelectItem value="timeline">
                 Timeline por dia (compacto, barra colorida)
               </SelectItem>
+              <SelectItem value="grid">
+                Grid adaptativo (1 evento = card único, 2+ = 2 colunas)
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

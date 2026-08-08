@@ -20,6 +20,7 @@ import {
   AUTOMATION_TEST_RECIPIENT,
 } from '@/components/admin/emailConfig/useEmailAutomation';
 import { useEmailConfigState } from '@/components/admin/emailConfig/useEmailConfigState';
+import { useEventReminderAutomation } from '@/components/admin/emailConfig/useEventReminderAutomation';
 import { useEmailPreview } from '@/components/admin/emailConfig/useEmailPreview';
 import { useManualBatch } from '@/components/admin/emailConfig/useManualBatch';
 
@@ -79,6 +80,18 @@ const EmailConfig = () => {
     sendAutomationNow,
   } = useEmailAutomation({ templates, toast });
 
+  // Lembrete de evento (item 5) — hook próprio, ver comentário no arquivo.
+  const {
+    cfg: eventReminderCfg,
+    setCfg: setEventReminderCfg,
+    saving: savingEventReminder,
+    running: runningEventReminder,
+    lastResult: eventReminderLastResult,
+    effectiveTemplateId: eventReminderEffectiveTemplateId,
+    handleSave: handleSaveEventReminder,
+    runNow: runEventReminderNow,
+  } = useEventReminderAutomation({ templates, toast });
+
   // Camada de dados (loadAll, CRUD egoi_config, upload logo, listas/segmentos)
   // extraída para `useEmailConfigState` na Onda 9 PR-A.
   const {
@@ -121,6 +134,7 @@ const EmailConfig = () => {
       setDigestLastResult,
       setWeekendLastResult,
       setBlogLastResult,
+      setEventReminderCfg,
     },
   });
 
@@ -434,6 +448,14 @@ const EmailConfig = () => {
                 setSendingBlog
               )
             }
+            eventReminderCfg={eventReminderCfg}
+            setEventReminderCfg={setEventReminderCfg}
+            eventReminderEffectiveTemplateId={eventReminderEffectiveTemplateId}
+            savingEventReminder={savingEventReminder}
+            runningEventReminder={runningEventReminder}
+            eventReminderLastResult={eventReminderLastResult}
+            handleSaveEventReminder={handleSaveEventReminder}
+            runEventReminderNow={runEventReminderNow}
           />
         </TabsContent>
 

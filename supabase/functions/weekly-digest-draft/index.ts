@@ -21,6 +21,7 @@ import {
 import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
 import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
+import { writeDigestCampaignHistory } from '../_shared/digestCampaignHistory.ts';
 // Extraído na Onda 29 para manter este arquivo abaixo de 600 linhas.
 // Comportamento preservado 1:1 — se editar renderização, replicar teste em
 // src/__tests__/contracts/frontend-edge-render-parity.test.ts.
@@ -218,6 +219,10 @@ Deno.serve(async (req) => {
     const evs = ((eventRows ?? []) as EventRow[])
       .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
       .slice(0, 20);
+    const eventIds = evs.map((e) => e.id);
+    // Item 4 da melhoria de e-mail: cada evento incluído neste digest precisa
+    // aparecer individualmente como "enviado" na aba Histórico e controle.
+    const campaignType = range === 'weekend' ? 'weekend_agenda' : 'weekly_digest';
     const pts = (posts ?? []) as PostRow[];
     const settings = (tplSettings ?? {}) as BrandSettings;
 
@@ -370,10 +375,21 @@ Deno.serve(async (req) => {
     });
 
     if (!created.ok) {
+      const detail = typeof created.body === 'string' ? created.body : JSON.stringify(created.body);
+      const historyWarning = await writeDigestCampaignHistory(admin, eventIds, {
+        campaignHash: null,
+        status: 'failed',
+        mode: sendOnCron ? 'immediate' : 'draft',
+        errorMessage: `E-goi ${created.status}: ${detail}`.slice(0, 1000),
+        sentAt: null,
+        campaignType,
+        segmentId: null,
+      });
       return json({
         ok: false,
         error: `E-goi ${created.status}`,
-        detail: typeof created.body === 'string' ? created.body : JSON.stringify(created.body),
+        detail,
+        history_warning: historyWarning,
       }, 502);
     }
 
@@ -388,21 +404,42 @@ Deno.serve(async (req) => {
     if (sendOnCron && campaignHash) {
       const sendRes = await sendEgoiCampaign(campaignHash, Number(cfg.list_id), apiKey!);
       if (!sendRes.ok) {
+        const detail = typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body);
+        const historyWarning = await writeDigestCampaignHistory(admin, eventIds, {
+          campaignHash,
+          status: 'draft',
+          mode: 'immediate',
+          errorMessage: `E-goi send ${sendRes.status}: ${detail}`.slice(0, 1000),
+          sentAt: null,
+          campaignType,
+          segmentId: null,
+        });
         return json({
           ok: false,
           status: 'draft',
           error: `E-goi send ${sendRes.status}`,
-          detail: typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body),
+          detail,
           egoi_campaign_id: campaignHash,
           events_count: evs.length,
           posts_count: pts.length,
           range: rangeLabel,
           template_id: (activeTpl as any)?.id ?? null,
           template_name: (activeTpl as any)?.name ?? null,
+          history_warning: historyWarning,
         }, 502);
       }
       status = 'sent';
     }
+
+    const historyWarning = await writeDigestCampaignHistory(admin, eventIds, {
+      campaignHash,
+      status,
+      mode: sendOnCron ? 'immediate' : 'draft',
+      errorMessage: null,
+      sentAt: status === 'sent' ? new Date().toISOString() : null,
+      campaignType,
+      segmentId: null,
+    });
 
     return json({
       ok: true,
@@ -413,6 +450,7 @@ Deno.serve(async (req) => {
       range: rangeLabel,
       template_id: (activeTpl as any)?.id ?? null,
       template_name: (activeTpl as any)?.name ?? null,
+      history_warning: historyWarning,
     });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);

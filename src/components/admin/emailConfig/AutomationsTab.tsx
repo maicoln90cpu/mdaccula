@@ -9,6 +9,8 @@ import { ShieldAlert } from 'lucide-react';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { AutomationCfg, AutomationResult } from './types';
 import { AutomationCard } from './automations/AutomationCard';
+import { EventReminderAutomationCard } from './automations/EventReminderAutomationCard';
+import type { EventReminderCfg, EventReminderResult } from './useEventReminderAutomation';
 
 interface AutomationsTabProps {
   masterEnabled: boolean;
@@ -57,6 +59,16 @@ interface AutomationsTabProps {
   generateBlogNow: () => void | Promise<void>;
   onTestBlog: () => void;
   onSendBlogNow: () => void;
+
+  // Lembrete de evento (item 5)
+  eventReminderCfg: EventReminderCfg;
+  setEventReminderCfg: (cfg: EventReminderCfg) => void;
+  eventReminderEffectiveTemplateId: string;
+  savingEventReminder: boolean;
+  runningEventReminder: boolean;
+  eventReminderLastResult: EventReminderResult;
+  handleSaveEventReminder: () => void | Promise<void>;
+  runEventReminderNow: () => void | Promise<void>;
 }
 
 export const AutomationsTab = ({
@@ -100,6 +112,14 @@ export const AutomationsTab = ({
   generateBlogNow,
   onTestBlog,
   onSendBlogNow,
+  eventReminderCfg,
+  setEventReminderCfg,
+  eventReminderEffectiveTemplateId,
+  savingEventReminder,
+  runningEventReminder,
+  eventReminderLastResult,
+  handleSaveEventReminder,
+  runEventReminderNow,
 }: AutomationsTabProps) => {
   const testTitle = `Envia via Resend para ${automationTestRecipient} — não toca a E-goi`;
 
@@ -211,6 +231,20 @@ export const AutomationsTab = ({
           onGenerate={generateBlogNow}
           onTest={onTestBlog}
           onSendNow={onSendBlogNow}
+        />
+
+        {/* Card 4 — Lembrete de evento */}
+        <EventReminderAutomationCard
+          masterEnabled={masterEnabled}
+          templates={templates}
+          effectiveTemplateId={eventReminderEffectiveTemplateId}
+          cfg={eventReminderCfg}
+          setCfg={setEventReminderCfg}
+          saving={savingEventReminder}
+          running={runningEventReminder}
+          lastResult={eventReminderLastResult}
+          onSave={handleSaveEventReminder}
+          onRunNow={runEventReminderNow}
         />
       </div>
 

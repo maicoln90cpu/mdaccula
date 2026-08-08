@@ -237,6 +237,7 @@ Deno.serve(async (req) => {
           vip_link: config.vip_link,
           image_url: config.image_url,
           slug: slug,
+          recurring_event_config_id: config.id,
         })
         .select("id")
         .single();

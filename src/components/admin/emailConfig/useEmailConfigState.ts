@@ -45,6 +45,13 @@ type AutomationSetters = {
   setDigestLastResult: (v: unknown) => void;
   setWeekendLastResult: (v: unknown) => void;
   setBlogLastResult: (v: unknown) => void;
+  setEventReminderCfg: (v: {
+    enabled: boolean;
+    daysBefore: number;
+    hour: number;
+    templateId: string;
+    sendOnCron: boolean;
+  }) => void;
 };
 
 /**
@@ -98,6 +105,7 @@ export function useEmailConfigState({
     setDigestLastResult,
     setWeekendLastResult,
     setBlogLastResult,
+    setEventReminderCfg,
   } = automation;
 
   const loadAll = useCallback(async () => {
@@ -153,6 +161,11 @@ export function useEmailConfigState({
             'weekly_digest_last_result',
             'weekend_agenda_last_result',
             'blog_digest_last_result',
+            'event_reminder_enabled',
+            'event_reminder_days_before',
+            'event_reminder_hour',
+            'event_reminder_template_id',
+            'event_reminder_send_on_cron',
           ]),
       ]);
 
@@ -183,6 +196,13 @@ export function useEmailConfigState({
         hour: parseInt10(settingsMap.blog_digest_cron_hour, 12),
         templateId: settingsMap.blog_digest_template_id || '',
         sendOnCron: settingsMap.blog_digest_send_on_cron === 'true',
+      });
+      setEventReminderCfg({
+        enabled: settingsMap.event_reminder_enabled === 'true',
+        daysBefore: parseInt10(settingsMap.event_reminder_days_before, 3),
+        hour: parseInt10(settingsMap.event_reminder_hour, 10),
+        templateId: settingsMap.event_reminder_template_id || '',
+        sendOnCron: settingsMap.event_reminder_send_on_cron === 'true',
       });
       const parseLastResult = (raw: string | undefined) => {
         if (!raw) return null;
@@ -243,6 +263,7 @@ export function useEmailConfigState({
     setDigestLastResult,
     setWeekendLastResult,
     setBlogLastResult,
+    setEventReminderCfg,
   ]);
 
   useEffect(() => {

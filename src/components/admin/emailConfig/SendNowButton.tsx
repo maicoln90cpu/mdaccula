@@ -25,11 +25,13 @@ import { Send } from 'lucide-react';
 
 interface SendNowButtonProps {
   eventTitle: string;
+  /** Segmento/lista que vai receber o envio — exibido pro admin confirmar antes de enviar de verdade. */
+  segmentLabel?: string;
   disabled?: boolean;
   onConfirm: () => void | Promise<void>;
 }
 
-export const SendNowButton = ({ eventTitle, disabled, onConfirm }: SendNowButtonProps) => {
+export const SendNowButton = ({ eventTitle, segmentLabel, disabled, onConfirm }: SendNowButtonProps) => {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
   const [reviewed, setReviewed] = useState(false);
@@ -61,8 +63,16 @@ export const SendNowButton = ({ eventTitle, disabled, onConfirm }: SendNowButton
                 <div className="space-y-3">
                   <p>
                     Você está prestes a <b>enviar de verdade</b> o e-mail do evento{' '}
-                    <b>{eventTitle}</b> para toda a lista configurada na E-goi. Isso{' '}
-                    <b>não pode ser desfeito</b>.
+                    <b>{eventTitle}</b>
+                    {segmentLabel ? (
+                      <>
+                        {' '}
+                        para: <b>{segmentLabel}</b>
+                      </>
+                    ) : (
+                      ' para toda a lista configurada na E-goi'
+                    )}
+                    . Isso <b>não pode ser desfeito</b>.
                   </p>
                   <label className="flex items-start gap-2 text-sm cursor-pointer">
                     <input

@@ -162,6 +162,7 @@ CREATE TABLE public.events (
   email_campaign_dispatched_at TIMESTAMP WITH TIME ZONE, -- anti-race do disparo de e-mail (B.6)
   merged_into_id UUID REFERENCES public.events(id), -- evento "guarda-chuva" quando este foi mesclado
   merged_at TIMESTAMP WITH TIME ZONE,
+  recurring_event_config_id UUID REFERENCES public.recurring_event_configs(id) ON DELETE SET NULL, -- preenchido por create-recurring-events; usado pra excluir recorrentes da automação "Lembrete de evento"
   venue_lat NUMERIC,
   venue_lng NUMERIC,
   latitude NUMERIC, -- coordenadas geocodificadas (podem divergir de venue_lat/lng)
@@ -757,7 +758,8 @@ CREATE TABLE public.email_templates (
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN (
     'event_new', 'ticket_batch', 'ticket_batch_multi', 'weekly_digest',
-    'weekly_digest_editorial', 'weekend_agenda', 'courtesy', 'custom', 'blog_digest'
+    'weekly_digest_editorial', 'weekend_agenda', 'courtesy', 'custom', 'blog_digest',
+    'event_reminder'
   )),
   blocks JSONB NOT NULL DEFAULT '[]'::jsonb, -- estrutura em blocos editável no admin
   is_default BOOLEAN NOT NULL DEFAULT false,
