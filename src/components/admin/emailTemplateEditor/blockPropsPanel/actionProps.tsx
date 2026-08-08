@@ -60,7 +60,7 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
           />
           <Label className="text-xs">Ocupar toda a largura</Label>
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
         <div>
           <Label className="text-xs">Cor de fundo</Label>
           <Select
@@ -136,7 +136,7 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
           />
           <Label className="text-xs">Ocupar toda a largura</Label>
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
       </div>
     );
   }
@@ -192,7 +192,7 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
           onChange={(v) => patch({ text_color: v })}
           placeholder="#71717a"
         />
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
       </div>
     );
   }
@@ -252,7 +252,7 @@ export function renderActionProps(block: Block, patch: Patch): JSX.Element | nul
           <Label className="text-xs">Legenda abaixo da imagem (opcional)</Label>
           <Input value={block.caption || ''} onChange={(e) => patch({ caption: e.target.value })} />
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
       </div>
     );
   }

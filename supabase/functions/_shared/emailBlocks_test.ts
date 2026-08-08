@@ -519,11 +519,70 @@ Deno.test("divider: spacing wide e width short alteram padding/largura", () => {
   assertStringIncludes(html, 'width="33%"');
 });
 
+Deno.test("spacing: altera a altura do respiro e não renderiza nenhum conteúdo visível", () => {
+  const blocks: Block[] = [{ id: "1", kind: "spacing", height: 48 } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, 'height="48"');
+  assertStringIncludes(html, "height:48px;line-height:48px;font-size:0;");
+});
+
+Deno.test("spacing: sem height definido usa o padrão de 24px, e valores fora do range são limitados (clamp 4-160)", () => {
+  const withDefault = renderBlockedTemplate([{ id: "1", kind: "spacing" } as any], mockEvent, null, null);
+  assertStringIncludes(withDefault, 'height="24"');
+
+  const tooSmall = renderBlockedTemplate([{ id: "1", kind: "spacing", height: 1 } as any], mockEvent, null, null);
+  assertStringIncludes(tooSmall, 'height="4"');
+
+  const tooBig = renderBlockedTemplate([{ id: "1", kind: "spacing", height: 999 } as any], mockEvent, null, null);
+  assertStringIncludes(tooBig, 'height="160"');
+});
+
 Deno.test("text: font_size e bg_highlight aplicam caixa de destaque", () => {
   const blocks: Block[] = [{ id: "1", kind: "text", html: "<p>TEXTO_LIVRE_XYZ</p>", font_size: 18, bg_highlight: true } as any];
   const html = renderBlockedTemplate(blocks, mockEvent, null, null);
   assertStringIncludes(html, "font-size:18px;");
   assertStringIncludes(html, "border-radius:12px;");
+});
+
+// Regressão R-035: o editor rich-text (Tiptap) gera <p>/<ul>/<li>/<blockquote>/<h2>
+// sem nenhum estilo inline — sem isso, Outlook/Gmail colapsam a margem entre
+// parágrafos e a "quebra de linha" parece não ter efeito nenhum.
+Deno.test("text: quebra de parágrafo (Tiptap Enter) ganha margem inline entre <p>s", () => {
+  const blocks: Block[] = [{ id: "1", kind: "text", html: "<p>Primeira frase</p><p>Segunda frase</p>" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, '<p style="margin:0 0 12px 0;">Primeira frase</p>');
+  assertStringIncludes(html, '<p style="margin:0 0 12px 0;">Segunda frase</p>');
+});
+
+Deno.test("text: quebra de linha simples (Shift+Enter, <br>) não é alterada", () => {
+  const blocks: Block[] = [{ id: "1", kind: "text", html: "<p>linha 1<br>linha 2</p>" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, "linha 1<br>linha 2");
+});
+
+Deno.test("text: lista com marcadores (Tiptap) ganha margem/padding inline em <ul> e <li>", () => {
+  const blocks: Block[] = [{ id: "1", kind: "text", html: "<ul><li>Item A</li><li>Item B</li></ul>" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, '<ul style="margin:0 0 12px 0;padding-left:20px;">');
+  assertStringIncludes(html, '<li style="margin:0 0 4px 0;">Item A</li>');
+});
+
+Deno.test("text: citação (blockquote) ganha borda lateral usando a cor do texto do bloco", () => {
+  const blocks: Block[] = [{ id: "1", kind: "text", html: "<blockquote><p>cita</p></blockquote>", text_color: "#ff00ff" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, "border-left:3px solid #ff00ff;");
+});
+
+Deno.test("text: subtítulo (h2) ganha estilo inline com a cor do bloco", () => {
+  const blocks: Block[] = [{ id: "1", kind: "text", html: "<h2>Subtítulo</h2>", text_color: "#00ffaa" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, "color:#00ffaa;font-size:18px;font-weight:800;");
+});
+
+Deno.test("text: tag que já vem com style= não é sobrescrita pelo pós-processamento", () => {
+  const blocks: Block[] = [{ id: "1", kind: "text", html: '<p style="color:red;">já estilizado</p>' } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, '<p style="color:red;">já estilizado</p>');
 });
 
 Deno.test("social_icons: style icon usa a imagem do ícone quando icon_url está preenchido (sobrescreve o padrão)", () => {
@@ -681,6 +740,141 @@ Deno.test("event_grid: align direita é respeitado no cabeçalho (campo agora ex
   assertStringIncludes(html, 'text-align:right');
 });
 
+// ============================================================
+// Item 2 (melhorias no editor de e-mail) — textos que estavam presos no
+// código ganharam campo editável, com fallback pro texto atual.
+// ============================================================
+
+Deno.test("title: text_override sobrescreve event.eventTitle; sem override, usa o título do evento (comportamento antigo preservado)", () => {
+  const withOverride = renderBlockedTemplate(
+    [{ id: "1", kind: "title", text_override: "3 eventos com nova promo hoje" } as any],
+    mockEvent, null, null,
+  );
+  assertStringIncludes(withOverride, "3 eventos com nova promo hoje");
+  // O <h1> visível do bloco usa o override — não o confundir com o <title>
+  // do <head> do e-mail, que sempre usa event.eventTitle (metadado da aba
+  // do navegador/cliente de e-mail, independente do bloco).
+  assertEquals(withOverride.includes("<h1"), true);
+  assertStringIncludes(withOverride, '<h1 style="margin:0;color:#ffffff;font-size:28px;line-height:1.15;font-weight:800;letter-spacing:-0.01em;">3 eventos com nova promo hoje</h1>');
+
+  const withoutOverride = renderBlockedTemplate([{ id: "1", kind: "title" } as any], mockEvent, null, null);
+  assertStringIncludes(withoutOverride, mockEvent.eventTitle);
+});
+
+Deno.test("title: text_override em branco (só espaços) cai no fallback do título do evento", () => {
+  const html = renderBlockedTemplate([{ id: "1", kind: "title", text_override: "   " } as any], mockEvent, null, null);
+  assertStringIncludes(html, mockEvent.eventTitle);
+});
+
+Deno.test("event_meta: date_label e location_label sobrescrevem os rótulos padrão", () => {
+  const html = renderBlockedTemplate(
+    [{ id: "1", kind: "event_meta", date_label: "Quando", location_label: "Onde" } as any],
+    mockEvent, null, null,
+  );
+  assertStringIncludes(html, "Quando");
+  assertStringIncludes(html, "Onde");
+  assertEquals(html.includes(">📅 Data e hora<"), false);
+  assertEquals(html.includes(">📍 Local<"), false);
+});
+
+Deno.test("article_summary: eyebrow_label sobrescreve \"📰 Leia a matéria\" nos dois layouts", () => {
+  const article: ArticleSummary = { title: "Materia", excerpt: "Resumo", url: "https://x.com/m" };
+  const card = renderBlockedTemplate([{ id: "1", kind: "article_summary", layout: "card", eyebrow_label: "Vem aí" } as any], mockEvent, null, article);
+  const compact = renderBlockedTemplate([{ id: "1", kind: "article_summary", layout: "compact", eyebrow_label: "Vem aí" } as any], mockEvent, null, article);
+  assertStringIncludes(card, "Vem aí");
+  assertStringIncludes(compact, "Vem aí");
+  assertEquals(card.includes("📰 Leia a matéria"), false);
+});
+
+Deno.test('footer: unsubscribe_label sobrescreve "Descadastrar-se"', () => {
+  const html = renderBlockedTemplate([{ id: "1", kind: "footer", unsubscribe_label: "Sair da lista" } as any], mockEvent, null, null);
+  assertStringIncludes(html, ">Sair da lista<");
+  assertEquals(html.includes(">Descadastrar-se<"), false);
+});
+
+Deno.test("dedge_block (compact): reaproveita primary_label pro texto do link, em vez do texto fixo \"Ver eventos Dedge →\"", () => {
+  const html = renderBlockedTemplate(
+    [{ id: "1", kind: "dedge_block", card_style: "compact", image_url: "https://x.com/d.jpg", primary_label: "Ver residência Dedge" } as any],
+    mockEvent, null, null,
+  );
+  assertStringIncludes(html, "Ver residência Dedge");
+  assertEquals(html.includes("Ver eventos Dedge →"), false);
+});
+
+Deno.test("dedge_block (compact): sem primary_label, mantém o texto padrão \"Ver eventos Dedge →\" (comportamento antigo preservado)", () => {
+  const html = renderBlockedTemplate(
+    [{ id: "1", kind: "dedge_block", card_style: "compact", image_url: "https://x.com/d.jpg" } as any],
+    mockEvent, null, null,
+  );
+  assertStringIncludes(html, "Ver eventos Dedge →");
+});
+
+Deno.test('blog_posts_list: read_more_label sobrescreve "Ler matéria →" nos layouts cards e lista', () => {
+  const event = { ...mockEvent, blogPosts: [{ id: "1", title: "Post A", url: "https://x.com/a" }] };
+  const cards = renderBlockedTemplate([{ id: "1", kind: "blog_posts_list", layout: "cards", read_more_label: "Ver post" } as any], event as any, null, null);
+  const list = renderBlockedTemplate([{ id: "1", kind: "blog_posts_list", layout: "list", show_read_more_link: true, read_more_label: "Ver post" } as any], event as any, null, null);
+  assertStringIncludes(cards, "Ver post");
+  assertStringIncludes(list, "Ver post");
+  assertEquals(cards.includes("Ler matéria →"), false);
+});
+
+Deno.test("countdown: rótulos de unidade e prefixo da data-limite são editáveis (tamanhos large/medium/minimal)", () => {
+  const eventComDias = { ...mockEvent, ticketBatchDeadlineIso: new Date(Date.now() + 30 * 3600 * 1000).toISOString() };
+  const custom = {
+    unit_label_day: "d", unit_label_days: "ds", unit_label_hour: "h", unit_label_hours: "hs",
+    unit_label_minutes: "m", until_prefix: "encerra em",
+  };
+  const large = renderBlockedTemplate([{ id: "1", kind: "countdown", size: "large", deadline_source: "batch_deadline", ...custom } as any], eventComDias, null, null);
+  assertStringIncludes(large, "encerra em");
+  const medium = renderBlockedTemplate([{ id: "1", kind: "countdown", size: "medium", deadline_source: "batch_deadline", ...custom } as any], eventComDias, null, null);
+  assertStringIncludes(medium, ">hs<");
+  const minimal = renderBlockedTemplate([{ id: "1", kind: "countdown", size: "minimal", deadline_source: "batch_deadline", ...custom } as any], eventComDias, null, null);
+  assertStringIncludes(minimal, "(encerra em");
+});
+
+Deno.test("countdown: sem rótulos customizados, mantém os textos padrão em português (comportamento antigo preservado)", () => {
+  const html = renderBlockedTemplate([{ id: "1", kind: "countdown", size: "large" } as any], mockEvent, null, null);
+  assertStringIncludes(html, "até");
+});
+
+// ------------------------------------------------------------
+// Paridade HTML ↔ texto-puro: quando um campo é deixado vazio, os dois
+// formatos devem cair no MESMO texto padrão (antes divergiam).
+// ------------------------------------------------------------
+
+Deno.test("paridade HTML/texto-puro: countdown sem label usa o mesmo padrão nos dois formatos", () => {
+  const blocks: Block[] = [{ id: "1", kind: "countdown" } as any];
+  const text = renderBlockedTemplateText(blocks, mockEvent, null, null);
+  assertStringIncludes(text, "Lote atual encerra em");
+});
+
+Deno.test("paridade HTML/texto-puro: weekend_grid sem título usa o mesmo padrão nos dois formatos", () => {
+  const event = { ...mockEvent, weekendEvents: [{ id: "1", title: "Ev", dayLabel: "SEX", venue: "V", imageUrl: "https://x.com/a.jpg", eventUrl: "https://x.com/a" }] };
+  const blocks: Block[] = [{ id: "1", kind: "weekend_grid" } as any];
+  const text = renderBlockedTemplateText(blocks, event as any, null, null);
+  assertStringIncludes(text, "O QUE ROLA NO FDS");
+});
+
+Deno.test("paridade HTML/texto-puro: event_grid some no texto-puro quando também some no HTML (sem eyebrow/title)", () => {
+  const event = { ...mockEvent, gridEvents: [{ id: "1", title: "Ev", dayLabel: "SEX", venue: "V", imageUrl: "https://x.com/a.jpg", eventUrl: "https://x.com/a" }] };
+  const blocks: Block[] = [{ id: "1", kind: "event_grid" } as any];
+  const text = renderBlockedTemplateText(blocks, event as any, null, null);
+  assertEquals(text.includes("EVENTOS SELECIONADOS"), false);
+});
+
+Deno.test("paridade HTML/texto-puro: dedge_block sem título usa o mesmo padrão nos dois formatos", () => {
+  const event = { ...mockEvent, dedge: { imageUrl: "https://x.com/d.jpg", nights: [] } };
+  const blocks: Block[] = [{ id: "1", kind: "dedge_block" } as any];
+  const text = renderBlockedTemplateText(blocks, event as any, null, null);
+  assertStringIncludes(text, "Dedge — sua residência da semana");
+});
+
+Deno.test("paridade HTML/texto-puro: footer sem texto usa o mesmo aviso de descadastro nos dois formatos", () => {
+  const blocks: Block[] = [{ id: "1", kind: "footer" } as any];
+  const text = renderBlockedTemplateText(blocks, mockEvent, null, null);
+  assertStringIncludes(text, "Você recebeu este e-mail porque assinou a lista MDAccula.");
+});
+
 Deno.test("todos os blocos com campos novos renderizam sem lançar exceção (smoke test fim-a-fim)", () => {
   const event = {
     ...mockEvent,
@@ -707,6 +901,7 @@ Deno.test("todos os blocos com campos novos renderizam sem lançar exceção (sm
     { id: "11", kind: "secondary_link", variant: "ghost", text_color: "#444" } as any,
     { id: "12", kind: "image_with_link", image_url: "https://x.com/i.jpg", link_url: "https://x.com", border_color: "#555", caption: "cap2" } as any,
     { id: "13", kind: "divider", spacing: "compact", width: "short" } as any,
+    { id: "13b", kind: "spacing", height: 32 } as any,
     { id: "14", kind: "text", html: "<p>x</p>", font_size: 12, bg_highlight: true } as any,
     { id: "15", kind: "social_icons", style: "icon", icon_size: "medium", networks: [{ id: "instagram", label: "Instagram", url: "https://instagram.com/x", enabled: true, icon_url: "https://cdn.example.com/ig.png" }] } as any,
     { id: "16", kind: "lineup", layout: "grid", highlight_headliner: true, section_bg: true } as any,

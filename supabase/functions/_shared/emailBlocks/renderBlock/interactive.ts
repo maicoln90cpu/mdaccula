@@ -169,18 +169,24 @@ export function renderInteractiveBlock(
       const size = block.size || "large";
       const numberColor = escape(block.number_color || "#ffffff");
       const showUnitLabels = block.show_unit_labels !== false;
+      const unitDay = escape(block.unit_label_day || "dia");
+      const unitDays = escape(block.unit_label_days || "dias");
+      const unitHour = escape(block.unit_label_hour || "hora");
+      const unitHours = escape(block.unit_label_hours || "horas");
+      const unitMinutes = escape(block.unit_label_minutes || "min");
+      const untilPrefix = escape(block.until_prefix || "até");
 
       if (size === "minimal") {
         const inline = `${days > 0 ? `${days}d ` : ""}${hours}h ${minutes.toString().padStart(2, "0")}m`;
         return `<tr><td align="${align}" style="padding:8px 32px;text-align:${align};">
-          <div style="display:inline-block;padding:10px 16px;background:${bg};border-radius:999px;color:#ffffff;font-size:13px;font-weight:800;letter-spacing:0.02em;">⏰ ${label}: ${inline} <span style="opacity:0.85;font-weight:600;">(até ${escape(deadlineLabel)})</span></div>
+          <div style="display:inline-block;padding:10px 16px;background:${bg};border-radius:999px;color:#ffffff;font-size:13px;font-weight:800;letter-spacing:0.02em;">⏰ ${label}: ${inline} <span style="opacity:0.85;font-weight:600;">(${untilPrefix} ${escape(deadlineLabel)})</span></div>
         </td></tr>`;
       }
 
       if (size === "medium") {
         const parts = [
-          { v: hours, label: hours === 1 ? "hora" : "horas" },
-          { v: minutes, label: "min" },
+          { v: hours, label: hours === 1 ? unitHour : unitHours },
+          { v: minutes, label: unitMinutes },
         ];
         const boxes = parts.map((p) =>
           `<td style="padding:0 4px;"><div style="min-width:56px;padding:7px 9px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:8px;text-align:center;">
@@ -193,16 +199,16 @@ export function renderInteractiveBlock(
             <tr><td align="${align}" style="padding:10px 10px;text-align:${align};">
               <div style="color:#ffffff;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">${label}</div>
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
-              <div style="color:#ffffff;opacity:0.85;font-size:10px;margin-top:6px;">até ${escape(deadlineLabel)}</div>
+              <div style="color:#ffffff;opacity:0.85;font-size:10px;margin-top:6px;">${untilPrefix} ${escape(deadlineLabel)}</div>
             </td></tr>
           </table>
         </td></tr>`;
       }
 
       const parts: Array<{ v: number; label: string }> = [];
-      if (days > 0) parts.push({ v: days, label: days === 1 ? "dia" : "dias" });
-      parts.push({ v: hours, label: hours === 1 ? "hora" : "horas" });
-      parts.push({ v: minutes, label: "min" });
+      if (days > 0) parts.push({ v: days, label: days === 1 ? unitDay : unitDays });
+      parts.push({ v: hours, label: hours === 1 ? unitHour : unitHours });
+      parts.push({ v: minutes, label: unitMinutes });
       const boxes = parts.map((p) =>
         `<td style="padding:0 6px;"><div style="min-width:64px;padding:12px 10px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
           <div style="color:${numberColor};font-size:26px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
@@ -214,7 +220,7 @@ export function renderInteractiveBlock(
           <tr><td align="${align}" style="padding:18px 16px;text-align:${align};">
             <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${label}</div>
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
-            <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:10px;">até ${escape(deadlineLabel)}</div>
+            <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:10px;">${untilPrefix} ${escape(deadlineLabel)}</div>
           </td></tr>
         </table>
       </td></tr>`;

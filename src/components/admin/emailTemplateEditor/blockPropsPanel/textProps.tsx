@@ -53,6 +53,14 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
     return (
       <div className="space-y-3">
         <div>
+          <Label className="text-xs">Sobrescrever título (opcional)</Label>
+          <Input
+            value={block.text_override || ''}
+            onChange={(e) => patch({ text_override: e.target.value })}
+            placeholder="Deixe vazio pra usar o título do evento"
+          />
+        </div>
+        <div>
           <Label className="text-xs">Tamanho da fonte: {block.font_size ?? 28}px</Label>
           <Slider
             min={18}
@@ -91,7 +99,9 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           />
           <Label className="text-xs">Caixa alta (uppercase)</Label>
         </div>
-        <p className="text-xs text-muted-foreground">O texto vem do título do evento.</p>
+        <p className="text-xs text-muted-foreground">
+          O texto vem do título do evento, a menos que você sobrescreva acima.
+        </p>
       </div>
     );
   }
@@ -158,6 +168,22 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
           onChange={(v) => patch({ accent_color: v })}
           placeholder="Cor de destaque"
         />
+        <div>
+          <Label className="text-xs">Rótulo "Data e hora" (opcional)</Label>
+          <Input
+            value={block.date_label || ''}
+            onChange={(e) => patch({ date_label: e.target.value })}
+            placeholder="Data e hora"
+          />
+        </div>
+        <div>
+          <Label className="text-xs">Rótulo "Local" (opcional)</Label>
+          <Input
+            value={block.location_label || ''}
+            onChange={(e) => patch({ location_label: e.target.value })}
+            placeholder="Local"
+          />
+        </div>
       </div>
     );
   }
@@ -222,6 +248,14 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
               <SelectItem value="compact">Lista compacta</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Etiqueta acima do título (opcional)</Label>
+          <Input
+            value={block.eyebrow_label || ''}
+            onChange={(e) => patch({ eyebrow_label: e.target.value })}
+            placeholder="📰 Leia a matéria"
+          />
         </div>
         <p className="text-xs text-muted-foreground">
           Bloco só aparece quando o evento tem matéria vinculada.

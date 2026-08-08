@@ -288,6 +288,17 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
             Mostrar link "Ler matéria →" também no layout lista
           </Label>
         </div>
+        <div>
+          <Label className="text-xs">Texto do link "Ler matéria" (opcional)</Label>
+          <Input
+            value={block.read_more_label || ''}
+            onChange={(e) => patch({ read_more_label: e.target.value })}
+            placeholder="Ler matéria →"
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Vale pros dois layouts — no layout cards esse link sempre aparece.
+          </p>
+        </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );

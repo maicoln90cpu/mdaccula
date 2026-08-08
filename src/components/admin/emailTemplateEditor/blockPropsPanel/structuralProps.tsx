@@ -53,7 +53,7 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
             onValueChange={(v) => patch({ padding_bottom: v[0] })}
           />
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
         <ColorControl
           label="Cor de fundo do cabeçalho (opcional)"
           value={block.bg_color}
@@ -157,6 +157,26 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
     );
   }
 
+  if (block.kind === 'spacing') {
+    return (
+      <div className="space-y-3">
+        <div>
+          <Label className="text-xs">Altura do respiro: {block.height ?? 24}px</Label>
+          <Slider
+            min={4}
+            max={160}
+            step={4}
+            value={[block.height ?? 24]}
+            onValueChange={(v) => patch({ height: v[0] })}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Bloco invisível — só adiciona espaço vertical entre os blocos vizinhos.
+        </p>
+      </div>
+    );
+  }
+
   if (block.kind === 'footer') {
     return (
       <div className="space-y-3">
@@ -168,7 +188,7 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
             onChange={(e) => patch({ text: e.target.value })}
           />
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
         <ColorControl
           label="Cor do texto"
           value={block.text_color}
@@ -192,6 +212,16 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
           />
           <Label className="text-xs">Incluir botão "Descadastrar-se" (oficial E-goi)</Label>
         </div>
+        {block.include_unsubscribe !== false && (
+          <div>
+            <Label className="text-xs">Texto do link de descadastro (opcional)</Label>
+            <Input
+              value={block.unsubscribe_label || ''}
+              onChange={(e) => patch({ unsubscribe_label: e.target.value })}
+              placeholder="Descadastrar-se"
+            />
+          </div>
+        )}
         <p className="text-xs text-muted-foreground">
           O link usa o placeholder{' '}
           <code className="bg-muted px-1 rounded">[E-GOI_UNSUBSCRIBE_LINK]</code>, substituído
@@ -234,7 +264,7 @@ export function renderStructuralProps(block: Block, patch: Patch): JSX.Element |
             </Select>
           </div>
         )}
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
         <p className="text-xs text-muted-foreground">
           Ative e informe a URL de cada rede. Somente as ativadas com URL aparecem no e-mail.
           {block.style === 'icon' &&

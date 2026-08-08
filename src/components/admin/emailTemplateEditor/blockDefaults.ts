@@ -23,6 +23,8 @@ export const defaultForKind = (kind: Block['kind']): Block => {
       return { id, kind, align: 'left' };
     case 'article_summary':
       return { id, kind, show_image: true };
+    case 'pix_button':
+      return { id, kind, align: 'center', full_width: true };
     case 'cta_button':
       return {
         id,
@@ -48,6 +50,8 @@ export const defaultForKind = (kind: Block['kind']): Block => {
       };
     case 'divider':
       return { id, kind, thickness: 1 };
+    case 'spacing':
+      return { id, kind, height: 24 };
     case 'text':
       return { id, kind, html: '<p>Texto livre — suporta HTML básico.</p>', align: 'left' };
     case 'social_icons':
@@ -101,6 +105,8 @@ export const defaultForKind = (kind: Block['kind']): Block => {
         show_address_label: true,
         border_radius: 12,
       };
+    case 'event_grid':
+      return { id, kind, title: '', eyebrow: '', align: 'left' };
     case 'weekend_grid':
       return {
         id,

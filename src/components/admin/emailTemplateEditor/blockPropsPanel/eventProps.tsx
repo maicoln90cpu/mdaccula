@@ -44,7 +44,7 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
             </SelectContent>
           </Select>
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
         <ColorControl
           label="Cor do título"
           value={block.title_color}
@@ -173,7 +173,49 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
           />
           <Label className="text-xs">Mostrar rótulos (dias/horas/min)</Label>
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        {block.show_unit_labels !== false && (
+          <div className="space-y-2 rounded-md border p-2">
+            <Label className="text-xs text-muted-foreground">
+              Textos das unidades (opcional — útil pra traduzir/abreviar)
+            </Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                value={block.unit_label_day || ''}
+                onChange={(e) => patch({ unit_label_day: e.target.value })}
+                placeholder="dia"
+              />
+              <Input
+                value={block.unit_label_days || ''}
+                onChange={(e) => patch({ unit_label_days: e.target.value })}
+                placeholder="dias"
+              />
+              <Input
+                value={block.unit_label_hour || ''}
+                onChange={(e) => patch({ unit_label_hour: e.target.value })}
+                placeholder="hora"
+              />
+              <Input
+                value={block.unit_label_hours || ''}
+                onChange={(e) => patch({ unit_label_hours: e.target.value })}
+                placeholder="horas"
+              />
+              <Input
+                value={block.unit_label_minutes || ''}
+                onChange={(e) => patch({ unit_label_minutes: e.target.value })}
+                placeholder="min"
+              />
+            </div>
+          </div>
+        )}
+        <div>
+          <Label className="text-xs">Prefixo da data-limite (opcional)</Label>
+          <Input
+            value={block.until_prefix || ''}
+            onChange={(e) => patch({ until_prefix: e.target.value })}
+            placeholder="até"
+          />
+        </div>
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
         <p className="text-xs text-muted-foreground">
           E-mail não roda JavaScript — o contador é <strong>congelado no momento do envio</strong>{' '}
           (dias/horas/minutos restantes).
@@ -286,7 +328,7 @@ export function renderEventProps(block: Block, patch: Patch): JSX.Element | null
             </SelectContent>
           </Select>
         </div>
-        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
+        <AlignControl value={block.align} onChange={(v) => patch({ align: v })} defaultAlign="center" />
       </div>
     );
   }

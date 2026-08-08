@@ -1,7 +1,7 @@
 // Família "basic" — blocos textuais e estruturais simples.
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import type { Block, RenderContext } from "../types.ts";
-import { escape, sanitizeCustomHtml, proxyForEmail } from "../utils.ts";
+import { escape, sanitizeCustomHtml, applyEmailSafeProseStyles, proxyForEmail } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 export function renderBasicBlock(
@@ -64,7 +64,8 @@ export function renderBasicBlock(
       const align = block.align ?? "left";
       const size = Math.max(18, Math.min(48, block.font_size ?? 28));
       const weight = block.font_weight === "bold" ? 700 : 800;
-      const text = block.uppercase ? escape(event.eventTitle).toUpperCase() : escape(event.eventTitle);
+      const rawText = block.text_override?.trim() || event.eventTitle;
+      const text = block.uppercase ? escape(rawText).toUpperCase() : escape(rawText);
       return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
         <h1 style="margin:0;color:${color};font-size:${size}px;line-height:1.15;font-weight:${weight};letter-spacing:-0.01em;">${text}</h1>
       </td></tr>`;
@@ -85,8 +86,10 @@ export function renderBasicBlock(
       const stacked = block.layout === "stacked";
       const showIcons = block.show_icons !== false;
       const accent = escape(block.accent_color || "#ffffff");
-      const dateLabel = showIcons ? "📅 Data e hora" : "Data e hora";
-      const localLabel = showIcons ? "📍 Local" : "Local";
+      const dateLabelText = escape(block.date_label || "Data e hora");
+      const localLabelText = escape(block.location_label || "Local");
+      const dateLabel = showIcons ? `📅 ${dateLabelText}` : dateLabelText;
+      const localLabel = showIcons ? `📍 ${localLabelText}` : localLabelText;
       if (stacked) {
         return `<tr><td style="padding:16px 32px;">
           <div style="border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:20px 0;">
@@ -134,6 +137,7 @@ export function renderBasicBlock(
       const imgHtml = showImage && article.image_url
         ? `<img src="${escape(proxyForEmail(article.image_url))}" alt="" width="${compact ? 72 : 120}" height="${compact ? 72 : 80}" border="0" style="display:block;width:${compact ? 72 : 120}px;height:${compact ? 72 : 80}px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">`
         : "";
+      const eyebrowLabel = escape(block.eyebrow_label || "📰 Leia a matéria");
       if (compact) {
         return `<tr><td style="padding:8px 32px 24px 32px;">
           <a href="${escape(article.url)}" style="text-decoration:none;display:block;">
@@ -141,7 +145,7 @@ export function renderBasicBlock(
               <tr>
                 ${imgHtml ? `<td width="72" style="padding:0 12px 0 0;vertical-align:top;">${imgHtml}</td>` : ""}
                 <td style="vertical-align:top;">
-                  <div style="color:${primary};font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;">📰 Leia a matéria</div>
+                  <div style="color:${primary};font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;">${eyebrowLabel}</div>
                   <div style="color:#ffffff;font-size:14px;font-weight:700;line-height:1.3;">${escape(article.title)}</div>
                 </td>
               </tr>
@@ -154,7 +158,7 @@ export function renderBasicBlock(
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(168,85,247,0.06);border:1px solid ${primary};border-radius:12px;">
             <tr>
               <td style="padding:16px;vertical-align:top;">
-                <div style="color:${primary};font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">📰 Leia a matéria</div>
+                <div style="color:${primary};font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${eyebrowLabel}</div>
                 <div style="color:#ffffff;font-size:15px;font-weight:700;line-height:1.3;margin-bottom:6px;">${escape(article.title)}</div>
                 <div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(article.excerpt)}</div>
               </td>
@@ -201,9 +205,14 @@ export function renderBasicBlock(
       </td></tr>`;
     }
 
+    case "spacing": {
+      const h = Math.max(4, Math.min(160, block.height ?? 24));
+      return `<tr><td height="${h}" style="height:${h}px;line-height:${h}px;font-size:0;">&nbsp;</td></tr>`;
+    }
+
     case "text": {
-      const safe = sanitizeCustomHtml(block.html || "");
       const color = escape(block.text_color || "#a1a1aa");
+      const safe = applyEmailSafeProseStyles(sanitizeCustomHtml(block.html || ""), color);
       const align = block.align ?? "left";
       const size = Math.max(11, Math.min(22, block.font_size ?? 14));
       const bg = block.bg_highlight
@@ -220,8 +229,9 @@ export function renderBasicBlock(
       const align = block.align ?? "center";
       const color = escape(block.text_color || "#52525b");
       const size = Math.max(9, Math.min(14, block.font_size ?? 11));
+      const unsubscribeLabel = escape(block.unsubscribe_label || "Descadastrar-se");
       const unsubscribe = block.include_unsubscribe !== false
-        ? `<p style="margin:8px 0 0 0;font-size:${size}px;"><a href="[E-GOI_UNSUBSCRIBE_LINK]" style="color:#71717a;font-weight:700;text-decoration:underline;">Descadastrar-se</a></p>`
+        ? `<p style="margin:8px 0 0 0;font-size:${size}px;"><a href="[E-GOI_UNSUBSCRIBE_LINK]" style="color:#71717a;font-weight:700;text-decoration:underline;">${unsubscribeLabel}</a></p>`
         : "";
       return `<tr><td align="${align}" style="padding:24px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);text-align:${align};">
         <p style="margin:0;color:${color};font-size:${size}px;line-height:1.6;max-width:400px;display:inline-block;">${txt}</p>

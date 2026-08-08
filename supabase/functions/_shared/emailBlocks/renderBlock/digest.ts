@@ -242,6 +242,13 @@ export function renderDigestBlock(
       // thumbnail pequena, título discreto, sem caixa preta full-width nem botões grandes.
       if (cardStyle === "compact") {
         const linkUrl = primaryUrl || nights[0]?.url || "#";
+        // Reaproveita o mesmo campo/fallback de override do card featured
+        // (primary_label) — só o texto padrão muda, mais curto pro link
+        // pequeno do card compacto. Antes esse texto vinha hardcoded, sem
+        // nenhum jeito de editar mesmo com override_content ligado.
+        const compactLinkLabel = escape(
+          (override ? block.primary_label : d?.primaryLabel) || block.primary_label || d?.primaryLabel || "Ver eventos Dedge →"
+        );
         return `<tr><td style="padding:8px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
             <tr>
@@ -250,7 +257,7 @@ export function renderDigestBlock(
                 <div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${eyebrow}</div>
                 <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${escape(linkUrl)}" style="color:#ffffff;text-decoration:none;">${title}</a></div>
                 ${showDescription && description ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${description}</div>` : ""}
-                <a href="${escape(linkUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">Ver eventos Dedge →</a>
+                <a href="${escape(linkUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">${compactLinkLabel}</a>
               </td>
             </tr>
           </table>
@@ -345,6 +352,7 @@ export function renderDigestBlock(
       const align = block.align || "left";
       const categoryColor = escape(block.category_color || accent);
       const showReadMore = block.show_read_more_link === true;
+      const readMoreLabel = escape(block.read_more_label || "Ler matéria →");
 
       if (posts.length === 0) {
         if (!ctx.preview) return "";
@@ -370,7 +378,7 @@ export function renderDigestBlock(
                 ${showCategory && p.category ? `<div style="color:${categoryColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : "")}
                 <div style="color:#ffffff;font-size:16px;font-weight:800;line-height:1.25;margin-bottom:4px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
                 ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(p.excerpt)}</div>` : ""}
-                <a href="${url}" style="display:inline-block;margin-top:8px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">Ler matéria →</a>
+                <a href="${url}" style="display:inline-block;margin-top:8px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">${readMoreLabel}</a>
               </td></tr>
             </table>
           </td></tr>`;
@@ -388,7 +396,7 @@ export function renderDigestBlock(
                 ${showCategory && p.category ? `<div style="color:${categoryColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` · ${escape(p.publishedLabel)}` : ""}</div>` : (p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : "")}
                 <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
                 ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${escape(p.excerpt)}</div>` : ""}
-                ${showReadMore ? `<a href="${url}" style="display:inline-block;margin-top:6px;color:${primary};font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">Ler matéria →</a>` : ""}
+                ${showReadMore ? `<a href="${url}" style="display:inline-block;margin-top:6px;color:${primary};font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">${readMoreLabel}</a>` : ""}
               </td>
             </tr>
           </table>

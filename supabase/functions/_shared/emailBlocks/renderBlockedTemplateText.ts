@@ -30,14 +30,14 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
     case "eyebrow":
       return (block.text || "").toUpperCase();
     case "title":
-      return (event.eventTitle || "").toUpperCase();
+      return (block.text_override?.trim() || event.eventTitle || "").toUpperCase();
     case "subtitle":
       return event.eventSubtitle || "";
     case "event_meta":
       return [
-        "DATA E HORA:",
+        `${(block.date_label || "Data e hora").toUpperCase()}:`,
         `  ${event.dateLabel} — ${event.timeLabel}`,
-        "LOCAL:",
+        `${(block.location_label || "Local").toUpperCase()}:`,
         `  ${event.venueName} — ${event.cityState}`,
       ].join("\n");
     case "description":
@@ -82,7 +82,7 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       return (block.title || "Line-up").toUpperCase() + ":\n  " + artists.join(", ");
     }
     case "countdown":
-      return block.label || "Contagem regressiva";
+      return block.label || "Lote atual encerra em";
     case "ticker":
       return (block.messages || []).filter(Boolean).join(" · ");
     case "static_map":
@@ -92,7 +92,7 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
     case "weekend_grid": {
       const list = event.weekendEvents || [];
       if (!list.length) return "";
-      const header = (block.title || "Agenda do fim de semana").toUpperCase();
+      const header = (block.title || "O que rola no fds").toUpperCase();
       const rows = list.map((ev) =>
         `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue}${ev.cityState ? " (" + ev.cityState + ")" : ""} — ${ev.eventUrl}`
       );
@@ -101,27 +101,31 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
     case "event_grid": {
       const list = event.gridEvents || [];
       if (!list.length) return "";
-      const header = (block.title || "Eventos selecionados").toUpperCase();
+      // Mesmo showHeader do HTML (digest.ts): sem eyebrow/title, não inventa
+      // um cabeçalho genérico que o HTML não tem.
+      const headerLines = [block.eyebrow, block.title].filter(Boolean).map((t) => (t as string).toUpperCase());
+      const header = headerLines.length ? `${headerLines.join("\n")}\n` : "";
       const rows = list.map((ev) =>
         `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue} — ${ev.ticketUrl || ev.eventUrl}`
       );
-      return `${header}\n${rows.join("\n")}`;
+      return `${header}${rows.join("\n")}`;
     }
     case "dedge_block": {
       const d = event.dedge;
       if (!d) return "";
       const nights = (d.nights || []).filter((n) => n.enabled).map((n) => `  - ${n.label}: ${n.url}`);
-      return `D.EDGE\n${d.title || ""}\n${d.description || ""}\n${nights.join("\n")}`.trim();
+      const title = d.title || block.title || "Dedge — sua residência da semana";
+      return `D.EDGE\n${title}\n${d.description || ""}\n${nights.join("\n")}`.trim();
     }
     case "weekly_hero": {
       const first = event.weekendEvents?.[0];
       if (!first) return "";
-      return `${(block.eyebrow || "Destaque").toUpperCase()}: ${first.title} — ${first.eventUrl}`;
+      return `${(block.eyebrow || "Destaque da semana").toUpperCase()}: ${first.title} — ${first.eventUrl}`;
     }
     case "blog_posts_list": {
       const posts = (event.blogPosts || []).slice(0, clamp(block.max_items, EMAIL_BLOCK_LIMITS.blogPostsList.minItems, EMAIL_BLOCK_LIMITS.blogPostsList.maxItems, EMAIL_BLOCK_LIMITS.blogPostsList.defaultItems));
       if (!posts.length) return "";
-      const header = (block.title || "No blog").toUpperCase();
+      const header = (block.title || "Do blog nesta semana").toUpperCase();
       const rows = posts.map((p) => `- ${p.title} — ${p.url}`);
       return `${header}\n${rows.join("\n")}`;
     }
@@ -147,7 +151,7 @@ export function renderBlockedTemplateText(
 ): string {
   const s: EmailTemplateSettings = {
     brand_name: settings?.brand_name || "MDACCULA",
-    footer_text: settings?.footer_text || "",
+    footer_text: settings?.footer_text || "Você recebeu este e-mail porque assinou a lista MDAccula.",
     cta_label: settings?.cta_label || "Garantir ingresso",
   };
   const resolved = expandGlobalRefs(blocks, opts?.globals ?? null);

@@ -77,6 +77,7 @@ export const BLOCK_LABELS: Record<Block['kind'], string> = {
   secondary_link: 'Link secundário',
   image_with_link: 'Imagem com link',
   divider: 'Divisor',
+  spacing: 'Espaçamento',
   text: 'Bloco de texto livre',
   social_icons: 'Redes sociais',
   weekend_grid: 'Agenda do fim de semana',
@@ -101,6 +102,7 @@ export const AVAILABLE_BLOCKS: Block['kind'][] = [
   'description', // Descrição do evento
   'weekly_hero', // Destaque da semana (hero)
   'divider', // Divisor
+  'spacing', // Espaçamento
   'eyebrow', // Etiqueta (texto pequeno)
   'hero_image', // Flyer do evento
   'event_grid', // Grid de eventos (2 colunas)

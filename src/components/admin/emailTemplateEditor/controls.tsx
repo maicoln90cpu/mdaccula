@@ -20,19 +20,25 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, Trash2, Copy, Eye, EyeOff, Library, Bold, Italic, Link2, Heading2, List, Quote } from 'lucide-react';
 import { type Block } from '@/lib/emailTemplates/blocks';
 
-// Controle reutilizável de alinhamento (esq/centro/dir)
+// Controle reutilizável de alinhamento (esq/centro/dir). `defaultAlign` deve
+// espelhar o padrão real do renderer daquele bloco quando `align` não foi
+// salvo — sem isso, o Select mostra "Esquerda" mesmo em blocos cujo e-mail
+// já sai centralizado, dando a falsa impressão de que o editor não lê o
+// valor salvo (regressão descrita: "editor tá esquerda, preview tá centro").
 export function AlignControl({
   value,
   onChange,
+  defaultAlign = 'left',
 }: {
   value?: 'left' | 'center' | 'right';
   onChange: (v: 'left' | 'center' | 'right') => void;
+  defaultAlign?: 'left' | 'center' | 'right';
 }) {
   return (
     <div>
       <Label className="text-xs">Alinhamento</Label>
       <Select
-        value={value || 'left'}
+        value={value ?? defaultAlign}
         onValueChange={(v) => onChange(v as 'left' | 'center' | 'right')}
       >
         <SelectTrigger>
