@@ -79,8 +79,17 @@ export function useManualBatch({
 
     if (isMultiEventTemplate) {
       if (selectedManualEvents.length === 0) return null;
+      // O assunto/preheader usa {{event_title}}, que resolve a partir do
+      // eventTitle calculado aqui — não do bloco `title` isolado. Sem
+      // repassar o override do bloco pra cá, o assunto continua mostrando
+      // "N eventos com novo lote hoje" mesmo com o título visível já
+      // sobrescrito no editor.
+      const titleBlock = (selectedManualTemplate.blocks as Block[] | undefined)?.find(
+        (b) => b.kind === 'title'
+      ) as Extract<Block, { kind: 'title' }> | undefined;
       const event = buildMultiEventAnnouncementData(selectedManualEvents, {
         baseUrl: 'https://mdaccula.com',
+        titleOverride: titleBlock?.text_override,
       });
       return composeEmail({
         template: {

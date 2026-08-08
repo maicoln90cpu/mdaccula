@@ -128,13 +128,18 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
 
 export function buildMultiEventAnnouncementData(
   events: EmailEventRow[],
-  opts: { baseUrl?: string } = {},
+  opts: { baseUrl?: string; titleOverride?: string } = {},
 ): EventAnnouncementData {
   const baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL;
   const count = events.length;
-  const eventTitle = count === 1
+  // `eventTitle` alimenta tanto o bloco `title` (via text_override, que já
+  // usa esse mesmo valor como fallback) quanto o placeholder {{event_title}}
+  // do assunto/preheader — por isso o override precisa entrar AQUI, não só
+  // no renderer do bloco, senão o assunto continua mostrando o texto fixo
+  // mesmo com o bloco visível já sobrescrito.
+  const eventTitle = opts.titleOverride?.trim() || (count === 1
     ? "1 evento com novo lote hoje"
-    : `${count} eventos com novo lote hoje`;
+    : `${count} eventos com novo lote hoje`);
 
   const gridEvents = events.map((event) => {
     const date = new Date(`${event.date}T${event.time || "00:00"}`);

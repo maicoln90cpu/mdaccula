@@ -214,6 +214,21 @@ describe('buildMultiEventAnnouncementData', () => {
     expect(result.eventTitle).toBe('3 eventos com novo lote hoje');
   });
 
+  it('titleOverride sobrescreve o título automático (regressão: assunto do e-mail usava {{event_title}} sem respeitar o override do bloco title)', () => {
+    const result = buildMultiEventAnnouncementData(
+      [baseEvent({ id: 'a' }), baseEvent({ id: 'b' })],
+      { titleOverride: 'Promo especial de fim de semana' },
+    );
+    expect(result.eventTitle).toBe('Promo especial de fim de semana');
+  });
+
+  it('titleOverride em branco (só espaços) cai no título automático', () => {
+    const result = buildMultiEventAnnouncementData([baseEvent({ id: 'a' }), baseEvent({ id: 'b' })], {
+      titleOverride: '   ',
+    });
+    expect(result.eventTitle).toBe('2 eventos com novo lote hoje');
+  });
+
   it('mapeia cada evento para gridEvents com o shape de WeekendEventItem', () => {
     const result = buildMultiEventAnnouncementData([baseEvent()], { baseUrl: 'https://mdaccula.com' });
     expect(result.gridEvents).toHaveLength(1);
