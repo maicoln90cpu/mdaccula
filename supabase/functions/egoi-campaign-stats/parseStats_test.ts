@@ -3,25 +3,31 @@
 // tentativa), então event_email_campaign_stats nunca era gravado e o
 // Dashboard de e-mails sempre mostrava métricas zeradas. O path correto,
 // confirmado contra os SDKs oficiais da E-goi (Python e Javascript), é
-// GET /reports/email/{campaign_hash}, cujo corpo mescla os campos do
-// schema EmailReportOverall no nível raiz: sends, opens, unique_opens,
-// clicks, unique_clicks, hard_bounces, soft_bounces, complaints,
-// unsubscriptions.
+// GET /reports/email/{campaign_hash}. O SDK oficial tipa os campos de
+// EmailReportOverall (sends, opens, unique_opens, clicks, unique_clicks,
+// hard_bounces, soft_bounces, complaints, unsubscriptions) como allOf, o
+// que sugeria merge no nível raiz — mas a resposta REAL da API aninha esses
+// campos sob a chave "overall" (confirmado ao vivo em produção, mesmo dia:
+// o primeiro deploy gravava stats_json com tudo zerado apesar da E-goi
+// retornar números reais, porque a leitura não sabia procurar em
+// "overall").
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { parseStats } from './parseStats.ts';
 
-Deno.test('parseStats mapeia o shape real da E-goi (EmailReportOverall)', () => {
+Deno.test('parseStats lê os campos de dentro de "overall" (shape real da E-goi em produção)', () => {
   const result = parseStats({
     campaign_hash: 'abc123',
-    sends: 100,
-    opens: 50,
-    unique_opens: 40,
-    clicks: 12,
-    unique_clicks: 8,
-    hard_bounces: 2,
-    soft_bounces: 1,
-    complaints: 0,
-    unsubscriptions: 1,
+    overall: {
+      sends: 100,
+      opens: 50,
+      unique_opens: 40,
+      clicks: 12,
+      unique_clicks: 8,
+      hard_bounces: 2,
+      soft_bounces: 1,
+      complaints: 0,
+      unsubscriptions: 1,
+    },
   });
 
   assertEquals(result.sent, 100);
@@ -35,6 +41,18 @@ Deno.test('parseStats mapeia o shape real da E-goi (EmailReportOverall)', () => 
   assertEquals(result.complaints, 0);
   assertEquals(result.open_rate, +((40 / 97) * 100).toFixed(2));
   assertEquals(result.click_rate, +((8 / 97) * 100).toFixed(2));
+});
+
+Deno.test('parseStats faz fallback pro nível raiz se "overall" não vier (robustez, não o caso real)', () => {
+  const result = parseStats({
+    sends: 100,
+    opens: 50,
+    unique_opens: 40,
+    clicks: 12,
+    unique_clicks: 8,
+  });
+  assertEquals(result.sent, 100);
+  assertEquals(result.opens_unique, 40);
 });
 
 Deno.test('parseStats não quebra com corpo vazio/desconhecido', () => {

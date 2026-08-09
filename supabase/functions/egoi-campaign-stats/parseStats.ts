@@ -1,13 +1,16 @@
 /**
  * Normaliza a resposta da E-goi (GET /reports/email/{hash}) num shape estável.
- * Campos reais do schema EmailReportOverall (confirmado no SDK oficial):
- * sends, opens, unique_opens, clicks, unique_clicks, hard_bounces,
- * soft_bounces, complaints, unsubscriptions — mesclados no nível raiz do
- * objeto (allOf), não aninhados. Mantém fallbacks pra nomenclatura antiga
- * só por segurança, caso a E-goi mude o shape sem aviso.
+ * O SDK oficial (openapi-generator) tipa EmailReportOverall como allOf direto
+ * (o que sugeriria merge no nível raiz), mas a resposta REAL da API aninha
+ * esses campos sob a chave "overall" — confirmado ao vivo em produção em
+ * 2026-08-09 (`{ campaign_hash, overall: { sends, opens, unique_opens,
+ * clicks, unique_clicks, hard_bounces, soft_bounces, complaints,
+ * unsubscriptions } }`). Lê de `overall` primeiro, com fallback pro nível
+ * raiz e pra nomenclatura antiga só por segurança.
  */
 export function parseStats(raw: any) {
-  const src = raw?.data ?? raw ?? {};
+  const root = raw?.data ?? raw ?? {};
+  const src = root.overall ?? root;
   const num = (v: any) => (typeof v === 'number' ? v : Number(v ?? 0) || 0);
 
   const sent = num(src.sends ?? src.total ?? src.sent ?? src.delivered_total);
@@ -38,6 +41,6 @@ export function parseStats(raw: any) {
     complaints,
     open_rate,
     click_rate,
-    raw: src,
+    raw: root,
   };
 }
