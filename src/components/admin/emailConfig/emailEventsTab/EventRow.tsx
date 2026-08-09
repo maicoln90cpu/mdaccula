@@ -134,8 +134,22 @@ export function EventRow({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Marcar como enviado manualmente?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Isso registra que <strong>{entry.event.title}</strong> teve o e-mail
-                    disparado manualmente pela E-goi. Você pode desfazer depois.
+                    {s === 'scheduled' ? (
+                      <>
+                        <strong>{entry.event.title}</strong> tem um agendamento pendente
+                        {latest?.scheduled_at
+                          ? ` para ${formatDateTimeBR(latest.scheduled_at)}`
+                          : ''}
+                        . Marcar como enviado manualmente <strong>cancela esse agendamento</strong>{' '}
+                        — o e-mail real NÃO será disparado pela E-goi. Use isso só se você já
+                        enviou por fora. Você pode desfazer depois.
+                      </>
+                    ) : (
+                      <>
+                        Isso registra que <strong>{entry.event.title}</strong> teve o e-mail
+                        disparado manualmente pela E-goi. Você pode desfazer depois.
+                      </>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

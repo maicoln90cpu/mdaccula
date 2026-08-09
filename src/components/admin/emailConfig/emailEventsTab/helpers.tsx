@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Campaign } from '../types';
 
 export type PeriodFilter = 'next7' | 'next30' | 'future' | 'past30' | 'all';
-export type SummaryStatus = 'pending' | 'draft' | 'sent' | 'manual' | 'failed';
+export type SummaryStatus = 'pending' | 'draft' | 'scheduled' | 'sent' | 'manual' | 'failed';
 export type StatusFilter = 'all' | SummaryStatus;
 
 export type EventLite = {
@@ -60,7 +60,12 @@ export function summaryStatusOf(latest: Campaign | undefined): SummaryStatus {
   if (latest.mode === 'manual' && latest.status === 'sent') return 'manual';
   if (latest.status === 'sent') return 'sent';
   if (latest.status === 'failed') return 'failed';
-  if (latest.status === 'draft' || latest.status === 'scheduled') return 'draft';
+  // 'scheduled' era fundido com 'draft' aqui — um evento com agendamento
+  // pendente aparecia como "Rascunho na E-goi", escondendo que existe um
+  // envio programado que ainda vai disparar (e tornando fácil sobrescrever
+  // esse agendamento sem perceber via "Marcar como enviado manualmente").
+  if (latest.status === 'scheduled') return 'scheduled';
+  if (latest.status === 'draft') return 'draft';
   return 'pending';
 }
 
@@ -70,6 +75,8 @@ export function summaryStatusBadge(s: SummaryStatus) {
       return <Badge className="bg-green-600 hover:bg-green-600">Enviado</Badge>;
     case 'manual':
       return <Badge className="bg-emerald-600 hover:bg-emerald-600">Enviado manualmente</Badge>;
+    case 'scheduled':
+      return <Badge className="bg-blue-600 hover:bg-blue-600">Agendado</Badge>;
     case 'draft':
       return <Badge variant="secondary">Rascunho na E-goi</Badge>;
     case 'failed':

@@ -65,9 +65,19 @@ export function useEventActions(templates: Template[]) {
         const { error } = await supabase.from('event_email_campaigns').delete().eq('id', latest.id);
         if (error) throw error;
       } else {
+        // markManual nunca limpa scheduled_at — se ele ainda estiver
+        // preenchido, é porque havia um agendamento pendente antes de marcar
+        // como enviado. Restaura pro status real 'scheduled' em vez de
+        // sempre 'draft', senão o agendamento se perde de forma permanente
+        // mesmo desfazendo a marcação manual.
+        const wasScheduled = !!latest.scheduled_at;
         const { error } = await supabase
           .from('event_email_campaigns')
-          .update({ mode: 'draft', status: 'draft', sent_at: null })
+          .update({
+            mode: wasScheduled ? 'scheduled' : 'draft',
+            status: wasScheduled ? 'scheduled' : 'draft',
+            sent_at: null,
+          })
           .eq('id', latest.id);
         if (error) throw error;
       }
