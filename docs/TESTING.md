@@ -459,6 +459,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `composeAutoMultiEventTitle()` (usada só pro assunto/preheader) junta os títulos reais em pt-BR ("A", "A e B", "A, B e C") quando cabem num limite seguro pro assunto; se não couberem, cai direto na frase genérica original — sem etapa intermediária tipo "Primeiro e mais N eventos" (testado e descartado por ficar com leitura estranha quando o primeiro título já é longo). Separadamente, o bloco "Título" (H1) passou a listar TODOS os eventos, um por linha com marcador + dia/hora (`• BOMA presents: The Moment — 22/08 · 17h`), lendo direto de `event.gridEvents` — paridade mantida no renderer plain-text. O override manual (`text_override` no bloco título, R-037) continua tendo prioridade máxima sobre a lista.
 - **Proteção:** `src/__tests__/regression/multi-event-generic-title-uses-real-event-names.test.ts`, `src/__tests__/lib/emailComposer.test.ts`, `src/__tests__/lib/blocks-title-multi-event-list.test.ts`.
 
+### R-047 — Bloco "Ticker de urgência" (modo fade) gerava scroll horizontal no preview/e-mail quando tinha 2-3 mensagens
+- **Quando:** agosto/2026, achado pelo usuário logo após a criação do novo template "Promoção" (primeiro preset a usar `ticker` com `animation: 'fade'` e 3 mensagens).
+- **Sintoma:** o preview do template "Promoção" (e qualquer bloco `ticker` com `animation: 'fade'` e 2+ mensagens) ficava com barra de rolagem horizontal, diferente dos demais templates.
+- **Causa:** em `renderInteractiveBlock` (`supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`, `case "ticker"`), o CSS do modo "fade" dava `display:inline` para `.tk0`, `.tk1` e `.tk2` simultaneamente (mesma especificidade do seletor `.tk{display:none}` que deveria escondê-los, então a ordem da cascata fazia os três ganharem `display:inline` ao mesmo tempo). A troca de mensagem dependia só da animação de `opacity`, mas as 3 mensagens continuavam ocupando espaço lado a lado no fluxo normal (sem separador entre elas), dentro de um container com `white-space:nowrap` — o texto combinado das 3 mensagens estourava a largura da tabela de 600px.
+- **Correção:** os spans do modo fade passaram a usar `position:absolute` (dentro de `.ticker-anim{position:relative;height:18px}`), empilhados um sobre o outro — só a opacidade determina qual aparece, sem nenhum ocupar espaço em fluxo simultaneamente com os outros.
+- **Proteção:** `supabase/functions/_shared/emailBlocks_test.ts` (`"ticker: modo fade com 3 mensagens empilha via position:absolute..."`).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

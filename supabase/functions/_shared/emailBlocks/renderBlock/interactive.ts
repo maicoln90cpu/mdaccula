@@ -253,10 +253,11 @@ export function renderInteractiveBlock(
 
       const keyframes = anim === "fade" && msgs.length > 1
         ? `<style>@media screen{
+          .ticker-anim{position:relative;display:block;height:18px;}
           .ticker-anim .tk{display:none;}
-          .ticker-anim .tk0{display:inline;animation:tkf ${fadeDur}s infinite;}
-          ${msgs.length >= 2 ? `.ticker-anim .tk1{display:inline;animation:tkf ${fadeDur}s infinite ${fadeOffset2}s;}` : ""}
-          ${msgs.length >= 3 ? `.ticker-anim .tk2{display:inline;animation:tkf ${fadeDur}s infinite ${fadeOffset3}s;}` : ""}
+          .ticker-anim .tk0{display:block;position:absolute;left:0;right:0;top:0;white-space:nowrap;text-align:${align};animation:tkf ${fadeDur}s infinite;}
+          ${msgs.length >= 2 ? `.ticker-anim .tk1{display:block;position:absolute;left:0;right:0;top:0;white-space:nowrap;text-align:${align};animation:tkf ${fadeDur}s infinite ${fadeOffset2}s;}` : ""}
+          ${msgs.length >= 3 ? `.ticker-anim .tk2{display:block;position:absolute;left:0;right:0;top:0;white-space:nowrap;text-align:${align};animation:tkf ${fadeDur}s infinite ${fadeOffset3}s;}` : ""}
           @keyframes tkf{0%,25%{opacity:1}33%,92%{opacity:0}100%{opacity:1}}
         }</style>`
         : anim === "slide"

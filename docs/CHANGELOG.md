@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Bloco "Ticker de urgência" (modo fade) causava scroll horizontal no preview com 2-3 mensagens (R-047)
+**Descrição:** usuário reportou que o preview do novo template "Promoção" tinha uma barra de rolagem horizontal, diferente dos demais templates.
+**Correção:** o CSS do modo `fade` do bloco `ticker` (`renderInteractiveBlock`, `case "ticker"`) deixava as 3 mensagens com `display:inline` simultaneamente (bug de especificidade CSS — a troca dependia só da animação de opacidade, mas as mensagens continuavam ocupando espaço lado a lado, sem separador, num container `white-space:nowrap`, estourando os 600px da tabela do e-mail). Os spans passaram a usar `position:absolute` empilhados, então só a opacidade decide qual mensagem aparece, sem nenhuma ocupar espaço junto com as outras. Só o modo "Cortesia"/"Novo evento" (sem `ticker`) não tinha o bug; o preset "Promoção" foi o primeiro a combinar `ticker` fade com múltiplas mensagens.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** baixo (bug visual isolado ao bloco ticker em modo fade; correção aditiva, sem mudar o HTML de outros modos de animação)
+
+**Arquivos alterados:** `supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`, `supabase/functions/_shared/emailBlocks_test.ts`, `docs/TESTING.md` (R-047).
+
+---
+
 ### Novo tipo de template de e-mail "Promoção" (desconto pontual por evento)
 **Descrição:** usuário pediu um template de e-mail dedicado a promoções pontuais de um evento específico (ex.: "40% off só hoje"), reaproveitando os blocos já existentes do editor — em especial o bloco de texto livre, onde o admin digita a copy específica do desconto. Também reportou que o bloco de texto não quebrava linha ao apertar Enter; investigação (com reprodução ao vivo no navegador, digitando e apertando Enter no editor real) confirmou que esse comportamento já havia sido corrigido pelo commit anterior (`a69d94e`, 08/08 — margem inline entre `<p>`s do Tiptap) e não reproduz mais — nenhuma alteração de código foi necessária ali.
 **Entrega:** novo tipo dedicado `email_templates.type = 'promo'` (migration alterando o `CHECK` da coluna) com preset `event_promo` em `TEMPLATE_PRESETS`: cabeçalho, flyer, etiqueta de destaque, título, data/hora/local, contagem regressiva (`countdown`, prazo configurável), bloco de texto livre para a copy da promoção, ticker de urgência, botão CTA, divisor, redes sociais e rodapé. Tipo propagado por toda a cadeia que já tratava tipos de template — filtro do editor (Passo 1), rótulos compartilhados, envio manual (lista + filtro de blocos exclusivos de evento único) e tag de campanha na E-goi (`promocao`). Testado de ponta a ponta no admin local: criação pelo preset, edição do bloco de texto, preview e listagem na aba de Envio Manual.
@@ -936,6 +947,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 09/08 | Bugfix | Ticker de urgência (modo fade) causava scroll horizontal no preview (R-047) |
 | 09/08 | Feature | Novo tipo de template de e-mail "Promoção" (desconto pontual por evento) |
 | 09/08 | Bugfix | Automação "Lembrete de evento" volta a disparar sozinha pelo cron (R-045) |
 | 09/08 | Feature | Blog news no Dashboard de e-mails + contagem real de contatos por segmento + tooltips legíveis (R-042 a R-044) |

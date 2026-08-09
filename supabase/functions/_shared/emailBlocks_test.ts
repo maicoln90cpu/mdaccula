@@ -662,6 +662,20 @@ Deno.test("countdown: number_color e show_unit_labels=false aplicam no HTML", ()
   assertEquals(html.includes("HORAS") || html.includes("horas"), false);
 });
 
+Deno.test("ticker: modo fade com 3 mensagens empilha via position:absolute, sem gerar overflow horizontal (R-047)", () => {
+  const blocks: Block[] = [
+    { id: "1", kind: "ticker", messages: ["Só hoje", "Desconto por tempo limitado", "Corre antes que acabe"], animation: "fade", icon: "fire" } as any,
+  ];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertStringIncludes(html, ".ticker-anim{position:relative;display:block;height:18px;}");
+  assertStringIncludes(html, ".tk0{display:block;position:absolute;");
+  assertStringIncludes(html, ".tk1{display:block;position:absolute;");
+  assertStringIncludes(html, ".tk2{display:block;position:absolute;");
+  assertStringIncludes(html, "Só hoje");
+  assertStringIncludes(html, "Desconto por tempo limitado");
+  assertStringIncludes(html, "Corre antes que acabe");
+});
+
 Deno.test("ticker: speed e shape pill alteram duração da animação e border-radius", () => {
   const blocks: Block[] = [{ id: "1", kind: "ticker", messages: ["MSG_XYZ", "MSG_ABC"], animation: "fade", speed: "fast", shape: "pill" } as any];
   const html = renderBlockedTemplate(blocks, mockEvent, null, null);
