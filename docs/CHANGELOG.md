@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Automação "Lembrete de evento" volta a disparar sozinha pelo cron (R-045)
+**Descrição:** achado durante a auditoria de documentação de 09/08/2026 (comparando `list_edge_functions` do MCP contra `supabase/config.toml`): `send-event-reminder-campaigns` não tinha entrada em `config.toml`, então caía no padrão do gateway do Supabase (`verify_jwt: true`) — o cron (que só manda `x-cron-secret`, sem JWT) era bloqueado com 401 *antes* do código da function rodar. Na prática, a automação nunca disparava sozinha.
+**Correção:** `[functions.send-event-reminder-campaigns]` + `verify_jwt = false` adicionado em `supabase/config.toml`, igual ao padrão de todas as outras functions de cron/webhook do projeto. Aproveitado pra deixar o comentário do arquivo explícito sobre esse padrão, pra não se repetir em functions futuras.
+**Data:** 09/08/2026
+**Responsável:** IA (achado durante auditoria de documentação, corrigido a pedido do usuário)
+**Impacto:** alto (automação inteira não funcionava sozinha desde que foi criada)
+
+**Arquivos alterados:** `supabase/config.toml`, `src/__tests__/regression/send-event-reminder-cron-verify-jwt-gap.test.ts` (novo), `docs/TESTING.md` (R-045), `docs/PENDENCIAS.md` (pendência correspondente removida).
+
+---
+
 ### Blog news passa a aparecer no Dashboard de e-mails + contagem real de contatos por segmento + tooltips legíveis (R-042 a R-044)
 **Descrição:** 3 melhorias pedidas pelo usuário depois de usar o Dashboard já corrigido: (1) automação "Blog news" nunca tinha uma linha em `event_email_campaigns`, então ficava invisível no Dashboard mesmo enviando normalmente na E-goi; (2) tooltip dos gráficos (Recharts) ilegível no tema escuro — texto quase-branco sobre fundo branco padrão da lib — no Dashboard de e-mails, em `/analytics` e nos gráficos de pizza de custos de IA; (3) "Alcance estimado" (aba Configuração) sempre mostrava "—" ao escolher um segmento específico.
 **Correção:** `event_email_campaigns.event_id` passou a aceitar `null` (migration); `writeDigestCampaignHistory` grava 1 linha com `event_id = null` quando não há eventos, em vez de não gravar nada; `blog-digest-draft` passou a chamar essa função. Gráficos trocaram `<Tooltip />` puro por `ChartTooltip`/`ChartTooltipContent` (componente já correto usado em `egressMonitor/*`) ou ganharam `contentStyle` com tokens. `egoi-resources` passou a buscar a contagem real de contatos por segmento em `GET /lists/{id}/contacts/segment/{id}` (o objeto "Segment" da E-goi nunca tem contagem).
@@ -903,6 +914,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 09/08 | Bugfix | Automação "Lembrete de evento" volta a disparar sozinha pelo cron (R-045) |
 | 09/08 | Feature | Blog news no Dashboard de e-mails + contagem real de contatos por segmento + tooltips legíveis (R-042 a R-044) |
 | 09/08 | Bugfix | Métricas E-goi zeradas + envio pra segmento específico com 422 (R-040, R-041) |
 | 09/08 | Bugfix | Loop infinito de requisições na Gestão de E-mails |

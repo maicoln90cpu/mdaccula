@@ -44,7 +44,7 @@ Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:co
 
 **Click/view tracking**: anonymous writes (link clicks, redirect clicks, post/event views, shares) must go through the corresponding Edge Function (`track-link-click`, `track-redirect-click`, `track-view`, `track-share`) because RLS blocks anonymous direct writes to those tables.
 
-**Edge Functions**: every function should import shared CORS/rate-limit/timeout/response helpers from `supabase/functions/_shared/index.ts` rather than reimplementing them — see the template in `docs/CODE_STYLE.md`. ESLint does not lint `supabase/functions/` (separate Deno runtime); `npm run test:edge` runs Deno's own test runner against it. Deploy is automatic via GitHub Actions (`.github/workflows/deploy-edge-functions.yml`, official Supabase CLI) on push to `main` touching `supabase/functions/**` — never rely on the Lovable UI deployer or an MCP `deploy_edge_function` tool call as the normal path, both have a known bug that drops `_shared/` imports from the bundle. Any function that shouldn't require a logged-in Supabase user needs a `verify_jwt = false` entry in `supabase/config.toml`, or the next CLI deploy silently reverts it to requiring a JWT and breaks its cron/webhook/anonymous calls.
+**Edge Functions**: every function should import shared CORS/rate-limit/timeout/response helpers from `supabase/functions/_shared/index.ts` rather than reimplementing them — see the template in `docs/CODE_STYLE.md`. ESLint does not lint `supabase/functions/` (separate Deno runtime); `npm run test:edge` runs Deno's own test runner against it. Deploy is automatic via GitHub Actions (`.github/workflows/deploy-edge-functions.yml`, official Supabase CLI) on push to `main` touching `supabase/functions/**` — never rely on the Lovable UI deployer or an MCP `deploy_edge_function` tool call as the normal path, both have a known bug that drops `_shared/` imports from the bundle. Any function that shouldn't require a logged-in Supabase user needs a `verify_jwt = false` entry in `supabase/config.toml`, or the next CLI deploy silently reverts it to requiring a JWT and breaks its cron/webhook/anonymous calls — this exact gap (missing entry → cron blocked with 401 at the gateway) happened for real with `send-event-reminder-campaigns` until 09/08/2026, so double-check this for every new cron-triggered function.
 
 **Auth**: `useAuth` (Context) exposes `user`, `session`, `profile`, `isAdmin`. `isAdmin` is derived from the `user_roles` table via `has_role()`/`is_admin()` SQL functions (SECURITY DEFINER, avoids RLS recursion) — never trust or derive admin status from localStorage. `/admin/*` routes are gated by `ProtectedRoute` checking `isAdmin`.
 
@@ -91,3 +91,17 @@ REGRAS:
 - Sempre validar no localhost antes de sugerir o push.
 - Sugerir melhorias só do que foi implementado.
 - EM TODAS ALTERAÇÕES DE CODIGO, RODAR OS TESTES NOS ARQUIVOS EDITADOS, CASO REPROVE, CORRIGIR ANTES DE ENTREGAR COMO CONCLUIDO
+
+## Documentação sempre atualizada (sem precisar pedir)
+
+Sempre que uma mudança relevante for commitada/pushada, atualizar a documentação correspondente no mesmo commit (ou num commit `docs:` logo em seguida) — nunca deixar pra uma auditoria manual depois. "Relevante" cobre: edge function nova/removida/com comportamento mudado, tabela/coluna nova ou alterada, migration aplicada, bug de produção corrigido, feature nova entregue, e qualquer gap/bug real descoberto no caminho (mesmo que fora do escopo do pedido original).
+
+Mapa do que atualizar em cada caso:
+- **Edge function nova, removida, ou com propósito/endpoint/auth mudado** → `docs/EDGE_FUNCTIONS.md` (linha da tabela + contagem no topo do arquivo, conferida contra `list_edge_functions` do MCP, não só contra o filesystem).
+- **Tabela ou coluna nova/alterada, migration aplicada** → `docs/tabelas.md` (DDL) e `docs/DATABASE_SCHEMA.md` (índice); nunca editar `src/integrations/supabase/types.ts` na mão, regenerar via MCP.
+- **Bug de produção corrigido** → entrada nova em "Regressões cobertas" no `docs/TESTING.md` (já era regra) **e** entrada no `docs/CHANGELOG.md`.
+- **Feature/melhoria nova entregue** → entrada no `docs/CHANGELOG.md`; se mudou rota/funcionalidade visível, também `docs/FEATURE_MAP.md`.
+- **Gap ou bug real encontrado mas não corrigido na hora** (fora do escopo do pedido, ou precisa de decisão do usuário) → `docs/PENDENCIAS.md`, no tipo certo (🗳️ decisão / 🔧 bug / 👀 monitoramento — nunca um quarto tipo genérico).
+- **Item de `PENDENCIAS.md` resolvido** → sai de lá e vira entrada em `CHANGELOG.md` (nunca fica registrado como "concluído" em `PENDENCIAS.md`).
+
+Antes de escrever um número (contagem de tabelas, de edge functions, etc.) num doc, confirmar contra o estado real (MCP do Supabase, filesystem) em vez de copiar o que já estava escrito — docs de schema/contagem ficam defasados silenciosamente conforme migrations/functions são criadas sem atualização manual.

@@ -109,12 +109,6 @@ _Nenhuma no momento._
 **Correção sugerida:** apagar `supabase/functions/egoi-curl-probe/` (pasta inteira) e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml`.
 **Responsável:** decisão do usuário — é uma remoção simples, mas envolve apagar código, por isso não fiz sem confirmar.
 
-### `send-event-reminder-campaigns` sem `verify_jwt = false` — cron bloqueado com 401 no gateway
-**Status:** 🔧 Não corrigido — achado em 09/08/2026 durante auditoria de documentação (comparando `list_edge_functions` do MCP contra `supabase/config.toml`), fora do escopo do pedido do usuário nesta rodada.
-**Contexto:** todas as outras 57 functions têm `verify_jwt = false` em `supabase/config.toml`, então o gateway não exige JWT — a autenticação real (admin ou `x-cron-secret`) é validada dentro do próprio código. `send-event-reminder-campaigns` não tem entrada em `config.toml`, então cai no padrão do gateway (`verify_jwt: true`), que **bloqueia a chamada antes mesmo do código rodar**. O cron (`event_reminder_cron` em `cron.job`) só manda `x-cron-secret`, sem JWT nenhum — confirmado ao vivo via `get_logs` que a chamada retorna 401 no gateway (09/08/2026, ~04:05 UTC). Na prática, a automação "Lembrete de evento" nunca dispara sozinha pelo cron.
-**Correção sugerida:** adicionar `[functions.send-event-reminder-campaigns]` + `verify_jwt = false` em `supabase/config.toml`, igual às outras 57 — o próprio código já valida `x-cron-secret`/admin internamente, então não perde segurança.
-**Responsável:** decisão do usuário sobre quando aplicar (é uma linha só em `config.toml`, risco baixo, mas fora do pedido desta sessão).
-
 ### Leaked Password Protection desabilitado
 **Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
 **Contexto:** o recurso exige configuração no painel do Supabase e o projeto não tem assinatura para isso. Fica intencionalmente **OFF**; não reabrir como pendência em auditorias futuras.

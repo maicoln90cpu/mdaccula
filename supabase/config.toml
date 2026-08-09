@@ -172,8 +172,16 @@ verify_jwt = false
 [functions.send-automation-campaign-now]
 verify_jwt = false
 
-# compose-event-image é a única função que exige login (verify_jwt = true,
-# que é o padrão) — por isso não precisa de entrada aqui.
+[functions.send-event-reminder-campaigns]
+verify_jwt = false
+
+# compose-event-image é a única função que exige login de propósito
+# (verify_jwt = true, que é o padrão) — por isso não precisa de entrada
+# aqui. Toda outra função sem entrada nesta lista também cai nesse padrão
+# sem querer — sempre adicionar `verify_jwt = false` para functions
+# chamadas por cron/webhook/anônimo, ou o próximo deploy bloqueia a
+# chamada com 401 no gateway antes do código rodar (foi o que aconteceu
+# com send-event-reminder-campaigns até 09/08/2026 — ver docs/PENDENCIAS.md).
 
 
 [functions.mcp]

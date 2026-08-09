@@ -445,6 +445,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Nota:** Digest semanal e Agenda do FDS têm o registro de histórico ligado desde 08/08/2026 mas só rodam semanalmente (terça e quinta) — não é bug elas ainda não terem nenhuma linha gravada logo depois disso, só não bateu o primeiro ciclo ainda.
 - **Proteção:** `supabase/functions/_shared/digestCampaignHistory_test.ts` (atualizado) + `supabase/functions/blog-digest-draft/historyWiring_test.ts`.
 
+### R-045 — Automação "Lembrete de evento" nunca disparava sozinha pelo cron
+- **Quando:** agosto/2026, achado durante auditoria de documentação (comparando `list_edge_functions` do MCP contra `supabase/config.toml`)
+- **Sintoma:** `event_reminder_cron` (roda de hora em hora) sempre reportava sucesso do lado do Postgres/`pg_net` (o POST era enviado), mas a function nunca processava nada de verdade.
+- **Causa:** `send-event-reminder-campaigns` não tinha entrada em `supabase/config.toml` — sem isso, o gateway do Supabase cai no padrão `verify_jwt: true`, que exige um JWT válido *antes* de o código da function rodar. O cron só manda `x-cron-secret` (sem JWT nenhum), então a chamada era bloqueada com 401 no gateway — confirmado ao vivo via `get_logs` (`POST | 401 | .../send-event-reminder-campaigns`).
+- **Correção:** `[functions.send-event-reminder-campaigns]` + `verify_jwt = false` adicionado em `supabase/config.toml`, igual ao padrão de todas as outras functions cron/webhook do projeto.
+- **Proteção:** `src/__tests__/regression/send-event-reminder-cron-verify-jwt-gap.test.ts`.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
