@@ -2,7 +2,7 @@
  * Painel para bloco global_ref.
  * Extraído de EmailTemplateEditor.tsx (Onda 1 PR-A) sem mudança de comportamento.
  */
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Library, Unlink } from 'lucide-react';
 import {
@@ -12,6 +12,13 @@ import {
   BLOCK_LABELS,
 } from '@/lib/emailTemplates/blocks';
 import { BlockPropsPanel } from './BlockPropsPanel';
+
+// Antes, cada onChange (por caractere digitado) disparava um UPDATE +
+// reload completo da biblioteca — além de gerar uma escrita por tecla,
+// respostas fora de ordem (rede instável) podiam fazer o texto "regredir"
+// no meio da digitação. Agora só o ÚLTIMO patch depois de uma pausa é
+// salvo de verdade; a tela reflete o rascunho local instantaneamente.
+const SAVE_DEBOUNCE_MS = 600;
 
 export function GlobalRefPropsPanel({
   refBlock,
@@ -34,6 +41,14 @@ export function GlobalRefPropsPanel({
 }) {
   const global = globalsMap.get(refBlock.global_id) || null;
   const [saving, setSaving] = useState(false);
+  const [localOverride, setLocalOverride] = useState<Block | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const usageCount = useMemo(() => {
     let n = 0;
@@ -72,11 +87,15 @@ export function GlobalRefPropsPanel({
     );
   }
 
-  const handleInnerChange = async (patch: Partial<Block>) => {
-    const nextInner = { ...global.block, ...patch } as Block;
+  const displayedBlock = localOverride ?? global.block;
+
+  const persistGlobal = async (nextInner: Block) => {
     setSaving(true);
     try {
       await updateGlobal(global.id, { block: nextInner });
+      // O contexto já recarregou globalsMap com o valor salvo — volta a
+      // usar a fonte única em vez do rascunho local.
+      setLocalOverride(null);
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Erro desconhecido';
       onToast({
@@ -87,6 +106,15 @@ export function GlobalRefPropsPanel({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleInnerChange = (patch: Partial<Block>) => {
+    const nextInner = { ...displayedBlock, ...patch } as Block;
+    setLocalOverride(nextInner); // reflete na hora, sem esperar o backend
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void persistGlobal(nextInner);
+    }, SAVE_DEBOUNCE_MS);
   };
 
   return (
@@ -121,8 +149,8 @@ export function GlobalRefPropsPanel({
         <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           Propriedades do bloco global
         </div>
-        {/* Reaproveita o painel padrão — edições disparam updateGlobal */}
-        <BlockPropsPanel block={global.block} onChange={handleInnerChange} />
+        {/* Reaproveita o painel padrão — edições disparam updateGlobal com debounce */}
+        <BlockPropsPanel block={displayedBlock} onChange={handleInnerChange} />
       </div>
 
       <div className="pt-3 border-t">
@@ -136,9 +164,10 @@ export function GlobalRefPropsPanel({
               )
             )
               return;
-            // Passa cópia do inner com novo id local
+            // Passa cópia do inner (rascunho atual, mesmo que ainda não
+            // tenha sido salvo pelo debounce) com novo id local.
             onUnlink({
-              ...global.block,
+              ...displayedBlock,
               id: `b${Date.now()}${Math.floor(Math.random() * 1000)}`,
             } as Block);
           }}

@@ -423,6 +423,11 @@ export function EmailTemplateEditor({
             )}
             {selectedBlock && selectedBlock.kind === 'global_ref' && (
               <GlobalRefPropsPanel
+                // key força remontar o painel ao trocar de bloco global
+                // selecionado — sem isso, o debounce/rascunho local de
+                // edição (ver GlobalRefPropsPanel) ficaria "grudado" no
+                // global anterior por uma fração de segundo.
+                key={(selectedBlock as Extract<Block, { kind: 'global_ref' }>).global_id}
                 refBlock={selectedBlock as Extract<Block, { kind: 'global_ref' }>}
                 templates={templates}
                 globalsMap={globalsMap}
