@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Preview do editor de e-mail ganha seletor desktop/tablet/celular
+**Descrição:** usuário pediu a possibilidade de alternar a visualização do preview do template entre desktop, tablet e celular (lembrava de ter sido implementado, mas não achou o controle na tela — investigação confirmou que nunca tinha sido implementado; o preview sempre foi fixo em 600px).
+**Entrega:** `PreviewPanel.tsx` ganhou um `ToggleGroup` (ícones Monitor/Tablet/Smartphone) acima do preview que troca a largura do iframe entre 600px (desktop, padrão), 480px (tablet) e 375px (celular) — o e-mail em si continua sendo a mesma tabela de 600px, só a "janela" simulada ao redor muda, como em ferramentas de preview de e-mail (Litmus/Email on Acid). Não afeta o HTML enviado nem o download/envio de teste.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** baixo (aditivo, só UI do editor — nenhuma mudança em como o e-mail é composto ou enviado)
+
+**Arquivos alterados:** `src/components/admin/emailTemplateEditor/PreviewPanel.tsx`, `src/__tests__/components/PreviewPanelDeviceToggle.test.tsx`.
+
+---
+
 ### Bloco "Ticker de urgência" (modo fade) causava scroll horizontal no preview com 2-3 mensagens (R-047)
 **Descrição:** usuário reportou que o preview do novo template "Promoção" tinha uma barra de rolagem horizontal, diferente dos demais templates.
 **Correção:** o CSS do modo `fade` do bloco `ticker` (`renderInteractiveBlock`, `case "ticker"`) deixava as 3 mensagens com `display:inline` simultaneamente (bug de especificidade CSS — a troca dependia só da animação de opacidade, mas as mensagens continuavam ocupando espaço lado a lado, sem separador, num container `white-space:nowrap`, estourando os 600px da tabela do e-mail). Os spans passaram a usar `position:absolute` empilhados, então só a opacidade decide qual mensagem aparece, sem nenhuma ocupar espaço junto com as outras. Só o modo "Cortesia"/"Novo evento" (sem `ticker`) não tinha o bug; o preset "Promoção" foi o primeiro a combinar `ticker` fade com múltiplas mensagens.
@@ -947,6 +958,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 09/08 | Feature | Preview do editor de e-mail ganha seletor desktop/tablet/celular |
 | 09/08 | Bugfix | Ticker de urgência (modo fade) causava scroll horizontal no preview (R-047) |
 | 09/08 | Feature | Novo tipo de template de e-mail "Promoção" (desconto pontual por evento) |
 | 09/08 | Bugfix | Automação "Lembrete de evento" volta a disparar sozinha pelo cron (R-045) |
