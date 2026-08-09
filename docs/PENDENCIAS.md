@@ -109,6 +109,12 @@ _Nenhuma no momento._
 **Correção sugerida:** apagar `supabase/functions/egoi-curl-probe/` (pasta inteira) e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml`.
 **Responsável:** decisão do usuário — é uma remoção simples, mas envolve apagar código, por isso não fiz sem confirmar.
 
+### CI/CD Pipeline (`Quality Checks` → ESLint) quebrado no `main` por arquivos não relacionados a envios de e-mail
+**Status:** 🔧 Não corrigido — achado em 09/08/2026 ao empurrar o template "Promoção" (o job "Deploy Supabase Edge Functions" passa normalmente; só o "CI/CD Pipeline" falha).
+**Contexto:** `npm run lint` falha com 8 erros em 3 arquivos que não fazem parte do trabalho de e-mail desta sessão — `src/components/admin/emailConfig/useEmailConfigState.ts` (imports não usados: `MOCK_EVENT_DATA`, `EventAnnouncementData`, `ArticleSummary`, parâmetro `templates`; 2 `react-hooks/exhaustive-deps`), `src/components/events/eventForm/constants.ts` (`import()` type annotation proibido) e `src/lib/mcp/tools/list_links.ts` (`z` importado sem uso). Confirmado via `git log`/`git merge-base --is-ancestor` que o commit que introduziu esses erros (`d31b121`, "teste e histórico de execuções nas 4 automações") já estava mergeado no `main` antes desta sessão começar — as duas execuções anteriores do pipeline (`31317156333`, `31316719227`) já estavam com `FAIL` antes do commit desta sessão (`6dc7363`).
+**Correção sugerida:** prefixar os símbolos não usados com `_` (ou removê-los) nos 3 arquivos, ajustar os arrays de dependência dos `useCallback` em `useEmailConfigState.ts`, e trocar o `import()` inline por um `import type` no topo de `constants.ts`.
+**Responsável:** IA corrige quando solicitado (fora do escopo do pedido desta sessão — só o template "Promoção" e a investigação do bloco de texto).
+
 ### Leaked Password Protection desabilitado
 **Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
 **Contexto:** o recurso exige configuração no painel do Supabase e o projeto não tem assinatura para isso. Fica intencionalmente **OFF**; não reabrir como pendência em auditorias futuras.
