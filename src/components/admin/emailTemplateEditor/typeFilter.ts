@@ -3,6 +3,7 @@
  * Extraído do EmailTemplateEditor na Onda 12 sem alterações de valores.
  */
 import type { Template } from '@/lib/emailTemplates/blocks';
+import { EMAIL_TYPE_LABELS } from '@/lib/emailTemplates/typeLabels';
 
 export type TypeFilterKey =
   | 'event_new'
@@ -27,16 +28,19 @@ export const TYPE_FILTER_ORDER: TypeFilterKey[] = [
   'custom',
 ];
 
+// Rótulos vêm de uma fonte única compartilhada com o Dashboard
+// (EMAIL_TYPE_LABELS) — antes "Digest" (aqui) e "Digest semanal" (Dashboard)
+// já tinham divergido pro mesmo conceito.
 export const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
-  event_new: 'Evento',
-  ticket_batch: 'Virada',
-  ticket_batch_multi: 'Virada (multi)',
-  weekend_agenda: 'Agenda FDS',
-  weekly_digest: 'Digest',
-  blog_digest: 'Blog news',
-  event_reminder: 'Lembrete de evento',
-  courtesy: 'Cortesia',
-  custom: 'Custom',
+  event_new: EMAIL_TYPE_LABELS.event_new,
+  ticket_batch: EMAIL_TYPE_LABELS.ticket_batch,
+  ticket_batch_multi: EMAIL_TYPE_LABELS.ticket_batch_multi,
+  weekend_agenda: EMAIL_TYPE_LABELS.weekend_agenda,
+  weekly_digest: EMAIL_TYPE_LABELS.weekly_digest,
+  blog_digest: EMAIL_TYPE_LABELS.blog_digest,
+  event_reminder: EMAIL_TYPE_LABELS.event_reminder,
+  courtesy: EMAIL_TYPE_LABELS.courtesy,
+  custom: EMAIL_TYPE_LABELS.custom,
 };
 
 export const TYPE_FILTER_STORAGE_KEY = 'mdaccula_email_editor_type';

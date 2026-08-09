@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import {
 import { useToast } from '@/hooks/useToast';
 import { formatCount } from '@/lib/formatters';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { EMAIL_TYPE_LABELS } from '@/lib/emailTemplates/typeLabels';
 
 /** Métricas cacheadas em event_email_campaign_stats.stats_json (formato retornado pela edge egoi-campaign-stats). */
 type CampaignStats = {
@@ -53,17 +54,9 @@ type Row = {
 
 type Period = '7' | '30' | '90' | '365' | 'custom';
 
-const TYPE_LABEL: Record<string, string> = {
-  standard: 'Evento',
-  ticket_batch: 'Virada de lote',
-  weekly_digest: 'Digest semanal',
-  weekend_agenda: 'Agenda FDS',
-  blog_digest: 'Blog news',
-  courtesy: 'Cortesia',
-  custom: 'Custom',
-  ab_test_a: 'A/B (A)',
-  ab_test_b: 'A/B (B)',
-};
+// Rótulos vêm de uma fonte única compartilhada com o Editor (typeFilter.ts)
+// — evita que renomear um tipo num lugar deixe o outro desatualizado.
+const TYPE_LABEL = EMAIL_TYPE_LABELS;
 
 const rateFmt = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? '—' : `${(n * 100).toFixed(1)}%`;
@@ -77,6 +70,10 @@ export function EmailDashboard() {
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  // Trocar o período rápido (7→30→90 dias) podia deixar uma resposta de um
+  // range já abandonado sobrescrever os KPIs depois de uma mais recente. Só
+  // a resposta da requisição MAIS RECENTE é aplicada.
+  const loadRequestIdRef = useRef(0);
 
   const range = useMemo(() => {
     const now = new Date();
@@ -90,6 +87,7 @@ export function EmailDashboard() {
   }, [period, customFrom, customTo]);
 
   const load = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
     setLoading(true);
     try {
       // Enviadas via sistema (exclui campaign_type = 'manual' — controle pessoal fica separado)
@@ -104,6 +102,7 @@ export function EmailDashboard() {
         .neq('campaign_type', 'manual')
         .order('sent_at', { ascending: false })
         .limit(500);
+      if (requestId !== loadRequestIdRef.current) return; // resposta obsoleta, ignora
       if (error) throw error;
 
       const ids = (camps ?? []).map((c) => c.id);
@@ -113,6 +112,7 @@ export function EmailDashboard() {
           .from('event_email_campaign_stats')
           .select('campaign_id, stats_json, fetched_at')
           .in('campaign_id', ids);
+        if (requestId !== loadRequestIdRef.current) return; // resposta obsoleta, ignora
         for (const s of stats ?? []) {
           statsMap.set(s.campaign_id, {
             stats: s.stats_json as CampaignStats,
@@ -136,10 +136,11 @@ export function EmailDashboard() {
       }));
       setRows(built);
     } catch (e: unknown) {
+      if (requestId !== loadRequestIdRef.current) return; // resposta obsoleta, ignora
       const message = e instanceof Error ? e.message : 'Erro desconhecido';
       toast({ variant: 'destructive', title: 'Erro ao carregar dashboard', description: message });
     } finally {
-      setLoading(false);
+      if (requestId === loadRequestIdRef.current) setLoading(false);
     }
   }, [range.from, range.to, toast]);
 
