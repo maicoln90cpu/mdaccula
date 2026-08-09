@@ -718,7 +718,7 @@ export type Database = {
           created_at: string
           egoi_campaign_id: string | null
           error_message: string | null
-          event_id: string
+          event_id: string | null
           id: string
           mode: string
           scheduled_at: string | null
@@ -737,7 +737,7 @@ export type Database = {
           created_at?: string
           egoi_campaign_id?: string | null
           error_message?: string | null
-          event_id: string
+          event_id?: string | null
           id?: string
           mode?: string
           scheduled_at?: string | null
@@ -756,7 +756,7 @@ export type Database = {
           created_at?: string
           egoi_campaign_id?: string | null
           error_message?: string | null
-          event_id?: string
+          event_id?: string | null
           id?: string
           mode?: string
           scheduled_at?: string | null
@@ -1061,6 +1061,7 @@ export type Database = {
           merged_at: string | null
           merged_into_id: string | null
           pix_button_enabled: boolean
+          recurring_event_config_id: string | null
           schedule: Json | null
           slug: string
           status: string
@@ -1101,6 +1102,7 @@ export type Database = {
           merged_at?: string | null
           merged_into_id?: string | null
           pix_button_enabled?: boolean
+          recurring_event_config_id?: string | null
           schedule?: Json | null
           slug: string
           status?: string
@@ -1141,6 +1143,7 @@ export type Database = {
           merged_at?: string | null
           merged_into_id?: string | null
           pix_button_enabled?: boolean
+          recurring_event_config_id?: string | null
           schedule?: Json | null
           slug?: string
           status?: string
@@ -1176,6 +1179,13 @@ export type Database = {
             columns: ["merged_into_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_recurring_event_config_id_fkey"
+            columns: ["recurring_event_config_id"]
+            isOneToOne: false
+            referencedRelation: "recurring_event_configs"
             referencedColumns: ["id"]
           },
         ]

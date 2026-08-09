@@ -18,7 +18,7 @@ function fakeAdmin(insertResult: { error: { message: string } | null }) {
   };
 }
 
-Deno.test('writeDigestCampaignHistory: sem eventIds não grava nada e retorna null', async () => {
+Deno.test('writeDigestCampaignHistory: sem eventIds grava 1 linha com event_id null (ex.: blog-digest, sem evento associado)', async () => {
   const { admin, calls } = fakeAdmin({ error: null });
   const warning = await writeDigestCampaignHistory(admin, [], {
     campaignHash: 'abc',
@@ -26,11 +26,17 @@ Deno.test('writeDigestCampaignHistory: sem eventIds não grava nada e retorna nu
     mode: 'immediate',
     errorMessage: null,
     sentAt: new Date().toISOString(),
-    campaignType: 'weekly_digest',
+    campaignType: 'blog_digest',
     segmentId: null,
   });
   assertEquals(warning, null);
-  assertEquals(calls.length, 0);
+  assertEquals(calls.length, 1);
+  const [table, rows] = calls[0] as [string, Array<Record<string, unknown>>];
+  assertEquals(table, 'event_email_campaigns');
+  assertEquals(rows.length, 1);
+  assertEquals(rows[0].event_id, null);
+  assertEquals(rows[0].egoi_campaign_id, 'abc');
+  assertEquals(rows[0].campaign_type, 'blog_digest');
 });
 
 Deno.test('writeDigestCampaignHistory: insere 1 linha por evento, todas com o mesmo egoi_campaign_id', async () => {
