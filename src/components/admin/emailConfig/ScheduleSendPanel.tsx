@@ -69,7 +69,13 @@ export function ScheduleSendPanel({
   async function cancelSchedule(id: string) {
     setCancelingId(id);
     try {
-      const { error } = await supabase
+      // Só cancela se o cron (send-scheduled-email-campaigns) ainda não
+      // reivindicou a linha (scheduled_send_claimed_at IS NULL). Sem essa
+      // condição, cancelar bem na janela em que o cron já pegou o claim e
+      // está chamando a E-goi "funcionava" na UI (toast de sucesso), mas o
+      // cron sobrescrevia o status de volta pra 'sent' ao terminar — o
+      // admin nunca saberia que o cancelamento não pegou de verdade.
+      const { data, error } = await supabase
         .from('event_email_campaigns')
         .update({
           status: 'draft',
@@ -78,8 +84,21 @@ export function ScheduleSendPanel({
           scheduled_send_claimed_at: null,
           scheduled_send_attempts: 0,
         })
-        .eq('id', id);
+        .eq('id', id)
+        .is('scheduled_send_claimed_at', null)
+        .select('id')
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        toast({
+          variant: 'destructive',
+          title: 'Não deu tempo de cancelar',
+          description:
+            'O envio já começou a ser processado agora mesmo e não pode mais ser cancelado. Atualize em alguns segundos para ver o resultado.',
+        });
+        queryClient.invalidateQueries({ queryKey: ['scheduled-sends', eventId] });
+        return;
+      }
       toast({ title: 'Agendamento cancelado', description: 'A campanha voltou para rascunho.' });
       queryClient.invalidateQueries({ queryKey: ['scheduled-sends', eventId] });
     } catch (e: unknown) {
