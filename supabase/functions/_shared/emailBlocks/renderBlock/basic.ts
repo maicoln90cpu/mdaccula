@@ -50,9 +50,10 @@ export function renderBasicBlock(
     }
 
     case "eyebrow": {
+      if (!block.text?.trim()) return "";
       const color = escape(block.text_color || primary);
       const align = block.align ?? "left";
-      const text = escape(block.text || "Novo evento");
+      const text = escape(block.text);
       const label = block.bg_style === "pill"
         ? `<span style="display:inline-block;padding:4px 12px;background:rgba(168,85,247,0.12);border:1px solid ${color};border-radius:999px;color:${color};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">${text}</span>`
         : `<p style="margin:0;color:${color};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">${text}</p>`;

@@ -67,6 +67,11 @@ const TYPE_LABEL = EMAIL_TYPE_LABELS;
 const rateFmt = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? '—' : `${(n * 100).toFixed(1)}%`;
 
+// `stats.open_rate`/`click_rate` (stats_json da edge egoi-campaign-stats) já vêm
+// como percentual pronto (0–100), diferente de `rateFmt` que espera uma fração.
+const pctFmt = (n: number | null | undefined) =>
+  n == null || !Number.isFinite(n) ? '—' : `${n.toFixed(1)}%`;
+
 interface EmailDashboardProps {
   /** Leva o admin pra aba Histórico já filtrada por esse título de evento. */
   onViewInHistory?: (eventTitle: string) => void;
@@ -621,10 +626,10 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
                         {formatCount(r.stats?.clicks_unique)}
                       </td>
                       <td className="pr-3 text-right tabular-nums">
-                        {rateFmt(r.stats?.open_rate)}
+                        {pctFmt(r.stats?.open_rate)}
                       </td>
                       <td className="pr-3 text-right tabular-nums">
-                        {rateFmt(r.stats?.click_rate)}
+                        {pctFmt(r.stats?.click_rate)}
                       </td>
                       <td className="pr-3">
                         {r.egoi_campaign_id ? (

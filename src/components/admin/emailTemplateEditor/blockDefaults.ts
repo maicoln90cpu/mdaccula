@@ -12,7 +12,7 @@ export const defaultForKind = (kind: Block['kind']): Block => {
     case 'hero_image':
       return { id, kind, max_width: 552, border_radius: 12 };
     case 'eyebrow':
-      return { id, kind, text: 'Novo evento', align: 'left' };
+      return { id, kind, text: '', align: 'left' };
     case 'title':
       return { id, kind, align: 'left', font_size: 28 };
     case 'subtitle':

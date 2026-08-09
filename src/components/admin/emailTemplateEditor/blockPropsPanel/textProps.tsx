@@ -24,7 +24,11 @@ export function renderTextProps(block: Block, patch: Patch): JSX.Element | null 
       <div className="space-y-3">
         <div>
           <Label className="text-xs">Texto</Label>
-          <Input value={block.text || ''} onChange={(e) => patch({ text: e.target.value })} />
+          <Input
+            value={block.text || ''}
+            onChange={(e) => patch({ text: e.target.value })}
+            placeholder="Digite o texto (ex: ÚLTIMAS HORAS · LOTE ATUAL)"
+          />
         </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
         <ColorControl

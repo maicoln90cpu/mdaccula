@@ -455,6 +455,22 @@ Deno.test("eyebrow: bg_style pill envolve o texto num badge", () => {
   assertStringIncludes(html, "ETIQUETA_XYZ");
 });
 
+// R-038 (auditoria de templates, agosto/2026): eyebrow sem texto não deve mais
+// cair no fallback fixo "Novo evento" — isso vazava contexto de "novo evento"
+// pra templates de outro tipo (ex: virada de lote) quando o campo era deixado
+// em branco. Agora o bloco simplesmente não renderiza nada.
+Deno.test("eyebrow: sem texto não renderiza nada (nem cai no fallback antigo 'Novo evento')", () => {
+  const blocks: Block[] = [{ id: "1", kind: "eyebrow" } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertEquals(html.includes("Novo evento"), false);
+});
+
+Deno.test("eyebrow: texto só com espaços também não renderiza nada", () => {
+  const blocks: Block[] = [{ id: "1", kind: "eyebrow", text: "   " } as any];
+  const html = renderBlockedTemplate(blocks, mockEvent, null, null);
+  assertEquals(html.includes("Novo evento"), false);
+});
+
 Deno.test("title: font_weight bold e uppercase alteram peso/caixa do título", () => {
   const blocks: Block[] = [{ id: "1", kind: "title", font_weight: "bold", uppercase: true } as any];
   const html = renderBlockedTemplate(blocks, mockEvent, null, null);
