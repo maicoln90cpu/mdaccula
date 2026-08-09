@@ -1,6 +1,7 @@
 // Helper E-goi: retorna listas, remetentes e (opcionalmente) segmentos de uma lista.
 // Requer admin autenticado. Somente leitura na API E-goi — não altera nada.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { mapSegmentsWithCounts } from './segmentCounts.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,13 +90,14 @@ Deno.serve(async (req) => {
         egoiFetch(`/lists/${listId}/segments`, apiKey),
         egoiFetch(`/lists/${listId}`, apiKey),
       ]);
-      const segments = normalizeItems(segmentsRes.body).map((s: any) => ({
+      const segmentsRaw = normalizeItems(segmentsRes.body).map((s: any) => ({
         segment_id: s.segment_id ?? s.id,
         name: s.name ?? s.internal_name ?? `Segmento ${s.segment_id ?? s.id}`,
-        // A API pode devolver o total como total_contacts, contacts_count ou contacts.
-        total_contacts:
-          s.total_contacts ?? s.contacts_count ?? s.contacts ?? s.total ?? null,
       }));
+      const segments = await mapSegmentsWithCounts(segmentsRaw, async (segmentId) => {
+        const res = await egoiFetch(`/lists/${listId}/contacts/segment/${segmentId}?limit=1`, apiKey);
+        return res.body as { totalItems?: number } | undefined;
+      });
       const listDetail = listDetailRes.body as any;
       const listTotal =
         listDetail?.total_contacts ??
