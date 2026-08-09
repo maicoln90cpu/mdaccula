@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { discoverArticleUrls, pickArticleUrl, fetchSourceLinks, type SourceRef } from "../_shared/sourceArticlePicker.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -19,10 +20,10 @@ function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, d
 }
 
 // ============= CONSTANTS =============
-const SUGGESTIONS_TIMEOUT_MS = 150000; // 2.5 minutos para sugestões (AUMENTADO)
 const GENERATE_TIMEOUT_MS = 180000; // 3 minutos para geração de artigo
 const MAX_CONSECUTIVE_FAILURES = 5;
 const RETRY_INTERVAL_HOURS = 1;
+const MAX_SOURCE_ATTEMPTS = 3; // quantas fontes tentar até achar 1 matéria nova
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -116,9 +117,14 @@ async function updateLastRun(supabase: ReturnType<typeof createClient>, timestam
 async function runAutoGeneration() {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
   const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const FIRECRAWL_API_KEY = Deno.env.get('FIRECRAWL_API_KEY');
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error('Variáveis de ambiente faltando');
+    return;
+  }
+  if (!FIRECRAWL_API_KEY) {
+    console.error('FIRECRAWL_API_KEY faltando — necessária para descobrir matérias reais das fontes');
     return;
   }
 
@@ -196,63 +202,75 @@ async function runAutoGeneration() {
     console.log('Iniciando geração automática de artigo...');
     await logToDb(supabase, 'info', 'started', { failCount });
 
-    // ========== ETAPA 1: GERAR SUGESTÕES ==========
-    console.log(`[Etapa 1] Chamando generate-blog-suggestions (timeout: ${SUGGESTIONS_TIMEOUT_MS}ms = ${SUGGESTIONS_TIMEOUT_MS/1000}s)...`);
-    const suggestionsStartTime = Date.now();
-    
-    let suggestionsResponse: Response;
-    try {
-      suggestionsResponse = await fetchWithTimeout(
-        `${SUPABASE_URL}/functions/v1/generate-blog-suggestions`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        },
-        SUGGESTIONS_TIMEOUT_MS
-      );
-    } catch (fetchError) {
-      const elapsed = Date.now() - suggestionsStartTime;
-      const errorMsg = fetchError instanceof Error ? fetchError.message : 'Erro desconhecido';
-      const isTimeout = errorMsg.includes('abort') || errorMsg.includes('Abort');
-      console.error(`[Etapa 1] FALHA após ${elapsed}ms: ${isTimeout ? 'TIMEOUT' : errorMsg}`);
-      await logToDb(supabase, 'error', 'suggestions-fetch-failed', { error: errorMsg, isTimeout, elapsedMs: elapsed });
+    // ========== ETAPA 1: ESCOLHER 1 FONTE + 1 MATÉRIA REAL AINDA NÃO USADA ==========
+    // Fase 1 da correção de "geração por tema" (R-048): em vez de gerar
+    // "sugestões" a partir de homepages inteiras (o que produzia artigos
+    // institucionais sobre a própria fonte), descobre matérias individuais
+    // reais dentro do domínio de cada fonte cadastrada e escolhe 1 ainda não
+    // reescrita antes.
+    console.log('[Etapa 1] Escolhendo fonte + matéria real ainda não usada...');
+    const etapa1StartTime = Date.now();
+
+    const { data: sitesSources, error: sitesSourcesError } = await supabase
+      .from('event_sources')
+      .select('name, url')
+      .eq('type', 'site')
+      .eq('enabled', true);
+
+    if (sitesSourcesError || !sitesSources || sitesSources.length === 0) {
+      console.error('[Etapa 1] FALHA: Nenhuma fonte tipo "site" habilitada em event_sources');
+      await logToDb(supabase, 'error', 'no-sources-configured', { error: sitesSourcesError?.message, elapsedMs: Date.now() - etapa1StartTime });
       await incrementFailCount(supabase, failCount);
       return;
     }
 
-    const suggestionsElapsed = Date.now() - suggestionsStartTime;
-    console.log(`[Etapa 1] Resposta recebida em ${suggestionsElapsed}ms`);
+    const { data: usedSourcesRows } = await supabase
+      .from('ai_generated_posts')
+      .select('source_urls')
+      .not('source_urls', 'is', null);
+    const usedUrls = (usedSourcesRows || []).flatMap((r) => (Array.isArray(r.source_urls) ? r.source_urls : []));
 
-    if (!suggestionsResponse.ok) {
-      const errorText = await suggestionsResponse.text();
-      console.error('[Etapa 1] FALHA HTTP:', suggestionsResponse.status, errorText.substring(0, 300));
-      await logToDb(supabase, 'error', 'suggestions-api-error', { status: suggestionsResponse.status, response: errorText.substring(0, 500), elapsedMs: suggestionsElapsed });
-      await incrementFailCount(supabase, failCount);
+    const shuffledSources = [...sitesSources].sort(() => Math.random() - 0.5);
+    const sourcesToTry = shuffledSources.slice(0, MAX_SOURCE_ATTEMPTS);
+
+    let pickedSource: SourceRef | null = null;
+    let pickedArticleUrl: string | null = null;
+
+    for (const source of sourcesToTry) {
+      try {
+        const links = await fetchSourceLinks(source.url, FIRECRAWL_API_KEY);
+        const candidates = discoverArticleUrls(source, links, usedUrls);
+        const chosen = pickArticleUrl(candidates);
+        console.log(`[Etapa 1] Fonte "${source.name}": ${links.length} links, ${candidates.length} candidatos novos`);
+        if (chosen) {
+          pickedSource = source;
+          pickedArticleUrl = chosen;
+          break;
+        }
+      } catch (discoveryError) {
+        console.error(`[Etapa 1] Falha ao descobrir links de "${source.name}":`, discoveryError);
+      }
+    }
+
+    const etapa1Elapsed = Date.now() - etapa1StartTime;
+
+    // Nenhuma matéria nova encontrada nas fontes tentadas não é uma falha do
+    // sistema — é um dia sem novidade real nessas fontes. Não conta pro
+    // contador de falhas consecutivas (que pausaria o auto-generate à toa).
+    if (!pickedSource || !pickedArticleUrl) {
+      console.log(`[Etapa 1] SKIP: nenhuma matéria nova encontrada em ${sourcesToTry.length} fonte(s) tentada(s)`);
+      await logToDb(supabase, 'info', 'skipped-no-new-articles', {
+        sourcesTried: sourcesToTry.map((s) => s.name),
+        elapsedMs: etapa1Elapsed,
+      });
       return;
     }
 
-    const suggestionsData = await suggestionsResponse.json();
-    const suggestions = suggestionsData.suggestions;
+    console.log(`[Etapa 1] SUCESSO em ${etapa1Elapsed}ms: matéria escolhida de "${pickedSource.name}" — ${pickedArticleUrl}`);
 
-    if (!suggestions || suggestions.length === 0) {
-      console.error('[Etapa 1] FALHA: Nenhuma sugestão retornada');
-      await logToDb(supabase, 'error', 'no-suggestions', { response: suggestionsData, elapsedMs: suggestionsElapsed });
-      await incrementFailCount(supabase, failCount);
-      return;
-    }
-
-    const selectedSuggestion = suggestions[0];
-    console.log(`[Etapa 1] SUCESSO em ${suggestionsElapsed}ms: Selecionada sugestão "${selectedSuggestion.title}"`);
-    console.log(`[Etapa 1] Breakdown: scrape=${suggestionsData.breakdown?.scrapeMs || 'N/A'}ms, ai=${suggestionsData.breakdown?.aiMs || 'N/A'}ms`);
-
-    // ========== ETAPA 2: GERAR ARTIGO (ancorado em busca real, não mais opinativo) ==========
-    console.log(`[Etapa 2] Chamando generate-blog-post-from-topic (timeout: ${GENERATE_TIMEOUT_MS}ms = ${GENERATE_TIMEOUT_MS/1000}s)...`);
+    // ========== ETAPA 2: REESCREVER FIELMENTE A MATÉRIA ESCOLHIDA ==========
+    console.log(`[Etapa 2] Chamando generate-blog-post-from-topic (mode: source_article, timeout: ${GENERATE_TIMEOUT_MS}ms = ${GENERATE_TIMEOUT_MS/1000}s)...`);
     const generateStartTime = Date.now();
-    const searchQuery = selectedSuggestion.searchQuery || selectedSuggestion.title;
 
     let generateResponse: Response;
     try {
@@ -265,7 +283,9 @@ async function runAutoGeneration() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            query: searchQuery,
+            mode: 'source_article',
+            sourceUrl: pickedArticleUrl,
+            sourceName: pickedSource.name,
             generateImage: true,
             publishImmediately: suggestionsAutoPublish,
           }),
@@ -277,7 +297,7 @@ async function runAutoGeneration() {
       const errorMsg = fetchError instanceof Error ? fetchError.message : 'Erro desconhecido';
       const isTimeout = errorMsg.includes('abort') || errorMsg.includes('Abort');
       console.error(`[Etapa 2] FALHA após ${elapsed}ms: ${isTimeout ? 'TIMEOUT' : errorMsg}`);
-      await logToDb(supabase, 'error', 'generate-fetch-failed', { error: errorMsg, isTimeout, suggestion: selectedSuggestion.title, elapsedMs: elapsed });
+      await logToDb(supabase, 'error', 'generate-fetch-failed', { error: errorMsg, isTimeout, sourceUrl: pickedArticleUrl, elapsedMs: elapsed });
       await incrementFailCount(supabase, failCount);
       return;
     }
@@ -285,20 +305,21 @@ async function runAutoGeneration() {
     const generateElapsed = Date.now() - generateStartTime;
     console.log(`[Etapa 2] Resposta recebida em ${generateElapsed}ms`);
 
-    // "Nenhuma fonte encontrada" não é uma falha do sistema — é um dia sem
-    // notícia real ancorável para essa sugestão. Não conta pro contador de
+    // 404 (scrape da matéria falhou) e 422 (matéria era só institucional, sem
+    // notícia real) não são falhas do sistema — são um resultado legítimo de
+    // "essa matéria específica não deu certo". Não conta pro contador de
     // falhas consecutivas (que pausaria o auto-generate por 24h à toa).
-    if (generateResponse.status === 404) {
+    if (generateResponse.status === 404 || generateResponse.status === 422) {
       const errorText = await generateResponse.text();
-      console.log('[Etapa 2] SKIP (sem fontes reais):', errorText.substring(0, 300));
-      await logToDb(supabase, 'info', 'skipped-no-sources', { query: searchQuery, suggestion: selectedSuggestion.title, elapsedMs: generateElapsed });
+      console.log(`[Etapa 2] SKIP (status ${generateResponse.status}):`, errorText.substring(0, 300));
+      await logToDb(supabase, 'info', 'skipped-source-article-unusable', { sourceUrl: pickedArticleUrl, source: pickedSource.name, status: generateResponse.status, elapsedMs: generateElapsed });
       return;
     }
 
     if (!generateResponse.ok) {
       const errorText = await generateResponse.text();
       console.error('[Etapa 2] FALHA HTTP:', generateResponse.status, errorText.substring(0, 300));
-      await logToDb(supabase, 'error', 'generate-api-error', { status: generateResponse.status, response: errorText.substring(0, 500), suggestion: selectedSuggestion.title, elapsedMs: generateElapsed });
+      await logToDb(supabase, 'error', 'generate-api-error', { status: generateResponse.status, response: errorText.substring(0, 500), sourceUrl: pickedArticleUrl, elapsedMs: generateElapsed });
       await incrementFailCount(supabase, failCount);
       return;
     }
@@ -307,27 +328,30 @@ async function runAutoGeneration() {
 
     if (!generateData.post?.id) {
       console.error('[Etapa 2] FALHA: Artigo não foi criado:', generateData);
-      await logToDb(supabase, 'error', 'post-not-created', { response: generateData, suggestion: selectedSuggestion.title, elapsedMs: generateElapsed });
+      await logToDb(supabase, 'error', 'post-not-created', { response: generateData, sourceUrl: pickedArticleUrl, elapsedMs: generateElapsed });
       await incrementFailCount(supabase, failCount);
       return;
     }
 
     // ========== SUCESSO ==========
-    const totalElapsed = suggestionsElapsed + generateElapsed;
+    const totalElapsed = etapa1Elapsed + generateElapsed;
     console.log('=== ARTIGO AUTO-GERADO COM SUCESSO ===');
     console.log(`Post ID: ${generateData.post?.id}`);
     console.log(`Título: ${generateData.post?.title}`);
-    console.log(`Tempo total: ${totalElapsed}ms (sugestões: ${suggestionsElapsed}ms, geração: ${generateElapsed}ms)`);
+    console.log(`Fonte: "${pickedSource.name}" — ${pickedArticleUrl}`);
+    console.log(`Tempo total: ${totalElapsed}ms (escolha da fonte: ${etapa1Elapsed}ms, geração: ${generateElapsed}ms)`);
 
     await updateLastRun(supabase, now);
     await resetFailCount(supabase);
 
-    await logToDb(supabase, 'info', 'success', { 
-      postId: generateData.post?.id, 
+    await logToDb(supabase, 'info', 'success', {
+      postId: generateData.post?.id,
       title: generateData.post?.title,
+      sourceName: pickedSource.name,
+      sourceUrl: pickedArticleUrl,
       previousFailCount: failCount,
       totalElapsedMs: totalElapsed,
-      suggestionsElapsedMs: suggestionsElapsed,
+      sourcePickElapsedMs: etapa1Elapsed,
       generateElapsedMs: generateElapsed
     });
 
@@ -449,7 +473,6 @@ Deno.serve(async (req) => {
       failCount,
       isRetry: failCount > 0,
       timeouts: {
-        suggestionsMs: SUGGESTIONS_TIMEOUT_MS,
         generateMs: GENERATE_TIMEOUT_MS
       }
     });

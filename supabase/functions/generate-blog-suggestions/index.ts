@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { isSelfReferentialSearchQuery, type SourceIdentity } from '../_shared/selfReferentialSourceGuard.ts';
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -221,20 +222,28 @@ Deno.serve(async (req) => {
     console.log(`Artigos recentes: ${recentPosts?.length || 0}`);
     console.log(`Tempo decorrido após queries: ${Date.now() - startTime}ms`);
 
-    // Scraping das fontes com timeout individual
+    // Scraping das fontes com timeout individual. Fase 0 da correção de
+    // "geração por tema" (2026-08): NÃO cai mais para o campo `description`
+    // quando o scraping falha — uma frase de uma linha cadastrada pelo admin
+    // não é conteúdo real, e alimentar a IA com ela como se fosse "fonte
+    // raspada" foi uma das causas do padrão de artigo institucional/vazio
+    // (ver docs/CHANGELOG.md). Fonte que falha o scrape é simplesmente
+    // descartada da rodada.
     let scrapedSources: ScrapedSource[] = [];
     const scrapeStartTime = Date.now();
-    
+    let attemptedCount = 0;
+
     if (FIRECRAWL_API_KEY && sources && sources.length > 0) {
       // Limitar a MAX_SOURCES fontes
       const shuffledSources = [...sources].sort(() => Math.random() - 0.5);
       const sourcesToScrape = shuffledSources.slice(0, MAX_SOURCES);
+      attemptedCount = sourcesToScrape.length;
       console.log(`Iniciando scraping de ${sourcesToScrape.length} fontes: ${sourcesToScrape.map(s => s.name).join(', ')}`);
-      
+
       // Scrape em paralelo com timeout individual
       const scrapePromises = sourcesToScrape.map(async (source) => {
         const result = await scrapeWithFirecrawl(source.url, FIRECRAWL_API_KEY);
-        
+
         if (result.success && result.markdown) {
           return {
             name: source.name,
@@ -243,39 +252,28 @@ Deno.serve(async (req) => {
             success: true
           };
         }
-        
-        // Fallback para descrição
-        return {
-          name: source.name,
-          url: source.url,
-          content: source.description || 'Fonte de notícias sobre música eletrônica',
-          success: false
-        };
+
+        console.log(`[Scrape] Fonte descartada da rodada (sem conteúdo real): ${source.name} — ${result.error || 'sem markdown'}`);
+        return null;
       });
 
-      scrapedSources = await Promise.all(scrapePromises);
+      scrapedSources = (await Promise.all(scrapePromises)).filter((s): s is ScrapedSource => s !== null);
     } else {
-      console.log('Sem Firecrawl ou fontes, usando descrições');
-      scrapedSources = sources?.slice(0, MAX_SOURCES).map(s => ({
-        name: s.name,
-        url: s.url,
-        content: s.description || 'Fonte de notícias',
-        success: false
-      })) || [];
+      console.log('Sem FIRECRAWL_API_KEY ou sem fontes cadastradas — nenhuma sugestão pode ter âncora real');
     }
 
     const scrapeElapsed = Date.now() - scrapeStartTime;
-    const scrapedCount = scrapedSources.filter(s => s.success).length;
-    console.log(`Scraping concluído em ${scrapeElapsed}ms: ${scrapedCount}/${scrapedSources.length} fontes com conteúdo real`);
+    console.log(`Scraping concluído em ${scrapeElapsed}ms: ${scrapedSources.length}/${attemptedCount} fontes com conteúdo real`);
     console.log(`Tempo total até agora: ${Date.now() - startTime}ms`);
 
-    // Construir texto das fontes
-    const sourcesWithContent = scrapedSources.map(s => {
-      if (s.success) {
-        return `### ${s.name} (${s.url})\nConteúdo recente:\n${s.content}\n`;
-      }
-      return `### ${s.name} (${s.url})\nDescrição: ${s.content}\n`;
-    }).join('\n---\n');
+    if (scrapedSources.length === 0) {
+      return jsonError('Nenhuma fonte foi raspada com sucesso — sem conteúdo real para basear sugestões. Tente novamente em instantes ou revise as fontes cadastradas em Fontes.', 404);
+    }
+
+    // Construir texto das fontes (só fontes com conteúdo real raspado)
+    const sourcesWithContent = scrapedSources
+      .map(s => `### ${s.name} (${s.url})\nConteúdo recente:\n${s.content}\n`)
+      .join('\n---\n');
 
     // Prompt para gerar até 5 sugestões
     const systemPrompt = `Você é um jornalista especializado em música eletrônica e cultura de clubes brasileira e internacional.
@@ -300,10 +298,14 @@ não retorna fontes reais. Se você não conseguir extrair uma âncora real e es
 uma ideia, DESCARTE essa ideia e não a inclua na resposta — é preferível devolver menos de
 5 sugestões do que incluir uma sem âncora real.
 
-${scrapedCount > 0 ?
-  `FONTES DE REFERÊNCIA (${scrapedCount} fontes scrapeadas):\n${sourcesWithContent}` :
-  `FONTES DE REFERÊNCIA:\n${sourcesWithContent}`
-}`;
+🚫 PROIBIDO — searchQuery NÃO PODE ser o nome do próprio veículo/fonte (ex.: se a fonte é
+"DJ Mag LA", a searchQuery NUNCA pode ser "DJ Mag LA" ou o domínio "djmagla.com"): isso não
+é uma notícia, é a própria fonte, e o artigo final viraria um perfil institucional dela em
+vez de uma notícia real. A searchQuery precisa ser um artista, evento, label, lançamento ou
+tecnologia ESPECÍFICO citado dentro do conteúdo — nunca o nome de quem publicou o conteúdo.
+
+FONTES DE REFERÊNCIA (${scrapedSources.length} fontes scrapeadas):
+${sourcesWithContent}`;
 
     const userPrompt = `Analise as fontes e gere até 5 sugestões INÉDITAS de artigos sobre a cena eletrônica —
 apenas ideias com uma âncora real e específica nas fontes acima.
@@ -452,15 +454,32 @@ DIVERSIFIQUE as categorias.`;
       throw new Error('IA retornou sugestões inválidas');
     }
 
+    // Guardrail (Fase 0, correção de "geração por tema"): descarta qualquer
+    // sugestão cuja searchQuery seja o nome/domínio da própria fonte — mesmo
+    // que o prompt já proíba isso, o modelo pode ignorar a instrução.
+    const sourceIdentities: SourceIdentity[] = (sources || []).map(s => ({ name: s.name, url: s.url }));
+    const filteredSuggestions = suggestions.filter((s: { searchQuery?: string; title?: string }) => {
+      if (!s.searchQuery || isSelfReferentialSearchQuery(s.searchQuery, sourceIdentities)) {
+        console.log(`[Guardrail] Sugestão descartada — searchQuery é o nome/domínio da própria fonte: "${s.searchQuery}" (${s.title})`);
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredSuggestions.length === 0) {
+      console.error('Todas as sugestões foram descartadas pelo guardrail anti-autorreferência');
+      throw new Error('A IA só sugeriu temas cujo termo de busca é o nome da própria fonte (não uma notícia real) — tente novamente');
+    }
+
     const totalElapsed = Date.now() - startTime;
     console.log(`=== SUCESSO em ${totalElapsed}ms ===`);
     console.log(`Breakdown: Config=${Date.now() - startTime - scrapeElapsed - aiElapsed}ms, Scrape=${scrapeElapsed}ms, IA=${aiElapsed}ms`);
-    console.log(`Sugestões geradas: ${suggestions.length}`);
+    console.log(`Sugestões geradas: ${suggestions.length} (${filteredSuggestions.length} após guardrail anti-autorreferência)`);
 
-    return jsonSuccess({ 
-      suggestions,
-      scrapedSources: scrapedCount,
-      totalSources: scrapedSources.length,
+    return jsonSuccess({
+      suggestions: filteredSuggestions,
+      scrapedSources: scrapedSources.length,
+      totalSources: attemptedCount,
       elapsedMs: totalElapsed,
       breakdown: {
         scrapeMs: scrapeElapsed,

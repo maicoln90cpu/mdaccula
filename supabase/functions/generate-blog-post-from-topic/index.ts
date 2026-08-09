@@ -2,6 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 import { searchWithFirecrawl, type FirecrawlSearchResult } from "../_shared/firecrawlSearch.ts";
+import { scrapeArticleContent } from "../_shared/sourceArticlePicker.ts";
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -54,16 +55,33 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
+    // Fase 1 da correção de "geração por tema" (R-048): o caminho 100%
+    // automático (auto-article-cron) já escolheu 1 matéria específica real
+    // de uma fonte cadastrada (via _shared/sourceArticlePicker.ts) e chama
+    // esta function em modo `source_article`, pulando a busca aberta —
+    // reescreve fielmente ESSA matéria, sem sintetizar várias fontes.
+    // Sem `mode` (ou `mode: 'open_search'`), mantém o comportamento
+    // histórico: busca aberta na web a partir de um termo livre — usado
+    // pela busca manual "Por Tema" e por "Sugestões" no admin.
+    const mode = body?.mode === 'source_article' ? 'source_article' : 'open_search';
     const query = typeof body?.query === 'string' ? body.query.trim() : '';
+    const sourceUrl = typeof body?.sourceUrl === 'string' ? body.sourceUrl.trim() : '';
+    const sourceName = typeof body?.sourceName === 'string' ? body.sourceName.trim() : '';
     const generateImage = Boolean(body?.generateImage);
     // Omitido (undefined) preserva o comportamento histórico de sempre publicar,
     // pro chamador original desta function (busca por tema manual no admin).
     // Só `false` explícito nasce como rascunho — mesma convenção de generate-blog-post-v2.
     const publishImmediately = body?.publishImmediately;
 
-    if (!query) {
+    if (mode === 'source_article') {
+      if (!sourceUrl) {
+        return jsonError('Informe sourceUrl (URL da matéria a reescrever)', 400);
+      }
+    } else if (!query) {
       return jsonError('Informe um termo de busca (ex: "Solomun São Paulo")', 400);
     }
+
+    const topicLabel = mode === 'source_article' ? (sourceName || sourceUrl) : query;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
@@ -83,26 +101,38 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // 1) Buscar + raspar fontes reais sobre o termo
-    console.log(`[generate-blog-post-from-topic] Buscando fontes para: "${query}"`);
-    let searchResults: FirecrawlSearchResult[] = [];
-    try {
-      searchResults = await searchWithFirecrawl(query, FIRECRAWL_API_KEY, MAX_SOURCES, SEARCH_TIMEOUT_MS);
-    } catch (searchError) {
-      console.error('[generate-blog-post-from-topic] Erro na busca Firecrawl:', searchError);
-      return jsonError('Falha ao buscar fontes para esse termo. Tente novamente em instantes.', 502);
+    // 1) Buscar + raspar a(s) fonte(s) real(is)
+    let sourceUrls: string[];
+    let sourcesBlock: string;
+
+    if (mode === 'source_article') {
+      console.log(`[generate-blog-post-from-topic] Raspando matéria única: ${sourceUrl}`);
+      const scraped = await scrapeArticleContent(sourceUrl, FIRECRAWL_API_KEY);
+      if (!scraped) {
+        return jsonError(`Não foi possível raspar conteúdo real de "${sourceUrl}". A matéria pode ter sido removida ou o scraping falhou.`, 404);
+      }
+      sourceUrls = [sourceUrl];
+      sourcesBlock = `### Matéria original (${sourceName || 'fonte cadastrada'}, ${sourceUrl})\n${scraped.markdown}`;
+    } else {
+      console.log(`[generate-blog-post-from-topic] Buscando fontes para: "${query}"`);
+      let searchResults: FirecrawlSearchResult[] = [];
+      try {
+        searchResults = await searchWithFirecrawl(query, FIRECRAWL_API_KEY, MAX_SOURCES, SEARCH_TIMEOUT_MS);
+      } catch (searchError) {
+        console.error('[generate-blog-post-from-topic] Erro na busca Firecrawl:', searchError);
+        return jsonError('Falha ao buscar fontes para esse termo. Tente novamente em instantes.', 502);
+      }
+
+      if (searchResults.length === 0) {
+        return jsonError(`Nenhuma fonte encontrada para "${query}". Tente um termo mais específico ou mais popular.`, 404);
+      }
+
+      console.log(`[generate-blog-post-from-topic] ${searchResults.length} fontes raspadas com sucesso`);
+      sourceUrls = searchResults.map((r) => r.url);
+      sourcesBlock = searchResults
+        .map((r, i) => `### Fonte ${i + 1}: ${r.title} (${r.url})\n${r.content}`)
+        .join('\n\n---\n\n');
     }
-
-    if (searchResults.length === 0) {
-      return jsonError(`Nenhuma fonte encontrada para "${query}". Tente um termo mais específico ou mais popular.`, 404);
-    }
-
-    console.log(`[generate-blog-post-from-topic] ${searchResults.length} fontes raspadas com sucesso`);
-    const sourceUrls = searchResults.map((r) => r.url);
-
-    const sourcesBlock = searchResults
-      .map((r, i) => `### Fonte ${i + 1}: ${r.title} (${r.url})\n${r.content}`)
-      .join('\n\n---\n\n');
 
     // 2) Configurações de IA
     const { data: settings } = await supabase
@@ -117,9 +147,43 @@ Deno.serve(async (req) => {
     const temperature = parseFloat(settingsMap['ai_temperature'] || '0.9');
 
     // 3) Prompt dedicado — jornalismo baseado em fontes reais, com o mesmo
-    // mandato anti-invenção usado no bloco "DADOS OFICIAIS" das outras functions,
-    // aplicado aqui às fontes encontradas via busca.
-    const systemPrompt = `Você é um jornalista especializado em música eletrônica, escrevendo para um blog moderno inspirado em veículos como Mixmag, DJ Mag, Billboard e Electronic Groove.
+    // mandato anti-invenção usado no bloco "DADOS OFICIAIS" das outras functions.
+    // Modo source_article (Fase 1, R-048): reescrita fiel de 1 matéria específica
+    // já escolhida pelo chamador — não é síntese de várias fontes, então o
+    // prompt não deve "misturar" nada, só adaptar o registro editorial da
+    // matéria original mantendo os fatos.
+    const systemPrompt = mode === 'source_article' ? `Você é um jornalista especializado em música eletrônica, escrevendo para um blog moderno inspirado em veículos como Mixmag, DJ Mag, Billboard e Electronic Groove.
+
+Você recebeu o conteúdo de UMA matéria real, específica, publicada por "${sourceName || 'uma fonte parceira'}". Sua tarefa é REESCREVER essa matéria no registro editorial do nosso blog — não é uma síntese de várias fontes, é a adaptação fiel de UMA matéria só.
+
+🚨 REGRA CRÍTICA — FIDELIDADE ABSOLUTA À MATÉRIA ORIGINAL:
+- Use APENAS fatos, citações e dados que aparecem na matéria original abaixo.
+- NUNCA invente datas, nomes, números ou eventos que não estejam nela.
+- NÃO adicione contexto de fora, não misture com outras notícias que você "sabe" sobre o assunto — só o que está na matéria original.
+- Pode reestruturar a narrativa, o título e o ângulo de abertura livremente, mas os fatos têm que bater 100% com o original.
+
+🚨 REGRA CRÍTICA — MATÉRIA ORIGINAL SEM NOTÍCIA REAL (página institucional/homepage):
+Se o conteúdo abaixo for só material institucional — menu de navegação, texto "sobre nós",
+nenhuma notícia específica com fato concreto (um lançamento, um evento, uma declaração,
+um dado) — NÃO escreva um perfil institucional da fonte como se fosse a matéria. Isso não
+é uma notícia. Nesse caso, retorne APENAS este JSON e nada mais:
+{ "insufficientSources": true, "reason": "explicação curta do porquê a matéria não é uma notícia real" }
+
+ESTRUTURA OBRIGATÓRIA QUANDO HOUVER FATO REAL (retorne APENAS JSON válido):
+{
+  "title": "Título editorial chamativo (50-80 caracteres, sem emoji, sem data literal)",
+  "excerpt": "Resumo de 1-2 frases (máx 200 caracteres)",
+  "content": "HTML do artigo completo",
+  "category": "uma de: Produtores, Tecnologia, Cultura, Lançamentos, Festivais, Cena"
+}
+
+TAMANHO: proporcional ao volume real de conteúdo da matéria original — não estique com
+generalidades, adjetivos ou repetição só para bater um número de palavras maior do que
+a matéria original sustenta.
+
+FORMATAÇÃO HTML: <h2>/<h3> para seções, <p> para parágrafos, <strong> para destaques.
+RETORNE APENAS O JSON, sem markdown, sem texto adicional.
+${EDITORIAL_QUALITY_BLOCK}` : `Você é um jornalista especializado em música eletrônica, escrevendo para um blog moderno inspirado em veículos como Mixmag, DJ Mag, Billboard e Electronic Groove.
 
 Você recebeu um conjunto de fontes reais (resultado de uma busca na web) sobre o termo "${query}". Sua tarefa é escrever um artigo jornalístico ancorado EXCLUSIVAMENTE nos fatos presentes nessas fontes.
 
@@ -129,25 +193,49 @@ Você recebeu um conjunto de fontes reais (resultado de uma busca na web) sobre 
 - Se as fontes forem insuficientes ou conflitantes sobre algum ponto, omita esse ponto — não especule.
 - Cite o contexto das fontes de forma natural no texto (sem citar "Fonte 1" literalmente — integre a informação como prosa jornalística).
 
-ESTRUTURA OBRIGATÓRIA (retorne APENAS JSON válido):
+🚨 REGRA CRÍTICA — FONTES SEM NOTÍCIA REAL (páginas institucionais/homepage):
+Se as fontes abaixo forem só a homepage genérica de um site/marca/label — menu de
+navegação, texto "sobre nós", nenhuma notícia específica com fato concreto (um
+lançamento, um evento, uma declaração, um dado) — NÃO escreva um perfil institucional
+do veículo/marca como se fosse a matéria. Isso não é uma notícia. Nesse caso, retorne
+APENAS este JSON e nada mais:
+{ "insufficientSources": true, "reason": "explicação curta do porquê as fontes não sustentam uma notícia real" }
+
+ESTRUTURA OBRIGATÓRIA QUANDO HOUVER FATO REAL (retorne APENAS JSON válido):
 {
   "title": "Título editorial chamativo (50-80 caracteres, sem emoji, sem data literal)",
   "excerpt": "Resumo de 1-2 frases (máx 200 caracteres)",
-  "content": "HTML do artigo completo, 900 a 1300 palavras",
+  "content": "HTML do artigo completo",
   "category": "uma de: Produtores, Tecnologia, Cultura, Lançamentos, Festivais, Cena"
 }
+
+TAMANHO: proporcional ao volume real de fatos disponível nas fontes — normalmente
+entre 500 e 1300 palavras. NUNCA estique o texto com generalidades, adjetivos ou
+repetição só para bater um número de palavras maior do que as fontes sustentam.
 
 FORMATAÇÃO HTML: <h2>/<h3> para seções, <p> para parágrafos, <strong> para destaques.
 RETORNE APENAS O JSON, sem markdown, sem texto adicional.
 ${EDITORIAL_QUALITY_BLOCK}`;
 
-    const userPrompt = `Escreva um artigo jornalístico completo sobre "${query}", baseado nas fontes abaixo.
+    const userPrompt = mode === 'source_article' ? `Reescreva jornalisticamente a matéria abaixo, publicada por "${sourceName || 'uma fonte parceira'}", no registro editorial do nosso blog.
+
+MATÉRIA ORIGINAL (use literalmente, NUNCA invente além do que está aqui, NUNCA misture com outras notícias):
+
+${sourcesBlock}
+
+Se a matéria acima não for uma notícia real (só homepage/institucional), retorne
+{ "insufficientSources": true, "reason": "..." } conforme o system prompt, em vez de inventar
+um perfil da fonte. Caso contrário, retorne APENAS o JSON do artigo, com extensão
+proporcional ao conteúdo original.` : `Escreva um artigo jornalístico completo sobre "${query}", baseado nas fontes abaixo.
 
 FONTES ENCONTRADAS (use literalmente, NUNCA invente além do que está aqui):
 
 ${sourcesBlock}
 
-TAMANHO: 900 a 1300 palavras. Retorne APENAS o JSON válido conforme system prompt.`;
+Se as fontes acima não contiverem uma notícia real (só homepage/institucional), retorne
+{ "insufficientSources": true, "reason": "..." } conforme o system prompt, em vez de inventar
+um perfil da fonte. Caso contrário, retorne APENAS o JSON do artigo, com extensão
+proporcional aos fatos disponíveis.`;
 
     // 4) Roteamento dual OpenAI/Gemini + params gpt-5*
     const isOpenAIModel = selectedModel.startsWith('openai/');
@@ -227,6 +315,14 @@ TAMANHO: 900 a 1300 palavras. Retorne APENAS o JSON válido conforme system prom
       throw new Error('IA não retornou JSON válido');
     }
 
+    if (articleData.insufficientSources) {
+      console.log(`[generate-blog-post-from-topic] Fontes insuficientes para "${topicLabel}": ${articleData.reason || 'sem motivo informado'}`);
+      return jsonError(
+        `${mode === 'source_article' ? `A matéria de "${topicLabel}"` : `As fontes encontradas para "${topicLabel}"`} não trazem uma notícia real (parece só homepage/institucional) — nenhum artigo foi gerado. ${articleData.reason ? `Motivo: ${articleData.reason}` : ''}`.trim(),
+        422
+      );
+    }
+
     if (!articleData.title || !articleData.content) {
       throw new Error('IA não gerou dados completos');
     }
@@ -290,7 +386,9 @@ TAMANHO: 900 a 1300 palavras. Retorne APENAS o JSON válido conforme system prom
       .from('ai_generated_posts')
       .insert({
         blog_post_id: post.id,
-        prompt_used: `Busca por tema: "${query}" (${searchResults.length} fontes)`,
+        prompt_used: mode === 'source_article'
+          ? `Reescrita fiel de matéria de "${sourceName || 'fonte cadastrada'}": ${sourceUrl}`
+          : `Busca por tema: "${query}" (${sourceUrls.length} fontes)`,
         model_used: selectedModel,
         input_tokens: usage.prompt_tokens || null,
         output_tokens: usage.completion_tokens || null,
@@ -363,7 +461,9 @@ TAMANHO: 900 a 1300 palavras. Retorne APENAS o JSON válido conforme system prom
       success: true,
       post,
       sourcesUsed: sourceUrls,
-      message: `Artigo gerado a partir de ${searchResults.length} fontes!`,
+      message: mode === 'source_article'
+        ? `Artigo reescrito a partir da matéria de "${sourceName || 'fonte cadastrada'}"!`
+        : `Artigo gerado a partir de ${sourceUrls.length} fontes!`,
       processingTimeMs: totalTime,
     });
   } catch (error) {

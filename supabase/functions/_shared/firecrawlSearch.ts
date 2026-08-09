@@ -30,6 +30,11 @@ const MAX_CONTENT_LENGTH = 2000;
 // pro nome literal mas não têm nenhuma relação com música eletrônica.
 // O bloqueio por lista de streaming acima não cobria esse caso — daí
 // artigos citando Wikipédia ou sinopse de filme como se fossem "fonte real".
+//
+// Fase 0 da correção de "geração por tema" (2026-08): o próprio domínio do
+// site nunca pode ser uma "fonte real" — sem isso, um tema que colida com
+// cobertura anterior do próprio mdaccula.com faria a busca aberta trazer o
+// próprio site como fonte, e o "artigo por tema" viraria reescrita de si mesmo.
 const BLOCKED_HOSTNAMES = [
   "youtube.com",
   "youtu.be",
@@ -49,6 +54,8 @@ const BLOCKED_HOSTNAMES = [
   "rottentomatoes.com",
   "letterboxd.com",
   "fandom.com",
+  "mdaccula.com",
+  "mdaccula.b-cdn.net",
 ];
 
 function isBlockedSource(url: string): boolean {

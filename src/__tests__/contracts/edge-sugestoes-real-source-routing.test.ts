@@ -6,6 +6,12 @@
  *
  * Ver docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md,
  * seção "Sugestões Aleatórias deveria ancorar em matéria real".
+ *
+ * Atualizado em R-048 (Fase 1, docs/TESTING.md): o caminho 100% automático
+ * (auto-article-cron) foi além de "ancorar numa busca" — agora reescreve
+ * fielmente 1 matéria individual real e específica de uma fonte cadastrada,
+ * em vez de sintetizar uma busca aberta na web. generate-blog-suggestions
+ * (a busca "ancorada" original) segue existindo só pro caminho manual.
  */
 import { describe, expect, it } from 'vitest';
 import fs from 'fs';
@@ -13,21 +19,52 @@ import fs from 'fs';
 const read = (path: string) => fs.readFileSync(`${process.cwd()}/${path}`, 'utf-8');
 
 describe('Contract: Sugestões ancoradas em matéria real', () => {
-  it('auto-article-cron chama generate-blog-post-from-topic com o searchQuery da sugestão', () => {
+  // R-048 (Fase 1, ver docs/TESTING.md): o caminho 100% automático deixou de
+  // gerar "sugestões" a partir de homepage raspada — agora descobre e escolhe
+  // 1 matéria individual real de uma fonte cadastrada e chama
+  // generate-blog-post-from-topic em mode: 'source_article' pra reescrevê-la
+  // fielmente. generate-blog-suggestions (busca aberta) continua existindo,
+  // só que agora serve exclusivamente o caminho manual (Sugestões/Por Tema).
+  it('auto-article-cron descobre e escolhe 1 matéria real de event_sources, sem passar por generate-blog-suggestions', () => {
     const content = read('supabase/functions/auto-article-cron/index.ts');
 
     expect(content).toContain('/functions/v1/generate-blog-post-from-topic');
-    expect(content).toContain('selectedSuggestion.searchQuery');
+    expect(content).not.toContain('/functions/v1/generate-blog-suggestions');
+    expect(content).toContain("mode: 'source_article'");
+    expect(content).toContain('discoverArticleUrls');
+    expect(content).toContain('pickArticleUrl');
     // O lookup do template "Sugestões" ficou sem uso e não deve voltar.
     expect(content).not.toContain("category', 'Sugestões'");
     expect(content).not.toContain('/functions/v1/generate-blog-post-v2');
   });
 
-  it("auto-article-cron trata 'sem fontes' (404) como skip, não como falha", () => {
+  it('auto-article-cron exclui matérias já usadas antes (dedupe contra ai_generated_posts.source_urls)', () => {
     const content = read('supabase/functions/auto-article-cron/index.ts');
 
-    expect(content).toContain('generateResponse.status === 404');
-    expect(content).toContain('skipped-no-sources');
+    expect(content).toContain("from('ai_generated_posts')");
+    expect(content).toContain('source_urls');
+    expect(content).toContain('usedUrls');
+  });
+
+  it("auto-article-cron trata 'matéria específica não deu certo' (404/422) como skip, não como falha", () => {
+    const content = read('supabase/functions/auto-article-cron/index.ts');
+
+    expect(content).toContain("generateResponse.status === 404 || generateResponse.status === 422");
+    expect(content).toContain('skipped-source-article-unusable');
+  });
+
+  it("auto-article-cron trata 'nenhuma matéria nova encontrada' como skip, não como falha", () => {
+    const content = read('supabase/functions/auto-article-cron/index.ts');
+
+    expect(content).toContain('skipped-no-new-articles');
+  });
+
+  it('generate-blog-post-from-topic suporta mode: source_article (reescrita fiel de 1 matéria)', () => {
+    const content = read('supabase/functions/generate-blog-post-from-topic/index.ts');
+
+    expect(content).toContain("body?.mode === 'source_article'");
+    expect(content).toContain('scrapeArticleContent');
+    expect(content).toContain('insufficientSources');
   });
 
   it('auto-article-cron lê suggestions_auto_publish de site_settings', () => {

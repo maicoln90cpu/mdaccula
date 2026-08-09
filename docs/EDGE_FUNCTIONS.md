@@ -51,8 +51,8 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
 | generate-blog-post-v2 | Gera artigo de blog completo por IA a partir dos dados de um evento (scraping opcional + geração de imagem) | Frontend (admin) | Nenhuma ⚠️ | Padrão `_shared` |
-| generate-blog-post-from-topic | Gera artigo de blog buscando fontes reais na web (Firecrawl) a partir de um termo de busca livre | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| generate-blog-suggestions | Sugere e faz scraping leve de tópicos de eventos para geração posterior de artigo | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
+| generate-blog-post-from-topic | 2 modos: `open_search` (padrão, busca livre na web via Firecrawl a partir de um termo — usado pelo admin em "Sugestões"/"Por Tema") ou `mode: 'source_article'` (reescrita fiel de 1 matéria específica já escolhida pelo chamador — usado só por `auto-article-cron`) | Frontend (admin) e auto-article-cron | Nenhuma ⚠️ | Próprio (inline) |
+| generate-blog-suggestions | Sugere e faz scraping leve de tópicos de eventos para geração posterior de artigo (só caminho manual — `auto-article-cron` não usa mais) | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
 | generate-multi-event-article | Gera 1 artigo cobrindo múltiplos eventos relacionados (ex.: "virada de lote") | Frontend (admin) | Nenhuma ⚠️ | Padrão `_shared` |
 | compose-event-image | Aplica marca MDAccula (barra + logo) sobre uma imagem de evento e re-hospeda no Bunny | Interno (scan-event-sources/apify-instagram-webhook) e Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
 | regenerate-blog-image | Regera a imagem de capa de um post de blog com um novo prompt/estilo de IA | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |

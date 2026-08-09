@@ -254,8 +254,10 @@ const FontesManager = () => {
               </h1>
               <p className="text-muted-foreground mt-1">
                 Sites e perfis monitorados pelo Event Watcher para detectar eventos automaticamente.
-                Não é usada pela geração via "Sugestões" ou "Gerar por Tema" — essas buscam a web
-                livremente, sem relação com esta lista.
+                As fontes tipo "site" também alimentam a Geração Automática de artigos (aba
+                Automático, em Conteúdo IA) — cada execução escolhe 1 fonte daqui e reescreve
+                fielmente 1 matéria real ainda não usada. A busca manual via "Sugestões" ou "Gerar
+                por Tema" continua buscando a web livremente, sem relação direta com esta lista.
               </p>
             </div>
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -59,6 +60,8 @@ export function AutoGenerationPanel() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingAutoPublish, setIsSavingAutoPublish] = useState(false);
   const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
+  const [isSavingInterval, setIsSavingInterval] = useState(false);
+  const [intervalInput, setIntervalInput] = useState('48');
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [settings, setSettings] = useState<AutoGenSettings>({
@@ -116,6 +119,7 @@ export function AutoGenerationPanel() {
         failCount,
         nextRunAt,
       });
+      setIntervalInput(String(intervalHours));
 
       // Fetch recent logs
       const { data: logsData, error: logsError } = await supabase
@@ -221,6 +225,44 @@ export function AutoGenerationPanel() {
       });
     } finally {
       setIsSavingAutoPublish(false);
+    }
+  };
+
+  const handleSaveInterval = async () => {
+    const parsed = parseInt(intervalInput, 10);
+    if (!Number.isFinite(parsed) || parsed < 1 || parsed > 720) {
+      toast({
+        title: 'Intervalo inválido',
+        description: 'Informe um número de horas entre 1 e 720 (30 dias).',
+        variant: 'destructive',
+      });
+      setIntervalInput(String(settings.intervalHours));
+      return;
+    }
+
+    setIsSavingInterval(true);
+    try {
+      const { error } = await supabase
+        .from('site_settings')
+        .upsert({ key: 'ai_auto_generate_interval_hours', value: String(parsed) }, { onConflict: 'key' });
+
+      if (error) throw error;
+
+      setSettings((prev) => ({ ...prev, intervalHours: parsed }));
+      setIntervalInput(String(parsed));
+      toast({
+        title: 'Intervalo atualizado',
+        description: `Artigos serão gerados a cada ${parsed}h a partir de agora.`,
+      });
+    } catch (error) {
+      logger.error('Error saving interval:', error);
+      toast({
+        title: 'Erro ao salvar intervalo',
+        variant: 'destructive',
+      });
+      setIntervalInput(String(settings.intervalHours));
+    } finally {
+      setIsSavingInterval(false);
     }
   };
 
@@ -391,7 +433,10 @@ export function AutoGenerationPanel() {
             {getStatusBadge()}
           </div>
           <p className="text-muted-foreground mt-1 text-sm">
-            Monitore e controle a geração automática de artigos com IA
+            Monitore e controle a geração automática de artigos com IA. A cada execução, escolhe 1
+            fonte cadastrada em Fontes / Event Watcher, encontra 1 matéria real ainda não usada e
+            reescreve fielmente essa matéria — sempre rastreável até a URL de origem. A busca aberta
+            na web só é usada nas abas manuais (Sugestões / Por Tema).
           </p>
         </div>
         <Button variant="outline" onClick={fetchData}>
@@ -441,9 +486,31 @@ export function AutoGenerationPanel() {
             <Separator />
 
             <div className="grid gap-3 text-sm">
-              <div className="flex justify-between">
+              <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Intervalo configurado:</span>
-                <span className="font-medium">{settings.intervalHours}h</span>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={720}
+                    value={intervalInput}
+                    onChange={(e) => setIntervalInput(e.target.value)}
+                    disabled={isSavingInterval}
+                    className="h-8 w-20 text-right"
+                  />
+                  <span className="text-muted-foreground text-xs">h</span>
+                  {intervalInput !== String(settings.intervalHours) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleSaveInterval}
+                      disabled={isSavingInterval}
+                      className="h-8 px-2"
+                    >
+                      {isSavingInterval ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Salvar'}
+                    </Button>
+                  )}
+                </div>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Última execução:</span>

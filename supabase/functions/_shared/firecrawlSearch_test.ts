@@ -122,6 +122,27 @@ Deno.test("searchWithFirecrawl descarta enciclopédias e bases de filme/TV (R-03
   assertEquals(results[0].url, "https://exemplo-noticias.com/dj-chus");
 });
 
+Deno.test("searchWithFirecrawl descarta o próprio domínio do site (Fase 0, correção de geração por tema) mas mantém fontes reais", async () => {
+  const results = await withMockedFetch(
+    {
+      ok: true,
+      body: {
+        data: {
+          web: [
+            { title: "MDAccula — cobertura anterior", url: "https://mdaccula.com/blog/algum-artigo-antigo", markdown: "conteúdo" },
+            { title: "MDAccula CDN", url: "https://mdaccula.b-cdn.net/blog/outro", markdown: "conteúdo" },
+            { title: "Matéria real de terceiro", url: "https://exemplo-noticias.com/artigo", markdown: "conteúdo real" },
+          ],
+        },
+      },
+    },
+    () => searchWithFirecrawl("tema qualquer", "fake-key", 10)
+  );
+
+  assertEquals(results.length, 1);
+  assertEquals(results[0].url, "https://exemplo-noticias.com/artigo");
+});
+
 Deno.test("searchWithFirecrawl lança erro em resposta HTTP não-ok", async () => {
   await assertRejects(
     () => withMockedFetch({ ok: false, status: 500, body: { error: "boom" } }, () => searchWithFirecrawl("termo", "fake-key", 5)),
