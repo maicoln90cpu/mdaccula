@@ -207,12 +207,12 @@ export const AutomationCard = ({
             {generating ? (
               <>
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                Gerando…
+                Criando…
               </>
             ) : (
               <>
                 <Mail className="w-4 h-4 mr-2" />
-                Gerar rascunho agora
+                Criar rascunho na E-goi
               </>
             )}
           </Button>

@@ -10,7 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ShieldAlert, Mail, Send, RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ShieldAlert, Mail, Send, RefreshCw, Users } from 'lucide-react';
 import { SendNowButton } from './SendNowButton';
 import { ScheduleSendPanel } from './ScheduleSendPanel';
 import { formatCount } from '@/lib/formatters';
@@ -280,7 +281,18 @@ export function ManualSendTab(props: ManualSendTabProps) {
             {selectedManualTemplate?.type === 'ticket_batch' && (
               <>
                 <div className="md:col-span-2">
-                  <Label>Assunto desta virada (opcional)</Label>
+                  <Label className="flex items-center justify-between">
+                    <span>Assunto desta virada (opcional)</span>
+                    <span
+                      className={`text-[11px] font-normal ${
+                        batchSubject.length > 60
+                          ? 'text-amber-600 dark:text-amber-400'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {batchSubject.length} caracteres
+                    </span>
+                  </Label>
                   <Input
                     value={batchSubject}
                     placeholder="Ex.: ÚLTIMAS HORAS — lote 2 acabando"
@@ -288,6 +300,8 @@ export function ManualSendTab(props: ManualSendTabProps) {
                   />
                   <p className="text-[11px] text-muted-foreground mt-1">
                     Se vazio, usa o assunto salvo no template.
+                    {batchSubject.length > 60 &&
+                      ' Assuntos longos costumam cortar em apps de e-mail (recomendado até ~60 caracteres).'}
                   </p>
                 </div>
                 <div className="md:col-span-2">
@@ -379,6 +393,18 @@ export function ManualSendTab(props: ManualSendTabProps) {
                   style={{ width: 600, minWidth: 600, border: 0 }}
                 />
               </div>
+            </div>
+          )}
+
+          {manualComposition && (
+            <div className="flex justify-end pt-2">
+              <Badge
+                variant="outline"
+                className="text-xs py-1.5 px-3 border-primary/40 bg-primary/5"
+              >
+                <Users className="w-3.5 h-3.5 mr-1.5 text-primary" />
+                Enviando para: <span className="font-semibold ml-1">{resolvedSegmentLabel}</span>
+              </Badge>
             </div>
           )}
 
