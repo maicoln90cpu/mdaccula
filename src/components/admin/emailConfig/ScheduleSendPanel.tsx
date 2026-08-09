@@ -117,13 +117,17 @@ export function ScheduleSendPanel({
     <div className="space-y-3 rounded-lg border p-3">
       <div className="flex flex-wrap items-end gap-2">
         <div className="flex-1 min-w-[220px]">
-          <Label htmlFor="batch-schedule-at">Agendar para</Label>
+          <Label htmlFor="batch-schedule-at">Agendar para (horário local do seu navegador)</Label>
           <Input
             id="batch-schedule-at"
             type="datetime-local"
             value={scheduleAt}
             onChange={(e) => onScheduleAtChange(e.target.value)}
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            Usa o fuso do seu computador — se você estiver fora do horário de Brasília, confira
+            antes de confirmar.
+          </p>
         </div>
         <Button
           variant="outline"

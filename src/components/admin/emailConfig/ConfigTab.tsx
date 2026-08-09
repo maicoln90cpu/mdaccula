@@ -295,10 +295,18 @@ export const ConfigTab = ({
                   min={1}
                   max={30}
                   value={cfg.scheduled_days_before}
-                  onChange={(e) =>
-                    setCfg({ ...cfg, scheduled_days_before: Number(e.target.value) || 1 })
-                  }
+                  onChange={(e) => {
+                    // min/max do input só afetam os botões de seta — não
+                    // impedem colar/digitar um valor fora do intervalo (ex.:
+                    // -5 ou 999). Trava aqui também, não só visualmente.
+                    const raw = Number(e.target.value);
+                    const clamped = Number.isFinite(raw)
+                      ? Math.min(30, Math.max(1, Math.round(raw)))
+                      : 1;
+                    setCfg({ ...cfg, scheduled_days_before: clamped });
+                  }}
                 />
+                <p className="text-xs text-muted-foreground mt-1">Entre 1 e 30 dias.</p>
               </div>
             )}
 
