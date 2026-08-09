@@ -72,6 +72,9 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [previousRows, setPreviousRows] = useState<Row[]>([]);
   const [refreshingAll, setRefreshingAll] = useState(false);
+  const [refreshProgress, setRefreshProgress] = useState<{ done: number; total: number } | null>(
+    null
+  );
   const [period, setPeriod] = useState<Period>('30');
   const [customFrom, setCustomFrom] = useState<string>('');
   const [customTo, setCustomTo] = useState<string>('');
@@ -322,6 +325,7 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
       return;
     }
     setRefreshingAll(true);
+    setRefreshProgress({ done: 0, total: targets.length });
     let ok = 0,
       fail = 0;
     try {
@@ -337,6 +341,7 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
         } catch {
           fail++;
         }
+        setRefreshProgress((prev) => (prev ? { ...prev, done: prev.done + 1 } : prev));
         // rate limit soft — 400ms entre chamadas
         await new Promise((r) => setTimeout(r, 400));
       }
@@ -348,6 +353,7 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
       await load();
     } finally {
       setRefreshingAll(false);
+      setRefreshProgress(null);
     }
   };
 
@@ -436,7 +442,9 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
               disabled={refreshingAll || filtered.length === 0}
             >
               <TrendingUp className={`w-4 h-4 mr-2 ${refreshingAll ? 'animate-spin' : ''}`} />
-              {refreshingAll ? 'Atualizando métricas...' : 'Atualizar métricas do período'}
+              {refreshingAll
+                ? `Atualizando... ${refreshProgress?.done ?? 0}/${refreshProgress?.total ?? 0}`
+                : 'Atualizar métricas do período'}
             </Button>
             <span className="text-xs text-muted-foreground">
               {kpis.withStats}/{kpis.total} campanhas com métricas coletadas
