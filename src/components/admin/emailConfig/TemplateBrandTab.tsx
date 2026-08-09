@@ -186,7 +186,9 @@ export function TemplateBrandTab({
             <CardDescription>
               Cola HTML fixo antes da logo (ex.: "Newsletter #12 · Maio 2026") e depois do
               descadastro (ex.: razão social, CNPJ). Aplicado a <b>todos</b> os templates.
-              Scripts, styles e handlers on* são removidos automaticamente por segurança.
+              Scripts, styles e a maioria dos handlers on* são removidos automaticamente — mas essa
+              limpeza não é uma sanitização completa. Cole só HTML de sua autoria, nunca de fontes
+              não confiáveis.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
