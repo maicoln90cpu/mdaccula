@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import {
   RefreshCw,
   BarChart3,
@@ -24,8 +25,12 @@ import {
 import { useToast } from '@/hooks/useToast';
 import { logger } from '@/lib';
 import { formatCount } from '@/lib/formatters';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { EMAIL_TYPE_LABELS } from '@/lib/emailTemplates/typeLabels';
+
+const EMAIL_CHART_CONFIG: ChartConfig = {
+  count: { label: 'Campanhas', color: 'hsl(var(--primary))' },
+};
 
 /** Métricas cacheadas em event_email_campaign_stats.stats_json (formato retornado pela edge egoi-campaign-stats). */
 type CampaignStats = {
@@ -514,15 +519,15 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
                 Sem envios no período selecionado.
               </p>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
+              <ChartContainer config={EMAIL_CHART_CONFIG} className="h-[220px] w-full">
                 <BarChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             )}
           </CardContent>
         </Card>
@@ -535,15 +540,15 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
             {byType.length === 0 ? (
               <p className="text-sm text-muted-foreground py-8 text-center">Sem dados.</p>
             ) : (
-              <ResponsiveContainer width="100%" height={220}>
+              <ChartContainer config={EMAIL_CHART_CONFIG} className="h-[220px] w-full">
                 <BarChart data={byType} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
                   <YAxis dataKey="type" type="category" width={110} tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             )}
           </CardContent>
         </Card>

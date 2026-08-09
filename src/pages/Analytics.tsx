@@ -8,12 +8,11 @@ import {
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
 } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
 import { Eye, Share2, Calendar, TrendingUp, Newspaper } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { OptimizedImage } from '@/components/OptimizedImage';
@@ -22,6 +21,14 @@ import { SEOHead } from '@/components/SEOHead';
 import { PageHeader } from '@/components/ui/page-header';
 
 const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+
+const POSTS_CHART_CONFIG: ChartConfig = {
+  views: { label: 'Visualizações', color: 'hsl(var(--primary))' },
+};
+
+const SHARES_CHART_CONFIG: ChartConfig = {
+  value: { label: 'Compartilhamentos', color: 'hsl(var(--primary))' },
+};
 
 export default function Analytics() {
   // Top 10 posts mais lidos
@@ -188,7 +195,7 @@ export default function Analytics() {
                 ) : (
                   <>
                     <div className="overflow-hidden">
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ChartContainer config={POSTS_CHART_CONFIG} className="h-[300px] w-full">
                         <BarChart data={topPosts?.slice(0, 10)}>
                           <XAxis
                             dataKey="title"
@@ -201,10 +208,10 @@ export default function Analytics() {
                             }
                           />
                           <YAxis />
-                          <Tooltip />
+                          <ChartTooltip content={<ChartTooltipContent />} />
                           <Bar dataKey="views" fill="#8b5cf6" />
                         </BarChart>
-                      </ResponsiveContainer>
+                      </ChartContainer>
                     </div>
 
                     {/* Lista com links */}
@@ -256,7 +263,7 @@ export default function Analytics() {
                     <Skeleton className="h-64" />
                   ) : shareStats && shareStats.length > 0 ? (
                     <div className="overflow-hidden">
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ChartContainer config={SHARES_CHART_CONFIG} className="h-[300px] w-full">
                         <PieChart>
                           <Pie
                             data={shareStats}
@@ -271,9 +278,9 @@ export default function Analytics() {
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip />
+                          <ChartTooltip content={<ChartTooltipContent />} />
                         </PieChart>
-                      </ResponsiveContainer>
+                      </ChartContainer>
                     </div>
                   ) : (
                     <div className="h-64 flex items-center justify-center text-muted-foreground">

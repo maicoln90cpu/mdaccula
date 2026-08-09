@@ -546,6 +546,11 @@ export const AIAnalyticsDashboard = () => {
                       ))}
                     </Pie>
                     <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
                       formatter={(value: number) => [value.toLocaleString(), 'Tokens/Imagens']}
                     />
                   </PieChart>
@@ -569,7 +574,14 @@ export const AIAnalyticsDashboard = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => [`$${value.toFixed(4)}`, 'Custo']} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                      formatter={(value: number) => [`$${value.toFixed(4)}`, 'Custo']}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
