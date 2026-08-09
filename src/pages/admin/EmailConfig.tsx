@@ -31,6 +31,19 @@ const EmailConfig = () => {
   const { toast } = useToast();
   const { globalsMap } = useEmailGlobalBlocks();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const handleTabChange = (nextTab: string) => {
+    if (
+      activeTab === 'editor' &&
+      nextTab !== 'editor' &&
+      editorDirty &&
+      !confirm(
+        'Há alterações não salvas no editor de e-mail. Trocar de aba mesmo assim? As alterações serão perdidas.'
+      )
+    ) {
+      return;
+    }
+    setActiveTab(nextTab);
+  };
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [editorDirty, setEditorDirty] = useState(false);
@@ -219,7 +232,7 @@ const EmailConfig = () => {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         {loading && (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary" />
