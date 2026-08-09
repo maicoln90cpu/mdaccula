@@ -14,6 +14,7 @@ import { useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { Template } from '@/lib/emailTemplates/blocks';
+import { appendRunHistory, type RunHistoryEntry } from './automationRunHistory';
 
 export type EventReminderCfg = {
   enabled: boolean;
@@ -78,6 +79,7 @@ export function useEventReminderAutomation({
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<EventReminderResult>(null);
+  const [runHistory, setRunHistory] = useState<RunHistoryEntry[]>([]);
 
   const effectiveTemplateId = useMemo(
     () =>
@@ -116,9 +118,9 @@ export function useEventReminderAutomation({
   // "Rodar agora" chama a mesma edge function do cron com force=true —
   // pula o gate de horário e de enabled, mas continua respeitando o
   // toggle "Enviar automaticamente no cron" e todos os outros guards
-  // (master switch, config da E-goi). Não existe um "enviar teste" próprio
-  // aqui porque a automação pode gerar N campanhas por execução (uma por
-  // evento elegível), diferente do fluxo de 1 campanha das outras 3.
+  // (master switch, config da E-goi). "Enviar teste agora" é um handler
+  // separado (sendAutomationTest, em useEmailAutomation.ts, reaproveitado
+  // via dry_run na edge function) — aqui só fica o disparo real.
   const runNow = async () => {
     setRunning(true);
     setLastResult(null);
@@ -135,22 +137,25 @@ export function useEventReminderAutomation({
           no_events_on_target_date: 'Nenhum evento cai exatamente na data-alvo.',
           all_already_processed: 'Todos os eventos elegíveis já foram processados.',
         };
-        toast({
-          title: 'Nada pra processar',
-          description: reasons[res.reason || ''] || res.reason || 'Motivo desconhecido',
-        });
+        const summary = reasons[res.reason || ''] || res.reason || 'Motivo desconhecido';
+        toast({ title: 'Nada pra processar', description: summary });
         setLastResult(res);
+        setRunHistory(await appendRunHistory('event_reminder', runHistory, { ok: true, summary }));
         return;
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao rodar a automação');
       setLastResult(res);
-      toast({
-        title: 'Lembrete de evento processado',
-        description: `${res.candidates ?? 0} evento(s) na data-alvo (${res.target_date}) · ${res.sent ?? 0} enviado(s) · ${res.drafted ?? 0} rascunho(s) · ${res.failed ?? 0} falha(s).`,
-      });
+      const summary = `${res.candidates ?? 0} evento(s) na data-alvo (${res.target_date}) · ${res.sent ?? 0} enviado(s) · ${res.drafted ?? 0} rascunho(s) · ${res.failed ?? 0} falha(s).`;
+      toast({ title: 'Lembrete de evento processado', description: summary });
+      setRunHistory(
+        await appendRunHistory('event_reminder', runHistory, { ok: (res.failed ?? 0) === 0, summary })
+      );
     } catch (e: unknown) {
       const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao rodar automação', description: msg });
+      setRunHistory(
+        await appendRunHistory('event_reminder', runHistory, { ok: false, summary: msg })
+      );
     } finally {
       setRunning(false);
     }
@@ -166,6 +171,8 @@ export function useEventReminderAutomation({
     running,
     lastResult,
     setLastResult,
+    runHistory,
+    setRunHistory,
     effectiveTemplateId,
     handleSave,
     runNow,

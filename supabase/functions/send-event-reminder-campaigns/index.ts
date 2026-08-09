@@ -104,6 +104,14 @@ Deno.serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const force = body?.force === true;
+    // dry_run: mesmo padrão de weekly-digest-draft/weekend-agenda-draft/
+    // blog-digest-draft — renderiza o e-mail de um evento-alvo elegível SEM
+    // criar campanha na E-goi nem gravar em event_email_campaigns. Usado
+    // pelo botão "Enviar teste agora" (item 5 da melhoria: esta automação
+    // era a única sem essa opção, por gerar N campanhas por execução em
+    // vez de 1 — o dry_run aqui só usa o primeiro evento-alvo como amostra).
+    const dryRun = body?.dry_run === true;
+    const templateIdOverride = (body?.template_id as string | undefined) || undefined;
 
     // Guard 1: master switch (nunca pulado, nem com force).
     const { data: masterRow } = await admin
@@ -179,30 +187,35 @@ Deno.serve(async (req) => {
     }
 
     // Dedup/retry: conta quantas linhas 'failed' já existem por evento (cada
-    // uma é uma tentativa já feita) e pula quem já tem 'sent'/'draft'.
-    const { data: existingRows } = await admin
-      .from('event_email_campaigns')
-      .select('event_id,status')
-      .eq('campaign_type', 'event_reminder')
-      .in('event_id', candidates.map((e) => e.id));
-    const pending = filterPendingReminderEvents(
-      candidates,
-      (existingRows ?? []) as ExistingCampaignRow[],
-    );
+    // uma é uma tentativa já feita) e pula quem já tem 'sent'/'draft'. Não
+    // se aplica ao dry_run — a amostra é só pra preview, não conta como
+    // tentativa real.
+    let pending = candidates;
+    if (!dryRun) {
+      const { data: existingRows } = await admin
+        .from('event_email_campaigns')
+        .select('event_id,status')
+        .eq('campaign_type', 'event_reminder')
+        .in('event_id', candidates.map((e) => e.id));
+      pending = filterPendingReminderEvents(
+        candidates,
+        (existingRows ?? []) as ExistingCampaignRow[],
+      );
 
-    if (pending.length === 0) {
-      return json({
-        ok: true,
-        skipped: true,
-        reason: 'all_already_processed',
-        target_date: targetDateIso,
-        candidates: candidates.length,
-      });
+      if (pending.length === 0) {
+        return json({
+          ok: true,
+          skipped: true,
+          reason: 'all_already_processed',
+          target_date: targetDateIso,
+          candidates: candidates.length,
+        });
+      }
     }
 
     // Template + settings + globais — carregados 1x, reaproveitados pra
     // todos os eventos deste run (mesma config vale pro batch inteiro).
-    const overrideTemplateId = settingsMap.event_reminder_template_id || null;
+    const overrideTemplateId = templateIdOverride || settingsMap.event_reminder_template_id || null;
     // deno-lint-ignore no-explicit-any
     let tplQuery = (admin.from as any)('email_templates')
       .select('id,name,type,blocks,is_default,subject_template,preheader_template');
@@ -234,6 +247,36 @@ Deno.serve(async (req) => {
     const resolvedBlocks = (expandGlobalRefs(rawBlocks, globalsMap) as Block[]).filter(
       (b) => !EVENT_ONLY_BLOCK_KINDS.includes((b as { kind: string }).kind)
     );
+
+    if (dryRun) {
+      // Renderiza só o primeiro evento-alvo como amostra — não cria nada
+      // na E-goi nem grava em event_email_campaigns.
+      const sampleEvent = pending[0];
+      const eventData = buildEventAnnouncementData(sampleEvent, { baseUrl: SITE_URL });
+      const composition = composeEmail({
+        template: {
+          blocks: resolvedBlocks,
+          // deno-lint-ignore no-explicit-any
+          subject_template: (activeTpl as any).subject_template,
+          // deno-lint-ignore no-explicit-any
+          preheader_template: (activeTpl as any).preheader_template,
+        },
+        event: eventData,
+        settings,
+        globals: globalsMap,
+      });
+      const html = await safeCacheStaticMapImagesInHtml(composition.html, 'send-event-reminder-campaigns');
+      return json({
+        ok: true,
+        html,
+        subject: composition.subject,
+        preheader: composition.preheader,
+        // deno-lint-ignore no-explicit-any
+        template_name: (activeTpl as any).name ?? null,
+        target_date: targetDateIso,
+        sample_event_id: sampleEvent.id,
+      });
+    }
 
     let sent = 0;
     let drafted = 0;

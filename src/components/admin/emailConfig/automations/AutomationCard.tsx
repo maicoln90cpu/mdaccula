@@ -33,7 +33,9 @@ import { Switch } from '@/components/ui/switch';
 import { Mail, RefreshCw, Save, Send, SendHorizonal } from 'lucide-react';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { AutomationCfg, AutomationResult } from '../types';
+import type { RunHistoryEntry } from '../automationRunHistory';
 import { SendOnCronToggle } from './SendOnCronToggle';
+import { RunHistoryList } from './RunHistoryList';
 
 export interface AutomationCardProps {
   // Identidade visual
@@ -66,6 +68,7 @@ export interface AutomationCardProps {
   testing: boolean;
   sending: boolean;
   lastResult: AutomationResult;
+  runHistory: RunHistoryEntry[];
 
   // Handlers
   onSave: () => void | Promise<void>;
@@ -95,6 +98,7 @@ export const AutomationCard = ({
   testing,
   sending,
   lastResult,
+  runHistory,
   onSave,
   onGenerate,
   onTest,
@@ -305,6 +309,8 @@ export const AutomationCard = ({
             <div>{renderResultPeriod(lastResult)}</div>
           </div>
         )}
+
+        <RunHistoryList history={runHistory} />
       </CardContent>
     </Card>
   );

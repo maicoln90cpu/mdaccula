@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { AutomationCfg, AutomationResult } from './types';
+import { appendRunHistory, type RunHistoryEntry } from './automationRunHistory';
 
 /**
  * Rastreia, além do valor "ao vivo" (editado pelo formulário), o último
@@ -156,6 +157,13 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
   const [weekendLastResult, setWeekendLastResult] = useState<AutomationResult>(null);
   const [blogLastResult, setBlogLastResult] = useState<AutomationResult>(null);
 
+  // Histórico das últimas execuções (ver automationRunHistory.ts) — não só
+  // o último resultado, pra não perder um erro assim que a próxima
+  // execução rodar.
+  const [digestRunHistory, setDigestRunHistory] = useState<RunHistoryEntry[]>([]);
+  const [weekendRunHistory, setWeekendRunHistory] = useState<RunHistoryEntry[]>([]);
+  const [blogRunHistory, setBlogRunHistory] = useState<RunHistoryEntry[]>([]);
+
   // Template efetivo = escolhido pelo usuário || default do tipo || primeiro do tipo
   const weeklyEffectiveTemplateId = useMemo(
     () =>
@@ -280,23 +288,26 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           config_disabled_or_incomplete: 'Configuração da agência incompleta ou desligada.',
           no_content_in_range: 'Nenhum evento ou matéria encontrado no período.',
         };
-        toast({
-          variant: 'destructive',
-          title: 'Não gerado',
-          description: reasons[res.reason || ''] || res.reason || 'Motivo desconhecido',
-        });
+        const summary = reasons[res.reason || ''] || res.reason || 'Motivo desconhecido';
+        toast({ variant: 'destructive', title: 'Não gerado', description: summary });
+        setDigestRunHistory(await appendRunHistory('weekly_digest', digestRunHistory, {
+          ok: false,
+          summary: `Não gerado: ${summary}`,
+        }));
         return;
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao criar rascunho');
       setDigestLastResult(res);
       void persistLastResult('weekly_digest', res);
-      toast({
-        title: 'Rascunho criado na E-goi',
-        description: `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`,
-      });
+      const summary = `${res.events_count ?? 0} evento(s) e ${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`;
+      toast({ title: 'Rascunho criado na E-goi', description: summary });
+      setDigestRunHistory(await appendRunHistory('weekly_digest', digestRunHistory, { ok: true, summary }));
     } catch (e: unknown) {
       const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao gerar digest', description: msg });
+      setDigestRunHistory(
+        await appendRunHistory('weekly_digest', digestRunHistory, { ok: false, summary: msg })
+      );
     } finally {
       setDigestGenerating(false);
     }
@@ -328,23 +339,28 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           config_disabled_or_incomplete: 'Configuração da agência incompleta ou desligada.',
           no_events_in_range: 'Nenhum evento encontrado para este fim de semana.',
         };
-        toast({
-          variant: 'destructive',
-          title: 'Não gerado',
-          description: reasons[res.reason || ''] || res.reason || 'Motivo desconhecido',
-        });
+        const summary = reasons[res.reason || ''] || res.reason || 'Motivo desconhecido';
+        toast({ variant: 'destructive', title: 'Não gerado', description: summary });
+        setWeekendRunHistory(await appendRunHistory('weekend_agenda', weekendRunHistory, {
+          ok: false,
+          summary: `Não gerado: ${summary}`,
+        }));
         return;
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao criar rascunho');
       setWeekendLastResult(res);
       void persistLastResult('weekend_agenda', res);
-      toast({
-        title: 'Rascunho FDS criado na E-goi',
-        description: `${res.events_count ?? 0} evento(s) no fim de semana${res.template_name ? ` · ${res.template_name}` : ''}.`,
-      });
+      const summary = `${res.events_count ?? 0} evento(s) no fim de semana${res.template_name ? ` · ${res.template_name}` : ''}.`;
+      toast({ title: 'Rascunho FDS criado na E-goi', description: summary });
+      setWeekendRunHistory(
+        await appendRunHistory('weekend_agenda', weekendRunHistory, { ok: true, summary })
+      );
     } catch (e: unknown) {
       const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao gerar agenda FDS', description: msg });
+      setWeekendRunHistory(
+        await appendRunHistory('weekend_agenda', weekendRunHistory, { ok: false, summary: msg })
+      );
     } finally {
       setWeekendGenerating(false);
     }
@@ -376,23 +392,26 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           no_posts_in_range:
             'Nenhuma matéria publicada no período. Publique posts no blog primeiro.',
         };
-        toast({
-          variant: 'destructive',
-          title: 'Não gerado',
-          description: reasons[res.reason || ''] || res.reason || 'Motivo desconhecido',
-        });
+        const summary = reasons[res.reason || ''] || res.reason || 'Motivo desconhecido';
+        toast({ variant: 'destructive', title: 'Não gerado', description: summary });
+        setBlogRunHistory(await appendRunHistory('blog_digest', blogRunHistory, {
+          ok: false,
+          summary: `Não gerado: ${summary}`,
+        }));
         return;
       }
       if (!res?.ok) throw new Error(res?.error || 'Falha ao criar rascunho');
       setBlogLastResult(res);
       void persistLastResult('blog_digest', res);
-      toast({
-        title: 'Rascunho Blog news criado na E-goi',
-        description: `${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`,
-      });
+      const summary = `${res.posts_count ?? 0} matéria(s) no digest${res.template_name ? ` · ${res.template_name}` : ''}.`;
+      toast({ title: 'Rascunho Blog news criado na E-goi', description: summary });
+      setBlogRunHistory(await appendRunHistory('blog_digest', blogRunHistory, { ok: true, summary }));
     } catch (e: unknown) {
       const msg = await getEdgeFunctionErrorMessage(e);
       toast({ variant: 'destructive', title: 'Erro ao gerar Blog news', description: msg });
+      setBlogRunHistory(
+        await appendRunHistory('blog_digest', blogRunHistory, { ok: false, summary: msg })
+      );
     } finally {
       setBlogGenerating(false);
     }
@@ -400,7 +419,11 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
 
   // ---- Handler: Enviar teste agora (dry_run + send-test-email) ----
   const sendAutomationTest = async (
-    fnName: 'weekly-digest-draft' | 'weekend-agenda-draft' | 'blog-digest-draft',
+    fnName:
+      | 'weekly-digest-draft'
+      | 'weekend-agenda-draft'
+      | 'blog-digest-draft'
+      | 'send-event-reminder-campaigns',
     label: string,
     setBusy: (v: boolean) => void,
     templateId?: string
@@ -426,9 +449,13 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
           master_off: 'Master switch está OFF.',
           digest_disabled: 'Automação desligada — ligue o toggle primeiro.',
           agenda_disabled: 'Automação desligada — ligue o toggle primeiro.',
+          reminder_disabled: 'Lembrete de evento desligado — ligue o toggle primeiro.',
           no_posts_in_range: 'Nenhuma matéria publicada no período.',
           no_events_in_range: 'Nenhum evento encontrado no período.',
           no_content_in_range: 'Nenhum evento ou matéria encontrado no período.',
+          no_events_on_target_date:
+            'Nenhum evento cai exatamente na data-alvo hoje — não há amostra pra testar agora.',
+          config_disabled_or_incomplete: 'Configuração da agência incompleta ou desligada.',
         };
         toast({
           variant: 'destructive',
@@ -551,6 +578,13 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     setDigestLastResult,
     setWeekendLastResult,
     setBlogLastResult,
+    // histórico de execuções (setters expostos pro pai hidratar em loadAll)
+    digestRunHistory,
+    weekendRunHistory,
+    blogRunHistory,
+    setDigestRunHistory,
+    setWeekendRunHistory,
+    setBlogRunHistory,
     // flags
     savingWeekly,
     savingWeekend,

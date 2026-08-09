@@ -17,6 +17,7 @@ import type {
   SenderItem,
   SegmentItem,
 } from './types';
+import { parseRunHistory, type RunHistoryEntry } from './automationRunHistory';
 
 type ToastFn = ReturnType<typeof useToast>['toast'];
 
@@ -52,6 +53,10 @@ type AutomationSetters = {
     templateId: string;
     sendOnCron: boolean;
   }) => void;
+  setDigestRunHistory: (v: RunHistoryEntry[]) => void;
+  setWeekendRunHistory: (v: RunHistoryEntry[]) => void;
+  setBlogRunHistory: (v: RunHistoryEntry[]) => void;
+  setEventReminderRunHistory: (v: RunHistoryEntry[]) => void;
 };
 
 /**
@@ -106,6 +111,10 @@ export function useEmailConfigState({
     setWeekendLastResult,
     setBlogLastResult,
     setEventReminderCfg,
+    setDigestRunHistory,
+    setWeekendRunHistory,
+    setBlogRunHistory,
+    setEventReminderRunHistory,
   } = automation;
 
   const loadAll = useCallback(async () => {
@@ -166,6 +175,10 @@ export function useEmailConfigState({
             'event_reminder_hour',
             'event_reminder_template_id',
             'event_reminder_send_on_cron',
+            'weekly_digest_run_history',
+            'weekend_agenda_run_history',
+            'blog_digest_run_history',
+            'event_reminder_run_history',
           ]),
       ]);
 
@@ -204,6 +217,10 @@ export function useEmailConfigState({
         templateId: settingsMap.event_reminder_template_id || '',
         sendOnCron: settingsMap.event_reminder_send_on_cron === 'true',
       });
+      setDigestRunHistory(parseRunHistory(settingsMap.weekly_digest_run_history));
+      setWeekendRunHistory(parseRunHistory(settingsMap.weekend_agenda_run_history));
+      setBlogRunHistory(parseRunHistory(settingsMap.blog_digest_run_history));
+      setEventReminderRunHistory(parseRunHistory(settingsMap.event_reminder_run_history));
       const parseLastResult = (raw: string | undefined) => {
         if (!raw) return null;
         try {
@@ -264,6 +281,10 @@ export function useEmailConfigState({
     setWeekendLastResult,
     setBlogLastResult,
     setEventReminderCfg,
+    setDigestRunHistory,
+    setWeekendRunHistory,
+    setBlogRunHistory,
+    setEventReminderRunHistory,
   ]);
 
   useEffect(() => {

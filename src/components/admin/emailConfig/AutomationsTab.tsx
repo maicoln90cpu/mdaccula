@@ -11,6 +11,7 @@ import type { AutomationCfg, AutomationResult } from './types';
 import { AutomationCard } from './automations/AutomationCard';
 import { EventReminderAutomationCard } from './automations/EventReminderAutomationCard';
 import type { EventReminderCfg, EventReminderResult } from './useEventReminderAutomation';
+import type { RunHistoryEntry } from './automationRunHistory';
 
 interface AutomationsTabProps {
   masterEnabled: boolean;
@@ -28,6 +29,7 @@ interface AutomationsTabProps {
   testingWeekly: boolean;
   sendingWeekly: boolean;
   digestLastResult: AutomationResult;
+  digestRunHistory: RunHistoryEntry[];
   handleSaveWeekly: () => void | Promise<void>;
   generateDigestNow: () => void | Promise<void>;
   onTestWeekly: () => void;
@@ -43,6 +45,7 @@ interface AutomationsTabProps {
   testingWeekend: boolean;
   sendingWeekend: boolean;
   weekendLastResult: AutomationResult;
+  weekendRunHistory: RunHistoryEntry[];
   handleSaveWeekend: () => void | Promise<void>;
   generateWeekendNow: () => void | Promise<void>;
   onTestWeekend: () => void;
@@ -58,6 +61,7 @@ interface AutomationsTabProps {
   testingBlog: boolean;
   sendingBlog: boolean;
   blogLastResult: AutomationResult;
+  blogRunHistory: RunHistoryEntry[];
   handleSaveBlog: () => void | Promise<void>;
   generateBlogNow: () => void | Promise<void>;
   onTestBlog: () => void;
@@ -70,9 +74,12 @@ interface AutomationsTabProps {
   eventReminderEffectiveTemplateId: string;
   savingEventReminder: boolean;
   runningEventReminder: boolean;
+  testingEventReminder: boolean;
   eventReminderLastResult: EventReminderResult;
+  eventReminderRunHistory: RunHistoryEntry[];
   handleSaveEventReminder: () => void | Promise<void>;
   runEventReminderNow: () => void | Promise<void>;
+  onTestEventReminder: () => void;
 }
 
 export const AutomationsTab = ({
@@ -89,6 +96,7 @@ export const AutomationsTab = ({
   testingWeekly,
   sendingWeekly,
   digestLastResult,
+  digestRunHistory,
   handleSaveWeekly,
   generateDigestNow,
   onTestWeekly,
@@ -102,6 +110,7 @@ export const AutomationsTab = ({
   testingWeekend,
   sendingWeekend,
   weekendLastResult,
+  weekendRunHistory,
   handleSaveWeekend,
   generateWeekendNow,
   onTestWeekend,
@@ -115,6 +124,7 @@ export const AutomationsTab = ({
   testingBlog,
   sendingBlog,
   blogLastResult,
+  blogRunHistory,
   handleSaveBlog,
   generateBlogNow,
   onTestBlog,
@@ -125,9 +135,12 @@ export const AutomationsTab = ({
   eventReminderEffectiveTemplateId,
   savingEventReminder,
   runningEventReminder,
+  testingEventReminder,
   eventReminderLastResult,
+  eventReminderRunHistory,
   handleSaveEventReminder,
   runEventReminderNow,
+  onTestEventReminder,
 }: AutomationsTabProps) => {
   const testTitle = `Envia via Resend para ${automationTestRecipient} — não toca a E-goi`;
 
@@ -170,6 +183,7 @@ export const AutomationsTab = ({
           testing={testingWeekly}
           sending={sendingWeekly}
           lastResult={digestLastResult}
+          runHistory={digestRunHistory}
           onSave={handleSaveWeekly}
           onGenerate={generateDigestNow}
           onTest={onTestWeekly}
@@ -201,6 +215,7 @@ export const AutomationsTab = ({
           testing={testingWeekend}
           sending={sendingWeekend}
           lastResult={weekendLastResult}
+          runHistory={weekendRunHistory}
           onSave={handleSaveWeekend}
           onGenerate={generateWeekendNow}
           onTest={onTestWeekend}
@@ -238,6 +253,7 @@ export const AutomationsTab = ({
           testing={testingBlog}
           sending={sendingBlog}
           lastResult={blogLastResult}
+          runHistory={blogRunHistory}
           onSave={handleSaveBlog}
           onGenerate={generateBlogNow}
           onTest={onTestBlog}
@@ -254,9 +270,13 @@ export const AutomationsTab = ({
           isDirty={isEventReminderDirty}
           saving={savingEventReminder}
           running={runningEventReminder}
+          testing={testingEventReminder}
+          testTitle={testTitle}
           lastResult={eventReminderLastResult}
+          runHistory={eventReminderRunHistory}
           onSave={handleSaveEventReminder}
           onRunNow={runEventReminderNow}
+          onTest={onTestEventReminder}
         />
       </div>
 

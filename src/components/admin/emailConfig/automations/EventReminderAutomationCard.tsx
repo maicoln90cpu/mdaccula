@@ -20,10 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { PlayCircle, RefreshCw, Save } from 'lucide-react';
+import { PlayCircle, RefreshCw, Save, Send } from 'lucide-react';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { EventReminderCfg, EventReminderResult } from '../useEventReminderAutomation';
+import type { RunHistoryEntry } from '../automationRunHistory';
 import { SendOnCronToggle } from './SendOnCronToggle';
+import { RunHistoryList } from './RunHistoryList';
 
 export interface EventReminderAutomationCardProps {
   masterEnabled: boolean;
@@ -35,9 +37,13 @@ export interface EventReminderAutomationCardProps {
   isDirty: boolean;
   saving: boolean;
   running: boolean;
+  testing: boolean;
+  testTitle: string;
   lastResult: EventReminderResult;
+  runHistory: RunHistoryEntry[];
   onSave: () => void | Promise<void>;
   onRunNow: () => void | Promise<void>;
+  onTest: () => void;
 }
 
 export const EventReminderAutomationCard = ({
@@ -49,9 +55,13 @@ export const EventReminderAutomationCard = ({
   isDirty,
   saving,
   running,
+  testing,
+  testTitle,
   lastResult,
+  runHistory,
   onSave,
   onRunNow,
+  onTest,
 }: EventReminderAutomationCardProps) => {
   return (
     <Card>
@@ -168,6 +178,19 @@ export const EventReminderAutomationCard = ({
               </>
             )}
           </Button>
+          <Button size="sm" variant="secondary" onClick={onTest} disabled={testing} title={testTitle}>
+            {testing ? (
+              <>
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                Enviando…
+              </>
+            ) : (
+              <>
+                <Send className="w-4 h-4 mr-2" />
+                Enviar teste agora
+              </>
+            )}
+          </Button>
         </div>
 
         {cfg.enabled && (
@@ -200,6 +223,8 @@ export const EventReminderAutomationCard = ({
             </div>
           </div>
         )}
+
+        <RunHistoryList history={runHistory} />
       </CardContent>
     </Card>
   );

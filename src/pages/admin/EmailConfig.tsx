@@ -93,6 +93,12 @@ const EmailConfig = () => {
     setDigestLastResult,
     setWeekendLastResult,
     setBlogLastResult,
+    digestRunHistory,
+    weekendRunHistory,
+    blogRunHistory,
+    setDigestRunHistory,
+    setWeekendRunHistory,
+    setBlogRunHistory,
     weeklyEffectiveTemplateId,
     weekendEffectiveTemplateId,
     blogEffectiveTemplateId,
@@ -115,10 +121,16 @@ const EmailConfig = () => {
     saving: savingEventReminder,
     running: runningEventReminder,
     lastResult: eventReminderLastResult,
+    runHistory: eventReminderRunHistory,
+    setRunHistory: setEventReminderRunHistory,
     effectiveTemplateId: eventReminderEffectiveTemplateId,
     handleSave: handleSaveEventReminder,
     runNow: runEventReminderNow,
   } = useEventReminderAutomation({ templates, toast });
+  // "Enviar teste agora" pro Lembrete de evento (item 1, Fase 17) reaproveita
+  // o mesmo sendAutomationTest genérico das outras 3 automações — só falta
+  // o estado local de "testando" (as outras 3 já têm o seu próprio).
+  const [testingEventReminder, setTestingEventReminder] = useState(false);
 
   // Camada de dados (loadAll, CRUD egoi_config, upload logo, listas/segmentos)
   // extraída para `useEmailConfigState` na Onda 9 PR-A.
@@ -166,6 +178,10 @@ const EmailConfig = () => {
       setWeekendLastResult,
       setBlogLastResult,
       setEventReminderCfg: hydrateEventReminderCfg,
+      setDigestRunHistory,
+      setWeekendRunHistory,
+      setBlogRunHistory,
+      setEventReminderRunHistory,
     },
   });
 
@@ -414,6 +430,7 @@ const EmailConfig = () => {
             testingWeekly={testingWeekly}
             sendingWeekly={sendingWeekly}
             digestLastResult={digestLastResult}
+            digestRunHistory={digestRunHistory}
             handleSaveWeekly={handleSaveWeekly}
             generateDigestNow={generateDigestNow}
             onTestWeekly={() =>
@@ -441,6 +458,7 @@ const EmailConfig = () => {
             testingWeekend={testingWeekend}
             sendingWeekend={sendingWeekend}
             weekendLastResult={weekendLastResult}
+            weekendRunHistory={weekendRunHistory}
             handleSaveWeekend={handleSaveWeekend}
             generateWeekendNow={generateWeekendNow}
             onTestWeekend={() =>
@@ -468,6 +486,7 @@ const EmailConfig = () => {
             testingBlog={testingBlog}
             sendingBlog={sendingBlog}
             blogLastResult={blogLastResult}
+            blogRunHistory={blogRunHistory}
             handleSaveBlog={handleSaveBlog}
             generateBlogNow={generateBlogNow}
             onTestBlog={() =>
@@ -492,9 +511,19 @@ const EmailConfig = () => {
             eventReminderEffectiveTemplateId={eventReminderEffectiveTemplateId}
             savingEventReminder={savingEventReminder}
             runningEventReminder={runningEventReminder}
+            testingEventReminder={testingEventReminder}
             eventReminderLastResult={eventReminderLastResult}
+            eventReminderRunHistory={eventReminderRunHistory}
             handleSaveEventReminder={handleSaveEventReminder}
             runEventReminderNow={runEventReminderNow}
+            onTestEventReminder={() =>
+              sendAutomationTest(
+                'send-event-reminder-campaigns',
+                'Lembrete de evento',
+                setTestingEventReminder,
+                eventReminderEffectiveTemplateId
+              )
+            }
           />
         </TabsContent>
 
