@@ -70,7 +70,8 @@ export function buildMapPath(params: MapRenderParams): string {
 export type ResolvedMapImage =
   | { source: "bunny"; bunnyUrl: string }
   | { source: "storage"; bytes: ArrayBuffer; contentType: string; storageUrl: string }
-  | { source: "generated"; bytes: ArrayBuffer; contentType: string; bunnyUrl: string };
+  | { source: "generated"; bytes: ArrayBuffer; contentType: string; bunnyUrl: string }
+  | { source: "generated-fallback"; bytes: ArrayBuffer; contentType: string; storageUrl: string };
 
 /**
  * Fonte única de verdade do cache-first de mapas: Bunny CDN → Supabase
@@ -119,12 +120,23 @@ export async function resolveMapImage(
   const contentType = response.headers.get("Content-Type") || "image/png";
   const buffer = await response.arrayBuffer();
 
-  const { url: bunnyUrl } = await uploadBytesToBunny(buffer, path, contentType);
-  storageUploadFile(buffer, path, contentType).catch((err) => {
-    console.warn(`[resolveMapImage] Storage backup failed for ${path}:`, err);
-  });
-
-  return { source: "generated", bytes: buffer, contentType, bunnyUrl };
+  // A imagem já foi obtida do Google neste ponto — um soluço no *write* do
+  // Bunny (rede, timeout, 5xx) não pode mais derrubar a resposta inteira e
+  // devolver um mapa quebrado pro destinatário do e-mail (bug relatado em
+  // produção). Se o upload falhar, cai pro backup no Supabase Storage
+  // (aguardando desta vez, já que não há URL do Bunny pra devolver) e serve
+  // os bytes de qualquer forma.
+  try {
+    const { url: bunnyUrl } = await uploadBytesToBunny(buffer, path, contentType);
+    storageUploadFile(buffer, path, contentType).catch((err) => {
+      console.warn(`[resolveMapImage] Storage backup failed for ${path}:`, err);
+    });
+    return { source: "generated", bytes: buffer, contentType, bunnyUrl };
+  } catch (err) {
+    console.warn(`[resolveMapImage] Bunny upload failed for ${path}, falling back to Storage:`, err);
+    await storageUploadFile(buffer, path, contentType);
+    return { source: "generated-fallback", bytes: buffer, contentType, storageUrl: path };
+  }
 }
 
 /**

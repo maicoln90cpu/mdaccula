@@ -68,3 +68,37 @@ Deno.test("resolveMapImage: cache HIT no Bunny nunca chama a API do Google (gene
     globalThis.fetch = original;
   }
 });
+
+Deno.test("resolveMapImage: soluço no write do Bunny não derruba a resposta — ainda devolve os bytes já buscados do Google", async () => {
+  const original = globalThis.fetch;
+  try {
+    globalThis.fetch = (input: string | URL | Request) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+      // HEAD de checkBunnyFile: confirma que o arquivo não existe ainda.
+      if (url.includes("mdaccula.b-cdn.net")) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      // PUT de uploadBytesToBunny: simula o soluço de rede/timeout do Bunny.
+      if (url.includes("storage.bunnycdn.com")) {
+        return Promise.resolve(new Response("upstream timeout", { status: 502 }));
+      }
+      return Promise.reject(new Error(`unexpected fetch to ${url}`));
+    };
+
+    const imageBytes = new TextEncoder().encode("fake-png-bytes").buffer;
+    const result = await resolveMapImage(
+      { lat: -23.5, lng: -46.6, zoom: 15, w: 600, h: 300, style: "roadmap", pinColor: "red" },
+      () => Promise.resolve(new Response(imageBytes, { status: 200, headers: { "Content-Type": "image/png" } })),
+    );
+
+    // O bug relatado em produção fazia essa chamada lançar e a Edge Function
+    // retornar HTTP 500 mesmo com a imagem do Google já em mãos. Agora tem
+    // que devolver os bytes de qualquer forma.
+    assertEquals(result.source, "generated-fallback");
+    if (result.source === "generated-fallback" || result.source === "generated") {
+      assertEquals(new Uint8Array(result.bytes).length, imageBytes.byteLength);
+    }
+  } finally {
+    globalThis.fetch = original;
+  }
+});
