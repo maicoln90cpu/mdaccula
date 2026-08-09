@@ -17,6 +17,11 @@ const corsHeaders = {
 
 type Mode = 'draft' | 'immediate' | 'scheduled';
 
+// Janela de "claim recente" pro force_resend (ver Guard 3 abaixo). Uma
+// reenviada deliberada pelo admin acontece bem depois disso; uma corrida de
+// 2 cliques/2 abas fica dentro dela.
+const DISPATCH_CLAIM_STALE_MS = 15_000;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -136,24 +141,39 @@ Deno.serve(async (req) => {
       claimedTitle = ev.title;
       claimedStatus = ev.status;
     } else {
-      if (forceResend) {
-        await admin
-          .from('events')
-          .update({ email_campaign_dispatched_at: null })
-          .eq('id', eventId);
-      }
-
-      const { data: claimed, error: claimErr } = await admin
+      // Claim atômico numa ÚNICA instrução SQL. Antes havia um UPDATE de
+      // reset incondicional (quando forceResend) seguido de um UPDATE de
+      // claim, em duas idas separadas ao banco — duas requisições de
+      // "reenviar" quase simultâneas (2 abas, duplo clique) podiam intercalar
+      // essas idas e cada uma "roubar" o claim da outra, disparando a
+      // campanha 2x pra lista inteira. Com forceResend, só reivindica se não
+      // há claim, ou se o claim existente já é antigo (não uma corrida em
+      // andamento agora) — o Postgres serializa updates concorrentes na
+      // mesma linha, então a segunda requisição só reavalia esse WHERE
+      // depois que a primeira já commitou seu claim recente.
+      const staleClaimBefore = new Date(Date.now() - DISPATCH_CLAIM_STALE_MS)
+        .toISOString()
+        .replace(/\.\d+Z$/, 'Z');
+      let claimQuery = admin
         .from('events')
         .update({ email_campaign_dispatched_at: now })
-        .eq('id', eventId)
-        .is('email_campaign_dispatched_at', null)
+        .eq('id', eventId);
+      claimQuery = forceResend
+        ? claimQuery.or(
+            `email_campaign_dispatched_at.is.null,email_campaign_dispatched_at.lt.${staleClaimBefore}`
+          )
+        : claimQuery.is('email_campaign_dispatched_at', null);
+
+      const { data: claimed, error: claimErr } = await claimQuery
         .select('id,title,status')
         .maybeSingle();
 
       if (claimErr) throw claimErr;
       if (!claimed) {
-        return json({ skipped: true, reason: 'already_dispatched' });
+        return json({
+          skipped: true,
+          reason: forceResend ? 'dispatch_in_progress' : 'already_dispatched',
+        });
       }
       if (claimed.status !== 'active') {
         await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);

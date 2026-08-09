@@ -15,6 +15,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Janela de "claim recente" pro force_resend (ver Guard 3 abaixo). Uma
+// reenviada deliberada pelo admin acontece bem depois disso; uma corrida de
+// 2 cliques/2 abas fica dentro dela.
+const DISPATCH_CLAIM_STALE_MS = 15_000;
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -90,25 +95,28 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('EGOI_API_KEY');
     if (!apiKey) return json({ error: 'EGOI_API_KEY não configurada' }, 500);
 
-    // force_resend permite reenviar para eventos já anunciados (ex.: virada de
-    // lote de eventos que já tiveram e-mail individual disparado antes) —
-    // mesmo padrão do create-event-email-campaign sibling. Limpa ANTES do
-    // claim atômico abaixo.
-    if (forceResend) {
-      await admin
-        .from('events')
-        .update({ email_campaign_dispatched_at: null })
-        .in('id', eventIds);
-    }
-
-    // Guard 3: claim tudo-ou-nada dos N eventos.
+    // Guard 3: claim tudo-ou-nada dos N eventos — numa ÚNICA instrução SQL.
+    // Antes havia um UPDATE de reset incondicional (quando forceResend)
+    // seguido de um UPDATE de claim, em duas idas separadas ao banco — duas
+    // requisições de "reenviar" quase simultâneas podiam intercalar essas
+    // idas e cada uma "roubar" o claim da outra, disparando a campanha 2x
+    // pra lista inteira. Com forceResend, só reivindica eventos sem claim ou
+    // com claim já antigo (não uma corrida em andamento agora); mesmo
+    // raciocínio do create-event-email-campaign sibling.
     const now = new Date().toISOString();
-    const { data: claimed, error: claimErr } = await admin
+    const staleClaimBefore = new Date(Date.now() - DISPATCH_CLAIM_STALE_MS)
+      .toISOString()
+      .replace(/\.\d+Z$/, 'Z');
+    let claimQuery = admin
       .from('events')
       .update({ email_campaign_dispatched_at: now })
-      .in('id', eventIds)
-      .is('email_campaign_dispatched_at', null)
-      .select('id,title,status');
+      .in('id', eventIds);
+    claimQuery = forceResend
+      ? claimQuery.or(
+          `email_campaign_dispatched_at.is.null,email_campaign_dispatched_at.lt.${staleClaimBefore}`
+        )
+      : claimQuery.is('email_campaign_dispatched_at', null);
+    const { data: claimed, error: claimErr } = await claimQuery.select('id,title,status');
     if (claimErr) throw claimErr;
 
     const claimedRows = claimed ?? [];
