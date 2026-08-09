@@ -5,18 +5,28 @@
  * slim-down). Mantém 100% do comportamento: mesmos inputs, mesmos handlers
  * (via props), mesmo preview lateral.
  */
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Image as ImageIcon, Palette, RefreshCw, Save } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Image as ImageIcon, Monitor, Palette, RefreshCw, Save, Smartphone } from 'lucide-react';
 import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
 import type {
   EventAnnouncementData,
   EmailTemplateSettings,
 } from '@/lib/emailTemplates/eventAnnouncement';
 import type { Template } from '@/lib/emailTemplates/blocks';
+import type { EmailEventRow } from '@/lib/emailTemplates/emailComposer';
+import { contrastRatio } from '@/lib/colorContrast';
 
 type TplState = EmailTemplateSettings & { id?: string };
 
@@ -35,7 +45,13 @@ interface TemplateBrandTabProps {
   previewHtml: string;
   digestPreviewHtml: string;
   digestPreviewMeta: { subject?: string | null; preheader?: string | null } | null;
+  selectedRealEventId: string;
+  setSelectedRealEventId: (id: string) => void;
+  realEvents: Array<EmailEventRow & { blog_post_id: string | null }>;
 }
+
+/** Cores com contraste abaixo disso contra o fundo ficam quase ilegíveis. */
+const MIN_CONTRAST_AGAINST_BACKGROUND = 3;
 
 export function TemplateBrandTab({
   tpl,
@@ -50,7 +66,11 @@ export function TemplateBrandTab({
   previewHtml,
   digestPreviewHtml,
   digestPreviewMeta,
+  selectedRealEventId,
+  setSelectedRealEventId,
+  realEvents,
 }: TemplateBrandTabProps) {
+  const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
   return (
     <div className="grid gap-6 lg:grid-cols-[420px_1fr]">
       <div className="space-y-4">
@@ -118,23 +138,39 @@ export function TemplateBrandTab({
                 ['accent_color', 'Cor de acento'],
                 ['background_color', 'Fundo do e-mail'],
               ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="flex items-center gap-3">
-                <Label className="w-40 shrink-0">{label}</Label>
-                <input
-                  type="color"
-                  value={tpl[key] ?? '#000000'}
-                  onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
-                  className="h-9 w-14 rounded border cursor-pointer bg-transparent"
-                />
-                <Input
-                  value={tpl[key] ?? ''}
-                  onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
-                  placeholder="#a855f7"
-                  className="font-mono text-xs"
-                />
-              </div>
-            ))}
+            ).map(([key, label]) => {
+              const ratio =
+                key === 'background_color'
+                  ? null
+                  : contrastRatio(tpl[key] ?? '#000000', tpl.background_color ?? '#ffffff');
+              const lowContrast = ratio != null && ratio < MIN_CONTRAST_AGAINST_BACKGROUND;
+              return (
+                <div key={key} className="space-y-1">
+                  <div className="flex items-center gap-3">
+                    <Label className="w-40 shrink-0">{label}</Label>
+                    <input
+                      type="color"
+                      value={tpl[key] ?? '#000000'}
+                      onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
+                      className="h-9 w-14 rounded border cursor-pointer bg-transparent"
+                    />
+                    <Input
+                      value={tpl[key] ?? ''}
+                      onChange={(e) => setTpl({ ...tpl, [key]: e.target.value })}
+                      placeholder="#a855f7"
+                      className="font-mono text-xs"
+                    />
+                  </div>
+                  {lowContrast && (
+                    <p className="text-xs text-yellow-600 dark:text-yellow-400 pl-[172px]">
+                      ⚠️ Contraste baixo contra o fundo (
+                      {ratio!.toFixed(1)}
+                      :1 — recomendado 3:1+). Pode ficar difícil de ver.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
           </CardContent>
         </Card>
 
@@ -228,6 +264,52 @@ export function TemplateBrandTab({
           Preview da última versão <strong>salva</strong> do template (dados mock) — edições feitas
           na aba "Editor + Preview" sem clicar em Salvar não aparecem aqui.
         </div>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
+          {previewSource === 'event' ? (
+            <div className="flex items-center gap-2">
+              <Label className="text-xs whitespace-nowrap text-muted-foreground">
+                Simular com evento real
+              </Label>
+              <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
+                <SelectTrigger className="w-[220px] h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
+                  {realEvents.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>
+                      {e.title} · {e.date}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+            <Button
+              type="button"
+              size="sm"
+              variant={viewport === 'desktop' ? 'secondary' : 'ghost'}
+              className="h-7 px-2"
+              onClick={() => setViewport('desktop')}
+              title="Preview em largura de desktop"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={viewport === 'mobile' ? 'secondary' : 'ghost'}
+              className="h-7 px-2"
+              onClick={() => setViewport('mobile')}
+              title="Preview em largura de celular"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+            </Button>
+          </div>
+        </div>
         <InboxPreviewHeader
           subjectTemplate={activeTemplate?.subject_template}
           preheaderTemplate={activeTemplate?.preheader_template}
@@ -249,7 +331,9 @@ export function TemplateBrandTab({
           title="Template preview"
           srcDoc={previewSource !== 'event' ? digestPreviewHtml || previewHtml : previewHtml}
           sandbox=""
-          className="mx-auto block h-[820px] w-full max-w-[640px] rounded-md border-0 bg-white"
+          className={`mx-auto block h-[820px] w-full rounded-md border-0 bg-white transition-[max-width] ${
+            viewport === 'mobile' ? 'max-w-[390px]' : 'max-w-[640px]'
+          }`}
         />
       </div>
     </div>

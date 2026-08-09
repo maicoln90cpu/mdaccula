@@ -321,6 +321,9 @@ const EmailConfig = () => {
             previewHtml={previewHtml}
             digestPreviewHtml={digestPreviewHtml}
             digestPreviewMeta={digestPreviewMeta}
+            selectedRealEventId={selectedRealEventId}
+            setSelectedRealEventId={setSelectedRealEventId}
+            realEvents={realEvents}
           />
         </TabsContent>
 
