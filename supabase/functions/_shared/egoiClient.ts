@@ -51,10 +51,15 @@ export function egoiSendBodyIndicatesError(body: unknown): boolean {
  * Sem esse campo a E-goi responde 422 `segments.isEmpty` mesmo com list_id
  * correto — bug real de produção (campanhas nunca completavam o envio real).
  * `{ type: "none" }` (lista inteira, sem segmentação) está confirmado no
- * exemplo oficial da doc. `{ type: "segment", segment_id }` é best-effort —
- * a doc não expandiu essa variante na página consultada; se o envio com
- * segmento configurado falhar de novo especificamente em "segments", esse é
- * o próximo ponto a revalidar contra a doc oficial.
+ * exemplo oficial da doc (SendNone, e o mesmo shape usado em VoiceApi).
+ *
+ * `{ type: "segment", segment_id }` estava ERRADO — confirmado contra o SDK
+ * oficial (github.com/E-goi/sdk-javascript, docs/OSegmentsActionSend.md): o
+ * schema real pra type="segment" usa `data: string[]` (array de IDs), não
+ * `segment_id`. Isso fazia a E-goi responder 422 `data.isEmpty` toda vez que
+ * um envio usava um segmento específico (não o "toda a lista" padrão) — bug
+ * real de produção, achado em conferência ao vivo de 2026-08-09 ao investigar
+ * um erro no histórico da campanha "Keinemusik | 17/10".
  */
 export async function sendEgoiCampaign(
   campaignHash: string,
@@ -63,7 +68,7 @@ export async function sendEgoiCampaign(
   segmentId?: number | null,
 ): Promise<{ ok: boolean; status: number; body: unknown }> {
   const segments = segmentId
-    ? { type: "segment", segment_id: segmentId }
+    ? { type: "segment", data: [String(segmentId)] }
     : { type: "none" };
   const res = await egoiRequest(
     `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,

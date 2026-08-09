@@ -1,0 +1,61 @@
+// Regressão: até 2026-08-09 o edge function chamava um endpoint da E-goi
+// que não existe (GET /campaigns/email/{id}/statistics → 404 em toda
+// tentativa), então event_email_campaign_stats nunca era gravado e o
+// Dashboard de e-mails sempre mostrava métricas zeradas. O path correto,
+// confirmado contra os SDKs oficiais da E-goi (Python e Javascript), é
+// GET /reports/email/{campaign_hash}, cujo corpo mescla os campos do
+// schema EmailReportOverall no nível raiz: sends, opens, unique_opens,
+// clicks, unique_clicks, hard_bounces, soft_bounces, complaints,
+// unsubscriptions.
+import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
+import { parseStats } from './parseStats.ts';
+
+Deno.test('parseStats mapeia o shape real da E-goi (EmailReportOverall)', () => {
+  const result = parseStats({
+    campaign_hash: 'abc123',
+    sends: 100,
+    opens: 50,
+    unique_opens: 40,
+    clicks: 12,
+    unique_clicks: 8,
+    hard_bounces: 2,
+    soft_bounces: 1,
+    complaints: 0,
+    unsubscriptions: 1,
+  });
+
+  assertEquals(result.sent, 100);
+  assertEquals(result.bounces, 3);
+  assertEquals(result.delivered, 97);
+  assertEquals(result.opens_unique, 40);
+  assertEquals(result.opens_total, 50);
+  assertEquals(result.clicks_unique, 8);
+  assertEquals(result.clicks_total, 12);
+  assertEquals(result.unsubscribes, 1);
+  assertEquals(result.complaints, 0);
+  assertEquals(result.open_rate, +((40 / 97) * 100).toFixed(2));
+  assertEquals(result.click_rate, +((8 / 97) * 100).toFixed(2));
+});
+
+Deno.test('parseStats não quebra com corpo vazio/desconhecido', () => {
+  const result = parseStats({});
+  assertEquals(result.sent, 0);
+  assertEquals(result.delivered, 0);
+  assertEquals(result.open_rate, 0);
+  assertEquals(result.click_rate, 0);
+});
+
+Deno.test('index.ts usa o endpoint correto /reports/email/ (não .../statistics)', async () => {
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  const matches = src.match(/`\/reports\/email\/\$\{encodeURIComponent\([^)]+\)\}`/g) ?? [];
+  if (matches.length < 2) {
+    throw new Error(
+      `Esperava 2 chamadas para /reports/email/{id} (modo sync_all e modo campanha única), achou ${matches.length}. ` +
+        'Se o path mudou de novo, confirme contra o SDK oficial da E-goi antes de editar — ' +
+        'o path antigo (/campaigns/email/{id}/statistics) não existe e sempre retorna 404.',
+    );
+  }
+  if (src.includes('/statistics`')) {
+    throw new Error('index.ts ainda referencia o path quebrado .../statistics — regressão do bug de métricas zeradas.');
+  }
+});

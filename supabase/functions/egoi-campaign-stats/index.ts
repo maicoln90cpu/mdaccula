@@ -1,8 +1,15 @@
 // B.9 — Puxa métricas de uma campanha E-goi e persiste em event_email_campaign_stats.
 // Guards: auth admin, master switch ligado, campanha existe e tem egoi_campaign_id.
-// Endpoint E-goi v3: GET /campaigns/email/{campaign_id}/statistics
-//   https://developers.e-goi.com/api/v3/#tag/Email/operation/getEmailCampaignStatistics
+//
+// Endpoint E-goi v3: GET /reports/email/{campaign_hash} (tag "Reports", não
+// "Email" — confirmado via SDK oficial, github.com/E-goi/sdk-python,
+// egoi_api/paths/__init__.py: REPORTS_EMAIL_CAMPAIGN_HASH = "/reports/email/{campaign_hash}").
+// O path usado antes (/campaigns/email/{id}/statistics) não existe na API —
+// E-goi respondia 404 em toda tentativa, por isso stats_json nunca era
+// gravado pra nenhuma campanha (bug real, achado em conferência ao vivo de
+// 2026-08-09 via net.http_post direto na API com timeout maior).
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { parseStats } from './parseStats.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,45 +26,6 @@ async function egoiGet(path: string, apiKey: string) {
   let body: any = text;
   try { body = JSON.parse(text); } catch { /* keep raw */ }
   return { status: res.status, ok: res.ok, body };
-}
-
-/**
- * Normaliza a resposta da E-goi em um shape estável.
- * A API v3 costuma retornar campos como total, opens, unique_opens, clicks,
- * unique_clicks, bounces, unsubscribed, complaints. Fazemos best-effort com fallbacks.
- */
-function parseStats(raw: any) {
-  const src = raw?.data ?? raw ?? {};
-  const num = (v: any) => (typeof v === 'number' ? v : Number(v ?? 0) || 0);
-
-  const sent = num(src.total ?? src.sent ?? src.sends ?? src.delivered_total);
-  const delivered = num(src.delivered ?? src.total_delivered ?? sent);
-  const opens_unique = num(src.unique_opens ?? src.opens_unique ?? src.opens?.unique);
-  const opens_total = num(src.opens ?? src.opens?.total ?? opens_unique);
-  const clicks_unique = num(src.unique_clicks ?? src.clicks_unique ?? src.clicks?.unique);
-  const clicks_total = num(src.clicks ?? src.clicks?.total ?? clicks_unique);
-  const bounces = num(src.bounces ?? src.bounced ?? src.total_bounces);
-  const unsubscribes = num(src.unsubscribed ?? src.unsubscribes ?? src.total_unsubscribes);
-  const complaints = num(src.complaints ?? src.spam ?? 0);
-
-  const base = delivered || sent || 0;
-  const open_rate = base > 0 ? +(opens_unique / base * 100).toFixed(2) : 0;
-  const click_rate = base > 0 ? +(clicks_unique / base * 100).toFixed(2) : 0;
-
-  return {
-    sent,
-    delivered,
-    opens_unique,
-    opens_total,
-    clicks_unique,
-    clicks_total,
-    bounces,
-    unsubscribes,
-    complaints,
-    open_rate,
-    click_rate,
-    raw: src,
-  };
 }
 
 Deno.serve(async (req) => {
@@ -131,23 +99,34 @@ Deno.serve(async (req) => {
         .not('egoi_campaign_id', 'is', null)
         .gte('sent_at', since);
 
+      // Chamadas em lotes de 4 em paralelo — sequencial estourava o timeout
+      // do pg_net (5s por padrão) já com 9 campanhas (~17s reais), o que
+      // fazia o cron nunca terminar e stats_json nunca ser gravado.
+      const CONCURRENCY = 4;
       let ok = 0, fail = 0;
-      for (const c of campaigns ?? []) {
-        const res = await egoiGet(`/campaigns/email/${encodeURIComponent(c.egoi_campaign_id)}/statistics`, apiKey);
-        if (res.ok) {
-          const stats = parseStats(res.body);
-          await admin.from('event_email_campaign_stats').upsert(
-            {
-              campaign_id: c.id,
-              stats_json: stats,
-              fetched_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'campaign_id' },
-          );
-          ok++;
-        } else {
-          fail++;
+      const rows = campaigns ?? [];
+      for (let i = 0; i < rows.length; i += CONCURRENCY) {
+        const batch = rows.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map((c) => egoiGet(`/reports/email/${encodeURIComponent(c.egoi_campaign_id)}`, apiKey)),
+        );
+        for (let j = 0; j < batch.length; j++) {
+          const res = results[j];
+          if (res.ok) {
+            const stats = parseStats(res.body);
+            await admin.from('event_email_campaign_stats').upsert(
+              {
+                campaign_id: batch[j].id,
+                stats_json: stats,
+                fetched_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'campaign_id' },
+            );
+            ok++;
+          } else {
+            fail++;
+          }
         }
       }
       return json({ ok: true, synced: ok, failed: fail, total: campaigns?.length ?? 0 });
@@ -166,7 +145,7 @@ Deno.serve(async (req) => {
     const egoiId = egoiOverride || campaign.egoi_campaign_id;
     if (!egoiId) return json({ error: 'egoi_campaign_id ausente' }, 400);
 
-    const res = await egoiGet(`/campaigns/email/${encodeURIComponent(egoiId)}/statistics`, apiKey);
+    const res = await egoiGet(`/reports/email/${encodeURIComponent(egoiId)}`, apiKey);
     if (!res.ok) {
       return json({
         error: `E-goi ${res.status}`,

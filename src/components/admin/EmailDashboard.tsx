@@ -22,6 +22,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
+import { logger } from '@/lib';
 import { formatCount } from '@/lib/formatters';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { EMAIL_TYPE_LABELS } from '@/lib/emailTemplates/typeLabels';
@@ -335,11 +336,16 @@ export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
             body: { campaign_id: r.id },
           });
           if (error) throw error;
-          const res = data as { ok?: boolean; error?: string };
-          if (res?.ok) ok++;
-          else fail++;
-        } catch {
+          const res = data as { ok?: boolean; error?: string; detail?: string };
+          if (res?.ok) {
+            ok++;
+          } else {
+            fail++;
+            logger.warn('Falha ao atualizar métricas de campanha', { campaignId: r.id, error: res?.error, detail: res?.detail });
+          }
+        } catch (e: unknown) {
           fail++;
+          logger.warn('Erro ao chamar egoi-campaign-stats', { campaignId: r.id, error: e instanceof Error ? e.message : String(e) });
         }
         setRefreshProgress((prev) => (prev ? { ...prev, done: prev.done + 1 } : prev));
         // rate limit soft — 400ms entre chamadas
