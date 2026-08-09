@@ -18,7 +18,8 @@ export type PresetKey =
   | 'weekend_agenda_timeline'
   | 'blog_digest_cards'
   | 'blog_digest_editorial'
-  | 'courtesy';
+  | 'courtesy'
+  | 'event_promo';
 
 export function buildPresetBlocks(type: PresetKey): Block[] {
   const defaultSocials: SocialNetwork[] = [
@@ -437,6 +438,64 @@ export function buildPresetBlocks(type: PresetKey): Block[] {
           'Cortesias sujeitas à disponibilidade. Chegue cedo — a fila anda rápido.' +
           '</p>',
         align: 'center',
+      },
+      { id: newBlockId(), kind: 'divider' },
+      { id: newBlockId(), kind: 'social_icons', networks: defaultSocials },
+      { id: newBlockId(), kind: 'footer', include_unsubscribe: true },
+    ];
+  }
+
+  if (type === 'event_promo') {
+    return [
+      { id: newBlockId(), kind: 'header', logo_height: 60, align: 'center' },
+      { id: newBlockId(), kind: 'hero_image', max_width: 552, border_radius: 12 },
+      {
+        id: newBlockId(),
+        kind: 'eyebrow',
+        text: 'PROMOÇÃO RELÂMPAGO · HOJE',
+        align: 'left',
+        text_color: '#f43f5e',
+      },
+      { id: newBlockId(), kind: 'title', align: 'left', font_size: 30 },
+      { id: newBlockId(), kind: 'event_meta', layout: 'columns' },
+      {
+        id: newBlockId(),
+        kind: 'countdown',
+        label: 'Promoção termina em',
+        deadline_source: 'today_2359',
+        bg_style: 'gradient',
+        align: 'center',
+        size: 'large',
+      },
+      {
+        id: newBlockId(),
+        kind: 'text',
+        html:
+          '<p style="font-size:15px;line-height:1.55;margin:0 0 10px 0;">' +
+          '<strong>Desconto especial por tempo limitado.</strong> Descreva aqui a promoção ' +
+          '(ex.: 40% OFF só hoje, use o cupom X).' +
+          '</p>' +
+          '<p style="font-size:15px;line-height:1.55;margin:0;">' +
+          'Válido só até acabar o prazo acima — não perca.' +
+          '</p>',
+        align: 'left',
+      },
+      {
+        id: newBlockId(),
+        kind: 'ticker',
+        messages: ['Só hoje', 'Desconto por tempo limitado', 'Corre antes que acabe'],
+        animation: 'fade',
+        align: 'center',
+        icon: 'fire',
+      },
+      {
+        id: newBlockId(),
+        kind: 'cta_button',
+        label: 'Aproveitar promoção',
+        url_field: 'ticket_link',
+        align: 'center',
+        full_width: true,
+        bg_style: 'gradient',
       },
       { id: newBlockId(), kind: 'divider' },
       { id: newBlockId(), kind: 'social_icons', networks: defaultSocials },

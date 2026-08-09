@@ -14,6 +14,7 @@ export type TypeFilterKey =
   | 'blog_digest'
   | 'event_reminder'
   | 'courtesy'
+  | 'promo'
   | 'custom';
 
 export const TYPE_FILTER_ORDER: TypeFilterKey[] = [
@@ -25,6 +26,7 @@ export const TYPE_FILTER_ORDER: TypeFilterKey[] = [
   'blog_digest',
   'event_reminder',
   'courtesy',
+  'promo',
   'custom',
 ];
 
@@ -40,6 +42,7 @@ export const TYPE_FILTER_LABELS: Record<TypeFilterKey, string> = {
   blog_digest: EMAIL_TYPE_LABELS.blog_digest,
   event_reminder: EMAIL_TYPE_LABELS.event_reminder,
   courtesy: EMAIL_TYPE_LABELS.courtesy,
+  promo: EMAIL_TYPE_LABELS.promo,
   custom: EMAIL_TYPE_LABELS.custom,
 };
 

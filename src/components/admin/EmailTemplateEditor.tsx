@@ -107,6 +107,7 @@ export function EmailTemplateEditor({
       blog_digest: 0,
       event_reminder: 0,
       courtesy: 0,
+      promo: 0,
       custom: 0,
     };
     templates.forEach((t) => {

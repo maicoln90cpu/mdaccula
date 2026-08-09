@@ -759,7 +759,7 @@ CREATE TABLE public.email_templates (
   type TEXT NOT NULL CHECK (type IN (
     'event_new', 'ticket_batch', 'ticket_batch_multi', 'weekly_digest',
     'weekly_digest_editorial', 'weekend_agenda', 'courtesy', 'custom', 'blog_digest',
-    'event_reminder'
+    'event_reminder', 'promo'
   )),
   blocks JSONB NOT NULL DEFAULT '[]'::jsonb, -- estrutura em blocos editável no admin
   is_default BOOLEAN NOT NULL DEFAULT false,

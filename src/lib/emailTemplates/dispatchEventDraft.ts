@@ -193,7 +193,13 @@ export async function dispatchEventDraftEmail(
   // pois eventData não carrega weekendEvents/blogPosts/dedge. Sem esse filtro,
   // um template compartilhado entre digest e evento gera o erro
   // "Não há eventos para montar a agenda deste bloco" no envio manual.
-  const eventOnlyTemplateTypes = new Set(['event_new', 'event_reminder', 'last_hours', 'ticket_batch']);
+  const eventOnlyTemplateTypes = new Set([
+    'event_new',
+    'event_reminder',
+    'last_hours',
+    'ticket_batch',
+    'promo',
+  ]);
   if (resolvedBlocks && eventOnlyTemplateTypes.has(String(template.type))) {
     resolvedBlocks = resolvedBlocks.filter(
       (b) => !['weekend_grid', 'weekly_hero', 'blog_posts_list', 'dedge_block'].includes(b.kind)

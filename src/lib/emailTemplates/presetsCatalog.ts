@@ -12,7 +12,8 @@ export type TemplateType =
   | 'weekend_agenda'
   | 'courtesy'
   | 'custom'
-  | 'blog_digest';
+  | 'blog_digest'
+  | 'promo';
 
 export const TEMPLATE_PRESETS: Array<{
   key: PresetKey;
@@ -118,5 +119,14 @@ export const TEMPLATE_PRESETS: Array<{
     subject_template: '🎟️ Cortesia liberada — {{event_title}} (poucas vagas)',
     preheader_template: 'Cortesias limitadas para {{event_title}}. Garanta a sua antes que acabe.',
     template_type: 'courtesy',
+  },
+  {
+    key: 'event_promo',
+    name: 'Promoção',
+    description:
+      'Promoção pontual de um evento específico (ex.: desconto só hoje). Traz contagem regressiva e ticker de urgência, com um bloco de texto livre para descrever a promoção.',
+    subject_template: '🔥 Promoção relâmpago — {{event_title}}',
+    preheader_template: 'Desconto especial por tempo limitado. Corre antes que acabe.',
+    template_type: 'promo',
   },
 ];

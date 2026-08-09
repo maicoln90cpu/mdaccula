@@ -219,7 +219,9 @@ export function ManualSendTab(props: ManualSendTabProps) {
                               ? 'Virada (multi)'
                               : t.type === 'event_reminder'
                                 ? 'Lembrete'
-                                : 'Custom'}
+                                : t.type === 'promo'
+                                  ? 'Promoção'
+                                  : 'Custom'}
                     </SelectItem>
                   ))}
                 </SelectContent>

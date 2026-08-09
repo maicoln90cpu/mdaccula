@@ -29,5 +29,6 @@ export const EMAIL_TYPE_LABELS: Record<string, string> = {
   weekend_agenda: 'Agenda FDS',
   blog_digest: 'Blog news',
   courtesy: 'Cortesia',
+  promo: 'Promoção',
   custom: 'Custom',
 };

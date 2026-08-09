@@ -51,7 +51,8 @@ export type Template = {
     | 'courtesy'
     | 'custom'
     | 'blog_digest'
-    | 'event_reminder';
+    | 'event_reminder'
+    | 'promo';
   blocks: Block[];
   is_default?: boolean;
   subject_template?: string | null;
@@ -81,7 +82,7 @@ export const BLOCK_LABELS: Record<Block['kind'], string> = {
   text: 'Bloco de texto livre',
   social_icons: 'Redes sociais',
   weekend_grid: 'Agenda do fim de semana',
-  event_grid: 'Grid de eventos (2 colunas)',
+  event_grid: 'Grid de eventos (2 ou 3 colunas)',
   weekly_hero: 'Destaque da semana (hero)',
   blog_posts_list: 'Últimos posts do blog',
   dedge_block: 'Bloco Dedge (residência)',
@@ -105,7 +106,7 @@ export const AVAILABLE_BLOCKS: Block['kind'][] = [
   'spacing', // Espaçamento
   'eyebrow', // Etiqueta (texto pequeno)
   'hero_image', // Flyer do evento
-  'event_grid', // Grid de eventos (2 colunas)
+  'event_grid', // Grid de eventos (2 ou 3 colunas)
   'image_with_link', // Imagem com link
   'lineup', // Line-up do evento
   'secondary_link', // Link secundário

@@ -50,9 +50,15 @@ export function useManualBatch({
   const manualTemplates = useMemo(
     () =>
       templates.filter((template) =>
-        ['event_new', 'courtesy', 'ticket_batch', 'ticket_batch_multi', 'event_reminder', 'custom'].includes(
-          template.type
-        )
+        [
+          'event_new',
+          'courtesy',
+          'ticket_batch',
+          'ticket_batch_multi',
+          'event_reminder',
+          'promo',
+          'custom',
+        ].includes(template.type)
       ),
     [templates]
   );
@@ -126,6 +132,7 @@ export function useManualBatch({
       'event_reminder',
       'last_hours',
       'ticket_batch',
+      'promo',
     ]);
     if (eventOnlyTemplateTypes.has(String(selectedManualTemplate.type))) {
       blocks = blocks.filter(

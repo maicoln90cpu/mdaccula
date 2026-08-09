@@ -225,6 +225,7 @@ Deno.serve(async (req) => {
       weekly_digest: 'digest-semanal',
       weekly_digest_editorial: 'digest-editorial',
       weekend_agenda: 'agenda-fds',
+      promo: 'promocao',
     };
     const typeTag = typeTagMap[templateType] || 'evento-novo';
     const tags: string[] = ['mdaccula', typeTag];

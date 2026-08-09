@@ -18,6 +18,28 @@
 
 ## Entradas Detalhadas
 
+### Novo tipo de template de e-mail "Promoção" (desconto pontual por evento)
+**Descrição:** usuário pediu um template de e-mail dedicado a promoções pontuais de um evento específico (ex.: "40% off só hoje"), reaproveitando os blocos já existentes do editor — em especial o bloco de texto livre, onde o admin digita a copy específica do desconto. Também reportou que o bloco de texto não quebrava linha ao apertar Enter; investigação (com reprodução ao vivo no navegador, digitando e apertando Enter no editor real) confirmou que esse comportamento já havia sido corrigido pelo commit anterior (`a69d94e`, 08/08 — margem inline entre `<p>`s do Tiptap) e não reproduz mais — nenhuma alteração de código foi necessária ali.
+**Entrega:** novo tipo dedicado `email_templates.type = 'promo'` (migration alterando o `CHECK` da coluna) com preset `event_promo` em `TEMPLATE_PRESETS`: cabeçalho, flyer, etiqueta de destaque, título, data/hora/local, contagem regressiva (`countdown`, prazo configurável), bloco de texto livre para a copy da promoção, ticker de urgência, botão CTA, divisor, redes sociais e rodapé. Tipo propagado por toda a cadeia que já tratava tipos de template — filtro do editor (Passo 1), rótulos compartilhados, envio manual (lista + filtro de blocos exclusivos de evento único) e tag de campanha na E-goi (`promocao`). Testado de ponta a ponta no admin local: criação pelo preset, edição do bloco de texto, preview e listagem na aba de Envio Manual.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário, plano aprovado antes da execução)
+**Impacto:** baixo-médio (aditivo — não muda templates existentes; abre um novo tipo no editor e no envio manual)
+
+**Arquivos alterados:** `supabase/migrations/20260809130000_email_templates_promo_type.sql`, `src/lib/emailTemplates/presetBuilders.ts`, `src/lib/emailTemplates/presetsCatalog.ts`, `src/lib/emailTemplates/blocks.ts`, `src/lib/emailTemplates/typeLabels.ts`, `src/lib/emailTemplates/dispatchEventDraft.ts`, `src/components/admin/emailTemplateEditor/typeFilter.ts`, `src/components/admin/EmailTemplateEditor.tsx`, `src/components/admin/emailConfig/useManualBatch.ts`, `src/components/admin/emailConfig/ManualSendTab.tsx`, `supabase/functions/create-event-email-campaign/index.ts`, `src/__tests__/lib/presetBuilders-event-promo.test.ts`, `docs/tabelas.md`.
+
+---
+
+### Grid de eventos ganha título sobre a imagem, line-up e colunas configuráveis (2/3) + assunto multi-evento usa nomes reais (R-046)
+**Descrição:** usuário reportou que, nos templates "Virada de lote — múltiplos eventos" e "FDS sem taxa — múltiplos eventos", o assunto/H1 do e-mail sempre mostrava a frase genérica "N eventos com novo lote hoje" em vez dos nomes reais dos eventos selecionados, e que o grid de imagens não deixava o nome do evento claro o suficiente (queria ele em destaque, sobreposto à imagem, como nos templates de evento único). Pediu também poder escolher entre grid de 2 ou 3 colunas no editor.
+**Correção:** `buildMultiEventAnnouncementData` passou a compor o `eventTitle` a partir dos títulos reais dos eventos ("A", "A e B", "A, B e C"), com fallback por tamanho pro assunto de e-mail (nomes longos caem em "PrimeiroTítulo e mais N eventos" e, no limite, na frase genérica antiga — nunca estoura o assunto); o override manual existente (R-037) continua tendo prioridade. Os cards do grid (`event_grid` e `weekend_grid` no layout "grid") ganharam um helper de renderização compartilhado: título sobreposto à imagem (mesma técnica de gradiente CSS já usada em `weekly_hero`, sem overlay real via `background`/VML — risco de quebrar no Outlook desktop), uma nova linha de line-up em chips compactos (reaproveitando o campo `events.lineup`, que já existia mas não chegava até o grid), e largura de coluna dinâmica (2 ou 3, configurável no editor, com fallback padrão de 2 pra templates salvos sem o campo).
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário, plano aprovado antes da execução)
+**Impacto:** médio-alto (visual de todo envio "múltiplos eventos" muda; assunto/H1 passa a mostrar informação real em vez de texto genérico)
+
+**Arquivos alterados:** `supabase/functions/_shared/emailComposer.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, `supabase/functions/_shared/emailBlocks/types.ts`, `supabase/functions/_shared/emailBlocksLimits.ts`, `supabase/functions/weekly-digest-draft/index.ts`, `supabase/functions/_shared/weeklyDigestDraft/buildEventPayload.ts`, `supabase/functions/_shared/weeklyDigestDraft/legacyHtml.ts`, `src/components/admin/emailTemplateEditor/blockPropsPanel/digestProps.tsx`, `src/components/admin/emailTemplateEditor/blockDefaults.ts`, `src/lib/emailTemplates/blocks.ts`, `docs/TESTING.md` (R-046).
+
+---
+
 ### Automação "Lembrete de evento" volta a disparar sozinha pelo cron (R-045)
 **Descrição:** achado durante a auditoria de documentação de 09/08/2026 (comparando `list_edge_functions` do MCP contra `supabase/config.toml`): `send-event-reminder-campaigns` não tinha entrada em `config.toml`, então caía no padrão do gateway do Supabase (`verify_jwt: true`) — o cron (que só manda `x-cron-secret`, sem JWT) era bloqueado com 401 *antes* do código da function rodar. Na prática, a automação nunca disparava sozinha.
 **Correção:** `[functions.send-event-reminder-campaigns]` + `verify_jwt = false` adicionado em `supabase/config.toml`, igual ao padrão de todas as outras functions de cron/webhook do projeto. Aproveitado pra deixar o comentário do arquivo explícito sobre esse padrão, pra não se repetir em functions futuras.
@@ -914,6 +936,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 09/08 | Feature | Novo tipo de template de e-mail "Promoção" (desconto pontual por evento) |
 | 09/08 | Bugfix | Automação "Lembrete de evento" volta a disparar sozinha pelo cron (R-045) |
 | 09/08 | Feature | Blog news no Dashboard de e-mails + contagem real de contatos por segmento + tooltips legíveis (R-042 a R-044) |
 | 09/08 | Bugfix | Métricas E-goi zeradas + envio pra segmento específico com 422 (R-040, R-041) |
