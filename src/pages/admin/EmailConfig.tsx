@@ -47,6 +47,13 @@ const EmailConfig = () => {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [editorDirty, setEditorDirty] = useState(false);
+  const [historyFocus, setHistoryFocus] = useState<{ eventTitle: string; token: number } | null>(
+    null
+  );
+  const handleViewInHistory = (eventTitle: string) => {
+    setHistoryFocus((prev) => ({ eventTitle, token: (prev?.token ?? 0) + 1 }));
+    handleTabChange('eventos');
+  };
 
   // Automações — estado + handlers encapsulados no hook `useEmailAutomation` (Fase C).
   const {
@@ -271,7 +278,7 @@ const EmailConfig = () => {
 
         {/* ================= DASHBOARD ================= */}
         <TabsContent value="dashboard" className="space-y-6">
-          <EmailDashboard />
+          <EmailDashboard onViewInHistory={handleViewInHistory} />
         </TabsContent>
 
         {/* ================= CONFIGURAÇÃO ================= */}
@@ -496,6 +503,7 @@ const EmailConfig = () => {
               setBatchEventId(eventId);
               setActiveTab('batch');
             }}
+            focusRequest={historyFocus}
           />
         </TabsContent>
       </Tabs>

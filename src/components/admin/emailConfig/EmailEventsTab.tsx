@@ -7,7 +7,7 @@
  * (todas as campanhas, métricas sob demanda, teste A/B, liberar reenvio).
  * "Eventos sem rascunho" é apenas o filtro de status "Não disparado".
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Table,
@@ -33,17 +33,36 @@ interface EmailEventsTabProps {
   templates: Template[];
   masterEnabled: boolean;
   prepareManualSend: (eventId: string) => void;
+  /**
+   * Setado pelo Dashboard ao clicar num evento na tabela de detalhe (link
+   * "ver no Histórico"). `token` muda a cada clique — inclusive pro mesmo
+   * evento — pra garantir que o efeito reaplique a busca mesmo se o admin
+   * já tiver alterado os filtros manualmente entre um clique e outro.
+   */
+  focusRequest?: { eventTitle: string; token: number } | null;
 }
 
 export function EmailEventsTab({
   templates,
   masterEnabled,
   prepareManualSend,
+  focusRequest,
 }: EmailEventsTabProps) {
   const [period, setPeriod] = useState<PeriodFilter>('next30');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
+  // Deep-link vindo do Dashboard: busca pelo título e abre "Todos" (±5
+  // anos) pra garantir que o evento apareça mesmo fora do período/status
+  // atualmente selecionados.
+  useEffect(() => {
+    if (!focusRequest) return;
+    setSearch(focusRequest.eventTitle);
+    setPeriod('all');
+    setStatusFilter('all');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusRequest?.token]);
 
   const { data, isLoading, isFetching, refetch } = useEmailEventsData(period);
   const {

@@ -61,10 +61,16 @@ const TYPE_LABEL = EMAIL_TYPE_LABELS;
 const rateFmt = (n: number | null | undefined) =>
   n == null || !Number.isFinite(n) ? '—' : `${(n * 100).toFixed(1)}%`;
 
-export function EmailDashboard() {
+interface EmailDashboardProps {
+  /** Leva o admin pra aba Histórico já filtrada por esse título de evento. */
+  onViewInHistory?: (eventTitle: string) => void;
+}
+
+export function EmailDashboard({ onViewInHistory }: EmailDashboardProps = {}) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<Row[]>([]);
+  const [previousRows, setPreviousRows] = useState<Row[]>([]);
   const [refreshingAll, setRefreshingAll] = useState(false);
   const [period, setPeriod] = useState<Period>('30');
   const [customFrom, setCustomFrom] = useState<string>('');
@@ -85,6 +91,15 @@ export function EmailDashboard() {
     from.setDate(from.getDate() - days);
     return { from, to: now };
   }, [period, customFrom, customTo]);
+
+  // Período anterior, com a MESMA duração, imediatamente antes do atual —
+  // usado só pra calcular a variação % mostrada nos KPIs.
+  const previousRange = useMemo(() => {
+    const durationMs = range.to.getTime() - range.from.getTime();
+    const to = new Date(range.from.getTime() - 1);
+    const from = new Date(to.getTime() - durationMs);
+    return { from, to };
+  }, [range]);
 
   const load = useCallback(async () => {
     const requestId = ++loadRequestIdRef.current;
@@ -148,6 +163,62 @@ export function EmailDashboard() {
     void load();
   }, [load]);
 
+  // Carga leve do período anterior — só pra comparação de variação % nos
+  // KPIs, não precisa de event_title nem de junção com `events`.
+  const prevLoadRequestIdRef = useRef(0);
+  const loadPrevious = useCallback(async () => {
+    const requestId = ++prevLoadRequestIdRef.current;
+    try {
+      const { data: camps, error } = await supabase
+        .from('event_email_campaigns')
+        .select('id,campaign_type,sent_at')
+        .eq('status', 'sent')
+        .gte('sent_at', previousRange.from.toISOString())
+        .lte('sent_at', previousRange.to.toISOString())
+        .neq('campaign_type', 'manual')
+        .limit(500);
+      if (requestId !== prevLoadRequestIdRef.current) return;
+      if (error) throw error;
+
+      const ids = (camps ?? []).map((c) => c.id);
+      const statsMap = new Map<string, CampaignStats>();
+      if (ids.length > 0) {
+        const { data: stats } = await supabase
+          .from('event_email_campaign_stats')
+          .select('campaign_id, stats_json')
+          .in('campaign_id', ids);
+        if (requestId !== prevLoadRequestIdRef.current) return;
+        for (const s of stats ?? []) {
+          statsMap.set(s.campaign_id, s.stats_json as CampaignStats);
+        }
+      }
+
+      setPreviousRows(
+        (camps ?? []).map((c) => ({
+          id: c.id,
+          event_id: '',
+          egoi_campaign_id: null,
+          status: 'sent',
+          mode: '',
+          campaign_type: c.campaign_type,
+          sent_at: c.sent_at,
+          created_at: c.sent_at ?? '',
+          event_title: null,
+          stats: statsMap.get(c.id) ?? null,
+          fetched_at: null,
+        }))
+      );
+    } catch {
+      // Comparação é só um extra visual — falha aqui não deve gerar toast
+      // nem bloquear o resto do dashboard.
+      if (requestId === prevLoadRequestIdRef.current) setPreviousRows([]);
+    }
+  }, [previousRange.from, previousRange.to]);
+
+  useEffect(() => {
+    void loadPrevious();
+  }, [loadPrevious]);
+
   const filtered = useMemo(
     () =>
       typeFilter === 'all'
@@ -156,8 +227,19 @@ export function EmailDashboard() {
     [rows, typeFilter]
   );
 
-  const kpis = useMemo(() => {
-    const total = filtered.length;
+  const previousFiltered = useMemo(
+    () =>
+      typeFilter === 'all'
+        ? previousRows
+        : previousRows.filter((r) => (r.campaign_type || 'standard') === typeFilter),
+    [previousRows, typeFilter]
+  );
+
+  // withStats conta quantas campanhas do filtro já têm métrica coletada
+  // (não é o total do período — ver o contador "X/Y campanhas com métricas"
+  // na barra de ações).
+  function aggregate(list: Row[]) {
+    const total = list.length;
     let sent = 0,
       delivered = 0,
       opens = 0,
@@ -165,9 +247,7 @@ export function EmailDashboard() {
       bounces = 0,
       unsubs = 0;
     let withStats = 0;
-    let openRateSum = 0,
-      clickRateSum = 0;
-    for (const r of filtered) {
+    for (const r of list) {
       if (!r.stats) continue;
       withStats++;
       sent += r.stats.sent ?? 0;
@@ -176,9 +256,12 @@ export function EmailDashboard() {
       clicks += r.stats.clicks_unique ?? 0;
       bounces += r.stats.bounces ?? 0;
       unsubs += r.stats.unsubscribes ?? 0;
-      openRateSum += r.stats.open_rate ?? 0;
-      clickRateSum += r.stats.click_rate ?? 0;
     }
+    // Taxa PONDERADA por volume (soma de aberturas/cliques dividida pela
+    // soma de entregues) — antes era a média aritmética das taxas por
+    // campanha, o que dava o mesmo peso pra uma campanha de 50 contatos e
+    // uma de 5.000.
+    const rateBase = delivered > 0 ? delivered : sent;
     return {
       total,
       withStats,
@@ -188,10 +271,19 @@ export function EmailDashboard() {
       clicks,
       bounces,
       unsubs,
-      openRateAvg: withStats > 0 ? openRateSum / withStats : null,
-      clickRateAvg: withStats > 0 ? clickRateSum / withStats : null,
+      openRateAvg: rateBase > 0 ? opens / rateBase : null,
+      clickRateAvg: rateBase > 0 ? clicks / rateBase : null,
     };
-  }, [filtered]);
+  }
+
+  const kpis = useMemo(() => aggregate(filtered), [filtered]);
+  const previousKpis = useMemo(() => aggregate(previousFiltered), [previousFiltered]);
+
+  /** "+12%"/"-8%"/null (sem base de comparação). */
+  function variancePct(current: number, previous: number): number | null {
+    if (previous <= 0) return current > 0 ? null : 0;
+    return ((current - previous) / previous) * 100;
+  }
 
   const chartData = useMemo(() => {
     // Envios agrupados por dia
@@ -355,26 +447,39 @@ export function EmailDashboard() {
 
       {/* KPIs */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Kpi icon={Mail} label="Campanhas enviadas" value={formatCount(kpis.total)} />
+        <Kpi
+          icon={Mail}
+          label="Campanhas enviadas"
+          value={formatCount(kpis.total)}
+          delta={variancePct(kpis.total, previousKpis.total)}
+        />
         <Kpi
           icon={Mail}
           label="Contatos alcançados"
           value={formatCount(kpis.sent)}
           sub={`entregues: ${formatCount(kpis.delivered)}`}
+          delta={variancePct(kpis.sent, previousKpis.sent)}
         />
         <Kpi
           icon={Eye}
           label="Aberturas únicas"
           value={formatCount(kpis.opens)}
-          sub={`taxa média: ${rateFmt(kpis.openRateAvg)}`}
+          sub={`taxa geral: ${rateFmt(kpis.openRateAvg)}`}
+          delta={variancePct(kpis.opens, previousKpis.opens)}
         />
         <Kpi
           icon={MousePointerClick}
           label="Cliques únicos"
           value={formatCount(kpis.clicks)}
-          sub={`taxa média: ${rateFmt(kpis.clickRateAvg)}`}
+          sub={`taxa geral: ${rateFmt(kpis.clickRateAvg)}`}
+          delta={variancePct(kpis.clicks, previousKpis.clicks)}
         />
       </div>
+      <p className="text-xs text-muted-foreground -mt-2">
+        Variação vs. os {Math.max(1, Math.round((range.to.getTime() - range.from.getTime()) / 86400000))}{' '}
+        dia(s) imediatamente anteriores ao período selecionado. "Taxa geral" é ponderada pelo
+        volume de cada campanha (soma ÷ soma), não a média simples entre elas.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Kpi icon={AlertTriangle} label="Bounces" value={formatCount(kpis.bounces)} />
         <Kpi icon={AlertTriangle} label="Descadastros" value={formatCount(kpis.unsubs)} />
@@ -475,7 +580,20 @@ export function EmailDashboard() {
                           {TYPE_LABEL[r.campaign_type || 'standard'] ?? r.campaign_type}
                         </Badge>
                       </td>
-                      <td className="pr-3 max-w-[280px] truncate">{r.event_title ?? '—'}</td>
+                      <td className="pr-3 max-w-[280px] truncate">
+                        {r.event_title && onViewInHistory ? (
+                          <button
+                            type="button"
+                            onClick={() => onViewInHistory(r.event_title!)}
+                            className="hover:underline hover:text-primary text-left"
+                            title="Ver este evento na aba Histórico e controle"
+                          >
+                            {r.event_title}
+                          </button>
+                        ) : (
+                          (r.event_title ?? '—')
+                        )}
+                      </td>
                       <td className="pr-3 text-right tabular-nums">{formatCount(r.stats?.sent)}</td>
                       <td className="pr-3 text-right tabular-nums">
                         {formatCount(r.stats?.opens_unique)}
@@ -515,19 +633,39 @@ function Kpi({
   label,
   value,
   sub,
+  delta,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub?: string;
+  /** % de variação vs. o período anterior — null quando não há base de comparação. */
+  delta?: number | null;
 }) {
+  const deltaLabel =
+    delta == null
+      ? null
+      : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '—'} ${Math.abs(delta).toFixed(0)}%`;
+  const deltaColor =
+    delta == null || delta === 0
+      ? 'text-muted-foreground'
+      : delta > 0
+        ? 'text-emerald-600 dark:text-emerald-400'
+        : 'text-red-600 dark:text-red-400';
   return (
     <Card>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-            <p className="text-2xl font-semibold mt-1 tabular-nums">{value}</p>
+            <div className="flex items-baseline gap-2">
+              <p className="text-2xl font-semibold mt-1 tabular-nums">{value}</p>
+              {deltaLabel && (
+                <span className={`text-xs font-medium ${deltaColor}`} title="vs. período anterior">
+                  {deltaLabel}
+                </span>
+              )}
+            </div>
             {sub && <p className="text-xs text-muted-foreground mt-1">{sub}</p>}
           </div>
           <div className="p-2 rounded-lg bg-primary/10 text-primary">
