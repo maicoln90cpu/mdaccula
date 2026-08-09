@@ -824,7 +824,11 @@ CREATE TRIGGER update_egoi_config_updated_at
 -- evento específico, com suporte a teste A/B.
 CREATE TABLE public.event_email_campaigns (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  event_id UUID NOT NULL REFERENCES public.events(id) ON DELETE CASCADE,
+  -- event_id aceita NULL desde 09/08/2026 (migration
+  -- 20260809120000_event_email_campaigns_event_id_nullable.sql) — automações
+  -- sem evento associado (blog-digest-draft) gravam uma linha com event_id
+  -- null em vez de ficarem invisíveis no histórico. Ver R-044 em TESTING.md.
+  event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
   egoi_campaign_id TEXT,
   status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sent', 'failed')),
   mode TEXT NOT NULL DEFAULT 'draft' CHECK (mode IN ('draft', 'immediate', 'scheduled', 'manual')),

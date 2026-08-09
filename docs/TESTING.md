@@ -409,6 +409,42 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `blockDefaults.ts` agora nasce com `text: ''`; `textProps.tsx` ganhou um placeholder visual pra guiar o admin; `renderBlock/basic.ts` não renderiza mais nada quando o eyebrow está vazio (em vez de inventar texto). Conteúdo dos 4 templates de produção citados acima corrigido diretamente via SQL (preheader reescrito, `text_override` de teste removido, mensagem "sem taxa" unificada, concordância de gênero corrigida, duplicata apagada).
 - **Proteção:** `src/__tests__/regression/email-eyebrow-default-context-mismatch.test.ts` (guarda estática — falha se o default do editor ou o fallback do backend voltarem a usar "Novo evento") + `supabase/functions/_shared/emailBlocks_test.ts` (2 novos casos: eyebrow sem texto, ou só espaços, não renderiza nada).
 
+### R-040 — Métricas E-goi sempre zeradas no Dashboard de e-mails
+- **Quando:** agosto/2026 (usuário reportou logo no primeiro acesso ao Dashboard após a auditoria de 17 fases: "as metricas de abertura etc do egoi estao tudo zeradas")
+- **Sintoma:** `event_email_campaign_stats.stats_json` nunca era gravado pra campanha nenhuma — o Dashboard sempre mostrava 0 aberturas/cliques mesmo com campanhas realmente enviadas.
+- **Causa:** `egoi-campaign-stats/index.ts` chamava `GET /campaigns/email/{id}/statistics`, um endpoint que não existe na API v3 da E-goi (404 em toda tentativa — confirmado contra os SDKs oficiais `E-goi/sdk-python` e `E-goi/sdk-javascript`; o path real é `GET /reports/email/{campaign_hash}`). Além disso, o cron de sincronização (a cada 6h) chamava a função sequencialmente por campanha sem `timeout_milliseconds` explícito no `net.http_post`, estourando o timeout padrão de 5s do pg_net antes de completar — mesmo corrigindo o endpoint, o cron nunca teria tempo de terminar. Por fim, mesmo com o endpoint certo, os campos de `EmailReportOverall` vêm aninhados sob a chave `overall` na resposta real (`{ campaign_hash, overall: { sends, opens, ... } }`), não no nível raiz como a tipagem `allOf` do SDK sugeria.
+- **Correção:** path trocado pra `/reports/email/{hash}`; `parseStats.ts` lê de `overall` (com fallback pro nível raiz); loop `sync_all` passou a rodar em lotes de 4 em paralelo; migration reagenda o cron com `timeout_milliseconds: 60000`.
+- **Proteção:** `supabase/functions/egoi-campaign-stats/parseStats_test.ts` (mapeamento do shape real + guarda estática contra o path antigo).
+
+### R-041 — Envio pra um segmento específico (não "toda a lista") falhava 422 `data.isEmpty`
+- **Quando:** agosto/2026, achado no histórico real da campanha "Keinemusik | 17/10" durante a investigação do R-040
+- **Sintoma:** toda campanha enviada escolhendo um segmento específico (qualquer coisa diferente do padrão "toda a lista") falhava silenciosamente com erro 422 da E-goi.
+- **Causa:** `sendEgoiCampaign()` (`_shared/egoiClient.ts`, compartilhado por 9 edge functions de disparo) montava `{ type: "segment", segment_id: segmentId }`, mas o schema real da E-goi pra esse tipo de segmento usa `{ type: "segment", data: [string] }` — confirmado contra `docs/OSegmentsActionSend.md` do `E-goi/sdk-javascript`.
+- **Correção:** `segments = { type: "segment", data: [String(segmentId)] }`.
+- **Proteção:** `supabase/functions/_shared/egoiClient_test.ts` (2 casos: com segmento e sem segmento, checando o corpo exato enviado).
+
+### R-042 — Tooltip dos gráficos (Recharts) ilegível no tema escuro
+- **Quando:** agosto/2026, achado pelo usuário no Dashboard de e-mails ("nao consigo ver os dados ao passar o mouse")
+- **Sintoma:** `<Tooltip />` puro do Recharts renderiza com fundo branco/inline por padrão; como o app aplica `text-foreground` (quase branco) globalmente, o texto do tooltip ficava invisível — texto quase-branco sobre fundo branco. O mesmo bug existia em `Analytics.tsx` (público) e nos gráficos de pizza de `AIAnalyticsDashboard.tsx`.
+- **Causa:** uso direto do `<Tooltip />` do Recharts sem nenhum estilo, em vez do componente compartilhado `ChartTooltip`/`ChartTooltipContent` (`@/components/ui/chart`, já correto e usado em `egressMonitor/*`).
+- **Correção:** `EmailDashboard.tsx` e `Analytics.tsx` passaram a usar `ChartTooltip`/`ChartTooltipContent`; `AIAnalyticsDashboard.tsx` ganhou o mesmo `contentStyle` com tokens que os gráficos de barra/linha do próprio arquivo já usavam.
+- **Proteção:** `src/__tests__/regression/email-dashboard-chart-tooltip-tokens.test.ts`.
+
+### R-043 — "Alcance estimado" nunca mostrava a contagem de contatos de um segmento
+- **Quando:** agosto/2026, achado pelo usuário na aba Configuração
+- **Sintoma:** ao escolher um segmento específico, "Alcance estimado" sempre ficava em "—".
+- **Causa:** o objeto "Segment" da E-goi (`GET /lists/{id}/segments`) nunca inclui contagem de contatos — confirmado contra `docs/Segment.md` do SDK oficial (só `type`, `segmentId`, `name`, `created`, `updated`, `segmentFilter`). O código tentava adivinhar 4 nomes de campo diferentes nessa resposta e sempre caía em `null`. Depois de trocar pro endpoint certo (`GET /lists/{id}/contacts/segment/{segmentId}`), ainda caía em `null` porque o SDK documenta o campo como `totalItems` (camelCase, artefato do gerador OpenAPI), mas a resposta HTTP real usa `total_items` (snake_case). O total da LISTA inteira (`GET /lists/{id}`) tinha o mesmo problema: o total vem aninhado em `stats.total_contacts`, não no nível raiz.
+- **Correção:** `egoi-resources/index.ts` passou a chamar `GET /lists/{id}/contacts/segment/{segmentId}?limit=1` por segmento (função extraída em `segmentCounts.ts`), lendo `total_items`; o total da lista passou a ler `stats.total_contacts` primeiro.
+- **Proteção:** `supabase/functions/egoi-resources/segmentCounts_test.ts`.
+
+### R-044 — Automação "Blog news" nunca aparecia no Dashboard de e-mails
+- **Quando:** agosto/2026, pedido de melhoria do usuário ("colocar no dashboard as metricas de todos os emails enviados em automacoes")
+- **Sintoma:** Digest semanal, Agenda do FDS e Lembrete de evento já apareciam no Dashboard (a consulta não filtra por tipo), mas Blog news nunca aparecia, mesmo quando o e-mail era criado/enviado normalmente na E-goi.
+- **Causa:** `blog-digest-draft/index.ts` nunca chamava `writeDigestCampaignHistory()` — não tinha como, já que essa automação não é ligada a um evento específico (agrega posts do blog) e `event_email_campaigns.event_id` era `NOT NULL`. Era a única das 4 automações sem nenhum caminho de escrita nessa tabela.
+- **Correção:** migration remove o `NOT NULL` de `event_id`; `writeDigestCampaignHistory` (compartilhada com `weekly-digest-draft`/`weekend-agenda-draft`) passou a gravar 1 linha com `event_id = null` quando não há eventos, em vez de não gravar nada (corrige de brinde o caso latente de uma semana sem nenhum evento nos outros dois); `blog-digest-draft` passou a chamar essa função nos 3 pontos de saída (falha ao criar, falha ao enviar, sucesso).
+- **Nota:** Digest semanal e Agenda do FDS têm o registro de histórico ligado desde 08/08/2026 mas só rodam semanalmente (terça e quinta) — não é bug elas ainda não terem nenhuma linha gravada logo depois disso, só não bateu o primeiro ciclo ainda.
+- **Proteção:** `supabase/functions/_shared/digestCampaignHistory_test.ts` (atualizado) + `supabase/functions/blog-digest-draft/historyWiring_test.ts`.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

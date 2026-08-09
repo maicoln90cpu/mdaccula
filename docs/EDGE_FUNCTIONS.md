@@ -1,14 +1,16 @@
 # Edge Functions
 
-Índice de referência das 57 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase.
+Índice de referência das 58 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 09/08/2026.
 
-**Todas as 57 têm `verify_jwt: false`** no gateway do Supabase — o gateway não exige JWT antes de invocar nenhuma delas. Isso significa que a autenticação real de cada function é feita manualmente dentro do próprio código: lendo o header `Authorization` e validando via `supabase.auth.getUser()` + RPC `has_role()`, checando um `x-cron-secret` contra `CRON_SHARED_SECRET`/tabela `internal_cron_secrets`, ou sendo deliberadamente pública/anônima (tracking, SEO, LGPD). A coluna **Auth** abaixo documenta o que cada function realmente faz — não o que o gateway faz.
+**57 das 58 têm `verify_jwt: false`** no gateway do Supabase — o gateway não exige JWT antes de invocar nenhuma delas. Isso significa que a autenticação real de cada function é feita manualmente dentro do próprio código: lendo o header `Authorization` e validando via `supabase.auth.getUser()` + RPC `has_role()`, checando um `x-cron-secret` contra `CRON_SHARED_SECRET`/tabela `internal_cron_secrets`, ou sendo deliberadamente pública/anônima (tracking, SEO, LGPD). A coluna **Auth** abaixo documenta o que cada function realmente faz — não o que o gateway faz. **Exceção: `send-event-reminder-campaigns` está com `verify_jwt: true`** (não tem entrada em `supabase/config.toml`, então cai no padrão) — ver gap abaixo.
 
 Deploy é automático via GitHub Actions (`.github/workflows/deploy-edge-functions.yml`, CLI oficial da Supabase) a cada push em `main` que toque `supabase/functions/**` — nunca usar o deployer da Lovable UI nem o tool MCP `deploy_edge_function` como caminho normal (bug conhecido que derruba imports de `_shared/` do bundle).
 
-## ⚠️ Gap encontrado nesta auditoria
+## ⚠️ Gaps encontrados
 
 Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de autenticação no código** (o gateway já não exige JWT, e o código também não valida admin/cron secret): `send-mass-newsletter`, `import-csv-data`, `diagnose-media`, `send-podcast-notification`, `cleanup-storage`, `cleanup-sync-logs`, `auto-article-cron`, `create-recurring-events`, todas as `generate-*` de conteúdo IA, `batch-convert-webp`, `convert-to-webp`, `compose-event-image`, `regenerate-blog-image`, `fetch-link-metadata`, `import-storage`, `systemhealth`. Na prática, qualquer pessoa que descobrir a URL da function consegue chamá-la. Registrado em `docs/PENDENCIAS.md` como bug conhecido — não corrigido nesta rodada de documentação (é uma mudança de código, fora do escopo desta auditoria).
+
+**`send-event-reminder-campaigns` sem `verify_jwt = false` em `supabase/config.toml`** (achado em 09/08/2026, comparando `list_edge_functions` do MCP contra `config.toml`): sem essa entrada, o próximo deploy sempre volta pro padrão do gateway (`verify_jwt: true`), que exige um JWT válido *antes* do código da function rodar. Isso bloqueia a chamada do cron (que só manda `x-cron-secret`, sem JWT nenhum) com 401 no gateway — confirmado ao vivo via `get_logs` (`POST | 401 | .../send-event-reminder-campaigns`, 09/08/2026 04:05 UTC). Na prática, a automação "Lembrete de evento" nunca dispara pelo cron. Registrado em `docs/PENDENCIAS.md` como bug conhecido — não corrigido nesta rodada (fora do escopo do pedido do usuário, que foi só atualizar a documentação).
 
 ---
 
@@ -29,20 +31,20 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | create-event-email-campaign | Cria/atualiza rascunho de campanha E-goi para 1 evento (suporta A/B test e agendamento) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | create-multi-event-email-campaign | Cria 1 campanha E-goi cobrindo N eventos, com claim atômico tudo-ou-nada | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | daily-metrics-email | Cron diário (08h BRT): coleta métricas do dia anterior e envia resumo por e-mail via Resend | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
-| egoi-campaign-stats | Puxa estatísticas de uma campanha E-goi e persiste em `event_email_campaign_stats` | Frontend (admin) / Cron | Admin ou cron secret | Próprio (inline) |
-| egoi-curl-probe | Function descartável de debug: testa variações de header de auth contra a API E-goi | Frontend (admin, dev only) | Nenhuma | Próprio (inline) |
-| egoi-resources | Retorna listas, remetentes e segmentos da conta E-goi (somente leitura) | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| egoi-campaign-stats | Puxa estatísticas de uma campanha E-goi (`GET /reports/email/{hash}`) e persiste em `event_email_campaign_stats` | Frontend (admin) / Cron | Admin ou cron secret | Próprio (inline) |
+| egoi-curl-probe | Function descartável de debug: testa variações de header de auth contra a API E-goi. Nunca foi removida — candidata a limpeza (ver `docs/PENDENCIAS.md`) | Frontend (admin, dev only) | Nenhuma | Próprio (inline) |
+| egoi-resources | Retorna listas, remetentes e segmentos da conta E-goi (somente leitura), incluindo contagem real de contatos por lista/segmento (`GET /lists/{id}/contacts/segment/{id}`) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | send-automation-campaign-now | Dispara envio real de um rascunho de automação (digest/agenda/blog) já criado na E-goi | Frontend (admin) | Admin ou cron secret | Padrão `_shared` |
 | send-contact-email | Envia e-mail do formulário de contato do site via Resend | Frontend (anônimo) | Público (rate limit por IP) | Próprio (inline) |
 | send-mass-newsletter | Envia e-mail em massa via Resend para uma lista de destinatários | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
 | send-podcast-notification | Envia e-mails de confirmação (artista) e notificação (agência) na submissão do podcast | Frontend (formulário público) | Nenhuma ⚠️ | Próprio (inline) |
-| send-event-reminder-campaigns | Poller de cron (de hora em hora) que dispara o e-mail de cada evento ativo/não-recorrente N dias antes da data (`site_settings.event_reminder_*`) | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
+| send-event-reminder-campaigns | Poller de cron (de hora em hora) que dispara o e-mail de cada evento ativo/não-recorrente N dias antes da data (`site_settings.event_reminder_*`) | Cron (pg_cron) | Admin ou cron secret no código, mas bloqueado antes disso pelo gateway ⚠️ (ver Gaps acima) | Padrão `_shared` |
 | send-scheduled-email-campaigns | Poller de cron (5 em 5 min) que dispara e-mails agendados (`event_email_campaigns.status='scheduled'`) | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
 | send-test-email | Envia e-mail de teste do template para o próprio admin logado, via Resend | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | update-digest-schedule | Reconfigura os cron jobs de digest semanal/agenda FDS/blog digest a partir de `site_settings` | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | weekly-digest-draft | Cria rascunho de digest semanal (agenda 7 dias + posts do blog) na E-goi | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 | weekend-agenda-draft | Cria rascunho da "Agenda do FDS" (eventos sex/sáb/dom) na E-goi | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
-| blog-digest-draft | Cria rascunho de digest só de posts do blog (sem eventos) na E-goi | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
+| blog-digest-draft | Cria rascunho de digest só de posts do blog (sem eventos) na E-goi; registra histórico em `event_email_campaigns` com `event_id = null` (desde 09/08/2026) | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 
 ## Conteúdo com IA
 
@@ -122,4 +124,4 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 
 ---
 
-*Gerado a partir da leitura de todas as 57 functions em `supabase/functions/*/index.ts` + `list_edge_functions` do Supabase MCP em 03/08/2026.*
+*Gerado a partir da leitura de todas as 58 functions em `supabase/functions/*/index.ts` + `list_edge_functions` do Supabase MCP em 03/08/2026, atualizado em 09/08/2026 (nova function `send-event-reminder-campaigns`, mudanças em `egoi-campaign-stats`/`egoi-resources`/`blog-digest-draft`, gap de `verify_jwt` encontrado).*

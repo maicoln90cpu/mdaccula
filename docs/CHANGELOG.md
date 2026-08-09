@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 24/07/2026
+**Última atualização:** 09/08/2026
 
 ---
 
@@ -17,6 +17,51 @@
 ---
 
 ## Entradas Detalhadas
+
+### Blog news passa a aparecer no Dashboard de e-mails + contagem real de contatos por segmento + tooltips legíveis (R-042 a R-044)
+**Descrição:** 3 melhorias pedidas pelo usuário depois de usar o Dashboard já corrigido: (1) automação "Blog news" nunca tinha uma linha em `event_email_campaigns`, então ficava invisível no Dashboard mesmo enviando normalmente na E-goi; (2) tooltip dos gráficos (Recharts) ilegível no tema escuro — texto quase-branco sobre fundo branco padrão da lib — no Dashboard de e-mails, em `/analytics` e nos gráficos de pizza de custos de IA; (3) "Alcance estimado" (aba Configuração) sempre mostrava "—" ao escolher um segmento específico.
+**Correção:** `event_email_campaigns.event_id` passou a aceitar `null` (migration); `writeDigestCampaignHistory` grava 1 linha com `event_id = null` quando não há eventos, em vez de não gravar nada; `blog-digest-draft` passou a chamar essa função. Gráficos trocaram `<Tooltip />` puro por `ChartTooltip`/`ChartTooltipContent` (componente já correto usado em `egressMonitor/*`) ou ganharam `contentStyle` com tokens. `egoi-resources` passou a buscar a contagem real de contatos por segmento em `GET /lists/{id}/contacts/segment/{id}` (o objeto "Segment" da E-goi nunca tem contagem).
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário, plano aprovado antes da execução)
+**Impacto:** médio (3 telas do admin passam a mostrar dado real em vez de "—"/zerado/ilegível)
+
+**Arquivos alterados:** `supabase/functions/_shared/digestCampaignHistory.ts`, `supabase/functions/blog-digest-draft/index.ts`, `supabase/functions/egoi-resources/index.ts`, `supabase/functions/egoi-resources/segmentCounts.ts` (novo), `src/components/admin/EmailDashboard.tsx`, `src/pages/Analytics.tsx`, `src/components/admin/AIAnalyticsDashboard.tsx`, `supabase/migrations/20260809120000_event_email_campaigns_event_id_nullable.sql`, `docs/TESTING.md` (R-042 a R-044).
+
+---
+
+### Métricas E-goi sempre zeradas no Dashboard + envio pra segmento específico falhava 422 (R-040, R-041)
+**Descrição:** usuário reportou logo no primeiro acesso ao Dashboard (pós-auditoria de 17 fases) que as métricas de abertura/clique da E-goi apareciam tudo zeradas. Investigação ao vivo achou dois bugs reais de integração, os dois causados por endpoints/campos da API E-goi diferentes do que o código assumia (nunca confirmados contra a doc oficial antes).
+**Correção:** `egoi-campaign-stats` chamava `GET /campaigns/email/{id}/statistics` (não existe, 404 sempre) — corrigido pra `GET /reports/email/{hash}`, com o parser lendo os campos de dentro de `overall`; cron de sync passou a rodar em lotes paralelos com timeout de 60s (o sequencial sempre estourava os 5s padrão do pg_net). `sendEgoiCampaign` (compartilhada por 9 edge functions) enviava `{ type: "segment", segment_id }` quando um segmento específico era escolhido, mas o schema real usa `{ type: "segment", data: [...] }` — causava 422 em todo envio fora do padrão "toda a lista", achado no histórico real da campanha "Keinemusik | 17/10".
+**Data:** 09/08/2026
+**Responsável:** IA (achado e corrigido durante conferência via Chrome do trabalho da entrada acima)
+**Impacto:** alto (Dashboard de e-mails inutilizável pra métricas + qualquer envio segmentado falhando silenciosamente há tempos)
+
+**Arquivos alterados:** `supabase/functions/egoi-campaign-stats/index.ts`, `supabase/functions/egoi-campaign-stats/parseStats.ts` (novo), `supabase/functions/_shared/egoiClient.ts`, `supabase/migrations/20260809110000_egoi_stats_cron_timeout.sql`, `src/components/admin/EmailDashboard.tsx`, `docs/TESTING.md` (R-040, R-041).
+
+---
+
+### Loop infinito de requisições na Gestão de E-mails (achado durante a conferência pós-auditoria)
+**Descrição:** durante a checklist via Chrome que fechou a auditoria de 17 fases (entrada abaixo), a Fase 7 (sincronização de estado no preview e nos cards de automação) tinha introduzido `hydrate`/`markSaved`/`hydrateCfg` como funções não-memoizadas — repassadas pra dependency array de um `useCallback`, recriavam identidade a cada render e disparavam um loop infinito de requisições a `site_settings` (284 chamadas em segundos, várias 503).
+**Correção:** as 3 funções passaram a ser `useCallback(..., [])`.
+**Data:** 09/08/2026
+**Responsável:** IA
+**Impacto:** crítico (loop achado e corrigido antes de qualquer usuário real notar, mas martelava o projeto Supabase com centenas de requisições por minuto)
+
+**Arquivos alterados:** `src/components/admin/emailConfig/useEmailAutomation.ts`, `src/components/admin/emailConfig/useEventReminderAutomation.ts`, `src/__tests__/regression/email-automation-hydrate-callbacks-stable-identity.test.ts` (novo).
+
+---
+
+### Auditoria completa da rota de Gestão de E-mails — 17 fases (10 bugs + 7 melhorias)
+**Descrição:** auditoria profunda das 7 abas de `/admin/email-config`, motivada por um alerta do Lovable ("Email map returns error instead of image when Bunny CDN write hiccups") e por um pedido de levantamento de melhorias. Confirmou o bug do mapa como real (a correção anterior só blindava a leitura do cache, não a escrita) e achou mais 15 problemas (2 críticos, 3 altos, 6 médios, 4 baixos) além de 25 ideias de melhoria, executados em 17 fases pequenas e isoladas, cada uma com commit e teste próprios.
+**Correção — bugs:** mapa de evento não quebra mais quando o write no Bunny CDN falha (fallback pro Storage); editor de e-mail não perde mais edição não salva ao trocar de aba do admin; corrigida corrida de duplo-envio no `force_resend` do Envio Manual; "Marcar como enviado" não esconde mais agendamento pendente; cancelar agendamento não é mais sobrescrito pelo cron em andamento; debounce ao editar bloco global (era 1 escrita por tecla); sincronização de estado no preview e nos cards de automação; "dias antes do evento" validado + fuso rotulado no agendamento manual; bucket de upload de logo limitado + copy de sanitização ajustada; rótulos de tipo de e-mail unificados + corrida corrigida no Dashboard.
+**Correção — melhorias:** Dashboard mostra variação vs. período anterior e linka pro Histórico; contador X/Y no botão de atualizar métricas; avisos proativos e atalhos reais na aba Configuração; fidelidade do preview na aba Template (marca); editor de blocos com menos fricção (auto-seleção, undo/redo, busca); mais clareza no disparo do Envio manual; teste e histórico de execuções nas 4 automações.
+**Data:** 08–09/08/2026
+**Responsável:** IA (plano de 17 fases aprovado pelo usuário antes da execução; cada fase com commit e push próprios)
+**Impacto:** alto (10 bugs reais corrigidos, incluindo 2 críticos que afetavam disparo real de e-mail; suíte de testes cresceu de 423 pra 490+)
+
+**Arquivos alterados:** ~40 arquivos em `src/components/admin/emailConfig/`, `src/components/admin/EmailTemplateEditor.tsx`, `src/pages/admin/EmailConfig.tsx`, `supabase/functions/{create-event-email-campaign,create-multi-event-email-campaign,send-scheduled-email-campaigns}/index.ts`, migrations de banco (`egoi_config_scheduled_days_before_check`, `link_thumbnails_bucket_limits`), `docs/TESTING.md` (R-032 a R-039). Ver `git log --oneline --grep="^fix(email)\|^feat(email)"` pro detalhe fase a fase.
+
+---
 
 ### Fase 1 de auth em Edge Functions + fix do pipeline de deploy
 **Descrição:** auditoria de documentação de 03/08/2026 achou ~20 Edge Functions "só pra admin" sem NENHUMA checagem de autenticação no código (`verify_jwt` é `false` em todo o projeto — auth é responsabilidade de cada function). Ao tentar deployar a correção, descobri que o pipeline de deploy já estava quebrado antes desta sessão: a function `mcp` (auto-gerada por `@lovable.dev/mcp-js`) gera um bundle de ~26MB (a lib traz `esbuild` como dependência direta) e a API do Supabase rejeita com 413 — como o deploy antigo rodava tudo num comando só em ordem alfabética, isso travava o deploy de TODA function depois de "mcp" (inclusive as que eu estava corrigindo).
@@ -853,6 +898,15 @@
 ---
 
 ## Índice Rápido por Mês
+
+### Agosto 2026
+
+| Data | Tipo | Descrição |
+|------|------|-----------|
+| 09/08 | Feature | Blog news no Dashboard de e-mails + contagem real de contatos por segmento + tooltips legíveis (R-042 a R-044) |
+| 09/08 | Bugfix | Métricas E-goi zeradas + envio pra segmento específico com 422 (R-040, R-041) |
+| 09/08 | Bugfix | Loop infinito de requisições na Gestão de E-mails |
+| 08–09/08 | Auditoria | 17 fases na rota de Gestão de E-mails (10 bugs + 7 melhorias) |
 
 ### Julho 2026
 

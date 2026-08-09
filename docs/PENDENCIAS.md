@@ -4,7 +4,7 @@
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
 > **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 23/07/2026
+**Última atualização:** 09/08/2026
 
 ---
 
@@ -48,6 +48,26 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
+### Checkpoint: primeiro ciclo real de Digest semanal / Agenda do FDS com registro de histórico ligado
+**Checar em:** ~11/08/2026 (terça — Digest semanal) e ~13/08/2026 (quinta — Agenda do FDS)
+**Contexto:** o registro de histórico dessas 2 automações em `event_email_campaigns` (via `writeDigestCampaignHistory`) foi ligado em 08/08/2026 — mas como cada uma só roda 1x por semana (terça e quinta), nenhuma teve chance de rodar ainda. O envio de e-mail em si funciona há tempos (confirmado pelo usuário); só a parte de aparecer no Dashboard é nova. Não é bug — só falta o primeiro ciclo pra confirmar que a linha é gravada como esperado.
+**Passos:**
+1. Depois de terça (Digest semanal) e quinta (Agenda do FDS), conferir em `/admin/email-config` → Dashboard se as duas aparecem.
+2. Se alguma não aparecer, checar `event_email_campaigns` direto no banco (`campaign_type` = `weekly_digest`/`weekend_agenda`) pra ver se a linha foi gravada com erro, ou se não foi gravada de jeito nenhum (nesse caso, investigar por que `writeDigestCampaignHistory` não completou).
+**Responsável:** IA confere quando solicitado
+
+---
+
+### Checkpoint: primeiro envio de Blog news com registro de histórico ligado
+**Checar em:** 09/08/2026, ~16h UTC (13h BRT) — próximo disparo do cron `blog-digest-cron`
+**Contexto:** `blog-digest-draft` passou a chamar `writeDigestCampaignHistory()` em 09/08/2026 (ver `CHANGELOG.md`), poucas horas antes do disparo semanal (domingo). É o primeiro teste real dessa gravação — o envio de e-mail em si não foi alterado, só o registro depois.
+**Passos:**
+1. Depois do disparo, conferir em `/admin/email-config` → Dashboard/Histórico se "Blog news" aparece.
+2. Se não aparecer, checar `event_email_campaigns` (`campaign_type = 'blog_digest'`) — se a linha não existe, o insert falhou silenciosamente (o e-mail ainda teria sido enviado normalmente, já que a gravação acontece depois).
+**Responsável:** IA confere quando solicitado
+
+---
+
 ### Checkpoint: Apify/Instagram aguardando post real para validar o webhook
 **Checar em:** sem data fixa — depende de quando o Alataj (ou outra fonte reativada) postar algo novo
 **Contexto:** validação prática em 23/07/2026 confirmou que o disparo do ator Apify funciona ponta a ponta (`instagramTriggered:1`, execuções "Succeeded" no console da Apify), mas o teste caiu em "0 resultados" (sem post novo no momento) — o `apify-instagram-webhook` (callback de quando a Apify *encontra* algo) ainda não foi exercido com um payload real. Detalhes completos em [`docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md`](docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md) → seção "Validação prática realizada (23/07/2026)".
@@ -82,6 +102,18 @@ _Nenhuma no momento._
 - `import-storage` (ferramenta de migração one-off, pode já ter cumprido o papel) e `convert-to-webp` (placeholder no-op) — decidir entre proteger ou remover.
 **Passos:** Fases 2-8 do plano original (detalhado na conversa de 04/08/2026), uma por vez com aprovação antes de cada uma.
 **Responsável:** usuário aprova cada fase antes da IA implementar (uma de cada vez — nunca em lote, por regra do próprio `CLAUDE.md`).
+
+### `egoi-curl-probe` continua deployada (era pra ser descartável)
+**Status:** 🔧 Não corrigido — achado em 09/08/2026 durante auditoria de documentação.
+**Contexto:** o próprio comentário do arquivo (`supabase/functions/egoi-curl-probe/index.ts:1-3`) diz "Edge function descartável — validar API E-goi antes de codar a integração... Após validar, esta função pode ser deletada." A validação já foi feita há tempos (o header `Apikey` correto já está em uso em todo o resto da integração E-goi), mas a function nunca foi removida — segue deployada e sem nenhuma checagem de auth (`verify_jwt: false` + sem validação no código), expondo a `EGOI_API_KEY` pra qualquer request a `/lists` e `/senders` de quem descobrir a URL.
+**Correção sugerida:** apagar `supabase/functions/egoi-curl-probe/` (pasta inteira) e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml`.
+**Responsável:** decisão do usuário — é uma remoção simples, mas envolve apagar código, por isso não fiz sem confirmar.
+
+### `send-event-reminder-campaigns` sem `verify_jwt = false` — cron bloqueado com 401 no gateway
+**Status:** 🔧 Não corrigido — achado em 09/08/2026 durante auditoria de documentação (comparando `list_edge_functions` do MCP contra `supabase/config.toml`), fora do escopo do pedido do usuário nesta rodada.
+**Contexto:** todas as outras 57 functions têm `verify_jwt = false` em `supabase/config.toml`, então o gateway não exige JWT — a autenticação real (admin ou `x-cron-secret`) é validada dentro do próprio código. `send-event-reminder-campaigns` não tem entrada em `config.toml`, então cai no padrão do gateway (`verify_jwt: true`), que **bloqueia a chamada antes mesmo do código rodar**. O cron (`event_reminder_cron` em `cron.job`) só manda `x-cron-secret`, sem JWT nenhum — confirmado ao vivo via `get_logs` que a chamada retorna 401 no gateway (09/08/2026, ~04:05 UTC). Na prática, a automação "Lembrete de evento" nunca dispara sozinha pelo cron.
+**Correção sugerida:** adicionar `[functions.send-event-reminder-campaigns]` + `verify_jwt = false` em `supabase/config.toml`, igual às outras 57 — o próprio código já valida `x-cron-secret`/admin internamente, então não perde segurança.
+**Responsável:** decisão do usuário sobre quando aplicar (é uma linha só em `config.toml`, risco baixo, mas fora do pedido desta sessão).
 
 ### Leaked Password Protection desabilitado
 **Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
