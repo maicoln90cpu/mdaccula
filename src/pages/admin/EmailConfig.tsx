@@ -302,6 +302,7 @@ const EmailConfig = () => {
             saving={saving}
             save={save}
             formatCount={formatCount}
+            onNavigateToTab={handleTabChange}
           />
         </TabsContent>
 

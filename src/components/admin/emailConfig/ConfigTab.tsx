@@ -52,6 +52,9 @@ interface ConfigTabProps {
   save: () => void | Promise<void>;
 
   formatCount: (n: number | null | undefined) => string;
+
+  /** Deep-link pro card "Teste de disparo" — leva direto pra outra aba. */
+  onNavigateToTab: (tab: 'editor' | 'eventos' | 'batch') => void;
 }
 
 export const ConfigTab = ({
@@ -73,7 +76,13 @@ export const ConfigTab = ({
   saving,
   save,
   formatCount,
+  onNavigateToTab,
 }: ConfigTabProps) => {
+  const syncDaysAgo = lastSyncedAt
+    ? Math.floor((Date.now() - new Date(lastSyncedAt).getTime()) / 86400000)
+    : null;
+  const syncIsStale = syncDaysAgo != null && syncDaysAgo >= 7;
+
   return (
     <div className="space-y-6">
       {/* Status */}
@@ -128,6 +137,16 @@ export const ConfigTab = ({
               </span>
             </div>
           )}
+
+          {masterEnabled && !cfg.is_enabled && (
+            <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-muted border border-border text-muted-foreground">
+              <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                Master está ON, mas o toggle da agência ainda está OFF. Nenhum disparo automático
+                acontece até a agência habilitar acima.
+              </span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -158,6 +177,17 @@ export const ConfigTab = ({
                 : 'Clique para popular os selects (usa sua API key).'}
             </span>
           </div>
+
+          {syncIsStale && (
+            <div className="flex items-start gap-2 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20">
+              <ShieldAlert className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                Dados da E-goi sincronizados há <b>{syncDaysAgo} dias</b>. Contagens de contatos
+                (lista/segmento) podem estar desatualizadas — clique em "Atualizar da E-goi" antes
+                de configurar um envio.
+              </span>
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-2">
             {/* Lista */}
@@ -369,15 +399,28 @@ export const ConfigTab = ({
         <CardHeader>
           <CardTitle>Teste de disparo</CardTitle>
           <CardDescription>
-            O teste real fica na aba <b>Preview</b> ("Enviar teste agora") e o disparo de
-            rascunhos/envios reais na aba <b>Histórico</b> (por evento) ou <b>Virada de lote</b>{' '}
+            O teste real fica na aba <b>Editor + Preview</b> ("Enviar teste agora") e o disparo de
+            rascunhos/envios reais na aba <b>Histórico</b> (por evento) ou <b>Envio manual</b>{' '}
             (com arte específica).
           </CardDescription>
         </CardHeader>
-        <CardContent className="text-xs text-muted-foreground">
-          A caixa "Criar rascunho de teste (em breve)" foi substituída pelo fluxo real da aba{' '}
-          <b>Histórico</b>. Use "Criar rascunho" ou "Enviar agora" no evento desejado — cada disparo
-          fica registrado com status e ID da E-goi.
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            A caixa "Criar rascunho de teste (em breve)" foi substituída pelo fluxo real da aba{' '}
+            <b>Histórico</b>. Use "Criar rascunho" ou "Enviar agora" no evento desejado — cada
+            disparo fica registrado com status e ID da E-goi.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => onNavigateToTab('editor')}>
+              Ir para Editor + Preview
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onNavigateToTab('eventos')}>
+              Ir para Histórico
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => onNavigateToTab('batch')}>
+              Ir para Envio manual
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>
