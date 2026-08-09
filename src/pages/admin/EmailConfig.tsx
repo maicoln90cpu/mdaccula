@@ -56,6 +56,12 @@ const EmailConfig = () => {
     setWeekendCfg,
     blogCfg,
     setBlogCfg,
+    hydrateWeeklyCfg,
+    hydrateWeekendCfg,
+    hydrateBlogCfg,
+    isWeeklyDirty,
+    isWeekendDirty,
+    isBlogDirty,
     savingWeekly,
     savingWeekend,
     savingBlog,
@@ -97,6 +103,8 @@ const EmailConfig = () => {
   const {
     cfg: eventReminderCfg,
     setCfg: setEventReminderCfg,
+    hydrateCfg: hydrateEventReminderCfg,
+    isDirty: isEventReminderDirty,
     saving: savingEventReminder,
     running: runningEventReminder,
     lastResult: eventReminderLastResult,
@@ -141,13 +149,16 @@ const EmailConfig = () => {
     setTemplates,
     setActiveTemplateId,
     automation: {
-      setWeeklyCfg,
-      setWeekendCfg,
-      setBlogCfg,
+      // Hidratação inicial usa hydrate* (não o setter de edição ao vivo) —
+      // assim o valor carregado do banco também vira o baseline "salvo" e
+      // não acende o aviso de alterações não salvas assim que a página abre.
+      setWeeklyCfg: hydrateWeeklyCfg,
+      setWeekendCfg: hydrateWeekendCfg,
+      setBlogCfg: hydrateBlogCfg,
       setDigestLastResult,
       setWeekendLastResult,
       setBlogLastResult,
-      setEventReminderCfg,
+      setEventReminderCfg: hydrateEventReminderCfg,
     },
   });
 
@@ -385,6 +396,7 @@ const EmailConfig = () => {
             automationTestRecipient={AUTOMATION_TEST_RECIPIENT}
             weeklyCfg={weeklyCfg}
             setWeeklyCfg={setWeeklyCfg}
+            isWeeklyDirty={isWeeklyDirty}
             weeklyEffectiveTemplateId={weeklyEffectiveTemplateId}
             savingWeekly={savingWeekly}
             digestGenerating={digestGenerating}
@@ -411,6 +423,7 @@ const EmailConfig = () => {
             }
             weekendCfg={weekendCfg}
             setWeekendCfg={setWeekendCfg}
+            isWeekendDirty={isWeekendDirty}
             weekendEffectiveTemplateId={weekendEffectiveTemplateId}
             savingWeekend={savingWeekend}
             weekendGenerating={weekendGenerating}
@@ -437,6 +450,7 @@ const EmailConfig = () => {
             }
             blogCfg={blogCfg}
             setBlogCfg={setBlogCfg}
+            isBlogDirty={isBlogDirty}
             blogEffectiveTemplateId={blogEffectiveTemplateId}
             savingBlog={savingBlog}
             blogGenerating={blogGenerating}
@@ -463,6 +477,7 @@ const EmailConfig = () => {
             }
             eventReminderCfg={eventReminderCfg}
             setEventReminderCfg={setEventReminderCfg}
+            isEventReminderDirty={isEventReminderDirty}
             eventReminderEffectiveTemplateId={eventReminderEffectiveTemplateId}
             savingEventReminder={savingEventReminder}
             runningEventReminder={runningEventReminder}

@@ -66,6 +66,15 @@ export function useEventReminderAutomation({
     templateId: '',
     sendOnCron: false,
   });
+  // Baseline "salvo" — usado só pra exibir aviso de alterações não salvas
+  // (mesmo padrão de useEmailAutomation.useConfigWithDirtyTracking, mas com
+  // um único config aqui não compensa extrair o helper genérico).
+  const [savedCfg, setSavedCfg] = useState<EventReminderCfg>(cfg);
+  const hydrateCfg = (v: EventReminderCfg) => {
+    setCfg(v);
+    setSavedCfg(v);
+  };
+  const isDirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [lastResult, setLastResult] = useState<EventReminderResult>(null);
@@ -89,6 +98,7 @@ export function useEventReminderAutomation({
         { key: 'event_reminder_template_id', value: effectiveTemplateId || '' },
         { key: 'event_reminder_send_on_cron', value: cfg.sendOnCron ? 'true' : 'false' },
       ]);
+      setSavedCfg(cfg);
       toast({
         title: cfg.enabled ? 'Lembrete de evento agendado' : 'Lembrete de evento salvo (desligado)',
         description: cfg.enabled
@@ -149,6 +159,9 @@ export function useEventReminderAutomation({
   return {
     cfg,
     setCfg,
+    // hidratação inicial (usada só por loadAll)
+    hydrateCfg,
+    isDirty,
     saving,
     running,
     lastResult,

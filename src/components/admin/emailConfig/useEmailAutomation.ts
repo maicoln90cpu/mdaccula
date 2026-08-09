@@ -18,6 +18,27 @@ import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { Template } from '@/lib/emailTemplates/blocks';
 import type { AutomationCfg, AutomationResult } from './types';
 
+/**
+ * Rastreia, além do valor "ao vivo" (editado pelo formulário), o último
+ * valor efetivamente persistido — para exibir um aviso de "alterações não
+ * salvas" quando eles divergem. `hydrate` é usado pela carga inicial
+ * (loadAll, a partir de site_settings): atualiza os dois em conjunto, então
+ * não conta como "edição pendente". `setCfg` (edição pelo usuário) só
+ * atualiza o valor ao vivo. `markSaved` é chamado depois de um save bem
+ * sucedido, alinhando o baseline com o que acabou de ser persistido.
+ */
+function useConfigWithDirtyTracking<T>(initial: T) {
+  const [cfg, setCfg] = useState<T>(initial);
+  const [savedCfg, setSavedCfg] = useState<T>(initial);
+  const hydrate = (v: T) => {
+    setCfg(v);
+    setSavedCfg(v);
+  };
+  const markSaved = (v: T) => setSavedCfg(v);
+  const isDirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
+  return { cfg, setCfg, hydrate, markSaved, isDirty };
+}
+
 export const DAY_LABELS: string[] = [
   'Domingo',
   'Segunda',
@@ -88,27 +109,33 @@ async function saveAutomation(
 
 export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput) {
   // Configurações persistidas em site_settings
-  const [weeklyCfg, setWeeklyCfg] = useState<AutomationCfg>({
+  const weeklyState = useConfigWithDirtyTracking<AutomationCfg>({
     enabled: false,
     day: 4,
     hour: 18,
     templateId: '',
     sendOnCron: false,
   });
-  const [weekendCfg, setWeekendCfg] = useState<AutomationCfg>({
+  const weekendState = useConfigWithDirtyTracking<AutomationCfg>({
     enabled: false,
     day: 4,
     hour: 12,
     templateId: '',
     sendOnCron: false,
   });
-  const [blogCfg, setBlogCfg] = useState<AutomationCfg>({
+  const blogState = useConfigWithDirtyTracking<AutomationCfg>({
     enabled: false,
     day: 0,
     hour: 12,
     templateId: '',
     sendOnCron: false,
   });
+  const weeklyCfg = weeklyState.cfg;
+  const setWeeklyCfg = weeklyState.setCfg;
+  const weekendCfg = weekendState.cfg;
+  const setWeekendCfg = weekendState.setCfg;
+  const blogCfg = blogState.cfg;
+  const setBlogCfg = blogState.setCfg;
 
   // Flags de UI (Salvar / Gerar agora / Enviar teste)
   const [savingWeekly, setSavingWeekly] = useState(false);
@@ -166,6 +193,11 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         ...weeklyCfg,
         templateId: weeklyEffectiveTemplateId,
       });
+      // Baseline = o próprio weeklyCfg (não o `templateId` já resolvido pro
+      // efetivo) — hidratação futura também carrega o cfg "cru", então
+      // comparar contra essa mesma forma evita falso-positivo de "não
+      // salvo" logo depois de salvar.
+      weeklyState.markSaved(weeklyCfg);
       toast({
         title: weeklyCfg.enabled ? 'Digest semanal agendado' : 'Digest semanal salvo (desligado)',
         description: weeklyCfg.enabled
@@ -187,6 +219,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
         ...weekendCfg,
         templateId: weekendEffectiveTemplateId,
       });
+      weekendState.markSaved(weekendCfg);
       toast({
         title: weekendCfg.enabled ? 'Agenda FDS agendada' : 'Agenda FDS salva (desligada)',
         description: weekendCfg.enabled
@@ -205,6 +238,7 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
     setSavingBlog(true);
     try {
       await saveAutomation('blog_digest', { ...blogCfg, templateId: blogEffectiveTemplateId });
+      blogState.markSaved(blogCfg);
       toast({
         title: blogCfg.enabled ? 'Blog news agendado' : 'Blog news salvo (desligado)',
         description: blogCfg.enabled
@@ -496,13 +530,22 @@ export function useEmailAutomation({ templates, toast }: UseEmailAutomationInput
   };
 
   return {
-    // configs + setters (setters expostos para o pai hidratar em loadAll)
+    // configs + setters de edição ao vivo (usados pelos cards)
     weeklyCfg,
     setWeeklyCfg,
     weekendCfg,
     setWeekendCfg,
     blogCfg,
     setBlogCfg,
+    // hidratação inicial (usada só por loadAll) — atualiza cfg E o baseline
+    // "salvo" junto, então não acende o aviso de alterações não salvas.
+    hydrateWeeklyCfg: weeklyState.hydrate,
+    hydrateWeekendCfg: weekendState.hydrate,
+    hydrateBlogCfg: blogState.hydrate,
+    // true quando o formulário diverge do último valor persistido
+    isWeeklyDirty: weeklyState.isDirty,
+    isWeekendDirty: weekendState.isDirty,
+    isBlogDirty: blogState.isDirty,
     // setters de último rascunho (expostos para o pai hidratar em loadAll
     // a partir de site_settings — ver persistLastResult acima)
     setDigestLastResult,

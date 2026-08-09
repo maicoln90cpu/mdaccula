@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage } from '@/lib';
 import {
@@ -67,6 +67,10 @@ export function useEmailPreview({
   const [digestPreviewMeta, setDigestPreviewMeta] = useState<DigestPreviewMeta>(null);
   const [digestPreviewLoading, setDigestPreviewLoading] = useState(false);
   const [sendingTest, setSendingTest] = useState(false);
+  // Sequenciamento das chamadas de preview: trocar de template rápido podia
+  // deixar uma resposta antiga sobrescrever a mais nova, se ela chegasse
+  // depois. Só a resposta da requisição MAIS RECENTE é aplicada.
+  const digestPreviewRequestIdRef = useRef(0);
 
   const activeTemplate = useMemo(
     () => templates.find((t) => t.id === activeTemplateId) || null,
@@ -115,6 +119,7 @@ export function useEmailPreview({
       opts?.source ??
       (previewSource === 'weekend' ? 'weekend' : previewSource === 'blog' ? 'blog' : 'digest');
     const tplId = opts?.templateId ?? digestTemplateId;
+    const requestId = ++digestPreviewRequestIdRef.current;
     setDigestPreviewLoading(true);
     try {
       const body: Record<string, unknown> = { dry_run: true, force: true };
@@ -129,6 +134,7 @@ export function useEmailPreview({
       const { data, error } = await supabase.functions.invoke<DigestPreviewResponse>(functionName, {
         body,
       });
+      if (requestId !== digestPreviewRequestIdRef.current) return; // resposta obsoleta, ignora
       if (error) throw error;
       if (data?.skipped) {
         toast({
@@ -152,6 +158,7 @@ export function useEmailPreview({
         template_name: data.template_name,
       });
     } catch (e: unknown) {
+      if (requestId !== digestPreviewRequestIdRef.current) return; // resposta obsoleta, ignora
       const message = await getEdgeFunctionErrorMessage(e);
       toast({
         title: 'Erro ao carregar preview',
@@ -159,7 +166,7 @@ export function useEmailPreview({
         variant: 'destructive',
       });
     } finally {
-      setDigestPreviewLoading(false);
+      if (requestId === digestPreviewRequestIdRef.current) setDigestPreviewLoading(false);
     }
   };
 

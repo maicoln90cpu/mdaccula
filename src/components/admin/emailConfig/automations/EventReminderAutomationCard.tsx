@@ -31,6 +31,8 @@ export interface EventReminderAutomationCardProps {
   effectiveTemplateId: string;
   cfg: EventReminderCfg;
   setCfg: (cfg: EventReminderCfg) => void;
+  /** true quando o formulário diverge do último valor persistido no banco. */
+  isDirty: boolean;
   saving: boolean;
   running: boolean;
   lastResult: EventReminderResult;
@@ -44,6 +46,7 @@ export const EventReminderAutomationCard = ({
   effectiveTemplateId,
   cfg,
   setCfg,
+  isDirty,
   saving,
   running,
   lastResult,
@@ -171,6 +174,18 @@ export const EventReminderAutomationCard = ({
           <div className="text-xs text-muted-foreground">
             Roda todo dia, checa às <b>{String(cfg.hour).padStart(2, '0')}:00 BRT</b>, para eventos
             que caem <b>{cfg.daysBefore} dia{cfg.daysBefore > 1 ? 's' : ''}</b> à frente.
+            {isDirty && (
+              <>
+                {' '}
+                <Badge
+                  variant="outline"
+                  className="align-middle border-amber-500/40 text-amber-600 dark:text-amber-400"
+                >
+                  Alterações não salvas
+                </Badge>{' '}
+                Clique em "Salvar agendamento" para valer.
+              </>
+            )}
           </div>
         )}
 

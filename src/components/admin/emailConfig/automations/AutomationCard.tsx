@@ -52,6 +52,8 @@ export interface AutomationCardProps {
   // Config + setter
   cfg: AutomationCfg;
   setCfg: (cfg: AutomationCfg) => void;
+  /** true quando o formulário diverge do último valor persistido no banco. */
+  isDirty: boolean;
 
   // Meta
   masterEnabled: boolean;
@@ -84,6 +86,7 @@ export const AutomationCard = ({
   effectiveTemplateId,
   cfg,
   setCfg,
+  isDirty,
   masterEnabled,
   dayLabels,
   testTitle,
@@ -279,6 +282,18 @@ export const AutomationCard = ({
               {dayLabels[cfg.day]} {String(cfg.hour).padStart(2, '0')}:00 BRT
             </b>
             .
+            {isDirty && (
+              <>
+                {' '}
+                <Badge
+                  variant="outline"
+                  className="align-middle border-amber-500/40 text-amber-600 dark:text-amber-400"
+                >
+                  Alterações não salvas
+                </Badge>{' '}
+                Clique em "Salvar agendamento" para valer.
+              </>
+            )}
           </div>
         )}
 

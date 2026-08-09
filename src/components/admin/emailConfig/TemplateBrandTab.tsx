@@ -223,7 +223,8 @@ export function TemplateBrandTab({
 
       <div className="rounded-lg border border-border bg-[#050505] p-4 lg:sticky lg:top-4 lg:self-start">
         <div className="text-xs text-muted-foreground mb-2 px-1">
-          Preview ao vivo (dados mock)
+          Preview da última versão <strong>salva</strong> do template (dados mock) — edições feitas
+          na aba "Editor + Preview" sem clicar em Salvar não aparecem aqui.
         </div>
         <InboxPreviewHeader
           subjectTemplate={activeTemplate?.subject_template}

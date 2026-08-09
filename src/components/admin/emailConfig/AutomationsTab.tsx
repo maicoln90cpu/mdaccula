@@ -21,6 +21,7 @@ interface AutomationsTabProps {
   // Weekly digest
   weeklyCfg: AutomationCfg;
   setWeeklyCfg: (cfg: AutomationCfg) => void;
+  isWeeklyDirty: boolean;
   weeklyEffectiveTemplateId: string;
   savingWeekly: boolean;
   digestGenerating: boolean;
@@ -35,6 +36,7 @@ interface AutomationsTabProps {
   // Weekend agenda
   weekendCfg: AutomationCfg;
   setWeekendCfg: (cfg: AutomationCfg) => void;
+  isWeekendDirty: boolean;
   weekendEffectiveTemplateId: string;
   savingWeekend: boolean;
   weekendGenerating: boolean;
@@ -49,6 +51,7 @@ interface AutomationsTabProps {
   // Blog digest
   blogCfg: AutomationCfg;
   setBlogCfg: (cfg: AutomationCfg) => void;
+  isBlogDirty: boolean;
   blogEffectiveTemplateId: string;
   savingBlog: boolean;
   blogGenerating: boolean;
@@ -63,6 +66,7 @@ interface AutomationsTabProps {
   // Lembrete de evento (item 5)
   eventReminderCfg: EventReminderCfg;
   setEventReminderCfg: (cfg: EventReminderCfg) => void;
+  isEventReminderDirty: boolean;
   eventReminderEffectiveTemplateId: string;
   savingEventReminder: boolean;
   runningEventReminder: boolean;
@@ -78,6 +82,7 @@ export const AutomationsTab = ({
   automationTestRecipient,
   weeklyCfg,
   setWeeklyCfg,
+  isWeeklyDirty,
   weeklyEffectiveTemplateId,
   savingWeekly,
   digestGenerating,
@@ -90,6 +95,7 @@ export const AutomationsTab = ({
   onSendWeeklyNow,
   weekendCfg,
   setWeekendCfg,
+  isWeekendDirty,
   weekendEffectiveTemplateId,
   savingWeekend,
   weekendGenerating,
@@ -102,6 +108,7 @@ export const AutomationsTab = ({
   onSendWeekendNow,
   blogCfg,
   setBlogCfg,
+  isBlogDirty,
   blogEffectiveTemplateId,
   savingBlog,
   blogGenerating,
@@ -114,6 +121,7 @@ export const AutomationsTab = ({
   onSendBlogNow,
   eventReminderCfg,
   setEventReminderCfg,
+  isEventReminderDirty,
   eventReminderEffectiveTemplateId,
   savingEventReminder,
   runningEventReminder,
@@ -153,6 +161,7 @@ export const AutomationsTab = ({
           effectiveTemplateId={weeklyEffectiveTemplateId}
           cfg={weeklyCfg}
           setCfg={setWeeklyCfg}
+          isDirty={isWeeklyDirty}
           masterEnabled={masterEnabled}
           dayLabels={dayLabels}
           testTitle={testTitle}
@@ -183,6 +192,7 @@ export const AutomationsTab = ({
           effectiveTemplateId={weekendEffectiveTemplateId}
           cfg={weekendCfg}
           setCfg={setWeekendCfg}
+          isDirty={isWeekendDirty}
           masterEnabled={masterEnabled}
           dayLabels={dayLabels}
           testTitle={testTitle}
@@ -219,6 +229,7 @@ export const AutomationsTab = ({
           effectiveTemplateId={blogEffectiveTemplateId}
           cfg={blogCfg}
           setCfg={setBlogCfg}
+          isDirty={isBlogDirty}
           masterEnabled={masterEnabled}
           dayLabels={dayLabels}
           testTitle={testTitle}
@@ -240,6 +251,7 @@ export const AutomationsTab = ({
           effectiveTemplateId={eventReminderEffectiveTemplateId}
           cfg={eventReminderCfg}
           setCfg={setEventReminderCfg}
+          isDirty={isEventReminderDirty}
           saving={savingEventReminder}
           running={runningEventReminder}
           lastResult={eventReminderLastResult}
