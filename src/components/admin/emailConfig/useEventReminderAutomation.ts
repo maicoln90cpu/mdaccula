@@ -10,7 +10,7 @@
  * campanhas por execução (uma por evento elegível na data-alvo), então tem
  * sua própria config/UI/resultado.
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { Template } from '@/lib/emailTemplates/blocks';
@@ -71,10 +71,14 @@ export function useEventReminderAutomation({
   // (mesmo padrão de useEmailAutomation.useConfigWithDirtyTracking, mas com
   // um único config aqui não compensa extrair o helper genérico).
   const [savedCfg, setSavedCfg] = useState<EventReminderCfg>(cfg);
-  const hydrateCfg = (v: EventReminderCfg) => {
+  // useCallback é obrigatório aqui: hydrateCfg vira automation.setEventReminderCfg
+  // na dependency array do loadAll (useEmailConfigState.ts) — sem memoização,
+  // uma nova identidade a cada render recria loadAll e reexecuta o useEffect
+  // que o chama, num loop infinito de requisições a site_settings.
+  const hydrateCfg = useCallback((v: EventReminderCfg) => {
     setCfg(v);
     setSavedCfg(v);
-  };
+  }, []);
   const isDirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);

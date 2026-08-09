@@ -12,7 +12,7 @@
  * Nada de lógica nova aqui — só relocação para reduzir o tamanho do arquivo
  * pai e tornar a área de automações testável isoladamente.
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage } from '@/lib';
 import type { Template } from '@/lib/emailTemplates/blocks';
@@ -27,15 +27,23 @@ import { appendRunHistory, type RunHistoryEntry } from './automationRunHistory';
  * não conta como "edição pendente". `setCfg` (edição pelo usuário) só
  * atualiza o valor ao vivo. `markSaved` é chamado depois de um save bem
  * sucedido, alinhando o baseline com o que acabou de ser persistido.
+ *
+ * `hydrate`/`markSaved` são memoizados com useCallback: `hydrate` é
+ * repassado como `automation.setWeeklyCfg` pro `loadAll` de
+ * useEmailConfigState.ts, que tem essa função na sua própria dependency
+ * array. Sem useCallback, uma nova identidade a cada render recriava
+ * `loadAll`, disparando o useEffect que o chama de novo — loop infinito de
+ * requisições a site_settings (bug encontrado na conferência via Chrome
+ * pós-implementação: 284 requisições em poucos segundos, várias 503).
  */
 function useConfigWithDirtyTracking<T>(initial: T) {
   const [cfg, setCfg] = useState<T>(initial);
   const [savedCfg, setSavedCfg] = useState<T>(initial);
-  const hydrate = (v: T) => {
+  const hydrate = useCallback((v: T) => {
     setCfg(v);
     setSavedCfg(v);
-  };
-  const markSaved = (v: T) => setSavedCfg(v);
+  }, []);
+  const markSaved = useCallback((v: T) => setSavedCfg(v), []);
   const isDirty = JSON.stringify(cfg) !== JSON.stringify(savedCfg);
   return { cfg, setCfg, hydrate, markSaved, isDirty };
 }
