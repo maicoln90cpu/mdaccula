@@ -24,7 +24,11 @@ describe('Melhoria — "Simular com evento real" também na aba Template (marca)
   it('TemplateBrandTab.tsx recebe e usa selectedRealEventId/realEvents', () => {
     const src = read('src/components/admin/emailConfig/TemplateBrandTab.tsx');
     expect(src).toMatch(/selectedRealEventId/);
-    expect(src).toMatch(/realEvents\.map/);
+    // A partir da Fase 15, o Select em si foi extraído pro componente
+    // compartilhado RealEventSelect (ver email-editor-block-friction.test.ts)
+    // — aqui só garantimos que os dados continuam sendo repassados pra ele.
+    expect(src).toMatch(/<RealEventSelect/);
+    expect(src).toMatch(/events=\{realEvents\}/);
   });
 
   it('EmailConfig.tsx passa o mesmo estado compartilhado (não uma cópia própria)', () => {

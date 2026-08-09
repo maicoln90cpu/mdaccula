@@ -80,6 +80,14 @@ export function EmailTemplateEditor({
   const [localSubject, setLocalSubject] = useState<string | null>(null);
   const [localPreheader, setLocalPreheader] = useState<string | null>(null);
 
+  // Undo/redo (item 2 da melhoria) — só para mudanças ESTRUTURAIS na lista
+  // de blocos (adicionar/remover/duplicar/reordenar/desfazer vínculo), não
+  // por tecla digitada num campo de texto (isso já teria granularidade
+  // ruim demais e é coberto pela proteção de "alterações não salvas").
+  const [undoStack, setUndoStack] = useState<Block[][]>([]);
+  const [redoStack, setRedoStack] = useState<Block[][]>([]);
+  const MAX_UNDO_HISTORY = 50;
+
   // Tipo selecionado (passo 1). Inicializa a partir do localStorage.
   const [typeFilter, setTypeFilter] = useState<TypeFilterKey>(() => {
     if (typeof window === 'undefined') return 'event_new';
@@ -123,6 +131,31 @@ export function EmailTemplateEditor({
   const currentPreheader =
     localPreheader !== null ? localPreheader : (activeTpl?.preheader_template ?? '');
 
+  /** Toda mudança ESTRUTURAL na lista de blocos passa por aqui — empilha o
+   * estado anterior pro undo e limpa o redo (uma edição nova invalida o
+   * "futuro" que existia antes dela). */
+  const applyBlocksChange = (next: Block[]) => {
+    setUndoStack((prev) => [...prev, blocks].slice(-MAX_UNDO_HISTORY));
+    setRedoStack([]);
+    setLocalBlocks(next);
+  };
+
+  const undoBlocks = () => {
+    if (undoStack.length === 0) return;
+    const previous = undoStack[undoStack.length - 1];
+    setUndoStack(undoStack.slice(0, -1));
+    setRedoStack((prev) => [...prev, blocks].slice(-MAX_UNDO_HISTORY));
+    setLocalBlocks(previous);
+  };
+
+  const redoBlocks = () => {
+    if (redoStack.length === 0) return;
+    const next = redoStack[redoStack.length - 1];
+    setRedoStack(redoStack.slice(0, -1));
+    setUndoStack((prev) => [...prev, blocks].slice(-MAX_UNDO_HISTORY));
+    setLocalBlocks(next);
+  };
+
   const handleDragEnd = useCallback(
     (e: DragEndEvent) => {
       const { active, over } = e;
@@ -130,8 +163,9 @@ export function EmailTemplateEditor({
       const oldIdx = blocks.findIndex((b) => b.id === active.id);
       const newIdx = blocks.findIndex((b) => b.id === over.id);
       if (oldIdx < 0 || newIdx < 0) return;
-      setLocalBlocks(arrayMove(blocks, oldIdx, newIdx));
+      applyBlocksChange(arrayMove(blocks, oldIdx, newIdx));
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [blocks]
   );
 
@@ -141,15 +175,19 @@ export function EmailTemplateEditor({
 
   /** Substitui integralmente um bloco (sem merge). Usado para "desfazer vínculo" de global_ref. */
   const replaceBlock = (id: string, next: Block) => {
-    setLocalBlocks(blocks.map((b) => (b.id === id ? next : b)));
+    applyBlocksChange(blocks.map((b) => (b.id === id ? next : b)));
   };
 
   const addBlock = (kind: Block['kind']) => {
-    setLocalBlocks([...blocks, defaultForKind(kind)]);
+    const created = defaultForKind(kind);
+    applyBlocksChange([...blocks, created]);
+    // Auto-seleciona o bloco recém-adicionado — antes o admin precisava
+    // procurar na lista à esquerda pra começar a editar.
+    setSelectedBlockId(created.id);
   };
 
   const removeBlock = (id: string) => {
-    setLocalBlocks(blocks.filter((b) => b.id !== id));
+    applyBlocksChange(blocks.filter((b) => b.id !== id));
     if (selectedBlockId === id) setSelectedBlockId(null);
   };
 
@@ -159,7 +197,7 @@ export function EmailTemplateEditor({
     const clone = { ...blocks[idx], id: newBlockId() };
     const next = [...blocks];
     next.splice(idx + 1, 0, clone);
-    setLocalBlocks(next);
+    applyBlocksChange(next);
   };
 
   const saveTemplate = async () => {
@@ -181,6 +219,8 @@ export function EmailTemplateEditor({
       setLocalName('');
       setLocalSubject(null);
       setLocalPreheader(null);
+      setUndoStack([]);
+      setRedoStack([]);
       await onReload();
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Erro desconhecido';
@@ -326,6 +366,8 @@ export function EmailTemplateEditor({
     setLocalSubject(null);
     setLocalPreheader(null);
     setSelectedBlockId(null);
+    setUndoStack([]);
+    setRedoStack([]);
     onActiveChange(nextId);
   };
 
@@ -345,6 +387,8 @@ export function EmailTemplateEditor({
     setLocalSubject(null);
     setLocalPreheader(null);
     setSelectedBlockId(null);
+    setUndoStack([]);
+    setRedoStack([]);
     setTypeFilter(nextType);
     if (typeof window !== 'undefined') {
       window.localStorage.setItem(TYPE_FILTER_STORAGE_KEY, nextType);
@@ -352,6 +396,24 @@ export function EmailTemplateEditor({
     const firstOfType = templates.find((t) => normalizeType(t.type) === nextType);
     onActiveChange(firstOfType?.id ?? '');
   };
+
+  // Atalhos de teclado Ctrl/Cmd+Z (desfazer) e Ctrl/Cmd+Shift+Z (refazer) —
+  // só quando o foco não está num campo de texto, pra não atrapalhar o
+  // undo nativo do navegador dentro de inputs/textareas.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'z') return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || target?.isContentEditable) return;
+      e.preventDefault();
+      if (e.shiftKey) redoBlocks();
+      else undoBlocks();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoStack, redoStack, blocks]);
 
   // Se o template ativo mudou para outro tipo (ex.: vindo do histórico),
   // ajusta o filtro para bater com ele.
@@ -400,6 +462,10 @@ export function EmailTemplateEditor({
           onSelect={setSelectedBlockId}
           onRemove={removeBlock}
           onDuplicate={duplicateBlock}
+          canUndo={undoStack.length > 0}
+          canRedo={redoStack.length > 0}
+          onUndo={undoBlocks}
+          onRedo={redoBlocks}
           onToggleHidden={(b) =>
             updateBlock(b.id, {
               hidden: !(b as { hidden?: boolean }).hidden,

@@ -1,15 +1,9 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Send } from 'lucide-react';
 import { EmailTemplateEditor } from '@/components/admin/EmailTemplateEditor';
+import { RealEventSelect } from './RealEventSelect';
 import {
   MOCK_EVENT_DATA,
   type EventAnnouncementData,
@@ -134,19 +128,11 @@ export const TemplateEditorTab = ({
                 <Label className="text-xs whitespace-nowrap ml-2">
                   Simular com evento real
                 </Label>
-                <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
-                  <SelectTrigger className="w-[280px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
-                    {realEvents.map((e) => (
-                      <SelectItem key={e.id} value={e.id}>
-                        {e.title} · {e.date}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <RealEventSelect
+                  value={selectedRealEventId}
+                  onChange={setSelectedRealEventId}
+                  events={realEvents}
+                />
               </>
             )}
 

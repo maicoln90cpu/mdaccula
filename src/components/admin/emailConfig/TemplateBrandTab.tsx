@@ -11,15 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Image as ImageIcon, Monitor, Palette, RefreshCw, Save, Smartphone } from 'lucide-react';
 import { InboxPreviewHeader } from '@/components/admin/InboxPreviewHeader';
+import { RealEventSelect } from './RealEventSelect';
 import type {
   EventAnnouncementData,
   EmailTemplateSettings,
@@ -270,19 +264,12 @@ export function TemplateBrandTab({
               <Label className="text-xs whitespace-nowrap text-muted-foreground">
                 Simular com evento real
               </Label>
-              <Select value={selectedRealEventId} onValueChange={setSelectedRealEventId}>
-                <SelectTrigger className="w-[220px] h-8 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="mock">— Dados fictícios (mock) —</SelectItem>
-                  {realEvents.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      {e.title} · {e.date}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <RealEventSelect
+                value={selectedRealEventId}
+                onChange={setSelectedRealEventId}
+                events={realEvents}
+                triggerClassName="w-[180px] h-8 text-xs"
+              />
             </div>
           ) : (
             <span />

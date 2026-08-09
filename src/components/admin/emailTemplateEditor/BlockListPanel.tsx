@@ -3,7 +3,9 @@
  * Extraído do EmailTemplateEditor na Onda 12 sem alterações de comportamento.
  */
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Undo2, Redo2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -46,6 +48,10 @@ interface BlockListPanelProps {
   onDragEnd: (e: DragEndEvent) => void;
   onAddBlock: (kind: Block['kind']) => void;
   onInsertFromLibrary: (b: Block) => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
 export const BlockListPanel = ({
@@ -60,6 +66,10 @@ export const BlockListPanel = ({
   onDragEnd,
   onAddBlock,
   onInsertFromLibrary,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: BlockListPanelProps) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -69,8 +79,34 @@ export const BlockListPanel = ({
   return (
     <Card>
       <CardContent className="p-3 space-y-2">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
-          Blocos do e-mail
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Blocos do e-mail
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              disabled={!canUndo}
+              onClick={onUndo}
+              title="Desfazer (Ctrl+Z)"
+            >
+              <Undo2 className="w-3.5 h-3.5" />
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-6 w-6 p-0"
+              disabled={!canRedo}
+              onClick={onRedo}
+              title="Refazer (Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={blocks.map((b) => b.id)} strategy={verticalListSortingStrategy}>
