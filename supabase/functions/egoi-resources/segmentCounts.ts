@@ -10,8 +10,12 @@
  * pra segmento nenhum.
  *
  * O total real vem de GET /lists/{id}/contacts/segment/{segmentId}
- * (ContactCollection, campo totalItems) — uma chamada por segmento, com
- * limit=1 pra não baixar a lista de contatos inteira.
+ * (ContactCollection) — uma chamada por segmento, com limit=1 pra não
+ * baixar a lista de contatos inteira. O SDK javascript oficial documenta o
+ * campo como `totalItems` (camelCase, artefato do gerador de código a
+ * partir do OpenAPI), mas a resposta HTTP real usa `total_items`
+ * (snake_case, confirmado ao vivo em produção em 2026-08-09) — igual a
+ * todo o resto da API E-goi.
  */
 
 export type SegmentRaw = { segment_id: number | string | undefined; name: string };
@@ -19,13 +23,13 @@ export type SegmentWithCount = SegmentRaw & { total_contacts: number | null };
 
 export async function mapSegmentsWithCounts(
   segments: SegmentRaw[],
-  fetchContactCount: (segmentId: number | string) => Promise<{ totalItems?: number } | undefined>,
+  fetchContactCount: (segmentId: number | string) => Promise<{ total_items?: number } | undefined>,
 ): Promise<SegmentWithCount[]> {
   return Promise.all(
     segments.map(async (s) => {
       if (!s.segment_id) return { ...s, total_contacts: null };
       const body = await fetchContactCount(s.segment_id);
-      const total_contacts = typeof body?.totalItems === 'number' ? body.totalItems : null;
+      const total_contacts = typeof body?.total_items === 'number' ? body.total_items : null;
       return { ...s, total_contacts };
     }),
   );

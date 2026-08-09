@@ -2,19 +2,22 @@
 // segmento específico, porque o código tentava adivinhar o campo de
 // contagem na resposta de GET /lists/{id}/segments (total_contacts,
 // contacts_count, contacts, total) — mas o objeto "Segment" da E-goi
-// nunca tem contagem nenhuma (confirmado no SDK oficial). O total real só
-// existe em GET /lists/{id}/contacts/segment/{segmentId} (campo totalItems).
+// nunca tem contagem nenhuma (confirmado no SDK oficial). O total real
+// existe em GET /lists/{id}/contacts/segment/{segmentId} — e mesmo depois
+// de trocar de endpoint, ainda caía em null porque o SDK documenta o campo
+// como `totalItems` (camelCase), mas a resposta HTTP real usa
+// `total_items` (snake_case, confirmado ao vivo em produção).
 import { assertEquals } from 'https://deno.land/std@0.224.0/assert/mod.ts';
 import { mapSegmentsWithCounts } from './segmentCounts.ts';
 
-Deno.test('mapSegmentsWithCounts usa totalItems da resposta de contatos por segmento', async () => {
+Deno.test('mapSegmentsWithCounts usa total_items (snake_case) da resposta de contatos por segmento', async () => {
   const segments = [
     { segment_id: 10, name: 'VIP' },
     { segment_id: 20, name: 'Novos contatos' },
   ];
   const result = await mapSegmentsWithCounts(segments, async (segmentId) => {
-    if (segmentId === 10) return { totalItems: 342 };
-    if (segmentId === 20) return { totalItems: 15 };
+    if (segmentId === 10) return { total_items: 342 };
+    if (segmentId === 20) return { total_items: 15 };
     return undefined;
   });
   assertEquals(result, [
@@ -34,7 +37,7 @@ Deno.test('mapSegmentsWithCounts não chama fetchContactCount pra segmento sem i
   let called = false;
   const result = await mapSegmentsWithCounts(segments, async () => {
     called = true;
-    return { totalItems: 1 };
+    return { total_items: 1 };
   });
   assertEquals(called, false);
   assertEquals(result[0].total_contacts, null);

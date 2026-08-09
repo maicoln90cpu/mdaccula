@@ -94,14 +94,16 @@ Deno.serve(async (req) => {
         segment_id: s.segment_id ?? s.id,
         name: s.name ?? s.internal_name ?? `Segmento ${s.segment_id ?? s.id}`,
       }));
-      let debugFirstCount: unknown = null;
       const segments = await mapSegmentsWithCounts(segmentsRaw, async (segmentId) => {
         const res = await egoiFetch(`/lists/${listId}/contacts/segment/${segmentId}?limit=1`, apiKey);
-        if (debugFirstCount === null) debugFirstCount = { status: res.status, body: res.body };
-        return res.body as { totalItems?: number } | undefined;
+        return res.body as { total_items?: number } | undefined;
       });
       const listDetail = listDetailRes.body as any;
+      // O total de contatos da lista vem aninhado em "stats" (confirmado ao
+      // vivo em produção) — os fallbacks de nível raiz ficam só por
+      // segurança, caso a E-goi mude o shape sem aviso.
       const listTotal =
+        listDetail?.stats?.total_contacts ??
         listDetail?.total_contacts ??
         listDetail?.contacts_count ??
         listDetail?.contacts ??
@@ -111,12 +113,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           segments,
           list_total_contacts: listTotal,
-          _debug: {
-            segmentsStatus: segmentsRes.status,
-            listDetailStatus: listDetailRes.status,
-            listDetailBody: listDetail,
-            debugFirstCount,
-          },
+          _debug: { segmentsStatus: segmentsRes.status, listDetailStatus: listDetailRes.status },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
@@ -134,8 +131,9 @@ Deno.serve(async (req) => {
       list_id: l.list_id ?? l.id,
       internal_name: l.internal_name ?? l.name,
       public_name: l.public_name ?? l.title,
+      // Mesmo shape aninhado do GET /lists/{id} — total real fica em "stats".
       total_contacts:
-        l.total_contacts ?? l.contacts_count ?? l.contacts ?? l.total ?? null,
+        l.stats?.total_contacts ?? l.total_contacts ?? l.contacts_count ?? l.contacts ?? l.total ?? null,
     }));
 
     const rawSenders = [
