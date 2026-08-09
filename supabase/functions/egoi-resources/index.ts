@@ -94,8 +94,10 @@ Deno.serve(async (req) => {
         segment_id: s.segment_id ?? s.id,
         name: s.name ?? s.internal_name ?? `Segmento ${s.segment_id ?? s.id}`,
       }));
+      let debugFirstCount: unknown = null;
       const segments = await mapSegmentsWithCounts(segmentsRaw, async (segmentId) => {
         const res = await egoiFetch(`/lists/${listId}/contacts/segment/${segmentId}?limit=1`, apiKey);
+        if (debugFirstCount === null) debugFirstCount = { status: res.status, body: res.body };
         return res.body as { totalItems?: number } | undefined;
       });
       const listDetail = listDetailRes.body as any;
@@ -109,7 +111,12 @@ Deno.serve(async (req) => {
         JSON.stringify({
           segments,
           list_total_contacts: listTotal,
-          _debug: { segmentsStatus: segmentsRes.status, listDetailStatus: listDetailRes.status },
+          _debug: {
+            segmentsStatus: segmentsRes.status,
+            listDetailStatus: listDetailRes.status,
+            listDetailBody: listDetail,
+            debugFirstCount,
+          },
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
