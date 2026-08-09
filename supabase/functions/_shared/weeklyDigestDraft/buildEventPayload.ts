@@ -82,6 +82,7 @@ export function buildEventPayload(
     eventUrl: `${SITE_URL}/eventos/${e.slug}`,
     ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
     ctaLabel: e.cta_type && e.cta_type !== DEFAULT_EVENT_CTA_TYPE ? getEventCtaButtonLabel(e.cta_type) : undefined,
+    lineup: Array.isArray(e.lineup) ? e.lineup.map((a) => String(a).trim()).filter(Boolean) : [],
   }));
 
   const dedgeHead = dedgeGroup[0];

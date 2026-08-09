@@ -452,6 +452,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `[functions.send-event-reminder-campaigns]` + `verify_jwt = false` adicionado em `supabase/config.toml`, igual ao padrão de todas as outras functions cron/webhook do projeto.
 - **Proteção:** `src/__tests__/regression/send-event-reminder-cron-verify-jwt-gap.test.ts`.
 
+### R-046 — Assunto/H1 de campanha multi-evento sempre mostrava frase genérica em vez dos nomes reais dos eventos
+- **Quando:** agosto/2026, pedido do usuário ao notar que o e-mail "Virada de lote — múltiplos eventos" chegava com o assunto "2 eventos com novo lote hoje" mesmo tendo eventos reais selecionados.
+- **Sintoma:** com o bloco "Título" (H1) ativo e sem nenhum override manual configurado, tanto o H1 quanto o assunto/preheader do e-mail (placeholder `{{event_title}}`) mostravam sempre a frase genérica baseada só na contagem de eventos, nunca os nomes reais.
+- **Causa:** `buildMultiEventAnnouncementData()` (`supabase/functions/_shared/emailComposer.ts`) só usava `events.length` pra compor `eventTitle` — nunca lia `event.title` dos eventos selecionados. Além disso o assunto (linha única) e o H1 visível (bloco no corpo do e-mail) usavam o mesmo texto, mas têm restrições diferentes: o assunto não pode virar uma lista, o H1 pode.
+- **Correção:** `composeAutoMultiEventTitle()` (usada só pro assunto/preheader) junta os títulos reais em pt-BR ("A", "A e B", "A, B e C") quando cabem num limite seguro pro assunto; se não couberem, cai direto na frase genérica original — sem etapa intermediária tipo "Primeiro e mais N eventos" (testado e descartado por ficar com leitura estranha quando o primeiro título já é longo). Separadamente, o bloco "Título" (H1) passou a listar TODOS os eventos, um por linha com marcador + dia/hora (`• BOMA presents: The Moment — 22/08 · 17h`), lendo direto de `event.gridEvents` — paridade mantida no renderer plain-text. O override manual (`text_override` no bloco título, R-037) continua tendo prioridade máxima sobre a lista.
+- **Proteção:** `src/__tests__/regression/multi-event-generic-title-uses-real-event-names.test.ts`, `src/__tests__/lib/emailComposer.test.ts`, `src/__tests__/lib/blocks-title-multi-event-list.test.ts`.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

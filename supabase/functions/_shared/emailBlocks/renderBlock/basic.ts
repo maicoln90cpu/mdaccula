@@ -65,6 +65,24 @@ export function renderBasicBlock(
       const align = block.align ?? "left";
       const size = Math.max(18, Math.min(48, block.font_size ?? 28));
       const weight = block.font_weight === "bold" ? 700 : 800;
+
+      // Contexto multi-evento (event_grid) sem override manual: lista cada
+      // evento numa linha própria (marcador + dia/hora), em vez do resumo
+      // curto usado no assunto do e-mail (que não pode virar lista — é uma
+      // única linha na caixa de entrada, ver composeAutoMultiEventTitle em
+      // emailComposer.ts).
+      const gridList = event.gridEvents;
+      if (!block.text_override?.trim() && gridList && gridList.length > 0) {
+        const lines = gridList.map((ev) => {
+          const dt = [ev.dayLabel, ev.timeLabel].filter(Boolean).join(" · ");
+          const label = `• ${escape(ev.title)}${dt ? ` — ${escape(dt)}` : ""}`;
+          return block.uppercase ? label.toUpperCase() : label;
+        });
+        return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
+          <h1 style="margin:0;color:${color};font-size:${size}px;line-height:1.4;font-weight:${weight};letter-spacing:-0.01em;">${lines.join("<br>")}</h1>
+        </td></tr>`;
+      }
+
       const rawText = block.text_override?.trim() || event.eventTitle;
       const text = block.uppercase ? escape(rawText).toUpperCase() : escape(rawText);
       return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">

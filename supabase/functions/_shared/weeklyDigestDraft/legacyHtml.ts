@@ -6,6 +6,7 @@ export type EventRow = {
   id: string; title: string; slug: string; date: string; end_date: string | null; time: string | null;
   venue: string; location_city: string; location_state: string;
   image_url: string | null; ticket_link: string | null; cta_type: string | null;
+  lineup?: string[] | null;
 };
 
 export type PostRow = {

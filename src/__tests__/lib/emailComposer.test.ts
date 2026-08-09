@@ -200,18 +200,46 @@ describe('buildMultiEventAnnouncementData', () => {
     ...overrides,
   });
 
-  it('gera título automático no singular para 1 evento', () => {
-    const result = buildMultiEventAnnouncementData([baseEvent()]);
-    expect(result.eventTitle).toBe('1 evento com novo lote hoje');
+  it('gera título automático com o nome real do evento quando há só 1 evento', () => {
+    const result = buildMultiEventAnnouncementData([baseEvent({ title: 'Krush' })]);
+    expect(result.eventTitle).toBe('Krush');
   });
 
-  it('gera título automático no plural para N eventos', () => {
+  it('junta os nomes reais dos eventos quando são 2', () => {
     const result = buildMultiEventAnnouncementData([
-      baseEvent({ id: 'a' }),
-      baseEvent({ id: 'b' }),
-      baseEvent({ id: 'c' }),
+      baseEvent({ id: 'a', title: 'Krush' }),
+      baseEvent({ id: 'b', title: 'Nostalgia' }),
+    ]);
+    expect(result.eventTitle).toBe('Krush e Nostalgia');
+  });
+
+  it('junta os nomes reais dos eventos com vírgula + "e" quando são 3+', () => {
+    const result = buildMultiEventAnnouncementData([
+      baseEvent({ id: 'a', title: 'Krush' }),
+      baseEvent({ id: 'b', title: 'Nostalgia' }),
+      baseEvent({ id: 'c', title: 'Bagualhaço' }),
+    ]);
+    expect(result.eventTitle).toBe('Krush, Nostalgia e Bagualhaço');
+  });
+
+  it('cai direto no fallback genérico (sem etapa intermediária) quando os nomes reais juntos passam do limite seguro pro assunto', () => {
+    // O assunto é uma linha só (não dá pra virar lista) — quando os nomes não
+    // cabem, pula direto pra frase genérica. A lista completa fica só no H1
+    // (event.gridEvents), não tenta um resumo tipo "Primeiro e mais N".
+    const result = buildMultiEventAnnouncementData([
+      baseEvent({ id: 'a', title: 'Evento Extremamente Longo Um' }),
+      baseEvent({ id: 'b', title: 'Evento Extremamente Longo Dois' }),
+      baseEvent({ id: 'c', title: 'Evento Extremamente Longo Tres' }),
     ]);
     expect(result.eventTitle).toBe('3 eventos com novo lote hoje');
+  });
+
+  it('cai no fallback genérico quando um único título já é longo demais pro assunto', () => {
+    const result = buildMultiEventAnnouncementData([
+      baseEvent({ id: 'a', title: 'Um Título de Evento Absurdamente Longo Que Nunca Caberia Em Um Assunto de E-mail Decente' }),
+      baseEvent({ id: 'b', title: 'Outro Evento' }),
+    ]);
+    expect(result.eventTitle).toBe('2 eventos com novo lote hoje');
   });
 
   it('titleOverride sobrescreve o título automático (regressão: assunto do e-mail usava {{event_title}} sem respeitar o override do bloco title)', () => {
@@ -222,11 +250,12 @@ describe('buildMultiEventAnnouncementData', () => {
     expect(result.eventTitle).toBe('Promo especial de fim de semana');
   });
 
-  it('titleOverride em branco (só espaços) cai no título automático', () => {
-    const result = buildMultiEventAnnouncementData([baseEvent({ id: 'a' }), baseEvent({ id: 'b' })], {
-      titleOverride: '   ',
-    });
-    expect(result.eventTitle).toBe('2 eventos com novo lote hoje');
+  it('titleOverride em branco (só espaços) cai no título automático com os nomes reais', () => {
+    const result = buildMultiEventAnnouncementData(
+      [baseEvent({ id: 'a', title: 'Krush' }), baseEvent({ id: 'b', title: 'Nostalgia' })],
+      { titleOverride: '   ' },
+    );
+    expect(result.eventTitle).toBe('Krush e Nostalgia');
   });
 
   it('mapeia cada evento para gridEvents com o shape de WeekendEventItem', () => {
@@ -253,5 +282,17 @@ describe('buildMultiEventAnnouncementData', () => {
       baseEvent({ cta_type: 'buy_ticket_discount' }),
     ]);
     expect(result.gridEvents?.[0].ctaLabel).toBe('Comprar Ingresso com Desconto');
+  });
+
+  it('propaga o lineup do evento para gridEvents, removendo vazios e espaços', () => {
+    const result = buildMultiEventAnnouncementData([
+      baseEvent({ lineup: ['BARJA', '  DRE GUAZZELLI  ', '', '   '] }),
+    ]);
+    expect(result.gridEvents?.[0].lineup).toEqual(['BARJA', 'DRE GUAZZELLI']);
+  });
+
+  it('gridEvents tem lineup vazio quando o evento não tem line-up cadastrado', () => {
+    const result = buildMultiEventAnnouncementData([baseEvent({ lineup: null })]);
+    expect(result.gridEvents?.[0].lineup).toEqual([]);
   });
 });

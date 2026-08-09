@@ -126,6 +126,35 @@ export function buildEventAnnouncementData(event: EmailEventRow, opts: BuildEven
   };
 }
 
+const MULTI_EVENT_SUBJECT_SAFE_LENGTH = 60;
+
+const genericMultiEventTitle = (count: number): string =>
+  count === 1 ? "1 evento com novo lote hoje" : `${count} eventos com novo lote hoje`;
+
+/** Junta nomes de eventos em pt-BR: "A", "A e B", "A, B e C". */
+const joinEventNames = (titles: string[]): string => {
+  if (titles.length === 1) return titles[0];
+  return `${titles.slice(0, -1).join(", ")} e ${titles[titles.length - 1]}`;
+};
+
+/**
+ * Compõe o eventTitle automático de uma campanha multi-evento a partir dos
+ * títulos reais, com fallback pra frase genérica — porque este texto também
+ * alimenta o assunto do e-mail (uma linha só, não dá pra virar lista ali).
+ * A lista completa de eventos fica só no bloco H1 (ver `renderBlock/basic.ts`,
+ * case "title"), que lê `event.gridEvents` diretamente.
+ */
+const composeAutoMultiEventTitle = (events: EmailEventRow[]): string => {
+  const count = events.length;
+  const titles = events.map((e) => e.title.trim()).filter(Boolean);
+  if (titles.length !== count) return genericMultiEventTitle(count);
+
+  const full = joinEventNames(titles);
+  if (full.length <= MULTI_EVENT_SUBJECT_SAFE_LENGTH) return full;
+
+  return genericMultiEventTitle(count);
+};
+
 export function buildMultiEventAnnouncementData(
   events: EmailEventRow[],
   opts: { baseUrl?: string; titleOverride?: string } = {},
@@ -137,9 +166,7 @@ export function buildMultiEventAnnouncementData(
   // do assunto/preheader — por isso o override precisa entrar AQUI, não só
   // no renderer do bloco, senão o assunto continua mostrando o texto fixo
   // mesmo com o bloco visível já sobrescrito.
-  const eventTitle = opts.titleOverride?.trim() || (count === 1
-    ? "1 evento com novo lote hoje"
-    : `${count} eventos com novo lote hoje`);
+  const eventTitle = opts.titleOverride?.trim() || composeAutoMultiEventTitle(events);
 
   const gridEvents = events.map((event) => {
     const date = new Date(`${event.date}T${event.time || "00:00"}`);
@@ -159,6 +186,7 @@ export function buildMultiEventAnnouncementData(
       eventUrl,
       ticketUrl: event.ticket_link?.trim() || eventUrl,
       ctaLabel,
+      lineup: Array.isArray(event.lineup) ? event.lineup.map((a) => String(a).trim()).filter(Boolean) : [],
     };
   });
 

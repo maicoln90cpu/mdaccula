@@ -106,7 +106,7 @@ export const defaultForKind = (kind: Block['kind']): Block => {
         border_radius: 12,
       };
     case 'event_grid':
-      return { id, kind, title: '', eyebrow: '', align: 'left' };
+      return { id, kind, title: '', eyebrow: '', align: 'left', columns: 2 };
     case 'weekend_grid':
       return {
         id,
@@ -116,6 +116,7 @@ export const defaultForKind = (kind: Block['kind']): Block => {
         eyebrow: '',
         show_article_link: true,
         align: 'left',
+        columns: 2,
       };
     case 'weekly_hero':
       return {

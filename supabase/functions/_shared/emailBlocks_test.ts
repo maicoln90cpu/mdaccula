@@ -370,9 +370,12 @@ Deno.test("event_grid: renderiza 2 cards por linha (HTML)", () => {
   const widthOccurrences = (html.match(/width="50%"/g) || []).length;
   assertEquals(widthOccurrences, 2);
   // Verifica que ambos os títulos estão no MESMO <tr> (não em filas separadas)
-  // Procura pelo padrão: <tr><td width="50%">...Evento A...</td><td width="50%">...Evento B...</td></tr>
-  // Se cada card tivesse seu próprio <tr>, não conseguiríamos achar este padrão (seria <tr>..A..</tr><tr>..B..</tr>)
-  const correctPairingPattern = /<tr[^>]*><td width="50%"[\s\S]*?Evento A[\s\S]*?<\/td><td width="50%"[\s\S]*?Evento B[\s\S]*?<\/td><\/tr>/;
+  // Procura pelo padrão: <tr><td width="50%">...Evento A...<td width="50%">...Evento B...</tr>
+  // Se cada card tivesse seu próprio <tr>, não conseguiríamos achar este padrão (seria <tr>..A..</tr><tr>..B..</tr>).
+  // Fecha no início do próximo <td width="50%"> (não no primeiro </td>) porque o
+  // título agora vive numa linha própria dentro do card (sobreposta à imagem),
+  // então o primeiro </td> depois de "Evento A" é só o da linha da imagem.
+  const correctPairingPattern = /<tr[^>]*><td width="50%"[\s\S]*?Evento A[\s\S]*?<td width="50%"[\s\S]*?Evento B[\s\S]*?<\/tr>/;
   const isCorrectlyPaired = correctPairingPattern.test(html);
   assertEquals(isCorrectlyPaired, true, "Eventos devem estar em um <tr> com <td width=\"50%\"> para cada um (2 colunas em 1 linha, não separados em 2 linhas)");
 });
@@ -782,6 +785,30 @@ Deno.test("title: text_override em branco (só espaços) cai no fallback do tít
   assertStringIncludes(html, mockEvent.eventTitle);
 });
 
+Deno.test("title: contexto multi-evento (gridEvents) sem override lista cada evento numa linha, com marcador e dia/hora", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "BOMA presents: The Moment", dayLabel: "22/08", timeLabel: "17h", venue: "V1", imageUrl: "https://x.com/a.jpg", eventUrl: "https://x.com/a" },
+      { id: "2", title: "Nostalgia", dayLabel: "23/08", timeLabel: "22h", venue: "V2", imageUrl: "https://x.com/b.jpg", eventUrl: "https://x.com/b" },
+    ],
+  };
+  const html = renderBlockedTemplate([{ id: "1", kind: "title" } as any], event as any, null, null);
+  assertStringIncludes(html, "• BOMA presents: The Moment — 22/08 · 17h<br>• Nostalgia — 23/08 · 22h");
+});
+
+Deno.test("title: com gridEvents, text_override ainda vence a lista", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento A", dayLabel: "22/08", venue: "V1", imageUrl: "https://x.com/a.jpg", eventUrl: "https://x.com/a" },
+    ],
+  };
+  const html = renderBlockedTemplate([{ id: "1", kind: "title", text_override: "Promo especial" } as any], event as any, null, null);
+  assertStringIncludes(html, ">Promo especial<");
+  assertEquals(html.includes("•"), false);
+});
+
 Deno.test("event_meta: date_label e location_label sobrescrevem os rótulos padrão", () => {
   const html = renderBlockedTemplate(
     [{ id: "1", kind: "event_meta", date_label: "Quando", location_label: "Onde" } as any],
@@ -862,6 +889,20 @@ Deno.test("paridade HTML/texto-puro: countdown sem label usa o mesmo padrão nos
   const blocks: Block[] = [{ id: "1", kind: "countdown" } as any];
   const text = renderBlockedTemplateText(blocks, mockEvent, null, null);
   assertStringIncludes(text, "Lote atual encerra em");
+});
+
+Deno.test("paridade HTML/texto-puro: title com gridEvents lista os eventos nos dois formatos", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento A", dayLabel: "22/08", timeLabel: "17h", venue: "V1", imageUrl: "https://x.com/a.jpg", eventUrl: "https://x.com/a" },
+      { id: "2", title: "Evento B", dayLabel: "23/08", timeLabel: "22h", venue: "V2", imageUrl: "https://x.com/b.jpg", eventUrl: "https://x.com/b" },
+    ],
+  };
+  const blocks: Block[] = [{ id: "1", kind: "title" } as any];
+  const text = renderBlockedTemplateText(blocks, event as any, null, null);
+  assertStringIncludes(text, "• EVENTO A — 22/08 · 17H");
+  assertStringIncludes(text, "• EVENTO B — 23/08 · 22H");
 });
 
 Deno.test("paridade HTML/texto-puro: weekend_grid sem título usa o mesmo padrão nos dois formatos", () => {

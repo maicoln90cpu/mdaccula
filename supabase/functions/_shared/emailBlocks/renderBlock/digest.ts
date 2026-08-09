@@ -5,6 +5,74 @@ import type { Block, RenderContext, WeekendEventItem } from "../types.ts";
 import { escape, proxyForEmail } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
+const gridColumns = (block: { columns?: 2 | 3 }): number => (block.columns === 3 ? 3 : 2);
+
+/**
+ * Largura de cada célula do grid em %. Numa linha completa (rowLength ===
+ * columns), a última célula recebe o resto exato pra somar 100 mesmo com
+ * divisão não-exata (ex.: 33.33+33.33+33.34). Numa última linha incompleta
+ * (sobra de itens), todas as células usam a largura-base — igual ao
+ * comportamento anterior (largura fixa por célula, independente do total).
+ */
+const gridColWidthPct = (index: number, rowLength: number, columns: number): number => {
+  const base = Math.floor((100 / columns) * 100) / 100;
+  const isLastOfFullRow = rowLength === columns && index === columns - 1;
+  if (!isLastOfFullRow) return base;
+  return Math.round((100 - base * (columns - 1)) * 100) / 100;
+};
+
+/**
+ * Card compartilhado pelos grids de múltiplos eventos (`event_grid` e
+ * `weekend_grid` no layout "grid"). Título fica sobreposto à imagem (mesma
+ * técnica de gradiente CSS já usada em `weekly_hero` — sem overlay real via
+ * `background`/VML, que não existe em nenhum outro lugar do código e
+ * arriscaria quebrar no Outlook desktop); dia/hora, line-up e botão ficam
+ * abaixo, como já era antes.
+ */
+function renderGridEventCard(
+  ev: WeekendEventItem,
+  opts: { columns: number; accentColor: string; gradient: string; defaultCtaLabel: string; showTime: boolean },
+): string {
+  const { columns, accentColor, gradient, defaultCtaLabel, showTime } = opts;
+  const url = escape(ev.eventUrl || "#");
+  const ctaLabel = escape(ev.ctaLabel || defaultCtaLabel);
+  const btn = ev.ticketUrl
+    ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;width:100%;box-sizing:border-box;padding:10px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:8px;">${ctaLabel}</a>`
+    : "";
+
+  // Largura máxima da imagem derivada da largura útil do e-mail (552px) menos
+  // o padding de 8px por lado de cada card — em 2 colunas dá 260 (igual ao
+  // valor fixo de antes), em 3 colunas dá 168.
+  const imgMaxWidth = Math.floor((552 - columns * 16) / columns);
+
+  const maxNames = columns >= 3
+    ? EMAIL_BLOCK_LIMITS.gridCardLineup.maxNamesAt3Cols
+    : EMAIL_BLOCK_LIMITS.gridCardLineup.maxNamesAt2Cols;
+  const names = (ev.lineup || []).filter(Boolean);
+  const shown = names.slice(0, maxNames);
+  const extra = names.length - shown.length;
+  const lineupChips = names.length === 0 ? "" : `<div style="margin-bottom:8px;">${shown
+    .map((n) => `<span style="display:inline-block;margin:2px 3px 2px 0;padding:3px 8px;background:rgba(168,85,247,0.12);border:1px solid ${accentColor};border-radius:999px;color:#e4e4e7;font-size:9px;font-weight:700;letter-spacing:0.02em;">${escape(n)}</span>`)
+    .join("")}${extra > 0 ? `<span style="display:inline-block;margin:2px 0;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:999px;color:#a1a1aa;font-size:9px;font-weight:700;">+${extra}</span>` : ""}</div>`;
+
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
+    <tr><td style="padding:0;">
+      <a href="${url}" style="text-decoration:none;display:block;">
+        <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="${imgMaxWidth}" border="0" style="display:block;width:100%;max-width:${imgMaxWidth}px;height:auto;border:0;outline:none;">
+      </a>
+    </td></tr>
+    <tr><td style="padding:8px 12px 8px 12px;background-image:linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.9) 100%);">
+      <a href="${url}" style="display:block;color:#ffffff;text-decoration:none;font-size:13px;font-weight:900;line-height:1.2;">${escape(ev.title)}</a>
+    </td></tr>
+    <tr><td style="padding:10px 14px 14px 14px;">
+      <div style="color:${accentColor};font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
+      <div style="color:#a1a1aa;font-size:11px;margin-bottom:8px;">${escape(ev.venue)}</div>
+      ${lineupChips}
+      ${btn}
+    </td></tr>
+  </table>`;
+}
+
 export function renderDigestBlock(
   block: Block,
   ctx: RenderContext,
@@ -100,33 +168,15 @@ export function renderDigestBlock(
           return `${header}${singleCard}`;
         }
 
-        const gridCard = (ev: WeekendEventItem) => {
-          const url = escape(ev.eventUrl || "#");
-          const ctaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
-          const btn = ev.ticketUrl
-            ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;width:100%;box-sizing:border-box;padding:10px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:8px;">${ctaLabel}</a>`
-            : "";
-          return `<td width="50%" style="padding:8px;vertical-align:top;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-              <tr><td style="padding:0;">
-                <a href="${url}" style="text-decoration:none;display:block;">
-                  <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="260" border="0" style="display:block;width:100%;max-width:260px;height:auto;border:0;outline:none;">
-                </a>
-              </td></tr>
-              <tr><td style="padding:12px 14px 14px 14px;">
-                <div style="color:${escape(block.day_bar_color || accent)};font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
-                <div style="color:#ffffff;font-size:14px;font-weight:800;line-height:1.2;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
-                <div style="color:#a1a1aa;font-size:11px;margin-bottom:8px;">${escape(ev.venue)}</div>
-                ${btn}
-              </td></tr>
-            </table>
-          </td>`;
-        };
-
+        const columns = gridColumns(block);
+        const accentColor = escape(block.day_bar_color || accent);
+        const defaultCtaLabel = settings.cta_label || "Garantir ingresso";
         const gridRows: string[] = [];
-        for (let i = 0; i < list.length; i += 2) {
-          const pair = list.slice(i, i + 2);
-          const cells = pair.map(gridCard).join("");
+        for (let i = 0; i < list.length; i += columns) {
+          const group = list.slice(i, i + columns);
+          const cells = group
+            .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length, columns)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns, accentColor, gradient, defaultCtaLabel, showTime })}</td>`)
+            .join("");
           gridRows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
         }
         return `${header}${gridRows.join("")}`;
@@ -183,33 +233,14 @@ export function renderDigestBlock(
         </td></tr>`;
       }
 
-      const card = (ev: WeekendEventItem) => {
-        const url = escape(ev.eventUrl || "#");
-        const ctaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
-        const btn = ev.ticketUrl
-          ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;width:100%;box-sizing:border-box;padding:10px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:8px;">${ctaLabel}</a>`
-          : "";
-        return `<td width="50%" style="padding:8px;vertical-align:top;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-            <tr><td style="padding:0;">
-              <a href="${url}" style="text-decoration:none;display:block;">
-                <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="260" border="0" style="display:block;width:100%;max-width:260px;height:auto;border:0;outline:none;">
-              </a>
-            </td></tr>
-            <tr><td style="padding:12px 14px 14px 14px;">
-              <div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:4px;">${escape(ev.dayLabel)}${ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
-              <div style="color:#ffffff;font-size:14px;font-weight:800;line-height:1.2;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
-              <div style="color:#a1a1aa;font-size:11px;margin-bottom:8px;">${escape(ev.venue)}</div>
-              ${btn}
-            </td></tr>
-          </table>
-        </td>`;
-      };
-
+      const columns = gridColumns(block);
+      const defaultCtaLabel = settings.cta_label || "Garantir ingresso";
       const rows: string[] = [];
-      for (let i = 0; i < list.length; i += 2) {
-        const pair = list.slice(i, i + 2);
-        const cells = pair.map(card).join("");
+      for (let i = 0; i < list.length; i += columns) {
+        const group = list.slice(i, i + columns);
+        const cells = group
+          .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length, columns)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns, accentColor: accent, gradient, defaultCtaLabel, showTime: true })}</td>`)
+          .join("");
         rows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
       }
       return `${header}${rows.join("")}`;

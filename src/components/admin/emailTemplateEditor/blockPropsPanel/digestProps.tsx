@@ -40,8 +40,23 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
                 Timeline por dia (compacto, barra colorida)
               </SelectItem>
               <SelectItem value="grid">
-                Grid adaptativo (1 evento = card único, 2+ = 2 colunas)
+                Grid adaptativo (1 evento = card único, 2+ = colunas)
               </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">Colunas (layout grid, 2+ eventos)</Label>
+          <Select
+            value={String(block.columns ?? 2)}
+            onValueChange={(v) => patch({ columns: Number(v) })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 colunas</SelectItem>
+              <SelectItem value="3">3 colunas (cards mais compactos)</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -92,9 +107,24 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Grade de 2 colunas para vários eventos que viram de lote no mesmo dia. Os eventos são
+          Grade para vários eventos que viram de lote no mesmo dia. Os eventos são
           selecionados manualmente no disparo (não vêm da agenda automática).
         </p>
+        <div>
+          <Label className="text-xs">Colunas</Label>
+          <Select
+            value={String(block.columns ?? 2)}
+            onValueChange={(v) => patch({ columns: Number(v) })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2">2 colunas</SelectItem>
+              <SelectItem value="3">3 colunas (cards mais compactos)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div>
           <Label className="text-xs">Etiqueta (topo — opcional)</Label>
           <Input

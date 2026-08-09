@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
 
     const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }, { data: globalBlocksRows }] = await Promise.all([
       admin.from('events')
-        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,cta_type,status')
+        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,cta_type,status,lineup')
         .eq('status', 'active')
         // Multi-dia: inclui eventos cuja janela [date, coalesce(end_date, date)]
         // intersecta [startIso, endIso]. Sem isso o Nostalgia (09→10/07) some no dia 10.

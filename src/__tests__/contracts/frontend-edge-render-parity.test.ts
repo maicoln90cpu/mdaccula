@@ -79,4 +79,32 @@ describe('Contrato de paridade — renderer frontend vs edge', () => {
   it('computePreheader retorna string idêntica para o mock', () => {
     expect(frontend.computePreheader(MOCK_EVENT_DATA)).toBe(edge.computePreheader(MOCK_EVENT_DATA));
   });
+
+  it('HTML byte-idêntico — event_grid (3 colunas + line-up) e weekend_grid layout "grid"', () => {
+    const gridItem = (overrides: Record<string, unknown> = {}) => ({
+      id: 'ev-1',
+      title: 'Krush',
+      dayLabel: 'Sex, 23/08',
+      timeLabel: '22h',
+      venue: 'Clube X',
+      imageUrl: 'https://cdn.example.com/krush.jpg',
+      eventUrl: 'https://mdaccula.com/eventos/krush',
+      ticketUrl: 'https://mdaccula.com/eventos/krush',
+      lineup: ['DJ ALPHA', 'DJ BETA', 'DJ GAMMA'],
+      ...overrides,
+    });
+    const event = {
+      ...MOCK_EVENT_DATA,
+      gridEvents: [gridItem({ id: 'a' }), gridItem({ id: 'b' }), gridItem({ id: 'c' })],
+      weekendEvents: [gridItem({ id: 'w1' }), gridItem({ id: 'w2' })],
+    };
+    const blocks: Block[] = [
+      { id: 'g', kind: 'event_grid', columns: 3 } as Block,
+      { id: 'w', kind: 'weekend_grid', layout: 'grid', columns: 3 } as Block,
+    ];
+    const htmlFE = frontend.renderBlockedTemplate(blocks, event, null, null, { preview: true });
+    const htmlED = edge.renderBlockedTemplate(blocks, event, null, null, { preview: true });
+    expect(htmlFE).toBe(htmlED);
+    expect(htmlFE).toContain('DJ ALPHA');
+  });
 });

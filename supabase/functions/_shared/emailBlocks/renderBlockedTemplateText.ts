@@ -29,8 +29,21 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       return "";
     case "eyebrow":
       return (block.text || "").toUpperCase();
-    case "title":
+    case "title": {
+      // Paridade com o HTML (renderBlock/basic.ts, case "title"): contexto
+      // multi-evento sem override lista cada evento numa linha própria.
+      const gridList = event.gridEvents;
+      if (!block.text_override?.trim() && gridList && gridList.length > 0) {
+        return gridList
+          .map((ev) => {
+            const dt = [ev.dayLabel, ev.timeLabel].filter(Boolean).join(" · ");
+            return `• ${ev.title}${dt ? ` — ${dt}` : ""}`;
+          })
+          .join("\n")
+          .toUpperCase();
+      }
       return (block.text_override?.trim() || event.eventTitle || "").toUpperCase();
+    }
     case "subtitle":
       return event.eventSubtitle || "";
     case "event_meta":

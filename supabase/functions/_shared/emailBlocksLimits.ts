@@ -16,6 +16,7 @@ export const EMAIL_BLOCK_LIMITS = {
   divider: { minWidth: 120, maxWidth: 552, defaultWidth: 552, minThickness: 1, maxThickness: 8, defaultThickness: 1 },
   map: { minZoom: 12, maxZoom: 19, defaultZoom: 15, minHeight: 200, maxHeight: 400, defaultHeight: 300 },
   lineup: { maxMembers: 3 },
+  gridCardLineup: { maxNamesAt2Cols: 3, maxNamesAt3Cols: 2 },
   blogPostsList: { minItems: 1, maxItems: 10, defaultItems: 3 },
   summary: { descriptionMaxChars: 150 },
 } as const;

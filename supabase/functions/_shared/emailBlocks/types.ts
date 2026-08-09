@@ -28,6 +28,8 @@ export interface WeekendEventItem {
   ctaLabel?: string;
   /** Múltiplos CTAs quando o card representa vários eventos (ex.: DEDGE quinta/sex/sáb/dom). */
   ctas?: Array<{ label: string; url: string; dayLabel?: string; timeLabel?: string }>;
+  /** Line-up (DJs/artistas) do evento — usado pelos cards de grid (event_grid / weekend_grid "grid") como chips compactos. */
+  lineup?: string[];
 }
 
 export interface DedgeNightConfig { label: string; url: string; enabled: boolean; }
@@ -126,8 +128,8 @@ export type Block =
   | { id: string; kind: "countdown"; label?: string; deadline_source?: "today_2359" | "event_start" | "batch_deadline" | "custom"; custom_deadline?: string; bg_style?: "gradient" | "solid"; bg_color?: string; align?: Align; size?: "large" | "medium" | "minimal"; number_color?: string; show_unit_labels?: boolean; unit_label_day?: string; unit_label_days?: string; unit_label_hour?: string; unit_label_hours?: string; unit_label_minutes?: string; until_prefix?: string }
   | { id: string; kind: "ticker"; messages?: string[]; bg_color?: string; text_color?: string; animation?: "none" | "slide" | "fade"; align?: Align; icon?: "none" | "clock" | "fire" | "bolt"; speed?: "slow" | "normal" | "fast"; shape?: "bar" | "pill" }
   | { id: string; kind: "static_map"; zoom?: number; height?: number; map_style?: "roadmap" | "terrain"; show_address_label?: boolean; border_radius?: number; pin_color?: string; directions_label?: string }
-  | { id: string; kind: "weekend_grid"; layout?: "cartaz" | "timeline" | "grid"; title?: string; eyebrow?: string; show_article_link?: boolean; day_bar_color?: string; align?: Align; show_time?: boolean }
-  | { id: string; kind: "event_grid"; title?: string; eyebrow?: string; align?: Align }
+  | { id: string; kind: "weekend_grid"; layout?: "cartaz" | "timeline" | "grid"; title?: string; eyebrow?: string; show_article_link?: boolean; day_bar_color?: string; align?: Align; show_time?: boolean; columns?: 2 | 3 }
+  | { id: string; kind: "event_grid"; title?: string; eyebrow?: string; align?: Align; columns?: 2 | 3 }
   | { id: string; kind: "dedge_block"; override_content?: boolean; image_url?: string; eyebrow?: string; title?: string; description?: string; primary_label?: string; primary_url?: string; button_style?: "dark" | "primary"; card_style?: "featured" | "compact"; show_description?: boolean }
   | { id: string; kind: "weekly_hero"; source?: "first_weekend" | "main_event"; eyebrow?: string; cta_label?: string; show_venue?: boolean; show_cta?: boolean; overlay_intensity?: "soft" | "strong"; align?: Align; accent_color?: string; show_datetime?: boolean }
   | { id: string; kind: "blog_posts_list"; title?: string; eyebrow?: string; max_items?: number; layout?: "list" | "cards"; show_excerpt?: boolean; show_category?: boolean; align?: Align; category_color?: string; show_read_more_link?: boolean; read_more_label?: string }
