@@ -35,12 +35,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 3. Depois de 3-5 ciclos limpos (artigo real gerado, ou skip legítimo sem URL estranha), este checkpoint pode ser encerrado.
 **Responsável:** usuário reporta o que encontrar; IA ajusta
 
-### Checkpoint: `event_sources` tem nomes duplicados (Alataj, Central DJ, DJ Mag LA, DJ News Brasil, House Mag, Mix Mag Brasil, Play BPM, Wonderland in Rave, entre outros)
-**Checar em:** próxima vez que alguém for cadastrar/editar fontes em `/admin/fontes`.
-**Contexto:** achado em 10/08/2026 ao rodar `verify-sources-weekly` pela primeira vez — várias fontes aparecem 2x na tabela (nomes iguais, provavelmente URLs diferentes ou uma linha órfã de teste). Não investigado a fundo ainda (fora do escopo da reorganização de controles de publicação em andamento); pode ser inofensivo (URLs realmente diferentes pro mesmo veículo) ou pode estar inflando o sorteio de fontes do `auto-article-cron` (mesma fonte com 2x mais chance de ser sorteada).
-**Passos:** rodar `select name, url, id from event_sources where content_source=true order by name;`, conferir se as URLs duplicadas fazem sentido (ex.: RSS vs. site) ou se é lixo de teste pra remover.
-**Responsável:** usuário decide se remove/mantém; IA só documentou o achado.
-
 ### Checkpoint: `event_sources.content_source` do WeGoOut voltou pra `true` sozinho — causa raiz não confirmada
 **Checar em:** próximas 2 semanas — conferir semanalmente se algum artigo saiu de Sympla/Ingresse/WeGoOut de novo
 **Contexto:** em 09/08/2026, corrigi `content_source=false` pras 3 plataformas de ticketing (Sympla, Ingresse, WeGoOut) às 00:22 UTC (confirmado por SELECT logo em seguida). Por volta de 00:34 UTC — 12 minutos depois, sem eu ter rodado nenhum UPDATE nesse intervalo — o `WeGoOut` (só ele, Sympla/Ingresse continuaram corretos) tinha voltado pra `content_source=true`, e o `auto-article-cron` gerou um rascunho reescrevendo uma página de evento do WeGoOut como se fosse notícia (mesmo padrão do bug original). Busquei em todo o código por qualquer INSERT/UPDATE que grave `content_source` — só achei `FontesManager.tsx` (client-side, exige ação manual de um admin no `/admin/fontes`) e as duas queries de leitura (`auto-article-cron`, `generate-blog-suggestions`). Nenhum cron/webhook/trigger no banco escreve nessa coluna. Corrigido de novo às 01:29 UTC (confirmado). Não consegui confirmar a causa raiz — pode ter sido uma edição real no `/admin/fontes` (o toggle novo da coluna "Conteúdo" foi ao ar nesse mesmo commit) enquanto eu testava, ou algo que não encontrei.
@@ -133,12 +127,6 @@ _Nenhuma no momento._
 **Contexto:** o próprio comentário do arquivo (`supabase/functions/egoi-curl-probe/index.ts:1-3`) diz "Edge function descartável — validar API E-goi antes de codar a integração... Após validar, esta função pode ser deletada." A validação já foi feita há tempos (o header `Apikey` correto já está em uso em todo o resto da integração E-goi), mas a function nunca foi removida — segue deployada e sem nenhuma checagem de auth (`verify_jwt: false` + sem validação no código), expondo a `EGOI_API_KEY` pra qualquer request a `/lists` e `/senders` de quem descobrir a URL.
 **Correção sugerida:** apagar `supabase/functions/egoi-curl-probe/` (pasta inteira) e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml`.
 **Responsável:** decisão do usuário — é uma remoção simples, mas envolve apagar código, por isso não fiz sem confirmar.
-
-### CI/CD Pipeline (`Quality Checks` → ESLint) quebrado no `main` por arquivos não relacionados a envios de e-mail
-**Status:** 🔧 Não corrigido — achado em 09/08/2026 ao empurrar o template "Promoção" (o job "Deploy Supabase Edge Functions" passa normalmente; só o "CI/CD Pipeline" falha).
-**Contexto:** `npm run lint` falha com 8 erros em 3 arquivos que não fazem parte do trabalho de e-mail desta sessão — `src/components/admin/emailConfig/useEmailConfigState.ts` (imports não usados: `MOCK_EVENT_DATA`, `EventAnnouncementData`, `ArticleSummary`, parâmetro `templates`; 2 `react-hooks/exhaustive-deps`), `src/components/events/eventForm/constants.ts` (`import()` type annotation proibido) e `src/lib/mcp/tools/list_links.ts` (`z` importado sem uso). Confirmado via `git log`/`git merge-base --is-ancestor` que o commit que introduziu esses erros (`d31b121`, "teste e histórico de execuções nas 4 automações") já estava mergeado no `main` antes desta sessão começar — as duas execuções anteriores do pipeline (`31317156333`, `31316719227`) já estavam com `FAIL` antes do commit desta sessão (`6dc7363`).
-**Correção sugerida:** prefixar os símbolos não usados com `_` (ou removê-los) nos 3 arquivos, ajustar os arrays de dependência dos `useCallback` em `useEmailConfigState.ts`, e trocar o `import()` inline por um `import type` no topo de `constants.ts`.
-**Responsável:** IA corrige quando solicitado (fora do escopo do pedido desta sessão — só o template "Promoção" e a investigação do bloco de texto).
 
 ### Leaked Password Protection desabilitado
 **Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)

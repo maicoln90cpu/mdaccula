@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Fix: CI/CD Pipeline (Quality Checks → ESLint) quebrado no `main` desde 09/08/2026
+**Descrição:** resolve o item registrado em `docs/PENDENCIAS.md` — 8 erros de ESLint em 3 arquivos não relacionados ao trabalho desta sessão (introduzidos no commit `d31b121`, antes desta sessão começar): `useEmailConfigState.ts` (imports não usados — `MOCK_EVENT_DATA`, `EventAnnouncementData`, `ArticleSummary`, parâmetro `templates` nunca lido dentro do hook, removido também do chamador em `EmailConfig.tsx`; 2 `react-hooks/exhaustive-deps` faltando `setTemplates`/`setActiveTemplateId` — setters de `useState` do pai, identidade sempre estável, adicionar não muda comportamento), `eventForm/constants.ts` (`import()` inline trocado por `import type` no topo) e `list_links.ts` (import não usado de `zod`).
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** nenhum (só limpeza de lint, zero mudança de comportamento). Confirmado no CI real: job "Quality Checks" voltou a passar.
+
+**Arquivos alterados:** `useEmailConfigState.ts`, `EmailConfig.tsx`, `eventForm/constants.ts`, `list_links.ts`.
+
+---
+
 ### Feature: reorganização dos controles de geração de conteúdo — Fase C + painel único (10 melhorias)
 **Descrição:** fecha a reorganização dos 8 caminhos de geração, isolando os toques no `auto-article-cron` (regra do projeto: nunca agrupar itens de alto risco) e entregando as 10 melhorias que o usuário aprovou incluir todas:
 - **C1** — cron passa a ler `auto_publish_auto_cron` (chave própria) em vez de `suggestions_auto_publish` (compartilhada com o caminho manual). Zero toque na lógica de descoberta/seleção de matéria.
@@ -1107,6 +1117,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Bugfix | CI/CD Pipeline (Quality Checks → ESLint) volta a passar — 8 erros pré-existentes em 3 arquivos não relacionados corrigidos |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase C + painel único: cooldown/streak seco no cron, checklist de qualidade final, aviso por e-mail, 8 toggles numa tela só |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase B: toggle rascunho/publicado em 5 caminhos, origem gravada em todo post, imagem real em Por Tema/Sugestões |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase A: base (settings/colunas) + Dashboard como 1ª aba de Conteúdo IA + saúde de fontes + verify-sources-weekly |
