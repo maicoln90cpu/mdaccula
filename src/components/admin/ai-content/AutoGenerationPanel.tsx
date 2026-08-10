@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Loader2,
   Play,
@@ -25,6 +26,21 @@ import { useToast } from '@/components/ui/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logger } from '@/lib/logger';
+import { useAutoPublishSettings, type AutoPublishKey } from '@/hooks/useAutoPublishSettings';
+
+// Painel único de controle (reorganização dos controles de publicação,
+// 10/08/2026): 1 linha por caminho de geração, com selo estático de
+// "raspagem real" e o toggle rascunho/publicado ligado à chave correta.
+const PUBLISH_CONTROL_ROWS: { key: AutoPublishKey; label: string; description: string; scrapesReal: boolean }[] = [
+  { key: 'auto_publish_generate_tab', label: 'Gerar', description: 'Aba "Gerar" — template manual, sem raspagem.', scrapesReal: false },
+  { key: 'auto_publish_suggestions_topic', label: 'Sugestões (tema livre)', description: 'Sugestão sem template dedicado — busca aberta na web ancorada em matéria real.', scrapesReal: true },
+  { key: 'auto_publish_suggestions_template', label: 'Sugestões (template)', description: 'Sugestão de categoria com template próprio (entrevistas, labels) — sem raspagem.', scrapesReal: false },
+  { key: 'auto_publish_topic_search', label: 'Por Tema', description: 'Busca aberta na web por um termo livre digitado no admin.', scrapesReal: true },
+  { key: 'auto_publish_auto_cron', label: 'Automático (cron)', description: '1 fonte cadastrada em Fontes → 1 matéria real ainda não usada → reescrita fiel.', scrapesReal: true },
+  { key: 'auto_publish_multi_event', label: 'Artigo consolidado (Multi-Evento)', description: 'Cobre vários eventos já cadastrados no site — sem raspagem externa.', scrapesReal: false },
+  { key: 'auto_publish_single_event', label: 'Por evento', description: 'Botão "Gerar artigo" na lista de Eventos, ou checkbox ao criar/editar 1 evento — sem raspagem.', scrapesReal: false },
+  { key: 'event_watcher_auto_publish', label: 'Event Watcher', description: 'Detecção automática de eventos novos em sites/Instagram cadastrados.', scrapesReal: true },
+];
 
 interface AutoGenSettings {
   enabled: boolean;
@@ -58,9 +74,13 @@ export function AutoGenerationPanel() {
   const [isForcing, setIsForcing] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isSavingAutoPublish, setIsSavingAutoPublish] = useState(false);
-  const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
   const [isSavingInterval, setIsSavingInterval] = useState(false);
+  const {
+    settings: publishSettings,
+    loading: publishSettingsLoading,
+    updateSetting: updatePublishSetting,
+  } = useAutoPublishSettings(PUBLISH_CONTROL_ROWS.map((r) => r.key));
+  const [savingRowKey, setSavingRowKey] = useState<AutoPublishKey | null>(null);
   const [intervalInput, setIntervalInput] = useState('48');
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -87,7 +107,6 @@ export function AutoGenerationPanel() {
           'ai_auto_generate_interval_hours',
           'ai_auto_generate_last_run',
           'ai_auto_generate_fail_count',
-          'suggestions_auto_publish',
         ]);
 
       if (settingsError) throw settingsError;
@@ -103,7 +122,6 @@ export function AutoGenerationPanel() {
         ? new Date(settingsMap['ai_auto_generate_last_run'])
         : null;
       const failCount = parseInt(settingsMap['ai_auto_generate_fail_count'] || '0');
-      setSuggestionsAutoPublish(settingsMap['suggestions_auto_publish'] === 'true');
 
       // Calculate next run
       let nextRunAt: Date | null = null;
@@ -201,30 +219,21 @@ export function AutoGenerationPanel() {
     }
   };
 
-  const handleToggleSuggestionsAutoPublish = async (enabled: boolean) => {
-    setIsSavingAutoPublish(true);
+  const handleTogglePublishRow = async (key: AutoPublishKey, enabled: boolean) => {
+    setSavingRowKey(key);
     try {
-      const { error } = await supabase
-        .from('site_settings')
-        .upsert({ key: 'suggestions_auto_publish', value: String(enabled) }, { onConflict: 'key' });
-
-      if (error) throw error;
-
-      setSuggestionsAutoPublish(enabled);
+      await updatePublishSetting(key, enabled);
       toast({
         title: enabled ? 'Publicação automática ligada' : 'Publicação automática desligada',
         description: enabled
-          ? 'Artigos de Sugestões (automáticos ou gerados manualmente na aba Sugestões) nascem publicados direto.'
-          : 'Artigos de Sugestões nascem como rascunho, aguardando revisão em /admin/blog.',
+          ? 'Esse caminho passa a publicar direto, sem revisão.'
+          : 'Esse caminho passa a nascer como rascunho, aguardando revisão em /admin/blog.',
       });
     } catch (error) {
-      logger.error('Error toggling suggestions_auto_publish:', error);
-      toast({
-        title: 'Erro ao salvar',
-        variant: 'destructive',
-      });
+      logger.error('Error toggling publish setting:', error);
+      toast({ title: 'Erro ao salvar', variant: 'destructive' });
     } finally {
-      setIsSavingAutoPublish(false);
+      setSavingRowKey(null);
     }
   };
 
@@ -468,21 +477,6 @@ export function AutoGenerationPanel() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label>Publicar Sugestões automaticamente</Label>
-                <p className="text-xs text-muted-foreground">
-                  Vale pro cron e pra geração manual na aba Sugestões. Desligado = artigo nasce como
-                  rascunho em /admin/blog pra revisão.
-                </p>
-              </div>
-              <Switch
-                checked={suggestionsAutoPublish}
-                onCheckedChange={handleToggleSuggestionsAutoPublish}
-                disabled={isSavingAutoPublish}
-              />
-            </div>
-
             <Separator />
 
             <div className="grid gap-3 text-sm">
@@ -677,6 +671,66 @@ export function AutoGenerationPanel() {
               <div className="text-center py-12 text-muted-foreground">
                 <Clock className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>Nenhum log de execução encontrado</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Painel único de controle de publicação (reorganização, 10/08/2026) */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Controle de publicação por tipo de geração
+            </CardTitle>
+            <CardDescription>
+              Cada um dos 8 caminhos que criam artigo tem seu próprio controle — comece desligado
+              (rascunho) e ligue à medida que ganhar confiança naquele caminho específico. O selo
+              "Raspagem real" é só informativo: mostra se aquele caminho lê páginas reais na web ou
+              se trabalha só com dados já cadastrados/digitados.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {publishSettingsLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Caminho</TableHead>
+                      <TableHead>Raspagem real?</TableHead>
+                      <TableHead className="text-right">Publicar automaticamente</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {PUBLISH_CONTROL_ROWS.map((row) => (
+                      <TableRow key={row.key}>
+                        <TableCell>
+                          <div className="font-medium">{row.label}</div>
+                          <div className="text-xs text-muted-foreground">{row.description}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{row.scrapesReal ? 'Sim' : 'Não'}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            {savingRowKey === row.key && (
+                              <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                            )}
+                            <Switch
+                              checked={publishSettings[row.key] === true}
+                              onCheckedChange={(checked) => handleTogglePublishRow(row.key, checked)}
+                              disabled={savingRowKey === row.key}
+                            />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </CardContent>

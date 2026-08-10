@@ -75,7 +75,18 @@ export async function notifyAutoPublish(supabase: Supabase, params: AutoPublishA
 
     if (!response.ok) {
       console.error(`[autoPublishAlert] Falha ao enviar (HTTP ${response.status}):`, await response.text());
+      return;
     }
+
+    // R-008/R-049 (achado real em produção): um 2xx do Resend não garante que
+    // o e-mail foi de fato enfileirado — sem `id` no corpo, é falha silenciosa.
+    const responseBody = await response.json().catch(() => null);
+    if (!responseBody?.id) {
+      console.error("[autoPublishAlert] Resend respondeu 2xx sem id — envio pode ter falhado silenciosamente:", responseBody);
+      return;
+    }
+
+    console.log(`[autoPublishAlert] Aviso enviado (Resend id=${responseBody.id}) pro post "${params.title}".`);
   } catch (error) {
     console.error("[autoPublishAlert] Erro inesperado (não afeta a geração):", error);
   }
