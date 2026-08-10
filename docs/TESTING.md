@@ -507,6 +507,16 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Verificação em produção:** confirmado corrigido 2x seguidas — regenerado o mesmo caso (Nacho Bolognani, fontes em espanhol) e um caso novo independente (Camelphat, fontes em espanhol via `elevenflow.app`/`atrapalo.com`), ambos saíram 100% em português (só títulos de faixa/nomes próprios preservados no idioma original, como esperado).
 - **Proteção:** `src/__tests__/regression/topic-generation-non-portuguese-source.test.ts` (guarda estática — confere que os 2 prompts contêm a regra de idioma, antes das regras de fidelidade/fontes).
 
+### R-052 — Falha real no disparo manual de e-mail ("Enviar agora") aparecia como "erro de função" genérico
+- **Quando:** 10/08/2026, reportado pelo usuário ao tentar enviar o template "virada de lote" do evento Sirius para uma lista segmentada ("abertura maior que 1") pela aba Envio manual.
+- **Sintoma:** clique em "Enviar agora" retornava um erro genérico e inútil para diagnóstico ("erro de função"), em vez da mensagem real explicando por que o envio falhou.
+- **Causa (2 bugs compostos):**
+  1. `dispatchEventDraftEmail`/`dispatchMultiEventDraftEmail` (`src/lib/emailTemplates/dispatchEventDraft.ts`) usavam `error.message` direto no retorno de `supabase.functions.invoke()` — esse SDK só expõe a mensagem genérica do cliente ("Edge Function returned a non-2xx status code") em `error.message`; a mensagem JSON real que a Edge Function monta (`{ error: "..." }`) só existe em `error.context` (Response bruto). Esse mesmo padrão já tinha sido corrigido em outros pontos do admin (ver `edgeFunctionErrorMessage.ts`/R-0xx anterior), mas nunca tinha sido aplicado neste arquivo.
+  2. O `catch` externo de `create-event-email-campaign`/`create-multi-event-email-campaign` devolvia o erro 500 sem nenhum `console.error` — confirmado em produção (log real de `2026-08-10T15:23:56`, POST 500 em `create-event-email-campaign`, 1.8s): não sobrou nenhum rastro do que de fato lançou a exceção, nem para investigação via logs do Supabase.
+- **Correção:** os dois disparos em `dispatchEventDraft.ts` passam a extrair a mensagem real com `getEdgeFunctionErrorMessage(error)`; os dois `catch` externos das Edge Functions agora logam a exceção (`console.error`) antes de responder 500.
+- **Pendência:** a causa raiz da falha 500 específica do envio do Sirius (rede intermitente com a E-goi? payload do segmento?) continua desconhecida — o log de produção não guardou o corpo da exceção porque o `console.error` só foi adicionado agora. Da próxima vez que a falha se repetir, os logs do Supabase (`get_logs` / Edge Function Logs) já vão mostrar a mensagem real.
+- **Proteção:** `src/__tests__/regression/dispatch-event-draft-error-message-surfaced.test.ts` (guarda estática — confere que os 2 disparos usam o helper, e que os 2 `catch` externos logam antes do 500).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

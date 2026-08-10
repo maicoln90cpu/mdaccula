@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Fix: mensagem de erro real do disparo manual de e-mail ("Enviar agora") não chegava ao admin
+**Descrição:** usuário reportou erro genérico ("erro de função") ao tentar enviar o template "virada de lote" do evento Sirius para uma lista segmentada pela aba Envio manual. Investigação (log real do Supabase: `POST 500` em `create-event-email-campaign` às 15:23:56) achou 2 bugs compostos: (1) `dispatchEventDraftEmail`/`dispatchMultiEventDraftEmail` (`src/lib/emailTemplates/dispatchEventDraft.ts`) usavam `error.message` direto no retorno de `supabase.functions.invoke()` — só a mensagem genérica do SDK, nunca a mensagem JSON real que a Edge Function monta — em vez do helper `getEdgeFunctionErrorMessage` (já usado em outros pontos do admin pra esse exato problema); (2) os `catch` externos de `create-event-email-campaign` e `create-multi-event-email-campaign` respondiam 500 sem nenhum `console.error`, então nem os logs do Supabase guardavam rastro da exceção real. Ver R-052 em `docs/TESTING.md`.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário — "retornou com erro de função, investigue a causa")
+**Impacto:** nenhuma mudança de comportamento de envio — só diagnóstico. A causa raiz da falha 500 específica do Sirius segue desconhecida (ver `docs/PENDENCIAS.md`); da próxima vez que acontecer, a mensagem real vai aparecer no toast e nos logs.
+
+**Arquivos alterados:** `src/lib/emailTemplates/dispatchEventDraft.ts`, `supabase/functions/create-event-email-campaign/index.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `src/__tests__/regression/dispatch-event-draft-error-message-surfaced.test.ts` (novo), `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Fix: CI/CD Pipeline (Quality Checks → ESLint) quebrado no `main` desde 09/08/2026
 **Descrição:** resolve o item registrado em `docs/PENDENCIAS.md` — 8 erros de ESLint em 3 arquivos não relacionados ao trabalho desta sessão (introduzidos no commit `d31b121`, antes desta sessão começar): `useEmailConfigState.ts` (imports não usados — `MOCK_EVENT_DATA`, `EventAnnouncementData`, `ArticleSummary`, parâmetro `templates` nunca lido dentro do hook, removido também do chamador em `EmailConfig.tsx`; 2 `react-hooks/exhaustive-deps` faltando `setTemplates`/`setActiveTemplateId` — setters de `useState` do pai, identidade sempre estável, adicionar não muda comportamento), `eventForm/constants.ts` (`import()` inline trocado por `import type` no topo) e `list_links.ts` (import não usado de `zod`).
 **Data:** 10/08/2026
@@ -1117,6 +1127,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Bugfix | Mensagem de erro real do disparo manual de e-mail ("Enviar agora") não chegava ao admin — aparecia só "erro de função" genérico (R-052) |
 | 10/08 | Bugfix | CI/CD Pipeline (Quality Checks → ESLint) volta a passar — 8 erros pré-existentes em 3 arquivos não relacionados corrigidos |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase C + painel único: cooldown/streak seco no cron, checklist de qualidade final, aviso por e-mail, 8 toggles numa tela só |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase B: toggle rascunho/publicado em 5 caminhos, origem gravada em todo post, imagem real em Por Tema/Sugestões |

@@ -376,6 +376,7 @@ Deno.serve(async (req) => {
       _debug: { egoi_status: created.status, egoi_send_status: egoiSendStatus, egoi_send_body: egoiSendBody },
     });
   } catch (e) {
+    console.error('[create-event-email-campaign] Falha não tratada:', e);
     return json({ error: (e as Error).message }, 500);
   }
 });

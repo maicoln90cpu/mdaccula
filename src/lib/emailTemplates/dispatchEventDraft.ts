@@ -11,6 +11,7 @@
  * Retorna o payload da edge function para o chamador exibir toast.
  */
 import { supabase } from '@/integrations/supabase/client';
+import { getEdgeFunctionErrorMessage } from '@/lib';
 import { type Template, type Block, type GlobalBlock } from './blocks';
 import {
   buildEventAnnouncementData,
@@ -270,7 +271,11 @@ export async function dispatchEventDraftEmail(
   });
 
   if (error) {
-    return { ok: false, error: error.message, warnings: warnings.length ? warnings : undefined };
+    return {
+      ok: false,
+      error: await getEdgeFunctionErrorMessage(error),
+      warnings: warnings.length ? warnings : undefined,
+    };
   }
   const result = (data as DispatchEventDraftResult) ?? { ok: false, error: 'Resposta vazia' };
   // Propaga avisos (matéria não vinculada etc.) mesmo em envio bem-sucedido.
@@ -371,6 +376,6 @@ export async function dispatchMultiEventDraftEmail(
   const { data, error } = await supabase.functions.invoke('create-multi-event-email-campaign', {
     body: invokeBody,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: await getEdgeFunctionErrorMessage(error) };
   return (data as DispatchEventDraftResult) ?? { ok: false, error: 'Resposta vazia' };
 }

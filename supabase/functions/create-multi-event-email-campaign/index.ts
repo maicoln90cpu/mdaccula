@@ -236,6 +236,7 @@ Deno.serve(async (req) => {
       event_ids: eventIds,
     });
   } catch (e) {
+    console.error('[create-multi-event-email-campaign] Falha não tratada:', e);
     return json({ error: (e as Error).message }, 500);
   }
 });
