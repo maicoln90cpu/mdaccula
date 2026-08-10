@@ -57,7 +57,7 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | compose-event-image | Aplica marca MDAccula (barra + logo) sobre uma imagem de evento e re-hospeda no Bunny | Interno (scan-event-sources/apify-instagram-webhook) e Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
 | regenerate-blog-image | Regera a imagem de capa de um post de blog com um novo prompt/estilo de IA | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
 | preview-topic-sources | Preview leve (sem IA) das fontes que `generate-blog-post-from-topic` encontraria para um termo | Frontend (admin) | Nenhuma ⚠️ | Padrão `_shared` |
-| auto-article-cron | Cron que decide automaticamente quando gerar um novo artigo de blog (controla contagem de falhas/retry) | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
+| auto-article-cron | Cron que decide automaticamente quando gerar um novo artigo de blog (controla contagem de falhas/retry). Seleção de fonte com cooldown configurável (evita repetir a mesma fonte cedo demais) e streak seco (alerta quando uma fonte fica sem matéria nova várias execuções seguidas) — item #4/#5/#6, 10/08/2026. Publica de acordo com `auto_publish_auto_cron` (chave própria, não mais compartilhada) e avisa por e-mail (`_shared/autoPublishAlert.ts`) quando publica sem revisão | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
 | verify-sources-weekly | Checagem semanal (segunda 09h BRT) de que cada fonte `content_source=true` ainda tem matéria nova descobrível — sem gerar nem publicar, só grava `event_sources.content_last_verified_at/ok` | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
 
 ## Eventos
@@ -65,8 +65,8 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
 | create-recurring-events | Cron que materializa a próxima instância de cada evento recorrente configurado, com descrição única por edição | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
-| scan-event-sources | Raspa fontes de eventos cadastradas (sites/Instagram via Apify), extrai por IA e cria rascunhos de artigo | Frontend (admin) / Cron | Admin ou cron secret | Padrão `_shared` |
-| apify-instagram-webhook | Recebe callback da Apify quando encontra post novo de evento no Instagram; extrai, compõe imagem e gera rascunho | Webhook externo (Apify) | Secret na query string (`internal_cron_secrets`) | Próprio (inline) |
+| scan-event-sources | Raspa fontes de eventos cadastradas (sites/Instagram via Apify), extrai por IA e cria rascunhos de artigo. Se `event_watcher_auto_publish` estiver ligado, repete a checagem de qualidade (`isContentSubstantial`) antes de publicar de fato (o insert em `generate-blog-post-v2` sempre nasce rascunho) e avisa por e-mail quando publica sem revisão — item #2/#3, 10/08/2026 | Frontend (admin) / Cron | Admin ou cron secret | Padrão `_shared` |
+| apify-instagram-webhook | Recebe callback da Apify quando encontra post novo de evento no Instagram; extrai, compõe imagem e gera rascunho. Mesma checagem de qualidade + aviso por e-mail antes de publicar que scan-event-sources (item #2/#3, 10/08/2026) | Webhook externo (Apify) | Secret na query string (`internal_cron_secrets`) | Próprio (inline) |
 | geocode-event | Geocodifica venue/cidade/estado de um evento via Google Maps Geocoding API e salva lat/lng | Frontend (admin) / interno / auto-geocode idempotente. Re-geocode forçado (`force: true`) disparado por `useEventFormSubmit` quando venue/cidade/estado mudam num edit — muda lat/lng, o que troca a chave de cache do mapa e força uma imagem nova | Aceita admin, service role ou anônimo (idempotente) | Próprio (inline) |
 
 ## Mídia / Storage

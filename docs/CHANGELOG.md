@@ -18,6 +18,21 @@
 
 ## Entradas Detalhadas
 
+### Feature: reorganização dos controles de geração de conteúdo — Fase C + painel único (10 melhorias)
+**Descrição:** fecha a reorganização dos 8 caminhos de geração, isolando os toques no `auto-article-cron` (regra do projeto: nunca agrupar itens de alto risco) e entregando as 10 melhorias que o usuário aprovou incluir todas:
+- **C1** — cron passa a ler `auto_publish_auto_cron` (chave própria) em vez de `suggestions_auto_publish` (compartilhada com o caminho manual). Zero toque na lógica de descoberta/seleção de matéria.
+- **C2 (item #2)** — `isContentSubstantial` roda de novo bem no fim, em `generate-blog-post-v2` (nunca tinha NENHUMA checagem), `generate-multi-event-article` e `generate-blog-post-from-topic` (2ª camada), antes de decidir `published`. Gap real achado no caminho: o Event Watcher publica via um `UPDATE` separado do insert — bypassava essa checagem inteira; corrigido repetindo-a em `scan-event-sources`/`apify-instagram-webhook`.
+- **C3 (itens #4/#5/#6)** — cooldown configurável (`auto_article_source_cooldown_days`) exclui fontes usadas com sucesso recentemente do sorteio, com fallback pra nunca travar a geração; streak seco (`content_dry_streak`) alerta quando uma fonte fica várias execuções sem matéria nova; `content_last_picked_at` só grava na fonte que efetivamente gerou.
+- **C4 (item #3)** — `_shared/autoPublishAlert.ts` avisa por e-mail (recipiente em `auto_publish_alert_email`) só quando `auto-article-cron`/Event Watcher publicam de fato sem revisão. `resendEmail.ts` promovido de `egress-alert-cron/` pra `_shared/`.
+- **Painel único** — nova seção "Controle de publicação por tipo de geração" na aba Automático: 8 linhas (1 por caminho), selo de "raspagem real" e toggle rascunho/publicado. Substitui o toggle único antigo e o Card duplicado de auto-publish do Event Watcher em `BlogManager.tsx`.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário — "pode incluir todos os itens")
+**Impacto:** médio no `auto-article-cron` (C1/C3, isolados e testados um de cada vez, com force-run real verificado após cada um — confirmado ao vivo: cooldown excluindo fonte recém-usada, streak seco incrementando/zerando, e-mail de aviso disparado com toggle ligado). 308 testes Deno + 576 testes Vitest + typecheck, todos verdes.
+
+**Arquivos alterados:** `auto-article-cron/index.ts`, `_shared/autoPublishAlert.ts` (novo), `_shared/resendEmail.ts` (movido), `scan-event-sources/index.ts`, `apify-instagram-webhook/index.ts`, `_shared/generateBlogPostV2/savePost.ts`, `generate-blog-post-v2/index.ts`, `generate-multi-event-article/index.ts`, `generate-blog-post-from-topic/index.ts`, `AutoGenerationPanel.tsx`, `BlogManager.tsx`.
+
+---
+
 ### Feature: reorganização dos controles de geração de conteúdo — Fase B (toggles + origem + imagem real)
 **Descrição:** liga o toggle "rascunho vs. publicado" (`useAutoPublishSettings`, Fase A) nos 5 caminhos que hoje publicavam sempre sem controle: aba "Gerar" (`auto_publish_generate_tab`), "Sugestões→template" (`auto_publish_suggestions_template`), "Por Tema" (`auto_publish_topic_search`), "Artigo consolidado"/Multi-Evento (`auto_publish_multi_event`, novo suporte a `publishImmediately` em `generate-multi-event-article`) e "Gerar artigo"/"Por evento" — tanto pelo botão em Eventos quanto pelo checkbox na criação do evento (`auto_publish_single_event`). Toast da aba "Gerar" corrigido (dizia "salvo como rascunho" mesmo quando publicava). Todo insert em `ai_generated_posts` (dos 8 caminhos, incluindo Event Watcher) passa a gravar `generation_source`; `BlogManager`/`PostsHistory` usam essa coluna pra rotular a origem em vez da heurística antiga de `prompt_used` (que não reconhecia o automático). Item #1: "Por Tema"/"Sugestões→tema" passam a tentar imagem real (og:image + busca Firecrawl) sobre a 1ª fonte encontrada antes de cair pra IA — mesma camada já usada pelo automático.
 **Data:** 10/08/2026
@@ -1092,6 +1107,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Feature | Reorganização dos controles de geração — Fase C + painel único: cooldown/streak seco no cron, checklist de qualidade final, aviso por e-mail, 8 toggles numa tela só |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase B: toggle rascunho/publicado em 5 caminhos, origem gravada em todo post, imagem real em Por Tema/Sugestões |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase A: base (settings/colunas) + Dashboard como 1ª aba de Conteúdo IA + saúde de fontes + verify-sources-weekly |
 | 10/08 | Bugfix | "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma quando a fonte real era estrangeira (R-051) |
