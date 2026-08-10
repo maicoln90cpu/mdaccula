@@ -109,11 +109,18 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     expect(suggestionsContent).toContain("eq('content_source', true)");
   });
 
-  it('auto-article-cron lê suggestions_auto_publish de site_settings', () => {
+  it('auto-article-cron lê auto_publish_auto_cron de site_settings (chave própria, não mais compartilhada)', () => {
+    // 10/08/2026 (reorganização dos controles de publicação): antes o cron
+    // compartilhava 'suggestions_auto_publish' com o caminho manual
+    // "Sugestões→tema", sem controle independente por tipo de geração.
     const content = read('supabase/functions/auto-article-cron/index.ts');
 
-    expect(content).toContain('suggestions_auto_publish');
-    expect(content).toContain('suggestionsAutoPublish');
+    expect(content).toContain('auto_publish_auto_cron');
+    expect(content).toContain('autoCronAutoPublish');
+    // A query real (.in('key', [...])) não deve mais listar a chave antiga —
+    // só pode sobrar numa linha de comentário explicando a migração.
+    const queryBlock = content.slice(content.indexOf(".in('key', ["), content.indexOf(']);'));
+    expect(queryBlock).not.toContain('suggestions_auto_publish');
   });
 
   it('generate-blog-post-from-topic suporta publishImmediately (rascunho opcional)', () => {

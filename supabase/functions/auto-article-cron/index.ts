@@ -145,7 +145,7 @@ async function runAutoGeneration() {
         'ai_auto_generate_interval_hours',
         'ai_auto_generate_last_run',
         'ai_auto_generate_fail_count',
-        'suggestions_auto_publish'
+        'auto_publish_auto_cron'
       ]);
 
     const settingsMap: Record<string, string> = {};
@@ -156,10 +156,13 @@ async function runAutoGeneration() {
     const intervalHours = parseInt(settingsMap['ai_auto_generate_interval_hours'] || '24');
     const lastRun = settingsMap['ai_auto_generate_last_run'] ? new Date(settingsMap['ai_auto_generate_last_run']) : null;
     const failCount = parseInt(settingsMap['ai_auto_generate_fail_count'] || '0');
-    // Ausente -> false: artigos de Sugestões nascem como rascunho até o usuário
-    // ganhar confiança e ligar a publicação automática (mesmo padrão de
+    // Item #7 (reorganização dos controles de publicação, 10/08/2026): chave
+    // própria do automático — antes compartilhava 'suggestions_auto_publish'
+    // com o caminho manual "Sugestões→tema", sem controle independente por
+    // tipo. Ausente -> false: artigo nasce como rascunho até o usuário ganhar
+    // confiança e ligar a publicação automática (mesmo padrão de
     // event_watcher_auto_publish).
-    const suggestionsAutoPublish = settingsMap['suggestions_auto_publish'] === 'true';
+    const autoCronAutoPublish = settingsMap['auto_publish_auto_cron'] === 'true';
 
     console.log('Configurações:', { autoGenerateEnabled, intervalHours, lastRun: lastRun?.toISOString(), failCount });
 
@@ -313,7 +316,7 @@ async function runAutoGeneration() {
               sourceUrl: pickedArticleUrl,
               sourceName: pickedSource.name,
               generateImage: true,
-              publishImmediately: suggestionsAutoPublish,
+              publishImmediately: autoCronAutoPublish,
             }),
           },
           GENERATE_TIMEOUT_MS
