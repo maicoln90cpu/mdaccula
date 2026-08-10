@@ -1,5 +1,11 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
-import { discoverArticleUrls, pickArticleUrl, fetchSourceLinks, scrapeArticleContent } from "./sourceArticlePicker.ts";
+import {
+  discoverArticleUrls,
+  pickArticleUrl,
+  fetchSourceLinks,
+  scrapeArticleContent,
+  findListingIndexUrls,
+} from "./sourceArticlePicker.ts";
 
 const source = { url: "https://exemplo-noticias.com.br/", name: "Exemplo Notícias" };
 
@@ -75,6 +81,50 @@ Deno.test("pickArticleUrl escolhe o primeiro candidato (mais próximo do topo da
 
 Deno.test("pickArticleUrl retorna null sem candidatos", () => {
   assertEquals(pickArticleUrl([]), null);
+});
+
+// Regressão real de produção (09/08/2026): "Play BPM" tinha um link de menu
+// pra "/noticias/" na homepage, que passava como se fosse 1 matéria — a IA
+// recusou gerar (insufficientSources), mas o resultado pro admin foi
+// "gerei e não deu certo" (nenhum artigo saiu). Ver docs/TESTING.md R-048.
+Deno.test("discoverArticleUrls descarta página de listagem de 1 segmento (ex.: /noticias/, bug real Play BPM)", () => {
+  const playBpmSource = { url: "https://playbpm.com.br/", name: "Play BPM" };
+  const links = [
+    "https://playbpm.com.br/noticias/",
+    "https://playbpm.com.br/noticias/artista-lanca-single-inedito",
+  ];
+  assertEquals(discoverArticleUrls(playBpmSource, links), [
+    "https://playbpm.com.br/noticias/artista-lanca-single-inedito",
+  ]);
+});
+
+Deno.test("discoverArticleUrls descarta outras páginas de listagem de 1 segmento comuns (blog, agenda, eventos)", () => {
+  const links = [
+    "https://exemplo-noticias.com.br/blog/",
+    "https://exemplo-noticias.com.br/agenda",
+    "https://exemplo-noticias.com.br/eventos/",
+    "https://exemplo-noticias.com.br/2026/08/matéria-real",
+  ];
+  assertEquals(discoverArticleUrls(source, links), ["https://exemplo-noticias.com.br/2026/08/matéria-real"]);
+});
+
+Deno.test("findListingIndexUrls encontra as páginas de listagem de 1 segmento do mesmo domínio (regressão Play BPM)", () => {
+  const playBpmSource = { url: "https://playbpm.com.br/", name: "Play BPM" };
+  const links = [
+    "https://playbpm.com.br/noticias/",
+    "https://playbpm.com.br/sobre",
+    "https://outro-site.com.br/noticias/",
+  ];
+  assertEquals(findListingIndexUrls(playBpmSource, links), ["https://playbpm.com.br/noticias/"]);
+});
+
+Deno.test("findListingIndexUrls não devolve duplicata (com/sem barra final)", () => {
+  const links = ["https://exemplo-noticias.com.br/blog/", "https://exemplo-noticias.com.br/blog"];
+  assertEquals(findListingIndexUrls(source, links).length, 1);
+});
+
+Deno.test("findListingIndexUrls retorna vazio quando não há página de listagem reconhecível", () => {
+  assertEquals(findListingIndexUrls(source, ["https://exemplo-noticias.com.br/2026/08/matéria-real"]), []);
 });
 
 function withMockedFetch<T>(response: { ok: boolean; status?: number; body: unknown }, run: () => Promise<T>): Promise<T> {

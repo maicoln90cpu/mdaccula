@@ -32,6 +32,17 @@
 
 ---
 
+### Hotfix: Fase 1 gerava "gerei e não deu certo" quando a fonte só linkava pra página de listagem (R-048)
+**Descrição:** logo após o deploy da Fase 1, o admin forçou uma geração e não saiu nenhum artigo novo, sem mensagem de erro clara ("gerei e não deu certo"). Investigação dos logs (`application_logs`) mostrou `skipped-source-article-unusable` com `source: "Play BPM"`, `sourceUrl: "https://playbpm.com.br/noticias/"`, `status: 422` — a fonte "Play BPM" tem um link de menu pra `/noticias/` na própria homepage, que passava por todos os filtros de "isso é uma matéria?" (nenhum bate padrão de raiz/categoria/tag genérico) e era escolhido como a matéria a reescrever. A IA corretamente recusou gerar (é uma página de listagem, não uma notícia — o guardrail `insufficientSources` da Fase 0 funcionou como esperado), mas isso deixou o admin sem nenhum artigo e sem entender o motivo.
+**Correção:** `_shared/sourceArticlePicker.ts` ganhou `isListingIndexPath`/`LISTING_INDEX_SEGMENTS` — rejeita qualquer URL cujo path tenha 1 único segmento batendo um nome comum de seção/listagem (`noticias`, `blog`, `agenda`, `eventos`, `posts` etc., pt-BR e inglês) — e `findListingIndexUrls`, um 2º hop de descoberta: quando a raiz da fonte só linka pra páginas de listagem (sem nenhuma matéria individual visível), o `auto-article-cron` agora tenta raspar até 2 dessas páginas de listagem em busca de matérias individuais de verdade, antes de desistir dessa fonte e tentar a próxima.
+**Data:** 09/08/2026 (mesmo dia da Fase 1, achado no primeiro teste real pós-deploy)
+**Responsável:** IA (a pedido do usuário, ao reportar "gerei e não deu certo")
+**Impacto:** baixo-médio (isolado à lógica de descoberta de links da Fase 1 — 253 testes Deno + 541 testes Vitest, todos verdes)
+
+**Arquivos alterados:** `supabase/functions/_shared/sourceArticlePicker.ts`, `supabase/functions/_shared/sourceArticlePicker_test.ts`, `supabase/functions/auto-article-cron/index.ts`, `src/__tests__/contracts/edge-sugestoes-real-source-routing.test.ts`, `docs/TESTING.md` (R-048).
+
+---
+
 ### Preview do editor de e-mail ganha seletor desktop/tablet/celular
 **Descrição:** usuário pediu a possibilidade de alternar a visualização do preview do template entre desktop, tablet e celular (lembrava de ter sido implementado, mas não achou o controle na tela — investigação confirmou que nunca tinha sido implementado; o preview sempre foi fixo em 600px).
 **Entrega:** `PreviewPanel.tsx` ganhou um `ToggleGroup` (ícones Monitor/Tablet/Smartphone) acima do preview que troca a largura do iframe entre 600px (desktop, padrão), 480px (tablet) e 375px (celular) — o e-mail em si continua sendo a mesma tabela de 600px, só a "janela" simulada ao redor muda, como em ferramentas de preview de e-mail (Litmus/Email on Acid). Não afeta o HTML enviado nem o download/envio de teste.

@@ -39,6 +39,27 @@ const NON_ARTICLE_PATH_PATTERNS = [
   /\/(sobre|about|contato|contact|anuncie|advertise|privacidade|privacy-policy|termos|terms|newsletter|assine|assinatura)(\/?$)/i,
 ];
 
+// R-048 (achado em produção, 09/08/2026): a fonte "Play BPM" tem um link de
+// menu pra "/noticias/" na própria homepage — passava pelos filtros acima
+// (não é raiz, não bate nenhum padrão institucional/categoria genérico) e
+// era escolhido como "a matéria". Na prática é a página de LISTAGEM de
+// notícias, não uma notícia específica — a IA corretamente recusou gerar
+// (insufficientSources), mas o resultado pro admin foi "gerei e não deu
+// certo" (nenhum artigo saiu). Uma URL com um único segmento de path que
+// bate um nome comum de seção/listagem (pt-BR e en) é sempre índice, nunca
+// artigo — mesmo raciocínio de NON_ARTICLE_PATH_PATTERNS, só que dependente
+// da profundidade do path (silo1) em vez de aparecer em qualquer profundidade.
+const LISTING_INDEX_SEGMENTS = new Set([
+  'noticias', 'noticia', 'news', 'blog', 'artigos', 'materias', 'materia',
+  'posts', 'colunas', 'coluna', 'editorial', 'reviews', 'agenda', 'eventos',
+  'cobertura', 'pauta', 'ultimas', 'ultimas-noticias', 'home', 'destaques',
+]);
+
+function isListingIndexPath(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  return segments.length === 1 && LISTING_INDEX_SEGMENTS.has(segments[0].toLowerCase());
+}
+
 function isLikelyArticleUrl(candidateUrl: string, sourceHostname: string): boolean {
   let parsed: URL;
   try {
@@ -54,6 +75,7 @@ function isLikelyArticleUrl(candidateUrl: string, sourceHostname: string): boole
 
   if (NON_ARTICLE_HOSTNAMES.some((h) => hostname === h || hostname.endsWith(`.${h}`))) return false;
   if (NON_ARTICLE_PATH_PATTERNS.some((re) => re.test(parsed.pathname))) return false;
+  if (isListingIndexPath(parsed.pathname)) return false;
 
   return true;
 }
@@ -95,6 +117,45 @@ export function discoverArticleUrls(source: SourceRef, rawLinks: string[], exclu
 /** Mais próximo do topo da listagem = mais recente/mais em destaque na fonte. */
 export function pickArticleUrl(candidates: string[]): string | null {
   return candidates.length > 0 ? candidates[0] : null;
+}
+
+/**
+ * Segundo hop de descoberta: quando a raiz da fonte só linka pra páginas de
+ * listagem (ex.: menu com "/noticias/"), essas páginas de listagem em si —
+ * não uma matéria — costumam ser onde as matérias individuais de fato estão
+ * linkadas. Retorna as URLs de listagem do próprio domínio encontradas nos
+ * links brutos, pra serem raspadas em seguida como uma segunda página de
+ * origem (ver auto-article-cron, Etapa 1).
+ */
+export function findListingIndexUrls(source: SourceRef, rawLinks: string[]): string[] {
+  let sourceHostname: string;
+  try {
+    sourceHostname = new URL(source.url).hostname.replace(/^www\./, '');
+  } catch {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const link of rawLinks) {
+    if (typeof link !== 'string') continue;
+    let parsed: URL;
+    try {
+      parsed = new URL(link);
+    } catch {
+      continue;
+    }
+    const hostname = parsed.hostname.replace(/^www\./, '');
+    if (hostname !== sourceHostname || !isListingIndexPath(parsed.pathname)) continue;
+
+    const normalized = normalizeForDedupe(link);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(link);
+  }
+
+  return result;
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {

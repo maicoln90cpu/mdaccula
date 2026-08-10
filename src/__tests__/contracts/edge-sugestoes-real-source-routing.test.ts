@@ -46,6 +46,15 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     expect(content).toContain('usedUrls');
   });
 
+  // R-048 (achado em produção): a raiz de várias fontes só linka pra páginas
+  // de listagem (ex.: "/noticias/"), sem matéria individual visível — sem o
+  // 2º hop, o cron "gera e não dá certo" (skip silencioso toda vez).
+  it('auto-article-cron tenta um 2º hop em páginas de listagem quando a raiz não tem candidato', () => {
+    const content = read('supabase/functions/auto-article-cron/index.ts');
+
+    expect(content).toContain('findListingIndexUrls');
+  });
+
   it("auto-article-cron trata 'matéria específica não deu certo' (404/422) como skip, não como falha", () => {
     const content = read('supabase/functions/auto-article-cron/index.ts');
 

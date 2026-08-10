@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { discoverArticleUrls, pickArticleUrl, fetchSourceLinks, type SourceRef } from "../_shared/sourceArticlePicker.ts";
+import { discoverArticleUrls, pickArticleUrl, fetchSourceLinks, findListingIndexUrls, type SourceRef } from "../_shared/sourceArticlePicker.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -239,9 +239,25 @@ async function runAutoGeneration() {
     for (const source of sourcesToTry) {
       try {
         const links = await fetchSourceLinks(source.url, FIRECRAWL_API_KEY);
-        const candidates = discoverArticleUrls(source, links, usedUrls);
-        const chosen = pickArticleUrl(candidates);
+        let candidates = discoverArticleUrls(source, links, usedUrls);
         console.log(`[Etapa 1] Fonte "${source.name}": ${links.length} links, ${candidates.length} candidatos novos`);
+
+        // Segundo hop (R-048, achado em produção): a raiz de várias fontes só
+        // linka pra páginas de listagem (ex.: "/noticias/" no menu), sem
+        // nenhuma matéria individual diretamente visível. Se não achou
+        // candidato na raiz, tenta raspar até 2 dessas páginas de listagem
+        // em busca de links de matéria de verdade.
+        if (candidates.length === 0) {
+          const listingUrls = findListingIndexUrls(source, links);
+          for (const listingUrl of listingUrls.slice(0, 2)) {
+            const deeperLinks = await fetchSourceLinks(listingUrl, FIRECRAWL_API_KEY);
+            candidates = discoverArticleUrls(source, deeperLinks, usedUrls);
+            console.log(`[Etapa 1] Fonte "${source.name}" — 2º hop em ${listingUrl}: ${deeperLinks.length} links, ${candidates.length} candidatos novos`);
+            if (candidates.length > 0) break;
+          }
+        }
+
+        const chosen = pickArticleUrl(candidates);
         if (chosen) {
           pickedSource = source;
           pickedArticleUrl = chosen;
