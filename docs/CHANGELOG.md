@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Hotfix: falso erro de coluna ausente no claim do reenvio manual (R-054)
+**Descrição:** o erro `column events.email_campaign_dispatched_at does not exist` reapareceu após a recarga do cache. O SQL real capturado nos logs do Postgres revelou a causa definitiva: o PostgREST reaplicava o filtro do `UPDATE` sobre o conjunto retornado, mas esse retorno continha apenas `id`, `status` e `title`. A coluna existia normalmente na tabela; faltava apenas no resultado temporário. O claim agora também retorna `email_campaign_dispatched_at`, sem remover a proteção contra envio duplicado.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** baixo e localizado no claim anterior ao envio; nenhuma alteração de banco ou de destinatários.
+
+**Arquivos alterados:** `supabase/functions/create-event-email-campaign/index.ts`, `src/__tests__/regression/email-dispatch-claim-returning-filter-column.test.ts`, `docs/TESTING.md`, `docs/CHANGELOG.md`.
+
+---
+
 ### Fix: mensagem de erro real do disparo manual de e-mail ("Enviar agora") não chegava ao admin
 **Descrição:** usuário reportou erro genérico ("erro de função") ao tentar enviar o template "virada de lote" do evento Sirius para uma lista segmentada pela aba Envio manual. Investigação (log real do Supabase: `POST 500` em `create-event-email-campaign` às 15:23:56) achou 2 bugs compostos: (1) `dispatchEventDraftEmail`/`dispatchMultiEventDraftEmail` (`src/lib/emailTemplates/dispatchEventDraft.ts`) usavam `error.message` direto no retorno de `supabase.functions.invoke()` — só a mensagem genérica do SDK, nunca a mensagem JSON real que a Edge Function monta — em vez do helper `getEdgeFunctionErrorMessage` (já usado em outros pontos do admin pra esse exato problema); (2) os `catch` externos de `create-event-email-campaign` e `create-multi-event-email-campaign` respondiam 500 sem nenhum `console.error`, então nem os logs do Supabase guardavam rastro da exceção real. Ver R-052 em `docs/TESTING.md`.
 **Data:** 10/08/2026

@@ -524,6 +524,13 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `select pg_notification_queue_usage();` (destrava a fila de notificação — não-destrutivo, não exige restart) seguido de `NOTIFY pgrst, 'reload schema';`. O usuário confirmou em paralelo pelo próprio Lovable, que aplicou a mesma notificação via uma migration (`supabase/migrations/20260810164322_2c9076db-a2ab-4224-9def-55592e31508b.sql`) e, junto, corrigiu um bug de TypeScript não relacionado (`EmailEventsTab.tsx` não contava o status `scheduled` no resumo da aba Histórico).
 - **Proteção:** nenhuma automatizável (é um estado de infraestrutura do projeto Supabase, não uma condição do código). Se `column ... does not exist` aparecer de novo para uma coluna comprovadamente existente, repetir os 2 comandos acima antes de suspeitar de bug de código.
 
+### R-054 — Claim de disparo filtrava uma coluna ausente do resultado do UPDATE
+- **Quando:** 10/08/2026, após o erro do R-053 reaparecer mesmo com a coluna confirmada no banco e o cache recarregado.
+- **Sintoma:** `create-event-email-campaign` retornava 500 com `column events.email_campaign_dispatched_at does not exist` somente no reenvio manual.
+- **Causa confirmada pelo SQL real do log do Postgres:** o PostgREST gerava um `UPDATE ... RETURNING id,status,title` e depois reaplicava o filtro de `email_campaign_dispatched_at` sobre esse resultado. Como a coluna não estava no `RETURNING`, ela realmente não existia apenas nesse conjunto temporário — não na tabela `events`.
+- **Correção:** o `.select()` encadeado ao claim agora inclui `email_campaign_dispatched_at`, preservando a proteção atômica contra disparo duplicado.
+- **Proteção:** `src/__tests__/regression/email-dispatch-claim-returning-filter-column.test.ts` inspeciona o bloco exato do claim e falha se a coluna for removida do retorno novamente.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
