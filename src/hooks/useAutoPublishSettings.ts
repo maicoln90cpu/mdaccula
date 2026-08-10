@@ -49,7 +49,6 @@ export function useAutoPublishSettings(keys: AutoPublishKey[]) {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keysKey]);
 
   useEffect(() => {
