@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Verificação: envio segmentado confirmado funcionando com a correção do R-059
+**Descrição:** fechamento do checkpoint deixado pelo R-059 — o fix daquele dia só tinha sido validado pra "toda a lista" (evento Sirius); o caminho de segmento por disparo (o cenário original que abriu a investigação: lista "abertura maior que 1") ainda não tinha sido testado com a correção. Testado agora com um evento novo (Industria apres. Blazy e Omiki, 16/10/2026), template "Novo evento — padrão", segmento "Abertura Maior 1" (13.068 contatos): "Criar rascunho na E-goi" → sucesso (campanha `#24fbb43d...`, `event_email_campaigns.segment_id = 3`, `error_message: null`); "Enviar agora" (com os 2 diálogos de confirmação da UI) → sucesso (campanha `#a6bb7b5f...`, `status: sent`, mesma linha do histórico reaproveitada), confirmado visualmente na aba Histórico e controle como "Enviado". Nenhum bug novo apareceu — o R-059 corrige o `dispatch_in_progress` pros dois caminhos (lista inteira e segmentada), como já indicava a análise da causa raiz (o bug estava na detecção do claim, uma etapa anterior e comum a ambos os fluxos, não em nada específico de segmento).
+**Data:** 10/08/2026
+**Responsável:** IA, a pedido do usuário — teste via navegador real (Claude-in-Chrome, mesmo esquema usado pro teste do Sirius)
+**Impacto:** fecha de vez a investigação do `dispatch_in_progress` — os dois caminhos de disparo manual (toda a lista e segmentado) estão confirmados funcionando ponta a ponta em produção. Nenhuma mudança de código nesta entrada (só verificação); checkpoint correspondente removido de `docs/PENDENCIAS.md`.
+
+**Arquivos alterados:** nenhum (verificação apenas); `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Fix: causa raiz definitiva de TODOS os `dispatch_in_progress` — PostgREST reaplicava o filtro do claim sobre o valor recém-gravado (R-059)
 **Descrição:** mesmo com R-052 a R-058 corrigidos e implantados, o evento Sirius seguia travando com `dispatch_in_progress` em toda combinação, e o `console.error` novo do R-058 nunca disparou em nenhum disparo real — descartando de vez a hipótese de erro de gravação silencioso. Confirmado via SQL direto (`BEGIN; ...; ROLLBACK;`, sem persistir nada): o claim atômico (`.update({email_campaign_dispatched_at: now}).or('col.is.null,col.lt.X').select().maybeSingle()`) sempre travava a linha de verdade no banco, mas o PostgREST reaplica o WHERE do UPDATE sobre o RETURNING antes de devolvê-lo — e como esse WHERE testava a própria coluna que tinha acabado de ser sobrescrita, a condição nunca era verdadeira contra o valor novo. `.select()` sempre devolvia vazio, `.maybeSingle()` sempre devolvia `null`, e o código sempre concluía "perdi a corrida" — pra TODO disparo manual, mesmo sem nenhuma corrida real acontecendo. Isso explica por que nenhuma das 5 causas reais corrigidas em R-052–R-058 resolvia o sintoma: todas eram bugs genuínos, mas nenhuma delas era alcançada de forma diferente — a detecção do claim falhava antes.
 **Data:** 10/08/2026
@@ -1198,6 +1208,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Verificação | Envio segmentado confirmado funcionando com a correção do R-059 (rascunho + envio real, 13k contatos) |
 | 10/08 | Bugfix | Causa raiz definitiva de TODOS os dispatch_in_progress — PostgREST reaplicava filtro do claim sobre valor recém-gravado (R-059) |
 | 10/08 | Bugfix | Causa raiz definitiva do "dispatch_in_progress" — erro real na gravação do histórico era engolido silenciosamente (R-058) |
 | 10/08 | Bugfix | egoiRequest sem timeout — hipótese intermediária, insuficiente sozinha (R-057) |
