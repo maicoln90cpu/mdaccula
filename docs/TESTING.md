@@ -499,6 +499,14 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Proteção:** `supabase/functions/track-view/botDetection_test.ts` (Deno, `npm run test:edge`).
 - **Acompanhar:** depois do deploy, checar se `blog_view_events`/`event_view_events` do IP `172.171.6.117` (ou equivalente) somem ou fiquem visivelmente menores nos próximos dias — se esse bot específico não se identificar como bot no UA, vai continuar passando e o filtro atual não vai resolver 100%.
 
+### R-051 — "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma quando a fonte real era estrangeira
+- **Quando:** 10/08/2026, validação (Fase 0) do mapeamento completo dos 8 caminhos de geração de conteúdo — usuário pediu pra gerar 3 artigos reais via "Sugestões" (tema livre) e conferir se faziam sentido.
+- **Sintoma:** ao buscar "Nacho Bolognani revive su opening set para Chris Stussy en Mandarine Tent", as 2 fontes reais encontradas (`djmagla.com`, `laf5.com`) eram em espanhol — o artigo gerado saiu **inteiro em espanhol**, título/corpo/tudo, mesmo o blog e o público-alvo sendo 100% brasileiros.
+- **Causa:** nenhum dos 2 prompts de `generate-blog-post-from-topic` (`mode: 'source_article'`, usado pelo automático, e o modo `open_search`, usado por "Por Tema"/"Sugestões") tinha qualquer instrução de idioma — a IA seguia fielmente o idioma da fonte, já que a regra de "fidelidade absoluta" (R-048) não dizia nada sobre traduzir. `generate-multi-event-article` já tinha essa instrução (`Português brasileiro fluido e envolvente`); os outros 2 caminhos nunca ganharam o mesmo cuidado.
+- **Correção:** novo bloco `REGRA CRÍTICA — IDIOMA` no início dos 2 prompts (antes da regra de fidelidade): artigo final sempre em português do Brasil mesmo com fonte em outro idioma, com exceção explícita pra nomes próprios/títulos de faixa/citações diretas (que podem permanecer no idioma original).
+- **Verificação em produção:** confirmado corrigido 2x seguidas — regenerado o mesmo caso (Nacho Bolognani, fontes em espanhol) e um caso novo independente (Camelphat, fontes em espanhol via `elevenflow.app`/`atrapalo.com`), ambos saíram 100% em português (só títulos de faixa/nomes próprios preservados no idioma original, como esperado).
+- **Proteção:** `src/__tests__/regression/topic-generation-non-portuguese-source.test.ts` (guarda estática — confere que os 2 prompts contêm a regra de idioma, antes das regras de fidelidade/fontes).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

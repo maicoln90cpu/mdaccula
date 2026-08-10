@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 09/08/2026
+**Última atualização:** 10/08/2026
 
 ---
 
@@ -17,6 +17,17 @@
 ---
 
 ## Entradas Detalhadas
+
+### Hotfix: "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma (R-051)
+**Descrição:** validação da Fase 0 do mapeamento completo dos 8 caminhos de geração de conteúdo (a pedido do usuário) — gerado artigo real via "Sugestões" (tema livre) sobre um DJ argentino, cujas 2 fontes reais (djmagla.com, laf5.com) estavam em espanhol. O artigo saiu **inteiro em espanhol** — nenhum dos 2 prompts de `generate-blog-post-from-topic` (automático e manual) tinha qualquer instrução de idioma.
+**Correção:** novo bloco `REGRA CRÍTICA — IDIOMA` nos 2 prompts, exigindo português do Brasil sempre, mesmo com fonte em outro idioma (nomes próprios/faixas/citações diretas podem continuar no idioma original).
+**Data:** 10/08/2026
+**Responsável:** IA (achado durante validação pedida pelo usuário, não reportado por ele)
+**Impacto:** baixo (aditivo — 296 testes Deno + suite Vitest, todos verdes). Confirmado corrigido 2x seguidas com geração real (Nacho Bolognani e Camelphat, ambos com fontes em espanhol, ambos saíram em português após o fix).
+
+**Arquivos alterados:** `supabase/functions/generate-blog-post-from-topic/index.ts`, `src/__tests__/regression/topic-generation-non-portuguese-source.test.ts` (novo), `docs/TESTING.md` (R-051).
+
+---
 
 ### Auditoria de robustez: defesa em profundidade contra fonte de ticketing mal configurada + busca de imagem corrigida (R-048)
 **Descrição:** usuário pediu confirmação de que todas as correções da "geração por tema" eram sistêmicas (valem pro cron automático, não só quando testadas manualmente). Na auditoria, 2 pontos:
@@ -1061,6 +1072,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Bugfix | "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma quando a fonte real era estrangeira (R-051) |
 | 09/08 | Feature | Artigos da Geração por Tema ganham imagem de capa sem IA (og:image da matéria + busca Firecrawl como fallback) |
 | 09/08 | Bugfix | Geração por Tema para de citar a própria fonte como notícia e passa a reescrever fielmente 1 matéria real — Fases 0+1 (R-048) |
 | 09/08 | Feature | Preview do editor de e-mail ganha seletor desktop/tablet/celular |
