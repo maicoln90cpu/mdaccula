@@ -234,6 +234,17 @@ CREATE TABLE public.ai_generated_posts (
   source_urls TEXT[],
   prompt_used TEXT,
   model_used TEXT DEFAULT 'google/gemini-2.5-flash',
+  -- Colunas abaixo faltavam neste DDL (doc estava desatualizado — corrigido
+  -- 10/08/2026 ao conferir contra o schema real via list_tables/list_migrations).
+  input_tokens INTEGER,
+  output_tokens INTEGER,
+  total_tokens INTEGER,
+  image_tokens INTEGER,
+  -- migração 20260810 (ai_generated_posts_generation_source): qual dos 8
+  -- caminhos de geração criou o post — gerar_tab | sugestoes_tema |
+  -- sugestoes_template | por_tema | auto_cron | multi_evento | por_evento |
+  -- event_watcher. NULL = gerado antes dessa coluna existir.
+  generation_source TEXT,
   generated_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -444,6 +455,11 @@ CREATE TABLE public.event_sources (
   content_source BOOLEAN NOT NULL DEFAULT true, -- migração 20260810 (event_sources_content_source_flag)
   last_scanned_at TIMESTAMP WITH TIME ZONE,
   last_seen_post_id TEXT, -- cursor/checkpoint da última página/post já processado
+  -- migração 20260810 (event_sources_cooldown_and_verify_columns):
+  content_last_picked_at TIMESTAMP WITH TIME ZONE, -- item #4/#6: cooldown/sorteio justo no auto-article-cron
+  content_dry_streak INTEGER NOT NULL DEFAULT 0, -- item #5: execuções seguidas sem matéria nova elegível
+  content_last_verified_at TIMESTAMP WITH TIME ZONE, -- item #10: última checagem do verify-sources-weekly
+  content_last_verified_ok BOOLEAN, -- item #10: resultado da última checagem (achou candidato?)
   description TEXT,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()

@@ -90,6 +90,21 @@ const FontesManager = () => {
     },
   });
 
+  // Item #5: limiar configurável de execuções seguidas sem matéria nova
+  // antes de considerar a fonte "seca" (default 3 se a chave não existir).
+  const { data: dryStreakAlert = 3 } = useQuery({
+    queryKey: ['auto_article_dry_streak_alert'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'auto_article_dry_streak_alert')
+        .maybeSingle();
+      const parsed = parseInt(data?.value || '3', 10);
+      return Number.isFinite(parsed) ? parsed : 3;
+    },
+  });
+
   // Realtime: reflete mudanças feitas em background (ex: scan-event-sources
   // atualizando last_scanned_at) sem exigir refresh manual.
   useRealtimeTable('event_sources', () => queryClient.invalidateQueries({ queryKey }));
@@ -414,6 +429,7 @@ const FontesManager = () => {
                         <TableHead>Ativa</TableHead>
                         <TableHead>Conteúdo</TableHead>
                         <TableHead>Última varredura</TableHead>
+                        <TableHead>Saúde (automático)</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -455,6 +471,28 @@ const FontesManager = () => {
                             {source.last_scanned_at
                               ? new Date(source.last_scanned_at).toLocaleString('pt-BR')
                               : 'Nunca'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              {source.content_dry_streak >= dryStreakAlert && (
+                                <Badge variant="destructive" className="w-fit">
+                                  ⚠️ {source.content_dry_streak}x sem matéria nova
+                                </Badge>
+                              )}
+                              {source.content_last_verified_at ? (
+                                <Badge
+                                  variant={source.content_last_verified_ok ? 'outline' : 'destructive'}
+                                  className="w-fit"
+                                >
+                                  {source.content_last_verified_ok ? '✅' : '❌'}{' '}
+                                  {new Date(source.content_last_verified_at).toLocaleDateString('pt-BR')}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  Ainda não verificada
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">

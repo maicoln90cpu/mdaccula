@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Feature: reorganização dos controles de geração de conteúdo — Fase A (base + Dashboard)
+**Descrição:** primeira fase da reorganização completa dos 8 caminhos de geração de artigo (pedido do usuário, mapeados na resposta anterior). Base de dados nova: 8 chaves `site_settings` de publicação por tipo de geração (default rascunho), 4 colunas novas em `event_sources` (cooldown/streak/verificação semanal — itens #4/#5/#6/#10), `ai_generated_posts.generation_source` (identifica qual dos 8 caminhos gerou cada post). Novo hook `useAutoPublishSettings`. Novo componente `ContentDashboard` como 1ª aba de "Conteúdo IA": publicados/rascunhos/views, saúde do automático, publicado vs rascunho e views por período, geração por tipo, top 5 mais lidos. `FontesManager` ganha coluna "Saúde (automático)" com selo de fonte seca e última verificação. Nova edge function `verify-sources-weekly` (item #10) — checagem semanal sem gerar/publicar, cron próprio (segunda 09h BRT), isolada do `auto-article-cron`.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** baixo (tudo aditivo — nenhum caminho de geração existente foi alterado nesta fase). 301 testes Deno + 555 testes Vitest + typecheck, todos verdes. Corrigido de passagem um bug de infra de teste (mock de `ResizeObserver`/`IntersectionObserver` em `setup.ts` não era construível via `new`, quebrava qualquer render de gráfico recharts).
+
+**Arquivos alterados:** migrações `content_generation_publish_settings`, `event_sources_cooldown_and_verify_columns`, `ai_generated_posts_generation_source`, `verify_sources_weekly_cron`; `src/hooks/useAutoPublishSettings.ts` (novo), `src/components/admin/ai-content/ContentDashboard.tsx` (novo), `src/pages/admin/AIContent2.tsx`, `src/pages/admin/FontesManager.tsx`, `src/types/index.ts`, `src/integrations/supabase/types.ts`, `supabase/functions/verify-sources-weekly/` (novo), `supabase/config.toml`, `src/__tests__/setup.ts`, docs (`tabelas.md`, `DATABASE_SCHEMA.md`, `EDGE_FUNCTIONS.md`).
+
+---
+
 ### Hotfix: "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma (R-051)
 **Descrição:** validação da Fase 0 do mapeamento completo dos 8 caminhos de geração de conteúdo (a pedido do usuário) — gerado artigo real via "Sugestões" (tema livre) sobre um DJ argentino, cujas 2 fontes reais (djmagla.com, laf5.com) estavam em espanhol. O artigo saiu **inteiro em espanhol** — nenhum dos 2 prompts de `generate-blog-post-from-topic` (automático e manual) tinha qualquer instrução de idioma.
 **Correção:** novo bloco `REGRA CRÍTICA — IDIOMA` nos 2 prompts, exigindo português do Brasil sempre, mesmo com fonte em outro idioma (nomes próprios/faixas/citações diretas podem continuar no idioma original).
@@ -1072,6 +1082,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Feature | Reorganização dos controles de geração — Fase A: base (settings/colunas) + Dashboard como 1ª aba de Conteúdo IA + saúde de fontes + verify-sources-weekly |
 | 10/08 | Bugfix | "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma quando a fonte real era estrangeira (R-051) |
 | 09/08 | Feature | Artigos da Geração por Tema ganham imagem de capa sem IA (og:image da matéria + busca Firecrawl como fallback) |
 | 09/08 | Bugfix | Geração por Tema para de citar a própria fonte como notícia e passa a reescrever fielmente 1 matéria real — Fases 0+1 (R-048) |

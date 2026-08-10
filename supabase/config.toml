@@ -64,6 +64,9 @@ verify_jwt = false
 [functions.auto-article-cron]
 verify_jwt = false
 
+[functions.verify-sources-weekly]
+verify_jwt = false
+
 [functions.create-recurring-events]
 verify_jwt = false
 

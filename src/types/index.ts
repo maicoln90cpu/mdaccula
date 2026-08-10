@@ -180,6 +180,12 @@ export interface EventSource {
   content_source: boolean;
   last_scanned_at?: string | null;
   last_seen_post_id?: string | null;
+  // Item #4/#5/#6 (auto-article-cron): cooldown, streak seco e sorteio justo.
+  content_last_picked_at?: string | null;
+  content_dry_streak: number;
+  // Item #10 (verify-sources-weekly): checagem sem gerar/publicar.
+  content_last_verified_at?: string | null;
+  content_last_verified_ok?: boolean | null;
   created_at: string;
   updated_at: string;
 }
