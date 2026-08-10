@@ -4,10 +4,15 @@
  * "Sugestões Aleatórias" ancoradas em matéria real. Antes dessa mudança a
  * function sempre publicava direto (`published: true` hardcoded).
  *
- * O único chamador pré-existente (`AIContent2.tsx`, aba "Por Tema" —
- * `handleGenerateFromTopic`) depende desse comportamento sempre-publica e
- * NUNCA deve passar `publishImmediately`, senão passaria a nascer como
- * rascunho sem que o usuário tenha pedido isso.
+ * Atualizado em 10/08/2026 (reorganização dos controles de publicação):
+ * o comportamento "sempre-publica" da aba "Por Tema" era exatamente o bug
+ * que o usuário pediu pra corrigir (achado ao revisar os 8 caminhos de
+ * geração — 5 deles publicavam sem nenhum controle, "Por Tema" incluída).
+ * `handleGenerateFromTopic` agora passa `publishImmediately` calculado a
+ * partir do toggle `auto_publish_topic_search` (`useAutoPublishSettings`),
+ * default rascunho até o admin ligar. O guard anterior (proibir
+ * `publishImmediately`) foi invertido: agora garante que ele SEMPRE é
+ * enviado, pra never mais silenciosamente publicar sem controle.
  *
  * Ver docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md.
  */
@@ -18,7 +23,7 @@ import path from 'path';
 const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
 describe('Regressão — generate-blog-post-from-topic mantém sempre-publica pro chamador antigo', () => {
-  it('handleGenerateFromTopic (aba Por Tema) não passa publishImmediately', () => {
+  it('handleGenerateFromTopic (aba Por Tema) sempre passa publishImmediately explícito (nunca mais publica sem controle)', () => {
     const content = read('src/pages/admin/AIContent2.tsx');
 
     const fnMatch = content.match(/const handleGenerateFromTopic = async[\s\S]*?\n  \};/);
@@ -31,13 +36,14 @@ describe('Regressão — generate-blog-post-from-topic mantém sempre-publica pr
     expect(snippet).toContain('generate-blog-post-from-topic');
     expect(
       snippet,
-      'handleGenerateFromTopic passou a enviar publishImmediately. ' +
-        "Isso REGRIDE o comportamento sempre-publica da aba 'Por Tema' " +
-        '(o artigo passaria a nascer como rascunho sem o usuário ter pedido).'
-    ).not.toContain('publishImmediately');
+      'handleGenerateFromTopic parou de enviar publishImmediately. Isso REGRIDE ' +
+        'pro bug antigo (artigo sempre publica na hora, sem respeitar o toggle ' +
+        'auto_publish_topic_search).'
+    ).toContain('publishImmediately');
+    expect(snippet).toContain('auto_publish_topic_search');
   });
 
-  it('generate-blog-post-from-topic preserva publish:true quando publishImmediately é omitido', () => {
+  it('generate-blog-post-from-topic preserva publish:true quando publishImmediately é omitido (compat pro caminho automático)', () => {
     const content = read('supabase/functions/generate-blog-post-from-topic/index.ts');
 
     expect(content).toContain('const publishImmediately = body?.publishImmediately;');

@@ -26,6 +26,7 @@ export interface BlogPost {
     image_tokens?: number;
     generated_at?: string;
     source_urls?: string[] | null;
+    generation_source?: string | null;
   };
 }
 
@@ -61,6 +62,23 @@ export function isSugestoesCatchAll(category: string): boolean {
   const cat = (category || '').toLowerCase().trim();
   return !TEMPLATE_ROUTED_CATEGORIES.includes(cat);
 }
+
+/**
+ * Item #9 (reorganização dos controles de publicação, 10/08/2026): rótulo de
+ * origem por generation_source — mesmos 8 valores gravados em
+ * ai_generated_posts pelos 8 caminhos de geração. Usado em BlogManager.tsx
+ * e PostsHistory.tsx pra mostrar de onde cada post veio.
+ */
+export const GENERATION_SOURCE_LABELS: Record<string, string> = {
+  gerar_tab: 'Gerar (template manual)',
+  sugestoes_tema: 'Sugestões (tema livre)',
+  sugestoes_template: 'Sugestões (template)',
+  por_tema: 'Por Tema',
+  auto_cron: 'Automático (cron)',
+  multi_evento: 'Multi-Evento',
+  por_evento: 'Por Evento',
+  event_watcher: 'Event Watcher',
+};
 
 export function getFieldLabel(field: string): string {
   const labels: Record<string, string> = {

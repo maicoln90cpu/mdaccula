@@ -3,6 +3,7 @@ import { addHours } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { useAutoPublishSettings } from '@/hooks/useAutoPublishSettings';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { parseLocalDateTime } from '@/lib/dateUtils';
 import { logger } from '@/lib/logger';
@@ -24,6 +25,7 @@ export function useEventsManager() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [lastMergeLog, setLastMergeLog] = useState<MergeLog | null>(null);
+  const { settings: publishSettings } = useAutoPublishSettings(['auto_publish_single_event']);
   const [showUndoDialog, setShowUndoDialog] = useState(false);
   const [showMerged, setShowMerged] = useState(false);
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
@@ -183,7 +185,10 @@ export function useEventsManager() {
       logger.debug('[EventsManager] Iniciando geração de artigo para evento', {
         title: event.title,
       });
-      const payload = buildArticlePayload(event, { generateImage: !event.image_url });
+      const payload = buildArticlePayload(event, {
+        generateImage: !event.image_url,
+        publishImmediately: publishSettings.auto_publish_single_event === true,
+      });
       logger.debug('[EventsManager] Payload para generate-blog-post-v2', { payload });
       const { data: blogData, error: blogError } = await supabase.functions.invoke(
         'generate-blog-post-v2',

@@ -12,6 +12,7 @@ import { generateEventGroupName } from '@/lib/eventGroupHelper';
 import { parseLocalDateTime } from '@/lib/dateUtils';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
+import { useAutoPublishSettings } from '@/hooks/useAutoPublishSettings';
 import { type EventSchedule } from '@/lib/eventScheduleHelper';
 import { normalizeLineup } from '@/lib/lineupNormalizer';
 import { notifyEventChange } from '@/lib/indexnow';
@@ -64,6 +65,7 @@ export function useEventFormSubmit(opts: UseEventFormSubmitOptions) {
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const isEditing = !!event?.id;
+  const { settings: publishSettings } = useAutoPublishSettings(['auto_publish_single_event']);
 
   const uploadImage = async () => {
     if (!imageFile) return null;
@@ -320,7 +322,11 @@ export function useEventFormSubmit(opts: UseEventFormSubmitOptions) {
             image_url: imageUrl,
             ai_context: aiContext,
           },
-          { generateImage: !imageUrl, aiContextOverride: aiContext }
+          {
+            generateImage: !imageUrl,
+            aiContextOverride: aiContext,
+            publishImmediately: publishSettings.auto_publish_single_event === true,
+          }
         );
 
         logger.debug('[EventForm] Payload para generate-blog-post-v2', { payload: blogPayload });

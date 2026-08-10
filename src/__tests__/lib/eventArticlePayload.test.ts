@@ -55,5 +55,32 @@ describe('eventArticlePayload helpers', () => {
       expect(payload.genres).toBe('techno');
       expect(payload.ticketLink).toBe('https://ex.com/t');
     });
+
+    it('publishImmediately/generationSource defaultam pra "por_evento" publicado quando não informados', () => {
+      const payload = buildArticlePayload({
+        title: 'X',
+        date: '2026-06-01',
+        venue: 'Y',
+        location_city: 'Z',
+        location_state: 'SP',
+      });
+      expect(payload.publishImmediately).toBe(true);
+      expect(payload.generationSource).toBe('por_evento');
+    });
+
+    it('respeita publishImmediately/generationSource explícitos', () => {
+      const payload = buildArticlePayload(
+        {
+          title: 'X',
+          date: '2026-06-01',
+          venue: 'Y',
+          location_city: 'Z',
+          location_state: 'SP',
+        },
+        { publishImmediately: false, generationSource: 'por_evento' }
+      );
+      expect(payload.publishImmediately).toBe(false);
+      expect(payload.generationSource).toBe('por_evento');
+    });
   });
 });

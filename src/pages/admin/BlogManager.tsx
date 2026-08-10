@@ -35,6 +35,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { logger } from '@/lib/logger';
+import { GENERATION_SOURCE_LABELS } from './aiContent/types';
 
 interface BlogPost {
   id: string;
@@ -316,7 +317,7 @@ const BlogManager = () => {
         // geração de fato usada.
         supabase
           .from('ai_generated_posts')
-          .select('template_id, prompt_used, source_urls')
+          .select('template_id, prompt_used, source_urls, generation_source')
           .eq('blog_post_id', postId)
           .order('generated_at', { ascending: false })
           .limit(1),
@@ -336,6 +337,12 @@ const BlogManager = () => {
           .eq('id', gen.template_id)
           .maybeSingle();
         functionLabel = template?.name ?? 'Geração por IA';
+      } else if (gen?.generation_source && GENERATION_SOURCE_LABELS[gen.generation_source]) {
+        // Item #9 (reorganização dos controles de publicação, 10/08/2026):
+        // fonte de verdade — antes disso, a heurística abaixo (string-sniffing
+        // de prompt_used) não reconhecia o modo automático (source_article),
+        // que caía como genérico "Geração por IA" mesmo sendo rastreável.
+        functionLabel = GENERATION_SOURCE_LABELS[gen.generation_source];
       } else if (gen?.prompt_used?.startsWith('Multi-Event Article')) {
         functionLabel = 'Geração de Multi-Eventos';
       } else if (gen?.prompt_used?.startsWith('Busca por tema')) {

@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { templateId, generateImage, publishImmediately, ...formFields } = body;
+    const { templateId, generateImage, publishImmediately, generationSource, ...formFields } = body;
 
     // Logging dos campos recebidos para debug
     console.log('[generate-blog-post-v2] Campos recebidos:', JSON.stringify(Object.keys(formFields)));
@@ -484,6 +484,7 @@ ${formFields.aiContext}`
       postId: post.id,
       templateName: template.name,
       templateId: template.id,
+      generationSource: typeof generationSource === 'string' ? generationSource : null,
       formFields,
       selectedModel,
       usage,

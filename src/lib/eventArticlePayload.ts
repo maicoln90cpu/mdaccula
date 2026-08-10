@@ -95,6 +95,8 @@ export interface ArticlePayload {
   aiContext: string;
   category: string;
   generateImage: boolean;
+  publishImmediately: boolean;
+  generationSource: string;
 }
 
 /**
@@ -117,7 +119,12 @@ function dedupeParts(parts: Array<string | null | undefined>): string[] {
 
 export function buildArticlePayload(
   event: EventLike,
-  opts: { generateImage?: boolean; aiContextOverride?: string } = {}
+  opts: {
+    generateImage?: boolean;
+    aiContextOverride?: string;
+    publishImmediately?: boolean;
+    generationSource?: string;
+  } = {}
 ): ArticlePayload {
   const eventLocation = dedupeParts([event.venue, event.location_city, event.location_state]).join(
     ' - '
@@ -147,5 +154,7 @@ export function buildArticlePayload(
     aiContext: opts.aiContextOverride ?? event.ai_context ?? '',
     category: 'Eventos',
     generateImage: opts.generateImage ?? !event.image_url,
+    publishImmediately: opts.publishImmediately ?? true,
+    generationSource: opts.generationSource ?? 'por_evento',
   };
 }

@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Feature: reorganização dos controles de geração de conteúdo — Fase B (toggles + origem + imagem real)
+**Descrição:** liga o toggle "rascunho vs. publicado" (`useAutoPublishSettings`, Fase A) nos 5 caminhos que hoje publicavam sempre sem controle: aba "Gerar" (`auto_publish_generate_tab`), "Sugestões→template" (`auto_publish_suggestions_template`), "Por Tema" (`auto_publish_topic_search`), "Artigo consolidado"/Multi-Evento (`auto_publish_multi_event`, novo suporte a `publishImmediately` em `generate-multi-event-article`) e "Gerar artigo"/"Por evento" — tanto pelo botão em Eventos quanto pelo checkbox na criação do evento (`auto_publish_single_event`). Toast da aba "Gerar" corrigido (dizia "salvo como rascunho" mesmo quando publicava). Todo insert em `ai_generated_posts` (dos 8 caminhos, incluindo Event Watcher) passa a gravar `generation_source`; `BlogManager`/`PostsHistory` usam essa coluna pra rotular a origem em vez da heurística antiga de `prompt_used` (que não reconhecia o automático). Item #1: "Por Tema"/"Sugestões→tema" passam a tentar imagem real (og:image + busca Firecrawl) sobre a 1ª fonte encontrada antes de cair pra IA — mesma camada já usada pelo automático.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** médio (muda comportamento de publicação de 5 caminhos manuais — todos defaultam pra rascunho até o admin ligar o toggle correspondente na aba "Automático"). 301 testes Deno + 564 testes Vitest + typecheck, todos verdes.
+
+**Arquivos alterados:** `generate-blog-post-v2/index.ts` + `_shared/generateBlogPostV2/savePost.ts`, `generate-blog-post-from-topic/index.ts`, `generate-multi-event-article/index.ts`, `scan-event-sources/index.ts`, `apify-instagram-webhook/index.ts`, `AIContent2.tsx`, `useSuggestionActions.ts`, `MultiEventArticleModal.tsx`, `useEventsManager.ts`, `useEventFormSubmit.tsx`, `eventArticlePayload.ts`, `BlogManager.tsx`, `PostsHistory.tsx`, `aiContent/types.ts`.
+
+---
+
 ### Feature: reorganização dos controles de geração de conteúdo — Fase A (base + Dashboard)
 **Descrição:** primeira fase da reorganização completa dos 8 caminhos de geração de artigo (pedido do usuário, mapeados na resposta anterior). Base de dados nova: 8 chaves `site_settings` de publicação por tipo de geração (default rascunho), 4 colunas novas em `event_sources` (cooldown/streak/verificação semanal — itens #4/#5/#6/#10), `ai_generated_posts.generation_source` (identifica qual dos 8 caminhos gerou cada post). Novo hook `useAutoPublishSettings`. Novo componente `ContentDashboard` como 1ª aba de "Conteúdo IA": publicados/rascunhos/views, saúde do automático, publicado vs rascunho e views por período, geração por tipo, top 5 mais lidos. `FontesManager` ganha coluna "Saúde (automático)" com selo de fonte seca e última verificação. Nova edge function `verify-sources-weekly` (item #10) — checagem semanal sem gerar/publicar, cron próprio (segunda 09h BRT), isolada do `auto-article-cron`.
 **Data:** 10/08/2026
@@ -1082,6 +1092,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Feature | Reorganização dos controles de geração — Fase B: toggle rascunho/publicado em 5 caminhos, origem gravada em todo post, imagem real em Por Tema/Sugestões |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase A: base (settings/colunas) + Dashboard como 1ª aba de Conteúdo IA + saúde de fontes + verify-sources-weekly |
 | 10/08 | Bugfix | "Sugestões"/"Por Tema" podiam gerar artigo inteiro em outro idioma quando a fonte real era estrangeira (R-051) |
 | 09/08 | Feature | Artigos da Geração por Tema ganham imagem de capa sem IA (og:image da matéria + busca Firecrawl como fallback) |

@@ -15,7 +15,8 @@ import {
 interface Params {
   templates: PromptTemplate[];
   generateWithImage: boolean;
-  suggestionsAutoPublish: boolean;
+  suggestionsTopicAutoPublish: boolean;
+  suggestionsTemplateAutoPublish: boolean;
   onPostsChanged: () => void;
   setIsGenerating: (v: boolean) => void;
 }
@@ -27,7 +28,8 @@ interface Params {
 export function useSuggestionActions({
   templates,
   generateWithImage,
-  suggestionsAutoPublish,
+  suggestionsTopicAutoPublish,
+  suggestionsTemplateAutoPublish,
   onPostsChanged,
   setIsGenerating,
 }: Params) {
@@ -135,7 +137,8 @@ export function useSuggestionActions({
           body: {
             query,
             generateImage: generateWithImage,
-            publishImmediately: suggestionsAutoPublish,
+            publishImmediately: suggestionsTopicAutoPublish,
+            generationSource: 'sugestoes_tema',
           },
         });
 
@@ -170,6 +173,8 @@ export function useSuggestionActions({
               ? suggestion.visualElements.join(', ')
               : suggestion.visualElements || '',
             generateImage: generateWithImage,
+            publishImmediately: suggestionsTemplateAutoPublish,
+            generationSource: 'sugestoes_template',
             formData: {
               topic: suggestion.title,
               summary: suggestion.summary,
@@ -252,7 +257,8 @@ export function useSuggestionActions({
                 body: {
                   query: suggestion.searchQuery || suggestion.title,
                   generateImage: generateWithImage,
-                  publishImmediately: suggestionsAutoPublish,
+                  publishImmediately: suggestionsTopicAutoPublish,
+                  generationSource: 'sugestoes_tema',
                 },
               })
             : await supabase.functions.invoke('generate-blog-post-v2', {
@@ -270,6 +276,8 @@ export function useSuggestionActions({
                     ? suggestion.visualElements.join(', ')
                     : suggestion.visualElements || '',
                   generateImage: generateWithImage,
+                  publishImmediately: suggestionsTemplateAutoPublish,
+                  generationSource: 'sugestoes_template',
                   formData: {
                     topic: suggestion.title,
                     summary: suggestion.summary,

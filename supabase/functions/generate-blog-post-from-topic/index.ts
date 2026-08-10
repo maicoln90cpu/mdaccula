@@ -74,6 +74,12 @@ Deno.serve(async (req) => {
     // pro chamador original desta function (busca por tema manual no admin).
     // Só `false` explícito nasce como rascunho — mesma convenção de generate-blog-post-v2.
     const publishImmediately = body?.publishImmediately;
+    // Item #7/#9: qual dos 8 caminhos disparou a geração. mode='source_article'
+    // só é chamado pelo auto-article-cron, então é sempre 'auto_cron'; em
+    // open_search, o chamador (Por Tema/Sugestões) informa explicitamente.
+    const generationSource = mode === 'source_article'
+      ? 'auto_cron'
+      : (typeof body?.generationSource === 'string' ? body.generationSource : null);
 
     if (mode === 'source_article') {
       if (!sourceUrl) {
@@ -422,6 +428,7 @@ proporcional aos fatos disponíveis.`;
         output_tokens: usage.completion_tokens || null,
         total_tokens: usage.total_tokens || null,
         source_urls: sourceUrls,
+        generation_source: generationSource,
       });
 
     if (aiLogError) {
@@ -435,14 +442,28 @@ proporcional aos fatos disponíveis.`;
     // original, depois busca de imagem via Firecrawl), sempre que houver
     // FIRECRAWL_API_KEY — independe do parâmetro generateImage, que aqui só
     // controla o caminho de IA do modo open_search.
-    if (mode === 'source_article' && FIRECRAWL_API_KEY) {
+    //
+    // Item #1 (reorganização dos controles de publicação, 10/08/2026): o modo
+    // open_search (Por Tema/Sugestões) também raspa páginas reais — usa a
+    // mesma camada de imagem real (og:image + busca Firecrawl) sobre a
+    // primeira fonte encontrada, ANTES de cair pra IA. Só gera por IA se
+    // isso não encontrar nada (mesmo espírito do source_article, adaptado
+    // pra várias fontes possíveis em vez de 1 só).
+    let imageResolvedFromRealSource = false;
+    if (FIRECRAWL_API_KEY && (mode === 'source_article' || sourceUrls.length > 0)) {
+      const referenceUrl = mode === 'source_article' ? sourceUrl : sourceUrls[0];
+      let referenceName = sourceName || 'fonte cadastrada';
+      if (mode === 'open_search') {
+        try {
+          referenceName = new URL(referenceUrl).hostname.replace(/^www\./, '');
+        } catch {
+          referenceName = 'fonte real';
+        }
+      }
+      const searchTerm = mode === 'source_article' ? articleData.title : query;
+
       try {
-        const resolvedImage = await resolveArticleImage(
-          sourceUrl,
-          sourceName || 'fonte cadastrada',
-          articleData.title,
-          FIRECRAWL_API_KEY
-        );
+        const resolvedImage = await resolveArticleImage(referenceUrl, referenceName, searchTerm, FIRECRAWL_API_KEY);
         if (resolvedImage) {
           await supabase
             .from('blog_posts')
@@ -450,11 +471,14 @@ proporcional aos fatos disponíveis.`;
             .eq('id', post.id);
           post.image_url = resolvedImage.url;
           post.image_credit = resolvedImage.credit;
+          imageResolvedFromRealSource = true;
         }
       } catch (imageError) {
         console.error('[generate-blog-post-from-topic] Erro ao resolver imagem da matéria:', imageError);
       }
-    } else if (generateImage && LOVABLE_API_KEY) {
+    }
+
+    if (mode === 'open_search' && !imageResolvedFromRealSource && generateImage && LOVABLE_API_KEY) {
       try {
         const timeForImage = AI_TIMEOUT_MS - (Date.now() - startTime);
         if (timeForImage > 30000) {

@@ -14,6 +14,7 @@ import { TemplatesPanel } from '@/components/admin/ai-content/TemplatesPanel';
 import { AutoGenerationPanel } from '@/components/admin/ai-content/AutoGenerationPanel';
 import { ContentDashboard } from '@/components/admin/ai-content/ContentDashboard';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import { useAutoPublishSettings } from '@/hooks/useAutoPublishSettings';
 import { normalizePromptTemplateFields, getEdgeFunctionErrorMessage } from '@/lib';
 import { logger } from '@/lib/logger';
 import { SourcesPreviewDialog } from './aiContent/SourcesPreviewDialog';
@@ -41,21 +42,12 @@ export default function AIContent2() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [topicQuery, setTopicQuery] = useState('');
   const [isGeneratingFromTopic, setIsGeneratingFromTopic] = useState(false);
-  const [suggestionsAutoPublish, setSuggestionsAutoPublish] = useState(false);
-
-  const fetchSuggestionsAutoPublish = async () => {
-    try {
-      const { data } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'suggestions_auto_publish')
-        .maybeSingle();
-
-      setSuggestionsAutoPublish(data?.value === 'true');
-    } catch (error) {
-      logger.error('Error fetching suggestions_auto_publish:', error);
-    }
-  };
+  const { settings: publishSettings } = useAutoPublishSettings([
+    'auto_publish_generate_tab',
+    'auto_publish_topic_search',
+    'auto_publish_suggestions_topic',
+    'auto_publish_suggestions_template',
+  ]);
 
   const initializeFormData = useCallback((fields: string[]) => {
     const initial: Record<string, string> = {};
@@ -119,7 +111,7 @@ export default function AIContent2() {
       const postIds = posts?.map((p) => p.id) || [];
       const { data: aiData, error: aiError } = await supabase
         .from('ai_generated_posts')
-        .select('blog_post_id, model_used, total_tokens, image_tokens, generated_at, source_urls')
+        .select('blog_post_id, model_used, total_tokens, image_tokens, generated_at, source_urls, generation_source')
         .in('blog_post_id', postIds);
 
       if (aiError) throw aiError;
@@ -135,6 +127,7 @@ export default function AIContent2() {
                 image_tokens: ai.image_tokens || undefined,
                 generated_at: ai.generated_at || undefined,
                 source_urls: ai.source_urls || undefined,
+                generation_source: ai.generation_source || undefined,
               }
             : undefined,
         };
@@ -156,7 +149,6 @@ export default function AIContent2() {
   useEffect(() => {
     fetchTemplates();
     fetchGeneratedPosts();
-    fetchSuggestionsAutoPublish();
   }, [fetchTemplates, fetchGeneratedPosts]);
 
   // Realtime: substitui o polling de 15s.
@@ -165,7 +157,8 @@ export default function AIContent2() {
   const suggestionActions = useSuggestionActions({
     templates,
     generateWithImage,
-    suggestionsAutoPublish,
+    suggestionsTopicAutoPublish: publishSettings.auto_publish_suggestions_topic === true,
+    suggestionsTemplateAutoPublish: publishSettings.auto_publish_suggestions_template === true,
     onPostsChanged: fetchGeneratedPosts,
     setIsGenerating,
   });
@@ -208,6 +201,7 @@ export default function AIContent2() {
     setIsGenerating(true);
 
     try {
+      const willPublish = publishSettings.auto_publish_generate_tab === true;
       const { data, error } = await supabase.functions.invoke('generate-blog-post-v2', {
         body: {
           templateId: selectedTemplate.id,
@@ -219,6 +213,8 @@ export default function AIContent2() {
             formData.labelName ||
             Object.values(formData).find((value) => value?.trim()),
           generateImage: generateWithImage,
+          publishImmediately: willPublish,
+          generationSource: 'gerar_tab',
         },
       });
 
@@ -226,7 +222,7 @@ export default function AIContent2() {
 
       toast({
         title: 'Artigo gerado com sucesso!',
-        description: `"${data.title}" foi criado e salvo como rascunho.`,
+        description: `"${data.title}" foi ${willPublish ? 'criado e publicado' : 'criado e salvo como rascunho'}.`,
       });
 
       fetchGeneratedPosts();
@@ -250,10 +246,13 @@ export default function AIContent2() {
     setIsGeneratingFromTopic(true);
 
     try {
+      const willPublish = publishSettings.auto_publish_topic_search === true;
       const { data, error } = await supabase.functions.invoke('generate-blog-post-from-topic', {
         body: {
           query: topicQuery.trim(),
           generateImage: generateWithImage,
+          publishImmediately: willPublish,
+          generationSource: 'por_tema',
         },
       });
 
@@ -261,7 +260,7 @@ export default function AIContent2() {
 
       toast({
         title: 'Artigo gerado a partir da busca!',
-        description: `"${data.post?.title}" foi criado com base em ${data.sourcesUsed?.length ?? 0} fontes.`,
+        description: `"${data.post?.title}" foi ${willPublish ? 'publicado' : 'salvo como rascunho'}, com base em ${data.sourcesUsed?.length ?? 0} fontes.`,
       });
 
       fetchGeneratedPosts();

@@ -439,6 +439,7 @@ Deno.serve(async (req) => {
           ...(finalImageUrl ? { eventImageUrl: finalImageUrl } : {}),
           generateImage: true,
           publishImmediately: false,
+          generationSource: "event_watcher",
         }),
       },
       GENERATE_TIMEOUT_MS,

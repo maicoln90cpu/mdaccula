@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { eventIds, seriesName, additionalContext, generateImage, customImageUrl, existingPostId } = body;
+    const { eventIds, seriesName, additionalContext, generateImage, customImageUrl, existingPostId, publishImmediately } = body;
 
     if (!eventIds || !Array.isArray(eventIds) || eventIds.length < 2) {
       return jsonError('É necessário selecionar pelo menos 2 eventos', 400);
@@ -385,8 +385,8 @@ Deno.serve(async (req) => {
           excerpt: articleData.excerpt,
           content: articleData.content,
           category: articleData.category || 'Eventos',
-          published: true,
-          published_at: new Date().toISOString(),
+          published: publishImmediately === false ? false : true,
+          published_at: publishImmediately === false ? null : new Date().toISOString(),
           image_url: finalImageUrl
         })
         .select()
@@ -422,6 +422,7 @@ Deno.serve(async (req) => {
         output_tokens: usage.completion_tokens || null,
         total_tokens: usage.total_tokens || null,
         image_tokens: imageTokensUsed > 0 ? imageTokensUsed : null,
+        generation_source: 'multi_evento',
       });
 
     if (aiLogError) {

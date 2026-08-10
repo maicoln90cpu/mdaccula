@@ -89,6 +89,12 @@ export interface LogAiGenerationParams {
   postId: string;
   templateName: string;
   templateId: string;
+  // Item #7/#9 (reorganização dos controles de publicação): qual dos 8
+  // caminhos de geração disparou essa chamada — gerar_tab | sugestoes_template
+  // | por_evento | event_watcher (os únicos 4 que passam por esta function
+  // compartilhada). null = chamador não informou (nunca deve acontecer nos
+  // caminhos já migrados, mas não quebra se acontecer).
+  generationSource: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   formFields: Record<string, any>;
   selectedModel: string;
@@ -114,6 +120,7 @@ export async function logAiGeneration(supabase: Supabase, params: LogAiGeneratio
     total_tokens: params.usage?.total_tokens || null,
     image_tokens: params.imageTokensUsed > 0 ? params.imageTokensUsed : null,
     source_urls: params.guardrailSourceUrls,
+    generation_source: params.generationSource,
   });
 
   if (aiLogError) {

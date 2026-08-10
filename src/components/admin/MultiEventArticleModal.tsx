@@ -19,6 +19,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/useToast';
+import { useAutoPublishSettings } from '@/hooks/useAutoPublishSettings';
 import { logger } from '@/lib';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';
@@ -81,6 +82,7 @@ export const MultiEventArticleModal = ({
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
   const [uploadingImage, setUploadingImage] = useState(false);
   const { toast } = useToast();
+  const { settings: publishSettings } = useAutoPublishSettings(['auto_publish_multi_event']);
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -248,6 +250,7 @@ export const MultiEventArticleModal = ({
           additionalContext,
           generateImage: finalImageUrl ? false : generateImage,
           customImageUrl: finalImageUrl || undefined,
+          publishImmediately: publishSettings.auto_publish_multi_event === true,
         },
       });
 

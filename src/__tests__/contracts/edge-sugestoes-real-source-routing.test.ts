@@ -139,8 +139,14 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
 
     expect(hook).toContain('isSugestoesCatchAll');
     expect(hook).toContain('generate-blog-post-from-topic');
-    expect(hook).toContain('suggestionsAutoPublish');
-    expect(page).toContain('suggestionsAutoPublish');
+    // Reorganização dos controles de publicação (10/08/2026): o toggle único
+    // "suggestions_auto_publish" virou 8 toggles por tipo de geração
+    // (useAutoPublishSettings), lidos em AIContent2 e passados ao hook já
+    // resolvidos como suggestionsTopicAutoPublish/suggestionsTemplateAutoPublish.
+    expect(hook).toContain('suggestionsTopicAutoPublish');
+    expect(hook).toContain('suggestionsTemplateAutoPublish');
+    expect(page).toContain('useAutoPublishSettings');
+    expect(page).toContain('auto_publish_suggestions_topic');
   });
 
   it('eventos/festivais/lançamentos não ficam mais presos ao template sem fonte real', () => {

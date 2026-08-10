@@ -25,6 +25,7 @@ import {
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { GENERATION_SOURCE_LABELS } from '@/pages/admin/aiContent/types';
 
 interface BlogPost {
   id: string;
@@ -40,6 +41,7 @@ interface BlogPost {
     image_tokens?: number;
     generated_at?: string;
     source_urls?: string[] | null;
+    generation_source?: string | null;
   };
 }
 
@@ -139,7 +141,9 @@ export function PostsHistory({
                         {post.ai_data && (
                           <Badge variant="secondary" className="gap-1">
                             <Sparkles className="h-3 w-3" />
-                            IA
+                            {post.ai_data.generation_source
+                              ? (GENERATION_SOURCE_LABELS[post.ai_data.generation_source] ?? 'IA')
+                              : 'IA'}
                           </Badge>
                         )}
                         <Badge variant={post.published ? 'default' : 'outline'}>
@@ -237,9 +241,9 @@ export function PostsHistory({
               Fontes usadas
             </DialogTitle>
             <DialogDescription>
-              Resultado de uma busca aberta na web (Firecrawl) para o termo do artigo, usada como
-              base para "{sourcesDialogPost?.title}". Não é o catálogo de Fontes cadastradas em
-              Fontes / Event Watcher.
+              {sourcesDialogPost?.ai_data?.generation_source === 'auto_cron'
+                ? `Matéria real reescrita fielmente pelo caminho automático (cron), base para "${sourcesDialogPost?.title}".`
+                : `Resultado de uma busca aberta na web (Firecrawl) para o termo do artigo, usada como base para "${sourcesDialogPost?.title}". Não é o catálogo de Fontes cadastradas em Fontes / Event Watcher.`}
             </DialogDescription>
           </DialogHeader>
           <ul className="space-y-2">
