@@ -3,6 +3,7 @@ import { sanitizeTitle, validateTitle } from "../_shared/titleSanitizer.ts";
 import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 import { searchWithFirecrawl, type FirecrawlSearchResult } from "../_shared/firecrawlSearch.ts";
 import { scrapeArticleContent } from "../_shared/sourceArticlePicker.ts";
+import { resolveArticleImage } from "../_shared/articleImage.ts";
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -400,8 +401,33 @@ proporcional aos fatos disponíveis.`;
       console.error('Erro ao registrar log de IA:', aiLogError);
     }
 
-    // 6) Imagem de capa (opcional, mesmo padrão de estilo variado das outras functions)
-    if (generateImage && LOVABLE_API_KEY) {
+    // 6) Imagem de capa
+    // Fase 2 (R-048): mode source_article nunca usa IA pra imagem — não faz
+    // sentido editorial gerar uma ilustração artificial pra uma reescrita
+    // fiel de notícia real. Resolve em 2 camadas (og:image da matéria
+    // original, depois busca de imagem via Firecrawl), sempre que houver
+    // FIRECRAWL_API_KEY — independe do parâmetro generateImage, que aqui só
+    // controla o caminho de IA do modo open_search.
+    if (mode === 'source_article' && FIRECRAWL_API_KEY) {
+      try {
+        const resolvedImage = await resolveArticleImage(
+          sourceUrl,
+          sourceName || 'fonte cadastrada',
+          articleData.title,
+          FIRECRAWL_API_KEY
+        );
+        if (resolvedImage) {
+          await supabase
+            .from('blog_posts')
+            .update({ image_url: resolvedImage.url, image_credit: resolvedImage.credit })
+            .eq('id', post.id);
+          post.image_url = resolvedImage.url;
+          post.image_credit = resolvedImage.credit;
+        }
+      } catch (imageError) {
+        console.error('[generate-blog-post-from-topic] Erro ao resolver imagem da matéria:', imageError);
+      }
+    } else if (generateImage && LOVABLE_API_KEY) {
       try {
         const timeForImage = AI_TIMEOUT_MS - (Date.now() - startTime);
         if (timeForImage > 30000) {

@@ -27,6 +27,7 @@ interface BlogFormData {
   content: string;
   category: string;
   published: boolean;
+  image_credit: string;
 }
 
 // Blog post type for editing - uses partial fields since different sources may provide different fields
@@ -40,6 +41,7 @@ interface BlogPost {
   published?: boolean;
   published_at?: string | null;
   image_url?: string | null;
+  image_credit?: string | null;
   views?: number | null;
   likes?: number | null;
   created_at?: string;
@@ -85,6 +87,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
           content: post.content,
           category: post.category,
           published: post.published,
+          image_credit: post.image_credit || '',
         }
       : {
           published: false,
@@ -159,6 +162,7 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
         content, // Use content from RichTextEditor
         published,
         image_url: imageUrl,
+        image_credit: data.image_credit?.trim() || null,
         published_at: published && !post?.published ? new Date().toISOString() : post?.published_at,
       };
 
@@ -271,6 +275,19 @@ export const BlogForm = ({ post, onSuccess, onCancel }: BlogFormProps) => {
             aspectRatio={16 / 9}
             cropMode="optional"
           />
+
+          <div className="space-y-2">
+            <Label htmlFor="image_credit">Crédito da imagem (opcional)</Label>
+            <Input
+              id="image_credit"
+              {...register('image_credit')}
+              placeholder="Ex.: Imagem: nome-da-fonte"
+            />
+            <p className="text-xs text-muted-foreground">
+              Exibido como legenda discreta abaixo da capa. Preencha quando a imagem vier de outra
+              página (não é obrigatório pra upload/foto própria).
+            </p>
+          </div>
 
           <div className="flex items-center space-x-2">
             <Switch id="published" checked={published} onCheckedChange={setPublished} />

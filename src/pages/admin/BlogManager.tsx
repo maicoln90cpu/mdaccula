@@ -46,6 +46,7 @@ interface BlogPost {
   likes: number;
   created_at: string;
   image_url: string | null;
+  image_credit: string | null;
   excerpt: string | null;
   content: string;
 }
@@ -72,7 +73,7 @@ const BlogManager = () => {
       const { data, error } = await supabase
         .from('blog_posts')
         .select(
-          'id, title, slug, category, published, views, likes, created_at, image_url, excerpt, content'
+          'id, title, slug, category, published, views, likes, created_at, image_url, image_credit, excerpt, content'
         )
         .order('created_at', { ascending: false });
 
@@ -463,7 +464,10 @@ const BlogManager = () => {
                           <div className="flex justify-between items-start">
                             <div className="flex gap-3">
                               {/* Thumbnail preview */}
-                              <div className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                              <div
+                                className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0"
+                                title={post.image_credit ? `Crédito: ${post.image_credit}` : undefined}
+                              >
                                 {post.image_url ? (
                                   <img
                                     src={getOptimizedImageUrl(post.image_url)}
@@ -486,6 +490,11 @@ const BlogManager = () => {
                                   {!post.image_url && (
                                     <Badge variant="destructive" className="text-xs">
                                       Sem imagem
+                                    </Badge>
+                                  )}
+                                  {post.image_credit && (
+                                    <Badge variant="outline" className="text-xs" title={post.image_credit}>
+                                      {post.image_credit}
                                     </Badge>
                                   )}
                                 </div>

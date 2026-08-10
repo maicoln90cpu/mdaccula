@@ -114,6 +114,7 @@ CREATE TABLE public.blog_posts (
   category TEXT NOT NULL,
   author_id UUID,
   image_url TEXT,
+  image_credit TEXT, -- migração 20260810 (blog_posts_image_credit): atribuição quando a capa vem de outra página (og:image da matéria original ou busca de imagem) — NULL pra imagem própria (upload manual, IA)
   published BOOLEAN DEFAULT false NOT NULL,
   published_at TIMESTAMP WITH TIME ZONE,
   views INTEGER DEFAULT 0,

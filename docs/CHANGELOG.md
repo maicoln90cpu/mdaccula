@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Artigos gerados por "Geração por Tema" (matéria real) ganham imagem de capa sem IA
+**Descrição:** os artigos gerados pelo novo pipeline de 1-fonte-1-matéria (R-048) nasciam sem imagem de capa — o admin pediu soluções que não envolvessem geração por IA, já que não faz sentido editorial ilustrar artificialmente a reescrita fiel de uma notícia real.
+**Entrega:** novo módulo `_shared/articleImage.ts` resolve a capa em 2 camadas, nessa ordem, nunca IA: (1) `og:image`/`twitter:image` da própria página da matéria original (mesma técnica já usada em `fetch-link-metadata`, fetch puro, sem custo de API), re-hospedada no Bunny CDN (nunca hotlink direto de outro site); (2) se a fonte não tiver, busca de imagem via Firecrawl (`sources: ["images"]`, reaproveitando a `FIRECRAWL_API_KEY` já configurada — sem precisar de uma chave nova do Google) pelo tema do artigo. Se as duas falharem, o post fica sem imagem e cai no placeholder padrão do site — nunca gera nada artificialmente. Nova coluna `blog_posts.image_credit` guarda a atribuição ("Imagem: nome-da-fonte") e é exibida como legenda discreta abaixo da capa no post público; o admin também pode editar/limpar esse texto manualmente em `BlogForm.tsx`.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** baixo-médio (aditivo — só afeta o caminho `mode: 'source_article'`; caminho manual `open_search` mantém a geração por IA como estava) — 282 testes Deno + 547 testes Vitest + typecheck, todos verdes
+
+**Arquivos alterados:** migração `blog_posts_image_credit` (nova coluna), `src/integrations/supabase/types.ts` (regenerado), `supabase/functions/_shared/articleImage.ts` (novo), `supabase/functions/_shared/articleImage_test.ts` (novo), `supabase/functions/generate-blog-post-from-topic/index.ts`, `src/pages/BlogPost.tsx`, `src/pages/admin/BlogManager.tsx`, `src/components/blog/BlogForm.tsx`, `docs/tabelas.md`, `docs/DATABASE_SCHEMA.md`, `docs/EDGE_FUNCTIONS.md`.
+
+---
+
 ### Alerta de egress por e-mail nunca chegava — corrigido endpoint de envio (R-049)
 **Descrição:** usuário reportou Cached Egress em 5.28GB/5GB (Free Plan) no dashboard do Supabase e pediu investigação completa. Achados: (1) o pico de 09/08 (952MB em 24h) foi um loop infinito real na aba Gestão de E-mails, já encontrado e corrigido pelo próprio usuário 20 minutos depois num commit anterior (`bdeccaf`), com teste de regressão dedicado; (2) o sistema de alerta automático (`egress-alert-cron`) já detectava os 3 picos do mês corretamente, mas nunca conseguia notificar por e-mail — 401 "Credential not found" num endpoint (`connector-gateway.lovable.dev`) que nenhuma outra função do projeto usa. Corrigido pra usar o mesmo padrão de `api.resend.com` direto já usado com sucesso em `send-test-email`/`daily-metrics-email`. Verificação pós-deploy revelou uma 2ª causa (dado, não código): `site_settings.egress_alert_email` guardava a string literal `""` em vez de um e-mail real, corrigido pra `contato@mdaccula.com` — confirmado com disparo manual real (`email_sent: true`). Adicionada uma segunda camada de proteção genérica (`adminLoadGuard`) contra qualquer causa futura de loop em loaders de admin, além da proteção específica que já existia.
 **Data:** 09/08/2026
@@ -1027,6 +1038,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 09/08 | Feature | Artigos da Geração por Tema ganham imagem de capa sem IA (og:image da matéria + busca Firecrawl como fallback) |
 | 09/08 | Bugfix | Geração por Tema para de citar a própria fonte como notícia e passa a reescrever fielmente 1 matéria real — Fases 0+1 (R-048) |
 | 09/08 | Feature | Preview do editor de e-mail ganha seletor desktop/tablet/celular |
 | 09/08 | Bugfix | Ticker de urgência (modo fade) causava scroll horizontal no preview (R-047) |

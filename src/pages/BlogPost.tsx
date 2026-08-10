@@ -31,6 +31,7 @@ interface BlogPostData {
   excerpt: string | null;
   category: string;
   image_url: string | null;
+  image_credit: string | null;
   views: number;
   likes: number;
   published: boolean;
@@ -42,7 +43,7 @@ const fetchBlogPost = async (slug: string): Promise<BlogPostData | null> => {
   const { data, error } = await supabase
     .from('blog_posts')
     .select(
-      'id, title, slug, content, excerpt, category, image_url, views, likes, published, created_at, author_id'
+      'id, title, slug, content, excerpt, category, image_url, image_credit, views, likes, published, created_at, author_id'
     )
     .eq('slug', slug)
     .eq('published', true)
@@ -277,6 +278,11 @@ const BlogPost = () => {
                     }
                   }}
                 />
+                {post.image_credit && (
+                  <p className="text-xs text-muted-foreground text-center mt-2 pb-1">
+                    {post.image_credit}
+                  </p>
+                )}
               </div>
             </div>
           </section>

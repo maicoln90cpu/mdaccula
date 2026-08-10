@@ -21,7 +21,7 @@ de sync externo ainda está em uso é uma pergunta em aberto, não coberta por e
 
 | Tabela | Colunas principais | Chave Primária | Propósito |
 |--------|--------------------|-----------------|-----------|
-| blog_posts | id, title, slug, excerpt, content, category, author_id, published, published_at, views, likes, search_vector | id | Posts do blog (muitos gerados por IA a partir de eventos), com busca full-text (`search_vector`) em português |
+| blog_posts | id, title, slug, excerpt, content, category, author_id, image_url, image_credit, published, published_at, views, likes, search_vector | id | Posts do blog (muitos gerados por IA a partir de eventos), com busca full-text (`search_vector`) em português; `image_credit` guarda atribuição quando a capa vem de outra página |
 | ai_generated_posts | id, blog_post_id (FK blog_posts), template_id (FK ai_prompt_templates), source_urls, prompt_used, model_used, input_tokens, output_tokens, total_tokens, image_tokens, generated_at | id | Metadados/auditoria de cada geração de post por IA — qual prompt e modelo foram usados e quanto custou em tokens |
 | ai_prompt_templates | id, name, description, system_prompt, user_prompt_template, required_fields, is_default, category, enabled | id | Biblioteca de prompts reutilizáveis (system + user template) que alimentam a geração automática de artigos de blog |
 | blog_post_likes | id, user_id, post_id (FK blog_posts), created_at | id | Registro de "curtidas" de usuários autenticados em posts do blog (unique por user+post) |
