@@ -9,7 +9,7 @@
  * OU Authorization Bearer de um admin autenticado (botão "Executar agora").
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { buildResendEmailRequest } from "./resendEmail.ts";
+import { buildResendEmailRequest } from "../_shared/resendEmail.ts";
 import { buildAlertEmailHtml } from "./emailHtml.ts";
 
 const corsHeaders = {

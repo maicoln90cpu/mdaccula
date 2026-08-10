@@ -16,6 +16,8 @@
 // query string da webhookUrl (ver scan-event-sources, tabela internal_cron_secrets,
 // linha 'apify_instagram_webhook'), validado ANTES de qualquer outro processamento.
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { notifyAutoPublish } from "../_shared/autoPublishAlert.ts";
+import { isContentSubstantial } from "../_shared/articleQuality.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -455,11 +457,22 @@ Deno.serve(async (req) => {
           .update({ status: "published", published_blog_post_id: publishedBlogPostId })
           .eq("id", insertedDraft.id);
 
-        if (autoPublish) {
+        // Item #2 (10/08/2026): mesma rede de segurança de scan-event-sources —
+        // generate-blog-post-v2 sempre insere com publishImmediately:false aqui,
+        // então essa checagem de qualidade tem que rodar de novo antes deste
+        // update forçar published:true.
+        if (autoPublish && isContentSubstantial(generateData.post.content)) {
           await admin
             .from("blog_posts")
             .update({ published: true, published_at: new Date().toISOString() })
             .eq("id", publishedBlogPostId);
+          await notifyAutoPublish(admin, {
+            postId: publishedBlogPostId,
+            title: generateData.post.title,
+            source: 'event_watcher',
+          });
+        } else if (autoPublish) {
+          console.warn(`[apify-instagram-webhook] Conteúdo curto demais — publicação automática cancelada, post ${publishedBlogPostId} continua rascunho.`);
         }
       }
     } else {

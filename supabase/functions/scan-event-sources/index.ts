@@ -26,6 +26,8 @@ import {
 } from "../_shared/index.ts";
 import { isDuplicateEvent } from "./dedupe.ts";
 import { buildExtractionRequest, parseExtractionResponse, type ExtractedEvent } from "./extract.ts";
+import { notifyAutoPublish } from "../_shared/autoPublishAlert.ts";
+import { isContentSubstantial } from "../_shared/articleQuality.ts";
 
 const SCRAPE_TIMEOUT_MS = 10000;
 const AI_TIMEOUT_MS = 60000;
@@ -218,8 +220,11 @@ async function generateDraftArticle(
     // Publicação automática (opt-in, site_settings.event_watcher_auto_publish) — pula
     // a revisão manual em /admin/blog. Post nasce sempre como rascunho (published:false)
     // em generate-blog-post-v2; este update extra é o único jeito de ir ao ar sem alguém
-    // clicar "Publicar".
-    if (autoPublish) {
+    // clicar "Publicar". Item #2 (10/08/2026): esse update bypassa a checagem de
+    // qualidade que savePost.ts já faz no insert (que sempre roda com
+    // publishImmediately:false aqui) — repete a mesma rede de segurança antes
+    // de publicar de fato, senão um artigo raso vai ao ar sozinho.
+    if (autoPublish && isContentSubstantial(data.post.content)) {
       const { error: publishError } = await admin
         .from("blog_posts")
         .update({ published: true, published_at: new Date().toISOString() })
@@ -227,7 +232,15 @@ async function generateDraftArticle(
 
       if (publishError) {
         console.error(`[scan-event-sources] Falha ao auto-publicar post ${data.post.id}:`, publishError);
+      } else {
+        await notifyAutoPublish(admin, {
+          postId: data.post.id,
+          title: data.post.title,
+          source: 'event_watcher',
+        });
       }
+    } else if (autoPublish) {
+      console.warn(`[scan-event-sources] Conteúdo curto demais — publicação automática cancelada, post ${data.post.id} continua rascunho.`);
     }
   } catch (error) {
     console.error(`[scan-event-sources] Erro gerando artigo para draft ${draftId}:`, error);

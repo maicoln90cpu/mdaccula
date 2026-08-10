@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { discoverArticleUrls, fetchSourceLinks, findListingIndexUrls, type SourceRef } from "../_shared/sourceArticlePicker.ts";
+import { notifyAutoPublish } from "../_shared/autoPublishAlert.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -438,6 +439,18 @@ async function runAutoGeneration() {
         sourcePickElapsedMs: etapa1Elapsed,
         generateElapsedMs: generateElapsedTotal
       });
+
+      // Item #3: só avisa se o post REALMENTE saiu publicado (não só se o
+      // toggle pedia isso — a checagem de qualidade (item #2) pode ter
+      // rebaixado pra rascunho mesmo com autoCronAutoPublish ligado).
+      if (generateData.post?.published) {
+        await notifyAutoPublish(supabase, {
+          postId: generateData.post.id,
+          title: generateData.post.title,
+          source: 'auto_cron',
+          sourceName: pickedSource.name,
+        });
+      }
       return;
     }
 
