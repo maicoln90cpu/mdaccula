@@ -4,6 +4,7 @@ import { EDITORIAL_QUALITY_BLOCK } from "../_shared/editorialQuality.ts";
 import { searchWithFirecrawl, type FirecrawlSearchResult } from "../_shared/firecrawlSearch.ts";
 import { scrapeArticleContent } from "../_shared/sourceArticlePicker.ts";
 import { resolveArticleImage } from "../_shared/articleImage.ts";
+import { isContentSubstantial, stripHtmlTags } from "../_shared/articleQuality.ts";
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -180,7 +181,11 @@ ESTRUTURA OBRIGATÓRIA QUANDO HOUVER FATO REAL (retorne APENAS JSON válido):
 
 TAMANHO: proporcional ao volume real de conteúdo da matéria original — não estique com
 generalidades, adjetivos ou repetição só para bater um número de palavras maior do que
-a matéria original sustenta.
+a matéria original sustenta. MAS "proporcional" nunca significa 1 parágrafo só: extraia
+e desenvolva TODOS os fatos concretos disponíveis na matéria original (contexto, datas,
+nomes, números, declarações, repercussão, detalhes do line-up/local/horário quando
+existirem) antes de considerar o artigo terminado — um artigo de 1 parágrafo quase
+sempre significa que você parou cedo demais, não que a fonte era realmente curta.
 
 FORMATAÇÃO HTML: <h2>/<h3> para seções, <p> para parágrafos, <strong> para destaques.
 RETORNE APENAS O JSON, sem markdown, sem texto adicional.
@@ -212,7 +217,9 @@ ESTRUTURA OBRIGATÓRIA QUANDO HOUVER FATO REAL (retorne APENAS JSON válido):
 
 TAMANHO: proporcional ao volume real de fatos disponível nas fontes — normalmente
 entre 500 e 1300 palavras. NUNCA estique o texto com generalidades, adjetivos ou
-repetição só para bater um número de palavras maior do que as fontes sustentam.
+repetição só para bater um número de palavras maior do que as fontes sustentam. MAS
+"proporcional" nunca significa 1 parágrafo só: extraia e desenvolva TODOS os fatos
+concretos disponíveis nas fontes antes de considerar o artigo terminado.
 
 FORMATAÇÃO HTML: <h2>/<h3> para seções, <p> para parágrafos, <strong> para destaques.
 RETORNE APENAS O JSON, sem markdown, sem texto adicional.
@@ -326,6 +333,20 @@ proporcional aos fatos disponíveis.`;
 
     if (!articleData.title || !articleData.content) {
       throw new Error('IA não gerou dados completos');
+    }
+
+    // R-048 (achado em produção): a IA às vezes entrega um "artigo" de 1
+    // parágrafo só, mesmo com fontes ricas o suficiente pra mais — a
+    // instrução de "tamanho proporcional" (Fase 0) não é um limite
+    // confiável sozinha. Trata como matéria insuficiente (mesmo mecanismo
+    // de insufficientSources) em vez de publicar um esboço.
+    if (!isContentSubstantial(articleData.content)) {
+      const plainTextLength = stripHtmlTags(articleData.content).length;
+      console.log(`[generate-blog-post-from-topic] Conteúdo curto demais para "${topicLabel}": ${plainTextLength} caracteres de texto real`);
+      return jsonError(
+        `O artigo gerado para "${topicLabel}" ficou curto demais (${plainTextLength} caracteres de texto real) — a IA não desenvolveu o suficiente. Nenhum artigo foi gerado.`,
+        422
+      );
     }
 
     const titleCheck = validateTitle(articleData.title);

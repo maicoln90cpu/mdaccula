@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Hotfix: artigo gerado com 1 parágrafo só passava sem nenhuma validação de tamanho (R-048)
+**Descrição:** usuário reportou que o artigo "Alok domina o Mainstage do Tomorrowland..." (gerado no teste da feature de imagem) tinha só a introdução — 312 caracteres, 1 parágrafo. O mesmo pipeline, na mesma sessão de testes, gerou outro artigo ("4x4: guia prático...") com 5624 caracteres completos — confirma que não é um problema estrutural do pipeline, é a IA parando cedo demais em alguns casos.
+**Correção:** novo `_shared/articleQuality.ts` (`isContentSubstantial`/`stripHtmlTags`) exige um piso mínimo de 500 caracteres de texto real (sem HTML) antes de aceitar o artigo gerado — abaixo disso, é tratado como matéria insuficiente (mesmo mecanismo de `insufficientSources`, HTTP 422), e o `auto-article-cron` automaticamente tenta o próximo candidato da fila (Fase 1) em vez de publicar um esboço. Prompt reforçado nos dois modos deixando explícito que "tamanho proporcional" nunca autoriza 1 parágrafo só.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário, ao reportar o artigo incompleto)
+**Impacto:** baixo (validação aditiva — 289 testes Deno + 548 testes Vitest + typecheck, todos verdes)
+
+**Arquivos alterados:** `supabase/functions/_shared/articleQuality.ts` (novo), `supabase/functions/_shared/articleQuality_test.ts` (novo), `supabase/functions/generate-blog-post-from-topic/index.ts`, `src/__tests__/contracts/edge-sugestoes-real-source-routing.test.ts`, `docs/TESTING.md` (R-048).
+
+---
+
 ### Artigos gerados por "Geração por Tema" (matéria real) ganham imagem de capa sem IA
 **Descrição:** os artigos gerados pelo novo pipeline de 1-fonte-1-matéria (R-048) nasciam sem imagem de capa — o admin pediu soluções que não envolvessem geração por IA, já que não faz sentido editorial ilustrar artificialmente a reescrita fiel de uma notícia real.
 **Entrega:** novo módulo `_shared/articleImage.ts` resolve a capa em 2 camadas, nessa ordem, nunca IA: (1) `og:image`/`twitter:image` da própria página da matéria original (mesma técnica já usada em `fetch-link-metadata`, fetch puro, sem custo de API), re-hospedada no Bunny CDN (nunca hotlink direto de outro site); (2) se a fonte não tiver, busca de imagem via Firecrawl (`sources: ["images"]`, reaproveitando a `FIRECRAWL_API_KEY` já configurada — sem precisar de uma chave nova do Google) pelo tema do artigo. Se as duas falharem, o post fica sem imagem e cai no placeholder padrão do site — nunca gera nada artificialmente. Nova coluna `blog_posts.image_credit` guarda a atribuição ("Imagem: nome-da-fonte") e é exibida como legenda discreta abaixo da capa no post público; o admin também pode editar/limpar esse texto manualmente em `BlogForm.tsx`.

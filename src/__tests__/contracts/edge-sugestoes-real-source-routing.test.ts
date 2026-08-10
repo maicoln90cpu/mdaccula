@@ -86,6 +86,16 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     expect(content).toContain('insufficientSources');
   });
 
+  // R-048 (achado em produção): artigo de 1 parágrafo ("Alok domina o
+  // Mainstage...", 312 caracteres) passou pela geração sem nenhuma validação
+  // de tamanho mínimo real de conteúdo.
+  it('generate-blog-post-from-topic rejeita artigo curto demais (piso mínimo de conteúdo real)', () => {
+    const content = read('supabase/functions/generate-blog-post-from-topic/index.ts');
+
+    expect(content).toContain('isContentSubstantial');
+    expect(content).toContain('../_shared/articleQuality.ts');
+  });
+
   // R-048 (achado em produção): auto-article-cron escolheu "Sympla"
   // (plataforma de venda de ingresso, não fonte de notícia) e reescreveu uma
   // página de evento como se fosse matéria jornalística. event_sources é
