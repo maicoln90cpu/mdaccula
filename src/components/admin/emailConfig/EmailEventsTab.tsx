@@ -82,6 +82,7 @@ export function EmailEventsTab({
     const c: Record<SummaryStatus, number> = {
       pending: 0,
       draft: 0,
+      scheduled: 0,
       sent: 0,
       manual: 0,
       failed: 0,
