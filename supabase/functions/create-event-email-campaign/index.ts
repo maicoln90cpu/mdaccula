@@ -165,7 +165,10 @@ Deno.serve(async (req) => {
         : claimQuery.is('email_campaign_dispatched_at', null);
 
       const { data: claimed, error: claimErr } = await claimQuery
-        .select('id,title,status')
+        // O PostgREST reaplica o filtro do UPDATE sobre o conjunto retornado.
+        // Como force_resend filtra por email_campaign_dispatched_at, a coluna
+        // precisa fazer parte do RETURNING para continuar disponível nessa etapa.
+        .select('id,title,status,email_campaign_dispatched_at')
         .maybeSingle();
 
       if (claimErr) throw claimErr;
@@ -380,4 +383,3 @@ Deno.serve(async (req) => {
     return json({ error: (e as Error).message }, 500);
   }
 });
-
