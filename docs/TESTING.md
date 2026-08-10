@@ -530,6 +530,19 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** o `.select()` encadeado ao claim agora inclui `email_campaign_dispatched_at`, preservando a proteção atômica contra disparo duplicado.
 - **Proteção:** `src/__tests__/regression/email-dispatch-claim-returning-filter-column.test.ts` inspeciona o bloco exato do claim e falha se a coluna for removida do retorno novamente.
 
+### R-055 — Evento ficava travado ("dispatch_in_progress") sem nenhuma campanha criada nem log de erro
+- **Quando:** 10/08/2026, mesmo depois de R-052/R-053/R-054 corrigidos — o evento Sirius seguia recusando reenvio (`dispatch_in_progress`) minutos depois da última tentativa, sem nenhuma linha em `event_email_campaigns` e sem `console.error` nos logs.
+- **Causa:** o claim atômico (Guard 3) marca `events.email_campaign_dispatched_at` ANTES de chamar a E-goi; o `catch` externo das duas Edge Functions só liberava esse claim nos caminhos de erro explicitamente tratados (config ausente, E-goi rejeitou, etc.) — uma falha não prevista caía direto no 500 genérico sem resetar o claim. A causa mais provável da falha silenciosa: `fetch()` sem timeout no cache de imagens de mapa (`_shared/bunnyUploadBytes.ts`, `_shared/renderStaticMapCache.ts`) — o Bunny CDN teve avisos reais de timeout/connection reset nos logs de produção desse mesmo período, e um `fetch()` que trava indefinidamente é morto pelo runtime sem passar por nenhum `catch`.
+- **Correção:** os dois `catch` externos agora liberam o claim (`email_campaign_dispatched_at = null`) antes de responder 500, para QUALQUER falha, não só as tratadas; os `fetch()` do cache de mapas ganharam `AbortSignal.timeout(...)` (8-15s) pra nunca mais travar a function inteira.
+- **Mitigação imediata:** evento destravado manualmente via SQL (`update events set email_campaign_dispatched_at = null`) — seguro, não afeta histórico nem envia nada.
+- **Proteção:** `src/__tests__/regression/email-dispatch-claim-released-on-uncaught-error.test.ts` (confere que os 2 `catch` externos liberam o claim, e que os `fetch()` de cache de mapa têm timeout).
+
+### R-056 — Badges do line-up coladas sem espaço no Outlook (Gmail ok)
+- **Quando:** 10/08/2026, reportado pelo usuário no e-mail real do evento Sirius — no Outlook os nomes dos artistas apareciam colados ("D-Nox deKolombo beRiascode..."), no Gmail o layout de badges/pills renderizava certo.
+- **Causa:** o layout `chips` do bloco `lineup` (`supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`) unia os `<span>` de cada artista com `.join("")` — sem nenhum separador real no HTML, contando só com `display:inline-block` + `margin` pra dar espaçamento visual. O Outlook (engine do Word) ignora `inline-block` em e-mail; sem espaço de verdade entre os `<span>`, os nomes ficam visualmente grudados.
+- **Correção:** troca de `.join("")` para `.join(" ")` — garante um espaço real no HTML mesmo que o estilo visual (pill/margin) não seja respeitado pelo cliente de e-mail.
+- **Proteção:** `supabase/functions/_shared/emailBlocks/renderBlock/interactive_test.ts` (renderiza o bloco de verdade e confere que há espaço real entre `</span>` e `<span>` consecutivos).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

@@ -87,6 +87,17 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
+### Checkpoint: confirmar que o disparo do evento Sirius completa de ponta a ponta após R-055/R-056
+**Checar em:** próxima tentativa real do usuário
+**Contexto:** depois de R-052/R-053/R-054 (mensagem de erro real + cache de esquema + coluna no RETURNING do claim), o disparo do Sirius ainda travava com `dispatch_in_progress` — achado: o `catch` externo das Edge Functions de disparo não liberava o claim anti-envio-duplicado em falhas não previstas, provavelmente um `fetch()` sem timeout no cache de imagens de mapa (Bunny CDN, que teve avisos reais de timeout/connection reset nos logs). Corrigido em R-055 (libera claim em qualquer falha + timeout nos fetches) e, em paralelo, R-056 (badges do line-up coladas no Outlook). Nenhum dos dois foi validado ainda com um envio real completo (criar rascunho E enviar de verdade).
+**Passos:**
+1. Em `/admin/email-config` → Envio manual, repetir o disparo do evento Sirius (rascunho e/ou envio real).
+2. Confirmar que não aparece mais `dispatch_in_progress` nem erro de coluna.
+3. Conferir no Histórico se a campanha foi criada e, no e-mail recebido, se o line-up aparece com os nomes separados (não só no Gmail — testar Outlook se possível).
+**Responsável:** usuário testa e reporta o resultado
+
+---
+
 ### Checkpoint: Apify/Instagram aguardando post real para validar o webhook
 **Checar em:** sem data fixa — depende de quando o Alataj (ou outra fonte reativada) postar algo novo
 **Contexto:** validação prática em 23/07/2026 confirmou que o disparo do ator Apify funciona ponta a ponta (`instagramTriggered:1`, execuções "Succeeded" no console da Apify), mas o teste caiu em "0 resultados" (sem post novo no momento) — o `apify-instagram-webhook` (callback de quando a Apify *encontra* algo) ainda não foi exercido com um payload real. Detalhes completos em [`docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md`](docs/superpowers/plans/2026-07-15-event-watcher-master-roadmap.md) → seção "Validação prática realizada (23/07/2026)".

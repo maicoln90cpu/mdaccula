@@ -18,6 +18,26 @@
 
 ## Entradas Detalhadas
 
+### Fix: badges do line-up coladas sem espaço no Outlook (R-056)
+**Descrição:** usuário reportou print real do e-mail do evento Sirius — no Outlook os nomes dos artistas no bloco de line-up (layout "chips") apareciam colados uns nos outros ("D-Nox deKolombo beRiascode..."), enquanto no Gmail o layout de pills renderizava normalmente. Causa: `renderInteractiveBlock` (`supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`) unia os `<span>` de cada artista com `.join("")` — sem separador real, só contando com `display:inline-block`+`margin` (que o Outlook, engine do Word, ignora em e-mail) pro espaçamento visual. Corrigido trocando pra `.join(" ")`, garantindo um espaço real no HTML independente do cliente respeitar o estilo da pill.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário, que anexou o print do bug real)
+**Impacto:** visual apenas, sem mudança de dados/lógica de envio.
+
+**Arquivos alterados:** `supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/interactive_test.ts` (novo), `docs/TESTING.md`.
+
+---
+
+### Fix: evento ficava travado ("dispatch_in_progress") sem log de erro em falhas não previstas (R-055)
+**Descrição:** mesmo após R-052/R-053/R-054, o evento Sirius seguia recusando reenvio minutos depois da última tentativa, sem nenhuma campanha criada e sem rastro de erro nos logs. Causa: o claim atômico anti-envio-duplicado (`events.email_campaign_dispatched_at`) só era liberado nos caminhos de erro já tratados explicitamente — uma falha não prevista (provável `fetch()` sem timeout no cache de imagens de mapa via Bunny CDN, que teve avisos reais de timeout/connection reset nos logs desse período) travava a function inteira sem passar por nenhum `catch`, deixando o claim preso. Corrigido em 2 frentes: os `catch` externos das duas Edge Functions de disparo agora liberam o claim antes de responder 500 (para qualquer falha, não só as tratadas); os `fetch()` do cache de mapas (Bunny CDN + render-static-map) ganharam `AbortSignal.timeout`.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário, que reportou o novo sintoma `dispatch_in_progress`)
+**Impacto:** nenhuma mudança de regra de negócio; evento Sirius destravado manualmente via SQL como mitigação imediata (seguro, não afeta histórico).
+
+**Arquivos alterados:** `supabase/functions/create-event-email-campaign/index.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `supabase/functions/_shared/bunnyUploadBytes.ts`, `supabase/functions/_shared/renderStaticMapCache.ts`, `src/__tests__/regression/email-dispatch-claim-released-on-uncaught-error.test.ts` (novo), `docs/TESTING.md`.
+
+---
+
 ### Hotfix: falso erro de coluna ausente no claim do reenvio manual (R-054)
 **Descrição:** o erro `column events.email_campaign_dispatched_at does not exist` reapareceu após a recarga do cache. O SQL real capturado nos logs do Postgres revelou a causa definitiva: o PostgREST reaplicava o filtro do `UPDATE` sobre o conjunto retornado, mas esse retorno continha apenas `id`, `status` e `title`. A coluna existia normalmente na tabela; faltava apenas no resultado temporário. O claim agora também retorna `email_campaign_dispatched_at`, sem remover a proteção contra envio duplicado.
 **Data:** 10/08/2026
@@ -1147,7 +1167,10 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
-| 10/08 | Bugfix | Cache de esquema do PostgREST travado — coluna real do banco "não existia" pra API, disparo do Sirius falhava (R-053) |
+| 10/08 | Bugfix | Badges do line-up coladas sem espaço no Outlook — Gmail ok (R-056) |
+| 10/08 | Bugfix | Evento ficava travado ("dispatch_in_progress") sem log em falhas não previstas + fetches de mapa sem timeout (R-055) |
+| 10/08 | Bugfix | Claim de disparo filtrava a própria coluna do RETURNING — causa real da coluna "ausente" (R-054) |
+| 10/08 | Bugfix | Diagnóstico intermediário: recarga do cache do PostgREST, insuficiente sozinha (R-053) |
 | 10/08 | Bugfix | Mensagem de erro real do disparo manual de e-mail ("Enviar agora") não chegava ao admin — aparecia só "erro de função" genérico (R-052) |
 | 10/08 | Bugfix | CI/CD Pipeline (Quality Checks → ESLint) volta a passar — 8 erros pré-existentes em 3 arquivos não relacionados corrigidos |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase C + painel único: cooldown/streak seco no cron, checklist de qualidade final, aviso por e-mail, 8 toggles numa tela só |

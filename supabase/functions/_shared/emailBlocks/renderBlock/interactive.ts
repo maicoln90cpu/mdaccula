@@ -113,7 +113,13 @@ export function renderInteractiveBlock(
           const fontSize = isHeadliner ? 16 : 13;
           const padding = isHeadliner ? "10px 18px" : "8px 14px";
           return `<span style="display:inline-block;margin:4px 4px;padding:${padding};background:rgba(168,85,247,0.12);border:1px solid ${primary};border-radius:999px;color:${textColor};font-size:${fontSize}px;font-weight:700;letter-spacing:0.02em;">${escape(a)}</span>`;
-        }).join("");
+        })
+          // Junta com um espaço real (não só "") — o Outlook (engine do Word)
+          // ignora "display:inline-block"/margin em clientes de e-mail, então
+          // sem esse espaço os nomes dos artistas colavam uns nos outros
+          // (bug real reportado: "D-Nox deKolombo beRiascode..."), mesmo com
+          // Gmail renderizando certo (esse sim respeita inline-block).
+          .join(" ");
       } else if (layout === "list") {
         body = `<ul style="list-style:none;padding:0;margin:0;">${artists.map((a, i) => {
           const isHeadliner = highlightHeadliner && i === 0;
