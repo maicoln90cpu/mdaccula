@@ -44,12 +44,22 @@ Deno.serve(async (req) => {
     // DIAGNÓSTICO TEMPORÁRIO (R-052) — confirma a qual projeto/ref esta function
     // está realmente conectada, pra descartar/confirmar desvio de ambiente.
     // Remover depois de identificar a causa da coluna "não encontrada".
-    try {
-      const [, servicePayloadB64] = serviceKey.split('.');
-      const servicePayload = JSON.parse(atob(servicePayloadB64.replace(/-/g, '+').replace(/_/g, '/')));
-      console.log('[create-event-email-campaign][diag] SUPABASE_URL=', supabaseUrl, 'service_role ref=', servicePayload.ref, 'role=', servicePayload.role);
-    } catch (diagErr) {
-      console.log('[create-event-email-campaign][diag] falha ao decodificar service key:', diagErr);
+    console.log(
+      '[create-event-email-campaign][diag] SUPABASE_URL=',
+      supabaseUrl,
+      'service_key_prefix=',
+      serviceKey.slice(0, 12),
+      'service_key_parts=',
+      serviceKey.split('.').length
+    );
+    if (serviceKey.startsWith('eyJ') && serviceKey.split('.').length === 3) {
+      try {
+        const servicePayloadB64 = serviceKey.split('.')[1];
+        const servicePayload = JSON.parse(atob(servicePayloadB64.replace(/-/g, '+').replace(/_/g, '/')));
+        console.log('[create-event-email-campaign][diag] service_role ref=', servicePayload.ref, 'role=', servicePayload.role);
+      } catch (diagErr) {
+        console.log('[create-event-email-campaign][diag] falha ao decodificar JWT da service key:', diagErr);
+      }
     }
 
     const token = authHeader.replace('Bearer ', '');
