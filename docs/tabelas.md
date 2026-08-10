@@ -430,12 +430,17 @@ CREATE POLICY "Admins can manage recurring configs"
 -- ============================================
 -- Fontes externas (sites/perfis) monitoradas automaticamente para descobrir
 -- novos eventos a publicar. Substitui a antiga `news_sources` (obsoleta).
+-- Também alimenta a Geração por Tema (Sugestões/auto-article-cron) — mas só
+-- as fontes com content_source=true (R-048): plataformas de venda de
+-- ingresso (Sympla, Ingresse, WeGoOut) são content_source=false, servem só
+-- o Event Watcher, nunca "matéria" reescrita como notícia.
 CREATE TABLE public.event_sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   type TEXT NOT NULL DEFAULT 'site' CHECK (type IN ('site', 'instagram')),
   name TEXT NOT NULL,
   url TEXT NOT NULL,
   enabled BOOLEAN NOT NULL DEFAULT true,
+  content_source BOOLEAN NOT NULL DEFAULT true, -- migração 20260810 (event_sources_content_source_flag)
   last_scanned_at TIMESTAMP WITH TIME ZONE,
   last_seen_post_id TEXT, -- cursor/checkpoint da última página/post já processado
   description TEXT,

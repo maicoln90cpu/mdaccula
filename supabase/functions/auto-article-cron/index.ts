@@ -215,10 +215,11 @@ async function runAutoGeneration() {
       .from('event_sources')
       .select('name, url')
       .eq('type', 'site')
-      .eq('enabled', true);
+      .eq('enabled', true)
+      .eq('content_source', true);
 
     if (sitesSourcesError || !sitesSources || sitesSources.length === 0) {
-      console.error('[Etapa 1] FALHA: Nenhuma fonte tipo "site" habilitada em event_sources');
+      console.error('[Etapa 1] FALHA: Nenhuma fonte tipo "site" habilitada como content_source em event_sources');
       await logToDb(supabase, 'error', 'no-sources-configured', { error: sitesSourcesError?.message, elapsedMs: Date.now() - etapa1StartTime });
       await incrementFailCount(supabase, failCount);
       return;

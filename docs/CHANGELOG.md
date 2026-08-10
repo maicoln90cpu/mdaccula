@@ -43,6 +43,17 @@
 
 ---
 
+### Hotfix nº2: `auto-article-cron` escolhia plataforma de venda de ingresso (Sympla) como fonte de notícia (R-048)
+**Descrição:** logo depois do hotfix do Play BPM, o admin forçou geração de novo e o log mostrou sucesso com `sourceName: "Sympla"` — o artigo gerado ("Transfers oficiais do Réveillon Tantrarosa 2027: horários e pontos de embarque") era a reescrita de uma página de VENDA DE INGRESSO do Sympla, não uma notícia. `event_sources` é a mesma tabela usada pelo Event Watcher (`scan-event-sources`) pra descoberta de eventos — inclui de propósito plataformas de ticketing (Sympla, Ingresse, WeGoOut) — mas nunca teve nenhuma coluna distinguindo "isso é uma fonte editorial" de "isso é só ticketing pro Event Watcher". `auto-article-cron` e `generate-blog-suggestions` podiam escolher qualquer fonte `enabled=true`, ticketing incluso.
+**Correção:** migração `event_sources_content_source_flag` adiciona `content_source boolean not null default true` em `event_sources`, com `false` já aplicado nas 3 plataformas de ticketing conhecidas (Sympla, Ingresse, WeGoOut) — todas as fontes editoriais existentes mantêm `true` sem precisar de ação manual. `auto-article-cron` e `generate-blog-suggestions` passam a filtrar `.eq('content_source', true)`. `FontesManager.tsx` ganhou um toggle "Fonte de conteúdo (Geração por Tema)" por fonte, pra o admin controlar isso em cadastros futuros sem precisar de mim pra mexer no banco.
+**Data:** 09/08/2026 (mesmo dia, 3º achado consecutivo pós-deploy)
+**Responsável:** IA (a pedido do usuário, ao reportar que o Sympla — que ele já considerava "desativado" pra esse fim — tinha sido usado como fonte)
+**Impacto:** médio (migração de schema em produção + mudança de filtro em 2 edge functions — 248 testes Deno + 542 testes Vitest + typecheck, todos verdes; os 2 rascunhos ruins gerados nos testes pós-deploy foram apagados)
+
+**Arquivos alterados:** migração `event_sources_content_source_flag` (nova, aplicada via MCP), `src/integrations/supabase/types.ts` (regenerado), `src/types/index.ts`, `src/pages/admin/FontesManager.tsx`, `supabase/functions/auto-article-cron/index.ts`, `supabase/functions/generate-blog-suggestions/index.ts`, `src/__tests__/contracts/edge-sugestoes-real-source-routing.test.ts`, `docs/TESTING.md` (R-048), `docs/tabelas.md`, `docs/DATABASE_SCHEMA.md`.
+
+---
+
 ### Preview do editor de e-mail ganha seletor desktop/tablet/celular
 **Descrição:** usuário pediu a possibilidade de alternar a visualização do preview do template entre desktop, tablet e celular (lembrava de ter sido implementado, mas não achou o controle na tela — investigação confirmou que nunca tinha sido implementado; o preview sempre foi fixo em 600px).
 **Entrega:** `PreviewPanel.tsx` ganhou um `ToggleGroup` (ícones Monitor/Tablet/Smartphone) acima do preview que troca a largura do iframe entre 600px (desktop, padrão), 480px (tablet) e 375px (celular) — o e-mail em si continua sendo a mesma tabela de 600px, só a "janela" simulada ao redor muda, como em ferramentas de preview de e-mail (Litmus/Email on Acid). Não afeta o HTML enviado nem o download/envio de teste.

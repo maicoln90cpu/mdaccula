@@ -76,6 +76,19 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     expect(content).toContain('insufficientSources');
   });
 
+  // R-048 (achado em produção): auto-article-cron escolheu "Sympla"
+  // (plataforma de venda de ingresso, não fonte de notícia) e reescreveu uma
+  // página de evento como se fosse matéria jornalística. event_sources é
+  // compartilhada com o Event Watcher — sem content_source, qualquer fonte
+  // enabled=true podia ser escolhida, ticketing incluso.
+  it('auto-article-cron e generate-blog-suggestions só usam fontes com content_source=true', () => {
+    const cronContent = read('supabase/functions/auto-article-cron/index.ts');
+    const suggestionsContent = read('supabase/functions/generate-blog-suggestions/index.ts');
+
+    expect(cronContent).toContain("eq('content_source', true)");
+    expect(suggestionsContent).toContain("eq('content_source', true)");
+  });
+
   it('auto-article-cron lê suggestions_auto_publish de site_settings', () => {
     const content = read('supabase/functions/auto-article-cron/index.ts');
 

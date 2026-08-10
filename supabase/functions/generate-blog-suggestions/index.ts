@@ -196,11 +196,15 @@ Deno.serve(async (req) => {
     console.log('Configurações:', { selectedModel, modelName, isOpenAIModel, temperature, historyLimit, maxSources: MAX_SOURCES });
     console.log(`Tempo decorrido após config: ${Date.now() - startTime}ms`);
 
-    // Buscar fontes de notícias ativas
+    // Buscar fontes de notícias ativas. content_source=true exclui
+    // plataformas de venda de ingresso (Sympla, Ingresse, WeGoOut) —
+    // cadastradas em event_sources só pro Event Watcher (scan-event-sources),
+    // nunca fontes de matéria/notícia (ver R-048 em docs/TESTING.md).
     const { data: sources, error: sourcesError } = await supabase
       .from('event_sources')
       .select('name, url, description')
-      .eq('enabled', true);
+      .eq('enabled', true)
+      .eq('content_source', true);
 
     if (sourcesError) {
       console.error('Erro ao buscar fontes:', sourcesError);

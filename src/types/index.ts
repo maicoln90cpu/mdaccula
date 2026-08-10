@@ -174,6 +174,10 @@ export interface EventSource {
   url: string;
   description?: string | null;
   enabled: boolean;
+  // Se true, a fonte pode ser usada pela Geração por Tema (Sugestões/
+  // auto-article-cron) — false pra plataformas de venda de ingresso
+  // (Sympla, Ingresse, WeGoOut), que servem só o Event Watcher.
+  content_source: boolean;
   last_scanned_at?: string | null;
   last_seen_post_id?: string | null;
   created_at: string;
@@ -186,6 +190,7 @@ export interface EventSourceInsert {
   url: string;
   description?: string | null;
   enabled?: boolean;
+  content_source?: boolean;
 }
 
 export type EventWatchDraftStatus = 'pending_review' | 'approved' | 'rejected' | 'published';

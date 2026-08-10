@@ -808,6 +808,7 @@ export type Database = {
       }
       event_sources: {
         Row: {
+          content_source: boolean
           created_at: string
           description: string | null
           enabled: boolean
@@ -820,6 +821,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          content_source?: boolean
           created_at?: string
           description?: string | null
           enabled?: boolean
@@ -832,6 +834,7 @@ export type Database = {
           url: string
         }
         Update: {
+          content_source?: boolean
           created_at?: string
           description?: string | null
           enabled?: boolean

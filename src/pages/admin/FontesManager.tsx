@@ -56,6 +56,7 @@ interface SourceFormValues {
   description: string;
   type: EventSourceType;
   enabled: boolean;
+  contentSource: boolean;
 }
 
 const emptyForm: SourceFormValues = {
@@ -64,6 +65,7 @@ const emptyForm: SourceFormValues = {
   description: '',
   type: 'site',
   enabled: true,
+  contentSource: true,
 };
 
 const queryKey = ['event-sources'];
@@ -132,6 +134,7 @@ const FontesManager = () => {
       description: source.description || '',
       type: source.type,
       enabled: source.enabled,
+      contentSource: source.content_source,
     });
     setDialogOpen(true);
   };
@@ -144,6 +147,7 @@ const FontesManager = () => {
         description: values.description || null,
         type: values.type,
         enabled: values.enabled,
+        content_source: values.contentSource,
       };
       const { error } = await supabase.from('event_sources').insert([payload]);
       if (error) throw error;
@@ -173,6 +177,7 @@ const FontesManager = () => {
         description: values.description || null,
         type: values.type,
         enabled: values.enabled,
+        content_source: values.contentSource,
       };
       const { error } = await supabase.from('event_sources').update(payload).eq('id', editingId);
       if (error) throw error;
@@ -196,6 +201,25 @@ const FontesManager = () => {
   const toggleEnabledMutation = useMutation({
     mutationFn: async ({ id, enabled }: { id: string; enabled: boolean }) => {
       const { error } = await supabase.from('event_sources').update({ enabled }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey }),
+    onError: (error: Error) => {
+      logger.error('Erro ao atualizar fonte', error, { component: 'FontesManager' });
+      toast({
+        title: 'Erro ao atualizar fonte',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const toggleContentSourceMutation = useMutation({
+    mutationFn: async ({ id, contentSource }: { id: string; contentSource: boolean }) => {
+      const { error } = await supabase
+        .from('event_sources')
+        .update({ content_source: contentSource })
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
@@ -335,6 +359,23 @@ const FontesManager = () => {
                       />
                       <Label htmlFor="source-enabled">Fonte ativa</Label>
                     </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="source-content"
+                          checked={form.contentSource}
+                          onCheckedChange={(checked) =>
+                            setForm((f) => ({ ...f, contentSource: checked }))
+                          }
+                        />
+                        <Label htmlFor="source-content">Fonte de conteúdo (Geração por Tema)</Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground pl-11">
+                        Desligue pra plataformas de venda de ingresso (Sympla, Ingresse, WeGoOut) —
+                        elas continuam servindo o Event Watcher, mas nunca devem virar "matéria"
+                        reescrita como notícia.
+                      </p>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button onClick={handleSubmit} disabled={!form.name || !form.url || isSaving}>
@@ -371,6 +412,7 @@ const FontesManager = () => {
                         <TableHead>Descrição</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Ativa</TableHead>
+                        <TableHead>Conteúdo</TableHead>
                         <TableHead>Última varredura</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -395,6 +437,17 @@ const FontesManager = () => {
                               checked={source.enabled}
                               onCheckedChange={(checked) =>
                                 toggleEnabledMutation.mutate({ id: source.id, enabled: checked })
+                              }
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Switch
+                              checked={source.content_source}
+                              onCheckedChange={(checked) =>
+                                toggleContentSourceMutation.mutate({
+                                  id: source.id,
+                                  contentSource: checked,
+                                })
                               }
                             />
                           </TableCell>
