@@ -148,7 +148,9 @@ export async function ensureCachedMapImage(
   params: MapRenderParams,
   renderStaticMapUrl: string,
 ): Promise<string> {
-  const resolved = await resolveMapImage(params, () => fetch(renderStaticMapUrl));
+  const resolved = await resolveMapImage(params, () =>
+    fetch(renderStaticMapUrl, { signal: AbortSignal.timeout(15000) })
+  );
   if (resolved.source === "bunny" || resolved.source === "generated") {
     return resolved.bunnyUrl;
   }

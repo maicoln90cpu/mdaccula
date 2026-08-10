@@ -31,6 +31,15 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
+  // Referências pro catch externo poder liberar o claim (Guard 3) em QUALQUER
+  // falha não prevista (ex.: timeout de rede no cache de imagens de mapa) —
+  // sem isso, uma falha inesperada deixava o evento travado pra reenvio até
+  // o claim ficar "velho" (DISPATCH_CLAIM_STALE_MS), mesmo sem nenhuma
+  // campanha ter sido criada (R-055).
+  let claimAdmin: ReturnType<typeof createClient> | null = null;
+  let claimEventId: string | undefined;
+  let claimIsAbTest = false;
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return json({ error: 'Não autenticado' }, 401);
@@ -40,6 +49,7 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const anonClient = createClient(supabaseUrl, anonKey);
     const admin = createClient(supabaseUrl, serviceKey);
+    claimAdmin = admin;
 
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
@@ -65,6 +75,8 @@ Deno.serve(async (req) => {
     const abVariant = (body?.ab_variant as string | undefined) || null; // 'A' | 'B'
     const abTestConfig = (body?.ab_test_config as Record<string, unknown> | undefined) || null;
     const isAbTest = !!abGroupId && !!abVariant;
+    claimEventId = eventId;
+    claimIsAbTest = isAbTest;
     // Agendamento — cria o rascunho na E-goi agora, mas o envio real fica
     // para o poller send-scheduled-email-campaigns quando scheduled_at vencer.
     const scheduleAtRaw = (body?.schedule_at as string | undefined) || undefined;
@@ -380,6 +392,13 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('[create-event-email-campaign] Falha não tratada:', e);
+    if (claimAdmin && claimEventId && !claimIsAbTest) {
+      try {
+        await claimAdmin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', claimEventId);
+      } catch (releaseErr) {
+        console.error('[create-event-email-campaign] Falha ao liberar claim após erro:', releaseErr);
+      }
+    }
     return json({ error: (e as Error).message }, 500);
   }
 });

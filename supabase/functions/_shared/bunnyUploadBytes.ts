@@ -28,7 +28,7 @@ export async function checkBunnyFile(path: string): Promise<BunnyCheckResult> {
   // dava falso negativo e o arquivo era baixado/reenviado a cada envio.
   const url = `${BUNNY_CDN_HOST}/${path}`;
   try {
-    const res = await fetch(url, { method: "HEAD" });
+    const res = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(8000) });
     if (res.ok) return "exists";
     if (res.status === 404) return "not-found";
     console.warn(`[checkBunnyFile] HEAD ${url} -> ${res.status}`);
@@ -58,6 +58,7 @@ export async function uploadBytesToBunny(
       "Content-Type": contentType,
     },
     body: buffer,
+    signal: AbortSignal.timeout(15000),
   });
 
   if (!res.ok) {

@@ -29,6 +29,12 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
+  // Referências pro catch externo poder liberar o claim (Guard 3) em QUALQUER
+  // falha não prevista (ex.: timeout de rede no cache de imagens de mapa) —
+  // mesmo raciocínio do create-event-email-campaign sibling (R-055).
+  let claimAdmin: ReturnType<typeof createClient> | null = null;
+  let claimEventIds: string[] = [];
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return json({ error: 'Não autenticado' }, 401);
@@ -38,6 +44,7 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const anonClient = createClient(supabaseUrl, anonKey);
     const admin = createClient(supabaseUrl, serviceKey);
+    claimAdmin = admin;
 
     const token = authHeader.replace('Bearer ', '');
     const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
@@ -121,6 +128,7 @@ Deno.serve(async (req) => {
 
     const claimedRows = claimed ?? [];
     const claimedIds = claimedRows.map((e) => e.id as string);
+    claimEventIds = claimedIds;
 
     if (claimedIds.length !== eventIds.length) {
       if (claimedIds.length > 0) {
@@ -237,6 +245,13 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('[create-multi-event-email-campaign] Falha não tratada:', e);
+    if (claimAdmin && claimEventIds.length > 0) {
+      try {
+        await claimAdmin.from('events').update({ email_campaign_dispatched_at: null }).in('id', claimEventIds);
+      } catch (releaseErr) {
+        console.error('[create-multi-event-email-campaign] Falha ao liberar claim após erro:', releaseErr);
+      }
+    }
     return json({ error: (e as Error).message }, 500);
   }
 });
