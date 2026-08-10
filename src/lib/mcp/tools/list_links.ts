@@ -1,7 +1,6 @@
 declare const Deno: { env: { get(k: string): string | undefined } };
 import { defineTool } from "@lovable.dev/mcp-js";
 import { createClient } from "@supabase/supabase-js";
-import { z } from "zod";
 
 export default defineTool({
   name: "list_links",

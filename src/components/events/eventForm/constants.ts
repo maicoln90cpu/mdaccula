@@ -2,6 +2,7 @@
  * Constantes e helpers puros compartilhados pelas seções do EventForm.
  * Extraído de src/components/events/EventForm.tsx (Onda 3 PR-A).
  */
+import type { EventCtaType } from '@shared/eventCta.ts';
 
 export const GENRES = [
   'Techno',
@@ -98,7 +99,7 @@ export interface EventFormData {
   vip_link?: string;
   pix_button_enabled?: boolean;
   tickets_per_day?: boolean;
-  cta_type?: import('@shared/eventCta.ts').EventCtaType;
+  cta_type?: EventCtaType;
   description?: string;
   slug?: string;
   blog_post_id?: string;

@@ -164,7 +164,6 @@ const EmailConfig = () => {
     uploadLogo,
   } = useEmailConfigState({
     toast,
-    templates,
     setTemplates,
     setActiveTemplateId,
     automation: {

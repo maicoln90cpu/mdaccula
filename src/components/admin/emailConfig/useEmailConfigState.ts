@@ -3,12 +3,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage, createLoadGuard } from '@/lib';
 import type { useToast } from '@/hooks/useToast';
-import {
-  MOCK_EVENT_DATA,
-  type EventAnnouncementData,
-  type EmailTemplateSettings,
-} from '@/lib/emailTemplates/eventAnnouncement';
-import type { Template, ArticleSummary } from '@/lib/emailTemplates/blocks';
+import type { EmailTemplateSettings } from '@/lib/emailTemplates/eventAnnouncement';
+import type { Template } from '@/lib/emailTemplates/blocks';
 import type { EmailEventRow } from '@/lib/emailTemplates/emailComposer';
 import type {
   Mode,
@@ -67,13 +63,11 @@ type AutomationSetters = {
 export function useEmailConfigState({
   toast,
   automation,
-  templates,
   setTemplates,
   setActiveTemplateId,
 }: {
   toast: ToastFn;
   automation: AutomationSetters;
-  templates: Template[];
   setTemplates: React.Dispatch<React.SetStateAction<Template[]>>;
   setActiveTemplateId: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
@@ -283,6 +277,8 @@ export function useEmailConfigState({
   }, [
     toast,
     loadGuard,
+    setTemplates,
+    setActiveTemplateId,
     setWeeklyCfg,
     setWeekendCfg,
     setBlogCfg,
@@ -351,7 +347,7 @@ export function useEmailConfigState({
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: true });
     setTemplates((data as unknown as Template[]) ?? []);
-  }, []);
+  }, [setTemplates]);
 
   const fetchEgoiResources = useCallback(async () => {
     setFetchingResources(true);
