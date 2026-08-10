@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Lightbulb, Clock, Search, Bot, Wand2, LayoutDashboard } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { GenerateForm } from '@/components/admin/ai-content/GenerateForm';
@@ -12,6 +12,7 @@ import { PostsHistory } from '@/components/admin/ai-content/PostsHistory';
 import { TopicSearchForm } from '@/components/admin/ai-content/TopicSearchForm';
 import { TemplatesPanel } from '@/components/admin/ai-content/TemplatesPanel';
 import { AutoGenerationPanel } from '@/components/admin/ai-content/AutoGenerationPanel';
+import { ContentDashboard } from '@/components/admin/ai-content/ContentDashboard';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { normalizePromptTemplateFields, getEdgeFunctionErrorMessage } from '@/lib';
 import { logger } from '@/lib/logger';
@@ -24,10 +25,10 @@ export default function AIContent2() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
 
-  const validTabs = ['generate', 'suggestions', 'topic', 'history', 'templates', 'auto-generation'];
+  const validTabs = ['dashboard', 'generate', 'suggestions', 'topic', 'history', 'templates', 'auto-generation'];
   const activeTab = validTabs.includes(searchParams.get('tab') || '')
     ? (searchParams.get('tab') as string)
-    : 'generate';
+    : 'dashboard';
 
   // States
   const [isLoading, setIsLoading] = useState(true);
@@ -339,7 +340,11 @@ export default function AIContent2() {
             }
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-6 mb-6">
+            <TabsList className="grid w-full grid-cols-7 mb-6">
+              <TabsTrigger value="dashboard" className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </TabsTrigger>
               <TabsTrigger value="generate" className="gap-2">
                 <Sparkles className="h-4 w-4" />
                 Gerar
@@ -365,6 +370,12 @@ export default function AIContent2() {
                 Automático
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="dashboard">
+              <div className="w-full">
+                <ContentDashboard />
+              </div>
+            </TabsContent>
 
             <TabsContent value="generate">
               <div className="w-full">

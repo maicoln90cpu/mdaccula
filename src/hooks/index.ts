@@ -10,3 +10,5 @@ export type { SiteSettings } from './useSiteSettings';
 export { useToastQueue } from './useToastQueue';
 export { useDebouncedValue } from './useDebouncedValue';
 export { useScrollReveal } from './useScrollReveal';
+export { useAutoPublishSettings } from './useAutoPublishSettings';
+export type { AutoPublishKey, AutoPublishMap } from './useAutoPublishSettings';

@@ -16,22 +16,27 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock ResizeObserver
-(globalThis as any).ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
+// Mock ResizeObserver. Precisa ser uma classe/function real (não arrow
+// function dentro de mockImplementation) — código como o ResponsiveContainer
+// do recharts faz `new ResizeObserver(cb)`, e arrow functions não têm
+// [[Construct]], então `new` nelas sempre lança "is not a constructor".
+class ResizeObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+}
+(globalThis as any).ResizeObserver = ResizeObserverMock;
 
-// Mock IntersectionObserver
-(globalThis as any).IntersectionObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-  root: null,
-  rootMargin: '',
-  thresholds: [],
-}));
+// Mock IntersectionObserver (mesmo motivo acima).
+class IntersectionObserverMock {
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+  root = null;
+  rootMargin = '';
+  thresholds: number[] = [];
+}
+(globalThis as any).IntersectionObserver = IntersectionObserverMock;
 
 // Mock scrollTo
 window.scrollTo = vi.fn();

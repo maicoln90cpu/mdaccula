@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           blog_post_id: string | null
           generated_at: string | null
+          generation_source: string | null
           id: string
           image_tokens: number | null
           input_tokens: number | null
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           blog_post_id?: string | null
           generated_at?: string | null
+          generation_source?: string | null
           id?: string
           image_tokens?: number | null
           input_tokens?: number | null
@@ -44,6 +46,7 @@ export type Database = {
         Update: {
           blog_post_id?: string | null
           generated_at?: string | null
+          generation_source?: string | null
           id?: string
           image_tokens?: number | null
           input_tokens?: number | null
@@ -811,6 +814,10 @@ export type Database = {
       }
       event_sources: {
         Row: {
+          content_dry_streak: number
+          content_last_picked_at: string | null
+          content_last_verified_at: string | null
+          content_last_verified_ok: boolean | null
           content_source: boolean
           created_at: string
           description: string | null
@@ -824,6 +831,10 @@ export type Database = {
           url: string
         }
         Insert: {
+          content_dry_streak?: number
+          content_last_picked_at?: string | null
+          content_last_verified_at?: string | null
+          content_last_verified_ok?: boolean | null
           content_source?: boolean
           created_at?: string
           description?: string | null
@@ -837,6 +848,10 @@ export type Database = {
           url: string
         }
         Update: {
+          content_dry_streak?: number
+          content_last_picked_at?: string | null
+          content_last_verified_at?: string | null
+          content_last_verified_ok?: boolean | null
           content_source?: boolean
           created_at?: string
           description?: string | null
