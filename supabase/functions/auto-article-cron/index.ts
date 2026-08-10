@@ -1,6 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { discoverArticleUrls, pickArticleUrl, fetchSourceLinks, findListingIndexUrls, type SourceRef } from "../_shared/sourceArticlePicker.ts";
+import { discoverArticleUrls, fetchSourceLinks, findListingIndexUrls, type SourceRef } from "../_shared/sourceArticlePicker.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -23,7 +23,9 @@ function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, d
 const GENERATE_TIMEOUT_MS = 180000; // 3 minutos para geração de artigo
 const MAX_CONSECUTIVE_FAILURES = 5;
 const RETRY_INTERVAL_HOURS = 1;
-const MAX_SOURCE_ATTEMPTS = 3; // quantas fontes tentar até achar 1 matéria nova
+const MAX_SOURCE_ATTEMPTS = 3; // quantas fontes tentar até achar candidatos
+const CANDIDATES_PER_SOURCE = 3; // quantos candidatos levar de cada fonte pra fila de tentativas
+const MAX_GENERATE_ATTEMPTS = 6; // total de tentativas de geração (não só de fontes) numa execução
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -202,13 +204,20 @@ async function runAutoGeneration() {
     console.log('Iniciando geração automática de artigo...');
     await logToDb(supabase, 'info', 'started', { failCount });
 
-    // ========== ETAPA 1: ESCOLHER 1 FONTE + 1 MATÉRIA REAL AINDA NÃO USADA ==========
+    // ========== ETAPA 1: MONTAR FILA DE CANDIDATOS (VÁRIAS FONTES/MATÉRIAS) ==========
     // Fase 1 da correção de "geração por tema" (R-048): em vez de gerar
     // "sugestões" a partir de homepages inteiras (o que produzia artigos
     // institucionais sobre a própria fonte), descobre matérias individuais
-    // reais dentro do domínio de cada fonte cadastrada e escolhe 1 ainda não
-    // reescrita antes.
-    console.log('[Etapa 1] Escolhendo fonte + matéria real ainda não usada...');
+    // reais dentro do domínio de cada fonte cadastrada.
+    //
+    // Hotfix nº4 (achado em produção, 09/08/2026): pegar só 1 candidato e
+    // desistir da execução inteira se ele der 422 (ex.: Play BPM escolheu uma
+    // página de "lançamentos da semana" — um roundup de vários itens, não 1
+    // notícia específica — e a IA recusou, corretamente, mas isso significava
+    // "nenhum artigo saiu" de novo). Agora monta uma FILA com vários
+    // candidatos (várias fontes × várias matérias por fonte) e tenta gerar em
+    // cada um até o primeiro sucesso real, em vez de 1 tentativa = 1 execução.
+    console.log('[Etapa 1] Montando fila de candidatos (fonte + matéria real ainda não usada)...');
     const etapa1StartTime = Date.now();
 
     const { data: sitesSources, error: sitesSourcesError } = await supabase
@@ -234,8 +243,7 @@ async function runAutoGeneration() {
     const shuffledSources = [...sitesSources].sort(() => Math.random() - 0.5);
     const sourcesToTry = shuffledSources.slice(0, MAX_SOURCE_ATTEMPTS);
 
-    let pickedSource: SourceRef | null = null;
-    let pickedArticleUrl: string | null = null;
+    const attemptQueue: { source: SourceRef; url: string }[] = [];
 
     for (const source of sourcesToTry) {
       try {
@@ -258,11 +266,8 @@ async function runAutoGeneration() {
           }
         }
 
-        const chosen = pickArticleUrl(candidates);
-        if (chosen) {
-          pickedSource = source;
-          pickedArticleUrl = chosen;
-          break;
+        for (const url of candidates.slice(0, CANDIDATES_PER_SOURCE)) {
+          attemptQueue.push({ source, url });
         }
       } catch (discoveryError) {
         console.error(`[Etapa 1] Falha ao descobrir links de "${source.name}":`, discoveryError);
@@ -274,7 +279,7 @@ async function runAutoGeneration() {
     // Nenhuma matéria nova encontrada nas fontes tentadas não é uma falha do
     // sistema — é um dia sem novidade real nessas fontes. Não conta pro
     // contador de falhas consecutivas (que pausaria o auto-generate à toa).
-    if (!pickedSource || !pickedArticleUrl) {
+    if (attemptQueue.length === 0) {
       console.log(`[Etapa 1] SKIP: nenhuma matéria nova encontrada em ${sourcesToTry.length} fonte(s) tentada(s)`);
       await logToDb(supabase, 'info', 'skipped-no-new-articles', {
         sourcesTried: sourcesToTry.map((s) => s.name),
@@ -283,93 +288,113 @@ async function runAutoGeneration() {
       return;
     }
 
-    console.log(`[Etapa 1] SUCESSO em ${etapa1Elapsed}ms: matéria escolhida de "${pickedSource.name}" — ${pickedArticleUrl}`);
+    console.log(`[Etapa 1] SUCESSO em ${etapa1Elapsed}ms: ${attemptQueue.length} candidato(s) na fila, de ${new Set(attemptQueue.map((a) => a.source.name)).size} fonte(s)`);
 
-    // ========== ETAPA 2: REESCREVER FIELMENTE A MATÉRIA ESCOLHIDA ==========
-    console.log(`[Etapa 2] Chamando generate-blog-post-from-topic (mode: source_article, timeout: ${GENERATE_TIMEOUT_MS}ms = ${GENERATE_TIMEOUT_MS/1000}s)...`);
-    const generateStartTime = Date.now();
+    // ========== ETAPA 2: TENTAR REESCREVER, CANDIDATO A CANDIDATO ==========
+    const skipped: { source: string; url: string; status: number }[] = [];
+    let generateElapsedTotal = 0;
 
-    let generateResponse: Response;
-    try {
-      generateResponse = await fetchWithTimeout(
-        `${SUPABASE_URL}/functions/v1/generate-blog-post-from-topic`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'Content-Type': 'application/json',
+    for (const { source: pickedSource, url: pickedArticleUrl } of attemptQueue.slice(0, MAX_GENERATE_ATTEMPTS)) {
+      console.log(`[Etapa 2] Tentando "${pickedSource.name}" — ${pickedArticleUrl} (timeout: ${GENERATE_TIMEOUT_MS}ms = ${GENERATE_TIMEOUT_MS/1000}s)...`);
+      const generateStartTime = Date.now();
+
+      let generateResponse: Response;
+      try {
+        generateResponse = await fetchWithTimeout(
+          `${SUPABASE_URL}/functions/v1/generate-blog-post-from-topic`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              mode: 'source_article',
+              sourceUrl: pickedArticleUrl,
+              sourceName: pickedSource.name,
+              generateImage: true,
+              publishImmediately: suggestionsAutoPublish,
+            }),
           },
-          body: JSON.stringify({
-            mode: 'source_article',
-            sourceUrl: pickedArticleUrl,
-            sourceName: pickedSource.name,
-            generateImage: true,
-            publishImmediately: suggestionsAutoPublish,
-          }),
-        },
-        GENERATE_TIMEOUT_MS
-      );
-    } catch (fetchError) {
-      const elapsed = Date.now() - generateStartTime;
-      const errorMsg = fetchError instanceof Error ? fetchError.message : 'Erro desconhecido';
-      const isTimeout = errorMsg.includes('abort') || errorMsg.includes('Abort');
-      console.error(`[Etapa 2] FALHA após ${elapsed}ms: ${isTimeout ? 'TIMEOUT' : errorMsg}`);
-      await logToDb(supabase, 'error', 'generate-fetch-failed', { error: errorMsg, isTimeout, sourceUrl: pickedArticleUrl, elapsedMs: elapsed });
-      await incrementFailCount(supabase, failCount);
+          GENERATE_TIMEOUT_MS
+        );
+      } catch (fetchError) {
+        const elapsed = Date.now() - generateStartTime;
+        generateElapsedTotal += elapsed;
+        const errorMsg = fetchError instanceof Error ? fetchError.message : 'Erro desconhecido';
+        const isTimeout = errorMsg.includes('abort') || errorMsg.includes('Abort');
+        console.error(`[Etapa 2] FALHA após ${elapsed}ms: ${isTimeout ? 'TIMEOUT' : errorMsg}`);
+        await logToDb(supabase, 'error', 'generate-fetch-failed', { error: errorMsg, isTimeout, sourceUrl: pickedArticleUrl, elapsedMs: elapsed });
+        await incrementFailCount(supabase, failCount);
+        return;
+      }
+
+      const generateElapsed = Date.now() - generateStartTime;
+      generateElapsedTotal += generateElapsed;
+      console.log(`[Etapa 2] Resposta recebida em ${generateElapsed}ms (status ${generateResponse.status})`);
+
+      // 404 (scrape da matéria falhou) e 422 (matéria era só institucional/
+      // roundup de vários itens, sem 1 notícia específica) não são falhas do
+      // sistema — são um resultado legítimo de "essa matéria específica não
+      // deu certo". Não conta pro contador de falhas consecutivas. Em vez de
+      // desistir da execução, tenta o próximo candidato da fila.
+      if (generateResponse.status === 404 || generateResponse.status === 422) {
+        const errorText = await generateResponse.text();
+        console.log(`[Etapa 2] SKIP (status ${generateResponse.status}), tentando próximo candidato:`, errorText.substring(0, 300));
+        skipped.push({ source: pickedSource.name, url: pickedArticleUrl, status: generateResponse.status });
+        continue;
+      }
+
+      if (!generateResponse.ok) {
+        const errorText = await generateResponse.text();
+        console.error('[Etapa 2] FALHA HTTP:', generateResponse.status, errorText.substring(0, 300));
+        await logToDb(supabase, 'error', 'generate-api-error', { status: generateResponse.status, response: errorText.substring(0, 500), sourceUrl: pickedArticleUrl, elapsedMs: generateElapsed });
+        await incrementFailCount(supabase, failCount);
+        return;
+      }
+
+      const generateData = await generateResponse.json();
+
+      if (!generateData.post?.id) {
+        console.error('[Etapa 2] FALHA: Artigo não foi criado:', generateData);
+        await logToDb(supabase, 'error', 'post-not-created', { response: generateData, sourceUrl: pickedArticleUrl, elapsedMs: generateElapsed });
+        await incrementFailCount(supabase, failCount);
+        return;
+      }
+
+      // ========== SUCESSO ==========
+      const totalElapsed = etapa1Elapsed + generateElapsedTotal;
+      console.log('=== ARTIGO AUTO-GERADO COM SUCESSO ===');
+      console.log(`Post ID: ${generateData.post?.id}`);
+      console.log(`Título: ${generateData.post?.title}`);
+      console.log(`Fonte: "${pickedSource.name}" — ${pickedArticleUrl}`);
+      console.log(`Candidatos pulados antes do sucesso: ${skipped.length}`);
+      console.log(`Tempo total: ${totalElapsed}ms (fila: ${etapa1Elapsed}ms, geração: ${generateElapsedTotal}ms)`);
+
+      await updateLastRun(supabase, now);
+      await resetFailCount(supabase);
+
+      await logToDb(supabase, 'info', 'success', {
+        postId: generateData.post?.id,
+        title: generateData.post?.title,
+        sourceName: pickedSource.name,
+        sourceUrl: pickedArticleUrl,
+        skippedCandidates: skipped,
+        previousFailCount: failCount,
+        totalElapsedMs: totalElapsed,
+        sourcePickElapsedMs: etapa1Elapsed,
+        generateElapsedMs: generateElapsedTotal
+      });
       return;
     }
 
-    const generateElapsed = Date.now() - generateStartTime;
-    console.log(`[Etapa 2] Resposta recebida em ${generateElapsed}ms`);
-
-    // 404 (scrape da matéria falhou) e 422 (matéria era só institucional, sem
-    // notícia real) não são falhas do sistema — são um resultado legítimo de
-    // "essa matéria específica não deu certo". Não conta pro contador de
-    // falhas consecutivas (que pausaria o auto-generate por 24h à toa).
-    if (generateResponse.status === 404 || generateResponse.status === 422) {
-      const errorText = await generateResponse.text();
-      console.log(`[Etapa 2] SKIP (status ${generateResponse.status}):`, errorText.substring(0, 300));
-      await logToDb(supabase, 'info', 'skipped-source-article-unusable', { sourceUrl: pickedArticleUrl, source: pickedSource.name, status: generateResponse.status, elapsedMs: generateElapsed });
-      return;
-    }
-
-    if (!generateResponse.ok) {
-      const errorText = await generateResponse.text();
-      console.error('[Etapa 2] FALHA HTTP:', generateResponse.status, errorText.substring(0, 300));
-      await logToDb(supabase, 'error', 'generate-api-error', { status: generateResponse.status, response: errorText.substring(0, 500), sourceUrl: pickedArticleUrl, elapsedMs: generateElapsed });
-      await incrementFailCount(supabase, failCount);
-      return;
-    }
-
-    const generateData = await generateResponse.json();
-
-    if (!generateData.post?.id) {
-      console.error('[Etapa 2] FALHA: Artigo não foi criado:', generateData);
-      await logToDb(supabase, 'error', 'post-not-created', { response: generateData, sourceUrl: pickedArticleUrl, elapsedMs: generateElapsed });
-      await incrementFailCount(supabase, failCount);
-      return;
-    }
-
-    // ========== SUCESSO ==========
-    const totalElapsed = etapa1Elapsed + generateElapsed;
-    console.log('=== ARTIGO AUTO-GERADO COM SUCESSO ===');
-    console.log(`Post ID: ${generateData.post?.id}`);
-    console.log(`Título: ${generateData.post?.title}`);
-    console.log(`Fonte: "${pickedSource.name}" — ${pickedArticleUrl}`);
-    console.log(`Tempo total: ${totalElapsed}ms (escolha da fonte: ${etapa1Elapsed}ms, geração: ${generateElapsed}ms)`);
-
-    await updateLastRun(supabase, now);
-    await resetFailCount(supabase);
-
-    await logToDb(supabase, 'info', 'success', {
-      postId: generateData.post?.id,
-      title: generateData.post?.title,
-      sourceName: pickedSource.name,
-      sourceUrl: pickedArticleUrl,
-      previousFailCount: failCount,
-      totalElapsedMs: totalElapsed,
-      sourcePickElapsedMs: etapa1Elapsed,
-      generateElapsedMs: generateElapsed
+    // Fila inteira tentada, nenhum candidato virou artigo — não é falha do
+    // sistema (cada um foi uma recusa legítima), mas precisa ficar visível
+    // que a execução não produziu nada, com o detalhe de cada tentativa.
+    console.log(`[Etapa 2] SKIP: ${skipped.length} candidato(s) tentado(s), nenhum virou artigo`);
+    await logToDb(supabase, 'info', 'skipped-all-candidates-unusable', {
+      attempted: skipped,
+      elapsedMs: etapa1Elapsed + generateElapsedTotal,
     });
 
   } catch (error) {

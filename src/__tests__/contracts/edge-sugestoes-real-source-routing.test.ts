@@ -32,7 +32,6 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     expect(content).not.toContain('/functions/v1/generate-blog-suggestions');
     expect(content).toContain("mode: 'source_article'");
     expect(content).toContain('discoverArticleUrls');
-    expect(content).toContain('pickArticleUrl');
     // O lookup do template "Sugestões" ficou sem uso e não deve voltar.
     expect(content).not.toContain("category', 'Sugestões'");
     expect(content).not.toContain('/functions/v1/generate-blog-post-v2');
@@ -59,7 +58,18 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     const content = read('supabase/functions/auto-article-cron/index.ts');
 
     expect(content).toContain("generateResponse.status === 404 || generateResponse.status === 422");
-    expect(content).toContain('skipped-source-article-unusable');
+  });
+
+  // Hotfix nº4 (R-048, achado em produção): 1 candidato recusado (422) não
+  // pode mais derrubar a execução inteira — a fila tenta o próximo candidato
+  // (outras matérias/fontes) antes de desistir.
+  it('auto-article-cron tenta múltiplos candidatos (fila) antes de desistir da execução', () => {
+    const content = read('supabase/functions/auto-article-cron/index.ts');
+
+    expect(content).toContain('attemptQueue');
+    expect(content).toContain('CANDIDATES_PER_SOURCE');
+    expect(content).toContain('MAX_GENERATE_ATTEMPTS');
+    expect(content).toContain('skipped-all-candidates-unusable');
   });
 
   it("auto-article-cron trata 'nenhuma matéria nova encontrada' como skip, não como falha", () => {
