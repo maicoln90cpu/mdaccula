@@ -145,7 +145,9 @@ async function runAutoGeneration() {
         'ai_auto_generate_interval_hours',
         'ai_auto_generate_last_run',
         'ai_auto_generate_fail_count',
-        'auto_publish_auto_cron'
+        'auto_publish_auto_cron',
+        'auto_article_source_cooldown_days',
+        'auto_article_dry_streak_alert'
       ]);
 
     const settingsMap: Record<string, string> = {};
@@ -163,6 +165,9 @@ async function runAutoGeneration() {
     // confiança e ligar a publicação automática (mesmo padrão de
     // event_watcher_auto_publish).
     const autoCronAutoPublish = settingsMap['auto_publish_auto_cron'] === 'true';
+    // Itens #4/#5/#6 (cooldown, streak seco, sorteio justo — Fase C3).
+    const sourceCooldownDays = parseInt(settingsMap['auto_article_source_cooldown_days'] || '3', 10) || 3;
+    const dryStreakAlertThreshold = parseInt(settingsMap['auto_article_dry_streak_alert'] || '3', 10) || 3;
 
     console.log('Configurações:', { autoGenerateEnabled, intervalHours, lastRun: lastRun?.toISOString(), failCount });
 
@@ -225,7 +230,7 @@ async function runAutoGeneration() {
 
     const { data: sitesSources, error: sitesSourcesError } = await supabase
       .from('event_sources')
-      .select('name, url')
+      .select('id, name, url, content_last_picked_at, content_dry_streak')
       .eq('type', 'site')
       .eq('enabled', true)
       .eq('content_source', true);
@@ -243,10 +248,36 @@ async function runAutoGeneration() {
       .not('source_urls', 'is', null);
     const usedUrls = (usedSourcesRows || []).flatMap((r) => (Array.isArray(r.source_urls) ? r.source_urls : []));
 
-    const shuffledSources = [...sitesSources].sort(() => Math.random() - 0.5);
+    // Itens #4/#6 (cooldown + sorteio justo, Fase C3): exclui fontes usadas
+    // com sucesso há menos de `sourceCooldownDays` — evita repetir a mesma
+    // fonte demais vezes seguidas. Se isso zerar a lista inteira (poucas
+    // fontes cadastradas), cai pro fallback: todas menos a mais recente —
+    // nunca trava a geração só por causa da fairness.
+    const cooldownMs = sourceCooldownDays * 24 * 60 * 60 * 1000;
+    const eligibleSources = sitesSources.filter((s) => {
+      if (!s.content_last_picked_at) return true;
+      return now.getTime() - new Date(s.content_last_picked_at).getTime() >= cooldownMs;
+    });
+
+    let sourcePool = eligibleSources;
+    if (sourcePool.length === 0 && sitesSources.length > 1) {
+      const mostRecentlyPicked = [...sitesSources]
+        .filter((s) => s.content_last_picked_at)
+        .sort((a, b) => new Date(b.content_last_picked_at!).getTime() - new Date(a.content_last_picked_at!).getTime())[0];
+      sourcePool = mostRecentlyPicked
+        ? sitesSources.filter((s) => s.id !== mostRecentlyPicked.id)
+        : sitesSources;
+      console.log(`[Etapa 1] Todas as fontes em cooldown — fallback: excluindo só a mais recente ("${mostRecentlyPicked?.name}")`);
+    } else if (sourcePool.length === 0) {
+      sourcePool = sitesSources;
+    }
+
+    const shuffledSources = [...sourcePool].sort(() => Math.random() - 0.5);
     const sourcesToTry = shuffledSources.slice(0, MAX_SOURCE_ATTEMPTS);
 
-    const attemptQueue: { source: SourceRef; url: string }[] = [];
+    const attemptQueue: { source: SourceRef & { id: string }; url: string }[] = [];
+    // Item #5 (streak seco): id -> achou candidato nesta execução?
+    const sourceYieldedCandidate = new Map<string, boolean>();
 
     for (const source of sourcesToTry) {
       try {
@@ -269,11 +300,26 @@ async function runAutoGeneration() {
           }
         }
 
+        sourceYieldedCandidate.set(source.id, candidates.length > 0);
+
         for (const url of candidates.slice(0, CANDIDATES_PER_SOURCE)) {
           attemptQueue.push({ source, url });
         }
       } catch (discoveryError) {
         console.error(`[Etapa 1] Falha ao descobrir links de "${source.name}":`, discoveryError);
+        sourceYieldedCandidate.set(source.id, false);
+      }
+    }
+
+    // Item #5: atualiza o streak seco de cada fonte tentada nesta execução —
+    // zera quem achou candidato, incrementa quem não achou, alerta (log
+    // warn) quando cruza o limiar configurado.
+    for (const source of sourcesToTry) {
+      const yielded = sourceYieldedCandidate.get(source.id) ?? false;
+      const nextStreak = yielded ? 0 : (source.content_dry_streak || 0) + 1;
+      await supabase.from('event_sources').update({ content_dry_streak: nextStreak }).eq('id', source.id);
+      if (!yielded && nextStreak >= dryStreakAlertThreshold) {
+        await logToDb(supabase, 'warn', 'source-dry-streak', { sourceId: source.id, sourceName: source.name, dryStreak: nextStreak });
       }
     }
 
@@ -376,6 +422,10 @@ async function runAutoGeneration() {
 
       await updateLastRun(supabase, now);
       await resetFailCount(supabase);
+      // Item #4/#6: só a fonte que efetivamente gerou com sucesso entra em
+      // cooldown — as tentadas-mas-sem-candidato já foram tratadas pelo
+      // streak seco acima, não pelo cooldown de sucesso.
+      await supabase.from('event_sources').update({ content_last_picked_at: now.toISOString() }).eq('id', pickedSource.id);
 
       await logToDb(supabase, 'info', 'success', {
         postId: generateData.post?.id,
