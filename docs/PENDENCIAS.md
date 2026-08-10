@@ -87,25 +87,13 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
-### 🔧 Bug conhecido: causa raiz Postgres da falha de gravação em `event_email_campaigns` ainda não identificada
-**Status:** correção de diagnóstico implantada (R-058) — o erro agora é visível, mas a causa exata (RLS? grant? constraint?) ainda depende do próximo disparo real pra aparecer no log/resposta.
-**Contexto:** investigação só-leitura (logs + SQL) de 10/08/2026 provou que o disparo do evento Sirius NÃO estava travando nem dando exceção — completava em 2-3s com HTTP 200 — mas o claim anti-duplo-clique ficava preso e nenhuma linha era gravada em `event_email_campaigns`. Rastreamento do código mostrou que o único caminho consistente com essas evidências é `created.ok === true` (E-goi aceitou criar a campanha) seguido de uma falha silenciosa no `.update()`/`.insert()` final do histórico — o `{ error }` do Supabase-js nunca era checado. Checagens estáticas já feitas (não confirmaram a causa): colunas/tipos do `rowPayload` batem com o schema, `CHECK` constraints (`mode`, `status`) são satisfeitos pelos valores computados, não há trigger/rule bloqueando, e a policy RLS pra `service_role` (`using(true) with check(true)`) deveria ser totalmente permissiva — mas isso não foi testado com uma escrita real (só leitura, por estar em modo de planejamento no momento da investigação).
-**Passos:**
-1. Pedir pro usuário repetir 1 disparo real (rascunho já basta) depois do deploy do R-058.
-2. Ler os logs (`edge-function-runtime`, `get_logs`) e/ou a resposta na tela — agora deve trazer a mensagem real do Postgres (código de erro tipo `42501`=permissão/RLS, `23502`/`23514`=constraint, etc.).
-3. Corrigir a causa raiz específica conforme o erro indicar (pode envolver ajustar a policy, um grant, ou a migration travada — ver checkpoint abaixo).
-**Responsável:** usuário reporta o resultado do próximo disparo; IA corrige a causa raiz assim que o erro real aparecer.
-
----
-
-### 👀 Checkpoint: branch de produção com `status: MIGRATIONS_FAILED` — checar se está relacionado ao R-058
-**Checar em:** junto com a investigação da causa raiz do R-058 acima
-**Contexto:** bem no início da investigação do disparo do Sirius (ainda na fase do R-053), `list_branches` mostrou o branch padrão/produção do projeto (`project_ref: xfvpuzlspvvsmmunznxw`) com `status: "MIGRATIONS_FAILED"`. Nunca foi totalmente descartado como relacionado — é plausível que alguma migration travada tenha deixado RLS/grants de `event_email_campaigns` num estado diferente do esperado, sem afetar `events` (que tem suas próprias policies e continua funcionando normalmente para o mesmo client admin).
-**Passos:**
+### 👀 Checkpoint: branch de produção com `status: MIGRATIONS_FAILED` — confirmado SEM relação com o bug do disparo manual de e-mail
+**Checar em:** quando o usuário quiser investigar o branch em si (não é mais bloqueante pra nada)
+**Contexto:** bem no início da investigação do disparo do Sirius (fase do R-053), `list_branches` mostrou o branch padrão/produção do projeto (`project_ref: xfvpuzlspvvsmmunznxw`) com `status: "MIGRATIONS_FAILED"`. Chegou a ser cogitado como relacionado (RLS/grants de `event_email_campaigns` num estado inesperado), mas o R-059 achou e confirmou a causa raiz real do `dispatch_in_progress` (comportamento do PostgREST reaplicando o filtro do claim sobre o valor recém-gravado — nada a ver com RLS, grants ou migrations) — então esse branch fica como um item de infraestrutura independente, sem urgência ligada a este bug.
+**Passos (se/quando o usuário quiser resolver):**
 1. Rodar `list_branches`/`list_migrations` de novo e identificar qual migration específica está travada/falhou.
-2. Conferir se o DDL dessa migration toca `event_email_campaigns` (RLS, grants, constraints) — se sim, correlacionar com a mensagem de erro real capturada pelo R-058.
-3. Se não tiver relação nenhuma com `event_email_campaigns`, decidir separadamente (com o usuário) se vale a pena investigar/corrigir esse branch travado por outros motivos, mas sem misturar com este bug.
-**Responsável:** IA confere junto com a investigação do R-058
+2. Decidir com o usuário se vale corrigir esse branch (aplicar/reverter a migration travada) por motivos próprios, independente do disparo de e-mail.
+**Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa impactando nada em produção hoje.
 
 ---
 

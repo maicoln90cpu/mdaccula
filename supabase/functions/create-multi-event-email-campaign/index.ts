@@ -114,19 +114,33 @@ Deno.serve(async (req) => {
     const staleClaimBefore = new Date(Date.now() - DISPATCH_CLAIM_STALE_MS)
       .toISOString()
       .replace(/\.\d+Z$/, 'Z');
+    // R-059 — o PostgREST reaplica o WHERE do UPDATE sobre o RETURNING antes de
+    // devolver as linhas; como esse WHERE testa a PRÓPRIA coluna que acabou de
+    // ser sobrescrita (email_campaign_dispatched_at.is.null OU .lt.stale), a
+    // condição nunca é verdadeira contra o valor novo — `.select()` encadeado
+    // aqui sempre devolvia vazio mesmo quando o UPDATE realmente travava as
+    // linhas (mesmo bug do create-event-email-campaign sibling). Sem `.select()`
+    // encadeado (só `count: 'exact'`, que usa a contagem real de linhas afetadas
+    // pelo UPDATE, não uma releitura filtrada), e uma leitura separada logo
+    // depois pra descobrir exatamente quais linhas fomos nós que acabamos de
+    // reivindicar (comparando com o valor exato de `now` que setamos).
     let claimQuery = admin
       .from('events')
-      .update({ email_campaign_dispatched_at: now })
+      .update({ email_campaign_dispatched_at: now }, { count: 'exact' })
       .in('id', eventIds);
     claimQuery = forceResend
       ? claimQuery.or(
           `email_campaign_dispatched_at.is.null,email_campaign_dispatched_at.lt.${staleClaimBefore}`
         )
       : claimQuery.is('email_campaign_dispatched_at', null);
-    const { data: claimed, error: claimErr } = await claimQuery.select('id,title,status');
+    const { error: claimErr } = await claimQuery;
     if (claimErr) throw claimErr;
 
-    const claimedRows = claimed ?? [];
+    const { data: allRows } = await admin
+      .from('events')
+      .select('id,title,status,email_campaign_dispatched_at')
+      .in('id', eventIds);
+    const claimedRows = (allRows ?? []).filter((e) => e.email_campaign_dispatched_at === now);
     const claimedIds = claimedRows.map((e) => e.id as string);
     claimEventIds = claimedIds;
 

@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Fix: causa raiz definitiva de TODOS os `dispatch_in_progress` — PostgREST reaplicava o filtro do claim sobre o valor recém-gravado (R-059)
+**Descrição:** mesmo com R-052 a R-058 corrigidos e implantados, o evento Sirius seguia travando com `dispatch_in_progress` em toda combinação, e o `console.error` novo do R-058 nunca disparou em nenhum disparo real — descartando de vez a hipótese de erro de gravação silencioso. Confirmado via SQL direto (`BEGIN; ...; ROLLBACK;`, sem persistir nada): o claim atômico (`.update({email_campaign_dispatched_at: now}).or('col.is.null,col.lt.X').select().maybeSingle()`) sempre travava a linha de verdade no banco, mas o PostgREST reaplica o WHERE do UPDATE sobre o RETURNING antes de devolvê-lo — e como esse WHERE testava a própria coluna que tinha acabado de ser sobrescrita, a condição nunca era verdadeira contra o valor novo. `.select()` sempre devolvia vazio, `.maybeSingle()` sempre devolvia `null`, e o código sempre concluía "perdi a corrida" — pra TODO disparo manual, mesmo sem nenhuma corrida real acontecendo. Isso explica por que nenhuma das 5 causas reais corrigidas em R-052–R-058 resolvia o sintoma: todas eram bugs genuínos, mas nenhuma delas era alcançada de forma diferente — a detecção do claim falhava antes.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário — mudança de abordagem explícita para testar via navegador real com Claude-in-Chrome contra o localhost, iterando até o envio funcionar de fato)
+**Impacto:** o UPDATE do claim troca `.select().maybeSingle()` por `{ count: 'exact' }` — o Postgres calcula esse count a partir das linhas realmente afetadas pelo UPDATE, sem reaplicar o filtro contra os valores novos. Uma leitura separada, logo após vencer o claim, busca os detalhes necessários (title/status no evento único; comparação exata do `now` gravado pra descobrir os IDs claimados no caso multi-evento). R-052 a R-058 permanecem válidos como hardening (mensagem de erro exposta, claim liberado em falha não tratada, timeouts em fetches, erro de histórico não mais engolido) mesmo não sendo a causa raiz deste sintoma específico.
+
+**Arquivos alterados:** `supabase/functions/create-event-email-campaign/index.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `src/__tests__/regression/email-dispatch-claim-count-not-returning-filter.test.ts` (novo), `src/__tests__/regression/email-dispatch-claim-returning-filter-column.test.ts` (reescrito — R-054 passa a confirmar a AUSÊNCIA de `.select()` encadeado, não sua presença), `docs/TESTING.md`.
+
+---
+
 ### Fix: causa raiz definitiva do "dispatch_in_progress" — erro real na gravação do histórico era engolido silenciosamente (R-058)
 **Descrição:** mesmo após R-052 a R-057, o evento Sirius continuou travando com `dispatch_in_progress` em TODAS as combinações (rascunho/enviar agora × segmento/lista inteira) — respostas 200 rápidas (2-3s), sem erro, sem log. Investigação só-leitura (logs + SQL) mostrou que a function não estava travando nem dando exceção: dos 3 caminhos que mantêm HTTP 200 depois do claim, só `created.ok === true` (E-goi aceitou a criação da campanha) é consistente com o claim ficar preso sem se resetar — e esse caminho termina sempre no mesmo `.update()`/`.insert()` final em `event_email_campaigns`, cujo `{ error }` do Supabase-js nunca era destructurado. Uma falha de banco nesse ponto (RLS/constraint/etc., causa exata ainda não confirmada) ficava 100% silenciosa. O bug não tinha nada a ver com segmento — é o mesmo ponto de código em todo disparo que chega a criar a campanha na E-goi, por isso as 4 combinações falhavam igual.
 **Data:** 10/08/2026
@@ -1187,6 +1197,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Bugfix | Causa raiz definitiva de TODOS os dispatch_in_progress — PostgREST reaplicava filtro do claim sobre valor recém-gravado (R-059) |
 | 10/08 | Bugfix | Causa raiz definitiva do "dispatch_in_progress" — erro real na gravação do histórico era engolido silenciosamente (R-058) |
 | 10/08 | Bugfix | egoiRequest sem timeout — hipótese intermediária, insuficiente sozinha (R-057) |
 | 10/08 | Bugfix | Badges do line-up coladas sem espaço no Outlook — Gmail ok (R-056) |

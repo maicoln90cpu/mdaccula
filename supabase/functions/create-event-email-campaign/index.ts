@@ -40,12 +40,6 @@ Deno.serve(async (req) => {
   let claimEventId: string | undefined;
   let claimIsAbTest = false;
 
-  // DIAGNÓSTICO TEMPORÁRIO (R-058/R-059) — mede onde o tempo vai dentro da
-  // execução, pra confirmar se é lock/contenção no claim, E-goi lenta, ou
-  // outra coisa. Remover depois de identificar a causa da lentidão real.
-  const t0 = Date.now();
-  const tlog = (step: string) => console.log(`[create-event-email-campaign][timing] ${step}: ${Date.now() - t0}ms`);
-
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return json({ error: 'Não autenticado' }, 401);
@@ -125,7 +119,6 @@ Deno.serve(async (req) => {
     if (masterRow?.value !== 'true') {
       return json({ skipped: true, reason: 'master_off' });
     }
-    tlog('guard1_master_switch_done');
 
     // Guard 2: Agência config
     const { data: cfg } = await admin
@@ -140,7 +133,6 @@ Deno.serve(async (req) => {
       : cfg.segment_id != null
         ? Number(cfg.segment_id)
         : null;
-    tlog('guard2_config_done');
 
     // Guard 3: UPDATE atômico do dispatched_at (pulado em A/B).
     // Só marca se ainda estiver NULL — anti-race e anti-double-click.
@@ -174,10 +166,23 @@ Deno.serve(async (req) => {
       const staleClaimBefore = new Date(Date.now() - DISPATCH_CLAIM_STALE_MS)
         .toISOString()
         .replace(/\.\d+Z$/, 'Z');
-      tlog('claim_query_starting');
       let claimQuery = admin
         .from('events')
-        .update({ email_campaign_dispatched_at: now })
+        // R-059 — causa raiz definitiva do "dispatch_in_progress" que persistia
+        // mesmo com o claim funcionando de verdade: o PostgREST reaplica o
+        // WHERE do UPDATE sobre o RETURNING antes de devolver as linhas — e como
+        // esse WHERE testa a PRÓPRIA coluna que acabou de ser sobrescrita
+        // (email_campaign_dispatched_at.is.null OU .lt.staleClaimBefore), a
+        // condição NUNCA é verdadeira contra o valor novo (acabado de gravar).
+        // Resultado: o UPDATE sempre travava a linha de verdade (confirmado
+        // por SQL direto: 1 linha alterada), mas `.select().maybeSingle()`
+        // sempre devolvia vazio — a claim sempre "parecia" ter falhado, pra
+        // TODO disparo manual (forceResend é sempre true nesse fluxo), mesmo
+        // sem nenhuma corrida real acontecendo. Corrigido usando `count:
+        // 'exact'` em vez de `.select()`: o Postgres calcula esse count a
+        // partir das linhas realmente afetadas pelo UPDATE (semântica normal
+        // de UPDATE...WHERE), sem reaplicar o filtro contra os valores novos.
+        .update({ email_campaign_dispatched_at: now }, { count: 'exact' })
         .eq('id', eventId);
       claimQuery = forceResend
         ? claimQuery.or(
@@ -185,30 +190,31 @@ Deno.serve(async (req) => {
           )
         : claimQuery.is('email_campaign_dispatched_at', null);
 
-      const { data: claimed, error: claimErr } = await claimQuery
-        // O PostgREST reaplica o filtro do UPDATE sobre o conjunto retornado.
-        // Como force_resend filtra por email_campaign_dispatched_at, a coluna
-        // precisa fazer parte do RETURNING para continuar disponível nessa etapa.
-        .select('id,title,status,email_campaign_dispatched_at')
-        .maybeSingle();
-      tlog(`claim_query_resolved claimed=${!!claimed} claimErr=${!!claimErr}`);
+      const { error: claimErr, count: claimCount } = await claimQuery;
 
       if (claimErr) throw claimErr;
-      if (!claimed) {
-        tlog('returning_dispatch_in_progress_or_already_dispatched');
+      if (!claimCount) {
         return json({
           skipped: true,
           reason: forceResend ? 'dispatch_in_progress' : 'already_dispatched',
         });
       }
-      if (claimed.status !== 'active') {
+
+      // Já temos exclusividade sobre o evento (claim vencido acima) — busca
+      // title/status agora, numa leitura separada e segura.
+      const { data: claimedEv } = await admin
+        .from('events')
+        .select('id,title,status')
+        .eq('id', eventId)
+        .maybeSingle();
+      if (!claimedEv) return json({ error: 'Evento não encontrado' }, 404);
+      if (claimedEv.status !== 'active') {
         await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
         return json({ skipped: true, reason: 'event_not_active' });
       }
-      claimedTitle = claimed.title;
-      claimedStatus = claimed.status;
+      claimedTitle = claimedEv.title;
+      claimedStatus = claimedEv.status;
     }
-    tlog('guard3_claim_done');
 
     const apiKey = Deno.env.get('EGOI_API_KEY');
     if (!apiKey) {
@@ -272,7 +278,6 @@ Deno.serve(async (req) => {
       // Falha no cache não pode bloquear o envio; mantém HTML original.
       processedHtml = html;
     }
-    tlog('map_cache_done');
 
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
@@ -294,7 +299,6 @@ Deno.serve(async (req) => {
       method: 'POST',
       body: JSON.stringify(createPayload),
     });
-    tlog(`egoi_create_done ok=${created.ok} status=${created.status}`);
 
     let campaignHash: string | null = null;
     let campaignStatus: 'draft' | 'failed' | 'sent' | 'scheduled' = 'failed';
@@ -340,7 +344,6 @@ Deno.serve(async (req) => {
           apiKey,
           resolvedSegmentId,
         );
-        tlog(`egoi_send_done status=${sendRes.status} ok=${sendRes.ok}`);
         egoiSendStatus = sendRes.status;
         egoiSendBody = sendRes.body;
         // sendEgoiCampaign já confirma sucesso real inspecionando o corpo da
@@ -421,7 +424,6 @@ Deno.serve(async (req) => {
         : `Aviso: falha ao gravar histórico: ${historyError}`
       : errorMessage;
 
-    tlog(`history_persist_done historyError=${!!historyError}`);
     return json({
       ok: campaignStatus !== 'failed',
       status: campaignStatus,
