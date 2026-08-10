@@ -1,1645 +1,118 @@
-// supabase/functions/weekend-agenda-draft/index.ts
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@2";
+// Weekend agenda draft — gera rascunho da Agenda do FDS na E-goi
+// Espelho do weekly-digest-draft, mas coleta eventos de sex/sáb/dom
+// e usa templates do tipo 'weekend_agenda'.
+//
+// Guards:
+//   1. Auth admin OU x-cron-secret (env CRON_SHARED_SECRET ou internal_cron_secrets.weekend_agenda_cron).
+//   2. site_settings.egoi_email_enabled = true.
+//   3. site_settings.weekend_agenda_enabled = true (cron respeita; admin pode force=true).
+//   4. egoi_config habilitado + list_id + sender_id (só para envio real, não dry_run).
 
-// supabase/functions/_shared/bunnyUploadBytes.ts
-var BUNNY_STORAGE_ZONE = "mdaccula";
-var BUNNY_CDN_HOST = "https://mdaccula.b-cdn.net";
-function getBunnyStorageHost() {
-  const hostname = Deno.env.get("BUNNY_STORAGE_HOSTNAME");
-  return hostname ? `https://${hostname}` : "https://storage.bunnycdn.com";
-}
-async function checkBunnyFile(path) {
-  const url = `${BUNNY_CDN_HOST}/${path}`;
-  try {
-    const res = await fetch(url, { method: "HEAD" });
-    if (res.ok) return "exists";
-    if (res.status === 404) return "not-found";
-    console.warn(`[checkBunnyFile] HEAD ${url} -> ${res.status}`);
-    return "error";
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[checkBunnyFile] HEAD ${url} threw: ${msg}`);
-    return "error";
-  }
-}
-async function uploadBytesToBunny(buffer, path, contentType) {
-  const apiKey = getBunnyStorageApiKey();
-  if (!apiKey) {
-    throw new Error("BUNNY_STORAGE_API_KEY not configured");
-  }
-  const url = `${getBunnyStorageHost()}/${BUNNY_STORAGE_ZONE}/${path}`;
-  const res = await fetch(url, {
-    method: "PUT",
-    headers: {
-      AccessKey: apiKey,
-      "Content-Type": contentType
-    },
-    body: buffer
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "unknown");
-    throw new Error(`Bunny upload failed (${res.status}): ${text}`);
-  }
-  return { url: `${BUNNY_CDN_HOST}/${path}`, path };
-}
-function getBunnyStorageApiKey() {
-  const raw = Deno.env.get("BUNNY_STORAGE_API_KEY") || "";
-  return raw.trim().replace(/^["']|["']$/g, "").replace(/[^\x20-\x7E]/g, "");
-}
+import { createClient } from 'npm:@supabase/supabase-js@2';
+import { safeCacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
+import {
+  renderBlockedTemplateText,
+  expandGlobalRefs,
+  proxyForEmail,
+  type Block,
+  type EventAnnouncementData,
+  type EmailTemplateSettings,
+  type WeekendEventItem,
+  type BlogPostItem,
+} from '../_shared/emailBlocks.ts';
+import { DEFAULT_EVENT_CTA_TYPE, getEventCtaButtonLabel } from '../_shared/eventCta.ts';
+import { composeEmail } from '../_shared/emailComposer.ts';
+import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
+import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
+import { writeDigestCampaignHistory } from '../_shared/digestCampaignHistory.ts';
 
-// supabase/functions/_shared/mapImageStorage.ts
-import { createClient } from "npm:@supabase/supabase-js@2";
-var MAP_IMAGES_BUCKET = "event-map-images";
-function getServiceClient() {
-  return createClient(
-    Deno.env.get("SUPABASE_URL"),
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
-  );
-}
-async function storageGetFile(path) {
-  try {
-    const { data, error } = await getServiceClient().storage.from(MAP_IMAGES_BUCKET).download(path);
-    if (error || !data) return null;
-    return {
-      bytes: await data.arrayBuffer(),
-      contentType: data.type || "image/png"
-    };
-  } catch (err) {
-    console.warn(`[mapImageStorage] download ${path} failed:`, err);
-    return null;
-  }
-}
-async function storageUploadFile(bytes, path, contentType) {
-  try {
-    const { error } = await getServiceClient().storage.from(MAP_IMAGES_BUCKET).upload(path, bytes, { contentType, upsert: true });
-    if (error) {
-      console.warn(`[mapImageStorage] upload ${path} failed:`, error.message);
-    }
-  } catch (err) {
-    console.warn(`[mapImageStorage] upload ${path} threw:`, err);
-  }
-}
-function getStoragePublicUrl(path) {
-  const { data } = getServiceClient().storage.from(MAP_IMAGES_BUCKET).getPublicUrl(path);
-  return data.publicUrl;
-}
-
-// supabase/functions/_shared/renderStaticMapCache.ts
-function parseRenderStaticMapUrl(url) {
-  try {
-    const u = new URL(url, "https://localhost");
-    const latRaw = u.searchParams.get("lat");
-    const lngRaw = u.searchParams.get("lng");
-    if (latRaw === null || lngRaw === null) return null;
-    const lat = Number(latRaw);
-    const lng = Number(lngRaw);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-      return null;
-    }
-    const zoom = Math.max(10, Math.min(19, Number(u.searchParams.get("zoom") || "15")));
-    const w = Math.max(200, Math.min(640, Number(u.searchParams.get("w") || "600")));
-    const h = Math.max(150, Math.min(400, Number(u.searchParams.get("h") || "300")));
-    const rawStyle = u.searchParams.get("style") || "roadmap";
-    const style = ["roadmap", "terrain", "satellite", "hybrid"].includes(rawStyle) ? rawStyle : "roadmap";
-    const rawPinColor = (u.searchParams.get("pincolor") || "").trim();
-    const pinColor = /^#[0-9a-fA-F]{6}$/.test(rawPinColor) ? rawPinColor : /^[a-zA-Z]+$/.test(rawPinColor) ? rawPinColor : "red";
-    return { lat, lng, zoom, w, h, style, pinColor };
-  } catch {
-    return null;
-  }
-}
-function hashParams(params) {
-  const data = `${params.lat.toFixed(6)},${params.lng.toFixed(6)},${params.zoom},${params.w}x${params.h},${params.style},${params.pinColor}`;
-  const encoder = new TextEncoder();
-  const buffer = encoder.encode(data);
-  return Array.from(new Uint8Array(buffer)).map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
-}
-function buildMapPath(params) {
-  const h = hashParams(params);
-  return `email-map-images/map-${h}-${params.lat.toFixed(4)}-${params.lng.toFixed(4)}-z${params.zoom}-${params.w}x${params.h}-${params.style}-${params.pinColor.replace("#", "")}.png`;
-}
-async function resolveMapImage(params, generateImage) {
-  const path = buildMapPath(params);
-  const bunnyCheck = await checkBunnyFile(path);
-  if (bunnyCheck === "exists") {
-    return { source: "bunny", bunnyUrl: `https://mdaccula.b-cdn.net/${path}` };
-  }
-  const storageHit = await storageGetFile(path);
-  if (storageHit) {
-    uploadBytesToBunny(storageHit.bytes, path, storageHit.contentType).catch((err) => {
-      console.warn(`[resolveMapImage] self-heal upload to Bunny failed for ${path}:`, err);
-    });
-    return {
-      source: "storage",
-      bytes: storageHit.bytes,
-      contentType: storageHit.contentType,
-      storageUrl: `${path}`
-    };
-  }
-  const response = await generateImage();
-  if (!response.ok) {
-    const text = await response.text().catch(() => "unknown");
-    throw new Error(`map image generation failed (${response.status}): ${text}`);
-  }
-  const contentType = response.headers.get("Content-Type") || "image/png";
-  const buffer = await response.arrayBuffer();
-  try {
-    const { url: bunnyUrl } = await uploadBytesToBunny(buffer, path, contentType);
-    storageUploadFile(buffer, path, contentType).catch((err) => {
-      console.warn(`[resolveMapImage] Storage backup failed for ${path}:`, err);
-    });
-    return { source: "generated", bytes: buffer, contentType, bunnyUrl };
-  } catch (err) {
-    console.warn(`[resolveMapImage] Bunny upload failed for ${path}, falling back to Storage:`, err);
-    await storageUploadFile(buffer, path, contentType);
-    return { source: "generated-fallback", bytes: buffer, contentType, storageUrl: path };
-  }
-}
-async function ensureCachedMapImage(params, renderStaticMapUrl) {
-  const resolved = await resolveMapImage(params, () => fetch(renderStaticMapUrl));
-  if (resolved.source === "bunny" || resolved.source === "generated") {
-    return resolved.bunnyUrl;
-  }
-  return getStoragePublicUrl(resolved.storageUrl);
-}
-async function cacheStaticMapImagesInHtml(html) {
-  if (!html.includes("render-static-map")) return html;
-  const imgUrlRegex = /<img[^>]+src=["']([^"']*render-static-map[^"']*)["'][^>]*>/gi;
-  const matches = [];
-  let match;
-  while ((match = imgUrlRegex.exec(html)) !== null) {
-    matches.push({ fullMatch: match[0], url: match[1] });
-  }
-  if (matches.length === 0) return html;
-  let result = html;
-  for (const { fullMatch, url } of matches) {
-    try {
-      const decodedUrl = url.replace(/&amp;/g, "&");
-      const params = parseRenderStaticMapUrl(decodedUrl);
-      if (!params) continue;
-      const cachedUrl = await ensureCachedMapImage(params, decodedUrl);
-      result = result.replaceAll(fullMatch, fullMatch.replaceAll(url, cachedUrl));
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[cacheStaticMapImagesInHtml] failed to cache ${url}: ${msg}`);
-    }
-  }
-  return result;
-}
-async function safeCacheStaticMapImagesInHtml(html, tag) {
-  try {
-    return await cacheStaticMapImagesInHtml(html);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`[${tag}] safeCacheStaticMapImagesInHtml fallback: ${msg}`);
-    return html;
-  }
-}
-
-// supabase/functions/_shared/emailBlocks/types.ts
-function expandGlobalRefs(blocks, globals) {
-  if (!globals) {
-    return blocks.filter((b) => b.kind !== "global_ref");
-  }
-  const get = (id) => globals instanceof Map ? globals.get(id) : globals[id];
-  const out = [];
-  for (const b of blocks) {
-    if (b.kind !== "global_ref") {
-      out.push(b);
-      continue;
-    }
-    const g = get(b.global_id);
-    if (!g) continue;
-    const hidden = b.hidden === true;
-    out.push({ ...g.block, id: b.id, ...hidden ? { hidden: true } : {} });
-  }
-  return out;
-}
-
-// supabase/functions/_shared/emailBlocks/utils.ts
-var escape = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-var sanitizeCustomHtml = (raw) => raw.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<iframe[\s\S]*?<\/iframe>/gi, "").replace(/on\w+\s*=\s*"[^"]*"/gi, "").replace(/on\w+\s*=\s*'[^']*'/gi, "").replace(/javascript:/gi, "");
-var applyEmailSafeProseStyles = (html, color) => html.replace(/<p(?![^>]*style=)([^>]*)>/gi, '<p$1 style="margin:0 0 12px 0;">').replace(/<h2(?![^>]*style=)([^>]*)>/gi, `<h2$1 style="margin:0 0 10px 0;color:${color};font-size:18px;font-weight:800;line-height:1.3;">`).replace(/<ul(?![^>]*style=)([^>]*)>/gi, '<ul$1 style="margin:0 0 12px 0;padding-left:20px;">').replace(/<ol(?![^>]*style=)([^>]*)>/gi, '<ol$1 style="margin:0 0 12px 0;padding-left:20px;">').replace(/<li(?![^>]*style=)([^>]*)>/gi, '<li$1 style="margin:0 0 4px 0;">').replace(/<blockquote(?![^>]*style=)([^>]*)>/gi, `<blockquote$1 style="margin:0 0 12px 0;padding:8px 0 8px 14px;border-left:3px solid ${color};font-style:italic;opacity:0.9;">`);
-var resolveCtaUrl = (block, event) => {
-  switch (block.url_field) {
-    case "vip_link":
-      return event.vipLink || event.ticketUrl;
-    case "event_url":
-      return event.eventUrl;
-    case "custom":
-      return block.custom_url || event.ticketUrl;
-    case "ticket_link":
-    default:
-      return event.ticketUrl;
-  }
-};
-var resolveSecondaryUrl = (block, event) => {
-  switch (block.url_field) {
-    case "event_url":
-      return event.eventUrl;
-    case "custom":
-      return block.custom_url || event.agendaUrl;
-    case "agenda_url":
-    default:
-      return event.agendaUrl;
-  }
-};
-function proxyForEmail(url) {
-  if (!url) return url;
-  if (!/^https?:\/\//i.test(url)) return url;
-  if (!/\.webp(\?|$)/i.test(url)) return url;
-  const clean = url.replace(/^https?:\/\//i, "");
-  return `https://wsrv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=85`;
-}
-var DEFAULT_SOCIAL_ICON_URLS = {
-  instagram: "https://mdaccula.com/email-icons/instagram.png",
-  youtube: "https://mdaccula.com/email-icons/youtube.png",
-  tiktok: "https://mdaccula.com/email-icons/tiktok.png",
-  soundcloud: "https://mdaccula.com/email-icons/soundcloud.png",
-  spotify: "https://mdaccula.com/email-icons/spotify.png",
-  linktree: "https://mdaccula.com/email-icons/linktree.png",
-  whatsapp: "https://mdaccula.com/email-icons/whatsapp.png"
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret, x-cron-job',
 };
 
-// supabase/functions/_shared/emailBlocks/preheader.ts
-function computePreheader(event) {
-  const t = (event.eventTitle || "").trim();
-  const d = (event.dateLabel || "").trim();
-  const v = (event.venueName || "").trim();
-  const c = (event.cityState || "").trim();
-  const parts = [t];
-  if (d) parts.push(d);
-  if (v || c) parts.push([v, c].filter(Boolean).join(", "));
-  return parts.filter(Boolean).join(" \u2014 ").slice(0, 150);
-}
+const BASE = 'https://api.egoiapp.com';
+const SITE_URL = 'https://mdaccula.com';
 
-// supabase/functions/_shared/emailBlocks/renderBlock/style.ts
-function computeStyle(settings) {
-  const primary = escape(settings.primary_color);
-  const accent = escape(settings.accent_color);
-  const brand = escape(settings.brand_name);
-  const gradient = `linear-gradient(90deg, ${primary} 0%, ${accent} 50%, #2563eb 100%)`;
-  return { primary, accent, brand, gradient, solidPrimary: primary };
-}
-
-// supabase/functions/_shared/emailBlocks/renderBlock/basic.ts
-function renderBasicBlock(block, ctx, style) {
-  const { event, article, settings } = ctx;
-  const { primary, brand } = style;
-  switch (block.kind) {
-    case "header": {
-      const height = Math.max(24, Math.min(200, block.logo_height ?? 64));
-      const align = block.align ?? "center";
-      const pad = Math.max(0, Math.min(80, block.padding_y ?? 32));
-      const padBottom = Math.max(0, Math.min(80, block.padding_bottom ?? 0));
-      const bg = block.bg_color ? ` background-color:${escape(block.bg_color)};` : "";
-      const inner = settings.logo_url ? `<img src="${escape(proxyForEmail(settings.logo_url))}" alt="${brand}" height="${height}" border="0" style="display:inline-block;height:${height}px;max-height:${height}px;width:auto;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">` : `<div style="font-size:22px;font-weight:800;letter-spacing:-0.02em;text-transform:uppercase;font-style:italic;color:#ffffff;">${brand}</div>`;
-      return `<tr><td align="${align}" style="padding:${pad}px 24px ${Math.max(8, padBottom || pad - 8)}px 24px;text-align:${align};${bg}">${inner}</td></tr>`;
-    }
-    case "hero_image": {
-      const maxW = Math.max(300, Math.min(600, block.max_width ?? 552));
-      const radius = block.border_radius ?? 12;
-      const border = block.border_color ? `1px solid ${escape(block.border_color)}` : "1px solid rgba(255,255,255,0.08)";
-      const caption = block.caption ? `<div style="max-width:${maxW}px;margin:8px auto 0 auto;color:#71717a;font-size:12px;line-height:1.4;text-align:center;">${escape(block.caption)}</div>` : "";
-      const flyer = event.flyerUrl && event.flyerUrl.trim();
-      if (!flyer) {
-        if (!ctx.preview) return "";
-        return `<tr><td align="center" style="padding:0 24px;">
-          <div style="width:100%;max-width:${maxW}px;height:${Math.round(maxW * 0.6)}px;border-radius:${radius}px;border:1px dashed rgba(255,255,255,0.2);background:#111;display:flex;align-items:center;justify-content:center;color:#71717a;font-size:12px;text-align:center;padding:16px;box-sizing:border-box;margin:0 auto;">Flyer do evento (sem imagem cadastrada \u2014 placeholder do preview)</div>
-          ${caption}
-        </td></tr>`;
-      }
-      const flyerSrc = proxyForEmail(flyer);
-      return `<tr><td align="center" style="padding:0 24px;">
-        <a href="${escape(event.eventUrl)}" style="text-decoration:none;display:block;">
-          <img src="${escape(flyerSrc)}" alt="${escape(event.eventTitle)}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:${border};background:#111;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;">
-        </a>
-        ${caption}
-      </td></tr>`;
-    }
-    case "eyebrow": {
-      if (!block.text?.trim()) return "";
-      const color = escape(block.text_color || primary);
-      const align = block.align ?? "left";
-      const text = escape(block.text);
-      const label = block.bg_style === "pill" ? `<span style="display:inline-block;padding:4px 12px;background:rgba(168,85,247,0.12);border:1px solid ${color};border-radius:999px;color:${color};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">${text}</span>` : `<p style="margin:0;color:${color};font-size:11px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;">${text}</p>`;
-      return `<tr><td style="padding:24px 32px 0 32px;text-align:${align};">${label}</td></tr>`;
-    }
-    case "title": {
-      const color = escape(block.text_color || "#ffffff");
-      const align = block.align ?? "left";
-      const size = Math.max(18, Math.min(48, block.font_size ?? 28));
-      const weight = block.font_weight === "bold" ? 700 : 800;
-      const gridList = event.gridEvents;
-      if (!block.text_override?.trim() && gridList && gridList.length > 0) {
-        const lines = gridList.map((ev) => {
-          const dt = [ev.dayLabel, ev.timeLabel].filter(Boolean).join(" \xB7 ");
-          const label = `\u2022 ${escape(ev.title)}${dt ? ` \u2014 ${escape(dt)}` : ""}`;
-          return block.uppercase ? label.toUpperCase() : label;
-        });
-        return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
-          <h1 style="margin:0;color:${color};font-size:${size}px;line-height:1.4;font-weight:${weight};letter-spacing:-0.01em;">${lines.join("<br>")}</h1>
-        </td></tr>`;
-      }
-      const rawText = block.text_override?.trim() || event.eventTitle;
-      const text = block.uppercase ? escape(rawText).toUpperCase() : escape(rawText);
-      return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
-        <h1 style="margin:0;color:${color};font-size:${size}px;line-height:1.15;font-weight:${weight};letter-spacing:-0.01em;">${text}</h1>
-      </td></tr>`;
-    }
-    case "subtitle": {
-      if (!event.eventSubtitle) return "";
-      const color = escape(block.text_color || "#a1a1aa");
-      const align = block.align ?? "left";
-      const size = Math.max(12, Math.min(24, block.font_size ?? 16));
-      const style2 = block.italic ? "italic" : "normal";
-      return `<tr><td style="padding:8px 32px 0 32px;text-align:${align};">
-        <p style="margin:0;color:${color};font-size:${size}px;line-height:1.5;font-style:${style2};">${escape(event.eventSubtitle)}</p>
-      </td></tr>`;
-    }
-    case "event_meta": {
-      const stacked = block.layout === "stacked";
-      const showIcons = block.show_icons !== false;
-      const accent = escape(block.accent_color || "#ffffff");
-      const dateLabelText = escape(block.date_label || "Data e hora");
-      const localLabelText = escape(block.location_label || "Local");
-      const dateLabel = showIcons ? `\u{1F4C5} ${dateLabelText}` : dateLabelText;
-      const localLabel = showIcons ? `\u{1F4CD} ${localLabelText}` : localLabelText;
-      if (stacked) {
-        return `<tr><td style="padding:16px 32px;">
-          <div style="border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);padding:20px 0;">
-            <div style="color:${accent};font-size:11px;font-weight:700;letter-spacing:-0.01em;text-transform:uppercase;margin-bottom:6px;">${dateLabel}</div>
-            <div style="color:#a1a1aa;font-size:14px;line-height:1.5;margin-bottom:14px;">${escape(event.dateLabel)}<br>${escape(event.timeLabel)}</div>
-            <div style="color:${accent};font-size:11px;font-weight:700;letter-spacing:-0.01em;text-transform:uppercase;margin-bottom:6px;">${localLabel}</div>
-            <div style="color:#a1a1aa;font-size:14px;line-height:1.5;">${escape(event.venueName)}<br>${escape(event.cityState)}</div>
-          </div>
-        </td></tr>`;
-      }
-      return `<tr><td style="padding:16px 32px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);">
-          <tr>
-            <td width="50%" style="padding:20px 0;vertical-align:top;">
-              <div style="color:${accent};font-size:11px;font-weight:700;letter-spacing:-0.01em;text-transform:uppercase;margin-bottom:6px;">${dateLabel}</div>
-              <div style="color:#a1a1aa;font-size:14px;line-height:1.5;">${escape(event.dateLabel)}<br>${escape(event.timeLabel)}</div>
-            </td>
-            <td width="50%" align="right" style="padding:20px 0;vertical-align:top;">
-              <div style="color:${accent};font-size:11px;font-weight:700;letter-spacing:-0.01em;text-transform:uppercase;margin-bottom:6px;">${localLabel}</div>
-              <div style="color:#a1a1aa;font-size:14px;line-height:1.5;">${escape(event.venueName)}<br>${escape(event.cityState)}</div>
-            </td>
-          </tr>
-        </table>
-      </td></tr>`;
-    }
-    case "description": {
-      if (!event.description) return "";
-      const color = escape(block.text_color || "#a1a1aa");
-      const align = block.align ?? "left";
-      const size = Math.max(12, Math.min(20, block.font_size ?? 15));
-      const lineHeight = block.line_height === "compact" ? 1.35 : 1.6;
-      const marginBottom = block.line_height === "compact" ? 6 : 10;
-      const lines = event.description.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-      const paragraphs = lines.map((l) => `<p style="margin:0 0 ${marginBottom}px 0;color:${color};font-size:${size}px;line-height:${lineHeight};">${escape(l)}</p>`).join("");
-      return `<tr><td style="padding:8px 32px 24px 32px;text-align:${align};">${paragraphs}</td></tr>`;
-    }
-    case "article_summary": {
-      if (!article) return "";
-      const showImage = block.show_image !== false;
-      const compact = block.layout === "compact";
-      const imgHtml = showImage && article.image_url ? `<img src="${escape(proxyForEmail(article.image_url))}" alt="" width="${compact ? 72 : 120}" height="${compact ? 72 : 80}" border="0" style="display:block;width:${compact ? 72 : 120}px;height:${compact ? 72 : 80}px;object-fit:cover;border-radius:8px;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;">` : "";
-      const eyebrowLabel = escape(block.eyebrow_label || "\u{1F4F0} Leia a mat\xE9ria");
-      if (compact) {
-        return `<tr><td style="padding:8px 32px 24px 32px;">
-          <a href="${escape(article.url)}" style="text-decoration:none;display:block;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-              <tr>
-                ${imgHtml ? `<td width="72" style="padding:0 12px 0 0;vertical-align:top;">${imgHtml}</td>` : ""}
-                <td style="vertical-align:top;">
-                  <div style="color:${primary};font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;">${eyebrowLabel}</div>
-                  <div style="color:#ffffff;font-size:14px;font-weight:700;line-height:1.3;">${escape(article.title)}</div>
-                </td>
-              </tr>
-            </table>
-          </a>
-        </td></tr>`;
-      }
-      return `<tr><td style="padding:8px 32px 24px 32px;">
-        <a href="${escape(article.url)}" style="text-decoration:none;display:block;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:rgba(168,85,247,0.06);border:1px solid ${primary};border-radius:12px;">
-            <tr>
-              <td style="padding:16px;vertical-align:top;">
-                <div style="color:${primary};font-size:10px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${eyebrowLabel}</div>
-                <div style="color:#ffffff;font-size:15px;font-weight:700;line-height:1.3;margin-bottom:6px;">${escape(article.title)}</div>
-                <div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(article.excerpt)}</div>
-              </td>
-              ${imgHtml ? `<td width="120" style="padding:16px 16px 16px 0;vertical-align:top;">${imgHtml}</td>` : ""}
-            </tr>
-          </table>
-        </a>
-      </td></tr>`;
-    }
-    case "image_with_link": {
-      if (!block.image_url) return "";
-      const maxW = Math.max(120, Math.min(552, block.max_width ?? 552));
-      const align = block.align ?? "center";
-      const radius = block.border_radius ?? 8;
-      const border = block.border_color ? `1px solid ${escape(block.border_color)}` : "0";
-      const alt = escape(block.alt || "");
-      const imgSrc = proxyForEmail(block.image_url);
-      const inner = `<img src="${escape(imgSrc)}" alt="${alt}" width="${maxW}" border="0" style="display:block;width:100%;max-width:${maxW}px;height:auto;border-radius:${radius}px;border:${border};outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;${align === "center" ? "margin:0 auto;" : align === "right" ? "margin:0 0 0 auto;" : "margin:0;"}">`;
-      const wrapped = block.link_url ? `<a href="${escape(block.link_url)}" style="text-decoration:none;display:block;">${inner}</a>` : inner;
-      const caption = block.caption ? `<div style="max-width:${maxW}px;margin:8px auto 0 auto;color:#71717a;font-size:12px;line-height:1.4;text-align:center;">${escape(block.caption)}</div>` : "";
-      return `<tr><td align="${align}" style="padding:8px 32px;text-align:${align};">${wrapped}${caption}</td></tr>`;
-    }
-    case "divider": {
-      const thickness = Math.max(1, Math.min(8, block.thickness ?? 1));
-      const color = escape(block.color || "#3f3f46");
-      const vPad = block.spacing === "compact" ? 4 : block.spacing === "wide" ? 16 : 8;
-      const width = block.width === "short" ? "33%" : "100%";
-      const hPad = block.width === "short" ? "0 32px" : "0";
-      return `<tr><td style="padding:${vPad}px 32px;">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;">
-          <tr><td align="center" style="padding:${hPad};">
-            <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="${width}" style="border-collapse:collapse;">
-              <tr><td bgcolor="${color}" height="${thickness}" style="height:${thickness}px;line-height:${thickness}px;font-size:0;background-color:${color};">&nbsp;</td></tr>
-            </table>
-          </td></tr>
-        </table>
-      </td></tr>`;
-    }
-    case "spacing": {
-      const h = Math.max(4, Math.min(160, block.height ?? 24));
-      return `<tr><td height="${h}" style="height:${h}px;line-height:${h}px;font-size:0;">&nbsp;</td></tr>`;
-    }
-    case "text": {
-      const color = escape(block.text_color || "#a1a1aa");
-      const safe = applyEmailSafeProseStyles(sanitizeCustomHtml(block.html || ""), color);
-      const align = block.align ?? "left";
-      const size = Math.max(11, Math.min(22, block.font_size ?? 14));
-      const bg = block.bg_highlight ? "background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;" : "";
-      const padding = block.bg_highlight ? "16px 20px" : "0";
-      return `<tr><td style="padding:8px 32px;text-align:${align};">
-        <div style="${bg}padding:${padding};color:${color};font-size:${size}px;line-height:1.6;">${safe}</div>
-      </td></tr>`;
-    }
-    case "footer": {
-      const txt = escape(block.text || settings.footer_text || "");
-      const align = block.align ?? "center";
-      const color = escape(block.text_color || "#52525b");
-      const size = Math.max(9, Math.min(14, block.font_size ?? 11));
-      const unsubscribeLabel = escape(block.unsubscribe_label || "Descadastrar-se");
-      const unsubscribe = block.include_unsubscribe !== false ? `<p style="margin:8px 0 0 0;font-size:${size}px;"><a href="[E-GOI_UNSUBSCRIBE_LINK]" style="color:#71717a;font-weight:700;text-decoration:underline;">${unsubscribeLabel}</a></p>` : "";
-      return `<tr><td align="${align}" style="padding:24px 32px 40px 32px;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);text-align:${align};">
-        <p style="margin:0;color:${color};font-size:${size}px;line-height:1.6;max-width:400px;display:inline-block;">${txt}</p>
-        ${unsubscribe}
-      </td></tr>`;
-    }
-    default:
-      return null;
-  }
-}
-
-// supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts
-function renderInteractiveBlock(block, ctx, style) {
-  const { event, settings } = ctx;
-  const { primary, accent, gradient, solidPrimary } = style;
-  switch (block.kind) {
-    case "cta_button": {
-      const url = resolveCtaUrl(block, event);
-      const label = escape(block.label || event.ctaLabel || settings.cta_label || "Garantir ingresso");
-      const align = block.align ?? "center";
-      const fullWidth = block.full_width !== false;
-      const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
-      const bgSolid = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : solidPrimary;
-      const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
-      const vmlWidth = fullWidth ? 480 : 240;
-      const sizePad = block.size === "small" ? "12px 18px" : block.size === "large" ? "22px 30px" : "18px 24px";
-      const sizeFont = block.size === "small" ? 13 : block.size === "large" ? 18 : 16;
-      const sizeHeight = block.size === "small" ? 44 : block.size === "large" ? 64 : 56;
-      const radius = block.shape === "pill" ? 999 : 12;
-      const arcsize = block.shape === "pill" ? "50%" : "21%";
-      const vmlButton = `<!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:${sizeHeight}px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="${arcsize}" stroke="f" fillcolor="${bgSolid}">
-          <w:anchorlock/>
-          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:${sizeFont}px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
-        </v:roundrect>
-      <![endif]-->`;
-      const htmlButton = `<!--[if !mso]><!-- -->
-        <a href="${escape(url)}" style="${widthStyle}padding:${sizePad};box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:${sizeFont}px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:${radius}px;mso-hide:all;">${label}</a>
-      <!--<![endif]-->`;
-      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
-    }
-    case "pix_button": {
-      if (!event.pixWhatsAppUrl) return "";
-      const url = event.pixWhatsAppUrl;
-      const label = escape(block.label || "Comprar Sem Taxa via Pix");
-      const align = block.align ?? "center";
-      const fullWidth = block.full_width !== false;
-      const bgSolid = "#25D366";
-      const bg = `linear-gradient(90deg, #25D366 0%, #128C7E 100%)`;
-      const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
-      const vmlWidth = fullWidth ? 480 : 240;
-      const vmlButton = `<!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
-          <w:anchorlock/>
-          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
-        </v:roundrect>
-      <![endif]-->`;
-      const htmlButton = `<!--[if !mso]><!-- -->
-        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;mso-hide:all;">${label}</a>
-      <!--<![endif]-->`;
-      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
-    }
-    case "secondary_link": {
-      const url = resolveSecondaryUrl(block, event);
-      const label = escape(block.label || "Ver mais");
-      const align = block.align ?? "center";
-      const color = escape(block.text_color || "#71717a");
-      const linkHtml = block.variant === "ghost" ? `<a href="${escape(url)}" style="display:inline-block;padding:10px 20px;border:1px solid ${color};color:${color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${label}</a>` : `<a href="${escape(url)}" style="display:inline-block;color:${color};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.2em;">${label}</a>`;
-      return `<tr><td align="${align}" style="padding:8px 32px 24px 32px;text-align:${align};">${linkHtml}</td></tr>`;
-    }
-    case "social_icons": {
-      const list = (block.networks || []).filter((n) => n.enabled && (ctx.preview || n.url));
-      if (list.length === 0) return "";
-      const align = block.align ?? "center";
-      const style2 = block.style || "text";
-      const iconPx = block.icon_size === "small" ? 24 : 32;
-      const colors = [primary, accent, "#60a5fa", "#f472b6", "#34d399", "#fbbf24", "#a78bfa", "#fb923c"];
-      const cells = list.map((n, i) => {
-        const href = escape(n.url || "#");
-        const resolvedIconUrl = style2 === "icon" ? n.icon_url || DEFAULT_SOCIAL_ICON_URLS[n.id] : void 0;
-        if (resolvedIconUrl) {
-          const iconSrc = escape(proxyForEmail(resolvedIconUrl));
-          return `<td style="padding:4px 8px;"><a href="${href}" style="display:inline-block;text-decoration:none;"><img src="${iconSrc}" alt="${escape(n.label)}" width="${iconPx}" height="${iconPx}" border="0" style="display:block;width:${iconPx}px;height:${iconPx}px;border:0;outline:none;"></a></td>`;
-        }
-        if (style2 === "pill") {
-          return `<td style="padding:4px 6px;"><a href="${href}" style="display:inline-block;padding:8px 14px;background:${colors[i % colors.length]};color:#ffffff;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:999px;">${escape(n.label)}</a></td>`;
-        }
-        const sep = i > 0 ? `<td style="padding:0 8px;color:#3f3f46;">\xB7</td>` : "";
-        return `${sep}<td style="padding:0 8px;"><a href="${href}" style="color:${colors[i % colors.length]};font-size:12px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;">${escape(n.label)}</a></td>`;
-      }).join("");
-      return `<tr><td align="${align}" style="padding:16px 32px 8px 32px;text-align:${align};">
-        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${cells}</tr></table>
-      </td></tr>`;
-    }
-    case "lineup": {
-      const artists = (event.lineup || []).filter(Boolean);
-      if (artists.length === 0) return "";
-      const align = block.align ?? "center";
-      const titleColor = escape(block.title_color || primary);
-      const textColor = escape(block.text_color || "#ffffff");
-      const title = escape(block.title || "Line-up");
-      const layout = block.layout || "chips";
-      const highlightHeadliner = block.highlight_headliner === true;
-      let body = "";
-      if (layout === "chips") {
-        body = artists.map((a, i) => {
-          const isHeadliner = highlightHeadliner && i === 0;
-          const fontSize = isHeadliner ? 16 : 13;
-          const padding = isHeadliner ? "10px 18px" : "8px 14px";
-          return `<span style="display:inline-block;margin:4px 4px;padding:${padding};background:rgba(168,85,247,0.12);border:1px solid ${primary};border-radius:999px;color:${textColor};font-size:${fontSize}px;font-weight:700;letter-spacing:0.02em;">${escape(a)}</span>`;
-        }).join("");
-      } else if (layout === "list") {
-        body = `<ul style="list-style:none;padding:0;margin:0;">${artists.map((a, i) => {
-          const isHeadliner = highlightHeadliner && i === 0;
-          const fontSize = isHeadliner ? 19 : 15;
-          return `<li style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);color:${textColor};font-size:${fontSize}px;font-weight:${isHeadliner ? 800 : 600};">${escape(a)}</li>`;
-        }).join("")}</ul>`;
-      } else {
-        const rows = [];
-        for (let i = 0; i < artists.length; i += 2) {
-          const aHeadliner = highlightHeadliner && i === 0;
-          const bHeadliner = highlightHeadliner && i + 1 === 0;
-          const a = escape(artists[i]);
-          const b = artists[i + 1] ? escape(artists[i + 1]) : "";
-          rows.push(`<tr><td width="50%" style="padding:8px 12px 8px 0;color:${textColor};font-size:${aHeadliner ? 18 : 15}px;font-weight:700;">${a}</td><td width="50%" style="padding:8px 0 8px 12px;color:${textColor};font-size:${bHeadliner ? 18 : 15}px;font-weight:700;">${b}</td></tr>`);
-        }
-        body = `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rows.join("")}</table>`;
-      }
-      const wrapStart = block.section_bg ? `<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;">` : "";
-      const wrapEnd = block.section_bg ? "</div>" : "";
-      return `<tr><td style="padding:8px 32px 16px 32px;text-align:${align};">
-        ${wrapStart}<div style="color:${titleColor};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${title}</div>
-        <div style="text-align:${align};">${body}</div>${wrapEnd}
-      </td></tr>`;
-    }
-    case "countdown": {
-      const source = block.deadline_source || "today_2359";
-      let deadline;
-      const now = /* @__PURE__ */ new Date();
-      if (source === "custom" && block.custom_deadline) {
-        deadline = new Date(block.custom_deadline);
-      } else if (source === "event_start" && event.eventStartIso) {
-        deadline = new Date(event.eventStartIso);
-      } else if (source === "batch_deadline" && event.ticketBatchDeadlineIso) {
-        deadline = new Date(event.ticketBatchDeadlineIso);
-      } else {
-        deadline = /* @__PURE__ */ new Date();
-        deadline.setHours(23, 59, 0, 0);
-      }
-      const diffMs = Math.max(0, deadline.getTime() - now.getTime());
-      const totalMin = Math.floor(diffMs / 6e4);
-      const days = Math.floor(totalMin / (60 * 24));
-      const hours = Math.floor(totalMin % (60 * 24) / 60);
-      const minutes = totalMin % 60;
-      const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
-      const align = block.align ?? "center";
-      const label = escape(block.label || "Lote atual encerra em");
-      const deadlineLabel = deadline.toLocaleString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit"
-      });
-      const size = block.size || "large";
-      const numberColor = escape(block.number_color || "#ffffff");
-      const showUnitLabels = block.show_unit_labels !== false;
-      const unitDay = escape(block.unit_label_day || "dia");
-      const unitDays = escape(block.unit_label_days || "dias");
-      const unitHour = escape(block.unit_label_hour || "hora");
-      const unitHours = escape(block.unit_label_hours || "horas");
-      const unitMinutes = escape(block.unit_label_minutes || "min");
-      const untilPrefix = escape(block.until_prefix || "at\xE9");
-      if (size === "minimal") {
-        const inline = `${days > 0 ? `${days}d ` : ""}${hours}h ${minutes.toString().padStart(2, "0")}m`;
-        return `<tr><td align="${align}" style="padding:8px 32px;text-align:${align};">
-          <div style="display:inline-block;padding:10px 16px;background:${bg};border-radius:999px;color:#ffffff;font-size:13px;font-weight:800;letter-spacing:0.02em;">\u23F0 ${label}: ${inline} <span style="opacity:0.85;font-weight:600;">(${untilPrefix} ${escape(deadlineLabel)})</span></div>
-        </td></tr>`;
-      }
-      if (size === "medium") {
-        const parts2 = [
-          { v: hours, label: hours === 1 ? unitHour : unitHours },
-          { v: minutes, label: unitMinutes }
-        ];
-        const boxes2 = parts2.map(
-          (p) => `<td style="padding:0 4px;"><div style="min-width:56px;padding:7px 9px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:8px;text-align:center;">
-            <div style="color:${numberColor};font-size:16px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
-            ${showUnitLabels ? `<div style="color:${numberColor};opacity:0.85;font-size:9px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">${p.label}</div>` : ""}
-          </div></td>`
-        ).join("");
-        return `<tr><td style="padding:6px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:11px;">
-            <tr><td align="${align}" style="padding:10px 10px;text-align:${align};">
-              <div style="color:#ffffff;font-size:10px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px;">${label}</div>
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes2}</tr></table>
-              <div style="color:#ffffff;opacity:0.85;font-size:10px;margin-top:6px;">${untilPrefix} ${escape(deadlineLabel)}</div>
-            </td></tr>
-          </table>
-        </td></tr>`;
-      }
-      const parts = [];
-      if (days > 0) parts.push({ v: days, label: days === 1 ? unitDay : unitDays });
-      parts.push({ v: hours, label: hours === 1 ? unitHour : unitHours });
-      parts.push({ v: minutes, label: unitMinutes });
-      const boxes = parts.map(
-        (p) => `<td style="padding:0 6px;"><div style="min-width:64px;padding:12px 10px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.15);border-radius:10px;text-align:center;">
-          <div style="color:${numberColor};font-size:26px;font-weight:900;line-height:1;letter-spacing:-0.02em;">${p.v.toString().padStart(2, "0")}</div>
-          ${showUnitLabels ? `<div style="color:${numberColor};opacity:0.85;font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-top:4px;">${p.label}</div>` : ""}
-        </div></td>`
-      ).join("");
-      return `<tr><td style="padding:8px 32px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};border-radius:14px;">
-          <tr><td align="${align}" style="padding:18px 16px;text-align:${align};">
-            <div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:10px;">${label}</div>
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr>${boxes}</tr></table>
-            <div style="color:#ffffff;opacity:0.85;font-size:11px;margin-top:10px;">${untilPrefix} ${escape(deadlineLabel)}</div>
-          </td></tr>
-        </table>
-      </td></tr>`;
-    }
-    case "ticker": {
-      const msgs = (block.messages && block.messages.length > 0 ? block.messages : ["\xDAltimas horas", "Ingressos limitados", "Restam poucos"]).slice(0, 3).map((m) => escape(m));
-      const bg = escape(block.bg_color || primary);
-      const color = escape(block.text_color || "#ffffff");
-      const align = block.align ?? "center";
-      const anim = block.animation || "fade";
-      const iconMap = { none: "", clock: "\u23F0 ", fire: "\u{1F525} ", bolt: "\u26A1 " };
-      const icon = iconMap[block.icon || "clock"] ?? "\u23F0 ";
-      const speedFactor = block.speed === "slow" ? 1.5 : block.speed === "fast" ? 0.6 : 1;
-      const fadeDur = Math.round(9 * speedFactor);
-      const fadeOffset2 = Math.round(-3 * speedFactor);
-      const fadeOffset3 = Math.round(-6 * speedFactor);
-      const slideDur = Math.round(18 * speedFactor);
-      const radius = block.shape === "pill" ? 999 : 8;
-      const staticLine = msgs.join(" \xB7 ");
-      const animatedSpans = anim === "fade" ? msgs.map((m, i) => `<span class="tk tk${i}">${icon}${m}</span>`).join("") : anim === "slide" ? `<span class="tk-slide">${msgs.map((m) => `${icon}${m}`).join("  \xB7  ")}</span>` : `<span>${icon}${staticLine}</span>`;
-      const keyframes = anim === "fade" && msgs.length > 1 ? `<style>@media screen{
-          .ticker-anim{position:relative;display:block;height:18px;}
-          .ticker-anim .tk{display:none;}
-          .ticker-anim .tk0{display:block;position:absolute;left:0;right:0;top:0;white-space:nowrap;text-align:${align};animation:tkf ${fadeDur}s infinite;}
-          ${msgs.length >= 2 ? `.ticker-anim .tk1{display:block;position:absolute;left:0;right:0;top:0;white-space:nowrap;text-align:${align};animation:tkf ${fadeDur}s infinite ${fadeOffset2}s;}` : ""}
-          ${msgs.length >= 3 ? `.ticker-anim .tk2{display:block;position:absolute;left:0;right:0;top:0;white-space:nowrap;text-align:${align};animation:tkf ${fadeDur}s infinite ${fadeOffset3}s;}` : ""}
-          @keyframes tkf{0%,25%{opacity:1}33%,92%{opacity:0}100%{opacity:1}}
-        }</style>` : anim === "slide" ? `<style>@media screen{.ticker-anim .tk-slide{display:inline-block;animation:tks ${slideDur}s linear infinite;}@keyframes tks{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}}</style>` : "";
-      return `${keyframes}<tr><td align="${align}" style="padding:0 32px;">
-        <div class="ticker-anim" style="background:${bg};color:${color};padding:10px 16px;border-radius:${radius}px;font-size:12px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;text-align:${align};overflow:hidden;white-space:nowrap;">
-          <!--[if mso]>${icon}${escape(msgs[0])}<![endif]-->
-          <!--[if !mso]><!-->${animatedSpans}<!--<![endif]-->
-        </div>
-      </td></tr>`;
-    }
-    case "static_map": {
-      const lat = event.venueLat;
-      const lng = event.venueLng;
-      if (typeof lat !== "number" || typeof lng !== "number") {
-        if (!ctx.preview) return "";
-        return `<tr><td style="padding:8px 32px;">
-          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
-            \u{1F5FA}\uFE0F Mapa aparecer\xE1 aqui quando o evento tiver <strong style="color:#fff;">coordenadas do venue</strong> preenchidas.
-          </div>
-        </td></tr>`;
-      }
-      const zoom = Math.max(12, Math.min(19, block.zoom ?? 15));
-      const height = Math.max(200, Math.min(400, block.height ?? 300));
-      const style2 = block.map_style || "roadmap";
-      const radius = block.border_radius ?? 12;
-      const showLabel = block.show_address_label !== false;
-      const projectId = ctx.projectId || "xfvpuzlspvvsmmunznxw";
-      const pinColorParam = block.pin_color ? `&pincolor=${encodeURIComponent(block.pin_color)}` : "";
-      const mapSrc = `https://${projectId}.supabase.co/functions/v1/render-static-map?lat=${lat}&lng=${lng}&zoom=${zoom}&w=600&h=${height}&style=${style2}${pinColorParam}`;
-      const mapsDeepLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-      const directionsLabel = escape(block.directions_label || "Toque para abrir no mapa \u2192");
-      const label = showLabel ? `<div style="padding:10px 14px;color:#a1a1aa;font-size:13px;line-height:1.4;text-align:center;background:rgba(0,0,0,0.4);border-top:1px solid rgba(255,255,255,0.06);">
-            <strong style="color:#ffffff;">${escape(event.venueName)}</strong> \xB7 ${escape(event.cityState)}<br>
-            <span style="color:${primary};font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.15em;">${directionsLabel}</span>
-          </div>` : "";
-      return `<tr><td style="padding:8px 32px;">
-        <a href="${escape(mapsDeepLink)}" style="text-decoration:none;display:block;border-radius:${radius}px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);">
-          <img src="${escape(mapSrc)}" alt="Mapa de ${escape(event.venueName)}" width="600" height="${height}" border="0" style="display:block;width:100%;max-width:100%;height:auto;">
-          ${label}
-        </a>
-      </td></tr>`;
-    }
-    default:
-      return null;
-  }
-}
-
-// supabase/functions/_shared/emailBlocksLimits.ts
-var EMAIL_BLOCK_LIMITS = {
-  logo: { minHeight: 24, maxHeight: 200, defaultHeight: 64 },
-  padding: { minY: 0, maxY: 80, defaultY: 32 },
-  image: { minWidth: 300, maxWidth: 600, defaultWidth: 552 },
-  heading: { minFontSize: 18, maxFontSize: 48, defaultFontSize: 28 },
-  divider: { minWidth: 120, maxWidth: 552, defaultWidth: 552, minThickness: 1, maxThickness: 8, defaultThickness: 1 },
-  map: { minZoom: 12, maxZoom: 19, defaultZoom: 15, minHeight: 200, maxHeight: 400, defaultHeight: 300 },
-  lineup: { maxMembers: 3 },
-  gridCardLineup: { maxNamesAt2Cols: 3, maxNamesAt3Cols: 2 },
-  blogPostsList: { minItems: 1, maxItems: 10, defaultItems: 3 },
-  summary: { descriptionMaxChars: 150 }
-};
-var clamp = (value, min, max, fallback) => Math.max(min, Math.min(max, value ?? fallback));
-
-// supabase/functions/_shared/emailBlocks/renderBlock/digest.ts
-var gridColumns = (block) => block.columns === 3 ? 3 : 2;
-var gridColWidthPct = (index, rowLength, columns) => {
-  const base = Math.floor(100 / columns * 100) / 100;
-  const isLastOfFullRow = rowLength === columns && index === columns - 1;
-  if (!isLastOfFullRow) return base;
-  return Math.round((100 - base * (columns - 1)) * 100) / 100;
-};
-function renderGridEventCard(ev, opts) {
-  const { columns, accentColor, gradient, defaultCtaLabel, showTime } = opts;
-  const url = escape(ev.eventUrl || "#");
-  const ctaLabel = escape(ev.ctaLabel || defaultCtaLabel);
-  const btn = ev.ticketUrl ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;width:100%;box-sizing:border-box;padding:10px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:8px;">${ctaLabel}</a>` : "";
-  const imgMaxWidth = Math.floor((552 - columns * 16) / columns);
-  const maxNames = columns >= 3 ? EMAIL_BLOCK_LIMITS.gridCardLineup.maxNamesAt3Cols : EMAIL_BLOCK_LIMITS.gridCardLineup.maxNamesAt2Cols;
-  const names = (ev.lineup || []).filter(Boolean);
-  const shown = names.slice(0, maxNames);
-  const extra = names.length - shown.length;
-  const lineupChips = names.length === 0 ? "" : `<div style="margin-bottom:8px;">${shown.map((n) => `<span style="display:inline-block;margin:2px 3px 2px 0;padding:3px 8px;background:rgba(168,85,247,0.12);border:1px solid ${accentColor};border-radius:999px;color:#e4e4e7;font-size:9px;font-weight:700;letter-spacing:0.02em;">${escape(n)}</span>`).join("")}${extra > 0 ? `<span style="display:inline-block;margin:2px 0;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:999px;color:#a1a1aa;font-size:9px;font-weight:700;">+${extra}</span>` : ""}</div>`;
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-    <tr><td style="padding:0;">
-      <a href="${url}" style="text-decoration:none;display:block;">
-        <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="${imgMaxWidth}" border="0" style="display:block;width:100%;max-width:${imgMaxWidth}px;height:auto;border:0;outline:none;">
-      </a>
-    </td></tr>
-    <tr><td style="padding:8px 12px 8px 12px;background-image:linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.9) 100%);">
-      <a href="${url}" style="display:block;color:#ffffff;text-decoration:none;font-size:13px;font-weight:900;line-height:1.2;">${escape(ev.title)}</a>
-    </td></tr>
-    <tr><td style="padding:10px 14px 14px 14px;">
-      <div style="color:${accentColor};font-size:10px;font-weight:800;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` \xB7 ${escape(ev.timeLabel)}` : ""}</div>
-      <div style="color:#a1a1aa;font-size:11px;margin-bottom:8px;">${escape(ev.venue)}</div>
-      ${lineupChips}
-      ${btn}
-    </td></tr>
-  </table>`;
-}
-function renderDigestBlock(block, ctx, style) {
-  const { event, settings } = ctx;
-  const { primary, accent, gradient } = style;
-  switch (block.kind) {
-    case "weekend_grid": {
-      const heroId = ctx.heroEventId;
-      const isDedgeVenue = (v) => /d\.?\s*edge/i.test((v || "").trim());
-      const list = (event.weekendEvents || []).filter((ev) => ev && (!heroId || ev.id !== heroId) && !isDedgeVenue(ev.venue));
-      const align = block.align ?? "left";
-      const eyebrow = escape(block.eyebrow || "AGENDA \xB7 FIM DE SEMANA");
-      const title = escape(block.title || "O que rola no fds");
-      const showArticle = block.show_article_link !== false;
-      const layout = block.layout || "cartaz";
-      const showTime = block.show_time !== false;
-      if (list.length === 0) {
-        if (!ctx.preview) return "";
-        return `<tr><td style="padding:8px 32px;">
-          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
-            \u{1F4C5} Aqui aparecem os eventos do fim de semana quando a newsletter for gerada.
-          </div>
-        </td></tr>`;
-      }
-      const showHeader = (block.eyebrow ?? "AGENDA \xB7 FIM DE SEMANA") !== "" || (block.title ?? "O que rola no fds") !== "";
-      const header = showHeader ? `<tr><td style="padding:16px 32px 4px 32px;text-align:${align};">
-        <div style="color:${primary};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>
-        <h2 style="margin:0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>
-      </td></tr>` : "";
-      if (layout === "timeline") {
-        const barColor = escape(block.day_bar_color || accent);
-        const rows = list.map((ev) => {
-          const url = escape(ev.eventUrl || "#");
-          const article = showArticle && ev.articleUrl ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">\u{1F4F0} Ler mat\xE9ria \u2192</a>` : "";
-          return `<tr><td style="padding:6px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-              <tr>
-                <td width="6" style="background:${barColor};"></td>
-                <td width="96" style="padding:0;">
-                  <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
-                </td>
-                <td style="padding:12px 14px;vertical-align:top;">
-                  <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` \xB7 ${escape(ev.timeLabel)}` : ""}</div>
-                  <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
-                  <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` \xB7 ${escape(ev.cityState)}` : ""}</div>
-                  ${ev.ctas && ev.ctas.length > 1 ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:8px;">${ev.ctas.map((c) => `<tr><td style="padding:3px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:9px 12px;background:${gradient};color:#ffffff;font-size:11px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.1em;border-radius:6px;">${escape((c.dayLabel ? c.dayLabel + " \xB7 " : "") + c.label + (c.timeLabel ? " \xB7 " + c.timeLabel : ""))} \u2014 ${escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso")}</a></td></tr>`).join("")}</table>` : ""}
-                  ${article}
-                </td>
-              </tr>
-            </table>
-          </td></tr>`;
-        }).join("");
-        return `${header}${rows}`;
-      }
-      if (layout === "grid") {
-        if (list.length === 1) {
-          const ev = list[0];
-          const url = escape(ev.eventUrl || "#");
-          const article = showArticle && ev.articleUrl ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">\u{1F4F0} Mat\xE9ria \u2192</a>` : "";
-          const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
-          const multiCtas = ev.ctas && ev.ctas.length > 1 ? ev.ctas : null;
-          const ticketBtn = multiCtas ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:12px 16px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:8px;">${escape((c.dayLabel ? c.dayLabel + " \xB7 " : "") + c.label + (c.timeLabel ? " \xB7 " + c.timeLabel : ""))} \u2014 ${singleCtaLabel}</a></td></tr>`).join("")}</table>` : ev.ticketUrl ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${singleCtaLabel}</a>` : "";
-          const singleCard = `<tr><td style="padding:10px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
-              <tr><td style="padding:0;position:relative;">
-                <a href="${url}" style="text-decoration:none;display:block;">
-                  <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
-                </a>
-              </td></tr>
-              <tr><td style="padding:16px 18px 18px 18px;">
-                <div style="color:${escape(block.day_bar_color || accent)};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` \xB7 ${escape(ev.timeLabel)}` : ""}</div>
-                <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
-                <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` \xB7 ${escape(ev.cityState)}` : ""}</div>
-                ${ticketBtn}${article}
-              </td></tr>
-            </table>
-          </td></tr>`;
-          return `${header}${singleCard}`;
-        }
-        const columns = gridColumns(block);
-        const accentColor = escape(block.day_bar_color || accent);
-        const defaultCtaLabel = settings.cta_label || "Garantir ingresso";
-        const gridRows = [];
-        for (let i = 0; i < list.length; i += columns) {
-          const group = list.slice(i, i + columns);
-          const cells = group.map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length, columns)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns, accentColor, gradient, defaultCtaLabel, showTime })}</td>`).join("");
-          gridRows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
-        }
-        return `${header}${gridRows.join("")}`;
-      }
-      const cards = list.map((ev) => {
-        const url = escape(ev.eventUrl || "#");
-        const article = showArticle && ev.articleUrl ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">\u{1F4F0} Mat\xE9ria \u2192</a>` : "";
-        const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
-        const multiCtas = ev.ctas && ev.ctas.length > 1 ? ev.ctas : null;
-        const ticketBtn = multiCtas ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;width:100%;box-sizing:border-box;padding:12px 16px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:8px;">${escape((c.dayLabel ? c.dayLabel + " \xB7 " : "") + c.label + (c.timeLabel ? " \xB7 " + c.timeLabel : ""))} \u2014 ${singleCtaLabel}</a></td></tr>`).join("")}</table>` : ev.ticketUrl ? `<a href="${escape(ev.ticketUrl)}" style="display:inline-block;padding:10px 18px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:8px;">${singleCtaLabel}</a>` : "";
-        return `<tr><td style="padding:10px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
-            <tr><td style="padding:0;position:relative;">
-              <a href="${url}" style="text-decoration:none;display:block;">
-                <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
-              </a>
-            </td></tr>
-            <tr><td style="padding:16px 18px 18px 18px;">
-              <div style="color:${escape(block.day_bar_color || accent)};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` \xB7 ${escape(ev.timeLabel)}` : ""}</div>
-              <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
-              <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` \xB7 ${escape(ev.cityState)}` : ""}</div>
-              ${ticketBtn}${article}
-            </td></tr>
-          </table>
-        </td></tr>`;
-      }).join("");
-      return `${header}${cards}`;
-    }
-    case "event_grid": {
-      const list = event.gridEvents || [];
-      const align = block.align ?? "left";
-      const eyebrow = escape(block.eyebrow || "");
-      const title = escape(block.title || "");
-      const showHeader = !!(block.eyebrow || block.title);
-      const header = showHeader ? `<tr><td style="padding:16px 32px 4px 32px;text-align:${align};">
-        ${eyebrow ? `<div style="color:${primary};font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>` : ""}
-        ${title ? `<h2 style="margin:0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>` : ""}
-      </td></tr>` : "";
-      if (list.length === 0) {
-        if (!ctx.preview) return "";
-        return `${header}<tr><td style="padding:8px 32px;">
-          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
-            \u{1F39F}\uFE0F Aqui aparece o grid de eventos selecionados quando o e-mail for montado.
-          </div>
-        </td></tr>`;
-      }
-      const columns = gridColumns(block);
-      const defaultCtaLabel = settings.cta_label || "Garantir ingresso";
-      const rows = [];
-      for (let i = 0; i < list.length; i += columns) {
-        const group = list.slice(i, i + columns);
-        const cells = group.map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length, columns)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns, accentColor: accent, gradient, defaultCtaLabel, showTime: true })}</td>`).join("");
-        rows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
-      }
-      return `${header}${rows.join("")}`;
-    }
-    case "dedge_block": {
-      const d = event.dedge;
-      const override = block.override_content === true;
-      const imageUrl = (override ? block.image_url : d?.imageUrl) || block.image_url || d?.imageUrl || "";
-      const eyebrow = escape((override ? block.eyebrow : d?.eyebrow) || block.eyebrow || d?.eyebrow || "TODA SEMANA \xB7 RESID\xCANCIA");
-      const title = escape((override ? block.title : d?.title) || block.title || d?.title || "Dedge \u2014 sua resid\xEAncia da semana");
-      const description = escape((override ? block.description : d?.description) || block.description || d?.description || "");
-      const primaryUrl = (override ? block.primary_url : d?.primaryUrl) || block.primary_url || d?.primaryUrl || "";
-      const primaryLabel = escape((override ? block.primary_label : d?.primaryLabel) || block.primary_label || d?.primaryLabel || "Ver todos os eventos Dedge");
-      const nights = (d?.nights || []).filter((n) => n.enabled && n.url);
-      const buttonStyle = block.button_style || "dark";
-      const cardStyle = block.card_style || "featured";
-      const showDescription = block.show_description !== false;
-      if (!imageUrl && nights.length === 0 && !primaryUrl) {
-        if (!ctx.preview) return "";
-        return `<tr><td style="padding:8px 32px;">
-          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
-            \u{1F3A7} Bloco Dedge \u2014 configure a imagem e os links das noites nas propriedades do bloco.
-          </div>
-        </td></tr>`;
-      }
-      if (cardStyle === "compact") {
-        const linkUrl = primaryUrl || nights[0]?.url || "#";
-        const compactLinkLabel = escape(
-          (override ? block.primary_label : d?.primaryLabel) || block.primary_label || d?.primaryLabel || "Ver eventos Dedge \u2192"
-        );
-        return `<tr><td style="padding:8px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-            <tr>
-              ${imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${escape(linkUrl)}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(imageUrl))}" alt="${title}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
-              <td style="padding:12px 14px;vertical-align:top;">
-                <div style="color:${accent};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${eyebrow}</div>
-                <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${escape(linkUrl)}" style="color:#ffffff;text-decoration:none;">${title}</a></div>
-                ${showDescription && description ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${description}</div>` : ""}
-                <a href="${escape(linkUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">${compactLinkLabel}</a>
-              </td>
-            </tr>
-          </table>
-        </td></tr>`;
-      }
-      const btnBg = buttonStyle === "primary" ? gradient : "#0a0a0a";
-      const btnBorder = buttonStyle === "primary" ? "transparent" : "rgba(255,255,255,0.18)";
-      const nightBtns = nights.map(
-        (n) => `<tr><td style="padding:6px 0;"><a href="${escape(n.url)}" style="display:block;width:100%;box-sizing:border-box;padding:14px 18px;background:${btnBg};border:1px solid ${btnBorder};color:#ffffff;font-size:13px;font-weight:800;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;border-radius:10px;">${escape(n.label)}</a></td></tr>`
-      ).join("");
-      return `<tr><td style="padding:20px 32px 8px 32px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000000;border:1px solid rgba(255,255,255,0.12);border-radius:16px;overflow:hidden;">
-          ${imageUrl ? `<tr><td style="padding:0;"><img src="${escape(proxyForEmail(imageUrl))}" alt="Dedge" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></td></tr>` : ""}
-          <tr><td style="padding:22px 22px 8px 22px;text-align:center;">
-            <div style="color:${accent};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:6px;">${eyebrow}</div>
-            <h2 style="margin:0 0 8px 0;color:#ffffff;font-size:22px;line-height:1.2;font-weight:900;letter-spacing:-0.01em;">${title}</h2>
-            ${description ? `<p style="margin:0 0 4px 0;color:#a1a1aa;font-size:14px;line-height:1.55;">${description}</p>` : ""}
-          </td></tr>
-          ${nights.length > 0 ? `<tr><td style="padding:12px 22px 6px 22px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${nightBtns}</table>
-          </td></tr>` : ""}
-          ${primaryUrl ? `<tr><td align="center" style="padding:8px 22px 22px 22px;text-align:center;">
-            <a href="${escape(primaryUrl)}" style="display:inline-block;padding:14px 22px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:10px;">${primaryLabel}</a>
-          </td></tr>` : ""}
-        </table>
-      </td></tr>`;
-    }
-    case "weekly_hero": {
-      const source = block.source || "first_weekend";
-      const w = event.weekendEvents?.[0];
-      const useWeekend = source === "first_weekend" && !!w;
-      const title = useWeekend ? w.title : event.eventTitle;
-      const imageUrl = useWeekend ? w.imageUrl : event.flyerUrl;
-      const url = useWeekend ? w.eventUrl || "#" : event.eventUrl;
-      const ticketUrl = useWeekend ? w.ticketUrl || w.eventUrl : event.ticketUrl;
-      const venue = useWeekend ? w.venue : event.venueName;
-      const city = useWeekend ? w.cityState || "" : event.cityState;
-      const dayLabel = useWeekend ? w.dayLabel : event.dateLabel;
-      const timeLabel = useWeekend ? w.timeLabel || "" : event.timeLabel;
-      const eyebrow = escape(block.eyebrow || "DESTAQUE DA SEMANA");
-      const align = block.align || "left";
-      const showVenue = block.show_venue !== false;
-      const showCta = block.show_cta !== false;
-      const showDatetime = block.show_datetime !== false;
-      const accentColor = escape(block.accent_color || accent);
-      const ctaLabel = escape(useWeekend && w?.ctaLabel || block.cta_label || settings.cta_label || "Garantir ingresso");
-      const overlayBg = block.overlay_intensity === "soft" ? "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.75) 100%)" : "linear-gradient(180deg, rgba(0,0,0,0.1) 20%, rgba(0,0,0,0.92) 100%)";
-      if (!imageUrl && !title) {
-        if (!ctx.preview) return "";
-        return `<tr><td style="padding:8px 32px;">
-          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
-            \u2B50 Hero da semana aparece quando houver eventos programados.
-          </div>
-        </td></tr>`;
-      }
-      return `<tr><td style="padding:12px 32px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#000;border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;">
-          <tr><td style="padding:0;position:relative;background:#000;">
-            <a href="${escape(url)}" style="text-decoration:none;display:block;">
-              <img src="${escape(proxyForEmail(imageUrl))}" alt="${escape(title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
-            </a>
-          </td></tr>
-          <tr><td style="padding:20px 22px 22px 22px;text-align:${align};background-image:${overlayBg};">
-            <div style="color:${accentColor};font-size:11px;font-weight:800;letter-spacing:0.25em;text-transform:uppercase;margin-bottom:8px;">${eyebrow}</div>
-            ${showDatetime ? `<div style="color:#ffffff;font-size:12px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:6px;opacity:0.85;">${escape(dayLabel)}${timeLabel ? ` \xB7 ${escape(timeLabel)}` : ""}</div>` : ""}
-            <h1 style="margin:0 0 8px 0;color:#ffffff;font-size:26px;line-height:1.15;font-weight:900;letter-spacing:-0.02em;">
-              <a href="${escape(url)}" style="color:#ffffff;text-decoration:none;">${escape(title)}</a>
-            </h1>
-            ${showVenue ? `<div style="color:#a1a1aa;font-size:14px;margin-bottom:14px;">\u{1F4CD} ${escape(venue)}${city ? ` \xB7 ${escape(city)}` : ""}</div>` : ""}
-            ${showCta ? useWeekend && w?.ctas && w.ctas.length > 1 ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">${w.ctas.map((c) => `<tr><td style="padding:4px 0;"><a href="${escape(c.url)}" style="display:block;min-width:220px;padding:12px 22px;background:${gradient};color:#ffffff;font-size:12px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.14em;border-radius:10px;">${escape((c.dayLabel ? c.dayLabel + " \xB7 " : "") + c.label + (c.timeLabel ? " \xB7 " + c.timeLabel : ""))} \u2014 ${ctaLabel}</a></td></tr>`).join("")}</table>` : ticketUrl ? `<a href="${escape(ticketUrl)}" style="display:inline-block;padding:14px 26px;background:${gradient};color:#ffffff;font-size:13px;font-weight:900;text-decoration:none;text-transform:uppercase;letter-spacing:0.18em;border-radius:10px;">${ctaLabel}</a>` : "" : ""}
-          </td></tr>
-        </table>
-      </td></tr>`;
-    }
-    case "blog_posts_list": {
-      const posts = (event.blogPosts || []).slice(0, clamp(block.max_items, EMAIL_BLOCK_LIMITS.blogPostsList.minItems, EMAIL_BLOCK_LIMITS.blogPostsList.maxItems, EMAIL_BLOCK_LIMITS.blogPostsList.defaultItems));
-      const eyebrow = escape(block.eyebrow || "MAT\xC9RIAS");
-      const title = escape(block.title || "Do blog nesta semana");
-      const layout = block.layout || "list";
-      const showExcerpt = block.show_excerpt !== false;
-      const showCategory = block.show_category !== false;
-      const align = block.align || "left";
-      const categoryColor = escape(block.category_color || accent);
-      const showReadMore = block.show_read_more_link === true;
-      const readMoreLabel = escape(block.read_more_label || "Ler mat\xE9ria \u2192");
-      if (posts.length === 0) {
-        if (!ctx.preview) return "";
-        return `<tr><td style="padding:8px 32px;">
-          <div style="padding:24px;background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.15);border-radius:12px;text-align:center;color:#a1a1aa;font-size:13px;">
-            \u{1F4F0} \xDAltimos posts do blog aparecer\xE3o aqui.
-          </div>
-        </td></tr>`;
-      }
-      const header = `<tr><td style="padding:14px 32px 6px 32px;text-align:${align};">
-        <div style="color:${primary};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${eyebrow}</div>
-        <h2 style="margin:0;color:#ffffff;font-size:20px;line-height:1.2;font-weight:800;letter-spacing:-0.01em;">${title}</h2>
-      </td></tr>`;
-      if (layout === "cards") {
-        const cards = posts.map((p) => {
-          const url = escape(p.url || "#");
-          return `<tr><td style="padding:8px 32px;">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-              ${p.imageUrl ? `<tr><td style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(p.imageUrl))}" alt="${escape(p.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;"></a></td></tr>` : ""}
-              <tr><td style="padding:14px 16px 16px 16px;">
-                ${showCategory && p.category ? `<div style="color:${categoryColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:4px;">${escape(p.category)}${p.publishedLabel ? ` \xB7 ${escape(p.publishedLabel)}` : ""}</div>` : p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:4px;">${escape(p.publishedLabel)}</div>` : ""}
-                <div style="color:#ffffff;font-size:16px;font-weight:800;line-height:1.25;margin-bottom:4px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
-                ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:13px;line-height:1.5;">${escape(p.excerpt)}</div>` : ""}
-                <a href="${url}" style="display:inline-block;margin-top:8px;color:${primary};font-size:11px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">${readMoreLabel}</a>
-              </td></tr>
-            </table>
-          </td></tr>`;
-        }).join("");
-        return `${header}${cards}`;
-      }
-      const rows = posts.map((p) => {
-        const url = escape(p.url || "#");
-        return `<tr><td style="padding:8px 32px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-            <tr>
-              ${p.imageUrl ? `<td width="96" valign="top" style="padding:0;"><a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(p.imageUrl))}" alt="${escape(p.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a></td>` : ""}
-              <td style="padding:12px 14px;vertical-align:top;">
-                ${showCategory && p.category ? `<div style="color:${categoryColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(p.category)}${p.publishedLabel ? ` \xB7 ${escape(p.publishedLabel)}` : ""}</div>` : p.publishedLabel ? `<div style="color:#71717a;font-size:11px;margin-bottom:3px;">${escape(p.publishedLabel)}</div>` : ""}
-                <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(p.title)}</a></div>
-                ${showExcerpt && p.excerpt ? `<div style="color:#a1a1aa;font-size:12px;line-height:1.45;">${escape(p.excerpt)}</div>` : ""}
-                ${showReadMore ? `<a href="${url}" style="display:inline-block;margin-top:6px;color:${primary};font-size:10px;font-weight:800;text-decoration:none;text-transform:uppercase;letter-spacing:0.12em;">${readMoreLabel}</a>` : ""}
-              </td>
-            </tr>
-          </table>
-        </td></tr>`;
-      }).join("");
-      return `${header}${rows}`;
-    }
-    default:
-      return null;
-  }
-}
-
-// supabase/functions/_shared/emailBlocks/renderBlock.ts
-function renderBlock(block, ctx) {
-  if (block.hidden) return "";
-  const style = computeStyle(ctx.settings);
-  const basic = renderBasicBlock(block, ctx, style);
-  if (basic !== null) return basic;
-  const interactive = renderInteractiveBlock(block, ctx, style);
-  if (interactive !== null) return interactive;
-  const digest = renderDigestBlock(block, ctx, style);
-  if (digest !== null) return digest;
-  return "";
-}
-
-// supabase/functions/_shared/emailBlocks/renderBlockedTemplate.ts
-function renderBlockedTemplate(blocks, event, settings, article, opts) {
-  const s = {
-    brand_name: settings?.brand_name || "MDACCULA",
-    primary_color: settings?.primary_color || "#a855f7",
-    accent_color: settings?.accent_color || "#ec4899",
-    background_color: settings?.background_color || "#050505",
-    footer_text: settings?.footer_text || "Voc\xEA recebeu este e-mail porque assinou a lista MDAccula.",
-    cta_label: settings?.cta_label || "Garantir ingresso",
-    logo_url: settings?.logo_url ?? null,
-    custom_html_header: settings?.custom_html_header ?? null,
-    custom_html_footer: settings?.custom_html_footer ?? null
-  };
-  const resolvedBlocks = expandGlobalRefs(blocks, opts?.globals ?? null);
-  const heroBlock = resolvedBlocks.find(
-    (b) => b.kind === "weekly_hero" && (b.source ?? "first_weekend") === "first_weekend"
-  );
-  const heroEventId = heroBlock ? event.weekendEvents?.[0]?.id : void 0;
-  const ctx = { event, article, settings: s, preview: opts?.preview, projectId: opts?.projectId, heroEventId };
-  const bg = escape(s.background_color);
-  const brand = escape(s.brand_name);
-  const preheader = escape(opts?.preheader ?? computePreheader(event));
-  const rows = resolvedBlocks.map((b) => renderBlock(b, ctx)).join("\n");
-  const customHeader = s.custom_html_header ? sanitizeCustomHtml(s.custom_html_header) : "";
-  const customFooter = s.custom_html_footer ? sanitizeCustomHtml(s.custom_html_footer) : "";
-  return `<!doctype html>
-<html lang="pt-BR" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta name="color-scheme" content="dark light">
-<meta name="supported-color-schemes" content="dark light">
-<title>${escape(event.eventTitle)} \u2014 ${brand}</title>
-<!--[if mso]>
-<xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml>
-<style>table,td,div,p,a{font-family:'Segoe UI',Arial,sans-serif !important;} img{-ms-interpolation-mode:bicubic;}</style>
-<![endif]-->
-<style>img{border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;display:block;}</style>
-</head>
-<body style="margin:0;padding:0;background:${bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#e5e5e5;">
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${preheader}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${bg};">
-<tr><td align="center" style="padding:24px 12px;">
-<!--[if mso | IE]><table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0"><tr><td><![endif]-->
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;background:#080808;border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;">
-${customHeader ? `<tr><td style="padding:16px 24px 0 24px;">${customHeader}</td></tr>` : ""}
-${rows}
-${customFooter ? `<tr><td style="padding:0 24px 16px 24px;">${customFooter}</td></tr>` : ""}
-</table>
-<!--[if mso | IE]></td></tr></table><![endif]-->
-</td></tr>
-</table>
-</body>
-</html>`;
-}
-
-// supabase/functions/_shared/emailBlocks/renderBlockedTemplateText.ts
-function stripHtml(html) {
-  return html.replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|li|h[1-6])>/gi, "\n").replace(/<[^>]+>/g, "").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-}
-function renderBlockText(block, event, settings) {
-  if (block.hidden) return "";
-  switch (block.kind) {
-    case "header":
-      return (settings.brand_name || "MDACCULA").toUpperCase();
-    case "hero_image":
-      return "";
-    case "eyebrow":
-      return (block.text || "").toUpperCase();
-    case "title": {
-      const gridList = event.gridEvents;
-      if (!block.text_override?.trim() && gridList && gridList.length > 0) {
-        return gridList.map((ev) => {
-          const dt = [ev.dayLabel, ev.timeLabel].filter(Boolean).join(" \xB7 ");
-          return `\u2022 ${ev.title}${dt ? ` \u2014 ${dt}` : ""}`;
-        }).join("\n").toUpperCase();
-      }
-      return (block.text_override?.trim() || event.eventTitle || "").toUpperCase();
-    }
-    case "subtitle":
-      return event.eventSubtitle || "";
-    case "event_meta":
-      return [
-        `${(block.date_label || "Data e hora").toUpperCase()}:`,
-        `  ${event.dateLabel} \u2014 ${event.timeLabel}`,
-        `${(block.location_label || "Local").toUpperCase()}:`,
-        `  ${event.venueName} \u2014 ${event.cityState}`
-      ].join("\n");
-    case "description":
-      return event.description || "";
-    case "article_summary":
-      return "";
-    case "cta_button": {
-      const url = block.url_field === "vip_link" ? event.vipLink || event.ticketUrl : block.url_field === "event_url" ? event.eventUrl : block.url_field === "custom" ? block.custom_url || event.ticketUrl : event.ticketUrl;
-      const label = block.label || event.ctaLabel || settings.cta_label || "Garantir ingresso";
-      return `>> ${label.toUpperCase()}: ${url}`;
-    }
-    case "pix_button": {
-      if (!event.pixWhatsAppUrl) return "";
-      const label = block.label || "Comprar Sem Taxa via Pix";
-      return `>> ${label.toUpperCase()}: ${event.pixWhatsAppUrl}`;
-    }
-    case "secondary_link": {
-      const url = block.url_field === "event_url" ? event.eventUrl : block.url_field === "custom" ? block.custom_url || event.agendaUrl : event.agendaUrl;
-      return `${block.label || "Ver mais"}: ${url}`;
-    }
-    case "image_with_link":
-      return block.link_url ? `Link: ${block.link_url}` : "";
-    case "divider":
-      return "----";
-    case "text":
-      return stripHtml(block.html || "");
-    case "social_icons": {
-      const list = (block.networks || []).filter((n) => n.enabled && n.url);
-      if (!list.length) return "";
-      return "Siga: " + list.map((n) => `${n.label} (${n.url})`).join(" | ");
-    }
-    case "lineup": {
-      const artists = (event.lineup || []).filter(Boolean);
-      if (!artists.length) return "";
-      return (block.title || "Line-up").toUpperCase() + ":\n  " + artists.join(", ");
-    }
-    case "countdown":
-      return block.label || "Lote atual encerra em";
-    case "ticker":
-      return (block.messages || []).filter(Boolean).join(" \xB7 ");
-    case "static_map":
-      return event.venueLat && event.venueLng ? `Mapa: https://www.google.com/maps/search/?api=1&query=${event.venueLat},${event.venueLng}` : "";
-    case "weekend_grid": {
-      const list = event.weekendEvents || [];
-      if (!list.length) return "";
-      const header = (block.title || "O que rola no fds").toUpperCase();
-      const rows = list.map(
-        (ev) => `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} \xB7 ${ev.title} @ ${ev.venue}${ev.cityState ? " (" + ev.cityState + ")" : ""} \u2014 ${ev.eventUrl}`
-      );
-      return `${header}
-${rows.join("\n")}`;
-    }
-    case "event_grid": {
-      const list = event.gridEvents || [];
-      if (!list.length) return "";
-      const headerLines = [block.eyebrow, block.title].filter(Boolean).map((t) => t.toUpperCase());
-      const header = headerLines.length ? `${headerLines.join("\n")}
-` : "";
-      const rows = list.map(
-        (ev) => `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} \xB7 ${ev.title} @ ${ev.venue} \u2014 ${ev.ticketUrl || ev.eventUrl}`
-      );
-      return `${header}${rows.join("\n")}`;
-    }
-    case "dedge_block": {
-      const d = event.dedge;
-      if (!d) return "";
-      const nights = (d.nights || []).filter((n) => n.enabled).map((n) => `  - ${n.label}: ${n.url}`);
-      const title = d.title || block.title || "Dedge \u2014 sua resid\xEAncia da semana";
-      return `D.EDGE
-${title}
-${d.description || ""}
-${nights.join("\n")}`.trim();
-    }
-    case "weekly_hero": {
-      const first = event.weekendEvents?.[0];
-      if (!first) return "";
-      return `${(block.eyebrow || "Destaque da semana").toUpperCase()}: ${first.title} \u2014 ${first.eventUrl}`;
-    }
-    case "blog_posts_list": {
-      const posts = (event.blogPosts || []).slice(0, clamp(block.max_items, EMAIL_BLOCK_LIMITS.blogPostsList.minItems, EMAIL_BLOCK_LIMITS.blogPostsList.maxItems, EMAIL_BLOCK_LIMITS.blogPostsList.defaultItems));
-      if (!posts.length) return "";
-      const header = (block.title || "Do blog nesta semana").toUpperCase();
-      const rows = posts.map((p) => `- ${p.title} \u2014 ${p.url}`);
-      return `${header}
-${rows.join("\n")}`;
-    }
-    case "footer":
-      return block.text || settings.footer_text || "";
-    case "global_ref":
-      return "";
-    default:
-      return "";
-  }
-}
-function renderBlockedTemplateText(blocks, event, settings, _article, opts) {
-  const s = {
-    brand_name: settings?.brand_name || "MDACCULA",
-    footer_text: settings?.footer_text || "Voc\xEA recebeu este e-mail porque assinou a lista MDAccula.",
-    cta_label: settings?.cta_label || "Garantir ingresso"
-  };
-  const resolved = expandGlobalRefs(blocks, opts?.globals ?? null);
-  const parts = resolved.map((b) => renderBlockText(b, event, s)).filter((s2) => s2 && s2.trim());
-  const body = parts.join("\n\n");
-  const preheader = opts?.preheader ?? computePreheader(event);
-  const footer = "\n\n---\nVoc\xEA recebeu este e-mail porque assina a lista MDAccula.";
-  return `${preheader}
-
-${body}${footer}`.replace(/\n{3,}/g, "\n\n").trim();
-}
-
-// supabase/functions/_shared/eventCta.ts
-var DEFAULT_EVENT_CTA_TYPE = "buy_ticket";
-var EVENT_CTA_TYPES = [
-  "buy_ticket",
-  "buy_ticket_discount",
-  "guest_list",
-  "courtesy"
-];
-var EVENT_CTA_CONFIG = {
-  buy_ticket: { buttonLabel: "Comprar Ingresso", cardTitle: "Ingressos" },
-  buy_ticket_discount: { buttonLabel: "Comprar Ingresso com Desconto", cardTitle: "Ingressos com Desconto" },
-  guest_list: { buttonLabel: "Enviar Nomes para Lista", cardTitle: "Lista Social" },
-  courtesy: { buttonLabel: "Emitir Cortesia", cardTitle: "Cortesia" }
-};
-var isEventCtaType = (value) => typeof value === "string" && EVENT_CTA_TYPES.includes(value);
-function normalizeEventCtaType(value) {
-  return isEventCtaType(value) ? value : DEFAULT_EVENT_CTA_TYPE;
-}
-function getEventCtaButtonLabel(value) {
-  return EVENT_CTA_CONFIG[normalizeEventCtaType(value)].buttonLabel;
-}
-
-// supabase/functions/_shared/emailMeta.ts
-var PLACEHOLDER_RE = /\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}/g;
-var valueMap = (data) => ({
-  event_title: data.eventTitle ?? "",
-  "event.title": data.eventTitle ?? "",
-  date_label: data.dateLabel ?? "",
-  "event.date_label": data.dateLabel ?? "",
-  time_label: data.timeLabel ?? "",
-  "event.time_label": data.timeLabel ?? "",
-  venue_name: data.venueName ?? "",
-  "event.venue": data.venueName ?? "",
-  "event.venue_name": data.venueName ?? "",
-  city_state: data.cityState ?? "",
-  "event.city_state": data.cityState ?? "",
-  weekend_range: data.weekendRange ?? data.rangeLabel ?? "",
-  week_range: data.weekRange ?? data.rangeLabel ?? "",
-  range_label: data.rangeLabel ?? "",
-  events_count: data.eventsCount == null ? "" : String(data.eventsCount)
-});
-function resolveEmailPlaceholders(template, data) {
-  if (!template) return "";
-  const values = valueMap(data);
-  return String(template).replace(PLACEHOLDER_RE, (match, key) => values[key] ?? match).trim();
-}
-function buildEmailMeta(subjectTemplate, preheaderTemplate, data) {
-  return {
-    subject: resolveEmailPlaceholders(subjectTemplate, data),
-    preheader: resolveEmailPlaceholders(preheaderTemplate, data)
-  };
-}
-function injectEmailPreheader(html, preheader) {
-  const escaped = preheader.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  const hidden = `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escaped}</div>`;
-  if (/<div\s+style="display:none;max-height:0;overflow:hidden;mso-hide:all;">[\s\S]*?<\/div>/i.test(html)) {
-    return html.replace(/<div\s+style="display:none;max-height:0;overflow:hidden;mso-hide:all;">[\s\S]*?<\/div>/i, hidden);
-  }
-  return html.replace(/<body([^>]*)>/i, `<body$1>
-${hidden}`);
-}
-
-// supabase/functions/_shared/emailComposer.ts
-var issue = (block, code, message) => ({
-  blockId: block.id,
-  kind: block.kind,
-  code,
-  message
-});
-var isValidDate = (value) => !!value && !Number.isNaN(new Date(value).getTime());
-function validateEmailBlocks(blocks, event, article, globals) {
-  const issues = [];
-  for (const original of blocks) {
-    if (original.hidden) continue;
-    let block = original;
-    if (block.kind === "global_ref") {
-      const global = globals instanceof Map ? globals.get(block.global_id) : globals?.[block.global_id];
-      if (!global) {
-        issues.push(issue(block, "GLOBAL_BLOCK_MISSING", "O bloco global vinculado n\xE3o existe mais."));
-        continue;
-      }
-      block = { ...global.block, id: original.id };
-      if (block.hidden) continue;
-    }
-    switch (block.kind) {
-      case "hero_image":
-        if (!event.flyerUrl?.trim()) issues.push(issue(block, "FLYER_MISSING", "Cadastre o flyer do evento ou oculte o bloco de imagem."));
-        break;
-      case "title":
-        if (!event.eventTitle?.trim()) issues.push(issue(block, "TITLE_MISSING", "O evento precisa de t\xEDtulo."));
-        break;
-      case "subtitle":
-        if (!event.eventSubtitle?.trim()) issues.push(issue(block, "SUBTITLE_MISSING", "Preencha o subt\xEDtulo do evento ou oculte este bloco."));
-        break;
-      case "event_meta":
-        if (!event.dateLabel || !event.timeLabel || !event.venueName || !event.cityState) issues.push(issue(block, "EVENT_META_MISSING", "Preencha data, hora e local do evento."));
-        break;
-      case "description":
-        if (!event.description?.trim()) issues.push(issue(block, "DESCRIPTION_MISSING", "Preencha a descri\xE7\xE3o do evento ou oculte este bloco."));
-        break;
-      case "article_summary":
-        if (!article?.title || !article.url) issues.push(issue(block, "ARTICLE_MISSING", "Vincule uma mat\xE9ria ao evento ou oculte o resumo."));
-        break;
-      case "cta_button": {
-        const url = block.url_field === "vip_link" ? event.vipLink : block.url_field === "event_url" ? event.eventUrl : block.url_field === "custom" ? block.custom_url : event.ticketUrl;
-        if (!url?.trim()) issues.push(issue(block, "CTA_URL_MISSING", "Preencha o link usado pelo bot\xE3o principal."));
-        break;
-      }
-      case "secondary_link": {
-        const url = block.url_field === "event_url" ? event.eventUrl : block.url_field === "custom" ? block.custom_url : event.agendaUrl;
-        if (!url?.trim()) issues.push(issue(block, "SECONDARY_URL_MISSING", "Preencha o destino do link secund\xE1rio."));
-        break;
-      }
-      case "image_with_link":
-        if (!block.image_url?.trim()) issues.push(issue(block, "IMAGE_MISSING", "Escolha a imagem deste bloco ou oculte-o."));
-        if (!block.link_url?.trim()) issues.push(issue(block, "IMAGE_LINK_MISSING", "Preencha o link da imagem."));
-        break;
-      case "text":
-        if (!block.html?.trim()) issues.push(issue(block, "TEXT_MISSING", "Preencha o conte\xFAdo do bloco de texto."));
-        break;
-      case "social_icons":
-        if (!(block.networks || []).some((network) => network.enabled && network.url?.trim())) issues.push(issue(block, "SOCIAL_LINK_MISSING", "Ative ao menos uma rede social com link preenchido."));
-        break;
-      case "lineup":
-        if (!(event.lineup || []).some(Boolean)) issues.push(issue(block, "LINEUP_MISSING", "Preencha o line-up do evento ou oculte este bloco."));
-        break;
-      case "countdown": {
-        const source = block.deadline_source || "today_2359";
-        const value = source === "custom" ? block.custom_deadline : source === "event_start" ? event.eventStartIso : source === "batch_deadline" ? event.ticketBatchDeadlineIso : (/* @__PURE__ */ new Date()).toISOString();
-        if (!isValidDate(value)) issues.push(issue(block, "COUNTDOWN_DATE_MISSING", "Defina uma data v\xE1lida para a contagem regressiva."));
-        break;
-      }
-      case "static_map":
-        if (typeof event.venueLat !== "number" || typeof event.venueLng !== "number") issues.push(issue(block, "MAP_COORDINATES_MISSING", "Geocodifique o local do evento ou oculte o mapa."));
-        break;
-      case "weekend_grid":
-        if (!(event.weekendEvents || []).length) issues.push(issue(block, "WEEKEND_EVENTS_MISSING", "N\xE3o h\xE1 eventos para montar a agenda deste bloco."));
-        break;
-      case "event_grid":
-        if (!(event.gridEvents || []).length) issues.push(issue(block, "EVENT_GRID_MISSING", "Selecione ao menos 1 evento para o grid."));
-        break;
-      case "dedge_block": {
-        const hasBlockContent = !!(block.image_url || block.primary_url);
-        const hasData = !!(event.dedge?.imageUrl || event.dedge?.primaryUrl || event.dedge?.nights?.some((night) => night.enabled && night.url));
-        if (!hasBlockContent && !hasData) issues.push(issue(block, "DEDGE_CONTENT_MISSING", "Configure a imagem ou os links do bloco Dedge."));
-        break;
-      }
-      case "weekly_hero":
-        if ((block.source || "first_weekend") === "first_weekend" && !(event.weekendEvents || []).length) issues.push(issue(block, "WEEKLY_HERO_MISSING", "N\xE3o h\xE1 evento para o destaque da semana."));
-        else if (!event.flyerUrl || !event.eventTitle) issues.push(issue(block, "WEEKLY_HERO_MISSING", "O destaque precisa de t\xEDtulo e imagem."));
-        break;
-      case "blog_posts_list":
-        if (!(event.blogPosts || []).length) issues.push(issue(block, "BLOG_POSTS_MISSING", "N\xE3o h\xE1 mat\xE9rias para montar este bloco."));
-        break;
-      default:
-        break;
-    }
-  }
-  return issues;
-}
-function composeEmail(input) {
-  const { template, event, settings, article = null, globals = null } = input;
-  const meta = buildEmailMeta(template.subject_template, template.preheader_template, input.metaData ?? {
-    eventTitle: event.eventTitle,
-    dateLabel: event.dateLabel,
-    timeLabel: event.timeLabel,
-    venueName: event.venueName,
-    cityState: event.cityState
-  });
-  const issues = validateEmailBlocks(template.blocks, event, article, globals);
-  if (!meta.subject) issues.unshift({ blockId: "template", kind: "template", code: "SUBJECT_MISSING", message: "Preencha o assunto do template." });
-  if (template.blocks.length === 0) issues.push({ blockId: "template", kind: "template", code: "BLOCKS_MISSING", message: "Adicione ao menos um bloco ao template." });
-  return {
-    html: renderBlockedTemplate(template.blocks, event, settings, article, { preview: false, globals, preheader: meta.preheader }),
-    subject: meta.subject,
-    preheader: meta.preheader,
-    event,
-    issues
-  };
-}
-
-// supabase/functions/_shared/egoiClient.ts
-var EGOI_BASE_URL = "https://api.egoiapp.com";
-async function egoiRequest(path, apiKey, init = {}) {
-  const res = await fetch(`${EGOI_BASE_URL}${path}`, {
-    ...init,
-    headers: {
-      Apikey: apiKey,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...init.headers || {}
-    }
-  });
-  const text = await res.text();
-  let body = text;
-  try {
-    body = JSON.parse(text);
-  } catch {
-  }
-  return { status: res.status, ok: res.ok, body };
-}
-function egoiSendBodyIndicatesError(body) {
-  return !!(body && typeof body === "object" && (body.error || body.errors || body.status === "error"));
-}
-async function sendEgoiCampaign(campaignHash, listId, apiKey, segmentId) {
-  const segments = segmentId ? { type: "segment", data: [String(segmentId)] } : { type: "none" };
-  const res = await egoiRequest(
-    `/campaigns/email/${encodeURIComponent(campaignHash)}/actions/send`,
-    apiKey,
-    { method: "POST", body: JSON.stringify({ list_id: listId, segments }) }
-  );
-  return {
-    ok: res.ok && !egoiSendBodyIndicatesError(res.body),
-    status: res.status,
-    body: res.body
-  };
-}
-
-// supabase/functions/_shared/digestCampaignHistory.ts
-async function writeDigestCampaignHistory(admin, eventIds, opts) {
-  const rowBase = {
-    egoi_campaign_id: opts.campaignHash,
-    status: opts.status,
-    mode: opts.mode,
-    error_message: opts.errorMessage,
-    sent_at: opts.sentAt,
-    segment_id: opts.segmentId,
-    campaign_type: opts.campaignType
-  };
-  const rows = eventIds.length > 0 ? eventIds.map((eventId) => ({ event_id: eventId, ...rowBase })) : [{ event_id: null, ...rowBase }];
-  try {
-    const { error } = await admin.from("event_email_campaigns").insert(rows);
-    if (error) return `Aviso: falha ao gravar hist\xF3rico: ${error.message}`;
-    return null;
-  } catch (e) {
-    return `Aviso: falha ao gravar hist\xF3rico: ${e.message}`;
-  }
-}
-
-// supabase/functions/weekend-agenda-draft/index.ts
-var corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret, x-cron-job"
-};
-var BASE = "https://api.egoiapp.com";
-var SITE_URL = "https://mdaccula.com";
-async function egoiRequest2(path, apiKey, init = {}) {
+async function egoiRequest(path: string, apiKey: string, init: RequestInit = {}) {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       Apikey: apiKey,
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...init.headers || {}
-    }
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
   });
   const text = await res.text();
-  let body = text;
-  try {
-    body = JSON.parse(text);
-  } catch {
-  }
+  let body: any = text;
+  try { body = JSON.parse(text); } catch { /* keep raw */ }
   return { status: res.status, ok: res.ok, body };
 }
-var escapeHtml = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-function formatDatePt(dateStr, timeStr) {
+
+const escapeHtml = (s: string) =>
+  String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+function formatDatePt(dateStr: string, timeStr?: string | null) {
   try {
-    const d = /* @__PURE__ */ new Date(`${dateStr}T${(timeStr || "00:00").slice(0, 5)}:00`);
-    return d.toLocaleDateString("pt-BR", {
-      weekday: "short",
-      day: "2-digit",
-      month: "short"
+    const d = new Date(`${dateStr}T${(timeStr || '00:00').slice(0, 5)}:00`);
+    return d.toLocaleDateString('pt-BR', {
+      weekday: 'short', day: '2-digit', month: 'short',
     });
   } catch {
     return dateStr;
   }
 }
-function hasAnyBlockKind(blocks, kinds) {
+
+type EventRow = {
+  id: string; title: string; slug: string; date: string; end_date: string | null; time: string | null;
+  venue: string; location_city: string; location_state: string;
+  image_url: string | null; ticket_link: string | null; cta_type: string | null;
+};
+
+type PostRow = {
+  id: string; title: string; slug: string; excerpt: string | null;
+  image_url: string | null; published_at: string | null;
+};
+
+type BrandSettings = {
+  brand_name?: string; logo_url?: string | null;
+  primary_color?: string; accent_color?: string; background_color?: string;
+  footer_text?: string;
+  instagram_url?: string | null; youtube_url?: string | null; tiktok_url?: string | null;
+};
+
+function hasAnyBlockKind(blocks: Block[] | null, kinds: string[]): boolean {
   if (!blocks?.length) return false;
-  return blocks.some((b) => kinds.includes(b.kind));
+  return blocks.some((b) => kinds.includes((b as any).kind));
 }
-function renderFallbackHtml(events, posts, settings, rangeLabel) {
-  const primary = settings.primary_color || "#a855f7";
-  const accent = settings.accent_color || "#ec4899";
-  const bg = settings.background_color || "#050505";
-  const brand = settings.brand_name || "MDACCULA";
-  const footer = settings.footer_text || "Voc\xEA recebeu este e-mail porque assinou a lista MDAccula \u2014 agenda cultural de m\xFAsica eletr\xF4nica de S\xE3o Paulo-SP.";
-  const logo = settings.logo_url ? `<img src="${escapeHtml(proxyForEmail(settings.logo_url))}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />` : `<div style="font-family:Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;">${escapeHtml(brand)}</div>`;
-  const eventCards = events.length === 0 ? `<tr><td style="padding:12px 20px;color:#bbb;font-family:Arial,sans-serif;font-size:14px;">Nenhum evento confirmado para este fim de semana \u2014 fique de olho no site.</td></tr>` : events.map((e) => {
-    const url = `${SITE_URL}/eventos/${escapeHtml(e.slug)}`;
-    const ticket = e.ticket_link || url;
-    const img = proxyForEmail(e.image_url || `${SITE_URL}/placeholder.svg`);
-    return `
+
+// Fallback HTML mínimo caso nenhum template weekend_agenda esteja disponível.
+function renderFallbackHtml(
+  events: EventRow[],
+  posts: PostRow[],
+  settings: BrandSettings,
+  rangeLabel: string,
+): string {
+  const primary = settings.primary_color || '#a855f7';
+  const accent = settings.accent_color || '#ec4899';
+  const bg = settings.background_color || '#050505';
+  const brand = settings.brand_name || 'MDACCULA';
+  const footer = settings.footer_text ||
+    'Você recebeu este e-mail porque assinou a lista MDAccula — agenda cultural de música eletrônica de São Paulo-SP.';
+  const logo = settings.logo_url
+    ? `<img src="${escapeHtml(proxyForEmail(settings.logo_url))}" alt="${escapeHtml(brand)}" width="140" height="42" style="display:block;height:42px;width:auto;border:0;outline:none;" />`
+    : `<div style="font-family:Arial,sans-serif;font-size:22px;font-weight:800;letter-spacing:2px;color:#fff;">${escapeHtml(brand)}</div>`;
+
+  const eventCards = events.length === 0
+    ? `<tr><td style="padding:12px 20px;color:#bbb;font-family:Arial,sans-serif;font-size:14px;">Nenhum evento confirmado para este fim de semana — fique de olho no site.</td></tr>`
+    : events.map((e) => {
+        const url = `${SITE_URL}/eventos/${escapeHtml(e.slug)}`;
+        const ticket = e.ticket_link || url;
+        const img = proxyForEmail(e.image_url || `${SITE_URL}/placeholder.svg`);
+        return `
         <tr><td style="padding:14px 20px 6px 20px;">
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:10px;overflow:hidden;">
             <tr>
@@ -1649,28 +122,29 @@ function renderFallbackHtml(events, posts, settings, rangeLabel) {
                 </a>
               </td>
               <td valign="top" style="padding:12px 14px;font-family:Arial,sans-serif;">
-                <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${accent};font-weight:700;">${escapeHtml(formatDatePt(e.date, e.time))} \xB7 ${escapeHtml((e.time || "").slice(0, 5) || "22h")}</div>
+                <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:${accent};font-weight:700;">${escapeHtml(formatDatePt(e.date, e.time))} · ${escapeHtml((e.time || '').slice(0,5) || '22h')}</div>
                 <div style="font-size:16px;font-weight:800;color:#fff;margin:4px 0 4px 0;line-height:1.25;">
                   <a href="${url}" target="_blank" style="color:#fff;text-decoration:none;">${escapeHtml(e.title)}</a>
                 </div>
-                <div style="font-size:12px;color:#bbb;margin-bottom:8px;">${escapeHtml(e.venue)} \xB7 ${escapeHtml(e.location_city)}-${escapeHtml(e.location_state)}</div>
+                <div style="font-size:12px;color:#bbb;margin-bottom:8px;">${escapeHtml(e.venue)} · ${escapeHtml(e.location_city)}-${escapeHtml(e.location_state)}</div>
                 <a href="${ticket}" target="_blank" style="display:inline-block;background:${primary};color:#fff;font-size:12px;font-weight:700;padding:8px 14px;border-radius:6px;text-decoration:none;">Ver detalhes</a>
               </td>
             </tr>
           </table>
         </td></tr>`;
-  }).join("");
+      }).join('');
+
   return `<!doctype html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(brand)} \u2014 Agenda do FDS</title></head>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(brand)} — Agenda do FDS</title></head>
 <body style="margin:0;padding:0;background:${bg};">
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;background:${bg};">
   <tr><td align="center" style="padding:24px 12px;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="width:600px;max-width:600px;border-collapse:collapse;background:${bg};">
       <tr><td align="center" style="padding:8px 20px 16px 20px;">${logo}</td></tr>
       <tr><td style="padding:0 20px 8px 20px;font-family:Arial,sans-serif;">
-        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${accent};font-weight:700;">Agenda do FDS \xB7 ${escapeHtml(rangeLabel)}</div>
+        <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:${accent};font-weight:700;">Agenda do FDS · ${escapeHtml(rangeLabel)}</div>
         <h1 style="font-size:24px;line-height:1.2;color:#fff;margin:6px 0 4px 0;">O que rola no fim de semana</h1>
-        <p style="font-size:14px;color:#bbb;margin:0;">Sextou, sabadou e domingou em S\xE3o Paulo.</p>
+        <p style="font-size:14px;color:#bbb;margin:0;">Sextou, sabadou e domingou em São Paulo.</p>
       </td></tr>
       ${eventCards}
       <tr><td align="center" style="padding:16px 20px;">
@@ -1686,269 +160,347 @@ function renderFallbackHtml(events, posts, settings, rangeLabel) {
 </table>
 </body></html>`;
 }
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-  const json = (data, status = 200) => new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
-  });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const json = (data: unknown, status = 200) =>
+    new Response(JSON.stringify(data), {
+      status,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
   try {
-    const authHeader = req.headers.get("Authorization");
-    const cronSecret = req.headers.get("x-cron-secret");
-    const cronJobHeader = req.headers.get("x-cron-job");
-    const envCronSecret = Deno.env.get("CRON_SHARED_SECRET");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const admin = createClient2(supabaseUrl, serviceKey);
+    const authHeader = req.headers.get('Authorization');
+    const cronSecret = req.headers.get('x-cron-secret');
+    const cronJobHeader = req.headers.get('x-cron-job');
+    const envCronSecret = Deno.env.get('CRON_SHARED_SECRET');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const admin = createClient(supabaseUrl, serviceKey);
+
+    // Auth: admin OR cron secret
     let isCron = !!(cronSecret && envCronSecret && cronSecret === envCronSecret);
     if (!isCron && cronSecret && cronJobHeader) {
-      const { data: row } = await admin.from("internal_cron_secrets").select("secret").eq("name", "weekend_agenda_cron").maybeSingle();
+      const { data: row } = await admin
+        .from('internal_cron_secrets')
+        .select('secret')
+        .eq('name', 'weekend_agenda_cron')
+        .maybeSingle();
       if (row?.secret && row.secret === cronSecret) isCron = true;
     }
-    if (!authHeader && !isCron) return json({ error: "N\xE3o autenticado" }, 401);
+
+    if (!authHeader && !isCron) return json({ error: 'Não autenticado' }, 401);
+
     if (!isCron && authHeader) {
-      const anonClient = createClient2(supabaseUrl, anonKey);
-      const token = authHeader.replace("Bearer ", "");
+      const anonClient = createClient(supabaseUrl, anonKey);
+      const token = authHeader.replace('Bearer ', '');
       const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
-      if (userErr || !userData.user) return json({ error: "Token inv\xE1lido" }, 401);
-      const { data: isAdmin } = await admin.rpc("has_role", {
-        _user_id: userData.user.id,
-        _role: "admin"
+      if (userErr || !userData.user) return json({ error: 'Token inválido' }, 401);
+      const { data: isAdmin } = await admin.rpc('has_role', {
+        _user_id: userData.user.id, _role: 'admin',
       });
-      if (!isAdmin) return json({ error: "Apenas admins" }, 403);
+      if (!isAdmin) return json({ error: 'Apenas admins' }, 403);
     }
+
     const body = await req.json().catch(() => ({}));
     const force = body?.force === true;
     const dryRun = body?.dry_run === true;
-    const overrideTemplateId = typeof body?.template_id === "string" && body.template_id ? body.template_id : null;
-    const { data: masterRow } = await admin.from("site_settings").select("value").eq("key", "egoi_email_enabled").maybeSingle();
-    if (masterRow?.value !== "true") {
-      return json({ skipped: true, reason: "master_off" });
+    const overrideTemplateId: string | null = typeof body?.template_id === 'string' && body.template_id ? body.template_id : null;
+
+    // Guard 1: master switch
+    const { data: masterRow } = await admin
+      .from('site_settings').select('value').eq('key', 'egoi_email_enabled').maybeSingle();
+    if (masterRow?.value !== 'true') {
+      return json({ skipped: true, reason: 'master_off' });
     }
-    const { data: agendaRow } = await admin.from("site_settings").select("value").eq("key", "weekend_agenda_enabled").maybeSingle();
-    const agendaEnabled = agendaRow?.value === "true";
-    if (isCron && !agendaEnabled) return json({ skipped: true, reason: "agenda_disabled" });
-    if (!isCron && !agendaEnabled && !force) return json({ skipped: true, reason: "agenda_disabled" });
-    const { data: sendOnCronRow } = await admin.from("site_settings").select("value").eq("key", "weekend_agenda_send_on_cron").maybeSingle();
-    const sendOnCron = isCron && sendOnCronRow?.value === "true";
-    let cfg = null;
-    let apiKey;
+
+    // Guard 2: agenda FDS habilitada
+    const { data: agendaRow } = await admin
+      .from('site_settings').select('value').eq('key', 'weekend_agenda_enabled').maybeSingle();
+    const agendaEnabled = agendaRow?.value === 'true';
+    if (isCron && !agendaEnabled) return json({ skipped: true, reason: 'agenda_disabled' });
+    if (!isCron && !agendaEnabled && !force) return json({ skipped: true, reason: 'agenda_disabled' });
+
+    // Guard 2b: disparo automático no cron (padrão = rascunho)
+    const { data: sendOnCronRow } = await admin
+      .from('site_settings').select('value').eq('key', 'weekend_agenda_send_on_cron').maybeSingle();
+    const sendOnCron = isCron && sendOnCronRow?.value === 'true';
+
+    // Guard 3: egoi_config (só quando vai enviar)
+    let cfg: any = null;
+    let apiKey: string | undefined;
     if (!dryRun) {
-      const { data } = await admin.from("egoi_config").select("*").maybeSingle();
+      const { data } = await admin.from('egoi_config').select('*').maybeSingle();
       cfg = data;
       if (!cfg || !cfg.is_enabled || !cfg.list_id || !cfg.sender_id) {
-        return json({ skipped: true, reason: "config_disabled_or_incomplete" });
+        return json({ skipped: true, reason: 'config_disabled_or_incomplete' });
       }
-      apiKey = Deno.env.get("EGOI_API_KEY");
-      if (!apiKey) return json({ error: "EGOI_API_KEY n\xE3o configurada" }, 500);
+      apiKey = Deno.env.get('EGOI_API_KEY');
+      if (!apiKey) return json({ error: 'EGOI_API_KEY não configurada' }, 500);
     }
-    const now = /* @__PURE__ */ new Date();
-    const day = now.getDay();
-    const daysToFriday = day === 5 ? 0 : day === 6 ? -1 : day === 0 ? -2 : (5 - day + 7) % 7;
+
+    // Range: próxima sex/sáb/dom (se já é sex/sáb/dom, usa o FDS corrente).
+    const now = new Date();
+    const day = now.getDay(); // 0 dom .. 6 sáb
+    const daysToFriday =
+      day === 5 ? 0 :
+      day === 6 ? -1 :
+      day === 0 ? -2 :
+      (5 - day + 7) % 7;
     const rangeStart = new Date(now);
     rangeStart.setDate(now.getDate() + daysToFriday);
     rangeStart.setHours(0, 0, 0, 0);
     const rangeEnd = new Date(rangeStart);
     rangeEnd.setDate(rangeStart.getDate() + 2);
+
     const startIso = rangeStart.toISOString().slice(0, 10);
     const endIso = rangeEnd.toISOString().slice(0, 10);
     const todayIso = now.toISOString().slice(0, 10);
-    const rangeLabel = `${rangeStart.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} \u2192 ${rangeEnd.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}`;
-    let activeTplQuery = admin.from("email_templates").select("id,name,type,blocks,is_default,subject_template,preheader_template");
+    const rangeLabel = `${rangeStart.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })} → ${rangeEnd.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`;
+
+    // Query do template
+    let activeTplQuery = (admin.from as any)('email_templates')
+      .select('id,name,type,blocks,is_default,subject_template,preheader_template');
     if (overrideTemplateId) {
-      activeTplQuery = activeTplQuery.eq("id", overrideTemplateId);
+      activeTplQuery = activeTplQuery.eq('id', overrideTemplateId);
     } else {
-      const { data: cfgTplRow } = await admin.from("site_settings").select("value").eq("key", "weekend_agenda_template_id").maybeSingle();
-      const cfgTplId = cfgTplRow?.value && cfgTplRow.value !== "" ? cfgTplRow.value : null;
+      // Prioriza template configurado em site_settings.weekend_agenda_template_id, senão pega is_default
+      const { data: cfgTplRow } = await admin
+        .from('site_settings').select('value').eq('key', 'weekend_agenda_template_id').maybeSingle();
+      const cfgTplId = cfgTplRow?.value && cfgTplRow.value !== '' ? cfgTplRow.value : null;
       if (cfgTplId) {
-        activeTplQuery = activeTplQuery.eq("id", cfgTplId);
+        activeTplQuery = activeTplQuery.eq('id', cfgTplId);
       } else {
-        activeTplQuery = activeTplQuery.eq("type", "weekend_agenda").order("is_default", { ascending: false }).order("updated_at", { ascending: false }).limit(1);
+        activeTplQuery = activeTplQuery
+          .eq('type', 'weekend_agenda')
+          .order('is_default', { ascending: false })
+          .order('updated_at', { ascending: false })
+          .limit(1);
       }
     }
+
     const [{ data: eventRows }, { data: posts }, { data: tplSettings }, { data: activeTpl }, { data: globalBlocksRows }] = await Promise.all([
-      admin.from("events").select("id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,cta_type,status").eq("status", "active").lte("date", endIso).or(`date.gte.${startIso},end_date.gte.${startIso}`).order("date", { ascending: true }).limit(50),
-      admin.from("blog_posts").select("id,title,slug,excerpt,image_url,published_at,published").eq("published", true).order("published_at", { ascending: false, nullsFirst: false }).limit(3),
-      admin.from("email_template_settings").select("*").maybeSingle(),
+      admin.from('events')
+        .select('id,title,slug,date,end_date,time,venue,location_city,location_state,image_url,ticket_link,cta_type,status')
+        .eq('status', 'active')
+        .lte('date', endIso)
+        .or(`date.gte.${startIso},end_date.gte.${startIso}`)
+        .order('date', { ascending: true })
+        .limit(50),
+      admin.from('blog_posts')
+        .select('id,title,slug,excerpt,image_url,published_at,published')
+        .eq('published', true)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(3),
+      admin.from('email_template_settings').select('*').maybeSingle(),
       activeTplQuery.maybeSingle(),
-      admin.from("email_global_blocks").select("id, name, description, category, block")
+      (admin.from as any)('email_global_blocks').select('id, name, description, category, block'),
     ]);
-    const globalsMap = /* @__PURE__ */ new Map();
-    for (const g of globalBlocksRows ?? []) globalsMap.set(g.id, g);
-    const evs = (eventRows ?? []).filter((event) => event.date <= endIso && (event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso).slice(0, 20);
-    const pts = posts ?? [];
+    const globalsMap = new Map<string, any>();
+    for (const g of ((globalBlocksRows ?? []) as any[])) globalsMap.set(g.id, g);
+
+    const evs = ((eventRows ?? []) as EventRow[])
+      .filter((event) => event.date <= endIso && ((event.end_date && event.end_date >= event.date ? event.end_date : event.date) >= startIso))
+      .slice(0, 20);
+    const pts = (posts ?? []) as PostRow[];
     if (evs.length === 0) {
-      return json({ skipped: true, reason: "no_events_in_range", range: rangeLabel });
+      return json({ skipped: true, reason: 'no_events_in_range', range: rangeLabel });
     }
+    // Item 4 da melhoria de e-mail: cada evento incluído nesta agenda (Dedge
+    // inclusive — vêm de linhas reais de `events`) precisa aparecer
+    // individualmente como "enviado" na aba Histórico e controle.
     const eventIds = evs.map((e) => e.id);
-    const campaignType = "weekend_agenda";
-    const settings = tplSettings ?? {};
-    let html = "";
-    let renderSource = "legacy";
-    let renderedEventPayload = null;
-    const tplBlocks = Array.isArray(activeTpl?.blocks) ? activeTpl.blocks : null;
+    const campaignType = 'weekend_agenda';
+    const settings = (tplSettings ?? {}) as BrandSettings;
+
+    let html = '';
+    let renderSource: 'template' | 'legacy' = 'legacy';
+    let renderedEventPayload: EventAnnouncementData | null = null;
+    const tplBlocks = Array.isArray((activeTpl as any)?.blocks) ? ((activeTpl as any).blocks as Block[]) : null;
     const resolvedTplBlocks = tplBlocks ? expandGlobalRefs(tplBlocks, globalsMap) : null;
+
     if (resolvedTplBlocks && resolvedTplBlocks.length > 0) {
-      if (!hasAnyBlockKind(resolvedTplBlocks, ["weekend_grid", "weekly_hero", "dedge_block"])) {
+      if (!hasAnyBlockKind(resolvedTplBlocks, ['weekend_grid', 'weekly_hero', 'dedge_block'])) {
         return json({
           ok: false,
-          error: "Template de Agenda FDS precisa conter bloco de agenda din\xE2mica.",
-          template_id: activeTpl?.id ?? null,
-          template_name: activeTpl?.name ?? null
+          error: 'Template de Agenda FDS precisa conter bloco de agenda dinâmica.',
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
         }, 400);
       }
       try {
-        const tplName = String(activeTpl?.name || "").toLowerCase();
-        const isCartazTemplate = tplName.includes("cartaz");
-        const isDedgeVenue = (v) => /d\.?\s*edge/i.test((v || "").trim());
-        const groupsMap = evs.reduce((acc, e) => {
-          const key = (e.venue || "").trim().toLowerCase() || e.id;
+        // Templates "Cartaz" (1 imagem grande) → agrupar recorrentes em 1 card.
+        // DEDGE é SEMPRE consolidado (todo template) — regra da casa.
+        const tplName = String((activeTpl as any)?.name || '').toLowerCase();
+        const isCartazTemplate = tplName.includes('cartaz');
+        const isDedgeVenue = (v: string) => /d\.?\s*edge/i.test((v || '').trim());
+
+        const groupsMap = evs.reduce<Record<string, EventRow[]>>((acc, e) => {
+          const key = (e.venue || '').trim().toLowerCase() || e.id;
           (acc[key] ||= []).push(e);
           return acc;
         }, {});
-        const evsForRender = Object.values(groupsMap).map((group) => group.sort((a, b) => a.date.localeCompare(b.date))).flatMap((group) => {
-          const head = group[0];
-          const shouldMerge = group.length > 1 && (isCartazTemplate || isDedgeVenue(head.venue));
-          if (!shouldMerge) return group;
-          const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(" \xB7 ");
-          const subEvents = group.map((g) => ({
-            label: g.title,
-            url: g.ticket_link || `${SITE_URL}/eventos/${g.slug}`,
-            dayLabel: formatDatePt(g.date, g.time),
-            timeLabel: (g.time || "").slice(0, 5) || "22h"
-          }));
-          return [{
-            ...head,
-            title: head.venue,
-            __joinedDates: joinedDates,
-            __isDedge: isDedgeVenue(head.venue),
-            __subEvents: subEvents
-          }];
-        }).sort((a, b) => a.date.localeCompare(b.date));
-        const dedgeGroup = evsForRender.filter((e) => e.__isDedge || isDedgeVenue(e.venue));
-        const nonDedge = evsForRender.filter((e) => !(e.__isDedge || isDedgeVenue(e.venue)));
+
+        const evsForRender = Object.values(groupsMap)
+          .map((group) => group.sort((a, b) => a.date.localeCompare(b.date)))
+          .flatMap((group) => {
+            const head = group[0];
+            const shouldMerge = group.length > 1 && (isCartazTemplate || isDedgeVenue(head.venue));
+            if (!shouldMerge) return group;
+            const joinedDates = group.map((g) => formatDatePt(g.date, g.time)).join(' · ');
+            const subEvents = group.map((g) => ({
+              label: g.title,
+              url: g.ticket_link || `${SITE_URL}/eventos/${g.slug}`,
+              dayLabel: formatDatePt(g.date, g.time),
+              timeLabel: (g.time || '').slice(0, 5) || '22h',
+            }));
+            return [{
+              ...head,
+              title: head.venue,
+              __joinedDates: joinedDates,
+              __isDedge: isDedgeVenue(head.venue),
+              __subEvents: subEvents,
+            } as EventRow & { __joinedDates?: string; __isDedge?: boolean; __subEvents?: Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> }];
+          })
+          .sort((a, b) => a.date.localeCompare(b.date));
+
+        // Separa DEDGE dos demais eventos — DEDGE só aparece via bloco `dedge_block`.
+        const dedgeGroup = evsForRender.filter((e) => (e as any).__isDedge || isDedgeVenue(e.venue));
+        const nonDedge = evsForRender.filter((e) => !((e as any).__isDedge || isDedgeVenue(e.venue)));
         const first = nonDedge[0] ?? evsForRender[0];
-        const weekendEvents = nonDedge.map((e) => {
+        const weekendEvents: WeekendEventItem[] = nonDedge.map((e) => {
           return {
             id: e.id,
             title: e.title,
-            dayLabel: e.__joinedDates ? e.__joinedDates : e.end_date && e.end_date !== e.date ? `${formatDatePt(e.date, e.time)} \u2192 ${formatDatePt(e.end_date, e.time)}` : formatDatePt(e.date, e.time),
-            timeLabel: (e.time || "").slice(0, 5) || "22h",
+            dayLabel: (e as any).__joinedDates
+              ? (e as any).__joinedDates
+              : (e.end_date && e.end_date !== e.date
+                  ? `${formatDatePt(e.date, e.time)} → ${formatDatePt(e.end_date, e.time)}`
+                  : formatDatePt(e.date, e.time)),
+            timeLabel: (e.time || '').slice(0, 5) || '22h',
             venue: e.venue,
             cityState: `${e.location_city}-${e.location_state}`,
             imageUrl: e.image_url || `${SITE_URL}/placeholder.svg`,
             eventUrl: `${SITE_URL}/eventos/${e.slug}`,
             ticketUrl: e.ticket_link || `${SITE_URL}/eventos/${e.slug}`,
-            ctaLabel: e.cta_type && e.cta_type !== DEFAULT_EVENT_CTA_TYPE ? getEventCtaButtonLabel(e.cta_type) : void 0
+            ctaLabel: e.cta_type && e.cta_type !== DEFAULT_EVENT_CTA_TYPE ? getEventCtaButtonLabel(e.cta_type) : undefined,
           };
         });
         const dedgeHead = dedgeGroup[0];
-        const dedgeSubs = dedgeHead ? dedgeHead.__subEvents ?? [{
-          label: dedgeHead.title,
-          url: dedgeHead.ticket_link || `${SITE_URL}/eventos/${dedgeHead.slug}`,
-          dayLabel: formatDatePt(dedgeHead.date, dedgeHead.time),
-          timeLabel: (dedgeHead.time || "").slice(0, 5) || "22h"
-        }] : [];
+        const dedgeSubs = dedgeHead
+          ? (((dedgeHead as any).__subEvents as Array<{ label: string; url: string; dayLabel: string; timeLabel: string }> | undefined)
+              ?? [{
+                label: dedgeHead.title,
+                url: dedgeHead.ticket_link || `${SITE_URL}/eventos/${dedgeHead.slug}`,
+                dayLabel: formatDatePt(dedgeHead.date, dedgeHead.time),
+                timeLabel: (dedgeHead.time || '').slice(0, 5) || '22h',
+              }])
+          : [];
         const dedgePayload = dedgeHead ? {
           imageUrl: dedgeHead.image_url || `${SITE_URL}/placeholder.svg`,
-          eyebrow: "TODA SEMANA \xB7 RESID\xCANCIA",
-          title: "Dedge \u2014 sua resid\xEAncia da semana",
-          description: "",
+          eyebrow: 'TODA SEMANA · RESIDÊNCIA',
+          title: 'Dedge — sua residência da semana',
+          description: '',
           nights: dedgeSubs.map((s) => ({
-            label: `${s.dayLabel} \u2014 ${s.label}`,
+            label: `${s.dayLabel} — ${s.label}`,
             url: s.url,
-            enabled: true
+            enabled: true,
           })),
           primaryUrl: `${SITE_URL}/eventos?venue=dedge`,
-          primaryLabel: "Ver todos os eventos Dedge"
-        } : void 0;
-        const blogPosts = pts.map((p) => ({
+          primaryLabel: 'Ver todos os eventos Dedge',
+        } : undefined;
+        const blogPosts: BlogPostItem[] = pts.map((p) => ({
           id: p.id,
           title: p.title,
-          excerpt: p.excerpt ?? void 0,
-          imageUrl: p.image_url ?? void 0,
-          url: `${SITE_URL}/blog/${p.slug}`
+          excerpt: p.excerpt ?? undefined,
+          imageUrl: p.image_url ?? undefined,
+          url: `${SITE_URL}/blog/${p.slug}`,
         }));
-        const eventPayload = {
-          eventTitle: first?.title || "Agenda do fim de semana",
-          eventSubtitle: `Agenda do FDS \xB7 ${rangeLabel}`,
-          flyerUrl: first?.image_url || settings.logo_url || `${SITE_URL}/placeholder.svg`,
+
+        const eventPayload: EventAnnouncementData = {
+          eventTitle: first?.title || 'Agenda do fim de semana',
+          eventSubtitle: `Agenda do FDS · ${rangeLabel}`,
+          flyerUrl: first?.image_url || (settings as any).logo_url || `${SITE_URL}/placeholder.svg`,
           dateLabel: rangeLabel,
-          timeLabel: first ? (first.time || "").slice(0, 5) || "22h" : "",
-          venueName: first?.venue || "S\xE3o Paulo",
-          cityState: first ? `${first.location_city}-${first.location_state}` : "S\xE3o Paulo-SP",
-          description: "Sextou, sabadou e domingou em S\xE3o Paulo.",
-          ticketUrl: first ? first.ticket_link || `${SITE_URL}/eventos/${first.slug}` : `${SITE_URL}/eventos`,
+          timeLabel: first ? ((first.time || '').slice(0, 5) || '22h') : '',
+          venueName: first?.venue || 'São Paulo',
+          cityState: first ? `${first.location_city}-${first.location_state}` : 'São Paulo-SP',
+          description: 'Sextou, sabadou e domingou em São Paulo.',
+          ticketUrl: first ? (first.ticket_link || `${SITE_URL}/eventos/${first.slug}`) : `${SITE_URL}/eventos`,
           eventUrl: first ? `${SITE_URL}/eventos/${first.slug}` : `${SITE_URL}/eventos`,
           agendaUrl: `${SITE_URL}/eventos`,
-          instagramUrl: settings.instagram_url || "",
-          youtubeUrl: settings.youtube_url || "",
-          tiktokUrl: settings.tiktok_url || "",
-          unsubscribeUrl: "[E-GOI_UNSUBSCRIBE_LINK]",
+          instagramUrl: (settings as any).instagram_url || '',
+          youtubeUrl: (settings as any).youtube_url || '',
+          tiktokUrl: (settings as any).tiktok_url || '',
+          unsubscribeUrl: '[E-GOI_UNSUBSCRIBE_LINK]',
           weekendEvents,
           blogPosts,
-          dedge: dedgePayload
+          dedge: dedgePayload,
         };
+
         renderedEventPayload = eventPayload;
-        renderSource = "template";
+        renderSource = 'template';
       } catch (err) {
-        console.error("[weekend-agenda-draft] template render failed, using fallback:", err);
-        html = "";
+        console.error('[weekend-agenda-draft] template render failed, using fallback:', err);
+        html = '';
       }
     }
+
     if (!html && !renderedEventPayload) {
       html = renderFallbackHtml(evs, pts, settings, rangeLabel);
-      renderSource = "legacy";
+      renderSource = 'legacy';
     }
+
+    // Resolve subject/preheader a partir do template salvo (sem fallback hardcoded fixo).
     const firstEv = evs[0];
     const meta = buildEmailMeta(
-      activeTpl?.subject_template,
-      activeTpl?.preheader_template,
+      (activeTpl as any)?.subject_template,
+      (activeTpl as any)?.preheader_template,
       {
-        eventTitle: firstEv?.title || "Agenda do fim de semana",
+        eventTitle: firstEv?.title || 'Agenda do fim de semana',
         dateLabel: firstEv ? formatDatePt(firstEv.date, firstEv.time) : rangeLabel,
-        timeLabel: firstEv ? (firstEv.time || "").slice(0, 5) || "22h" : "",
-        venueName: firstEv?.venue || "",
-        cityState: firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : "S\xE3o Paulo-SP",
+        timeLabel: firstEv ? ((firstEv.time || '').slice(0, 5) || '22h') : '',
+        venueName: firstEv?.venue || '',
+        cityState: firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : 'São Paulo-SP',
         weekendRange: rangeLabel,
         weekRange: rangeLabel,
         rangeLabel,
-        eventsCount: evs.length
-      }
+        eventsCount: evs.length,
+      },
     );
-    if (!meta.subject) return json({ ok: false, error: "Assunto do template est\xE1 vazio" }, 400);
+    if (!meta.subject) return json({ ok: false, error: 'Assunto do template está vazio' }, 400);
     const subject = meta.subject;
     const preheaderFromTpl = meta.preheader;
-    const internalName = `MDAccula \u2022 Agenda FDS \u2022 ${todayIso}`;
-    if (resolvedTplBlocks && renderSource === "template" && renderedEventPayload) {
+    const internalName = `MDAccula • Agenda FDS • ${todayIso}`;
+
+    if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
       const composition = composeEmail({
         template: {
           blocks: resolvedTplBlocks,
-          subject_template: activeTpl?.subject_template,
-          preheader_template: activeTpl?.preheader_template
+          subject_template: (activeTpl as any)?.subject_template,
+          preheader_template: (activeTpl as any)?.preheader_template,
         },
         event: renderedEventPayload,
-        settings,
+        settings: settings as EmailTemplateSettings,
         globals: globalsMap,
         metaData: {
-          eventTitle: firstEv?.title || "Agenda do fim de semana",
-          dateLabel: firstEv ? formatDatePt(firstEv.date, firstEv.time) : rangeLabel,
-          timeLabel: firstEv ? (firstEv.time || "").slice(0, 5) || "22h" : "",
-          venueName: firstEv?.venue || "",
-          cityState: firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : "S\xE3o Paulo-SP",
-          weekendRange: rangeLabel,
-          weekRange: rangeLabel,
-          rangeLabel,
-          eventsCount: evs.length
-        }
+          eventTitle: firstEv?.title || 'Agenda do fim de semana', dateLabel: firstEv ? formatDatePt(firstEv.date, firstEv.time) : rangeLabel,
+          timeLabel: firstEv ? ((firstEv.time || '').slice(0, 5) || '22h') : '', venueName: firstEv?.venue || '',
+          cityState: firstEv ? `${firstEv.location_city}-${firstEv.location_state}` : 'São Paulo-SP', weekendRange: rangeLabel,
+          weekRange: rangeLabel, rangeLabel, eventsCount: evs.length,
+        },
       });
-      if (composition.issues.length > 0) return json({ ok: false, error: "Template incompleto", validation_issues: composition.issues }, 400);
+      if (composition.issues.length > 0) return json({ ok: false, error: 'Template incompleto', validation_issues: composition.issues }, 400);
       html = composition.html;
     } else if (html && preheaderFromTpl) {
       html = injectEmailPreheader(html, preheaderFromTpl);
     }
-    html = await safeCacheStaticMapImagesInHtml(html, "weekend-agenda-draft");
+
+    // Pré-renderiza mapas estáticos no Bunny CDN (custo fixo por campanha).
+    html = await safeCacheStaticMapImagesInHtml(html, 'weekend-agenda-draft');
+
     if (dryRun) {
       return json({
         ok: true,
@@ -1961,95 +513,106 @@ Deno.serve(async (req) => {
         posts_count: pts.length,
         range: rangeLabel,
         render_source: renderSource,
-        template_id: activeTpl?.id ?? null,
-        template_name: activeTpl?.name ?? null
+        template_id: (activeTpl as any)?.id ?? null,
+        template_name: (activeTpl as any)?.name ?? null,
       });
     }
-    let textVersion = "";
-    let preheaderText = preheaderFromTpl || "";
+
+    let textVersion = '';
+    let preheaderText = preheaderFromTpl || '';
     try {
-      if (resolvedTplBlocks && renderSource === "template" && renderedEventPayload) {
-        textVersion = renderBlockedTemplateText(resolvedTplBlocks, renderedEventPayload, settings, null, { globals: globalsMap, preheader: preheaderText });
+      if (resolvedTplBlocks && renderSource === 'template' && renderedEventPayload) {
+        textVersion = renderBlockedTemplateText(resolvedTplBlocks, renderedEventPayload, settings as EmailTemplateSettings, null, { globals: globalsMap, preheader: preheaderText });
       }
-    } catch (e) {
-      console.warn("[weekend-agenda-draft] text/preheader gen failed:", e);
-    }
-    const createPayload = {
+    } catch (e) { console.warn('[weekend-agenda-draft] text/preheader gen failed:', e); }
+
+    const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,
       subject,
       sender_id: Number(cfg.sender_id),
       content: {
-        type: "html",
+        type: 'html',
         body: html,
-        ...preheaderText ? { preheader: preheaderText } : {},
-        ...textVersion ? { text: textVersion } : {}
+        ...(preheaderText ? { preheader: preheaderText } : {}),
+        ...(textVersion ? { text: textVersion } : {}),
       },
-      tags: ["mdaccula", "agenda-fds"]
+      tags: ['mdaccula', 'agenda-fds'],
     };
     if (cfg.reply_to) createPayload.reply_to = Number(cfg.reply_to);
-    const created = await egoiRequest2("/campaigns/email", apiKey, {
-      method: "POST",
-      body: JSON.stringify(createPayload)
+
+    const created = await egoiRequest('/campaigns/email', apiKey!, {
+      method: 'POST',
+      body: JSON.stringify(createPayload),
     });
+
     if (!created.ok) {
-      const detail = typeof created.body === "string" ? created.body : JSON.stringify(created.body);
-      const historyWarning2 = await writeDigestCampaignHistory(admin, eventIds, {
+      const detail = typeof created.body === 'string' ? created.body : JSON.stringify(created.body);
+      const historyWarning = await writeDigestCampaignHistory(admin, eventIds, {
         campaignHash: null,
-        status: "failed",
-        mode: sendOnCron ? "immediate" : "draft",
-        errorMessage: `E-goi ${created.status}: ${detail}`.slice(0, 1e3),
+        status: 'failed',
+        mode: sendOnCron ? 'immediate' : 'draft',
+        errorMessage: `E-goi ${created.status}: ${detail}`.slice(0, 1000),
         sentAt: null,
         campaignType,
-        segmentId: null
+        segmentId: null,
       });
       return json({
         ok: false,
         error: `E-goi ${created.status}`,
         detail,
-        history_warning: historyWarning2
+        history_warning: historyWarning,
       }, 502);
     }
-    const campaignHash = created.body?.campaign_hash || created.body?.hash || created.body?.data?.campaign_hash || (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) || (created.body?.id != null ? String(created.body.id) : null);
-    let status = "draft";
+
+    const campaignHash =
+      created.body?.campaign_hash ||
+      created.body?.hash ||
+      created.body?.data?.campaign_hash ||
+      (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
+      (created.body?.id != null ? String(created.body.id) : null);
+
+    let status: 'draft' | 'sent' = 'draft';
     if (sendOnCron && campaignHash) {
-      const sendRes = await sendEgoiCampaign(campaignHash, Number(cfg.list_id), apiKey);
+      const sendRes = await sendEgoiCampaign(campaignHash, Number(cfg.list_id), apiKey!);
       if (!sendRes.ok) {
-        const detail = typeof sendRes.body === "string" ? sendRes.body : JSON.stringify(sendRes.body);
-        const historyWarning2 = await writeDigestCampaignHistory(admin, eventIds, {
+        const detail = typeof sendRes.body === 'string' ? sendRes.body : JSON.stringify(sendRes.body);
+        const historyWarning = await writeDigestCampaignHistory(admin, eventIds, {
           campaignHash,
-          status: "draft",
-          mode: "immediate",
-          errorMessage: `E-goi send ${sendRes.status}: ${detail}`.slice(0, 1e3),
+          status: 'draft',
+          mode: 'immediate',
+          errorMessage: `E-goi send ${sendRes.status}: ${detail}`.slice(0, 1000),
           sentAt: null,
           campaignType,
-          segmentId: null
+          segmentId: null,
         });
         return json({
           ok: false,
-          status: "draft",
+          status: 'draft',
           error: `E-goi send ${sendRes.status}`,
           detail,
           egoi_campaign_id: campaignHash,
           events_count: evs.length,
           posts_count: pts.length,
           range: rangeLabel,
-          template_id: activeTpl?.id ?? null,
-          template_name: activeTpl?.name ?? null,
-          history_warning: historyWarning2
+          template_id: (activeTpl as any)?.id ?? null,
+          template_name: (activeTpl as any)?.name ?? null,
+          history_warning: historyWarning,
         }, 502);
       }
-      status = "sent";
+      status = 'sent';
     }
+
     const historyWarning = await writeDigestCampaignHistory(admin, eventIds, {
       campaignHash,
       status,
-      mode: sendOnCron ? "immediate" : "draft",
+      mode: sendOnCron ? 'immediate' : 'draft',
       errorMessage: null,
-      sentAt: status === "sent" ? (/* @__PURE__ */ new Date()).toISOString() : null,
+      sentAt: status === 'sent' ? new Date().toISOString() : null,
       campaignType,
-      segmentId: null
+      segmentId: null,
     });
+
     return json({
       ok: true,
       status,
@@ -2057,11 +620,11 @@ Deno.serve(async (req) => {
       events_count: evs.length,
       posts_count: pts.length,
       range: rangeLabel,
-      template_id: activeTpl?.id ?? null,
-      template_name: activeTpl?.name ?? null,
-      history_warning: historyWarning
+      template_id: (activeTpl as any)?.id ?? null,
+      template_name: (activeTpl as any)?.name ?? null,
+      history_warning: historyWarning,
     });
   } catch (e) {
-    return json({ error: e.message }, 500);
+    return json({ error: (e as Error).message }, 500);
   }
 });

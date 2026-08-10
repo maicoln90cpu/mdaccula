@@ -1,149 +1,161 @@
-// supabase/functions/send-mass-newsletter/index.ts
 import { Resend } from "npm:resend@2.0.0";
-import { createClient as createClient2 } from "npm:@supabase/supabase-js@2";
-
-// supabase/functions/_shared/index.ts
 import { createClient } from "npm:@supabase/supabase-js@2";
-async function authorizeAdminOrCron(req, admin, opts) {
-  const cronSecretHeader = req.headers.get("x-cron-secret");
-  const cronJobHeader = req.headers.get("x-cron-job");
-  if (cronSecretHeader && cronJobHeader === opts.cronJobHeaderValue) {
-    const { data: row } = await admin.from("internal_cron_secrets").select("secret").eq("name", opts.cronSecretRowName).maybeSingle();
-    if (row?.secret && row.secret === cronSecretHeader) {
-      return { authorized: true, status: 200 };
-    }
-  }
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return { authorized: false, status: 401, message: "N\xE3o autenticado" };
-  const anonClient = createClient(Deno.env.get("SUPABASE_URL"), opts.anonKey);
-  const token = authHeader.replace("Bearer ", "");
-  const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
-  if (userErr || !userData.user) return { authorized: false, status: 401, message: "Token inv\xE1lido" };
-  const { data: isAdmin } = await admin.rpc("has_role", {
-    _user_id: userData.user.id,
-    _role: "admin"
-  });
-  if (!isAdmin) return { authorized: false, status: 403, message: "Apenas admins" };
-  return { authorized: true, status: 200 };
-}
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
-// supabase/functions/send-mass-newsletter/index.ts
-var corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-function handleCorsPreFlight(req) {
-  if (req.method === "OPTIONS") {
+
+function handleCorsPreFlight(req: Request): Response | null {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
   return null;
 }
-function jsonSuccess(data = { success: true }, status = 200) {
+
+function jsonSuccess(data: Record<string, unknown> = { success: true }, status: number = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
-function jsonError(message, status = 500) {
+
+function jsonError(message: string, status: number = 500): Response {
   return new Response(JSON.stringify({ error: message, success: false }), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" }
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 }
-function handleError(error, functionName) {
+
+function handleError(error: unknown, functionName: string): Response {
   console.error(`Error in ${functionName}:`, error);
-  const message = error instanceof Error ? error.message : "Unknown error";
+  const message = error instanceof Error ? error.message : 'Unknown error';
   return jsonError(message, 500);
 }
-var resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-var FUNCTION_TIMEOUT_MS = 25e3;
-var EMAIL_TIMEOUT_MS = 5e3;
-async function sendEmailWithTimeout(email, subject, body, timeoutMs) {
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+const FUNCTION_TIMEOUT_MS = 25000; // 25 seconds timeout
+const EMAIL_TIMEOUT_MS = 5000; // 5 seconds per email
+
+interface MassEmailRequest {
+  subject: string;
+  body: string;
+  recipients: string[];
+}
+
+// Send email with timeout
+async function sendEmailWithTimeout(
+  email: string,
+  subject: string,
+  body: string,
+  timeoutMs: number
+): Promise<{ success: boolean; error?: string }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
   try {
     const emailResponse = await resend.emails.send({
       from: "MDAccula <onboarding@resend.dev>",
       to: [email],
-      subject,
+      subject: subject,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">MDAccula Newsletter</h2>
           <div style="line-height: 1.6; color: #666;">
-            ${body.replace(/\n/g, "<br>")}
+            ${body.replace(/\n/g, '<br>')}
           </div>
           <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
           <p style="font-size: 12px; color: #999;">
-            Voc\xEA est\xE1 recebendo este email porque se inscreveu na newsletter do MDAccula.
+            Você está recebendo este email porque se inscreveu na newsletter do MDAccula.
             <br>
-            Para cancelar sua inscri\xE7\xE3o, <a href="https://mdaccula.com.br/unsubscribe">clique aqui</a>.
+            Para cancelar sua inscrição, <a href="https://mdaccula.com.br/unsubscribe">clique aqui</a>.
           </p>
         </div>
-      `
+      `,
     });
+    
     clearTimeout(timeoutId);
     console.log(`Email sent successfully to ${email}:`, emailResponse);
     return { success: true };
   } catch (error) {
     clearTimeout(timeoutId);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     console.error(`Error sending email to ${email}:`, errorMessage);
     return { success: false, error: errorMessage };
   }
 }
+
 Deno.serve(async (req) => {
   const preflightResponse = handleCorsPreFlight(req);
   if (preflightResponse) return preflightResponse;
+
   const startTime = Date.now();
+
   try {
-    const admin = createClient2(
-      Deno.env.get("SUPABASE_URL"),
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
     const auth = await authorizeAdminOrCron(req, admin, {
-      anonKey: Deno.env.get("SUPABASE_ANON_KEY"),
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
       cronSecretRowName: "send_mass_newsletter_cron",
-      cronJobHeaderValue: "send-mass-newsletter"
+      cronJobHeaderValue: "send-mass-newsletter",
     });
-    if (!auth.authorized) return jsonError(auth.message ?? "N\xE3o autorizado", auth.status);
-    const { subject, body, recipients } = await req.json();
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
+
+    const { subject, body, recipients }: MassEmailRequest = await req.json();
+
     console.log(`Sending mass email to ${recipients.length} recipients`);
+
+    // Send emails in batches to avoid rate limits
     const batchSize = 50;
-    const batches = [];
+    const batches: string[][] = [];
+    
     for (let i = 0; i < recipients.length; i += batchSize) {
       batches.push(recipients.slice(i, i + batchSize));
     }
+
     let successCount = 0;
     let errorCount = 0;
     let skippedCount = 0;
+
     for (const batch of batches) {
+      // Check if we're running out of time
       const elapsedMs = Date.now() - startTime;
-      if (elapsedMs > FUNCTION_TIMEOUT_MS - 3e3) {
-        console.log(`\u26A0\uFE0F Tempo esgotando ap\xF3s ${elapsedMs}ms, pulando ${recipients.length - successCount - errorCount} emails restantes`);
+      if (elapsedMs > FUNCTION_TIMEOUT_MS - 3000) {
+        console.log(`⚠️ Tempo esgotando após ${elapsedMs}ms, pulando ${recipients.length - successCount - errorCount} emails restantes`);
         skippedCount = recipients.length - successCount - errorCount;
         break;
       }
+
       try {
         const results = await Promise.all(
           batch.map(async (email) => sendEmailWithTimeout(email, subject, body, EMAIL_TIMEOUT_MS))
         );
-        results.forEach((result) => {
+        
+        results.forEach(result => {
           if (result.success) {
             successCount++;
           } else {
             errorCount++;
           }
         });
+        
+        // Wait a bit between batches to respect rate limits
         if (batches.indexOf(batch) < batches.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1e3));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } catch (error) {
         console.error("Error processing batch:", error);
       }
     }
+
     const totalTime = Date.now() - startTime;
     console.log(`Mass email completed in ${totalTime}ms: ${successCount} sent, ${errorCount} failed, ${skippedCount} skipped`);
-    return jsonSuccess({
+
+    return jsonSuccess({ 
       success: true,
       sent: successCount,
       failed: errorCount,
@@ -151,6 +163,6 @@ Deno.serve(async (req) => {
       processingTimeMs: totalTime
     });
   } catch (error) {
-    return handleError(error, "send-mass-newsletter");
+    return handleError(error, 'send-mass-newsletter');
   }
 });
