@@ -38,11 +38,11 @@
 
 ---
 
-### Fix: cache de esquema do PostgREST travado — coluna real do banco "não existia" pra API (R-053)
-**Descrição:** com a mensagem de erro real já visível (fix anterior), o disparo do evento Sirius continuava falhando com `column events.email_campaign_dispatched_at does not exist` — mesmo a coluna existindo e funcionando por SQL direto, por `SELECT` via REST e por `UPDATE` via SQL bruto como `service_role`. Causa: a fila interna de notificação do Postgres (`LISTEN`/`NOTIFY`) que avisa o PostgREST quando o schema muda tinha travado, então nenhum aviso de "recarregar cache" chegava — nem manual, nem automático via DDL. Confirmado contra a documentação oficial de troubleshooting da Supabase. Corrigido com `select pg_notification_queue_usage();` (destrava a fila) seguido de `NOTIFY pgrst, 'reload schema';`. Em paralelo, o usuário aplicou a mesma notificação pelo Lovable (via migration) e corrigiu um bug de TypeScript não relacionado encontrado no caminho (`EmailEventsTab.tsx` não contava o status `scheduled` no resumo da aba Histórico). Ver R-053 em `docs/TESTING.md`.
+### Diagnóstico intermediário: recarga do cache do PostgREST (R-053)
+**Descrição:** com a mensagem de erro real já visível, o disparo do evento Sirius falhava com `column events.email_campaign_dispatched_at does not exist`, embora a coluna existisse. A recarga do cache foi aplicada como primeira medida segura, mas a recorrência posterior provou que ela não era a solução definitiva. O SQL detalhado revelou depois a causa real no `UPDATE ... RETURNING`, corrigida no R-054 acima. O registro foi preservado e corrigido para não transformar uma hipótese intermediária em causa definitiva.
 **Data:** 10/08/2026
 **Responsável:** IA + Lovable (em paralelo, mesmo diagnóstico) — a pedido do usuário
-**Impacto:** nenhuma migração destrutiva, nenhuma mudança de regra de negócio — só destrava o cache. Confirmado funcionando pelo usuário após a correção.
+**Impacto:** nenhuma migração destrutiva e nenhuma mudança de regra de negócio; diagnóstico intermediário posteriormente substituído pelo R-054.
 
 **Arquivos alterados:** `docs/TESTING.md`, `docs/PENDENCIAS.md`, `src/components/admin/emailConfig/EmailEventsTab.tsx` (fix do Lovable), `supabase/migrations/20260810164322_2c9076db-a2ab-4224-9def-55592e31508b.sql` (novo, do Lovable).
 

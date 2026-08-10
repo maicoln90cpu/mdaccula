@@ -517,12 +517,11 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Causa raiz da falha 500 em si:** achada em seguida — ver R-053, abaixo.
 - **Proteção:** `src/__tests__/regression/dispatch-event-draft-error-message-surfaced.test.ts` (guarda estática — confere que os 2 disparos usam o helper, e que os 2 `catch` externos logam antes do 500).
 
-### R-053 — Cache de esquema do PostgREST travado: coluna real do banco "não existia" pra API
+### R-053 — Primeira hipótese: recarga do cache de esquema do PostgREST
 - **Quando:** 10/08/2026, na sequência do R-052 — com a mensagem de erro real já visível (graças ao R-052), o disparo do Sirius continuava falhando com `column events.email_campaign_dispatched_at does not exist` mesmo a coluna existindo e funcionando normalmente por SQL direto, por `SELECT` via REST (chave anon) e por `UPDATE` via SQL bruto como `service_role`.
-- **Causa:** cache de esquema do PostgREST desatualizado — a fila interna de notificação do Postgres (`LISTEN`/`NOTIFY`) que avisa o PostgREST quando o schema muda tinha ficado travada, então nenhum aviso de "recarregar" chegava (nem `NOTIFY pgrst, 'reload schema'` manual, nem o gatilho automático de DDL `pgrst_ddl_watch`). Confirmado contra a documentação oficial de troubleshooting da Supabase ("PostgREST not recognizing new columns, tables, views or functions").
-- **Diagnóstico:** eliminado por eliminação — coluna confirmada via `information_schema.columns`, `SELECT`/`UPDATE` via REST e via SQL bruto (inclusive como `service_role`, bypassando RLS) sempre funcionaram; só a chamada real da Edge Function (que passa pelo mesmo PostgREST) falhava, de forma consistente, mesmo após 2 tentativas de reload manual.
-- **Correção:** `select pg_notification_queue_usage();` (destrava a fila de notificação — não-destrutivo, não exige restart) seguido de `NOTIFY pgrst, 'reload schema';`. O usuário confirmou em paralelo pelo próprio Lovable, que aplicou a mesma notificação via uma migration (`supabase/migrations/20260810164322_2c9076db-a2ab-4224-9def-55592e31508b.sql`) e, junto, corrigiu um bug de TypeScript não relacionado (`EmailEventsTab.tsx` não contava o status `scheduled` no resumo da aba Histórico).
-- **Proteção:** nenhuma automatizável (é um estado de infraestrutura do projeto Supabase, não uma condição do código). Se `column ... does not exist` aparecer de novo para uma coluna comprovadamente existente, repetir os 2 comandos acima antes de suspeitar de bug de código.
+- **Hipótese inicial:** cache de esquema desatualizado, pois a coluna existia e respondia por consultas diretas. Foi executado `NOTIFY pgrst, 'reload schema'`, uma ação segura e não destrutiva.
+- **Resultado:** insuficiente; o mesmo erro reapareceu depois da recarga. Os logs SQL detalhados obtidos na recorrência revelaram a causa real no formato do `UPDATE ... RETURNING`, documentada e protegida no R-054 abaixo.
+- **Aprendizado:** não tratar mensagens `column ... does not exist` como cache automaticamente. Primeiro conferir o SQL gerado pelo PostgREST; a coluna pode faltar no conjunto temporário retornado, mesmo existindo na tabela.
 
 ### R-054 — Claim de disparo filtrava uma coluna ausente do resultado do UPDATE
 - **Quando:** 10/08/2026, após o erro do R-053 reaparecer mesmo com a coluna confirmada no banco e o cache recarregado.
