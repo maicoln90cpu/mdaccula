@@ -543,6 +543,14 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** troca de `.join("")` para `.join(" ")` — garante um espaço real no HTML mesmo que o estilo visual (pill/margin) não seja respeitado pelo cliente de e-mail.
 - **Proteção:** `supabase/functions/_shared/emailBlocks/renderBlock/interactive_test.ts` (renderiza o bloco de verdade e confere que há espaço real entre `</span>` e `<span>` consecutivos).
 
+### R-057 — Causa raiz definitiva do "dispatch_in_progress": `egoiRequest` sem timeout no caminho de segmento (nunca exercido antes)
+- **Quando:** 10/08/2026, depois de R-055 (libera claim + timeout no cache de mapas) não resolver: o evento Sirius continuou travando com `dispatch_in_progress` — desta vez confirmado que o claim (`events.email_campaign_dispatched_at`) ficava preso por mais de 1 minuto (bem além dos 15s de `DISPATCH_CLAIM_STALE_MS`) sem NENHUM log de erro, nem mesmo o `console.error` do R-052/R-055 — ou seja, a function nunca chegava a lançar uma exceção catchável, ela ficava presa de verdade.
+- **Pista decisiva do usuário:** "isso funcionava antes, apenas a função de enviar por segmento que não havia sido testada ainda" — `egoi_config.segment_id` (segmento padrão global) está `null` em produção, então TODO disparo anterior sempre foi pra "toda a lista", sem `segment_id` no payload. O disparo do Sirius foi o primeiro a usar o override de segmento por disparo (aba Envio manual, "abertura maior que 1") — um caminho de código genuinely nunca exercido contra a API real da E-goi.
+- **Causa:** `egoiRequest` (`supabase/functions/_shared/egoiClient.ts`), usado tanto pra criar quanto pra enviar a campanha na E-goi, fazia `fetch()` sem nenhum timeout. Diferente do R-055 (Bunny CDN, que pelo menos gera erro de rede real e cai no catch), aqui a hipótese é que a API da E-goi, com `segment_id` no payload, nunca retorna (trava) ou demora além do limite do runtime — sem erro, sem timeout, o `fetch()` fica pendurado até o isolate ser matado sem rodar nenhum `catch`, deixando o claim preso.
+- **Correção:** `egoiRequest` ganha `AbortSignal.timeout(25_000)` — generoso o bastante pra criar/enviar uma campanha real (mesmo com segmento), mas nunca deixa a function pendurada esperando a E-goi indefinidamente. Com isso, um timeout agora vira uma exceção real, capturada pelo `catch` externo (R-055), que libera o claim e loga o erro — visível ao admin via `getEdgeFunctionErrorMessage` (R-052).
+- **Pendência:** ainda não confirmado com um envio real se o timeout de 25s é suficiente/necessário, nem por que exatamente a E-goi trava com segmento — só que o timeout impede o travamento indefinido, seja qual for a causa exata do lado da E-goi.
+- **Proteção:** `supabase/functions/_shared/egoiClient_test.ts` (confere que `egoiRequest` sempre passa um `AbortSignal` real pro `fetch`).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

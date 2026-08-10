@@ -47,3 +47,26 @@ Deno.test('sendEgoiCampaign envia segments={type:"none"} sem data quando não h�
     globalThis.fetch = originalFetch;
   }
 });
+
+// R-057 — egoiRequest não tinha timeout: um fetch() pra API da E-goi que
+// nunca resolve nem rejeita (observado exatamente no caminho de segmento,
+// nunca exercido antes deste disparo) travava a Edge Function inteira até
+// o runtime matar o isolate sem rodar nenhum catch/log — o claim
+// anti-envio-duplicado ficava preso e todo clique seguinte voltava
+// "dispatch_in_progress" indefinidamente.
+Deno.test('egoiRequest passa um AbortSignal (timeout) pro fetch, nunca fica sem limite de tempo', async () => {
+  const { egoiRequest } = await import('./egoiClient.ts');
+  let capturedSignal: AbortSignal | undefined;
+  globalThis.fetch = ((_url: string, init?: RequestInit) => {
+    capturedSignal = init?.signal ?? undefined;
+    return Promise.resolve(
+      new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    );
+  }) as typeof fetch;
+  try {
+    await egoiRequest('/campaigns/email', 'fake-key', { method: 'POST', body: '{}' });
+    assertEquals(capturedSignal instanceof AbortSignal, true);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Fix: causa raiz definitiva do "dispatch_in_progress" — `egoiRequest` sem timeout no caminho de segmento (R-057)
+**Descrição:** mesmo após R-055 (libera claim + timeout no cache de mapas), o evento Sirius continuou travando com `dispatch_in_progress`, desta vez sem nenhum log de erro sequer — o claim ficava preso por mais de 1 minuto sem a function nunca lançar uma exceção catchável. A pista decisiva veio do usuário: "isso funcionava antes, só a função de enviar por segmento que não havia sido testada ainda" — `egoi_config.segment_id` global está `null`, então todo disparo anterior sempre foi pra "toda a lista"; o Sirius foi o primeiro a usar o override de segmento por disparo (aba Envio manual) contra a API real da E-goi. Causa: `egoiRequest` (`supabase/functions/_shared/egoiClient.ts`), usado tanto pra criar quanto pra enviar a campanha, fazia `fetch()` sem nenhum timeout — a hipótese é que a API da E-goi trava (ou demora demais) especificamente com `segment_id` no payload, e sem timeout esse `fetch()` fica pendurado até o runtime matar o isolate sem rodar nenhum `catch`.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário, "ultrathink" — investigação mais profunda pedida após 2 tentativas anteriores não resolverem)
+**Impacto:** `egoiRequest` ganha `AbortSignal.timeout(25s)` — um timeout agora vira uma exceção real capturada pelo catch externo (libera o claim, loga o erro, mensagem real chega ao admin). Ainda não confirmado com um envio real com segmento se 25s é suficiente, nem a causa exata do lado da E-goi.
+
+**Arquivos alterados:** `supabase/functions/_shared/egoiClient.ts`, `supabase/functions/_shared/egoiClient_test.ts`, `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Fix: badges do line-up coladas sem espaço no Outlook (R-056)
 **Descrição:** usuário reportou print real do e-mail do evento Sirius — no Outlook os nomes dos artistas no bloco de line-up (layout "chips") apareciam colados uns nos outros ("D-Nox deKolombo beRiascode..."), enquanto no Gmail o layout de pills renderizava normalmente. Causa: `renderInteractiveBlock` (`supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`) unia os `<span>` de cada artista com `.join("")` — sem separador real, só contando com `display:inline-block`+`margin` (que o Outlook, engine do Word, ignora em e-mail) pro espaçamento visual. Corrigido trocando pra `.join(" ")`, garantindo um espaço real no HTML independente do cliente respeitar o estilo da pill.
 **Data:** 10/08/2026
@@ -1167,6 +1177,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Bugfix | Causa raiz definitiva do "dispatch_in_progress" — egoiRequest sem timeout no caminho de segmento (R-057) |
 | 10/08 | Bugfix | Badges do line-up coladas sem espaço no Outlook — Gmail ok (R-056) |
 | 10/08 | Bugfix | Evento ficava travado ("dispatch_in_progress") sem log em falhas não previstas + fetches de mapa sem timeout (R-055) |
 | 10/08 | Bugfix | Claim de disparo filtrava a própria coluna do RETURNING — causa real da coluna "ausente" (R-054) |

@@ -5,6 +5,16 @@
 
 export const EGOI_BASE_URL = "https://api.egoiapp.com";
 
+// R-057 — sem timeout, um fetch() pra API da E-goi que trava (observado com
+// segment_id preenchido, um caminho nunca exercido em produção até este
+// disparo) trava a Edge Function inteira até o runtime matar o isolate sem
+// nenhum catch/log rodar — o claim anti-envio-duplicado (Guard 3) fica
+// preso indefinidamente, e o próximo clique sempre volta com
+// "dispatch_in_progress". 25s é generoso o bastante pra uma criação/envio
+// de campanha real (inclusive com segmento), mas nunca deixa a function
+// pendurada esperando a E-goi para sempre.
+const EGOI_REQUEST_TIMEOUT_MS = 25_000;
+
 export async function egoiRequest(
   path: string,
   apiKey: string,
@@ -18,6 +28,7 @@ export async function egoiRequest(
       "Content-Type": "application/json",
       ...(init.headers || {}),
     },
+    signal: AbortSignal.timeout(EGOI_REQUEST_TIMEOUT_MS),
   });
   const text = await res.text();
   let body: any = text;

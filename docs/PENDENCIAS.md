@@ -87,14 +87,22 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
-### Checkpoint: confirmar que o disparo do evento Sirius completa de ponta a ponta após R-055/R-056
+### Checkpoint: confirmar que o disparo do evento Sirius completa de ponta a ponta após R-055/R-056/R-057
 **Checar em:** próxima tentativa real do usuário
-**Contexto:** depois de R-052/R-053/R-054 (mensagem de erro real + cache de esquema + coluna no RETURNING do claim), o disparo do Sirius ainda travava com `dispatch_in_progress` — achado: o `catch` externo das Edge Functions de disparo não liberava o claim anti-envio-duplicado em falhas não previstas, provavelmente um `fetch()` sem timeout no cache de imagens de mapa (Bunny CDN, que teve avisos reais de timeout/connection reset nos logs). Corrigido em R-055 (libera claim em qualquer falha + timeout nos fetches) e, em paralelo, R-056 (badges do line-up coladas no Outlook). Nenhum dos dois foi validado ainda com um envio real completo (criar rascunho E enviar de verdade).
+**Contexto:** depois de R-052/R-053/R-054 (mensagem de erro real + cache de esquema + coluna no RETURNING do claim), o disparo do Sirius seguiu travando com `dispatch_in_progress` — mesmo após R-055 (libera claim em qualquer falha + timeout no cache de mapas). Investigação mais profunda ("ultrathink") achou a causa mais provável: `egoiRequest` (chamada real à API da E-goi, tanto pra criar quanto pra enviar a campanha) não tinha nenhum timeout, e o disparo do Sirius foi o primeiro a usar segmento por disparo (`egoi_config.segment_id` global está `null` — todo disparo anterior sempre foi "toda a lista"). Corrigido em R-057 (timeout de 25s no `egoiRequest`) — ainda não confirmado com um envio real se resolve de fato, nem por que a E-goi trava especificamente com segmento.
 **Passos:**
-1. Em `/admin/email-config` → Envio manual, repetir o disparo do evento Sirius (rascunho e/ou envio real).
-2. Confirmar que não aparece mais `dispatch_in_progress` nem erro de coluna.
-3. Conferir no Histórico se a campanha foi criada e, no e-mail recebido, se o line-up aparece com os nomes separados (não só no Gmail — testar Outlook se possível).
+1. Em `/admin/email-config` → Envio manual, repetir o disparo do evento Sirius (rascunho e/ou envio real, com o segmento "abertura maior que 1").
+2. Se travar de novo: agora deve aparecer uma mensagem de erro real (não mais silêncio) — reportar o texto exato.
+3. Se funcionar: confirmar no Histórico que a campanha foi criada e, no e-mail recebido, se o line-up aparece com os nomes separados (testar no Outlook, não só Gmail).
 **Responsável:** usuário testa e reporta o resultado
+
+---
+
+### Bug latente: outras 4 Edge Functions têm cópia própria de `egoiRequest` sem timeout (mesma classe do R-057)
+**Status:** 🔧 Não corrigido — achado como efeito colateral da investigação do R-057, fora do escopo do disparo manual.
+**Contexto:** `blog-digest-draft`, `send-event-reminder-campaigns`, `weekly-digest-draft` e `weekend-agenda-draft` cada uma tem sua PRÓPRIA implementação local de `egoiRequest` (não usam o `_shared/egoiClient.ts`), com o mesmo `fetch()` sem timeout que causou o R-057 no disparo manual. Nenhuma delas usa segmento por disparo hoje (só o fluxo manual tem esse campo), então o risco é menor, mas a mesma classe de trava indefinida existe se algum dia usarem segment_id ou a E-goi tiver uma lentidão pontual.
+**Correção sugerida:** ou aplicar o mesmo `AbortSignal.timeout` nas 4 cópias locais, ou (melhor, resolve a duplicação também) migrar as 4 functions pra usar `_shared/egoiClient.ts` em vez de reimplementar `egoiRequest`.
+**Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa reportada, é prevenção.
 
 ---
 
