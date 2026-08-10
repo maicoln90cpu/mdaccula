@@ -84,6 +84,9 @@ O que ficou pra depois ou sugestões futuras.
 ### 6) Prevenção de regressão
 O que garante que isso não volte a quebrar.
 
+### 7) Auditoria de documentação (obrigatória, rodar ANTES de escrever este relatório)
+Não é um lembrete — é um passo do fluxo, com a mesma obrigatoriedade dos itens 1-6. Fazer isso mesmo que a tarefa pedida não tivesse nada a ver com documentação, e mesmo que já tenha atualizado docs "no meio" da tarefa (essa auditoria é a rede de segurança pro que passou batido). Ver seção "Documentação sempre atualizada" abaixo pro mapa completo e o passo a passo. Resumir aqui em 1-2 linhas o que foi tocado (ex.: "CHANGELOG.md + tabelas.md atualizados; PENDENCIAS.md sem itens afetados") — se a resposta for "nada foi tocado", isso só é aceitável se a auditoria não achou nada, não porque foi pulada.
+
 REGRAS:
 - Linguagem leiga, sem jargão técnico.
 - Nunca executar múltiplos itens de alto risco de uma vez.
@@ -94,14 +97,21 @@ REGRAS:
 
 ## Documentação sempre atualizada (sem precisar pedir)
 
-Sempre que uma mudança relevante for commitada/pushada, atualizar a documentação correspondente no mesmo commit (ou num commit `docs:` logo em seguida) — nunca deixar pra uma auditoria manual depois. "Relevante" cobre: edge function nova/removida/com comportamento mudado, tabela/coluna nova ou alterada, migration aplicada, bug de produção corrigido, feature nova entregue, e qualquer gap/bug real descoberto no caminho (mesmo que fora do escopo do pedido original).
+Esta regra não depende de "lembrar" — este arquivo é recarregado do zero em toda conversa nova, em qualquer chat, então tratar isso como memória de conversa é exatamente o que falha. O mecanismo confiável é: **rodar o checklist abaixo como PASSO FINAL de qualquer tarefa que tenha gerado commit**, igual a rodar os testes — não como algo pra "se lembrar" no meio do trabalho. É o item 7 do relatório obrigatório (seção acima); nenhuma tarefa com commit está concluída sem ele.
+
+**Passo a passo da auditoria final** (fazer isso, não só ler o mapa abaixo):
+1. Rodar `git log` (ou revisar mentalmente) dos commits feitos NESTA tarefa — inclusive os que pareceram pequenos/óbvios demais pra precisar de doc (lint fix, rename, cleanup). Pra cada um, aplicar o mapa abaixo.
+2. Abrir `docs/PENDENCIAS.md` e conferir se algum item ali é **resolvido, invalidado ou tocado** pelo que acabou de ser feito — mesmo que o pedido original não tivesse nada a ver com PENDENCIAS.md. Isso inclui achados que viraram falso-alarme (investigou e não era bug): remover o item, sem precisar de entrada em CHANGELOG.md se nada mudou de fato.
+3. Só depois disso, escrever o item 7 do relatório.
 
 Mapa do que atualizar em cada caso:
 - **Edge function nova, removida, ou com propósito/endpoint/auth mudado** → `docs/EDGE_FUNCTIONS.md` (linha da tabela + contagem no topo do arquivo, conferida contra `list_edge_functions` do MCP, não só contra o filesystem).
 - **Tabela ou coluna nova/alterada, migration aplicada** → `docs/tabelas.md` (DDL) e `docs/DATABASE_SCHEMA.md` (índice); nunca editar `src/integrations/supabase/types.ts` na mão, regenerar via MCP.
 - **Bug de produção corrigido** → entrada nova em "Regressões cobertas" no `docs/TESTING.md` (já era regra) **e** entrada no `docs/CHANGELOG.md`.
 - **Feature/melhoria nova entregue** → entrada no `docs/CHANGELOG.md`; se mudou rota/funcionalidade visível, também `docs/FEATURE_MAP.md`.
+- **Fix de lint/CI/tooling, mesmo "pequeno demais" pra parecer que precisa de doc** → se resolve algo listado em `docs/PENDENCIAS.md`, sai de lá e vira entrada no `docs/CHANGELOG.md` (ver regra abaixo); se não estava listado e é só limpeza sem mudança de comportamento, não precisa de entrada nova, mas ainda conta pro passo 1 da auditoria (confirmar que não havia nada em PENDENCIAS.md sobre aquilo).
 - **Gap ou bug real encontrado mas não corrigido na hora** (fora do escopo do pedido, ou precisa de decisão do usuário) → `docs/PENDENCIAS.md`, no tipo certo (🗳️ decisão / 🔧 bug / 👀 monitoramento — nunca um quarto tipo genérico).
 - **Item de `PENDENCIAS.md` resolvido** → sai de lá e vira entrada em `CHANGELOG.md` (nunca fica registrado como "concluído" em `PENDENCIAS.md`).
+- **Item de `PENDENCIAS.md` que era falso-alarme** (investigado e não é bug/gap de verdade) → sai de lá; só vira entrada em `CHANGELOG.md` se algo realmente mudou no código por causa disso, senão só remover.
 
 Antes de escrever um número (contagem de tabelas, de edge functions, etc.) num doc, confirmar contra o estado real (MCP do Supabase, filesystem) em vez de copiar o que já estava escrito — docs de schema/contagem ficam defasados silenciosamente conforme migrations/functions são criadas sem atualização manual.
