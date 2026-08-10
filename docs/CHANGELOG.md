@@ -30,6 +30,16 @@
 
 ---
 
+### Contador de views do blog/eventos filtra bots — números do e-mail diário eram inflados (R-050)
+**Descrição:** usuário desconfiou dos números de acesso ao blog no e-mail diário de métricas. Investigação com dados reais confirmou: um único IP (faixa de datacenter Azure) gerava uma "view" em CADA um dos 245 posts do blog e CADA evento ativo, todo dia desde 01/08/2026 — 89% de todas as `blog_view_events` de um dia típico. `track-view` nunca olhava o `User-Agent`, só tinha um rate-limit de 10 req/min/IP que não impede um crawl lento. Corrigido com `botDetection.ts` (`isBotUserAgent`) — reconhece crawlers de busca, bots de preview de rede social, scripts/HTTP clients genéricos e headless/monitoramento; visitas de bot não incrementam mais `blog_posts.views`/`events.views` nem geram linha em `blog_view_events`/`event_view_events`, mas continuam acessando a página normalmente (sem impacto em SEO/GEO).
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** médio (não é um bug que quebra funcionalidade — os números "reais" do site sempre estiveram certos no banco de eventos/cliques — mas o contador de views do blog estava reportando um número várias vezes maior que o tráfego humano real, distorcendo o e-mail diário e o contador público no site)
+
+**Arquivos alterados:** `supabase/functions/track-view/index.ts`, `supabase/functions/track-view/botDetection.ts` (novo), `supabase/functions/track-view/botDetection_test.ts` (novo), `docs/TESTING.md` (R-050).
+
+---
+
 ### Geração por Tema para de gerar artigo institucional sobre a própria fonte e passa a reescrever fielmente 1 matéria real (Fases 0+1, R-048)
 **Descrição:** usuário reportou que a geração automática de artigos por tema estava "muito bugada" — investigação com dados reais do banco confirmou que os últimos rascunhos gerados ("DJ Mag LA", "Alataj", "Wonderland in Rave", "Nervous Records") eram artigos institucionais SOBRE o próprio veículo/portal fonte, não notícias reais publicadas nele, contrariando o comportamento esperado ("raspar as fontes, escolher 1 matéria real e recriar o artigo"). O usuário escolheu o Plano C (híbrido por gatilho) entre 3 alternativas apresentadas.
 **Correção — Fase 0 (blindagem imediata, todos os caminhos):** `mdaccula.com`/`mdaccula.b-cdn.net` entraram no blocklist de domínios do Firecrawl; novo guardrail `_shared/selfReferentialSourceGuard.ts` descarta qualquer sugestão cujo termo de busca seja o próprio nome/domínio da fonte cadastrada — a causa raiz confirmada do padrão de bug (homepage raspada só tem branding, então a única "âncora real" extraível é o nome da marca); `generate-blog-suggestions` parou de usar a `description` da fonte como fallback silencioso quando o scraping falha; `generate-blog-post-from-topic` trocou o tamanho fixo de 900-1300 palavras por extensão proporcional e ganhou uma válvula de escape (`insufficientSources`) pra recusar gerar quando as fontes são só institucional/homepage.

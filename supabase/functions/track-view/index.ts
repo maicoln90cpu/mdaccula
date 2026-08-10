@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isBotUserAgent } from "./botDetection.ts";
 
 // ============= INLINE SHARED UTILITIES =============
 const corsHeaders = {
@@ -90,6 +91,16 @@ Deno.serve(async (req) => {
 
     const clientIP = getClientIP(req);
     const resourceId = postId || eventId;
+
+    // Bots/crawlers não contam como leitura real (ver botDetection.ts —
+    // investigação de 09/08/2026: 1 IP sozinho gerava 89% das "views" de
+    // blog visitando o arquivo inteiro todo dia). Não bloqueia o acesso à
+    // página, só não incrementa métricas.
+    const userAgent = req.headers.get('user-agent');
+    if (isBotUserAgent(userAgent)) {
+      console.log(`Bot view ignorada: resource ${resourceId}, UA "${userAgent}"`);
+      return jsonSuccess({ success: true, bot: true });
+    }
 
     if (isRateLimited(clientIP, resourceId)) {
       console.log(`Rate limited: IP ${clientIP} for resource ${resourceId}`);
