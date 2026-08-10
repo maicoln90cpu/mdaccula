@@ -22,9 +22,19 @@
 **Descrição:** usuário reportou erro genérico ("erro de função") ao tentar enviar o template "virada de lote" do evento Sirius para uma lista segmentada pela aba Envio manual. Investigação (log real do Supabase: `POST 500` em `create-event-email-campaign` às 15:23:56) achou 2 bugs compostos: (1) `dispatchEventDraftEmail`/`dispatchMultiEventDraftEmail` (`src/lib/emailTemplates/dispatchEventDraft.ts`) usavam `error.message` direto no retorno de `supabase.functions.invoke()` — só a mensagem genérica do SDK, nunca a mensagem JSON real que a Edge Function monta — em vez do helper `getEdgeFunctionErrorMessage` (já usado em outros pontos do admin pra esse exato problema); (2) os `catch` externos de `create-event-email-campaign` e `create-multi-event-email-campaign` respondiam 500 sem nenhum `console.error`, então nem os logs do Supabase guardavam rastro da exceção real. Ver R-052 em `docs/TESTING.md`.
 **Data:** 10/08/2026
 **Responsável:** IA (a pedido do usuário — "retornou com erro de função, investigue a causa")
-**Impacto:** nenhuma mudança de comportamento de envio — só diagnóstico. A causa raiz da falha 500 específica do Sirius segue desconhecida (ver `docs/PENDENCIAS.md`); da próxima vez que acontecer, a mensagem real vai aparecer no toast e nos logs.
+**Impacto:** nenhuma mudança de comportamento de envio — só diagnóstico. A causa raiz da falha 500 específica do Sirius foi encontrada logo em seguida (ver entrada abaixo).
 
 **Arquivos alterados:** `src/lib/emailTemplates/dispatchEventDraft.ts`, `supabase/functions/create-event-email-campaign/index.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `src/__tests__/regression/dispatch-event-draft-error-message-surfaced.test.ts` (novo), `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+---
+
+### Fix: cache de esquema do PostgREST travado — coluna real do banco "não existia" pra API (R-053)
+**Descrição:** com a mensagem de erro real já visível (fix anterior), o disparo do evento Sirius continuava falhando com `column events.email_campaign_dispatched_at does not exist` — mesmo a coluna existindo e funcionando por SQL direto, por `SELECT` via REST e por `UPDATE` via SQL bruto como `service_role`. Causa: a fila interna de notificação do Postgres (`LISTEN`/`NOTIFY`) que avisa o PostgREST quando o schema muda tinha travado, então nenhum aviso de "recarregar cache" chegava — nem manual, nem automático via DDL. Confirmado contra a documentação oficial de troubleshooting da Supabase. Corrigido com `select pg_notification_queue_usage();` (destrava a fila) seguido de `NOTIFY pgrst, 'reload schema';`. Em paralelo, o usuário aplicou a mesma notificação pelo Lovable (via migration) e corrigiu um bug de TypeScript não relacionado encontrado no caminho (`EmailEventsTab.tsx` não contava o status `scheduled` no resumo da aba Histórico). Ver R-053 em `docs/TESTING.md`.
+**Data:** 10/08/2026
+**Responsável:** IA + Lovable (em paralelo, mesmo diagnóstico) — a pedido do usuário
+**Impacto:** nenhuma migração destrutiva, nenhuma mudança de regra de negócio — só destrava o cache. Confirmado funcionando pelo usuário após a correção.
+
+**Arquivos alterados:** `docs/TESTING.md`, `docs/PENDENCIAS.md`, `src/components/admin/emailConfig/EmailEventsTab.tsx` (fix do Lovable), `supabase/migrations/20260810164322_2c9076db-a2ab-4224-9def-55592e31508b.sql` (novo, do Lovable).
 
 ---
 
@@ -1127,6 +1137,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 10/08 | Bugfix | Cache de esquema do PostgREST travado — coluna real do banco "não existia" pra API, disparo do Sirius falhava (R-053) |
 | 10/08 | Bugfix | Mensagem de erro real do disparo manual de e-mail ("Enviar agora") não chegava ao admin — aparecia só "erro de função" genérico (R-052) |
 | 10/08 | Bugfix | CI/CD Pipeline (Quality Checks → ESLint) volta a passar — 8 erros pré-existentes em 3 arquivos não relacionados corrigidos |
 | 10/08 | Feature | Reorganização dos controles de geração — Fase C + painel único: cooldown/streak seco no cron, checklist de qualidade final, aviso por e-mail, 8 toggles numa tela só |

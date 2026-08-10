@@ -128,12 +128,6 @@ _Nenhuma no momento._
 **Correção sugerida:** apagar `supabase/functions/egoi-curl-probe/` (pasta inteira) e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml`.
 **Responsável:** decisão do usuário — é uma remoção simples, mas envolve apagar código, por isso não fiz sem confirmar.
 
-### Causa raiz do 500 no disparo manual de e-mail (evento Sirius, 10/08/2026) ainda desconhecida
-**Status:** 🔧 Sintoma corrigido, causa raiz não confirmada — achado em 10/08/2026 investigando um relato do usuário.
-**Contexto:** usuário tentou enviar o template "virada de lote" do evento Sirius (lista segmentada "abertura maior que 1") pela aba Envio manual → "Enviar agora" e recebeu um erro genérico e inútil ("erro de função"). Log real do Supabase confirmou `POST 500` em `create-event-email-campaign` às 2026-08-10T15:23:56 (1.8s de execução), mas o `catch` externo da function não logava a exceção antes de responder — não sobrou nenhum rastro do que de fato lançou o erro (ver R-052 em `docs/TESTING.md`). Corrigi os 2 bugs que impediam o diagnóstico (mensagem mascarada no client + falta de log no server), mas isso não resolve — só torna visível — a falha original, que pode ser qualquer coisa entre um erro de rede pontual com a E-goi e um problema real no payload do segmento por disparo.
-**Passos:** usuário tentar reenviar o mesmo disparo (evento Sirius, mesmo segmento); se falhar de novo, a mensagem real agora aparece no toast e o `console.error` aparece nos logs da Edge Function (`get_logs`/Supabase Dashboard) — reportar o texto exato pra investigação continuar.
-**Responsável:** usuário reporta o resultado da próxima tentativa; IA investiga a causa raiz específica se persistir.
-
 ### Leaked Password Protection desabilitado
 **Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
 **Contexto:** o recurso exige configuração no painel do Supabase e o projeto não tem assinatura para isso. Fica intencionalmente **OFF**; não reabrir como pendência em auditorias futuras.
