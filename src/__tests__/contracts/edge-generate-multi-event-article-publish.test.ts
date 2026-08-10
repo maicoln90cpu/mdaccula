@@ -18,8 +18,12 @@ describe('Contract: generate-multi-event-article respeita publishImmediately e g
   });
 
   it('published/published_at seguem a mesma convenção das outras functions (false explícito = rascunho)', () => {
-    expect(content).toContain("published: publishImmediately === false ? false : true");
-    expect(content).toContain("published_at: publishImmediately === false ? null : new Date().toISOString()");
+    // Item #2 (10/08/2026): ganhou uma 2ª camada (isContentSubstantial) —
+    // published passou a depender de publishImmediately E de willPublish
+    // calculado a partir do conteúdo, não mais só do parâmetro isolado.
+    expect(content).toContain('const willPublish = publishImmediately !== false && substantial');
+    expect(content).toContain('published: willPublish');
+    expect(content).toContain("published_at: willPublish ? new Date().toISOString() : null");
   });
 
   it('grava generation_source: multi_evento no log de IA', () => {

@@ -20,6 +20,7 @@ import {
   formatDatePt,
   inferMood,
 } from "../_shared/generateMultiEventArticle/prompts.ts";
+import { isContentSubstantial } from "../_shared/articleQuality.ts";
 
 // Silencia lint: corsHeaders é reexportado apenas para paridade com bundle anterior.
 void corsHeaders;
@@ -377,6 +378,15 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Item #2 (reorganização dos controles de publicação, 10/08/2026): rede
+      // de segurança extra — mesmo com o toggle ligado, um artigo raso nunca
+      // vai ao ar sozinho, cai como rascunho pra revisão.
+      const substantial = isContentSubstantial(articleData.content);
+      const willPublish = publishImmediately !== false && substantial;
+      if (publishImmediately !== false && !substantial) {
+        console.warn(`[generate-multi-event-article] Conteúdo curto demais — publicação automática cancelada, nasce como rascunho: "${articleData.title}"`);
+      }
+
       const { data: newPost, error: insertError } = await supabase
         .from('blog_posts')
         .insert({
@@ -385,8 +395,8 @@ Deno.serve(async (req) => {
           excerpt: articleData.excerpt,
           content: articleData.content,
           category: articleData.category || 'Eventos',
-          published: publishImmediately === false ? false : true,
-          published_at: publishImmediately === false ? null : new Date().toISOString(),
+          published: willPublish,
+          published_at: willPublish ? new Date().toISOString() : null,
           image_url: finalImageUrl
         })
         .select()

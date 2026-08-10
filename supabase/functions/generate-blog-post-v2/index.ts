@@ -461,7 +461,7 @@ ${formFields.aiContext}`
     console.log('[generate-blog-post-v2] Slug gerado:', slug);
 
     // Salvar ou atualizar no banco
-    const { post, error: insertError } = await saveOrUpdatePost(supabase, {
+    const { post, error: insertError, downgradedForQuality } = await saveOrUpdatePost(supabase, {
       existingPostId: formFields.existingPostId,
       publishImmediately,
       eventData,
@@ -469,6 +469,17 @@ ${formFields.aiContext}`
       generatedImageUrl,
       slug,
     });
+
+    if (downgradedForQuality) {
+      console.warn(`[generate-blog-post-v2] Conteúdo curto demais — publicação automática cancelada, post ${post?.id} nasceu como rascunho.`);
+      try {
+        await supabase.from('application_logs').insert({
+          level: 'warn',
+          message: 'generate-blog-post-v2: safety-net-downgraded-to-draft',
+          context: { postId: post?.id, title: eventData.title, generationSource: typeof generationSource === 'string' ? generationSource : null },
+        });
+      } catch (_) { /* nunca bloqueia a resposta por causa do log */ }
+    }
 
     if (insertError) {
       console.error('Erro ao salvar post:', insertError);

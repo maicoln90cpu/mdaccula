@@ -127,7 +127,10 @@ describe('Contract: Sugestões ancoradas em matéria real', () => {
     const content = read('supabase/functions/generate-blog-post-from-topic/index.ts');
 
     expect(content).toContain('body?.publishImmediately');
-    expect(content).toContain('publishImmediately === false ? false : true');
+    // Item #2 (10/08/2026): willPublish combina publishImmediately com a 2ª
+    // checagem de qualidade (isContentSubstantial), não é só o parâmetro cru.
+    expect(content).toContain('const willPublish = publishImmediately !== false && finalContentSubstantial');
+    expect(content).toContain('published: willPublish');
   });
 
   it('generate-blog-suggestions exige searchQuery real por sugestão', () => {

@@ -395,6 +395,14 @@ proporcional aos fatos disponíveis.`;
       }
     }
 
+    // Item #2 (reorganização dos controles de publicação, 10/08/2026): rede
+    // de segurança extra bem no fim — o check de tamanho lá em cima (linha
+    // ~355) já rejeita conteúdo curto antes de chegar aqui, mas essa 2ª
+    // camada independente garante que, mesmo que algo mude ali no futuro, um
+    // artigo raso nunca vai ao ar sozinho só por causa do toggle ligado.
+    const finalContentSubstantial = isContentSubstantial(articleData.content);
+    const willPublish = publishImmediately !== false && finalContentSubstantial;
+
     const { data: post, error: insertError } = await supabase
       .from('blog_posts')
       .insert({
@@ -403,8 +411,8 @@ proporcional aos fatos disponíveis.`;
         excerpt: articleData.excerpt,
         content: articleData.content,
         category: finalCategory,
-        published: publishImmediately === false ? false : true,
-        published_at: publishImmediately === false ? null : new Date().toISOString(),
+        published: willPublish,
+        published_at: willPublish ? new Date().toISOString() : null,
       })
       .select()
       .single();
@@ -415,6 +423,17 @@ proporcional aos fatos disponíveis.`;
     }
 
     console.log(`[generate-blog-post-from-topic] Post criado: ${post.id}`);
+
+    if (publishImmediately !== false && !finalContentSubstantial) {
+      console.warn(`[generate-blog-post-from-topic] Conteúdo curto demais na 2ª checagem — publicação automática cancelada, post ${post.id} nasceu como rascunho.`);
+      try {
+        await supabase.from('application_logs').insert({
+          level: 'warn',
+          message: 'generate-blog-post-from-topic: safety-net-downgraded-to-draft',
+          context: { postId: post.id, title: articleData.title, generationSource },
+        });
+      } catch (_) { /* nunca bloqueia a resposta por causa do log */ }
+    }
 
     const { error: aiLogError } = await supabase
       .from('ai_generated_posts')

@@ -47,6 +47,12 @@ describe('Regressão — generate-blog-post-from-topic mantém sempre-publica pr
     const content = read('supabase/functions/generate-blog-post-from-topic/index.ts');
 
     expect(content).toContain('const publishImmediately = body?.publishImmediately;');
-    expect(content).toContain('published: publishImmediately === false ? false : true');
+    // Item #2 (10/08/2026): ganhou uma 2ª camada de qualidade — quando
+    // publishImmediately é omitido (auto-article-cron não omite mais, mas
+    // preserva o comportamento pra qualquer chamador futuro) e o conteúdo é
+    // substancial, ainda publica; willPublish é quem decide, não mais um
+    // ternário isolado com o parâmetro cru.
+    expect(content).toContain('const willPublish = publishImmediately !== false && finalContentSubstantial');
+    expect(content).toContain('published: willPublish');
   });
 });

@@ -1,5 +1,7 @@
 // Persistência do post (slug único, insert/update, log de IA) extraída de
 // generate-blog-post-v2/index.ts (Onda 22). Comportamento preservado 1:1.
+import { isContentSubstantial } from '../articleQuality.ts';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Supabase = any;
 
@@ -68,6 +70,15 @@ export async function saveOrUpdatePost(supabase: Supabase, params: SavePostParam
     return { post: data, error };
   }
 
+  // Item #2 (reorganização dos controles de publicação, 10/08/2026): rede de
+  // segurança extra bem no fim, antes de decidir published — generate-blog-post-v2
+  // nunca teve nenhuma checagem de tamanho/qualidade (diferente de
+  // generate-blog-post-from-topic, que já rejeita conteúdo curto antes de
+  // chegar aqui). Mesmo com o toggle de publicação automática ligado, um
+  // artigo raso nunca vai ao ar sozinho — cai como rascunho pra revisão.
+  const substantial = isContentSubstantial(eventData.content);
+  const willPublish = publishImmediately !== false && substantial;
+
   const { data, error } = await supabase
     .from('blog_posts')
     .insert({
@@ -76,13 +87,13 @@ export async function saveOrUpdatePost(supabase: Supabase, params: SavePostParam
       excerpt: eventData.excerpt,
       content: eventData.content,
       category: finalCategory,
-      published: publishImmediately === false ? false : true,
-      published_at: publishImmediately === false ? null : new Date().toISOString(),
+      published: willPublish,
+      published_at: willPublish ? new Date().toISOString() : null,
       image_url: generatedImageUrl,
     })
     .select()
     .single();
-  return { post: data, error };
+  return { post: data, error, downgradedForQuality: publishImmediately !== false && !substantial };
 }
 
 export interface LogAiGenerationParams {
