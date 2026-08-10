@@ -60,6 +60,29 @@ function isListingIndexPath(pathname: string): boolean {
   return segments.length === 1 && LISTING_INDEX_SEGMENTS.has(segments[0].toLowerCase());
 }
 
+// 2º hotfix pós-Fase-1 (achado em produção, 09/08/2026): "House Mag" tinha
+// um link de menu pra "/login" na homepage — não é raiz, não é listagem
+// conhecida, não bate nenhuma palavra do blocklist institucional, então
+// passava como se fosse "a matéria". Uma blocklist de palavras nunca vai
+// cobrir todo o universo de páginas utilitárias (login, cadastro, carrinho,
+// minha-conta, cookies, rss, wp-login.php...) — troca de estratégia: em vez
+// de só bloquear o que parece "ruim", exige um sinal POSITIVO de que a URL
+// é mesmo uma matéria: o último segmento do path tem cara de slug de título
+// (várias palavras separadas por hífen) OU o path tem um segmento de ano
+// (padrão universal de URL de notícia: /2026/08/titulo-do-artigo). Páginas
+// utilitárias de 1 palavra só (login, sobre, blog, carrinho) nunca têm essa
+// forma — filtra a classe inteira do problema, não só os casos já vistos.
+function looksLikeArticleSlug(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length === 0) return false;
+
+  if (segments.some((s) => /^(19|20)\d{2}$/.test(s))) return true; // segmento de ano (ex.: /2026/08/...)
+
+  const lastSegment = segments[segments.length - 1];
+  const hyphenCount = (lastSegment.match(/-/g) || []).length;
+  return hyphenCount >= 1; // título real vira slug de várias palavras — utilitário de 1 palavra não
+}
+
 function isLikelyArticleUrl(candidateUrl: string, sourceHostname: string): boolean {
   let parsed: URL;
   try {
@@ -76,6 +99,7 @@ function isLikelyArticleUrl(candidateUrl: string, sourceHostname: string): boole
   if (NON_ARTICLE_HOSTNAMES.some((h) => hostname === h || hostname.endsWith(`.${h}`))) return false;
   if (NON_ARTICLE_PATH_PATTERNS.some((re) => re.test(parsed.pathname))) return false;
   if (isListingIndexPath(parsed.pathname)) return false;
+  if (!looksLikeArticleSlug(parsed.pathname)) return false;
 
   return true;
 }

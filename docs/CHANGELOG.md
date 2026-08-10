@@ -64,6 +64,17 @@
 
 ---
 
+### Hotfix nº3: descoberta de matéria caía em página utilitária (login) — troca de estratégia negativa por positiva (R-048)
+**Descrição:** logo depois do hotfix do Sympla, "House Mag" teve um link de menu pra `/login` escolhido como "a matéria" — passou pelos 3 filtros dos hotfixes anteriores (não é raiz, não é listagem conhecida, não bate nenhuma palavra do blocklist institucional). A IA recusou gerar (guardrail funcionou, nenhum post ruim saiu), mas de novo nenhum artigo saiu sem explicação clara — 3º "gerei e não deu certo" consecutivo.
+**Correção:** em vez de continuar reforçando uma blocklist de palavras (login, cadastro, carrinho, minha-conta, cookies, rss... — universo sem fim, cada fonte nova pode ter uma variação não prevista), trocada a estratégia pra um sinal POSITIVO: `looksLikeArticleSlug()` exige que a URL tenha cara de matéria de verdade — último segmento do path com pelo menos 1 hífen (título real quase sempre vira slug de várias palavras) OU um segmento de ano no path (padrão universal `/2026/08/titulo-do-artigo`). Página utilitária de 1 palavra nunca tem essa forma — resolve a classe inteira do problema de uma vez, não caso a caso.
+**Data:** 09/08/2026 (mesmo dia, 3º hotfix consecutivo pós-deploy — a essa altura recomendo acompanhar de perto as próximas execuções reais antes de considerar o pipeline estável)
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** baixo-médio (isolado à lógica de descoberta de links — 253 testes Deno + 546 testes Vitest, todos verdes; nenhum post ruim foi criado neste caso, o guardrail de segurança já funcionou)
+
+**Arquivos alterados:** `supabase/functions/_shared/sourceArticlePicker.ts`, `supabase/functions/_shared/sourceArticlePicker_test.ts`, `docs/TESTING.md` (R-048).
+
+---
+
 ### Preview do editor de e-mail ganha seletor desktop/tablet/celular
 **Descrição:** usuário pediu a possibilidade de alternar a visualização do preview do template entre desktop, tablet e celular (lembrava de ter sido implementado, mas não achou o controle na tela — investigação confirmou que nunca tinha sido implementado; o preview sempre foi fixo em 600px).
 **Entrega:** `PreviewPanel.tsx` ganhou um `ToggleGroup` (ícones Monitor/Tablet/Smartphone) acima do preview que troca a largura do iframe entre 600px (desktop, padrão), 480px (tablet) e 375px (celular) — o e-mail em si continua sendo a mesma tabela de 600px, só a "janela" simulada ao redor muda, como em ferramentas de preview de e-mail (Litmus/Email on Acid). Não afeta o HTML enviado nem o download/envio de teste.

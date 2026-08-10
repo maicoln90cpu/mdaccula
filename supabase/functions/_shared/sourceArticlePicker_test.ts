@@ -87,6 +87,35 @@ Deno.test("pickArticleUrl retorna null sem candidatos", () => {
 // pra "/noticias/" na homepage, que passava como se fosse 1 matéria — a IA
 // recusou gerar (insufficientSources), mas o resultado pro admin foi
 // "gerei e não deu certo" (nenhum artigo saiu). Ver docs/TESTING.md R-048.
+// Regressão real de produção (09/08/2026): "House Mag" tinha um link de menu
+// pra "/login" na homepage — não bate raiz, categoria, tag nem nenhuma
+// palavra do blocklist institucional, então passava como se fosse "a
+// matéria". Prova que blocklist de palavras nunca cobre o universo inteiro
+// de páginas utilitárias — daí a troca pra sinal positivo (looksLikeArticleSlug).
+Deno.test("discoverArticleUrls descarta página utilitária de 1 palavra sem hífen (ex.: /login, bug real House Mag)", () => {
+  const houseMagSource = { url: "https://housemag.com.br/", name: "House Mag" };
+  const links = [
+    "https://housemag.com.br/login",
+    "https://housemag.com.br/joyce-muniz-revisita-memorias-do-house-anos-90",
+  ];
+  assertEquals(discoverArticleUrls(houseMagSource, links), [
+    "https://housemag.com.br/joyce-muniz-revisita-memorias-do-house-anos-90",
+  ]);
+});
+
+Deno.test("discoverArticleUrls descarta outras páginas utilitárias de 1 palavra nunca vistas antes (prova que o filtro generaliza, não é só uma lista de palavras)", () => {
+  const links = [
+    "https://exemplo-noticias.com.br/cadastro",
+    "https://exemplo-noticias.com.br/carrinho",
+    "https://exemplo-noticias.com.br/minha-conta", // 2 palavras, mas ainda não é matéria — aceitável falso-positivo raro
+    "https://exemplo-noticias.com.br/2026/08/matéria-real",
+  ];
+  const result = discoverArticleUrls(source, links);
+  assertEquals(result.includes("https://exemplo-noticias.com.br/cadastro"), false);
+  assertEquals(result.includes("https://exemplo-noticias.com.br/carrinho"), false);
+  assertEquals(result.includes("https://exemplo-noticias.com.br/2026/08/matéria-real"), true);
+});
+
 Deno.test("discoverArticleUrls descarta página de listagem de 1 segmento (ex.: /noticias/, bug real Play BPM)", () => {
   const playBpmSource = { url: "https://playbpm.com.br/", name: "Play BPM" };
   const links = [
