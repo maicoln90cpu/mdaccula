@@ -116,6 +116,27 @@ Deno.test("discoverArticleUrls descarta outras páginas utilitárias de 1 palavr
   assertEquals(result.includes("https://exemplo-noticias.com.br/2026/08/matéria-real"), true);
 });
 
+// Defesa em profundidade (achado ao revisar a correção do Sympla/Ingresse/
+// WeGoOut): independe do campo content_source — rejeita qualquer URL com
+// cara de venda de ingresso, mesmo se a fonte estiver mal configurada.
+Deno.test("discoverArticleUrls descarta URL de domínio de ticketing conhecido, mesmo que pareça um slug de artigo válido", () => {
+  const sympla = { url: "https://www.sympla.com.br/", name: "Sympla" };
+  const links = [
+    "https://www.sympla.com.br/evento/festa-de-fim-de-ano-2026/3413113",
+    "https://www.sympla.com.br/2026/08/matéria-real-que-nao-existe",
+  ];
+  assertEquals(discoverArticleUrls(sympla, links), []);
+});
+
+Deno.test("discoverArticleUrls descarta URL com path de ticketing (/evento/, /ingresso/) mesmo em domínio editorial", () => {
+  const links = [
+    "https://exemplo-noticias.com.br/evento/festa-de-fim-de-ano-2026",
+    "https://exemplo-noticias.com.br/ingressos/comprar-agora-promocao",
+    "https://exemplo-noticias.com.br/2026/08/matéria-real",
+  ];
+  assertEquals(discoverArticleUrls(source, links), ["https://exemplo-noticias.com.br/2026/08/matéria-real"]);
+});
+
 Deno.test("discoverArticleUrls descarta página de listagem de 1 segmento (ex.: /noticias/, bug real Play BPM)", () => {
   const playBpmSource = { url: "https://playbpm.com.br/", name: "Play BPM" };
   const links = [

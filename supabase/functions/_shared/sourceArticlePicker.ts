@@ -60,6 +60,38 @@ function isListingIndexPath(pathname: string): boolean {
   return segments.length === 1 && LISTING_INDEX_SEGMENTS.has(segments[0].toLowerCase());
 }
 
+// Defesa em profundidade (achado ao revisar a correção do Sympla/Ingresse/
+// WeGoOut, 09/08/2026): `event_sources.content_source=false` bloqueia
+// plataformas de ticketing conhecidas HOJE, mas é um dado configurado
+// manualmente — se um admin cadastrar uma fonte de ticketing nova no futuro
+// e esquecer de desmarcar "Fonte de conteúdo", nada no código impedia. Este
+// filtro independe totalmente desse campo: rejeita qualquer URL que tenha
+// CARA de página de venda de ingresso (path com /evento/, /ingresso/,
+// /checkout etc.) ou que seja de um domínio de ticketing conhecido, mesmo
+// que a fonte esteja marcada (corretamente ou por engano) como content_source=true.
+const TICKETING_HOSTNAMES = [
+  'sympla.com.br',
+  'ingresse.com',
+  'wegoout.com.br',
+  'eventbrite.com',
+  'eventbrite.com.br',
+  'ticketmaster.com',
+  'ticketmaster.com.br',
+  'uhuu.com',
+  'blueticket.com.br',
+  'ingressorapido.com.br',
+  'bileto.sympla.com.br',
+];
+
+const TICKETING_PATH_PATTERNS = [
+  /\/(evento|eventos|ingresso|ingressos|comprar-ingresso|checkout|carrinho|comprar)(\/|$)/i,
+];
+
+function isTicketingUrl(hostname: string, pathname: string): boolean {
+  if (TICKETING_HOSTNAMES.some((h) => hostname === h || hostname.endsWith(`.${h}`))) return true;
+  return TICKETING_PATH_PATTERNS.some((re) => re.test(pathname));
+}
+
 // 2º hotfix pós-Fase-1 (achado em produção, 09/08/2026): "House Mag" tinha
 // um link de menu pra "/login" na homepage — não é raiz, não é listagem
 // conhecida, não bate nenhuma palavra do blocklist institucional, então
@@ -97,6 +129,7 @@ function isLikelyArticleUrl(candidateUrl: string, sourceHostname: string): boole
   if (hostname !== sourceHostname) return false; // só matéria do próprio domínio da fonte
 
   if (NON_ARTICLE_HOSTNAMES.some((h) => hostname === h || hostname.endsWith(`.${h}`))) return false;
+  if (isTicketingUrl(hostname, parsed.pathname)) return false;
   if (NON_ARTICLE_PATH_PATTERNS.some((re) => re.test(parsed.pathname))) return false;
   if (isListingIndexPath(parsed.pathname)) return false;
   if (!looksLikeArticleSlug(parsed.pathname)) return false;

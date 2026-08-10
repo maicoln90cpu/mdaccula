@@ -18,6 +18,18 @@
 
 ## Entradas Detalhadas
 
+### Auditoria de robustez: defesa em profundidade contra fonte de ticketing mal configurada + busca de imagem corrigida (R-048)
+**Descrição:** usuário pediu confirmação de que todas as correções da "geração por tema" eram sistêmicas (valem pro cron automático, não só quando testadas manualmente). Na auditoria, 2 pontos:
+1. **Busca de imagem sem resultado num dos 3 artigos de validação** ("Rock in Rio abre venda extraordinária...") — a fonte (DJ News Brasil) não tem `og:image` (confirmado via curl), e a busca de imagem (camada 2, fallback) usava o título reescrito pela IA como termo, que se afasta lexicalmente da manchete real da fonte. Corrigido: `resolveArticleImage()` agora deriva um termo do slug da própria URL da matéria e tenta esse termo antes do título editorial.
+2. **Gap de robustez encontrado na auditoria** (não um bug observado, uma fragilidade): `event_sources.content_source=false` bloqueia as 3 plataformas de ticketing conhecidas hoje, mas é um campo configurado manualmente — nada no código impedia uma fonte de ticketing nova, cadastrada no futuro, de vazar pra geração se o admin esquecesse de desmarcar "Fonte de conteúdo". Adicionada uma 2ª camada independente desse campo, que rejeita qualquer candidato de domínio de ticketing conhecido ou com path de venda de ingresso, mesmo que a fonte esteja marcada errado.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário, ao questionar se as correções eram sistêmicas)
+**Impacto:** baixo (reforços aditivos — 296 testes Deno + 548 testes Vitest + typecheck, todos verdes). Auditoria confirmou: `ai_auto_generate_enabled=true`, cron do pg_cron ativo e rodando a cada hora independente de qualquer intervenção manual, `content_source` correto nas 11 fontes editoriais habilitadas.
+
+**Arquivos alterados:** `supabase/functions/_shared/articleImage.ts`, `supabase/functions/_shared/articleImage_test.ts`, `supabase/functions/_shared/sourceArticlePicker.ts`, `supabase/functions/_shared/sourceArticlePicker_test.ts`, `docs/TESTING.md` (R-048).
+
+---
+
 ### Hotfix: artigo gerado com 1 parágrafo só passava sem nenhuma validação de tamanho (R-048)
 **Descrição:** usuário reportou que o artigo "Alok domina o Mainstage do Tomorrowland..." (gerado no teste da feature de imagem) tinha só a introdução — 312 caracteres, 1 parágrafo. O mesmo pipeline, na mesma sessão de testes, gerou outro artigo ("4x4: guia prático...") com 5624 caracteres completos — confirma que não é um problema estrutural do pipeline, é a IA parando cedo demais em alguns casos.
 **Correção:** novo `_shared/articleQuality.ts` (`isContentSubstantial`/`stripHtmlTags`) exige um piso mínimo de 500 caracteres de texto real (sem HTML) antes de aceitar o artigo gerado — abaixo disso, é tratado como matéria insuficiente (mesmo mecanismo de `insufficientSources`, HTTP 422), e o `auto-article-cron` automaticamente tenta o próximo candidato da fila (Fase 1) em vez de publicar um esboço. Prompt reforçado nos dois modos deixando explícito que "tamanho proporcional" nunca autoriza 1 parágrafo só.
