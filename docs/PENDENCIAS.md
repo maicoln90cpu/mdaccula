@@ -26,6 +26,15 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 👀 Monitoramento
 
+### Checkpoint: testar envio segmentado (aba Envio manual) com a correção do R-059
+**Checar em:** próxima sessão (11/08/2026 ou quando o usuário retomar)
+**Contexto:** o `dispatch_in_progress` que travava TODO disparo manual foi corrigido e confirmado funcionando de ponta a ponta em 10/08/2026 — mas só pra "toda a lista" (evento Sirius, template "Virada de lote", segmento "Padrão da configuração global"). Por decisão do usuário, o caminho de segmento por disparo (ex.: lista "abertura maior que 1", o cenário que disparou a investigação original) ainda não foi testado com a correção — ficou deliberadamente pra depois, pra fechar 100% o caso mais simples primeiro. Ver R-059 em `docs/TESTING.md` pra causa raiz completa e R-057 pra o contexto de por que segmento importa aqui (era o suspeito inicial, descartado depois).
+**Passos:**
+1. Repetir o mesmo teste ponta a ponta pelo navegador (localhost, aba Envio manual), mas escolhendo um segmento específico em vez de "toda a lista".
+2. Testar tanto "Criar rascunho na E-goi" quanto "Enviar agora" com segmento.
+3. Se aparecer qualquer erro nesse caminho, ele é necessariamente diferente do R-059 (já corrigido pra ambos os fluxos) — investigar como um bug novo, não reabrir o R-059.
+**Responsável:** IA testa quando o usuário pedir para continuar.
+
 ### Checkpoint: acompanhar as próximas execuções reais da Geração por Tema (Fase 1)
 **Checar em:** próximos 3-5 ciclos do cron (a cada intervalo configurado, hoje 48h) ou próximas vezes que "Forçar Geração Agora" for usado
 **Contexto:** Fase 1 (pipeline estrito 1-fonte-1-matéria, R-048) teve 3 hotfixes consecutivos no mesmo dia do deploy — página de listagem escolhida como matéria (Play BPM), plataforma de ticketing escolhida como fonte (Sympla), página utilitária escolhida como matéria (House Mag/login). Os 3 casos foram corrigidos, mas o padrão sugere que a estrutura de link de cada fonte real ainda não foi totalmente validada contra o filtro de descoberta.
