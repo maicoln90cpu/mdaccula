@@ -145,9 +145,41 @@ function extractHostname(url: string): string | null {
 }
 
 /**
+ * R-048 (achado em produção, 09/08/2026): "Rock in Rio abre venda
+ * extraordinária e revela cardápio com 860 pontos de comida" (título editorial
+ * reescrito pela IA) não achou nenhuma imagem na busca Firecrawl — mas a
+ * matéria original tinha manchete bem diferente ("Última chance de garantir
+ * ingressos para qualquer dia do Rock in Rio: festival anuncia venda
+ * extraordinária no dia 6 de agosto, às 12h"). Um mecanismo de busca de
+ * imagem casa melhor com o que a fonte de fato publicou (o slug da URL,
+ * derivado do título original) do que com o título editorial que nós
+ * reescrevemos — a frase pode ser tematicamente igual mas lexicalmente
+ * distante o bastante pra não bater com nada indexado.
+ */
+export function deriveSearchTermFromUrl(url: string): string | null {
+  try {
+    const { pathname } = new URL(url);
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length === 0) return null;
+    const lastSegment = segments[segments.length - 1];
+    const words = lastSegment
+      .replace(/[-_]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.length === 0) return null;
+    return words.slice(0, 10).join(" ");
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Resolve a imagem de capa de um artigo `mode: 'source_article'`, em 2
- * camadas, nunca IA — ver comentário do módulo. Retorna null se as duas
- * falharem (sem imagem, cai no placeholder padrão do site).
+ * camadas, nunca IA — ver comentário do módulo. Na camada 2, tenta primeiro
+ * um termo derivado do slug da URL original (mais fiel ao que a fonte
+ * publicou) e só cai pro título editorial se isso não render nada. Retorna
+ * null se tudo falhar (sem imagem, cai no placeholder padrão do site).
  */
 export async function resolveArticleImage(
   articleUrl: string,
@@ -163,12 +195,19 @@ export async function resolveArticleImage(
     }
   }
 
-  const searchResult = await searchImageWithFirecrawl(searchTerm, firecrawlApiKey);
-  if (searchResult) {
-    const rehosted = await downloadAndRehostImage(searchResult.imageUrl, "topic-search");
-    if (rehosted) {
-      const creditSource = extractHostname(searchResult.pageUrl) || searchResult.title || "web";
-      return { url: rehosted, credit: `Imagem: ${creditSource}` };
+  const slugTerm = deriveSearchTermFromUrl(articleUrl);
+  const searchTerms = [slugTerm, searchTerm].filter(
+    (t, i, arr): t is string => !!t && arr.indexOf(t) === i
+  );
+
+  for (const term of searchTerms) {
+    const searchResult = await searchImageWithFirecrawl(term, firecrawlApiKey);
+    if (searchResult) {
+      const rehosted = await downloadAndRehostImage(searchResult.imageUrl, "topic-search");
+      if (rehosted) {
+        const creditSource = extractHostname(searchResult.pageUrl) || searchResult.title || "web";
+        return { url: rehosted, credit: `Imagem: ${creditSource}` };
+      }
     }
   }
 
