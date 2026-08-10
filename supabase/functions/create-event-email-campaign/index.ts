@@ -373,20 +373,44 @@ Deno.serve(async (req) => {
       scheduled_send_attempts: 0,
     };
 
+    // R-058 — Supabase-js não lança em erro de RLS/constraint aqui, só devolve
+    // { error }; sem checar isso, uma falha de gravação ficava 100% silenciosa
+    // (resposta 200 ok:true, zero linha no histórico, claim nunca liberado —
+    // reproduzia sozinho todos os sintomas de "dispatch_in_progress" mesmo
+    // depois de R-052 a R-057 corrigidos). Não libera o claim aqui: a
+    // campanha real já existe na E-goi nesse ponto (created.ok === true),
+    // então liberar deixaria o admin recriar/reenviar de verdade em cima de
+    // uma campanha que já foi criada — só soma o erro na resposta, mesmo
+    // padrão já usado no sibling create-multi-event-email-campaign.
+    let historyError: string | null = null;
     if (reuseRow) {
-      await admin
+      const { error: updateError } = await admin
         .from('event_email_campaigns')
         .update(rowPayload)
         .eq('id', (reuseRow as any).id);
+      if (updateError) {
+        console.error('[create-event-email-campaign] Falha ao gravar histórico (update):', updateError);
+        historyError = updateError.message;
+      }
     } else {
-      await admin.from('event_email_campaigns').insert(rowPayload);
+      const { error: insertError } = await admin.from('event_email_campaigns').insert(rowPayload);
+      if (insertError) {
+        console.error('[create-event-email-campaign] Falha ao gravar histórico (insert):', insertError);
+        historyError = insertError.message;
+      }
     }
+
+    const finalErrorMessage = historyError
+      ? errorMessage
+        ? `${errorMessage} (aviso: falha ao gravar histórico: ${historyError})`
+        : `Aviso: falha ao gravar histórico: ${historyError}`
+      : errorMessage;
 
     return json({
       ok: campaignStatus !== 'failed',
       status: campaignStatus,
       egoi_campaign_id: campaignHash,
-      error: errorMessage,
+      error: finalErrorMessage,
       scheduled_at: campaignStatus === 'scheduled' ? scheduleAtIso : null,
       _debug: { egoi_status: created.status, egoi_send_status: egoiSendStatus, egoi_send_body: egoiSendBody },
     });

@@ -18,11 +18,21 @@
 
 ## Entradas Detalhadas
 
-### Fix: causa raiz definitiva do "dispatch_in_progress" — `egoiRequest` sem timeout no caminho de segmento (R-057)
-**Descrição:** mesmo após R-055 (libera claim + timeout no cache de mapas), o evento Sirius continuou travando com `dispatch_in_progress`, desta vez sem nenhum log de erro sequer — o claim ficava preso por mais de 1 minuto sem a function nunca lançar uma exceção catchável. A pista decisiva veio do usuário: "isso funcionava antes, só a função de enviar por segmento que não havia sido testada ainda" — `egoi_config.segment_id` global está `null`, então todo disparo anterior sempre foi pra "toda a lista"; o Sirius foi o primeiro a usar o override de segmento por disparo (aba Envio manual) contra a API real da E-goi. Causa: `egoiRequest` (`supabase/functions/_shared/egoiClient.ts`), usado tanto pra criar quanto pra enviar a campanha, fazia `fetch()` sem nenhum timeout — a hipótese é que a API da E-goi trava (ou demora demais) especificamente com `segment_id` no payload, e sem timeout esse `fetch()` fica pendurado até o runtime matar o isolate sem rodar nenhum `catch`.
+### Fix: causa raiz definitiva do "dispatch_in_progress" — erro real na gravação do histórico era engolido silenciosamente (R-058)
+**Descrição:** mesmo após R-052 a R-057, o evento Sirius continuou travando com `dispatch_in_progress` em TODAS as combinações (rascunho/enviar agora × segmento/lista inteira) — respostas 200 rápidas (2-3s), sem erro, sem log. Investigação só-leitura (logs + SQL) mostrou que a function não estava travando nem dando exceção: dos 3 caminhos que mantêm HTTP 200 depois do claim, só `created.ok === true` (E-goi aceitou a criação da campanha) é consistente com o claim ficar preso sem se resetar — e esse caminho termina sempre no mesmo `.update()`/`.insert()` final em `event_email_campaigns`, cujo `{ error }` do Supabase-js nunca era destructurado. Uma falha de banco nesse ponto (RLS/constraint/etc., causa exata ainda não confirmada) ficava 100% silenciosa. O bug não tinha nada a ver com segmento — é o mesmo ponto de código em todo disparo que chega a criar a campanha na E-goi, por isso as 4 combinações falhavam igual.
+**Data:** 10/08/2026
+**Responsável:** IA (a pedido do usuário, "ultrathink" — investigação mais profunda pedida após R-052 a R-057 não resolverem o sintoma final)
+**Impacto:** o erro real de gravação agora é logado (`console.error`) e devolvido na resposta (`error`) — sem alterar a política de liberação do claim (a campanha real na E-goi já existe nesse ponto, então o claim é mantido de propósito, mesma lógica do ramo `created.ok === false` já existente). A causa raiz Postgres exata ainda depende do próximo disparo real em produção para aparecer nos logs — ver `docs/PENDENCIAS.md`.
+
+**Arquivos alterados:** `supabase/functions/create-event-email-campaign/index.ts`, `src/__tests__/regression/email-dispatch-history-write-error-swallowed.test.ts` (novo), `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+---
+
+### Fix: `egoiRequest` sem timeout — hipótese intermediária, insuficiente sozinha (R-057)
+**Descrição:** mesmo após R-055 (libera claim + timeout no cache de mapas), o evento Sirius continuou travando com `dispatch_in_progress`, desta vez sem nenhum log de erro sequer — o claim ficava preso por mais de 1 minuto sem a function nunca lançar uma exceção catchável. A pista decisiva veio do usuário: "isso funcionava antes, só a função de enviar por segmento que não havia sido testada ainda" — `egoi_config.segment_id` global está `null`, então todo disparo anterior sempre foi pra "toda a lista"; o Sirius foi o primeiro a usar o override de segmento por disparo (aba Envio manual) contra a API real da E-goi. Hipótese testada: `egoiRequest` (`supabase/functions/_shared/egoiClient.ts`), usado tanto pra criar quanto pra enviar a campanha, fazia `fetch()` sem nenhum timeout. Insuficiente sozinha — o mesmo erro reapareceu depois em TODAS as combinações (não só segmento); a causa real (não relacionada a timeout nem a segmento) foi achada no R-058, acima.
 **Data:** 10/08/2026
 **Responsável:** IA (a pedido do usuário, "ultrathink" — investigação mais profunda pedida após 2 tentativas anteriores não resolverem)
-**Impacto:** `egoiRequest` ganha `AbortSignal.timeout(25s)` — um timeout agora vira uma exceção real capturada pelo catch externo (libera o claim, loga o erro, mensagem real chega ao admin). Ainda não confirmado com um envio real com segmento se 25s é suficiente, nem a causa exata do lado da E-goi.
+**Impacto:** `egoiRequest` ganha `AbortSignal.timeout(25s)` — hardening válido independente da causa raiz (nunca mais deixa a function pendurada esperando a E-goi), mas não era a causa deste bug específico.
 
 **Arquivos alterados:** `supabase/functions/_shared/egoiClient.ts`, `supabase/functions/_shared/egoiClient_test.ts`, `docs/TESTING.md`, `docs/PENDENCIAS.md`.
 
@@ -1177,7 +1187,8 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
-| 10/08 | Bugfix | Causa raiz definitiva do "dispatch_in_progress" — egoiRequest sem timeout no caminho de segmento (R-057) |
+| 10/08 | Bugfix | Causa raiz definitiva do "dispatch_in_progress" — erro real na gravação do histórico era engolido silenciosamente (R-058) |
+| 10/08 | Bugfix | egoiRequest sem timeout — hipótese intermediária, insuficiente sozinha (R-057) |
 | 10/08 | Bugfix | Badges do line-up coladas sem espaço no Outlook — Gmail ok (R-056) |
 | 10/08 | Bugfix | Evento ficava travado ("dispatch_in_progress") sem log em falhas não previstas + fetches de mapa sem timeout (R-055) |
 | 10/08 | Bugfix | Claim de disparo filtrava a própria coluna do RETURNING — causa real da coluna "ausente" (R-054) |

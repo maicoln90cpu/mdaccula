@@ -87,20 +87,31 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
-### Checkpoint: confirmar que o disparo do evento Sirius completa de ponta a ponta após R-055/R-056/R-057
-**Checar em:** próxima tentativa real do usuário
-**Contexto:** depois de R-052/R-053/R-054 (mensagem de erro real + cache de esquema + coluna no RETURNING do claim), o disparo do Sirius seguiu travando com `dispatch_in_progress` — mesmo após R-055 (libera claim em qualquer falha + timeout no cache de mapas). Investigação mais profunda ("ultrathink") achou a causa mais provável: `egoiRequest` (chamada real à API da E-goi, tanto pra criar quanto pra enviar a campanha) não tinha nenhum timeout, e o disparo do Sirius foi o primeiro a usar segmento por disparo (`egoi_config.segment_id` global está `null` — todo disparo anterior sempre foi "toda a lista"). Corrigido em R-057 (timeout de 25s no `egoiRequest`) — ainda não confirmado com um envio real se resolve de fato, nem por que a E-goi trava especificamente com segmento.
+### 🔧 Bug conhecido: causa raiz Postgres da falha de gravação em `event_email_campaigns` ainda não identificada
+**Status:** correção de diagnóstico implantada (R-058) — o erro agora é visível, mas a causa exata (RLS? grant? constraint?) ainda depende do próximo disparo real pra aparecer no log/resposta.
+**Contexto:** investigação só-leitura (logs + SQL) de 10/08/2026 provou que o disparo do evento Sirius NÃO estava travando nem dando exceção — completava em 2-3s com HTTP 200 — mas o claim anti-duplo-clique ficava preso e nenhuma linha era gravada em `event_email_campaigns`. Rastreamento do código mostrou que o único caminho consistente com essas evidências é `created.ok === true` (E-goi aceitou criar a campanha) seguido de uma falha silenciosa no `.update()`/`.insert()` final do histórico — o `{ error }` do Supabase-js nunca era checado. Checagens estáticas já feitas (não confirmaram a causa): colunas/tipos do `rowPayload` batem com o schema, `CHECK` constraints (`mode`, `status`) são satisfeitos pelos valores computados, não há trigger/rule bloqueando, e a policy RLS pra `service_role` (`using(true) with check(true)`) deveria ser totalmente permissiva — mas isso não foi testado com uma escrita real (só leitura, por estar em modo de planejamento no momento da investigação).
 **Passos:**
-1. Em `/admin/email-config` → Envio manual, repetir o disparo do evento Sirius (rascunho e/ou envio real, com o segmento "abertura maior que 1").
-2. Se travar de novo: agora deve aparecer uma mensagem de erro real (não mais silêncio) — reportar o texto exato.
-3. Se funcionar: confirmar no Histórico que a campanha foi criada e, no e-mail recebido, se o line-up aparece com os nomes separados (testar no Outlook, não só Gmail).
-**Responsável:** usuário testa e reporta o resultado
+1. Pedir pro usuário repetir 1 disparo real (rascunho já basta) depois do deploy do R-058.
+2. Ler os logs (`edge-function-runtime`, `get_logs`) e/ou a resposta na tela — agora deve trazer a mensagem real do Postgres (código de erro tipo `42501`=permissão/RLS, `23502`/`23514`=constraint, etc.).
+3. Corrigir a causa raiz específica conforme o erro indicar (pode envolver ajustar a policy, um grant, ou a migration travada — ver checkpoint abaixo).
+**Responsável:** usuário reporta o resultado do próximo disparo; IA corrige a causa raiz assim que o erro real aparecer.
+
+---
+
+### 👀 Checkpoint: branch de produção com `status: MIGRATIONS_FAILED` — checar se está relacionado ao R-058
+**Checar em:** junto com a investigação da causa raiz do R-058 acima
+**Contexto:** bem no início da investigação do disparo do Sirius (ainda na fase do R-053), `list_branches` mostrou o branch padrão/produção do projeto (`project_ref: xfvpuzlspvvsmmunznxw`) com `status: "MIGRATIONS_FAILED"`. Nunca foi totalmente descartado como relacionado — é plausível que alguma migration travada tenha deixado RLS/grants de `event_email_campaigns` num estado diferente do esperado, sem afetar `events` (que tem suas próprias policies e continua funcionando normalmente para o mesmo client admin).
+**Passos:**
+1. Rodar `list_branches`/`list_migrations` de novo e identificar qual migration específica está travada/falhou.
+2. Conferir se o DDL dessa migration toca `event_email_campaigns` (RLS, grants, constraints) — se sim, correlacionar com a mensagem de erro real capturada pelo R-058.
+3. Se não tiver relação nenhuma com `event_email_campaigns`, decidir separadamente (com o usuário) se vale a pena investigar/corrigir esse branch travado por outros motivos, mas sem misturar com este bug.
+**Responsável:** IA confere junto com a investigação do R-058
 
 ---
 
 ### Bug latente: outras 4 Edge Functions têm cópia própria de `egoiRequest` sem timeout (mesma classe do R-057)
-**Status:** 🔧 Não corrigido — achado como efeito colateral da investigação do R-057, fora do escopo do disparo manual.
-**Contexto:** `blog-digest-draft`, `send-event-reminder-campaigns`, `weekly-digest-draft` e `weekend-agenda-draft` cada uma tem sua PRÓPRIA implementação local de `egoiRequest` (não usam o `_shared/egoiClient.ts`), com o mesmo `fetch()` sem timeout que causou o R-057 no disparo manual. Nenhuma delas usa segmento por disparo hoje (só o fluxo manual tem esse campo), então o risco é menor, mas a mesma classe de trava indefinida existe se algum dia usarem segment_id ou a E-goi tiver uma lentidão pontual.
+**Status:** 🔧 Não corrigido — achado como efeito colateral da investigação do R-057, fora do escopo do disparo manual. Continua válido como hardening mesmo depois do R-058 mostrar que não era a causa raiz do bug do Sirius.
+**Contexto:** `blog-digest-draft`, `send-event-reminder-campaigns`, `weekly-digest-draft` e `weekend-agenda-draft` cada uma tem sua PRÓPRIA implementação local de `egoiRequest` (não usam o `_shared/egoiClient.ts`), com o mesmo `fetch()` sem timeout que o R-057 corrigiu no compartilhado. Nenhuma delas usa segmento por disparo hoje (só o fluxo manual tem esse campo), então o risco é menor, mas a mesma classe de trava indefinida existe se algum dia usarem segment_id ou a E-goi tiver uma lentidão pontual.
 **Correção sugerida:** ou aplicar o mesmo `AbortSignal.timeout` nas 4 cópias locais, ou (melhor, resolve a duplicação também) migrar as 4 functions pra usar `_shared/egoiClient.ts` em vez de reimplementar `egoiRequest`.
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa reportada, é prevenção.
 
