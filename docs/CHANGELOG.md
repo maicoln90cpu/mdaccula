@@ -24,7 +24,9 @@
 **Responsável:** IA (a pedido do usuário)
 **Impacto:** médio (o pico de egress em si já estava resolvido antes da investigação; o que este item corrige é o alerta que deveria ter avisado sobre ele e nunca avisou)
 
-**Arquivos alterados:** `supabase/functions/egress-alert-cron/index.ts`, `supabase/functions/egress-alert-cron/resendEmail.ts` (novo), `supabase/functions/egress-alert-cron/resendEmail_test.ts` (novo), `src/lib/adminLoadGuard.ts` (novo), `src/lib/index.ts`, `src/components/admin/emailConfig/useEmailConfigState.ts`, `src/__tests__/lib/adminLoadGuard.test.ts` (novo), `docs/TESTING.md` (R-049).
+**Atualização (mesmo dia):** usuário viu o e-mail de alerta real chegar e reportou o layout "horrível" (HTML cru, sem estrutura). Redesenhado pra usar a mesma identidade visual do e-mail diário de métricas (tabela escura, cards, logo) — números que causaram o alerta (24h, proporção) em vermelho.
+
+**Arquivos alterados:** `supabase/functions/egress-alert-cron/index.ts`, `supabase/functions/egress-alert-cron/resendEmail.ts` (novo), `supabase/functions/egress-alert-cron/resendEmail_test.ts` (novo), `supabase/functions/egress-alert-cron/emailHtml.ts` (novo), `supabase/functions/egress-alert-cron/emailHtml_test.ts` (novo), `src/lib/adminLoadGuard.ts` (novo), `src/lib/index.ts`, `src/components/admin/emailConfig/useEmailConfigState.ts`, `src/__tests__/lib/adminLoadGuard.test.ts` (novo), `docs/TESTING.md` (R-049).
 
 ---
 

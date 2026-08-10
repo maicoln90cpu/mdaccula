@@ -10,6 +10,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildResendEmailRequest } from "./resendEmail.ts";
+import { buildAlertEmailHtml } from "./emailHtml.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -140,29 +141,23 @@ Deno.serve(async (req) => {
     if (email) {
       const RESEND = Deno.env.get("RESEND_API_KEY");
       if (RESEND) {
-        const html = `
-          <div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;padding:16px;">
-            <h2 style="color:#a855f7;margin:0 0 8px">🚨 Alerta de Egress — MDACCULA</h2>
-            <p style="color:#333">Motivo: <b>${reason}</b></p>
-            <ul>
-              <li><b>Últimas 24h:</b> ${mb24h.toFixed(2)} MB</li>
-              <li><b>Média diária (7d):</b> ${(baselineDaily / (1024 * 1024)).toFixed(2)} MB</li>
-              <li><b>Proporção:</b> ${observedRatio.toFixed(2)}×</li>
-              <li><b>Limite configurado:</b> ${thresholdMb} MB / ratio ${ratio}×</li>
-            </ul>
-            <h3>Top caminhos (24h)</h3>
-            <ol>
-              ${(topPaths ?? [])
-                .map(
-                  (p: any) =>
-                    `<li><code>${p.api_path}</code> — ${(Number(p.egress_bytes) / (1024 * 1024)).toFixed(2)} MB (${p.source})</li>`,
-                )
-                .join("")}
-            </ol>
-            <p style="color:#666;font-size:12px;margin-top:16px">
-              Dashboard: <a href="https://mdaccula.com/admin/egress-monitor">Egress Monitor</a>
-            </p>
-          </div>`;
+        const html = buildAlertEmailHtml({
+          reason,
+          mb24h,
+          baselineDailyMb: baselineDaily / (1024 * 1024),
+          observedRatio,
+          thresholdMb,
+          ratioThreshold: ratio,
+          topPaths: topPaths ?? [],
+          triggeredAtLabel: now.toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }) + " BRT",
+        });
         try {
           const req = buildResendEmailRequest({
             resendApiKey: RESEND,
