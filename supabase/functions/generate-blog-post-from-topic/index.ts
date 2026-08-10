@@ -158,6 +158,9 @@ Deno.serve(async (req) => {
 
 Você recebeu o conteúdo de UMA matéria real, específica, publicada por "${sourceName || 'uma fonte parceira'}". Sua tarefa é REESCREVER essa matéria no registro editorial do nosso blog — não é uma síntese de várias fontes, é a adaptação fiel de UMA matéria só.
 
+🚨 REGRA CRÍTICA — IDIOMA:
+O artigo final é SEMPRE em português do Brasil, mesmo que a matéria original esteja em outro idioma (inglês, espanhol etc.). Traduza e adapte todo o conteúdo pra PT-BR — nunca deixe parágrafos inteiros em outro idioma. Nomes próprios, títulos de faixas/álbuns/eventos e citações diretas podem permanecer no idioma original, mas o texto ao redor (frases, explicações, narrativa) é sempre em português.
+
 🚨 REGRA CRÍTICA — FIDELIDADE ABSOLUTA À MATÉRIA ORIGINAL:
 - Use APENAS fatos, citações e dados que aparecem na matéria original abaixo.
 - NUNCA invente datas, nomes, números ou eventos que não estejam nela.
@@ -192,6 +195,9 @@ RETORNE APENAS O JSON, sem markdown, sem texto adicional.
 ${EDITORIAL_QUALITY_BLOCK}` : `Você é um jornalista especializado em música eletrônica, escrevendo para um blog moderno inspirado em veículos como Mixmag, DJ Mag, Billboard e Electronic Groove.
 
 Você recebeu um conjunto de fontes reais (resultado de uma busca na web) sobre o termo "${query}". Sua tarefa é escrever um artigo jornalístico ancorado EXCLUSIVAMENTE nos fatos presentes nessas fontes.
+
+🚨 REGRA CRÍTICA — IDIOMA:
+O artigo final é SEMPRE em português do Brasil, mesmo que as fontes estejam em outro idioma (inglês, espanhol etc.). Traduza e adapte todo o conteúdo pra PT-BR — nunca deixe parágrafos inteiros em outro idioma. Nomes próprios, títulos de faixas/álbuns/eventos e citações diretas podem permanecer no idioma original, mas o texto ao redor (frases, explicações, narrativa) é sempre em português.
 
 🚨 REGRA CRÍTICA — FONTES TÊM PRIORIDADE ABSOLUTA:
 - Use APENAS fatos, citações e dados que aparecem no bloco FONTES ENCONTRADAS abaixo.
