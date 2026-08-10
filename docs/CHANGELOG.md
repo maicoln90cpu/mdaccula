@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Alerta de egress por e-mail nunca chegava — corrigido endpoint de envio (R-049)
+**Descrição:** usuário reportou Cached Egress em 5.28GB/5GB (Free Plan) no dashboard do Supabase e pediu investigação completa. Achados: (1) o pico de 09/08 (952MB em 24h) foi um loop infinito real na aba Gestão de E-mails, já encontrado e corrigido pelo próprio usuário 20 minutos depois num commit anterior (`bdeccaf`), com teste de regressão dedicado; (2) o sistema de alerta automático (`egress-alert-cron`) já detectava os 3 picos do mês corretamente, mas nunca conseguia notificar por e-mail — 401 "Credential not found" num endpoint (`connector-gateway.lovable.dev`) que nenhuma outra função do projeto usa. Corrigido pra usar o mesmo padrão de `api.resend.com` direto já usado com sucesso em `send-test-email`/`daily-metrics-email`. Adicionada uma segunda camada de proteção genérica (`adminLoadGuard`) contra qualquer causa futura de loop em loaders de admin, além da proteção específica que já existia.
+**Data:** 09/08/2026
+**Responsável:** IA (a pedido do usuário)
+**Impacto:** médio (o pico de egress em si já estava resolvido antes da investigação; o que este item corrige é o alerta que deveria ter avisado sobre ele e nunca avisou)
+
+**Arquivos alterados:** `supabase/functions/egress-alert-cron/index.ts`, `supabase/functions/egress-alert-cron/resendEmail.ts` (novo), `supabase/functions/egress-alert-cron/resendEmail_test.ts` (novo), `src/lib/adminLoadGuard.ts` (novo), `src/lib/index.ts`, `src/components/admin/emailConfig/useEmailConfigState.ts`, `src/__tests__/lib/adminLoadGuard.test.ts` (novo), `docs/TESTING.md` (R-049).
+
+---
+
 ### Geração por Tema para de gerar artigo institucional sobre a própria fonte e passa a reescrever fielmente 1 matéria real (Fases 0+1, R-048)
 **Descrição:** usuário reportou que a geração automática de artigos por tema estava "muito bugada" — investigação com dados reais do banco confirmou que os últimos rascunhos gerados ("DJ Mag LA", "Alataj", "Wonderland in Rave", "Nervous Records") eram artigos institucionais SOBRE o próprio veículo/portal fonte, não notícias reais publicadas nele, contrariando o comportamento esperado ("raspar as fontes, escolher 1 matéria real e recriar o artigo"). O usuário escolheu o Plano C (híbrido por gatilho) entre 3 alternativas apresentadas.
 **Correção — Fase 0 (blindagem imediata, todos os caminhos):** `mdaccula.com`/`mdaccula.b-cdn.net` entraram no blocklist de domínios do Firecrawl; novo guardrail `_shared/selfReferentialSourceGuard.ts` descarta qualquer sugestão cujo termo de busca seja o próprio nome/domínio da fonte cadastrada — a causa raiz confirmada do padrão de bug (homepage raspada só tem branding, então a única "âncora real" extraível é o nome da marca); `generate-blog-suggestions` parou de usar a `description` da fonte como fallback silencioso quando o scraping falha; `generate-blog-post-from-topic` trocou o tamanho fixo de 900-1300 palavras por extensão proporcional e ganhou uma válvula de escape (`insufficientSources`) pra recusar gerar quando as fontes são só institucional/homepage.

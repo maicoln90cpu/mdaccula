@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
-import { getEdgeFunctionErrorMessage } from '@/lib';
+import { getEdgeFunctionErrorMessage, createLoadGuard } from '@/lib';
 import type { useToast } from '@/hooks/useToast';
 import {
   MOCK_EVENT_DATA,
@@ -117,9 +117,17 @@ export function useEmailConfigState({
     setEventReminderRunHistory,
   } = automation;
 
+  // Trava contra loop infinito (ver R-013/incidente de 09/08/2026): se algo
+  // fizer loadAll disparar repetidamente em vez de uma vez por mount, aborta
+  // cedo em vez de martelar egress real — páginas /admin bypassam o cache do
+  // service worker por design (REGRA 2), então cada chamada aqui é rede de
+  // verdade nas 6 tabelas abaixo.
+  const loadGuard = useMemo(() => createLoadGuard('EmailConfig.loadAll'), []);
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
+      loadGuard();
       const [master, config, tplRes, cacheRes, tplList, evts, digestRow] = await Promise.all([
         supabase
           .from('site_settings')
@@ -274,6 +282,7 @@ export function useEmailConfigState({
     }
   }, [
     toast,
+    loadGuard,
     setWeeklyCfg,
     setWeekendCfg,
     setBlogCfg,

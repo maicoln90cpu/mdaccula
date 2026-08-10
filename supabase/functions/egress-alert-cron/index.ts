@@ -9,6 +9,7 @@
  * OU Authorization Bearer de um admin autenticado (botão "Executar agora").
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { buildResendEmailRequest } from "./resendEmail.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -138,8 +139,7 @@ Deno.serve(async (req) => {
 
     if (email) {
       const RESEND = Deno.env.get("RESEND_API_KEY");
-      const LOVABLE = Deno.env.get("LOVABLE_API_KEY");
-      if (RESEND && LOVABLE) {
+      if (RESEND) {
         const html = `
           <div style="font-family:system-ui,Arial,sans-serif;max-width:560px;margin:auto;padding:16px;">
             <h2 style="color:#a855f7;margin:0 0 8px">🚨 Alerta de Egress — MDACCULA</h2>
@@ -164,19 +164,16 @@ Deno.serve(async (req) => {
             </p>
           </div>`;
         try {
-          const resp = await fetch("https://connector-gateway.lovable.dev/resend/emails", {
+          const req = buildResendEmailRequest({
+            resendApiKey: RESEND,
+            toEmail: email,
+            subject: `[MDACCULA] Alerta de Egress: ${reason}`,
+            html,
+          });
+          const resp = await fetch(req.url, {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${LOVABLE}`,
-              "X-Connection-Api-Key": RESEND,
-            },
-            body: JSON.stringify({
-              from: "MDACCULA Alertas <onboarding@resend.dev>",
-              to: [email],
-              subject: `[MDACCULA] Alerta de Egress: ${reason}`,
-              html,
-            }),
+            headers: req.headers,
+            body: JSON.stringify(req.body),
           });
           if (!resp.ok) {
             emailError = `${resp.status}: ${await resp.text()}`;
@@ -187,7 +184,7 @@ Deno.serve(async (req) => {
           emailError = err instanceof Error ? err.message : String(err);
         }
       } else {
-        emailError = "RESEND_API_KEY or LOVABLE_API_KEY missing";
+        emailError = "RESEND_API_KEY missing";
       }
     } else {
       emailError = "email destinatário não configurado (site_settings.egress_alert_email)";
