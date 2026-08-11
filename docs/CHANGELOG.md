@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 10/08/2026
+**Última atualização:** 11/08/2026
 
 ---
 
@@ -17,6 +17,16 @@
 ---
 
 ## Entradas Detalhadas
+
+### Correção: retenção de log de mesclagem de eventos alinhada à janela do "Desfazer" (R-060)
+**Descrição:** o botão "Desfazer" da aba "Eventos Mesclados" ficava bloqueado antes do previsto porque `cleanup_old_logs()` (cron diário, 3h) apagava TODO `application_logs` com mais de 7 dias, incluindo os logs `action: 'merge_events'` que guardam o snapshot pré-merge — enquanto `MergedEventsTab.tsx` consulta esses mesmos logs numa janela de 90 dias. Descoberto ao tentar desfazer pela UI a mesclagem do evento "Parador apres. Cat Dealers e+++" (absorveu "Parador apres. Chemical Surf e+++" em 19/07/2026): com só 23 dias de mesclagem, o log já tinha sido limpo. Migration `20260811222558_extend_merge_log_retention_for_undo.sql` recria `cleanup_old_logs()` isentando `merge_events`/`undo_merge` da limpeza de 7 dias, retendo-os por 90 dias (igual à janela consultada pela UI); os demais logs continuam com 7 dias. Como o log dessa mesclagem específica já tinha sumido antes da correção acima, o desfazer do caso concreto (Cat Dealers/Chemical Surf) foi feito via SQL direto em produção, reconstruindo o estado pré-merge a partir do próprio evento absorvido (que preserva date/schedule/lineup/views intactos, por ser soft-delete) — sem gerar snapshot em log, então esse caso específico não pode ser refeito pela UI se for preciso reverter de novo.
+**Data:** 11/08/2026
+**Responsável:** IA, a pedido do usuário
+**Impacto:** próximas mesclagens de eventos poderão ser desfeitas pela UI por até 90 dias em vez de 7; evita repetir a correção manual via SQL. Evento "Parador apres. Cat Dealers e+++" e "Parador apres. Chemical Surf e+++" voltaram a ser 2 eventos independentes e ativos.
+
+**Arquivos alterados:** `supabase/migrations/20260811222558_extend_merge_log_retention_for_undo.sql` (nova), `src/__tests__/regression/merge-log-retention-90-days.test.ts` (novo), `docs/TESTING.md`.
+
+---
 
 ### Verificação: envio segmentado confirmado funcionando com a correção do R-059
 **Descrição:** fechamento do checkpoint deixado pelo R-059 — o fix daquele dia só tinha sido validado pra "toda a lista" (evento Sirius); o caminho de segmento por disparo (o cenário original que abriu a investigação: lista "abertura maior que 1") ainda não tinha sido testado com a correção. Testado agora com um evento novo (Industria apres. Blazy e Omiki, 16/10/2026), template "Novo evento — padrão", segmento "Abertura Maior 1" (13.068 contatos): "Criar rascunho na E-goi" → sucesso (campanha `#24fbb43d...`, `event_email_campaigns.segment_id = 3`, `error_message: null`); "Enviar agora" (com os 2 diálogos de confirmação da UI) → sucesso (campanha `#a6bb7b5f...`, `status: sent`, mesma linha do histórico reaproveitada), confirmado visualmente na aba Histórico e controle como "Enviado". Nenhum bug novo apareceu — o R-059 corrige o `dispatch_in_progress` pros dois caminhos (lista inteira e segmentada), como já indicava a análise da causa raiz (o bug estava na detecção do claim, uma etapa anterior e comum a ambos os fluxos, não em nada específico de segmento).

@@ -573,6 +573,14 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
   3. Confirmado visualmente na aba **Histórico e controle**: evento Sirius aparece como "Enviado", `10/08/2026, 16:41:27` (horário de Brasília), modo `Immediate`.
   - Segmento por disparo (ex.: "abertura maior que 1") ficou deliberadamente adiado pra sessão seguinte (decisão do usuário: fechar 100% o caso "lista inteira" primeiro) — **confirmado funcionando** em 10/08/2026, mesmo dia: evento "Industria apres. Blazy e Omiki" (16/10/2026), template "Novo evento — padrão", segmento "Abertura Maior 1" (13.068 contatos). "Criar rascunho na E-goi" → sucesso (`#24fbb43d...`, `segment_id: 3`); "Enviar agora" → sucesso (`#a6bb7b5f...`, `status: sent`), confirmado na aba Histórico e controle. Nenhum bug adicional apareceu — o R-059 corrige os dois caminhos igualmente, como esperado (o bug estava na detecção do claim, uma etapa comum a ambos). Ver entrada correspondente em `docs/CHANGELOG.md`.
 
+### R-060 — Botão "Desfazer" mesclagem ficava bloqueado antes do previsto (log de auditoria some cedo demais)
+- **Quando:** 11/08/2026, ao tentar desfazer pela aba "Eventos Mesclados" a mesclagem do evento "Parador apres. Cat Dealers e+++" (absorveu "Parador apres. Chemical Surf e+++" em 19/07/2026).
+- **Sintoma:** o grupo aparecia na aba, mas o botão "Desfazer" estava desabilitado com o aviso "Mesclagem antiga sem snapshot em log — desfazer só via SQL manual", mesmo o evento principal ainda sendo futuro (05/09/2026) — a mesclagem tinha só 23 dias.
+- **Causa raiz:** `cleanup_old_logs()` (cron `cleanup-old-logs-daily`, 3h da manhã) apagava TODO `application_logs` com mais de 7 dias, incluindo os logs `action: 'merge_events'` que guardam o `primary_pre_merge` usado pelo `UndoMergeDialog` para reconstruir o estado anterior. `MergedEventsTab.tsx`, porém, consulta esses logs numa janela de 90 dias — um descompasso de 7 vs. 90 dias entre quem escreve e quem lê.
+- **Correção:** migration `20260811222558_extend_merge_log_retention_for_undo.sql` recria `cleanup_old_logs()` para reter logs com `context->>'action' IN ('merge_events', 'undo_merge')` por 90 dias (igualando a janela do `MergedEventsTab`), mantendo 7 dias para o restante.
+- **Correção manual do caso concreto:** como o log dessa mesclagem específica já tinha sido apagado antes da migration acima, o desfazer do evento Cat Dealers/Chemical Surf foi feito via SQL direto (reconstruindo o estado pré-merge a partir do próprio evento absorvido, que preserva date/schedule/lineup/views intactos por ser soft-delete) — não deixa snapshot em log, então não pode ser refeito pela UI.
+- **Proteção:** `src/__tests__/regression/merge-log-retention-90-days.test.ts` (confere que a `cleanup_old_logs()` mais recente isenta merge_events/undo_merge da limpeza de 7 dias, com retenção de pelo menos 90 dias, e que `MergedEventsTab` continua usando essa mesma janela).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
