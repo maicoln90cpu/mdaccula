@@ -4,7 +4,7 @@
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
 > **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 12/08/2026
+**Última atualização:** 13/08/2026
 
 ---
 
@@ -38,14 +38,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 1. Monitorar por alguns dias se alguma execução automática do cron traz `storage_requests_24h` != `null` (dá pra conferir em `egress_alerts.details` ou nos logs de `function_logs`).
 2. Se continuar falhando sempre, considerar reportar o erro pro suporte do Supabase (a própria mensagem de erro já sugere isso) ou aceitar que essa checagem específica fica só como bônus oportunista, sem depender dela — a correção da causa raiz (R-061) já está no ar e não depende disso.
 **Responsável:** IA monitora quando solicitado; não é bloqueante pra mais nada.
-
-### Migrar o logo do e-mail (`email_template_settings.logo_url`) pro Bunny CDN — arquivo já existe no Storage, falta copiar
-**Contexto:** o logo global do e-mail está salvo como URL crua do Supabase Storage desde 09/07/2026 (achado do R-061). `migrate-to-bunny` ganhou a ação `migrate_single_file` pra cobrir esse caso (arquivo em subpasta, fora do alcance de `migrate_files`), mas ainda não foi executada em produção.
-**Passos:**
-1. Depois do deploy, chamar a Edge Function `migrate-to-bunny` com `{ "action": "migrate_single_file", "bucket": "link-thumbnails", "path": "email-template/logo-1783617807134.jpg" }` (autenticado como admin — via console do navegador já logado em `/admin`, ou um pequeno cliente HTTP com o token de sessão).
-2. Em seguida, clicar em "Atualizar URLs" na aba Mídia de `/admin/settings` (já existente, chama `action: update_urls`) — isso reescreve `email_template_settings.logo_url` pra apontar pro Bunny.
-3. Conferir com um SELECT direto que `logo_url` agora começa com `https://mdaccula.b-cdn.net/`.
-**Responsável:** IA executa quando solicitado (depois do deploy do código).
 
 ## 👀 Monitoramento
 

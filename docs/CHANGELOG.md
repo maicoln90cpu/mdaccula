@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 12/08/2026
+**Última atualização:** 13/08/2026
 
 ---
 
@@ -25,7 +25,7 @@
 **Impacto:** logo e arte de disparo manual agora servidos pelo Bunny CDN (mesmo padrão do resto do app) — remove a fonte de egress multiplicada por destinatário/provedor de e-mail identificada nos logs do incidente.
 
 **Achados/correções adicionais na mesma investigação (a pedido do usuário):**
-- `email_template_settings.logo_url` (o logo em produção agora mesmo) estava vazando desde 09/07/2026 — `migrate-to-bunny` ganhou a ação `migrate_single_file` (cobre arquivos em subpasta, que a listagem plana de `migrate_files` nunca alcançava) e a coluna entrou em `URL_COLUMNS` pra detecção/correção pela mesma ferramenta já existente em `/admin/settings` → Mídia.
+- `email_template_settings.logo_url` (o logo em produção agora mesmo) estava vazando desde 09/07/2026 — `migrate-to-bunny` ganhou a ação `migrate_single_file` (cobre arquivos em subpasta, que a listagem plana de `migrate_files` nunca alcançava) e a coluna entrou em `URL_COLUMNS` pra detecção/correção pela mesma ferramenta já existente em `/admin/settings` → Mídia. **Executado em produção em 13/08/2026** (autenticado com a credencial de admin de `.env.local`, usada só localmente pra e2e): `migrate_single_file` copiou o arquivo pro Bunny, `update_urls` reescreveu a coluna — confirmado com SELECT direto (`logo_url` agora é `https://mdaccula.b-cdn.net/link-thumbnails/email-template/logo-1783617807134.jpg`) e HTTP 200 direto na URL nova.
 - `egress-alert-cron` ganhou um segundo sinal, independente de `egress_metrics`: contagem real de requisições de `storage_logs` (via Logs/Analytics API do Supabase) nas últimas 24h vs. média dos 7 dias anteriores. Fecha o ponto cego que deixou o pico de 11/08 passar sem alerta. Requer o secret `MANAGEMENT_API_TOKEN` (nome ajustado depois de descobrir na prática que o Supabase bloqueia qualquer secret de Edge Function com "SUPABASE" no nome); `METRICS_API_KEY` (secret antigo do projeto) foi testado primeiro e confirmado que não é um PAT válido. Com `MANAGEMENT_API_TOKEN` a autenticação passou a funcionar, mas o endpoint público de Analytics do Supabase está devolvendo erro transiente consistentemente nos testes (mesma SQL funciona via MCP) — **acompanhamento em `docs/PENDENCIAS.md`, não bloqueia o resto da correção**.
 
 **Arquivos alterados:** `src/components/admin/emailConfig/useEmailConfigState.ts`, `src/components/admin/emailConfig/useManualBatch.ts`, `supabase/functions/migrate-to-bunny/index.ts`, `supabase/functions/egress-alert-cron/index.ts`, `supabase/functions/_shared/managementLogsApi.ts` (novo), `supabase/functions/_shared/managementLogsApi_test.ts` (novo), `src/__tests__/regression/email-logo-and-batch-artwork-bypass-cdn.test.ts` (novo), `docs/TESTING.md`.
