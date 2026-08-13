@@ -26,13 +26,18 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🔧 Bug conhecido
 
-### Confirmar checagem de Storage no egress-alert-cron com o secret `MANAGEMENT_API_TOKEN`
-**Contexto:** decisão tomada em 12/08/2026 (ver R-061 no `CHANGELOG.md`) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. Primeiro teste (disparo manual do cron, 12/08) confirmou que o secret pré-existente `METRICS_API_KEY` **não** é um PAT válido do Supabase (`storage_requests_24h` voltou `null`). Também descoberto na prática: o Supabase **bloqueia** nomes de secret de Edge Function que contenham "SUPABASE" — por isso o nome original `SUPABASE_MANAGEMENT_API_TOKEN` nunca teria funcionado. O usuário gerou um Personal Access Token novo e salvou como `MANAGEMENT_API_TOKEN`; o código (`managementLogsApi.ts`) foi ajustado pra ler esse nome.
+### Checagem de Storage no egress-alert-cron: credencial OK, mas a API pública de Analytics do Supabase está devolvendo erro consistentemente
+**Contexto:** decisão tomada em 12/08/2026 (ver R-061 no `CHANGELOG.md`) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. Histórico de investigação, na ordem:
+1. `METRICS_API_KEY` (secret antigo) não era um PAT válido (401 "JWT could not be decoded").
+2. Descoberto na prática: o Supabase **bloqueia** nomes de secret de Edge Function contendo "SUPABASE" — por isso `SUPABASE_MANAGEMENT_API_TOKEN` nunca teria funcionado. Usuário gerou um token novo, salvou como `MANAGEMENT_API_TOKEN`.
+3. Com o novo token, a autenticação passou a funcionar (sem mais 401) — mas a chamada para `https://api.supabase.com/v1/projects/{ref}/analytics/endpoints/logs.all` passou a devolver `200 OK` com `{"result":null,"error":"Backend error! Retry your query. Please contact support if this continues."}`.
+4. Código ajustado pra detectar esse campo `error` explicitamente (antes era lido como "0 linhas" silenciosamente) e tentar de novo — primeiro 1 retry, depois 3 tentativas com 1,2s de espera. **Falhou 100% das vezes em 2 rodadas completas (6 tentativas no total, ~4 minutos), sempre com a mesma mensagem.**
+5. Comparação: a mesma consulta SQL exata (`select count(*) as cnt from logs where source = 'storage_logs'`), no mesmo momento, funcionou normalmente via MCP (`query_logs`) — sugere que o caminho usado pelo MCP (provavelmente uma sessão/API interna do Supabase, não a API pública de Management com PAT) é mais confiável do que o endpoint público que a Edge Function usa. Não é algo que mais tentativas dentro de uma mesma chamada resolvem — parece uma diferença real de confiabilidade entre os dois caminhos de acesso, não azar pontual.
+**Estado atual:** a credencial e o código estão corretos e testados; a checagem de Storage continua degradando graciosamente (não quebra o alarme — `ok: true` sempre, `ver R-049`), só não traz o dado extra ainda. O cron real roda 2x/dia (09h e 12h UTC) — cada execução é uma nova tentativa independente, então pode "pegar" um momento em que a API pública do Supabase esteja estável.
 **Passos:**
-1. Depois do próximo deploy, disparar o cron manualmente de novo e conferir se `storage_requests_24h` vem um número (não `null`).
-2. Se confirmar, fechar este item (vira entrada em `CHANGELOG.md`, sai daqui).
-3. Se ainda vier `null` ou erro 401/403, o token salvo como `MANAGEMENT_API_TOKEN` pode não ter sido gerado com o escopo certo — conferir em supabase.com/dashboard/account/tokens.
-**Responsável:** IA testa depois do deploy.
+1. Monitorar por alguns dias se alguma execução automática do cron traz `storage_requests_24h` != `null` (dá pra conferir em `egress_alerts.details` ou nos logs de `function_logs`).
+2. Se continuar falhando sempre, considerar reportar o erro pro suporte do Supabase (a própria mensagem de erro já sugere isso) ou aceitar que essa checagem específica fica só como bônus oportunista, sem depender dela — a correção da causa raiz (R-061) já está no ar e não depende disso.
+**Responsável:** IA monitora quando solicitado; não é bloqueante pra mais nada.
 
 ### Migrar o logo do e-mail (`email_template_settings.logo_url`) pro Bunny CDN — arquivo já existe no Storage, falta copiar
 **Contexto:** o logo global do e-mail está salvo como URL crua do Supabase Storage desde 09/07/2026 (achado do R-061). `migrate-to-bunny` ganhou a ação `migrate_single_file` pra cobrir esse caso (arquivo em subpasta, fora do alcance de `migrate_files`), mas ainda não foi executada em produção.
