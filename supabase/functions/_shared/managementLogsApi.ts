@@ -83,7 +83,23 @@ export async function queryLogsSql(
   }
 
   const data = await resp.json();
-  const rows = Array.isArray(data?.result) ? data.result : [];
+  const rows = Array.isArray(data?.result)
+    ? data.result
+    : Array.isArray(data)
+      ? data
+      : [];
+  if (rows.length === 0) {
+    // Diagnóstico temporário (R-061): confirmar o formato real do envelope
+    // de resposta antes de assumir `{ result: [...] }` como certo — a
+    // primeira tentativa retornou 200 sem erro, mas 0 linhas onde o valor
+    // real (via MCP query_logs) era 403. Remover depois de confirmado.
+    console.warn(
+      "managementLogsApi: resposta sem linhas — chaves top-level:",
+      JSON.stringify(data && typeof data === "object" ? Object.keys(data) : typeof data),
+      "amostra:",
+      JSON.stringify(data).slice(0, 500),
+    );
+  }
   return { rows };
 }
 
