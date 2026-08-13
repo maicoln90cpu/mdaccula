@@ -56,10 +56,34 @@ export function buildLogsApiRequest(opts: {
   };
 }
 
+async function fetchLogsOnce(req: { url: string; headers: Record<string, string> }): Promise<LogsQueryResult> {
+  const resp = await fetch(req.url, { headers: req.headers });
+
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw new Error(`Management API logs.all falhou: ${resp.status} ${text}`);
+  }
+
+  const data = await resp.json();
+  // Confirmado na prática (R-061): o backend de Analytics do Supabase às
+  // vezes responde 200 com `{ result: null, error: "Backend error! Retry
+  // your query..." }` — uma falha transiente do próprio serviço, não da
+  // credencial nem do formato da query. Tratar como erro pra acionar retry
+  // em vez de interpretar `result: null` como "0 linhas" silenciosamente.
+  if (data?.error) {
+    throw new Error(`Management API logs.all respondeu com erro: ${data.error}`);
+  }
+
+  const rows = Array.isArray(data?.result) ? data.result : Array.isArray(data) ? data : [];
+  return { rows };
+}
+
 /**
  * Roda uma query SQL somente-leitura contra o stream de logs unificado
- * (ClickHouse) via Management API. Lança em caso de erro — o chamador
- * decide como degradar (ver `isManagementApiConfigured`).
+ * (ClickHouse) via Management API. Retenta uma vez em caso de erro
+ * transiente do backend de Analytics (ver `fetchLogsOnce`) antes de lançar
+ * — o chamador decide como degradar na falha final (ver
+ * `isManagementApiConfigured`).
  */
 export async function queryLogsSql(
   sql: string,
@@ -75,32 +99,13 @@ export async function queryLogsSql(
   }
 
   const req = buildLogsApiRequest({ token, projectRef, sql, isoStart, isoEnd });
-  const resp = await fetch(req.url, { headers: req.headers });
-
-  if (!resp.ok) {
-    const text = await resp.text().catch(() => "");
-    throw new Error(`Management API logs.all falhou: ${resp.status} ${text}`);
+  try {
+    return await fetchLogsOnce(req);
+  } catch (firstErr) {
+    console.warn("managementLogsApi: 1ª tentativa falhou, retentando uma vez:", firstErr);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    return await fetchLogsOnce(req);
   }
-
-  const data = await resp.json();
-  const rows = Array.isArray(data?.result)
-    ? data.result
-    : Array.isArray(data)
-      ? data
-      : [];
-  if (rows.length === 0) {
-    // Diagnóstico temporário (R-061): confirmar o formato real do envelope
-    // de resposta antes de assumir `{ result: [...] }` como certo — a
-    // primeira tentativa retornou 200 sem erro, mas 0 linhas onde o valor
-    // real (via MCP query_logs) era 403. Remover depois de confirmado.
-    console.warn(
-      "managementLogsApi: resposta sem linhas — chaves top-level:",
-      JSON.stringify(data && typeof data === "object" ? Object.keys(data) : typeof data),
-      "amostra:",
-      JSON.stringify(data).slice(0, 500),
-    );
-  }
-  return { rows };
 }
 
 /**
