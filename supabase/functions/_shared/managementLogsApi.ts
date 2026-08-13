@@ -5,14 +5,18 @@
  * Storage), fechando o ponto cego que deixou o pico de 11/08/2026 (R-061)
  * passar sem alerta — ver `docs/PENDENCIAS.md`.
  *
- * Requer o secret `SUPABASE_MANAGEMENT_API_TOKEN` (Personal/Service Access
- * Token gerado em supabase.com/dashboard/account/tokens) — ou, como
- * fallback, um secret pré-existente `METRICS_API_KEY` (não usado em nenhum
- * outro lugar do código; se por acaso já for um PAT válido do Supabase,
- * evita ter que gerar um token novo). Sem nenhum dos dois configurado,
- * `isManagementApiConfigured()` retorna false e o chamador deve pular esta
- * checagem em vez de falhar — mesma lição do R-049 (nunca deixar uma
- * dependência de credencial derrubar o alarme inteiro).
+ * Requer o secret `MANAGEMENT_API_TOKEN` (Personal/Service Access Token do
+ * Supabase, gerado em supabase.com/dashboard/account/tokens) — não pode se
+ * chamar `SUPABASE_MANAGEMENT_API_TOKEN` porque o Supabase reserva/bloqueia
+ * qualquer nome de secret de Edge Function que contenha "SUPABASE" (erro
+ * descoberto na prática ao tentar salvar; não é limitação nossa). Mantém
+ * `METRICS_API_KEY` como fallback (secret antigo do projeto, não usado em
+ * nenhum outro lugar do código — testado primeiro no R-061, não era um PAT
+ * válido, mas o fallback continua útil caso reapareça no futuro). Sem
+ * nenhum dos dois configurado, `isManagementApiConfigured()` retorna false
+ * e o chamador deve pular esta checagem em vez de falhar — mesma lição do
+ * R-049 (nunca deixar uma dependência de credencial derrubar o alarme
+ * inteiro).
  */
 
 export function getProjectRef(supabaseUrl: string | null): string | null {
@@ -22,7 +26,7 @@ export function getProjectRef(supabaseUrl: string | null): string | null {
 }
 
 function getManagementApiToken(): string | null {
-  return Deno.env.get("SUPABASE_MANAGEMENT_API_TOKEN") ?? Deno.env.get("METRICS_API_KEY") ?? null;
+  return Deno.env.get("MANAGEMENT_API_TOKEN") ?? Deno.env.get("METRICS_API_KEY") ?? null;
 }
 
 export function isManagementApiConfigured(): boolean {
@@ -66,7 +70,7 @@ export async function queryLogsSql(
   const projectRef = getProjectRef(Deno.env.get("SUPABASE_URL") ?? null);
   if (!token || !projectRef) {
     throw new Error(
-      "Management API não configurada (SUPABASE_MANAGEMENT_API_TOKEN/METRICS_API_KEY/SUPABASE_URL ausente)",
+      "Management API não configurada (MANAGEMENT_API_TOKEN/METRICS_API_KEY/SUPABASE_URL ausente)",
     );
   }
 

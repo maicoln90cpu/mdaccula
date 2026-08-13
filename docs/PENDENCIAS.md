@@ -26,14 +26,13 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🔧 Bug conhecido
 
-### Confirmar se `METRICS_API_KEY` (secret já existente) funciona como token da Management API — senão, gerar um novo
-**Contexto:** decisão tomada em 12/08/2026 (ver R-061 no `CHANGELOG.md`) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. O código (`supabase/functions/_shared/managementLogsApi.ts`, integrado em `egress-alert-cron`) já tenta `SUPABASE_MANAGEMENT_API_TOKEN` e, se não existir, cai pro secret `METRICS_API_KEY` já configurado no projeto (não usado em nenhum outro lugar do código hoje — o usuário lembra de ter salvo esse secret antes, possível PAT do Supabase de alguma configuração anterior). Sem nenhum dos dois presente, a checagem é pulada sem quebrar o alarme (mesma lição do R-049).
+### Confirmar checagem de Storage no egress-alert-cron com o secret `MANAGEMENT_API_TOKEN`
+**Contexto:** decisão tomada em 12/08/2026 (ver R-061 no `CHANGELOG.md`) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. Primeiro teste (disparo manual do cron, 12/08) confirmou que o secret pré-existente `METRICS_API_KEY` **não** é um PAT válido do Supabase (`storage_requests_24h` voltou `null`). Também descoberto na prática: o Supabase **bloqueia** nomes de secret de Edge Function que contenham "SUPABASE" — por isso o nome original `SUPABASE_MANAGEMENT_API_TOKEN` nunca teria funcionado. O usuário gerou um Personal Access Token novo e salvou como `MANAGEMENT_API_TOKEN`; o código (`managementLogsApi.ts`) foi ajustado pra ler esse nome.
 **Passos:**
-1. Depois do deploy, clicar em "Executar verificação agora" em `/admin/egress-monitor` → aba Alertas.
-2. Conferir a resposta: se `storage_requests_24h` vier um número (não `null`), o `METRICS_API_KEY` já é um PAT válido do Supabase — nada mais a fazer.
-3. Se vier `null`, ou se aparecer um erro 401/403 nos logs da função, o `METRICS_API_KEY` não é (ou não é mais) um PAT válido — nesse caso, gerar um novo em https://supabase.com/dashboard/account/tokens e salvar como `SUPABASE_MANAGEMENT_API_TOKEN` (Dashboard → Project Settings → Edge Functions → Secrets, ou `supabase secrets set SUPABASE_MANAGEMENT_API_TOKEN=<token> --project-ref xfvpuzlspvvsmmunznxw`) — **não colar o token no chat**.
-**Nota de segurança:** um Personal Access Token do Supabase vale pra conta inteira (todos os projetos), não só este.
-**Responsável:** IA testa depois do deploy; usuário gera um token novo só se o teste falhar.
+1. Depois do próximo deploy, disparar o cron manualmente de novo e conferir se `storage_requests_24h` vem um número (não `null`).
+2. Se confirmar, fechar este item (vira entrada em `CHANGELOG.md`, sai daqui).
+3. Se ainda vier `null` ou erro 401/403, o token salvo como `MANAGEMENT_API_TOKEN` pode não ter sido gerado com o escopo certo — conferir em supabase.com/dashboard/account/tokens.
+**Responsável:** IA testa depois do deploy.
 
 ### Migrar o logo do e-mail (`email_template_settings.logo_url`) pro Bunny CDN — arquivo já existe no Storage, falta copiar
 **Contexto:** o logo global do e-mail está salvo como URL crua do Supabase Storage desde 09/07/2026 (achado do R-061). `migrate-to-bunny` ganhou a ação `migrate_single_file` pra cobrir esse caso (arquivo em subpasta, fora do alcance de `migrate_files`), mas ainda não foi executada em produção.

@@ -45,39 +45,39 @@ Deno.test('buildLogsApiRequest usa só Authorization Bearer com o token da Manag
   assertEquals(Object.keys(req.headers), ['Authorization']);
 });
 
-Deno.test('isManagementApiConfigured é false sem SUPABASE_MANAGEMENT_API_TOKEN nem METRICS_API_KEY configurados', () => {
+Deno.test('isManagementApiConfigured é false sem MANAGEMENT_API_TOKEN nem METRICS_API_KEY configurados', () => {
   const snapshot = {
-    token: Deno.env.get('SUPABASE_MANAGEMENT_API_TOKEN'),
+    token: Deno.env.get('MANAGEMENT_API_TOKEN'),
     metricsKey: Deno.env.get('METRICS_API_KEY'),
     url: Deno.env.get('SUPABASE_URL'),
   };
-  Deno.env.delete('SUPABASE_MANAGEMENT_API_TOKEN');
+  Deno.env.delete('MANAGEMENT_API_TOKEN');
   Deno.env.delete('METRICS_API_KEY');
   Deno.env.set('SUPABASE_URL', 'https://xfvpuzlspvvsmmunznxw.supabase.co');
   try {
     assertEquals(isManagementApiConfigured(), false);
   } finally {
-    if (snapshot.token !== undefined) Deno.env.set('SUPABASE_MANAGEMENT_API_TOKEN', snapshot.token);
+    if (snapshot.token !== undefined) Deno.env.set('MANAGEMENT_API_TOKEN', snapshot.token);
     if (snapshot.metricsKey !== undefined) Deno.env.set('METRICS_API_KEY', snapshot.metricsKey);
     if (snapshot.url !== undefined) Deno.env.set('SUPABASE_URL', snapshot.url);
     else Deno.env.delete('SUPABASE_URL');
   }
 });
 
-Deno.test('isManagementApiConfigured aceita METRICS_API_KEY como fallback quando SUPABASE_MANAGEMENT_API_TOKEN não existe', () => {
+Deno.test('isManagementApiConfigured aceita METRICS_API_KEY como fallback quando MANAGEMENT_API_TOKEN não existe', () => {
   const snapshot = {
-    token: Deno.env.get('SUPABASE_MANAGEMENT_API_TOKEN'),
+    token: Deno.env.get('MANAGEMENT_API_TOKEN'),
     metricsKey: Deno.env.get('METRICS_API_KEY'),
     url: Deno.env.get('SUPABASE_URL'),
   };
-  Deno.env.delete('SUPABASE_MANAGEMENT_API_TOKEN');
+  Deno.env.delete('MANAGEMENT_API_TOKEN');
   Deno.env.set('METRICS_API_KEY', 'existing-secret-value');
   Deno.env.set('SUPABASE_URL', 'https://xfvpuzlspvvsmmunznxw.supabase.co');
   try {
     assertEquals(isManagementApiConfigured(), true);
   } finally {
-    if (snapshot.token !== undefined) Deno.env.set('SUPABASE_MANAGEMENT_API_TOKEN', snapshot.token);
-    else Deno.env.delete('SUPABASE_MANAGEMENT_API_TOKEN');
+    if (snapshot.token !== undefined) Deno.env.set('MANAGEMENT_API_TOKEN', snapshot.token);
+    else Deno.env.delete('MANAGEMENT_API_TOKEN');
     if (snapshot.metricsKey !== undefined) Deno.env.set('METRICS_API_KEY', snapshot.metricsKey);
     else Deno.env.delete('METRICS_API_KEY');
     if (snapshot.url !== undefined) Deno.env.set('SUPABASE_URL', snapshot.url);
