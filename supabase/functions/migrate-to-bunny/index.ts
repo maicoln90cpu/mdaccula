@@ -36,6 +36,10 @@ const URL_COLUMNS = [
   { table: "team_members", column: "image_url" },
   { table: "event_templates", column: "image_url" },
   { table: "recurring_event_configs", column: "image_url" },
+  // Logo global do e-mail (vai no header de TODO e-mail disparado) — achado
+  // na investigação do R-061: ficou apontando pra URL crua do Supabase
+  // Storage desde 09/07/2026, mês inteiro de egress vazando fora do Bunny.
+  { table: "email_template_settings", column: "logo_url" },
 ];
 
 function json(data: unknown, status = 200) {
@@ -298,6 +302,49 @@ Deno.serve(async (req) => {
       return json({ status });
     }
 
+    // ── ACTION: migrate_single_file ──
+    // `migrate_files` lista só o nível raiz de cada bucket (`list("")`), então
+    // nunca alcança arquivos em subpasta (ex.: link-thumbnails/email-template/*,
+    // usado pelo logo/arte de e-mail — achado real no R-061, onde o logo
+    // global ficou fora do Bunny por mais de um mês). Esta ação copia um
+    // arquivo específico por caminho completo (bucket/path), sem depender de
+    // listagem — genérica pra qualquer leftover em subpasta, não só este caso.
+    if (action === "migrate_single_file") {
+      const filePath = String(body.path || "").replace(/^\/+/, "");
+      const bucket = String(body.bucket || "");
+      if (!bucket || !filePath) {
+        return json({ error: "Informe bucket e path" }, 400);
+      }
+
+      const { data: fileData, error: dlError } = await supabase.storage.from(bucket).download(filePath);
+      if (dlError || !fileData) {
+        return json({ error: `Download falhou: ${dlError?.message || "arquivo não encontrado"}` }, 404);
+      }
+
+      const arrayBuffer = await fileData.arrayBuffer();
+      const uploadUrl = bunnyStorageUrl(`${bucket}/${filePath}`);
+      const uploadResp = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          AccessKey: bunnyApiKey,
+          "Content-Type": fileData.type || "application/octet-stream",
+        },
+        body: arrayBuffer,
+      });
+
+      if (!uploadResp.ok) {
+        const errText = await uploadResp.text();
+        return json({ error: `Upload pro Bunny falhou: ${uploadResp.status} ${errText}` }, 502);
+      }
+
+      return json({
+        action: "migrate_single_file",
+        bucket,
+        path: filePath,
+        bunnyUrl: bunnyCdnUrl(`${bucket}/${filePath}`),
+      });
+    }
+
     // ── ACTION: migrate_files ──
     if (action === "migrate_files") {
       // Quick auth check
@@ -475,7 +522,7 @@ Deno.serve(async (req) => {
       return json({ action: "cleanup_supabase", results });
     }
 
-    return json({ error: "Ação inválida. Use: diagnose, status, migrate_files, update_urls, cleanup_supabase" }, 400);
+    return json({ error: "Ação inválida. Use: diagnose, status, migrate_files, migrate_single_file, update_urls, cleanup_supabase" }, 400);
   } catch (error) {
     console.error("migrate-to-bunny error:", error);
     return json({ error: (error as Error).message }, 500);

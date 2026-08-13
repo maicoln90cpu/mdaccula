@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { supabase } from '@/integrations/supabase/client';
 import { getEdgeFunctionErrorMessage, createLoadGuard } from '@/lib';
+import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import type { useToast } from '@/hooks/useToast';
 import type { EmailTemplateSettings } from '@/lib/emailTemplates/eventAnnouncement';
 import type { Template } from '@/lib/emailTemplates/blocks';
@@ -458,17 +459,14 @@ export function useEmailConfigState({
       }
       setUploadingLogo(true);
       try {
-        const ext = file.name.split('.').pop() || 'png';
-        const path = `email-template/logo-${Date.now()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from('link-thumbnails')
-          .upload(path, file, {
-            cacheControl: '3600',
-            upsert: true,
-          });
-        if (upErr) throw upErr;
-        const { data: pub } = supabase.storage.from('link-thumbnails').getPublicUrl(path);
-        setTpl({ ...tpl, logo_url: pub.publicUrl });
+        // Logo vai no header de TODO e-mail disparado pelo sistema — precisa
+        // vir do Bunny CDN, não da URL crua do Supabase Storage. Servir direto
+        // do Storage faz cada abertura de e-mail (em qualquer campanha, pra
+        // qualquer destinatário) puxar egress real do Supabase (ver R-061).
+        const logoUrl = await uploadImageToBunny(file, 'link-thumbnails', {
+          baseName: `email-logo-${Date.now()}`,
+        });
+        setTpl({ ...tpl, logo_url: logoUrl });
         toast({ title: 'Logo enviada', description: 'Clique em Salvar para aplicar.' });
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Erro desconhecido';

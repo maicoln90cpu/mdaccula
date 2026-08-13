@@ -11,6 +11,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { buildResendEmailRequest } from "../_shared/resendEmail.ts";
 import { buildAlertEmailHtml } from "./emailHtml.ts";
+import { countStorageRequests, isManagementApiConfigured } from "../_shared/managementLogsApi.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -116,6 +117,37 @@ Deno.serve(async (req) => {
       reasons.push(`spike_${observedRatio.toFixed(2)}x_vs_media`);
     }
 
+    // Requisições reais de Storage/CDN (via Logs API do Supabase) — sinal
+    // separado de `egress_metrics`, que nunca enxerga leitura de objeto do
+    // Storage (ponto cego real que deixou passar o pico de 11/08/2026, R-061:
+    // `egress_metrics` registrou ~880KB naquele dia contra 1,12GB oficial).
+    // Degrada sem quebrar o alarme se a Management API não estiver
+    // configurada (mesma lição do R-049: credencial ausente não pode
+    // derrubar a checagem inteira).
+    let storageReqs24h: number | null = null;
+    let storageBaselineDaily: number | null = null;
+    if (isManagementApiConfigured()) {
+      try {
+        const [storage24h, storageBaselineTotal] = await Promise.all([
+          countStorageRequests(start24h, now.toISOString()),
+          countStorageRequests(start7d, end7d),
+        ]);
+        storageReqs24h = storage24h;
+        storageBaselineDaily = storageBaselineTotal / 7;
+        const storageRatio = storageBaselineDaily > 0 ? storageReqs24h / storageBaselineDaily : 0;
+        const minRequests = 300; // piso absoluto — evita alarme por ratio alto sobre volume irrelevante
+        if (
+          storageReqs24h >= minRequests &&
+          storageBaselineDaily > 0 &&
+          storageRatio > ratio
+        ) {
+          reasons.push(`storage_requests_spike_${storageRatio.toFixed(2)}x_vs_media`);
+        }
+      } catch (err) {
+        console.warn("egress-alert-cron: checagem de storage_logs falhou (seguindo sem ela):", err);
+      }
+    }
+
     if (reasons.length === 0) {
       return json({
         ok: true,
@@ -123,6 +155,8 @@ Deno.serve(async (req) => {
         bytes_24h: bytes24h,
         baseline_daily: Math.round(baselineDaily),
         mb_24h: mb24h.toFixed(2),
+        storage_requests_24h: storageReqs24h,
+        storage_baseline_daily: storageBaselineDaily === null ? null : Math.round(storageBaselineDaily),
       });
     }
 
@@ -194,7 +228,12 @@ Deno.serve(async (req) => {
       threshold_mb: thresholdMb,
       email_sent: emailSent,
       email_error: emailError,
-      details: { top_paths: topPaths ?? [], reasons },
+      details: {
+        top_paths: topPaths ?? [],
+        reasons,
+        storage_requests_24h: storageReqs24h,
+        storage_baseline_daily: storageBaselineDaily === null ? null : Math.round(storageBaselineDaily),
+      },
     });
 
     return json({
@@ -204,6 +243,8 @@ Deno.serve(async (req) => {
       bytes_24h: bytes24h,
       baseline_daily: Math.round(baselineDaily),
       ratio: observedRatio,
+      storage_requests_24h: storageReqs24h,
+      storage_baseline_daily: storageBaselineDaily === null ? null : Math.round(storageBaselineDaily),
       email_sent: emailSent,
       email_error: emailError,
     });

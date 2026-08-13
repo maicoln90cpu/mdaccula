@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 11/08/2026
+**Última atualização:** 12/08/2026
 
 ---
 
@@ -17,6 +17,20 @@
 ---
 
 ## Entradas Detalhadas
+
+### Correção: logo do e-mail e arte de "virada de lote" pararam de bypassar o Bunny CDN (R-061)
+**Descrição:** investigação do pico de ~1,12 GB de "Cached Egress" do Supabase em 11/08/2026 (estourou o limite do plano gratuito e derrubou o site, forçando upgrade de emergência). O monitor interno de egress não alertou nesse dia — confirmado que `egress-alert-cron` rodou normalmente, mas só enxerga tráfego REST/Functions (via Service Worker + 4 Edge Functions instrumentadas manualmente), nunca leituras do Supabase Storage; o total registrado internamente pro dia todo foi de ~880 KB, uma fração do 1,12 GB oficial. Causa confirmada de parte do pico: `uploadLogo` (`useEmailConfigState.ts`) e `uploadBatchArtwork` (`useManualBatch.ts`) subiam a imagem direto pro bucket `link-thumbnails` do Supabase Storage com `getPublicUrl()` cru, nunca pelo Bunny CDN — diferente de toda imagem de evento/blog/team do resto do app. `logo_url` vai no header de todo e-mail disparado pelo sistema; `batchArtworkUrl` vira o flyer de disparos manuais de "virada de lote", que podem ir pra segmentos de +13 mil contatos. `storage_logs` do dia 11/08 mostra múltiplos bots de e-mail distintos (Gmail, scanner estilo Outlook, relay de e-mail) baixando o mesmo objeto no mesmo dia em que saiu uma campanha `weekly_digest` (lista completa) + 2 campanhas `standard` — cada abertura/scan por destinatário/provedor puxava egress real da origem do Supabase.
+**Data:** 12/08/2026
+**Responsável:** IA, a pedido do usuário — investigação via Supabase MCP (`execute_sql`, `query_logs`, cron), CodeGraph e `git log`
+**Impacto:** logo e arte de disparo manual agora servidos pelo Bunny CDN (mesmo padrão do resto do app) — remove a fonte de egress multiplicada por destinatário/provedor de e-mail identificada nos logs do incidente.
+
+**Achados/correções adicionais na mesma investigação (a pedido do usuário):**
+- `email_template_settings.logo_url` (o logo em produção agora mesmo) estava vazando desde 09/07/2026 — `migrate-to-bunny` ganhou a ação `migrate_single_file` (cobre arquivos em subpasta, que a listagem plana de `migrate_files` nunca alcançava) e a coluna entrou em `URL_COLUMNS` pra detecção/correção pela mesma ferramenta já existente em `/admin/settings` → Mídia.
+- `egress-alert-cron` ganhou um segundo sinal, independente de `egress_metrics`: contagem real de requisições de `storage_logs` (via Logs/Analytics API do Supabase) nas últimas 24h vs. média dos 7 dias anteriores. Fecha o ponto cego que deixou o pico de 11/08 passar sem alerta. Tenta `SUPABASE_MANAGEMENT_API_TOKEN` e, na ausência, cai pro secret `METRICS_API_KEY` já existente no projeto — **ainda não confirmado se funciona como PAT válido**, ver `docs/PENDENCIAS.md`.
+
+**Arquivos alterados:** `src/components/admin/emailConfig/useEmailConfigState.ts`, `src/components/admin/emailConfig/useManualBatch.ts`, `supabase/functions/migrate-to-bunny/index.ts`, `supabase/functions/egress-alert-cron/index.ts`, `supabase/functions/_shared/managementLogsApi.ts` (novo), `supabase/functions/_shared/managementLogsApi_test.ts` (novo), `src/__tests__/regression/email-logo-and-batch-artwork-bypass-cdn.test.ts` (novo), `docs/TESTING.md`.
+
+---
 
 ### Correção: retenção de log de mesclagem de eventos alinhada à janela do "Desfazer" (R-060)
 **Descrição:** o botão "Desfazer" da aba "Eventos Mesclados" ficava bloqueado antes do previsto porque `cleanup_old_logs()` (cron diário, 3h) apagava TODO `application_logs` com mais de 7 dias, incluindo os logs `action: 'merge_events'` que guardam o snapshot pré-merge — enquanto `MergedEventsTab.tsx` consulta esses mesmos logs numa janela de 90 dias. Descoberto ao tentar desfazer pela UI a mesclagem do evento "Parador apres. Cat Dealers e+++" (absorveu "Parador apres. Chemical Surf e+++" em 19/07/2026): com só 23 dias de mesclagem, o log já tinha sido limpo. Migration `20260811222558_extend_merge_log_retention_for_undo.sql` recria `cleanup_old_logs()` isentando `merge_events`/`undo_merge` da limpeza de 7 dias, retendo-os por 90 dias (igual à janela consultada pela UI); os demais logs continuam com 7 dias. Como o log dessa mesclagem específica já tinha sumido antes da correção acima, o desfazer do caso concreto (Cat Dealers/Chemical Surf) foi feito via SQL direto em produção, reconstruindo o estado pré-merge a partir do próprio evento absorvido (que preserva date/schedule/lineup/views intactos, por ser soft-delete) — sem gerar snapshot em log, então esse caso específico não pode ser refeito pela UI se for preciso reverter de novo.

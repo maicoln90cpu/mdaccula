@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { uploadImageToBunny } from '@/lib/bunnyUploader';
 import { type Block, type ArticleSummary, type Template, type GlobalBlock } from '@/lib/emailTemplates/blocks';
 import {
   applyEmailBlockOverrides,
@@ -234,14 +235,14 @@ export function useManualBatch({
     }
     setBatchUploadingArt(true);
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `email-template/batch-${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from('link-thumbnails')
-        .upload(path, file, { cacheControl: '3600', upsert: true });
-      if (upErr) throw upErr;
-      const { data: pub } = supabase.storage.from('link-thumbnails').getPublicUrl(path);
-      setBatchArtworkUrl(pub.publicUrl);
+      // Essa arte vira o flyer do e-mail pra todos os destinatários do disparo
+      // manual — precisa vir do Bunny CDN, não da URL crua do Supabase Storage.
+      // Servir direto do Storage faz cada abertura/scan de e-mail (por
+      // destinatário, por provedor) puxar egress real do Supabase (ver R-061).
+      const artworkUrl = await uploadImageToBunny(file, 'link-thumbnails', {
+        baseName: `email-batch-${Date.now()}`,
+      });
+      setBatchArtworkUrl(artworkUrl);
       toast({
         title: 'Arte enviada',
         description: 'Ela vai substituir o flyer padrão neste disparo.',
