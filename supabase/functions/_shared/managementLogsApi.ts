@@ -78,11 +78,16 @@ async function fetchLogsOnce(req: { url: string; headers: Record<string, string>
   return { rows };
 }
 
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 1200;
+
 /**
  * Roda uma query SQL somente-leitura contra o stream de logs unificado
- * (ClickHouse) via Management API. Retenta uma vez em caso de erro
- * transiente do backend de Analytics (ver `fetchLogsOnce`) antes de lançar
- * — o chamador decide como degradar na falha final (ver
+ * (ClickHouse) via Management API. Retenta em caso de erro transiente do
+ * backend de Analytics (ver `fetchLogsOnce`) — confirmado na prática que
+ * esse backend responde "Backend error! Retry your query" com alguma
+ * frequência, às vezes em tentativas consecutivas — antes de lançar; o
+ * chamador decide como degradar na falha final (ver
  * `isManagementApiConfigured`).
  */
 export async function queryLogsSql(
@@ -99,13 +104,19 @@ export async function queryLogsSql(
   }
 
   const req = buildLogsApiRequest({ token, projectRef, sql, isoStart, isoEnd });
-  try {
-    return await fetchLogsOnce(req);
-  } catch (firstErr) {
-    console.warn("managementLogsApi: 1ª tentativa falhou, retentando uma vez:", firstErr);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    return await fetchLogsOnce(req);
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetchLogsOnce(req);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < MAX_ATTEMPTS) {
+        console.warn(`managementLogsApi: tentativa ${attempt}/${MAX_ATTEMPTS} falhou, retentando:`, err);
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+      }
+    }
   }
+  throw lastErr;
 }
 
 /**
