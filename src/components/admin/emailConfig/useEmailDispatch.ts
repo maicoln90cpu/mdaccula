@@ -84,6 +84,7 @@ export function useEmailDispatch({
           sendNow,
           forceResend: true,
           segmentIdOverride: batchSegmentId,
+          templateName: selectedManualTemplate?.name,
           preparedComposition: {
             html: manualComposition.html,
             subject: manualComposition.subject,

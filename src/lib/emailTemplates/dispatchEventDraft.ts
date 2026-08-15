@@ -359,6 +359,12 @@ export async function dispatchMultiEventDraftEmail(
      */
     segmentIdOverride?: number | null;
     preparedComposition: { html: string; subject: string; preheader: string };
+    /**
+     * Nome do template selecionado (ex.: "FDS Sem Taxa — múltiplos
+     * eventos"), usado só pra compor o nome interno da campanha na E-goi.
+     * Sem isso a edge function cai num rótulo genérico ("Virada de lote").
+     */
+    templateName?: string;
   }
 ): Promise<DispatchEventDraftResult> {
   const invokeBody: Record<string, unknown> = {
@@ -371,6 +377,9 @@ export async function dispatchMultiEventDraftEmail(
   };
   if (opts.segmentIdOverride !== undefined) {
     invokeBody.segment_id = opts.segmentIdOverride;
+  }
+  if (opts.templateName) {
+    invokeBody.template_name = opts.templateName;
   }
 
   const { data, error } = await supabase.functions.invoke('create-multi-event-email-campaign', {

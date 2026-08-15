@@ -113,10 +113,12 @@ describe('event_grid — colunas configuráveis', () => {
     const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
 
     // Linha 1 (completa, 3 itens): 33.33/33.33/33.34 (soma exata 100). Linha 2
-    // (sobra, 1 item): usa a largura-base (33.33), igual ao comportamento
-    // anterior de largura fixa por célula quando a linha não fecha o grid.
-    expect((html.match(/width="33\.33%"/g) || []).length).toBe(3);
+    // (sobra, 1 item): 15/08/2026 — passa a ocupar 100% da linha (não mais
+    // 33.33% fixo), senão a imagem ficava "grudada" à esquerda com 2/3 da
+    // linha vazios — bug relatado em produção (R-067, docs/TESTING.md).
+    expect((html.match(/width="33\.33%"/g) || []).length).toBe(2);
     expect((html.match(/width="33\.34%"/g) || []).length).toBe(1);
+    expect((html.match(/width="100%"/g) || []).length).toBeGreaterThanOrEqual(1);
     expect(html).toContain('max-width:168px');
     // 4 eventos em 3 colunas -> 2 linhas (3 + 1)
     expect((html.match(/<tr><td style="padding:2px 24px;">/g) || []).length).toBe(2);

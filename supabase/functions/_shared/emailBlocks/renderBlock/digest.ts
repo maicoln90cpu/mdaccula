@@ -8,17 +8,21 @@ import type { RenderStyle } from "./style.ts";
 const gridColumns = (block: { columns?: 2 | 3 }): number => (block.columns === 3 ? 3 : 2);
 
 /**
- * Largura de cada célula do grid em %. Numa linha completa (rowLength ===
- * columns), a última célula recebe o resto exato pra somar 100 mesmo com
- * divisão não-exata (ex.: 33.33+33.33+33.34). Numa última linha incompleta
- * (sobra de itens), todas as células usam a largura-base — igual ao
- * comportamento anterior (largura fixa por célula, independente do total).
+ * Largura de cada célula do grid em %, sempre somando 100% da linha —
+ * dividida pela quantidade REAL de itens na linha (`rowLength`), não pela
+ * contagem de colunas declarada no bloco. Numa linha incompleta (sobra de
+ * itens, ex.: 1 evento sozinho numa grade de 2 colunas), dividir pela
+ * contagem declarada deixava a célula com a mesma largura-base de uma linha
+ * cheia (ex.: 50%), sobrando metade da linha vazia e a imagem "grudada" à
+ * esquerda em vez de ocupar o espaço todo — bug relatado em produção.
+ * A última célula recebe o resto exato pra somar 100 mesmo com divisão
+ * não-exata (ex.: 33.33+33.33+33.34).
  */
-const gridColWidthPct = (index: number, rowLength: number, columns: number): number => {
-  const base = Math.floor((100 / columns) * 100) / 100;
-  const isLastOfFullRow = rowLength === columns && index === columns - 1;
-  if (!isLastOfFullRow) return base;
-  return Math.round((100 - base * (columns - 1)) * 100) / 100;
+const gridColWidthPct = (index: number, rowLength: number): number => {
+  const base = Math.floor((100 / rowLength) * 100) / 100;
+  const isLast = index === rowLength - 1;
+  if (!isLast) return base;
+  return Math.round((100 - base * (rowLength - 1)) * 100) / 100;
 };
 
 /**
@@ -56,9 +60,9 @@ function renderGridEventCard(
     .join("")}${extra > 0 ? `<span style="display:inline-block;margin:2px 0;padding:3px 8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:999px;color:#a1a1aa;font-size:9px;font-weight:700;">+${extra}</span>` : ""}</div>`;
 
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;">
-    <tr><td style="padding:0;">
+    <tr><td align="center" style="padding:0;text-align:center;">
       <a href="${url}" style="text-decoration:none;display:block;">
-        <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="${imgMaxWidth}" border="0" style="display:block;width:100%;max-width:${imgMaxWidth}px;height:auto;border:0;outline:none;">
+        <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="${imgMaxWidth}" border="0" style="display:block;margin:0 auto;width:100%;max-width:${imgMaxWidth}px;height:auto;border:0;outline:none;">
       </a>
     </td></tr>
     <tr><td style="padding:8px 12px 8px 12px;background-image:linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.9) 100%);">
@@ -175,7 +179,7 @@ export function renderDigestBlock(
         for (let i = 0; i < list.length; i += columns) {
           const group = list.slice(i, i + columns);
           const cells = group
-            .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length, columns)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns, accentColor, gradient, defaultCtaLabel, showTime })}</td>`)
+            .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns: group.length, accentColor, gradient, defaultCtaLabel, showTime })}</td>`)
             .join("");
           gridRows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
         }
@@ -239,7 +243,7 @@ export function renderDigestBlock(
       for (let i = 0; i < list.length; i += columns) {
         const group = list.slice(i, i + columns);
         const cells = group
-          .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length, columns)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns, accentColor: accent, gradient, defaultCtaLabel, showTime: true })}</td>`)
+          .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns: group.length, accentColor: accent, gradient, defaultCtaLabel, showTime: true })}</td>`)
           .join("");
         rows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
       }

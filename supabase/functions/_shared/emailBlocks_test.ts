@@ -380,7 +380,7 @@ Deno.test("event_grid: renderiza 2 cards por linha (HTML)", () => {
   assertEquals(isCorrectlyPaired, true, "Eventos devem estar em um <tr> com <td width=\"50%\"> para cada um (2 colunas em 1 linha, não separados em 2 linhas)");
 });
 
-Deno.test("event_grid: número ímpar de eventos deixa a última linha com 1 card só", () => {
+Deno.test("event_grid: número ímpar de eventos deixa a última linha com 1 card, ocupando 100% (não 50%)", () => {
   const event = {
     ...mockEvent,
     gridEvents: [
@@ -392,9 +392,31 @@ Deno.test("event_grid: número ímpar de eventos deixa a última linha com 1 car
   const blocks = [{ id: "g1", kind: "event_grid" as const }];
   const html = renderBlockedTemplate(blocks, event as any, null, null, { preview: false });
   assertStringIncludes(html, "Evento C");
-  // Só 2 pares de 50%: 3 eventos = 2 fileiras (2+1), não 4 células de 50%.
+  // 15/08/2026 — a linha cheia (Evento A + Evento B) continua 50%/50%, mas a
+  // linha incompleta (Evento C sozinho) precisa ocupar 100% da linha, não
+  // 50% (que deixava metade da linha vazia e a imagem "grudada" à esquerda —
+  // bug relatado em produção, ver R-067 em docs/TESTING.md).
   const widthOccurrences = (html.match(/width="50%"/g) || []).length;
-  assertEquals(widthOccurrences, 3);
+  assertEquals(widthOccurrences, 2);
+  const fullWidthOccurrences = (html.match(/width="100%"/g) || []).length;
+  assertEquals(fullWidthOccurrences >= 1, true, "Evento C (sozinho na última linha) deveria ter width=\"100%\"");
+});
+
+Deno.test("event_grid: linha incompleta também estica o teto de largura da própria imagem (max-width), não só a célula", () => {
+  const event = {
+    ...mockEvent,
+    gridEvents: [
+      { id: "1", title: "Evento Solo", dayLabel: "23/08", venue: "Clube X", imageUrl: "https://x.com/solo.jpg", eventUrl: "https://mdaccula.com/eventos/solo" },
+    ],
+  };
+  const blocks = [{ id: "g1", kind: "event_grid" as const }];
+  const html = renderBlockedTemplate(blocks, event as any, null, null, { preview: false });
+  // Com 1 evento só (linha incompleta de tamanho 1), a imagem não pode ficar
+  // travada no max-width calculado para uma grade de 2 colunas (260px) — tem
+  // que usar quase toda a largura útil do e-mail (552 - padding de 1 coluna).
+  const maxWidthMatch = html.match(/max-width:(\d+)px/);
+  const maxWidth = maxWidthMatch ? Number(maxWidthMatch[1]) : 0;
+  assertEquals(maxWidth > 260, true, `Esperava max-width bem maior que 260px (grade de 2 colunas) para 1 evento sozinho, veio ${maxWidth}px`);
 });
 
 Deno.test("event_grid: lista vazia não renderiza nada fora de preview", () => {

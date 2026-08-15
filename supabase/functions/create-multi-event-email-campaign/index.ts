@@ -73,6 +73,14 @@ Deno.serve(async (req) => {
     const preheader = (body?.preheader as string | undefined) || undefined;
     const sendNow = body?.send_now === true;
     const forceResend = body?.force_resend === true;
+    // 15/08/2026 — o nome interno da campanha (visível só no painel da E-goi,
+    // não no e-mail em si) usava "Virada de lote" fixo, mesmo quando o
+    // template de verdade era outro (ex.: "FDS Sem Taxa — múltiplos
+    // eventos"). Nome do template vem opcionalmente do frontend, que já
+    // sabe qual foi selecionado; sem ele (chamador futuro que não mande esse
+    // campo), cai no texto genérico antigo — nunca quebra por falta dele.
+    const templateNameRaw = body?.template_name;
+    const templateLabel = (typeof templateNameRaw === 'string' && templateNameRaw.trim()) || 'Virada de lote';
     // Segmento por disparo (aba "Envio manual") — mesma semântica do
     // create-event-email-campaign sibling: quando a chave vem no body (mesmo
     // que null, para "toda a lista"), sobrescreve o segmento global de
@@ -209,7 +217,7 @@ Deno.serve(async (req) => {
     // Pré-renderiza mapas estáticos no Bunny CDN (custo fixo por campanha).
     const processedHtml = await safeCacheStaticMapImagesInHtml(html, 'create-multi-event-email-campaign');
 
-    const internalName = `MDAccula • Virada de lote (${eventIds.length} eventos) • ${now.slice(0, 10)}`;
+    const internalName = `MDAccula • ${templateLabel} (${eventIds.length} eventos) • ${now.slice(0, 10)}`;
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
       internal_name: internalName,

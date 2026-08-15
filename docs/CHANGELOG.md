@@ -18,6 +18,18 @@
 
 ## Entradas Detalhadas
 
+### Correção: lapidações no e-mail de "Virada de lote" — grid não preenchia 100% da linha incompleta, nome interno da campanha ficava fixo (R-067)
+**Descrição:** a partir do primeiro rascunho multi-evento criado com sucesso depois do R-065 (Music ON + One Life, template "FDS Sem Taxa — múltiplos eventos"), o usuário notou 2 problemas: (1) as imagens dos eventos no bloco de grid apareciam alinhadas à esquerda, sem ocupar 100% do espaço — causa raiz: `gridColWidthPct` (`_shared/emailBlocks/renderBlock/digest.ts`) dividia 100% pela contagem de colunas *declarada* no bloco, não pela quantidade real de itens da linha, então uma linha incompleta (ex.: 1 evento sobrando numa grade de 2) recebia a mesma largura de uma linha cheia, deixando metade da linha vazia; (2) o nome interno da campanha na E-goi aparecia como "MDAccula • Virada de lote (N eventos) • data" mesmo quando o template usado era outro — o texto estava fixo no código, e o frontend nunca mandava o nome do template pra edge function nesse fluxo específico.
+**Correção:** `gridColWidthPct` passou a dividir 100% pela quantidade real de itens da linha (não mais pela contagem de colunas do bloco) — afeta os blocos `event_grid` e `weekend_grid` (layout "grid"), que compartilham o mesmo renderer; nome do template selecionado passou a ser repassado do componente até o nome interno da campanha, com fallback pro texto antigo se o campo não vier.
+**Achado adicional (sem ação):** o usuário colou 2 alertas que o Lovable tinha identificado no código. Ambos já estavam resolvidos — o disparo "sempre reporta already dispatched" é o R-065 (mesmo dia); o mapa do e-mail quebrando quando o write no Bunny CDN falha já tinha sido corrigido antes desta sessão (commit `d2939aa`, 08/08/2026).
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — investigação encontrou a causa raiz exata (teste já existente no repo travava o comportamento antigo como "esperado", teve que ser atualizado junto)
+**Impacto:** grids de e-mail com número de eventos que não fecha exato nas colunas (muito comum — qualquer contagem ímpar numa grade de 2, ou não-múltiplo-de-3 numa grade de 3) agora preenchem a linha toda; nome interno das campanhas multi-evento na E-goi passa a refletir o template real usado.
+
+**Arquivos alterados:** `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `src/lib/emailTemplates/dispatchEventDraft.ts`, `src/components/admin/emailConfig/useEmailDispatch.ts`, `supabase/functions/_shared/emailBlocks_test.ts` (assertion atualizada + teste novo), `src/__tests__/lib/blocks-grid-cards.test.ts` (assertion atualizada), `src/__tests__/regression/email-multi-event-internal-name-reflects-template.test.ts` (novo), `docs/TESTING.md`.
+
+---
+
 ### Segurança: remove a Edge Function `egoi-curl-probe`, esquecida deployada desde a fase de testes da integração E-goi (R-066)
 **Descrição:** durante uma triagem geral de `docs/PENDENCIAS.md` (pedida pelo usuário, motivada pelo repositório ter virado público nesse mesmo dia), confirmado que `egoi-curl-probe` — uma function marcada no próprio comentário do arquivo como "descartável, apagar depois de validar a API E-goi" — continuava deployada, sem nenhuma checagem de autenticação (`verify_jwt: false` + sem validação no código), expondo a `EGOI_API_KEY` pra qualquer request a `/lists` e `/senders` de quem descobrisse a URL. A validação que ela existia pra fazer já tinha sido concluída há tempos (o header `Apikey` correto já está em uso em toda a integração E-goi real).
 **Correção:** pasta `supabase/functions/egoi-curl-probe/` e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml` removidas. Referências em `docs/EDGE_FUNCTIONS.md` e `docs/SYSTEM-DESIGN.md` também removidas, contagem de functions ativas ajustada de 60 para 59.
@@ -1297,6 +1309,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Bugfix | Grid de e-mail multi-evento não preenchia linha incompleta + nome interno da campanha fixo (R-067) |
 | 15/08 | Segurança | Removida a `egoi-curl-probe`, function de debug esquecida deployada expondo a `EGOI_API_KEY` sem auth (R-066) |
 | 15/08 | Bugfix | Causa raiz definitiva do disparo de e-mail pra múltiplos eventos nunca ter funcionado — comparação de timestamp por string (R-065) |
 | 15/08 | Bugfix | Mesmo sintoma do R-062 reapareceu por causa raiz diferente — escrita da Fase 1 sem timeout (R-064) |
