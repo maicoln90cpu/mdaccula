@@ -1,7 +1,7 @@
 /**
  * geocode-event: recebe { event_id } (admin ou service),
  *   1. Lê venue + cidade + estado do evento
- *   2. Consulta Google Maps Geocoding API via gateway
+ *   2. Consulta Google Maps Geocoding API diretamente (chave própria, server-only)
  *   3. Salva latitude/longitude/geocoded_at no evento
  * Retorna { ok, lat, lng, formatted_address } ou { skipped, reason }.
  *
@@ -10,6 +10,13 @@
  *   - Por outra edge fn com service role — passa Authorization Bearer service_role
  *   - Auto-geocode público leve: se o evento ainda não tem coords, permite anon (idempotente,
  *     salva no banco, uma vez só). Limite implícito pelo próprio cache no banco.
+ *
+ * 15/08/2026 — trocado de chamar via connector-gateway.lovable.dev (que passou a
+ * devolver 401 "Credential not found" depois da rotação de segredos por causa do
+ * repositório ter ficado público) para chamar a API do Google diretamente com uma
+ * chave própria (GOOGLE_MAPS_API_KEY, restrição "Nenhuma" no Google Cloud — a
+ * Geocoding API rejeita chave com restrição de referrer). Timeout explícito
+ * (mesma lição do R-057: fetch sem timeout pode travar a function inteira).
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -19,7 +26,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-const GATEWAY_URL = "https://connector-gateway.lovable.dev/google_maps";
+const GOOGLE_GEOCODE_URL = "https://maps.googleapis.com/maps/api/geocode/json";
+const GOOGLE_MAPS_REQUEST_TIMEOUT_MS = 15_000;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -31,10 +39,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const GOOGLE_MAPS_API_KEY = Deno.env.get("GOOGLE_MAPS_API_KEY");
-    if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
-      return json({ error: "Google Maps connector not linked" }, 500);
+    if (!GOOGLE_MAPS_API_KEY) {
+      return json({ error: "GOOGLE_MAPS_API_KEY não configurada" }, 500);
     }
 
     const body = await req.json().catch(() => ({}));
@@ -71,19 +78,20 @@ Deno.serve(async (req) => {
     if (parts.length === 0) return json({ skipped: true, reason: "no_address" });
     const address = parts.join(", ") + ", Brasil";
 
-    // Geocoding via gateway
-    const url = `${GATEWAY_URL}/maps/api/geocode/json?address=${encodeURIComponent(address)}&region=br&language=pt-BR`;
-    const geoResp = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "X-Connection-Api-Key": GOOGLE_MAPS_API_KEY,
-      },
+    // Geocoding direto na API do Google (chave própria, restrição "Nenhuma").
+    const url = new URL(GOOGLE_GEOCODE_URL);
+    url.searchParams.set("address", address);
+    url.searchParams.set("region", "br");
+    url.searchParams.set("language", "pt-BR");
+    url.searchParams.set("key", GOOGLE_MAPS_API_KEY);
+    const geoResp = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(GOOGLE_MAPS_REQUEST_TIMEOUT_MS),
     });
 
     if (!geoResp.ok) {
       const errorBody = await geoResp.text();
-      console.error(`Geocode gateway [${geoResp.status}]: ${errorBody}`);
-      return json({ error: "geocode gateway failed", status: geoResp.status, details: errorBody }, geoResp.status);
+      console.error(`Geocoding API [${geoResp.status}]: ${errorBody}`);
+      return json({ error: "geocoding request failed", status: geoResp.status, details: errorBody }, geoResp.status);
     }
 
     const geoData = await geoResp.json();

@@ -149,13 +149,12 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 4. Testar com um post novo (ou disparo manual) pra confirmar que o webhook ainda autentica.
 **Responsável:** usuário decide quando fazer (não é urgente — o pior cenário é alguém conseguir chamar esse endpoint de fora, que só aceita payloads do formato esperado da Apify e não expõe nada sensível sozinho).
 
-### Proteger a chave do Google Maps contra uso indevido (custo de propósito)
-**Contexto:** `.env` fica versionado no repositório de propósito (decisão do usuário em 15/08/2026 — o Lovable lê esse arquivo diretamente pra montar o build/preview; tirar do Git quebraria isso). Como o repositório é público, a chave de navegador do Google Maps (`VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY`) fica visível pra qualquer pessoa, sempre — não é um vazamento pontual corrigível, é a natureza de uma chave de navegador. Restrição por domínio (HTTP referrer) sozinha **não é suficiente**: se `localhost` estiver na lista liberada, qualquer pessoa que copiar a chave e rodar o projeto na própria máquina passa pela restrição (o referrer da própria máquina dela também é "localhost"). A única proteção real contra alguém gerar custo de propósito é limitar quanto a chave pode gastar, não só de onde ela pode ser usada.
-**Passos (Google Cloud Console → APIs & Services → Credentials → a chave):**
-1. Em "Application restrictions" → "HTTP referrers", cadastrar **só** `https://mdaccula.com/*`, `https://www.mdaccula.com/*` e `https://mdaccula.lovable.app/*` — **sem** `localhost` (ver conversa de 15/08/2026 pro raciocínio completo).
-2. Em "APIs & Services" → "Quotas & System Limits", definir um limite diário de requisições pra essa chave (um número bem acima do uso real do site, mas que corte antes de virar uma conta impagável).
-3. Em "Billing" → "Budgets & alerts", criar um alerta de orçamento (ex.: avisar em 50%/90%/100% de um valor mensal esperado) — é o que garante que, mesmo se algo escapar das outras duas proteções, o usuário é avisado antes do custo virar surpresa.
-4. Opcional, mas recomendado: gerar uma chave nova (a atual já está exposta há tempo no histórico do Git, independente do que for feito agora) e trocar só no `.env` local — sem isso, ainda que as proteções acima sejam aplicadas, a chave antiga continua sendo "a mesma peça de metadados" que já circulou.
+### Confirmar cota diária + alerta de orçamento nas duas chaves novas do Google Maps
+**Contexto:** a chave única de 6 APIs foi separada em duas (15/08/2026, ver R-063 em `docs/TESTING.md`): uma **pública** (browser, só Maps Embed API, restrição de referrer aplicada a `mdaccula.com`, `www.mdaccula.com` e `mdaccula.lovable.app`, sem `localhost`) e uma **de servidor** (nova, só Static Maps + Geocoding, restrição de app "Nenhuma" — a Geocoding API rejeita restrição de referrer — usada só via `GOOGLE_MAPS_API_KEY` no Supabase, nunca exposta). As duas foram testadas direto contra o Google e confirmadas funcionando (200/OK). `render-static-map`/`geocode-event` também pararam de depender do gateway do Lovable, que estava devolvendo "Credential not found" depois da troca de chave.
+**Já feito:** restrição de app das duas chaves, escopo de API mínimo nas duas (removido Static Maps/Geocoding/JS/Android SDK/Places da chave pública; removido tudo exceto Static Maps/Geocoding da chave de servidor).
+**Ainda falta:**
+1. Cota diária em cada chave (Google Cloud Console → APIs & Services → Quotas & System Limits) — é o que garante um teto de gasto matematicamente certo, não só um aviso.
+2. Alerta de orçamento (Billing → Budgets & alerts) — vale criar sem filtrar por serviço específico (o filtro de "Serviços" só lista o que já tem histórico de cobrança registrado nesse projeto/billing; tentar achar "Maps" ali é uma armadilha — um orçamento pro projeto inteiro cobre tudo, incluindo Maps, sem esse problema).
 **Responsável:** usuário (acesso ao Google Cloud Console).
 
 ---

@@ -1,7 +1,8 @@
-// Proxy para Google Static Maps via connector gateway.
+// Proxy para Google Static Maps.
 // Motivação: a chave browser é referrer-restricted e falha quando o client
-// de e-mail carrega a imagem. Este proxy chama o gateway (sem restrição)
-// e devolve os bytes com cache longo, para o <img src=...> do e-mail.
+// de e-mail carrega a imagem. Este proxy chama o Google direto com uma chave
+// própria server-only (GOOGLE_MAPS_API_KEY, restrição "Nenhuma") e devolve os
+// bytes com cache longo, para o <img src=...> do e-mail.
 //
 // Cache-first no Bunny CDN: antes de chamar o Google, verifica se já existe
 // uma imagem salva para essas coordenadas/zoom/tamanho/estilo/pin (a chave
@@ -11,14 +12,21 @@
 // uma chamada nova ao Google só acontece quando o admin edita a localização
 // do evento (coordenadas diferentes = arquivo de cache diferente).
 //
+// 15/08/2026 — trocado de connector-gateway.lovable.dev (passou a devolver
+// 401 "Credential not found" depois da rotação de segredos por causa do
+// repositório ter ficado público) para chamar a API do Google diretamente.
+// Timeout explícito (mesma lição do R-057: fetch sem timeout pode travar a
+// function inteira).
+//
 // verify_jwt = false (público). Só GET. Rate limit natural via cache.
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { resolveMapImage, type MapRenderParams } from '../_shared/renderStaticMapCache.ts';
 
-const GATEWAY_URL = 'https://connector-gateway.lovable.dev/google_maps';
+const GOOGLE_STATIC_MAP_URL = 'https://maps.googleapis.com/maps/api/staticmap';
+const GOOGLE_MAPS_REQUEST_TIMEOUT_MS = 15_000;
 
-class GoogleConnectorNotConfiguredError extends Error {}
+class GoogleMapsKeyNotConfiguredError extends Error {}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -57,25 +65,22 @@ Deno.serve(async (req) => {
     const cacheParams: MapRenderParams = { lat, lng, zoom, w, h, style: mapType, pinColor: cachePinColor };
 
     const generateImage = () => {
-      const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
       const GOOGLE_MAPS_API_KEY = Deno.env.get('GOOGLE_MAPS_API_KEY');
-      if (!LOVABLE_API_KEY || !GOOGLE_MAPS_API_KEY) {
-        throw new GoogleConnectorNotConfiguredError();
+      if (!GOOGLE_MAPS_API_KEY) {
+        throw new GoogleMapsKeyNotConfiguredError();
       }
 
-      const staticMapUrl = new URL(`${GATEWAY_URL}/maps/api/staticmap`);
+      const staticMapUrl = new URL(GOOGLE_STATIC_MAP_URL);
       staticMapUrl.searchParams.set('center', `${lat},${lng}`);
       staticMapUrl.searchParams.set('zoom', String(zoom));
       staticMapUrl.searchParams.set('size', `${w}x${h}`);
       staticMapUrl.searchParams.set('scale', '2'); // retina
       staticMapUrl.searchParams.set('maptype', mapType);
       staticMapUrl.searchParams.set('markers', `color:${pinColor}|${lat},${lng}`);
+      staticMapUrl.searchParams.set('key', GOOGLE_MAPS_API_KEY);
 
       return fetch(staticMapUrl.toString(), {
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          'X-Connection-Api-Key': GOOGLE_MAPS_API_KEY,
-        },
+        signal: AbortSignal.timeout(GOOGLE_MAPS_REQUEST_TIMEOUT_MS),
       });
     };
 
@@ -83,8 +88,8 @@ Deno.serve(async (req) => {
     try {
       resolved = await resolveMapImage(cacheParams, generateImage);
     } catch (err) {
-      if (err instanceof GoogleConnectorNotConfiguredError) {
-        return new Response(JSON.stringify({ error: 'Google Maps connector not configured' }), {
+      if (err instanceof GoogleMapsKeyNotConfiguredError) {
+        return new Response(JSON.stringify({ error: 'GOOGLE_MAPS_API_KEY não configurada' }), {
           status: 503,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });

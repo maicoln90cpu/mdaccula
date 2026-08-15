@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Correção: mapa de e-mail e geocodificação de eventos pararam de funcionar após rotação da chave do Google Maps (R-063)
+**Descrição:** dentro da mesma auditoria de segurança do R-062, a chave do Google Maps também foi rotacionada — dividida em duas chaves separadas: uma pública (só Maps Embed API, restrita a `mdaccula.com`/`www`/`mdaccula.lovable.app`) e uma nova de servidor (só Static Maps + Geocoding, restrição "Nenhuma"). A troca do valor de servidor quebrou `render-static-map` e `geocode-event` em produção (`500`, "Credential not found") porque as duas functions não chamavam a API do Google diretamente — passavam por um gateway do Lovable (`connector-gateway.lovable.dev`) que esperava reconhecer o valor como uma credencial própria dele, não uma chave crua do Google. Corrigido chamando o Google diretamente (`maps.googleapis.com`) com a chave nova, sem depender do gateway nem do `LOVABLE_API_KEY`. As duas chaves foram testadas manualmente contra o Google (Static Maps, Geocoding e Embed, com e sem referrer autorizado) antes do deploy, todas confirmadas funcionando.
+**Achado adicional:** a Geocoding API rejeita qualquer chave com restrição de app "HTTP referrers" — a chave de servidor precisou ficar com restrição "Nenhuma" (compensada por escopo mínimo de API, ver pendência de cota/orçamento em `docs/PENDENCIAS.md`).
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — testes diretos via `curl` contra a API do Google antes do deploy, a pedido explícito do usuário
+**Impacto:** mapas de eventos novos em e-mails e geocodificação automática voltam a funcionar; a chave que gera custo real (Static Maps/Geocoding) nunca mais fica exposta a nenhum navegador nem ao Git.
+
+**Arquivos alterados:** `supabase/functions/render-static-map/index.ts`, `supabase/functions/geocode-event/index.ts`, `src/__tests__/regression/google-maps-direct-call-no-gateway.test.ts` (novo), `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Segurança: repositório ficou público — rotacionados 8 segredos de cron expostos
 **Descrição:** o repositório do GitHub foi tornado público (pra usar o plano gratuito do GitHub Actions, depois de um bloqueio de cobrança na conta). Isso tornou visível todo o histórico do Git, incluindo migrations antigas que gravam segredos de autenticação de cron em texto puro (padrão usado desde o início do projeto: `INSERT INTO internal_cron_secrets (name, secret) VALUES (...)`). Auditoria feita na sequência: 8 dos 9 segredos hardcoded em migrations foram rotacionados (novo valor gravado direto no banco — `internal_cron_secrets` + o `command` do `cron.job` correspondente — sem precisar de nova migration, então o valor novo nunca entra no Git). Confirmado depois via `net._http_response` que os crons já disparados (`heal-stuck-email-dispatches`, `scheduled-email-send`, `event-reminder`) autenticaram normalmente (HTTP 200) com os valores novos. O nono (`apify_instagram_webhook`) e o segredo compartilhado `CRON_SHARED_SECRET` (achado numa migration mais antiga, usado como autenticação primária por 9 das 10 functions de cron — só `metrics-snapshot` depende exclusivamente dele, as outras 9 usam seu próprio segredo em `internal_cron_secrets` como caminho real) ficaram como decisão pendente do usuário — o primeiro porque rotacionar sozinho quebraria a integração real com a Apify (precisa atualizar dos dois lados ao mesmo tempo); o segundo porque é um secret de ambiente da Edge Function (não uma linha de banco), e só o usuário tem acesso ao painel do Supabase pra defini-lo.
 **Correção de rota (mesmo dia):** a primeira versão desta entrada também tirava o `.env` do controle de versão (`git rm --cached` + `.gitignore`). O usuário pediu pra reverter — o Lovable lê esse arquivo diretamente do repositório pra montar build/preview, e tirar do Git quebraria esse fluxo. `.env` voltou a ser versionado. Como o conteúdo dele (chave de navegador do Google Maps) segue público de qualquer forma enquanto isso for necessário, a proteção real passou a ser outra: restrição de referrer **sem** `localhost` na lista (referrer de localhost é fácil de forjar por qualquer pessoa que copie a chave) + limite de cota diária + alerta de orçamento no Google Cloud — registrado como decisão pendente do usuário em `docs/PENDENCIAS.md` (só ele tem acesso ao Google Cloud Console).
@@ -1254,6 +1265,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Bugfix | Mapa de e-mail e geocodificação voltaram a funcionar após rotação da chave do Google Maps quebrar o gateway do Lovable (R-063) |
 | 15/08 | Segurança | Repositório ficou público — 8 segredos de cron rotacionados (`.env` permanece versionado, é lido pelo Lovable) |
 | 15/08 | Bugfix | Causa raiz definitiva de eventos "presos" sem campanha e sem erro registrado + limpeza de 7 eventos afetados (R-062) |
 | 10/08 | Verificação | Envio segmentado confirmado funcionando com a correção do R-059 (rascunho + envio real, 13k contatos) |
