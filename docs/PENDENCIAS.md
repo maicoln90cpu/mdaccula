@@ -131,7 +131,28 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🗳️ Decisões Pendentes do Usuário
 
-_Nenhuma no momento._
+### Definir `CRON_SHARED_SECRET` novo no painel do Supabase (repositório ficou público em 15/08/2026)
+**Contexto:** o repositório foi tornado público em 15/08/2026 (pra usar o plano gratuito do GitHub Actions). Auditoria de segurança feita na sequência achou o segredo compartilhado `CRON_SHARED_SECRET` — usado como autenticação de várias Edge Functions de cron (`metrics-snapshot`, e como checagem primária em `weekly-digest-draft`, `blog-digest-draft`, `weekend-agenda-draft`, `send-event-reminder-campaigns`, `send-scheduled-email-campaigns`, `heal-stuck-email-dispatches`, `egoi-campaign-stats`) — gravado em texto puro numa migration antiga (`20260510172108_...sql`), agora visível pra qualquer pessoa no histórico do Git.
+**O que já foi feito:** um valor novo já foi gerado e o cron `daily-metrics-snapshot` (o único que embute esse valor diretamente, sem passar pela tabela `internal_cron_secrets`) já foi atualizado no banco pra usar o valor novo. O valor foi entregue direto pro usuário no chat — nunca gravado em nenhum arquivo do repositório, pra não repetir o mesmo erro.
+**Passos:**
+1. Definir o secret `CRON_SHARED_SECRET` no painel do Supabase (Edge Functions → Secrets) ou via CLI (`supabase secrets set CRON_SHARED_SECRET=<valor combinado no chat>`) com o valor novo.
+2. Até isso ser feito, o cron `daily-metrics-snapshot` (métricas diárias, não crítico) vai falhar de autenticação — os outros crons não são afetados, porque cada um usa seu próprio segredo em `internal_cron_secrets` (já rotacionados) como caminho principal.
+3. Depois de confirmar que o `daily-metrics-snapshot` voltou a rodar sem erro (`function_logs`), este item pode ser encerrado.
+**Responsável:** usuário (só ele tem acesso ao painel de secrets do Supabase).
+
+### Rotacionar `apify_instagram_webhook` e reconfigurar o webhook correspondente na Apify
+**Contexto:** mesma auditoria de 15/08/2026 — o segredo `apify_instagram_webhook` (usado por `apify-instagram-webhook/index.ts` pra validar que a chamada realmente veio da Apify) também está gravado em texto puro numa migration (`20260717150000_apify_instagram_webhook_secret.sql`), agora pública. Diferente dos outros 8, **não foi rotacionado** nesta rodada porque trocar o valor no banco sozinho quebraria a integração real — o mesmo valor precisa ser atualizado do lado da Apify (configuração do ator/webhook) ao mesmo tempo, e isso só o usuário consegue fazer (acesso à conta Apify).
+**Passos:**
+1. Gerar um valor novo.
+2. Atualizar `internal_cron_secrets.apify_instagram_webhook` no Supabase.
+3. Atualizar o mesmo valor na configuração do webhook do ator na Apify.
+4. Testar com um post novo (ou disparo manual) pra confirmar que o webhook ainda autentica.
+**Responsável:** usuário decide quando fazer (não é urgente — o pior cenário é alguém conseguir chamar esse endpoint de fora, que só aceita payloads do formato esperado da Apify e não expõe nada sensível sozinho).
+
+### Confirmar restrição por domínio na chave do Google Maps (agora publicamente visível)
+**Contexto:** `.env` estava versionado no repositório (sem entrada nenhuma no `.gitignore`) — corrigido nesta auditoria (arquivo tirado do controle de versão, `.gitignore` atualizado). O conteúdo era só variáveis já públicas por natureza (chave anônima do Supabase, URL do projeto) e a chave de navegador do Google Maps (`VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY`). Chave de navegador não é segredo — mas só é segura de verdade se tiver restrição por domínio/referrer configurada no Google Cloud Console; sem isso, qualquer um que copiar a chave consegue usá-la em outro site, gerando custo indevido na conta do Google.
+**Passos:** conferir em console.cloud.google.com → Credentials se essa chave tem "HTTP referrers" restrito a `mdaccula.com` (e domínios de preview, se houver).
+**Responsável:** usuário (acesso ao Google Cloud Console).
 
 ---
 

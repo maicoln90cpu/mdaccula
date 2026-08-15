@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Segurança: repositório ficou público — rotacionados 8 segredos de cron expostos, `.env` removido do controle de versão
+**Descrição:** o repositório do GitHub foi tornado público (pra usar o plano gratuito do GitHub Actions, depois de um bloqueio de cobrança na conta). Isso tornou visível todo o histórico do Git, incluindo migrations antigas que gravam segredos de autenticação de cron em texto puro (padrão usado desde o início do projeto: `INSERT INTO internal_cron_secrets (name, secret) VALUES (...)`). Auditoria feita na sequência: 8 dos 9 segredos hardcoded em migrations foram rotacionados (novo valor gravado direto no banco — `internal_cron_secrets` + o `command` do `cron.job` correspondente — sem precisar de nova migration, então o valor novo nunca entra no Git). O nono (`apify_instagram_webhook`) e o segredo compartilhado `CRON_SHARED_SECRET` (achado numa migration mais antiga, usado como autenticação primária por várias functions de cron) ficaram como decisão pendente do usuário — o primeiro porque rotacionar sozinho quebraria a integração real com a Apify (precisa atualizar dos dois lados ao mesmo tempo); o segundo porque é um secret de ambiente da Edge Function (não uma linha de banco), e só o usuário tem acesso ao painel do Supabase pra defini-lo. `.env` (só variáveis já públicas por natureza — chave anônima do Supabase, chave de navegador do Google Maps) estava versionado desde sempre, sem entrada nenhuma no `.gitignore` — corrigido (`git rm --cached`, `.gitignore` atualizado).
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — sweep completo do repositório + rotação direto no banco (sem passar por migration, pra não repetir a exposição)
+**Impacto:** os 8 segredos antigos (visíveis pra qualquer pessoa no histórico público do Git) deixam de autenticar qualquer coisa; `.env` sai do controle de versão daqui pra frente. Nenhum cron parou de funcionar — cada rotação atualizou o banco e o agendamento juntos, na mesma operação.
+
+**Arquivos alterados:** `.gitignore`, `docs/PENDENCIAS.md` (2 decisões pendentes registradas), `docs/CHANGELOG.md`. Nenhuma migration nova (rotação feita direto em produção via SQL, deliberadamente fora do controle de versão).
+
+---
+
 ### Correção: causa raiz definitiva de eventos "presos" sem campanha e sem erro nenhum registrado, e limpeza de 7 eventos afetados (R-062)
 **Descrição:** disparo de uma campanha "Virada de lote" (FDS sem taxa) para 2 eventos (Music ON, One Life) mostrou o toast "Um ou mais eventos já têm campanha disparada... Nenhum e-mail foi enviado". Investigação (banco + confirmação manual do usuário no painel da E-goi) mostrou que os 2 eventos estavam com a reserva de disparo travada sem NENHUMA campanha ter sido criada na E-goi — nem como rascunho. O mesmo padrão apareceu em mais 6 eventos recentes (Industria, Hey Hoy, RoofTech, Helvétia, Krush, Solomun); em 4 deles (Industria/RoofTech/Krush/Solomun) o envio original tinha funcionado, mas uma tentativa posterior ficou presa do mesmo jeito, sem afetar o envio antigo. Causa raiz: os 4 patches anteriores desse mesmo sintoma (R-055, R-057, R-058, R-059) só cobrem falhas que lançam uma exceção JavaScript capturável — mas se a Edge Function é interrompida de fora do processo (timeout de plataforma, aba fechada) sem lançar exceção nenhuma, nenhum desses patches é alcançado. Corrigido de forma estrutural: as duas functions de disparo agora gravam a INTENÇÃO do disparo em `event_email_campaigns` (novo status `in_progress`) ANTES de qualquer chamada à E-goi — assim "claim travado sem nenhuma linha de histórico" deixa de ser um estado possível. Um novo cron (`heal-stuck-email-dispatches`, a cada 5 min) destrava automaticamente qualquer linha presa há mais de 5 minutos, com lock otimista pra nunca atropelar um reenvio manual concorrente.
 **Achado adicional:** as 4 automações de e-mail recorrentes (lembrete de evento, digest semanal, digest do blog, agenda do fim de semana) tinham cada uma sua própria cópia da chamada à E-goi sem timeout — um bug já identificado e registrado em `docs/PENDENCIAS.md` como pendente, agora corrigido junto (elimina a duplicação e usa a versão compartilhada, protegida com timeout).
@@ -1243,6 +1253,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Segurança | Repositório ficou público — 8 segredos de cron rotacionados, `.env` removido do controle de versão |
 | 15/08 | Bugfix | Causa raiz definitiva de eventos "presos" sem campanha e sem erro registrado + limpeza de 7 eventos afetados (R-062) |
 | 10/08 | Verificação | Envio segmentado confirmado funcionando com a correção do R-059 (rascunho + envio real, 13k contatos) |
 | 10/08 | Bugfix | Causa raiz definitiva de TODOS os dispatch_in_progress — PostgREST reaplicava filtro do claim sobre valor recém-gravado (R-059) |

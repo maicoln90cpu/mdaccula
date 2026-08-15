@@ -44,3 +44,10 @@ graphify-out/
 
 # Claude Code — config local de máquina (preview server, settings pessoais, worktrees)
 .claude/
+
+# Variáveis de ambiente locais — nunca versionar (achado na auditoria de segurança
+# de 15/08/2026, quando o repositório passou a ser público: .env estava sem
+# ignore nenhum desde o início do projeto).
+.env
+.env.local
+.env.*.local
