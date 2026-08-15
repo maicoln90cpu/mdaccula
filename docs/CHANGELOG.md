@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Correção: mesmo sintoma do R-062 reapareceu por uma causa raiz diferente — escrita da Fase 1 sem timeout (R-064)
+**Descrição:** testando um disparo real depois do R-062/R-063 já no ar, o mesmo sintoma original voltou (claim setado, zero linha de histórico) — mas por um motivo novo: a própria escrita da linha `in_progress` da Fase 1 em `event_email_campaigns` nunca tinha timeout (só as chamadas de rede pra fora, tipo E-goi e Google Maps, tinham desde R-057). Corrigido envolvendo as 4 funções de `_shared/emailDispatchHistory.ts` em `withTimeout(10s)`, convertendo uma trava na escrita em um erro tratado normalmente, em vez de deixar a promise pendurada pra sempre.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — investigação via SQL direto no banco (logs da Analytics API do Supabase indisponíveis no momento, mesmo problema já documentado em `docs/PENDENCIAS.md`)
+**Impacto:** fecha a última lacuna conhecida da família de bugs "evento trava reservado sem rastro" (R-055/057/058/059/062/064) — agora TODA etapa entre o claim e a confirmação final (rede E rede+banco) tem timeout.
+
+**Arquivos alterados:** `supabase/functions/_shared/emailDispatchHistory.ts`, `src/__tests__/regression/email-dispatch-history-db-write-has-timeout.test.ts` (novo), `docs/TESTING.md`.
+
+---
+
 ### Correção: mapa de e-mail e geocodificação de eventos pararam de funcionar após rotação da chave do Google Maps (R-063)
 **Descrição:** dentro da mesma auditoria de segurança do R-062, a chave do Google Maps também foi rotacionada — dividida em duas chaves separadas: uma pública (só Maps Embed API, restrita a `mdaccula.com`/`www`/`mdaccula.lovable.app`) e uma nova de servidor (só Static Maps + Geocoding, restrição "Nenhuma"). A troca do valor de servidor quebrou `render-static-map` e `geocode-event` em produção (`500`, "Credential not found") porque as duas functions não chamavam a API do Google diretamente — passavam por um gateway do Lovable (`connector-gateway.lovable.dev`) que esperava reconhecer o valor como uma credencial própria dele, não uma chave crua do Google. Corrigido chamando o Google diretamente (`maps.googleapis.com`) com a chave nova, sem depender do gateway nem do `LOVABLE_API_KEY`. As duas chaves foram testadas manualmente contra o Google (Static Maps, Geocoding e Embed, com e sem referrer autorizado) antes do deploy, todas confirmadas funcionando.
 **Achado adicional:** a Geocoding API rejeita qualquer chave com restrição de app "HTTP referrers" — a chave de servidor precisou ficar com restrição "Nenhuma" (compensada por escopo mínimo de API, ver pendência de cota/orçamento em `docs/PENDENCIAS.md`).
@@ -1265,6 +1275,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Bugfix | Mesmo sintoma do R-062 reapareceu por causa raiz diferente — escrita da Fase 1 sem timeout (R-064) |
 | 15/08 | Bugfix | Mapa de e-mail e geocodificação voltaram a funcionar após rotação da chave do Google Maps quebrar o gateway do Lovable (R-063) |
 | 15/08 | Segurança | Repositório ficou público — 8 segredos de cron rotacionados (`.env` permanece versionado, é lido pelo Lovable) |
 | 15/08 | Bugfix | Causa raiz definitiva de eventos "presos" sem campanha e sem erro registrado + limpeza de 7 eventos afetados (R-062) |
