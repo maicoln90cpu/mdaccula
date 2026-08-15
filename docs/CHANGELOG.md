@@ -18,6 +18,18 @@
 
 ## Entradas Detalhadas
 
+### Segurança: remove a Edge Function `egoi-curl-probe`, esquecida deployada desde a fase de testes da integração E-goi (R-066)
+**Descrição:** durante uma triagem geral de `docs/PENDENCIAS.md` (pedida pelo usuário, motivada pelo repositório ter virado público nesse mesmo dia), confirmado que `egoi-curl-probe` — uma function marcada no próprio comentário do arquivo como "descartável, apagar depois de validar a API E-goi" — continuava deployada, sem nenhuma checagem de autenticação (`verify_jwt: false` + sem validação no código), expondo a `EGOI_API_KEY` pra qualquer request a `/lists` e `/senders` de quem descobrisse a URL. A validação que ela existia pra fazer já tinha sido concluída há tempos (o header `Apikey` correto já está em uso em toda a integração E-goi real).
+**Correção:** pasta `supabase/functions/egoi-curl-probe/` e a entrada `[functions.egoi-curl-probe]` em `supabase/config.toml` removidas. Referências em `docs/EDGE_FUNCTIONS.md` e `docs/SYSTEM-DESIGN.md` também removidas, contagem de functions ativas ajustada de 60 para 59.
+**Auditoria adicional feita na mesma triagem:** `docs/EDGE_FUNCTIONS.md` tinha uma nota de gap desatualizada dizendo que `send-event-reminder-campaigns` ainda estava sem `verify_jwt = false` — na verdade esse problema já tinha sido corrigido em 09/08/2026 (R-045); texto corrigido para refletir o estado real. Também achada `verify-sources-weekly` sem nenhuma checagem de autenticação — não estava na lista de 16 functions da pendência de auth admin (`docs/PENDENCIAS.md`); adicionada à lista como item 17, ainda sem correção.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — aprovado explicitamente antes da remoção
+**Importante:** apagar a pasta local e o `config.toml` só evita que a function volte a ser deployada — ela **continua ativa no Supabase remoto** até ser apagada manualmente (não existe ferramenta MCP nem CLI local disponível nesta sessão pra fazer isso à distância). Passo pendente do usuário: excluir `egoi-curl-probe` direto no painel do Supabase (Edge Functions → egoi-curl-probe → Delete) ou via `supabase functions delete egoi-curl-probe` com o CLI instalado.
+
+**Arquivos alterados:** `supabase/functions/egoi-curl-probe/` (removido), `supabase/config.toml`, `docs/EDGE_FUNCTIONS.md`, `docs/SYSTEM-DESIGN.md`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Correção: causa raiz definitiva do "Um ou mais eventos já têm campanha disparada" no disparo de múltiplos eventos — nunca tinha funcionado (R-065)
 **Descrição:** mesmo com R-062/R-063/R-064 já no ar, o usuário repetiu o teste ponta a ponta real (template "FDS sem taxa — múltiplos eventos", Music ON + One Life) no próprio navegador e recebeu o mesmo erro de sempre, com os dois eventos travados de novo — hipótese do próprio usuário: "isso parece acontecer com os eventos de grid". Investigação achou uma causa raiz nova e isolada: `create-multi-event-email-campaign` descobria quais eventos tinha reivindicado comparando, por igualdade estrita de string, o timestamp devolvido pelo PostgREST (formato `"...83+00:00"`) contra o `now` gerado em JS via `toISOString()` (formato `"...830Z"`) — dois formatos que NUNCA são iguais pro mesmo instante. Essa comparação nunca era verdadeira, em nenhuma chamada, desde que o recurso existe: confirmado via banco que `event_email_campaigns` nunca teve uma única linha com `campaign_type = 'multi_event'`. O claim de verdade sempre funcionava, mas o código sempre concluía "reivindiquei zero", devolvia 409, e como a liberação de claim parcial só roda quando há IDs reivindicados, a reserva ficava presa pra sempre. Corrigido comparando o valor numérico do instante (`new Date(...).getTime()`) em vez da string.
 **Data:** 15/08/2026
@@ -1285,6 +1297,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Segurança | Removida a `egoi-curl-probe`, function de debug esquecida deployada expondo a `EGOI_API_KEY` sem auth (R-066) |
 | 15/08 | Bugfix | Causa raiz definitiva do disparo de e-mail pra múltiplos eventos nunca ter funcionado — comparação de timestamp por string (R-065) |
 | 15/08 | Bugfix | Mesmo sintoma do R-062 reapareceu por causa raiz diferente — escrita da Fase 1 sem timeout (R-064) |
 | 15/08 | Bugfix | Mapa de e-mail e geocodificação voltaram a funcionar após rotação da chave do Google Maps quebrar o gateway do Lovable (R-063) |

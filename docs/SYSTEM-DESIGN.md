@@ -185,7 +185,6 @@ supabase/functions/
 │   ├── update-digest-schedule/     # Atualiza o pg_cron dos digests
 │   ├── egoi-resources/             # Lista listas/remetentes da conta E-goi
 │   ├── egoi-campaign-stats/        # Estatísticas de campanha (abertura/clique)
-│   ├── egoi-curl-probe/            # Diagnóstico bruto de conectividade com a E-goi
 │   └── send-test-email/            # Envia HTML de teste pro e-mail admin fixo (via Resend)
 │
 ├── Email (outros)/
