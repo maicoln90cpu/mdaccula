@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { discoverArticleUrls, fetchSourceLinks, findListingIndexUrls, type SourceRef } from "../_shared/sourceArticlePicker.ts";
 import { notifyAutoPublish } from "../_shared/autoPublishAlert.ts";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -499,7 +500,14 @@ Deno.serve(async (req) => {
 
     // Verificar se deve executar (checagem rápida)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "auto_article_cron",
+      cronJobHeaderValue: "auto-article-cron",
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
+
     const { data: settings } = await supabase
       .from('site_settings')
       .select('key, value')

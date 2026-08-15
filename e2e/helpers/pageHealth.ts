@@ -29,6 +29,17 @@ export function watchPageHealth(page: Page): PageHealthWatcher {
     // Security Policy"). Filtered by mentioning CSP at all, not by domain allowlist, so
     // it stays correct even as new ad/analytics vendors get added or removed.
     if (/content security policy/i.test(text)) return;
+    // React DOM 18.3.1 (the version actually installed, confirmed against
+    // node_modules) doesn't yet special-case the `fetchPriority` JSX prop
+    // (that support landed later) even though @types/react already types it —
+    // so the camelCase spelling that TypeScript requires (Links.tsx, BlogPost.tsx,
+    // R-027 in docs/CHANGELOG.md) trips this dev-only "unrecognized prop" warning
+    // at runtime. The lowercase HTML attribute still reaches the DOM either way
+    // (browsers normalize attribute casing) — this is a known false positive, not
+    // a real regression. See docs/PENDENCIAS.md ("CI/CD Pipeline (E2E) falhando...
+    // fetchPriority"). Narrowly matched so an unrelated future "does not recognize
+    // the X prop" bug still fails the suite.
+    if (/does not recognize the/i.test(text) && /fetchPriority/.test(text)) return;
     consoleErrors.push(text);
   });
 

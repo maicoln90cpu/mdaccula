@@ -11,6 +11,7 @@
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { countNewCandidates } from "./discovery.ts";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +63,13 @@ Deno.serve(async (req) => {
   if (!firecrawlApiKey) return jsonError("FIRECRAWL_API_KEY não configurada", 500);
 
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  const auth = await authorizeAdminOrCron(req, supabase, {
+    anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+    cronSecretRowName: "verify_sources_weekly_cron",
+    cronJobHeaderValue: "verify-sources-weekly",
+  });
+  if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
 
   try {
     const { data: sources, error: sourcesError } = await supabase

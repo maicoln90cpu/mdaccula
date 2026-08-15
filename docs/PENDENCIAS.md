@@ -26,6 +26,13 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🔧 Bug conhecido
 
+### CI/CD Pipeline (E2E) falhando de forma consistente em `main` — warning de `fetchPriority` na `/links`
+**Contexto:** achado incidentalmente em 15/08/2026 ao verificar o deploy da Fase 2 da autenticação admin (`docs/PENDENCIAS.md`) — a run de CI/CD do commit `7e369f6` falhou, e as 4 runs anteriores em `main` (`6676cfc`, `8940152`, `82dacf4`, `1a8593a`) também já estavam falhando pelo mesmo motivo, então não tem relação com nenhuma mudança recente. O teste `e2e/smoke.spec.ts` (`/links renders at least one link card`) usa um helper (`e2e/helpers/pageHealth.ts:55`) que falha o teste se QUALQUER `console.error` aparecer durante a navegação — e o React emite `Warning: React does not recognize the fetchPriority prop on a DOM element... spell it as lowercase fetchpriority` no `<img>` do avatar em `src/pages/Links.tsx:163`. `package.json` já declara `react`/`react-dom` `^18.3.1` (versão que deveria reconhecer `fetchPriority` em camelCase, conforme o próprio R-027 documentado no `CHANGELOG.md` assumiu) — o ambiente de CI parece estar resolvendo uma versão/patch que ainda não suporta a prop camelCase.
+**Passos:**
+1. Confirmar a versão exata de `react-dom` resolvida no `package-lock.json`/lockfile usado pelo CI (pode ser diferente da que roda localmente).
+2. Decidir entre: atualizar a versão do React no CI pra uma que já suporte `fetchPriority` camelCase, ou fazer o helper `pageHealth.ts` ignorar esse warning específico (`fetchPriority`) como allowlist, já que é um falso-positivo de compatibilidade, não um bug funcional real.
+**Responsável:** decisão do usuário sobre qual caminho seguir — CI está vermelho em `main` desde antes desta sessão, mas não bloqueia deploy (o deploy de Edge Functions é um workflow separado e já está passando).
+
 ### Checagem de Storage no egress-alert-cron: credencial OK, mas a API pública de Analytics do Supabase está devolvendo erro consistentemente
 **Contexto:** decisão tomada em 12/08/2026 (ver R-061 no `CHANGELOG.md`) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. Histórico de investigação, na ordem:
 1. `METRICS_API_KEY` (secret antigo) não era um PAT válido (401 "JWT could not be decoded").

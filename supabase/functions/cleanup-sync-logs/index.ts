@@ -1,17 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { handleCorsPreFlight, jsonError, authorizeAdminOrCron } from "../_shared/index.ts";
 
-// ============= INLINE SHARED UTILITIES =============
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-function handleCorsPreFlight(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-  return null;
-}
 
 // ============= MAIN HANDLER =============
 const RETENTION_DAYS = 30;
@@ -29,6 +22,13 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "cleanup_sync_logs_cron",
+      cronJobHeaderValue: "cleanup-sync-logs",
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
 
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - RETENTION_DAYS);
