@@ -9,6 +9,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { cacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
+import { beginInProgressHistoryRow, finalizeHistoryRow } from '../_shared/emailDispatchHistory.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +40,13 @@ Deno.serve(async (req) => {
   let claimAdmin: ReturnType<typeof createClient> | null = null;
   let claimEventId: string | undefined;
   let claimIsAbTest = false;
+  // R-062 — id da linha 'in_progress' gravada na Fase 1 (antes de falar com a
+  // E-goi) e se a criação na E-goi chegou a ser confirmada — usados no catch
+  // externo pra decidir com segurança se libera o claim e como finalizar a
+  // linha de histórico, mesmo numa falha não prevista.
+  let historyRowId: string | null = null;
+  let campaignConfirmedCreated = false;
+  let confirmedCampaignHash: string | null = null;
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -248,6 +256,37 @@ Deno.serve(async (req) => {
       return json({ error: 'Assunto do template está vazio' }, 400);
     }
 
+    // R-062 — Fase 1: grava a INTENÇÃO de disparo em event_email_campaigns
+    // (status 'in_progress') ANTES de qualquer chamada de rede (cache de
+    // mapas, E-goi). A partir daqui, "claim setado sem nenhuma linha de
+    // histórico" deixa de ser um estado alcançável — mesmo se a function
+    // morrer sem lançar exceção nenhuma. Ver heal-stuck-email-dispatches.
+    const historyBasePayload: Record<string, unknown> = {
+      event_id: eventId,
+      mode,
+      segment_id: resolvedSegmentId,
+      campaign_type: isAbTest ? 'ab_subject' : 'standard',
+      ab_group_id: abGroupId,
+      ab_variant: abVariant,
+      ab_test_config: abTestConfig,
+      scheduled_at: scheduleAtIso,
+      scheduled_send_claimed_at: null,
+      scheduled_send_attempts: 0,
+    };
+    const { id: beganId, error: beginError } = await beginInProgressHistoryRow(
+      admin,
+      historyBasePayload,
+      reuseRow ? (reuseRow as { id: string }).id : null,
+    );
+    if (beginError || !beganId) {
+      console.error('[create-event-email-campaign] Falha ao gravar linha "in_progress" de histórico:', beginError);
+      if (!isAbTest) {
+        await admin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', eventId);
+      }
+      return json({ error: `Falha ao registrar início do disparo: ${beginError ?? 'erro desconhecido'}` }, 500);
+    }
+    historyRowId = beganId;
+
     // E-goi v3: POST /campaigns/email
     // Doc: https://developers.e-goi.com/api/v3/#tag/Email/operation/createEmailCampaign
     // content deve ser { type: 'html', body: '<html>...' } (NÃO "html").
@@ -308,12 +347,18 @@ Deno.serve(async (req) => {
     let egoiSendBody: unknown = null;
 
     if (created.ok) {
+      // R-062 — a partir daqui, a campanha existe de verdade na E-goi; o
+      // catch externo não pode mais liberar o claim nem sobrescrever esta
+      // linha de histórico como "nunca criada", mesmo que algo dê errado
+      // logo depois (ex.: sendEgoiCampaign travar).
+      campaignConfirmedCreated = true;
       campaignHash =
         created.body?.campaign_hash ||
         created.body?.hash ||
         created.body?.data?.campaign_hash ||
         (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
         (created.body?.id != null ? String(created.body.id) : null);
+      confirmedCampaignHash = campaignHash;
       campaignStatus = 'draft';
 
       // Agendamento — a campanha já foi criada como rascunho na E-goi acima;
@@ -370,25 +415,14 @@ Deno.serve(async (req) => {
       }`.slice(0, 1000);
     }
 
-    // Persistência do histórico
+    // Persistência do histórico (Fase 2 — R-062: finaliza a MESMA linha
+    // 'in_progress' gravada na Fase 1, sempre por UPDATE — nunca insere linha
+    // nova aqui, ela já existe desde antes da chamada à E-goi).
     const rowPayload: Record<string, unknown> = {
-      event_id: eventId,
       egoi_campaign_id: campaignHash,
       status: campaignStatus,
-      mode,
       error_message: errorMessage,
       sent_at: sentAt,
-      segment_id: resolvedSegmentId,
-      campaign_type: isAbTest ? 'ab_subject' : 'standard',
-      ab_group_id: abGroupId,
-      ab_variant: abVariant,
-      ab_test_config: abTestConfig,
-      // Reseta o estado de agendamento a cada (re)criação — inclusive quando
-      // NÃO é um agendamento (scheduleAtIso null), para limpar um agendamento
-      // anterior caso esta linha esteja sendo reaproveitada (reuseRow).
-      scheduled_at: scheduleAtIso,
-      scheduled_send_claimed_at: null,
-      scheduled_send_attempts: 0,
     };
 
     // R-058 — Supabase-js não lança em erro de RLS/constraint aqui, só devolve
@@ -401,20 +435,11 @@ Deno.serve(async (req) => {
     // uma campanha que já foi criada — só soma o erro na resposta, mesmo
     // padrão já usado no sibling create-multi-event-email-campaign.
     let historyError: string | null = null;
-    if (reuseRow) {
-      const { error: updateError } = await admin
-        .from('event_email_campaigns')
-        .update(rowPayload)
-        .eq('id', (reuseRow as any).id);
-      if (updateError) {
-        console.error('[create-event-email-campaign] Falha ao gravar histórico (update):', updateError);
-        historyError = updateError.message;
-      }
-    } else {
-      const { error: insertError } = await admin.from('event_email_campaigns').insert(rowPayload);
-      if (insertError) {
-        console.error('[create-event-email-campaign] Falha ao gravar histórico (insert):', insertError);
-        historyError = insertError.message;
+    if (historyRowId) {
+      const { error: finalizeError } = await finalizeHistoryRow(admin, historyRowId, rowPayload);
+      if (finalizeError) {
+        console.error('[create-event-email-campaign] Falha ao gravar histórico (update):', finalizeError);
+        historyError = finalizeError;
       }
     }
 
@@ -434,13 +459,33 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('[create-event-email-campaign] Falha não tratada:', e);
-    if (claimAdmin && claimEventId && !claimIsAbTest) {
+    const errMsg = (e as Error).message;
+    // R-062 — só libera o claim quando a campanha NÃO chegou a ser confirmada
+    // como criada na E-goi (mesma doutrina do R-058: se `created.ok` já era
+    // true, a campanha existe de verdade, e liberar o claim deixaria o admin
+    // recriar/reenviar em cima dela).
+    if (claimAdmin && claimEventId && !claimIsAbTest && !campaignConfirmedCreated) {
       try {
         await claimAdmin.from('events').update({ email_campaign_dispatched_at: null }).eq('id', claimEventId);
       } catch (releaseErr) {
         console.error('[create-event-email-campaign] Falha ao liberar claim após erro:', releaseErr);
       }
     }
-    return json({ error: (e as Error).message }, 500);
+    // R-062 — finaliza a linha 'in_progress' da Fase 1 pra não ficar presa
+    // pra sempre; best-effort (não deixa um erro aqui mascarar o 500 real).
+    if (claimAdmin && historyRowId) {
+      try {
+        await finalizeHistoryRow(claimAdmin, historyRowId, {
+          status: campaignConfirmedCreated ? 'draft' : 'failed',
+          egoi_campaign_id: confirmedCampaignHash,
+          error_message: campaignConfirmedCreated
+            ? `Campanha criada na E-goi (${confirmedCampaignHash ?? 'hash desconhecido'}), mas a function falhou logo depois: ${errMsg}`
+            : errMsg,
+        });
+      } catch (finalizeErr) {
+        console.error('[create-event-email-campaign] Falha ao finalizar histórico após erro:', finalizeErr);
+      }
+    }
+    return json({ error: errMsg }, 500);
   }
 });

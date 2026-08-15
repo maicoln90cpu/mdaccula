@@ -1,6 +1,6 @@
 # Edge Functions
 
-Índice de referência das 59 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 10/08/2026 (58 já deployadas + `verify-sources-weekly`, nova nesta rodada).
+Índice de referência das 60 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 15/08/2026 (59 já deployadas — batia com a contagem anterior de 10/08/2026 — + `heal-stuck-email-dispatches`, nova nesta rodada, ver R-062).
 
 **58 das 59 têm `verify_jwt: false`** no gateway do Supabase — o gateway não exige JWT antes de invocar nenhuma delas. Isso significa que a autenticação real de cada function é feita manualmente dentro do próprio código: lendo o header `Authorization` e validando via `supabase.auth.getUser()` + RPC `has_role()`, checando um `x-cron-secret` contra `CRON_SHARED_SECRET`/tabela `internal_cron_secrets`, ou sendo deliberadamente pública/anônima (tracking, SEO, LGPD). A coluna **Auth** abaixo documenta o que cada function realmente faz — não o que o gateway faz. **Exceção: `send-event-reminder-campaigns` está com `verify_jwt: true`** (não tem entrada em `supabase/config.toml`, então cai no padrão) — ver gap abaixo.
 
@@ -30,6 +30,7 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 |----------|-----------|---------|------|----------|
 | create-event-email-campaign | Cria/atualiza rascunho de campanha E-goi para 1 evento (suporta A/B test e agendamento) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | create-multi-event-email-campaign | Cria 1 campanha E-goi cobrindo N eventos, com claim atômico tudo-ou-nada | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| heal-stuck-email-dispatches | Cron a cada 5 min: resolve linhas `event_email_campaigns` presas em `in_progress` (function morta sem exceção, entre o claim e a confirmação de criação na E-goi) — marca `failed` e libera o claim do evento, com lock otimista contra reenvio manual concorrente | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 | daily-metrics-email | Cron diário (08h BRT): coleta métricas do dia anterior e envia resumo por e-mail via Resend | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
 | egoi-campaign-stats | Puxa estatísticas de uma campanha E-goi (`GET /reports/email/{hash}`) e persiste em `event_email_campaign_stats` | Frontend (admin) / Cron | Admin ou cron secret | Próprio (inline) |
 | egoi-curl-probe | Function descartável de debug: testa variações de header de auth contra a API E-goi. Nunca foi removida — candidata a limpeza (ver `docs/PENDENCIAS.md`) | Frontend (admin, dev only) | Nenhuma | Próprio (inline) |

@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 13/08/2026
+**Última atualização:** 15/08/2026
 
 ---
 
@@ -17,6 +17,17 @@
 ---
 
 ## Entradas Detalhadas
+
+### Correção: causa raiz definitiva de eventos "presos" sem campanha e sem erro nenhum registrado, e limpeza de 7 eventos afetados (R-062)
+**Descrição:** disparo de uma campanha "Virada de lote" (FDS sem taxa) para 2 eventos (Music ON, One Life) mostrou o toast "Um ou mais eventos já têm campanha disparada... Nenhum e-mail foi enviado". Investigação (banco + confirmação manual do usuário no painel da E-goi) mostrou que os 2 eventos estavam com a reserva de disparo travada sem NENHUMA campanha ter sido criada na E-goi — nem como rascunho. O mesmo padrão apareceu em mais 6 eventos recentes (Industria, Hey Hoy, RoofTech, Helvétia, Krush, Solomun); em 4 deles (Industria/RoofTech/Krush/Solomun) o envio original tinha funcionado, mas uma tentativa posterior ficou presa do mesmo jeito, sem afetar o envio antigo. Causa raiz: os 4 patches anteriores desse mesmo sintoma (R-055, R-057, R-058, R-059) só cobrem falhas que lançam uma exceção JavaScript capturável — mas se a Edge Function é interrompida de fora do processo (timeout de plataforma, aba fechada) sem lançar exceção nenhuma, nenhum desses patches é alcançado. Corrigido de forma estrutural: as duas functions de disparo agora gravam a INTENÇÃO do disparo em `event_email_campaigns` (novo status `in_progress`) ANTES de qualquer chamada à E-goi — assim "claim travado sem nenhuma linha de histórico" deixa de ser um estado possível. Um novo cron (`heal-stuck-email-dispatches`, a cada 5 min) destrava automaticamente qualquer linha presa há mais de 5 minutos, com lock otimista pra nunca atropelar um reenvio manual concorrente.
+**Achado adicional:** as 4 automações de e-mail recorrentes (lembrete de evento, digest semanal, digest do blog, agenda do fim de semana) tinham cada uma sua própria cópia da chamada à E-goi sem timeout — um bug já identificado e registrado em `docs/PENDENCIAS.md` como pendente, agora corrigido junto (elimina a duplicação e usa a versão compartilhada, protegida com timeout).
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — investigação via Supabase MCP (`execute_sql`) e confirmação manual do usuário no painel da E-goi, evento por evento
+**Impacto:** os 7 eventos afetados (Music ON, One Life, Helvétia, RoofTech, Krush, Solomun, Industria) voltaram a ficar disponíveis para disparo/reenvio normal, sem nenhum impacto no histórico de campanhas reais já enviadas. Futuras interrupções de plataforma no meio de um disparo se auto-resolvem em até 5 minutos, em vez de deixar o evento travado indefinidamente e sem explicação visível.
+
+**Arquivos alterados:** `supabase/functions/create-event-email-campaign/index.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `supabase/functions/_shared/emailDispatchHistory.ts` (novo), `supabase/functions/heal-stuck-email-dispatches/index.ts` (novo), `supabase/functions/send-event-reminder-campaigns/index.ts`, `supabase/functions/weekly-digest-draft/index.ts`, `supabase/functions/blog-digest-draft/index.ts`, `supabase/functions/weekend-agenda-draft/index.ts`, `supabase/migrations/20260815160000_event_email_campaigns_in_progress_status.sql` (nova), `supabase/migrations/20260815160500_heal_stuck_email_dispatches_cron.sql` (nova), `supabase/migrations/20260815161000_cleanup_phantom_email_dispatch_claims.sql` (nova), `supabase/config.toml`, `docs/tabelas.md`, `docs/EDGE_FUNCTIONS.md`, `docs/TESTING.md`, `docs/PENDENCIAS.md`, testes novos em `src/__tests__/regression/` (`email-dispatch-in-progress-status-allowed`, `email-dispatch-in-progress-row-before-egoi-call`, `email-dispatch-catch-respects-confirmed-creation`, `email-dispatch-heal-stuck-optimistic-lock`, `email-automations-egoi-request-uses-shared-timeout`) e atualização de `email-dispatch-history-write-error-swallowed.test.ts` (R-058).
+
+---
 
 ### Correção: logo do e-mail e arte de "virada de lote" pararam de bypassar o Bunny CDN (R-061)
 **Descrição:** investigação do pico de ~1,12 GB de "Cached Egress" do Supabase em 11/08/2026 (estourou o limite do plano gratuito e derrubou o site, forçando upgrade de emergência). O monitor interno de egress não alertou nesse dia — confirmado que `egress-alert-cron` rodou normalmente, mas só enxerga tráfego REST/Functions (via Service Worker + 4 Edge Functions instrumentadas manualmente), nunca leituras do Supabase Storage; o total registrado internamente pro dia todo foi de ~880 KB, uma fração do 1,12 GB oficial. Causa confirmada de parte do pico: `uploadLogo` (`useEmailConfigState.ts`) e `uploadBatchArtwork` (`useManualBatch.ts`) subiam a imagem direto pro bucket `link-thumbnails` do Supabase Storage com `getPublicUrl()` cru, nunca pelo Bunny CDN — diferente de toda imagem de evento/blog/team do resto do app. `logo_url` vai no header de todo e-mail disparado pelo sistema; `batchArtworkUrl` vira o flyer de disparos manuais de "virada de lote", que podem ir pra segmentos de +13 mil contatos. `storage_logs` do dia 11/08 mostra múltiplos bots de e-mail distintos (Gmail, scanner estilo Outlook, relay de e-mail) baixando o mesmo objeto no mesmo dia em que saiu uma campanha `weekly_digest` (lista completa) + 2 campanhas `standard` — cada abertura/scan por destinatário/provedor puxava egress real da origem do Supabase.
@@ -1232,6 +1243,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Bugfix | Causa raiz definitiva de eventos "presos" sem campanha e sem erro registrado + limpeza de 7 eventos afetados (R-062) |
 | 10/08 | Verificação | Envio segmentado confirmado funcionando com a correção do R-059 (rascunho + envio real, 13k contatos) |
 | 10/08 | Bugfix | Causa raiz definitiva de TODOS os dispatch_in_progress — PostgREST reaplicava filtro do claim sobre valor recém-gravado (R-059) |
 | 10/08 | Bugfix | Causa raiz definitiva do "dispatch_in_progress" — erro real na gravação do histórico era engolido silenciosamente (R-058) |

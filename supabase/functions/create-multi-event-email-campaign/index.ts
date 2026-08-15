@@ -9,6 +9,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { safeCacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
+import { beginInProgressHistoryRows, finalizeHistoryRows } from '../_shared/emailDispatchHistory.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,6 +35,13 @@ Deno.serve(async (req) => {
   // mesmo raciocínio do create-event-email-campaign sibling (R-055).
   let claimAdmin: ReturnType<typeof createClient> | null = null;
   let claimEventIds: string[] = [];
+  // R-062 — ids das linhas 'in_progress' gravadas na Fase 1 (antes de falar
+  // com a E-goi) e se a criação na E-goi chegou a ser confirmada — usados no
+  // catch externo pra decidir com segurança se libera o claim e como
+  // finalizar o histórico, mesmo numa falha não prevista.
+  let historyRowIds: string[] = [];
+  let campaignConfirmedCreated = false;
+  let confirmedCampaignHash: string | null = null;
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -164,6 +172,28 @@ Deno.serve(async (req) => {
       }, 409);
     }
 
+    // R-062 — Fase 1: grava a INTENÇÃO de disparo (N linhas 'in_progress',
+    // uma por evento) em event_email_campaigns ANTES de qualquer chamada de
+    // rede (cache de mapas, E-goi). A partir daqui, "claim setado sem nenhuma
+    // linha de histórico" deixa de ser um estado alcançável — mesmo se a
+    // function morrer sem lançar exceção nenhuma. Ver heal-stuck-email-dispatches.
+    const mode = sendNow ? 'immediate' : 'draft';
+    const { ids: beganIds, error: beginError } = await beginInProgressHistoryRows(
+      admin,
+      eventIds.map((eventId) => ({
+        event_id: eventId,
+        mode,
+        segment_id: resolvedSegmentId,
+        campaign_type: 'multi_event',
+      })),
+    );
+    if (beginError || beganIds.length !== eventIds.length) {
+      console.error('[create-multi-event-email-campaign] Falha ao gravar linhas "in_progress" de histórico:', beginError);
+      await admin.from('events').update({ email_campaign_dispatched_at: null }).in('id', eventIds);
+      return json({ error: `Falha ao registrar início do disparo: ${beginError ?? 'erro desconhecido'}` }, 500);
+    }
+    historyRowIds = beganIds;
+
     // Pré-renderiza mapas estáticos no Bunny CDN (custo fixo por campanha).
     const processedHtml = await safeCacheStaticMapImagesInHtml(html, 'create-multi-event-email-campaign');
 
@@ -194,12 +224,18 @@ Deno.serve(async (req) => {
     let sentAt: string | null = null;
 
     if (created.ok) {
+      // R-062 — a partir daqui, a campanha existe de verdade na E-goi; o
+      // catch externo não pode mais liberar o claim nem sobrescrever as
+      // linhas de histórico como "nunca criadas", mesmo que algo dê errado
+      // logo depois (ex.: sendEgoiCampaign travar).
+      campaignConfirmedCreated = true;
       campaignHash =
         created.body?.campaign_hash ||
         created.body?.hash ||
         created.body?.data?.campaign_hash ||
         (created.body?.campaign_id != null ? String(created.body.campaign_id) : null) ||
         (created.body?.id != null ? String(created.body.id) : null);
+      confirmedCampaignHash = campaignHash;
       campaignStatus = 'draft';
 
       if (sendNow && !campaignHash) {
@@ -225,29 +261,28 @@ Deno.serve(async (req) => {
       }`.slice(0, 1000);
     }
 
-    // N linhas, uma por evento, mesmo egoi_campaign_id — é isso que faz cada
-    // evento aparecer individualmente como "enviado" no histórico.
-    const rows = eventIds.map((eventId) => ({
-      event_id: eventId,
+    // R-062 — Fase 2: finaliza as MESMAS N linhas 'in_progress' gravadas na
+    // Fase 1 (nunca insere linha nova aqui — cada evento já tem sua linha
+    // própria desde antes da chamada à E-goi, é isso que faz cada um
+    // aparecer individualmente como "enviado" no histórico). Grava o
+    // resultado mesmo quando a criação na E-goi falhou (campaignStatus
+    // 'failed' com errorMessage preenchido) — mesmo padrão do
+    // create-event-email-campaign sibling, que sempre persiste o histórico
+    // para o admin ver o erro no histórico/dashboard, em vez de não deixar rastro.
+    const rowPayload: Record<string, unknown> = {
       egoi_campaign_id: campaignHash,
       status: campaignStatus,
-      mode: sendNow ? 'immediate' : 'draft',
       error_message: errorMessage,
       sent_at: sentAt,
-      segment_id: resolvedSegmentId,
-      campaign_type: 'multi_event',
-    }));
-    // Grava o histórico mesmo quando a criação na E-goi falhou (campaignStatus
-    // 'failed' com errorMessage preenchido) — mesmo padrão do
-    // create-event-email-campaign sibling, que sempre persiste uma linha para
-    // o admin ver o erro no histórico/dashboard, em vez de não deixar rastro.
-    const { error: insertError } = await admin.from('event_email_campaigns').insert(rows);
+    };
+    const { error: finalizeError } = await finalizeHistoryRows(admin, historyRowIds, rowPayload);
 
     let finalErrorMessage = errorMessage;
-    if (insertError) {
+    if (finalizeError) {
+      console.error('[create-multi-event-email-campaign] Falha ao gravar histórico (update):', finalizeError);
       finalErrorMessage = finalErrorMessage
-        ? `${finalErrorMessage} (aviso: falha ao gravar histórico: ${insertError.message})`
-        : `Aviso: falha ao gravar histórico: ${insertError.message}`;
+        ? `${finalErrorMessage} (aviso: falha ao gravar histórico: ${finalizeError})`
+        : `Aviso: falha ao gravar histórico: ${finalizeError}`;
     }
 
     return json({
@@ -259,13 +294,33 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error('[create-multi-event-email-campaign] Falha não tratada:', e);
-    if (claimAdmin && claimEventIds.length > 0) {
+    const errMsg = (e as Error).message;
+    // R-062 — só libera o claim quando a campanha NÃO chegou a ser confirmada
+    // como criada na E-goi (mesma doutrina do R-058: se `created.ok` já era
+    // true, a campanha existe de verdade, e liberar o claim deixaria o admin
+    // recriar/reenviar em cima dela).
+    if (claimAdmin && claimEventIds.length > 0 && !campaignConfirmedCreated) {
       try {
         await claimAdmin.from('events').update({ email_campaign_dispatched_at: null }).in('id', claimEventIds);
       } catch (releaseErr) {
         console.error('[create-multi-event-email-campaign] Falha ao liberar claim após erro:', releaseErr);
       }
     }
-    return json({ error: (e as Error).message }, 500);
+    // R-062 — finaliza as linhas 'in_progress' da Fase 1 pra não ficarem
+    // presas pra sempre; best-effort (não deixa um erro aqui mascarar o 500 real).
+    if (claimAdmin && historyRowIds.length > 0) {
+      try {
+        await finalizeHistoryRows(claimAdmin, historyRowIds, {
+          status: campaignConfirmedCreated ? 'draft' : 'failed',
+          egoi_campaign_id: confirmedCampaignHash,
+          error_message: campaignConfirmedCreated
+            ? `Campanha criada na E-goi (${confirmedCampaignHash ?? 'hash desconhecido'}), mas a function falhou logo depois: ${errMsg}`
+            : errMsg,
+        });
+      } catch (finalizeErr) {
+        console.error('[create-multi-event-email-campaign] Falha ao finalizar histórico após erro:', finalizeErr);
+      }
+    }
+    return json({ error: errMsg }, 500);
   }
 });

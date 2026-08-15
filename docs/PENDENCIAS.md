@@ -4,7 +4,7 @@
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
 > **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 13/08/2026
+**Última atualização:** 15/08/2026
 
 ---
 
@@ -38,6 +38,13 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 1. Monitorar por alguns dias se alguma execução automática do cron traz `storage_requests_24h` != `null` (dá pra conferir em `egress_alerts.details` ou nos logs de `function_logs`).
 2. Se continuar falhando sempre, considerar reportar o erro pro suporte do Supabase (a própria mensagem de erro já sugere isso) ou aceitar que essa checagem específica fica só como bônus oportunista, sem depender dela — a correção da causa raiz (R-061) já está no ar e não depende disso.
 **Responsável:** IA monitora quando solicitado; não é bloqueante pra mais nada.
+
+### Risco residual do R-062: janela estreita onde o cron de limpeza pode liberar um evento que na verdade já teve campanha criada na E-goi
+**Contexto:** a correção do R-062 (ver `CHANGELOG.md`) fechou a lacuna principal — uma linha `event_email_campaigns` só fica em `in_progress` (o estado que o cron `heal-stuck-email-dispatches` considera "seguro pra liberar") ANTES de qualquer chamada à E-goi. Mas ainda existe uma janela estreita: se a Edge Function morrer bem NO MEIO da chamada à E-goi (depois de enviar a requisição, antes de receber/processar a resposta), não há como saber se a E-goi recebeu e processou o pedido ou não. Nesse caso raro, o cron de limpeza liberaria a reserva achando que nada foi criado, quando pode ter sido — permitindo, em tese, uma recriação/duplicação.
+**Por que não foi resolvido agora:** resolver isso por completo exigeria a E-goi suportar uma chave de idempotência no payload de criação de campanha (pra a mesma requisição, reenviada, nunca criar 2 campanhas) — a API v3 da E-goi não parece expor esse recurso hoje.
+**Mitigação existente:** a janela é muito menor que antes (só durante a chamada de rede em si, não o processo inteiro entre claim e confirmação) e o timeout de 25s em `egoiRequest`/`sendEgoiCampaign` limita seu tamanho máximo. Um evento que passa por essa janela específica muito raramente teria, na pior hipótese, uma campanha duplicada criada na E-goi (nunca um envio duplicado silencioso sem rastro — o histórico sempre registra as duas tentativas).
+**Passos (se algum dia quiser fechar de vez):** avaliar com a E-goi se existe algum campo de idempotência não documentado, ou aceitar o risco residual (avaliação atual: baixo, dado o tamanho da janela).
+**Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa, é um risco residual conhecido e documentado.
 
 ## 👀 Monitoramento
 
@@ -109,14 +116,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 1. Rodar `list_branches`/`list_migrations` de novo e identificar qual migration específica está travada/falhou.
 2. Decidir com o usuário se vale corrigir esse branch (aplicar/reverter a migration travada) por motivos próprios, independente do disparo de e-mail.
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa impactando nada em produção hoje.
-
----
-
-### Bug latente: outras 4 Edge Functions têm cópia própria de `egoiRequest` sem timeout (mesma classe do R-057)
-**Status:** 🔧 Não corrigido — achado como efeito colateral da investigação do R-057, fora do escopo do disparo manual. Continua válido como hardening mesmo depois do R-058 mostrar que não era a causa raiz do bug do Sirius.
-**Contexto:** `blog-digest-draft`, `send-event-reminder-campaigns`, `weekly-digest-draft` e `weekend-agenda-draft` cada uma tem sua PRÓPRIA implementação local de `egoiRequest` (não usam o `_shared/egoiClient.ts`), com o mesmo `fetch()` sem timeout que o R-057 corrigiu no compartilhado. Nenhuma delas usa segmento por disparo hoje (só o fluxo manual tem esse campo), então o risco é menor, mas a mesma classe de trava indefinida existe se algum dia usarem segment_id ou a E-goi tiver uma lentidão pontual.
-**Correção sugerida:** ou aplicar o mesmo `AbortSignal.timeout` nas 4 cópias locais, ou (melhor, resolve a duplicação também) migrar as 4 functions pra usar `_shared/egoiClient.ts` em vez de reimplementar `egoiRequest`.
-**Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa reportada, é prevenção.
 
 ---
 

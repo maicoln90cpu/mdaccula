@@ -86,6 +86,7 @@ export function EmailEventsTab({
       sent: 0,
       manual: 0,
       failed: 0,
+      in_progress: 0,
     };
     for (const r of rows) c[summaryStatusOf(r.campaigns[0])]++;
     return c;

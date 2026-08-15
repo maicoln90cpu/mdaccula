@@ -852,7 +852,12 @@ CREATE TABLE public.event_email_campaigns (
   -- null em vez de ficarem invisíveis no histórico. Ver R-044 em TESTING.md.
   event_id UUID REFERENCES public.events(id) ON DELETE CASCADE,
   egoi_campaign_id TEXT,
-  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sent', 'failed')),
+  -- status 'in_progress' desde 15/08/2026 (migration
+  -- 20260815160000_event_email_campaigns_in_progress_status.sql) — gravado
+  -- pela Fase 1 de create-event-email-campaign/create-multi-event-email-campaign
+  -- ANTES de qualquer chamada à E-goi, pra "claim setado sem nenhuma linha de
+  -- histórico" deixar de ser um estado alcançável. Ver R-062 em TESTING.md.
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'scheduled', 'sent', 'failed', 'in_progress')),
   mode TEXT NOT NULL DEFAULT 'draft' CHECK (mode IN ('draft', 'immediate', 'scheduled', 'manual')),
   error_message TEXT,
   sent_at TIMESTAMP WITH TIME ZONE,

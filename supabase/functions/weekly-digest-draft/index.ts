@@ -20,7 +20,11 @@ import {
 } from '../_shared/emailBlocks.ts';
 import { composeEmail } from '../_shared/emailComposer.ts';
 import { buildEmailMeta, injectEmailPreheader } from '../_shared/emailMeta.ts';
-import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
+// R-062 — este arquivo tinha sua PRÓPRIA cópia local de `egoiRequest` sem
+// timeout (mesma classe do R-057). Agora usa a versão compartilhada e
+// protegida de `_shared/egoiClient.ts` (25s de timeout), a mesma já usada
+// pra `sendEgoiCampaign`.
+import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { writeDigestCampaignHistory } from '../_shared/digestCampaignHistory.ts';
 // Extraído na Onda 29 para manter este arquivo abaixo de 600 linhas.
 // Comportamento preservado 1:1 — se editar renderização, replicar teste em
@@ -38,24 +42,6 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret, x-cron-job',
 };
-
-const BASE = 'https://api.egoiapp.com';
-
-async function egoiRequest(path: string, apiKey: string, init: RequestInit = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      Apikey: apiKey,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-  const text = await res.text();
-  let body: any = text;
-  try { body = JSON.parse(text); } catch { /* keep raw */ }
-  return { status: res.status, ok: res.ok, body };
-}
 
 function hasAnyBlockKind(blocks: Block[] | null, kinds: string[]): boolean {
   if (!blocks?.length) return false;

@@ -12,7 +12,7 @@ export type Campaign = {
   id: string;
   event_id: string;
   egoi_campaign_id: string | null;
-  status: 'draft' | 'scheduled' | 'sent' | 'failed';
+  status: 'draft' | 'scheduled' | 'sent' | 'failed' | 'in_progress';
   mode: Mode;
   error_message: string | null;
   sent_at: string | null;

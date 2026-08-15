@@ -1,11 +1,20 @@
 /**
- * R-058 — A escrita final de histórico (insert/update em
- * event_email_campaigns) em create-event-email-campaign, no caminho "campanha
- * criada com sucesso na E-goi", nunca checava { error } do Supabase-js. Uma
- * falha de banco nesse ponto (RLS, constraint, etc.) ficava completamente
- * silenciosa: resposta 200, ok:true, zero linha gravada, nenhum log —
- * reproduzindo sozinha todos os sintomas do "dispatch_in_progress" observado
- * em produção pro evento Sirius em 10/08/2026, mesmo após R-052 a R-057.
+ * R-058 — A escrita final de histórico em create-event-email-campaign, no
+ * caminho "campanha criada com sucesso na E-goi", nunca checava { error } do
+ * Supabase-js. Uma falha de banco nesse ponto (RLS, constraint, etc.) ficava
+ * completamente silenciosa: resposta 200, ok:true, zero linha gravada,
+ * nenhum log — reproduzindo sozinha todos os sintomas do "dispatch_in_progress"
+ * observado em produção pro evento Sirius em 10/08/2026, mesmo após R-052 a
+ * R-057.
+ *
+ * Atualizado pelo R-062 (15/08/2026): a escrita final deixou de ser um
+ * INSERT-ou-UPDATE condicional a `reuseRow` — agora é sempre um UPDATE por
+ * `historyRowId`, porque a linha já existe desde a Fase 1 (gravada como
+ * 'in_progress' antes de qualquer chamada à E-goi, ver
+ * email-dispatch-in-progress-row-before-egoi-call.test.ts). O princípio do
+ * R-058 continua valendo: `{ error }` do Supabase-js precisa ser checado e
+ * logado, e uma falha aqui NUNCA libera o claim (a campanha real já existe
+ * na E-goi nesse ponto).
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
@@ -13,8 +22,8 @@ import path from 'path';
 
 const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), 'utf-8');
 
-describe('Regressão R-058 — erro de escrita do histórico de e-mail não é mais silencioso', () => {
-  it('create-event-email-campaign captura e loga o erro do update/insert final em event_email_campaigns', () => {
+describe('Regressão R-058/R-062 — erro de escrita do histórico de e-mail não é mais silencioso', () => {
+  it('create-event-email-campaign captura e loga o erro da finalização (Fase 2) em event_email_campaigns', () => {
     const src = read('supabase/functions/create-event-email-campaign/index.ts');
     const start = src.indexOf('// Persistência do histórico');
     expect(start, 'Não encontrei o bloco de persistência do histórico.').toBeGreaterThan(-1);
@@ -23,12 +32,9 @@ describe('Regressão R-058 — erro de escrita do histórico de e-mail não é m
 
     expect(
       block,
-      'O update encadeado precisa destructurar { error } — Supabase-js não lança em erro de RLS/constraint, só retorna { error }.'
-    ).toMatch(/const\s*\{\s*error:\s*updateError\s*\}\s*=\s*await admin[\s\S]*?\.update\(rowPayload\)/);
-    expect(
-      block,
-      'O insert encadeado precisa destructurar { error } — mesmo motivo.'
-    ).toMatch(/const\s*\{\s*error:\s*insertError\s*\}\s*=\s*await admin[\s\S]*?\.insert\(rowPayload\)/);
+      'A finalização precisa destructurar { error } de finalizeHistoryRow — Supabase-js não lança em erro ' +
+        'de RLS/constraint, só retorna { error }.'
+    ).toMatch(/const\s*\{\s*error:\s*finalizeError\s*\}\s*=\s*await finalizeHistoryRow\(admin, historyRowId, rowPayload\)/);
     expect(
       block,
       'Falha ao gravar histórico precisa ser logada via console.error, senão fica invisível nos logs da function.'
@@ -61,6 +67,10 @@ describe('Regressão R-058 — erro de escrita do histórico de e-mail não é m
 
   it('sibling create-multi-event-email-campaign mantém o mesmo padrão (regressão cruzada, referência de house style)', () => {
     const src = read('supabase/functions/create-multi-event-email-campaign/index.ts');
-    expect(src).toMatch(/const\s*\{\s*error:\s*insertError\s*\}\s*=\s*await admin[\s\S]*?\.insert\(rows\)/);
+    expect(
+      src,
+      'A finalização precisa destructurar { error } de finalizeHistoryRows — mesmo padrão do sibling single-event.'
+    ).toMatch(/const\s*\{\s*error:\s*finalizeError\s*\}\s*=\s*await finalizeHistoryRows\(admin, historyRowIds, rowPayload\)/);
+    expect(src).toMatch(/console\.error\(['"]\[create-multi-event-email-campaign\][^'"]*hist[oó]rico/i);
   });
 });

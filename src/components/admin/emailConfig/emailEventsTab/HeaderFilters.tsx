@@ -81,6 +81,17 @@ export function HeaderFilters({
               <Badge variant="destructive">{counts.failed} com erro</Badge>
             </button>
           )}
+          {counts.in_progress > 0 && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter('in_progress')}
+              className="cursor-pointer"
+            >
+              <Badge className="bg-amber-500 hover:bg-amber-500 text-amber-950">
+                {counts.in_progress} em andamento
+              </Badge>
+            </button>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -113,6 +124,7 @@ export function HeaderFilters({
             <SelectItem value="sent">Enviados</SelectItem>
             <SelectItem value="manual">Enviados manualmente</SelectItem>
             <SelectItem value="failed">Com erro</SelectItem>
+            <SelectItem value="in_progress">Em andamento</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" size="sm" onClick={onRefresh} disabled={isFetching}>

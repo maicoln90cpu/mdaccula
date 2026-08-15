@@ -32,32 +32,21 @@ import {
   type EmailTemplateSettings,
 } from '../_shared/emailBlocks.ts';
 import { buildEventAnnouncementData, composeEmail, type EmailEventRow } from '../_shared/emailComposer.ts';
-import { sendEgoiCampaign } from '../_shared/egoiClient.ts';
+// R-062 (achado como efeito colateral, já documentado em PENDENCIAS.md antes
+// desta correção) — este arquivo tinha sua PRÓPRIA cópia local de
+// `egoiRequest` sem timeout (mesma classe do R-057: um fetch() sem
+// AbortSignal.timeout pode travar a function inteira até o runtime matar o
+// isolate, sem passar por nenhum catch). Agora usa a versão compartilhada e
+// protegida de `_shared/egoiClient.ts` (25s de timeout), a mesma já usada
+// pra `sendEgoiCampaign`.
+import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { writeDigestCampaignHistory } from '../_shared/digestCampaignHistory.ts';
 import { filterPendingReminderEvents, type ExistingCampaignRow } from './pendingEventsFilter.ts';
 
-const BASE = 'https://api.egoiapp.com';
 const SITE_URL = 'https://mdaccula.com';
 // Templates de lembrete de evento único nunca devem renderizar blocos de
 // digest/agenda multi-evento — mesmo filtro de dispatchEventDraft.ts.
 const EVENT_ONLY_BLOCK_KINDS = ['weekend_grid', 'weekly_hero', 'blog_posts_list', 'dedge_block'];
-
-async function egoiRequest(path: string, apiKey: string, init: RequestInit = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      Apikey: apiKey,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  });
-  const text = await res.text();
-  // deno-lint-ignore no-explicit-any
-  let body: any = text;
-  try { body = JSON.parse(text); } catch { /* keep raw */ }
-  return { status: res.status, ok: res.ok, body };
-}
 
 Deno.serve(async (req) => {
   const preflight = handleCorsPreFlight(req);

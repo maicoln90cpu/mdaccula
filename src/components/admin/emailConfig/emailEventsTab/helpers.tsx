@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Campaign } from '../types';
 
 export type PeriodFilter = 'next7' | 'next30' | 'future' | 'past30' | 'all';
-export type SummaryStatus = 'pending' | 'draft' | 'scheduled' | 'sent' | 'manual' | 'failed';
+export type SummaryStatus = 'pending' | 'draft' | 'scheduled' | 'sent' | 'manual' | 'failed' | 'in_progress';
 export type StatusFilter = 'all' | SummaryStatus;
 
 export type EventLite = {
@@ -66,6 +66,11 @@ export function summaryStatusOf(latest: Campaign | undefined): SummaryStatus {
   // esse agendamento sem perceber via "Marcar como enviado manualmente").
   if (latest.status === 'scheduled') return 'scheduled';
   if (latest.status === 'draft') return 'draft';
+  // R-062 — status intermediário gravado ANTES de qualquer chamada à E-goi;
+  // se aparece aqui por mais de alguns minutos, o cron heal-stuck-email-dispatches
+  // finaliza sozinho (vira 'failed'). Precisa de badge própria — sem isso caía
+  // no fallback "Não disparado", escondendo que existe um disparo em andamento.
+  if (latest.status === 'in_progress') return 'in_progress';
   return 'pending';
 }
 
@@ -81,6 +86,8 @@ export function summaryStatusBadge(s: SummaryStatus) {
       return <Badge variant="secondary">Rascunho na E-goi</Badge>;
     case 'failed':
       return <Badge variant="destructive">Erro</Badge>;
+    case 'in_progress':
+      return <Badge className="bg-amber-500 hover:bg-amber-500 text-amber-950">Em andamento</Badge>;
     default:
       return <Badge variant="outline">Não disparado</Badge>;
   }
@@ -92,6 +99,7 @@ export function campaignStatusBadge(s: Campaign['status']) {
     scheduled: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
     sent: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
     failed: 'bg-red-500/15 text-red-600 dark:text-red-400',
+    in_progress: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
   };
   return <span className={`px-2 py-0.5 rounded text-xs font-medium ${map[s]}`}>{s}</span>;
 }
