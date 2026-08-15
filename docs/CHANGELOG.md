@@ -18,6 +18,28 @@
 
 ## Entradas Detalhadas
 
+### Segurança: 5 Edge Functions passam a exigir admin/cron-secret — Fases 2 e 3 de 8 (R-068)
+**Descrição:** continuação da triagem geral de `docs/PENDENCIAS.md` pedida pelo usuário em 15/08/2026 (mesmo dia em que o repositório virou público). Fase 2: `cleanup-storage` — apagava arquivos de storage (órfãos e duplicados) sem nenhuma checagem de auth no código, a mais grave das 17 restantes por ser a única que apaga dados de verdade. Fase 3: `auto-article-cron`, `create-recurring-events` e `cleanup-sync-logs` (lista original) + `verify-sources-weekly` (achada fora da lista original durante a própria triagem, confirmada sem nenhuma checagem) — as 4 já rodam sozinhas via `pg_cron`, mas cada `cron.job.command` só mandava a chave anônima pública do site, sem nenhuma senha própria provando que a chamada veio do robô de agendamento.
+**Correção:** aplicado `authorizeAdminOrCron()` (mesmo padrão da Fase 1) nas 5 functions. Pra Fase 3, geradas 4 senhas novas e gravadas direto em `internal_cron_secrets` + no `command` de cada `cron.job` via SQL direto (não uma migration versionada — mesmo cuidado da rotação de segredos desta semana, pra senha nova nunca aparecer no histórico do Git público). Botões manuais do admin (`SystemHealth.tsx`, `RecurringEventsManager.tsx`, `AutoGenerationPanel.tsx`) continuam funcionando sem nenhuma mudança de código, porque `supabase.functions.invoke()` já manda o JWT da sessão automaticamente.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — cada fase aprovada individualmente antes da implementação, confirmado por contract test novo rodando contra a function real já deployada (5 novos arquivos em `src/__tests__/contracts/`)
+**Impacto:** fecha a brecha mais grave (destrutiva) e mais 4 pontos onde qualquer pessoa com a URL conseguia gastar orçamento de IA, criar eventos falsos ou apagar dados, sem login nenhum. Faltam as Fases 4-8 (12 functions restantes).
+
+**Arquivos alterados:** `supabase/functions/cleanup-storage/index.ts`, `supabase/functions/auto-article-cron/index.ts`, `supabase/functions/create-recurring-events/index.ts`, `supabase/functions/cleanup-sync-logs/index.ts`, `supabase/functions/verify-sources-weekly/index.ts`, `src/__tests__/contracts/{cleanup-storage,auto-article-cron-auth,create-recurring-events,cleanup-sync-logs,verify-sources-weekly}.test.ts` (novos), `docs/PENDENCIAS.md`, `.gitignore` (ignora `supabase/.temp/`, estado local do CLI).
+
+---
+
+### Correção: falso-positivo de `fetchPriority` derrubando o CI/CD (E2E) em todo commit de `main`
+**Descrição:** achado incidentalmente ao conferir o deploy da Fase 2 acima — a run de CI/CD do commit anterior falhou, e as 4 runs de `main` antes dela também já estavam falhando pelo mesmo motivo havia dias, sem relação com nenhuma mudança recente. `e2e/helpers/pageHealth.ts` falha o teste de fumaça se qualquer `console.error` aparecer durante a navegação, e o React emitia `Warning: React does not recognize the fetchPriority prop...` no avatar de `/links` (`src/pages/Links.tsx:163`). Causa raiz: o React DOM 18.3.1 realmente instalado (confirmado em `node_modules`) ainda não reconhece a prop camelCase `fetchPriority` em tempo de execução, mesmo com `@types/react` já tipando ela (suporte que o R-027 tinha assumido existir). Reverter pra `fetchpriority` minúsculo quebraria a compilação de novo (TS2322, o problema original que o R-027 resolveu).
+**Correção:** `pageHealth.ts` passou a ignorar esse warning específico (casado por texto — "does not recognize the" + "fetchPriority" — não um catch-all genérico, pra não mascarar um bug real de prop incorreta no futuro) em vez de mexer no código de produção.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — confirmado localmente (`npx playwright test e2e/smoke.spec.ts`, 5/5 passando) antes do commit, e a run real de CI/CD ficou verde depois do push.
+**Impacto:** CI/CD Pipeline volta a ficar verde em `main`; não é um bug funcional real (o atributo HTML chega ao navegador de qualquer forma, só o aviso de dev do React que sumiu).
+
+**Arquivos alterados:** `e2e/helpers/pageHealth.ts`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Correção: lapidações no e-mail de "Virada de lote" — grid não preenchia 100% da linha incompleta, nome interno da campanha ficava fixo (R-067)
 **Descrição:** a partir do primeiro rascunho multi-evento criado com sucesso depois do R-065 (Music ON + One Life, template "FDS Sem Taxa — múltiplos eventos"), o usuário notou 2 problemas: (1) as imagens dos eventos no bloco de grid apareciam alinhadas à esquerda, sem ocupar 100% do espaço — causa raiz: `gridColWidthPct` (`_shared/emailBlocks/renderBlock/digest.ts`) dividia 100% pela contagem de colunas *declarada* no bloco, não pela quantidade real de itens da linha, então uma linha incompleta (ex.: 1 evento sobrando numa grade de 2) recebia a mesma largura de uma linha cheia, deixando metade da linha vazia; (2) o nome interno da campanha na E-goi aparecia como "MDAccula • Virada de lote (N eventos) • data" mesmo quando o template usado era outro — o texto estava fixo no código, e o frontend nunca mandava o nome do template pra edge function nesse fluxo específico.
 **Correção:** `gridColWidthPct` passou a dividir 100% pela quantidade real de itens da linha (não mais pela contagem de colunas do bloco) — afeta os blocos `event_grid` e `weekend_grid` (layout "grid"), que compartilham o mesmo renderer; nome do template selecionado passou a ser repassado do componente até o nome interno da campanha, com fallback pro texto antigo se o campo não vier.
@@ -1309,6 +1331,8 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Bugfix | Falso-positivo de `fetchPriority` derrubando o CI/CD (E2E) em todo commit de `main` |
+| 15/08 | Segurança | 5 Edge Functions passam a exigir admin/cron-secret — `cleanup-storage` + 4 crons (Fases 2-3/8) (R-068) |
 | 15/08 | Bugfix | Grid de e-mail multi-evento não preenchia linha incompleta + nome interno da campanha fixo (R-067) |
 | 15/08 | Segurança | Removida a `egoi-curl-probe`, function de debug esquecida deployada expondo a `EGOI_API_KEY` sem auth (R-066) |
 | 15/08 | Bugfix | Causa raiz definitiva do disparo de e-mail pra múltiplos eventos nunca ter funcionado — comparação de timestamp por string (R-065) |
