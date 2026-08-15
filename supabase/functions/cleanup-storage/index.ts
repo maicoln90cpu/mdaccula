@@ -1,30 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-function handleCorsPreFlight(req: Request): Response | null {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-  return null;
-}
-
-function jsonSuccess(data: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-function jsonError(message: string, status = 500): Response {
-  return new Response(JSON.stringify({ error: message, success: false }), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
+import { handleCorsPreFlight, jsonSuccess, jsonError, authorizeAdminOrCron } from "../_shared/index.ts";
 
 interface CleanupResult {
   orphanedDeleted: string[];
@@ -38,13 +13,20 @@ Deno.serve(async (req) => {
   if (preflightResponse) return preflightResponse;
 
   try {
-    const { dryRun = true, bucket = "event-images" } = await req.json().catch(() => ({ dryRun: true, bucket: "event-images" }));
-
-    console.log(`Starting storage cleanup for bucket: ${bucket} (dryRun: ${dryRun})`);
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "cleanup_storage_cron",
+      cronJobHeaderValue: "cleanup-storage",
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
+
+    const { dryRun = true, bucket = "event-images" } = await req.json().catch(() => ({ dryRun: true, bucket: "event-images" }));
+
+    console.log(`Starting storage cleanup for bucket: ${bucket} (dryRun: ${dryRun})`);
 
     // 1. List all files in the bucket
     const { data: files, error: listError } = await supabase.storage

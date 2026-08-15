@@ -44,3 +44,6 @@ graphify-out/
 
 # Claude Code — config local de máquina (preview server, settings pessoais, worktrees)
 .claude/
+
+# Supabase CLI — estado de login/link local (project ref da máquina, não do repo)
+supabase/.temp/
