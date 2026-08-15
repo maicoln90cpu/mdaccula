@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Segurança: corrige 8 das 11 vulnerabilidades de dependências apontadas pelo CI (R-069)
+**Descrição:** a pedido do usuário, rodado manualmente o workflow `CI/CD Pipeline` inteiro (incluindo o job "Security Audit", que já existia mas roda com `continue-on-error: true` — nunca bloqueou merge, então as vulnerabilidades ficavam acumulando sem ninguém perceber) enquanto o repositório ainda está público (minutos de Actions ilimitados), pra levantar tudo antes de desligar o pipeline por economia de minutos.
+**Correção:** `npm audit fix` resolveu 8 das 11 vulnerabilidades (nanoid, js-yaml, fast-uri, dompurify, hono, postcss, brace-expansion×2) — só `package-lock.json` mudou, nenhuma dependência direta precisou de bump, `tsc`/lint/testes/build confirmados verdes depois.
+**Ficaram de fora (decisão consciente, não esquecimento):** (1) `esbuild` aninhado em `@lovable.dev/mcp-js` — preso ao mesmo problema já documentado em `docs/PENDENCIAS.md` (bundle da function `mcp` grande demais); resolve junto quando aquele item for resolvido. (2) `react-router`/`react-router-dom` — a correção exige bump major (6.30 → 7.x, mudança real de comportamento), registrado como decisão pendente em `docs/PENDENCIAS.md` em vez de aplicado às cegas.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário
+
+**Arquivos alterados:** `package-lock.json`.
+
+---
+
 ### Segurança: 5 Edge Functions passam a exigir admin/cron-secret — Fases 2 e 3 de 8 (R-068)
 **Descrição:** continuação da triagem geral de `docs/PENDENCIAS.md` pedida pelo usuário em 15/08/2026 (mesmo dia em que o repositório virou público). Fase 2: `cleanup-storage` — apagava arquivos de storage (órfãos e duplicados) sem nenhuma checagem de auth no código, a mais grave das 17 restantes por ser a única que apaga dados de verdade. Fase 3: `auto-article-cron`, `create-recurring-events` e `cleanup-sync-logs` (lista original) + `verify-sources-weekly` (achada fora da lista original durante a própria triagem, confirmada sem nenhuma checagem) — as 4 já rodam sozinhas via `pg_cron`, mas cada `cron.job.command` só mandava a chave anônima pública do site, sem nenhuma senha própria provando que a chamada veio do robô de agendamento.
 **Correção:** aplicado `authorizeAdminOrCron()` (mesmo padrão da Fase 1) nas 5 functions. Pra Fase 3, geradas 4 senhas novas e gravadas direto em `internal_cron_secrets` + no `command` de cada `cron.job` via SQL direto (não uma migration versionada — mesmo cuidado da rotação de segredos desta semana, pra senha nova nunca aparecer no histórico do Git público). Botões manuais do admin (`SystemHealth.tsx`, `RecurringEventsManager.tsx`, `AutoGenerationPanel.tsx`) continuam funcionando sem nenhuma mudança de código, porque `supabase.functions.invoke()` já manda o JWT da sessão automaticamente.

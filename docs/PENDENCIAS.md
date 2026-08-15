@@ -157,6 +157,11 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 2. Alerta de orçamento (Billing → Budgets & alerts) — vale criar sem filtrar por serviço específico (o filtro de "Serviços" só lista o que já tem histórico de cobrança registrado nesse projeto/billing; tentar achar "Maps" ali é uma armadilha — um orçamento pro projeto inteiro cobre tudo, incluindo Maps, sem esse problema).
 **Responsável:** usuário (acesso ao Google Cloud Console).
 
+### Atualizar `react-router`/`react-router-dom` de 6.30 para 7.x (vulnerabilidade moderada, correção é breaking change)
+**Contexto:** rodando o pipeline de CI inteiro em 15/08/2026 (a pedido do usuário, aproveitando o repositório ainda público), o job "Security Audit" (existente, mas com `continue-on-error: true` — nunca bloqueou merge) apontou 2 CVEs moderadas em `react-router` (open redirect via backslash em `<Link>`/`useNavigate`, injeção de construtor via `deserializeErrors()` no SSR) — ver R-069 em `docs/CHANGELOG.md`. `npm audit fix` sozinho não resolve; precisa de `--force`, que instalaria `react-router-dom@7.18.2` — salto de versão major (v6 → v7) com mudanças reais de comportamento, não é seguro aplicar às cegas num projeto com rotas lazy-loaded em praticamente toda página admin.
+**Passos:** revisar o changelog de breaking changes do React Router v7 (mudanças de import, APIs de data loading), aplicar `npm audit fix --force` numa branch separada, rodar a suíte de testes completa (unit + E2E) e testar manualmente a navegação do site + painel admin antes de mergear.
+**Responsável:** decisão do usuário — é uma atualização de dependência de peso real, não uma correção pontual.
+
 ---
 
 ## 🔧 Bugs Conhecidos
