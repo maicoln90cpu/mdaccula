@@ -149,9 +149,13 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 4. Testar com um post novo (ou disparo manual) pra confirmar que o webhook ainda autentica.
 **Responsável:** usuário decide quando fazer (não é urgente — o pior cenário é alguém conseguir chamar esse endpoint de fora, que só aceita payloads do formato esperado da Apify e não expõe nada sensível sozinho).
 
-### Confirmar restrição por domínio na chave do Google Maps (agora publicamente visível)
-**Contexto:** `.env` estava versionado no repositório (sem entrada nenhuma no `.gitignore`) — corrigido nesta auditoria (arquivo tirado do controle de versão, `.gitignore` atualizado). O conteúdo era só variáveis já públicas por natureza (chave anônima do Supabase, URL do projeto) e a chave de navegador do Google Maps (`VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY`). Chave de navegador não é segredo — mas só é segura de verdade se tiver restrição por domínio/referrer configurada no Google Cloud Console; sem isso, qualquer um que copiar a chave consegue usá-la em outro site, gerando custo indevido na conta do Google.
-**Passos:** conferir em console.cloud.google.com → Credentials se essa chave tem "HTTP referrers" restrito a `mdaccula.com` (e domínios de preview, se houver).
+### Proteger a chave do Google Maps contra uso indevido (custo de propósito)
+**Contexto:** `.env` fica versionado no repositório de propósito (decisão do usuário em 15/08/2026 — o Lovable lê esse arquivo diretamente pra montar o build/preview; tirar do Git quebraria isso). Como o repositório é público, a chave de navegador do Google Maps (`VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY`) fica visível pra qualquer pessoa, sempre — não é um vazamento pontual corrigível, é a natureza de uma chave de navegador. Restrição por domínio (HTTP referrer) sozinha **não é suficiente**: se `localhost` estiver na lista liberada, qualquer pessoa que copiar a chave e rodar o projeto na própria máquina passa pela restrição (o referrer da própria máquina dela também é "localhost"). A única proteção real contra alguém gerar custo de propósito é limitar quanto a chave pode gastar, não só de onde ela pode ser usada.
+**Passos (Google Cloud Console → APIs & Services → Credentials → a chave):**
+1. Em "Application restrictions" → "HTTP referrers", cadastrar **só** `https://mdaccula.com/*`, `https://www.mdaccula.com/*` e `https://mdaccula.lovable.app/*` — **sem** `localhost` (ver conversa de 15/08/2026 pro raciocínio completo).
+2. Em "APIs & Services" → "Quotas & System Limits", definir um limite diário de requisições pra essa chave (um número bem acima do uso real do site, mas que corte antes de virar uma conta impagável).
+3. Em "Billing" → "Budgets & alerts", criar um alerta de orçamento (ex.: avisar em 50%/90%/100% de um valor mensal esperado) — é o que garante que, mesmo se algo escapar das outras duas proteções, o usuário é avisado antes do custo virar surpresa.
+4. Opcional, mas recomendado: gerar uma chave nova (a atual já está exposta há tempo no histórico do Git, independente do que for feito agora) e trocar só no `.env` local — sem isso, ainda que as proteções acima sejam aplicadas, a chave antiga continua sendo "a mesma peça de metadados" que já circulou.
 **Responsável:** usuário (acesso ao Google Cloud Console).
 
 ---
