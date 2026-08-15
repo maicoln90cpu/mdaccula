@@ -49,11 +49,13 @@ describe('Regressão R-059 — claim do disparo usa count real do UPDATE, não R
     expect(src).toContain("{ count: 'exact' }");
   });
 
-  it('create-multi-event-email-campaign: descobre os IDs claimados comparando o valor exato de `now`', () => {
+  it('create-multi-event-email-campaign: descobre os IDs claimados comparando o valor exato de `now` (por instante, não por string — ver R-065)', () => {
     const src = read('supabase/functions/create-multi-event-email-campaign/index.ts');
     expect(
       src,
-      'Precisa filtrar as linhas lidas de volta pelo valor exato de `now` pra saber quais foram claimadas por ESTA requisição.'
-    ).toMatch(/email_campaign_dispatched_at\s*===\s*now/);
+      'Precisa filtrar as linhas lidas de volta pelo valor exato de `now` pra saber quais foram claimadas por ESTA requisição. ' +
+        'R-065: a comparação precisa ser por valor numérico (new Date(...).getTime()), não por igualdade de string — o PostgREST ' +
+        'nunca serializa timestamptz no mesmo formato de toISOString().'
+    ).toMatch(/new Date\([^)]*\)\.getTime\(\)\s*===\s*nowMs/);
   });
 });

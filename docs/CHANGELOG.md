@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Correção: causa raiz definitiva do "Um ou mais eventos já têm campanha disparada" no disparo de múltiplos eventos — nunca tinha funcionado (R-065)
+**Descrição:** mesmo com R-062/R-063/R-064 já no ar, o usuário repetiu o teste ponta a ponta real (template "FDS sem taxa — múltiplos eventos", Music ON + One Life) no próprio navegador e recebeu o mesmo erro de sempre, com os dois eventos travados de novo — hipótese do próprio usuário: "isso parece acontecer com os eventos de grid". Investigação achou uma causa raiz nova e isolada: `create-multi-event-email-campaign` descobria quais eventos tinha reivindicado comparando, por igualdade estrita de string, o timestamp devolvido pelo PostgREST (formato `"...83+00:00"`) contra o `now` gerado em JS via `toISOString()` (formato `"...830Z"`) — dois formatos que NUNCA são iguais pro mesmo instante. Essa comparação nunca era verdadeira, em nenhuma chamada, desde que o recurso existe: confirmado via banco que `event_email_campaigns` nunca teve uma única linha com `campaign_type = 'multi_event'`. O claim de verdade sempre funcionava, mas o código sempre concluía "reivindiquei zero", devolvia 409, e como a liberação de claim parcial só roda quando há IDs reivindicados, a reserva ficava presa pra sempre. Corrigido comparando o valor numérico do instante (`new Date(...).getTime()`) em vez da string.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário — reproduzido pelo usuário no próprio navegador (fora de qualquer automação), pista "eventos de grid" confirmada com evidência concreta (curl direto na REST API, contagem zero de campanhas multi-evento na história do projeto)
+**Impacto:** o recurso "Virada de lote" (disparo de e-mail pra múltiplos eventos ao mesmo tempo) passa a funcionar pela primeira vez desde que foi criado. Não é uma reincidência do R-062/R-064 — é uma causa raiz diferente, determinística, isolada nesse único arquivo.
+
+**Arquivos alterados:** `supabase/functions/create-multi-event-email-campaign/index.ts`, `src/__tests__/regression/email-dispatch-multi-event-claim-timestamp-comparison.test.ts` (novo), `email-dispatch-claim-count-not-returning-filter.test.ts` (assertion do R-059 atualizada), `docs/TESTING.md`.
+
+---
+
 ### Correção: mesmo sintoma do R-062 reapareceu por uma causa raiz diferente — escrita da Fase 1 sem timeout (R-064)
 **Descrição:** testando um disparo real depois do R-062/R-063 já no ar, o mesmo sintoma original voltou (claim setado, zero linha de histórico) — mas por um motivo novo: a própria escrita da linha `in_progress` da Fase 1 em `event_email_campaigns` nunca tinha timeout (só as chamadas de rede pra fora, tipo E-goi e Google Maps, tinham desde R-057). Corrigido envolvendo as 4 funções de `_shared/emailDispatchHistory.ts` em `withTimeout(10s)`, convertendo uma trava na escrita em um erro tratado normalmente, em vez de deixar a promise pendurada pra sempre.
 **Data:** 15/08/2026
@@ -1275,6 +1285,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Bugfix | Causa raiz definitiva do disparo de e-mail pra múltiplos eventos nunca ter funcionado — comparação de timestamp por string (R-065) |
 | 15/08 | Bugfix | Mesmo sintoma do R-062 reapareceu por causa raiz diferente — escrita da Fase 1 sem timeout (R-064) |
 | 15/08 | Bugfix | Mapa de e-mail e geocodificação voltaram a funcionar após rotação da chave do Google Maps quebrar o gateway do Lovable (R-063) |
 | 15/08 | Segurança | Repositório ficou público — 8 segredos de cron rotacionados (`.env` permanece versionado, é lido pelo Lovable) |

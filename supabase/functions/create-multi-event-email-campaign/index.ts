@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
     // com claim já antigo (não uma corrida em andamento agora); mesmo
     // raciocínio do create-event-email-campaign sibling.
     const now = new Date().toISOString();
+    const nowMs = new Date(now).getTime();
     const staleClaimBefore = new Date(Date.now() - DISPATCH_CLAIM_STALE_MS)
       .toISOString()
       .replace(/\.\d+Z$/, 'Z');
@@ -148,7 +149,18 @@ Deno.serve(async (req) => {
       .from('events')
       .select('id,title,status,email_campaign_dispatched_at')
       .in('id', eventIds);
-    const claimedRows = (allRows ?? []).filter((e) => e.email_campaign_dispatched_at === now);
+    // 15/08/2026 — o PostgREST devolve timestamptz como
+    // "2026-08-15T21:06:08.83+00:00" (offset "+00:00", ms sem zero à
+    // direita), nunca no formato de toISOString() ("...830Z"). Comparar por
+    // igualdade de string aqui nunca era verdadeiro — o UPDATE acima sempre
+    // reivindicava os eventos de verdade, mas essa checagem sempre concluía
+    // "reivindiquei zero" e derrubava o disparo com 409, deixando a reserva
+    // presa (o release abaixo só roda se claimedIds.length > 0). Comparar o
+    // valor numérico do instante em vez da string corrige os dois formatos.
+    const claimedRows = (allRows ?? []).filter((e) => {
+      const raw = e.email_campaign_dispatched_at as string | null;
+      return raw != null && new Date(raw).getTime() === nowMs;
+    });
     const claimedIds = claimedRows.map((e) => e.id as string);
     claimEventIds = claimedIds;
 
