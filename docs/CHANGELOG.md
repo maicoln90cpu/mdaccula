@@ -18,6 +18,18 @@
 
 ## Entradas Detalhadas
 
+### Segurança: 3 functions de geração de conteúdo por IA passam a exigir auth — Fase 4 de 8 (R-070)
+**Descrição:** continuação da auditoria de auth admin (`docs/PENDENCIAS.md`) — `generate-blog-post-v2`, `generate-blog-post-from-topic` e `generate-blog-suggestions` disparavam geração real por IA (custo direto, publica no blog) sem nenhuma checagem de auth no código. As 2 primeiras têm um complicador que as outras fases não tinham: são chamadas server-to-server por `scan-event-sources`, `apify-instagram-webhook` e `auto-article-cron`, usando a `SUPABASE_SERVICE_ROLE_KEY` como Bearer (sem sessão de usuário real nem cron-secret dedicado) — exigir JWT de admin ali quebraria essas 3 automações.
+**Correção:** `authorizeAdminOrCron()` (`supabase/functions/_shared/index.ts`) ganhou uma opção nova, `allowServiceRole`, que aceita a própria service role key como credencial válida — ligada só nas 2 functions com chamador server-to-server; `generate-blog-suggestions` (só chamada pelo painel admin) usa o caminho simples, sem a opção nova.
+**Incidente durante o teste (mesmo dia):** os contract tests novos foram rodados uma primeira vez contra as functions ainda sem a correção deployada (só o código local estava pronto) — como o payload de teste (`eventName`/`query: "teste"`) passava pelas validações de formato antes de chegar onde a auth seria checada, isso disparou geração real por IA 6 vezes, e 6 posts fake ("teste anuncia...", "Teste: histórico...") chegaram a ser publicados de verdade no blog. Identificados via `ai_generated_posts` (gerados nos últimos minutos, `model_used: openai/gpt-5-mini`) e apagados manualmente (`blog_posts` + `ai_generated_posts`) antes de qualquer visita real. Sem vazamento de dado, custo de poucos tokens de IA — mas o aviso ficou registrado nos 3 arquivos de teste novos e em `docs/PENDENCIAS.md`, pra nunca mais rodar esse tipo de teste antes do deploy.
+**Data:** 16/08/2026
+**Responsável:** IA, a pedido do usuário — cada fase aprovada individualmente; confirmado por contract test novo rodando contra a function já deployada (9 asserções, todas verdes) depois do incidente ser corrigido
+**Impacto:** fecha mais 3 pontos onde qualquer pessoa com a URL conseguia gastar o orçamento de IA do site e publicar conteúdo fabricado no blog público, sem login nenhum. Faltam as Fases 5-8 (9 functions restantes).
+
+**Arquivos alterados:** `supabase/functions/_shared/index.ts`, `supabase/functions/generate-blog-post-v2/index.ts`, `supabase/functions/generate-blog-post-from-topic/index.ts`, `supabase/functions/generate-blog-suggestions/index.ts`, `src/__tests__/contracts/{generate-blog-post-v2-auth,generate-blog-post-from-topic-auth,generate-blog-suggestions-auth}.test.ts` (novos), `docs/PENDENCIAS.md`.
+
+---
+
 ### Segurança: definido o novo `CRON_SHARED_SECRET` no painel do Supabase — fecha a rotação de segredos da auditoria de 15/08/2026
 **Descrição:** último passo da rotação de segredos disparada pelo repositório ter ficado público — `CRON_SHARED_SECRET` (usado por `metrics-snapshot`/`daily-metrics-snapshot`) vive nas Secrets de Edge Function do Supabase, não numa tabela do banco, então só o usuário (dono do painel) conseguia definir o valor novo.
 **Confirmado:** testado direto contra a function (`metrics-snapshot`) com o valor novo — `200 OK`; com um valor incorreto de propósito — `401`, confirmando que a validação está ativa e correta.
@@ -1382,6 +1394,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 16/08 | Segurança | 3 functions de geração de conteúdo por IA passam a exigir auth — Fase 4/8 (R-070) |
 | 16/08 | Segurança | Definido o novo `CRON_SHARED_SECRET` no painel do Supabase — fecha a rotação de segredos |
 | 15/08 | Segurança | Rotacionado `apify_instagram_webhook`, o 9º e último segredo de cron pendente |
 | 15/08 | Segurança | Confirmada cota diária + alerta de orçamento nas duas chaves do Google Maps |
