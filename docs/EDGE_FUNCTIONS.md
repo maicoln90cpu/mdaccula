@@ -1,14 +1,16 @@
 # Edge Functions
 
-Índice de referência das 59 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 15/08/2026, após a remoção da `egoi-curl-probe` (era descartável, nunca tinha sido apagada — ver `docs/CHANGELOG.md`).
+Índice de referência das 57 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 16/08/2026, após a remoção de `import-storage` (ferramenta de migração one-off cujo projeto de origem já não existe mais — DNS nem resolve) e `convert-to-webp` (placeholder que nunca fez a conversão de verdade, sem nenhum chamador no frontend) — ver `docs/CHANGELOG.md`.
 
-**Todas as 59 têm `verify_jwt: false`** no gateway do Supabase — o gateway não exige JWT antes de invocar nenhuma delas. Isso significa que a autenticação real de cada function é feita manualmente dentro do próprio código: lendo o header `Authorization` e validando via `supabase.auth.getUser()` + RPC `has_role()`, checando um `x-cron-secret` contra `CRON_SHARED_SECRET`/tabela `internal_cron_secrets`, ou sendo deliberadamente pública/anônima (tracking, SEO, LGPD). A coluna **Auth** abaixo documenta o que cada function realmente faz — não o que o gateway faz.
+**Todas as 57 têm `verify_jwt: false`** no gateway do Supabase — o gateway não exige JWT antes de invocar nenhuma delas. Isso significa que a autenticação real de cada function é feita manualmente dentro do próprio código: lendo o header `Authorization` e validando via `supabase.auth.getUser()` + RPC `has_role()`, checando um `x-cron-secret` contra `CRON_SHARED_SECRET`/tabela `internal_cron_secrets`, aceitando a própria `SUPABASE_SERVICE_ROLE_KEY` como Bearer (só pra chamadas server-to-server de outra Edge Function confiável), ou sendo deliberadamente pública/anônima (tracking, SEO, LGPD). A coluna **Auth** abaixo documenta o que cada function realmente faz — não o que o gateway faz.
 
 Deploy é automático via GitHub Actions (`.github/workflows/deploy-edge-functions.yml`, CLI oficial da Supabase) a cada push em `main` que toque `supabase/functions/**` — nunca usar o deployer da Lovable UI nem o tool MCP `deploy_edge_function` como caminho normal (bug conhecido que derruba imports de `_shared/` do bundle).
 
 ## ⚠️ Gaps encontrados
 
-Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de autenticação no código** (o gateway já não exige JWT, e o código também não valida admin/cron secret): `diagnose-media`, `cleanup-storage`, `batch-convert-webp`, `convert-to-webp`, `import-storage`, `fetch-link-metadata`, `systemhealth`, `generate-blog-post-v2`, `generate-blog-post-from-topic`, `generate-blog-suggestions`, `generate-multi-event-article`, `regenerate-blog-image`, `preview-topic-sources`, `auto-article-cron`, `create-recurring-events`, `cleanup-sync-logs`, `verify-sources-weekly`. Na prática, qualquer pessoa que descobrir a URL da function consegue chamá-la. Registrado em `docs/PENDENCIAS.md` como bug conhecido (Fase 1 de 8 já concluída) — Fases 2-8 seguem em aberto. `verify-sources-weekly` confirmada sem checagem em 15/08/2026 e adicionada à lista (tinha ficado de fora da contagem anterior).
+A auditoria de auth admin (`docs/PENDENCIAS.md`) rodou em 8 fases entre 04/08 e 16/08/2026 e já cobriu todas as functions "só admin usa" que não tinham nenhuma checagem no código — `send-mass-newsletter`, `import-csv-data`, `upload-csv`, `cleanup-storage`, `auto-article-cron`, `create-recurring-events`, `cleanup-sync-logs`, `verify-sources-weekly`, `generate-blog-post-v2`, `generate-blog-post-from-topic`, `generate-blog-suggestions`, `generate-multi-event-article`, `regenerate-blog-image`, `preview-topic-sources`, `diagnose-media`, `batch-convert-webp`, `fetch-link-metadata`, `systemhealth` — todas exigem admin autenticado (ou cron-secret/service-role, conforme o caso) hoje. `import-storage` e `convert-to-webp` saíram da lista removidas em vez de protegidas (ver acima).
+
+**2 casos à parte continuam sem proteção**, porque não é uma cópia mecânica do mesmo padrão: `send-podcast-notification` (chamada por formulário público real, `Podcast.tsx` — precisa de rate limiting, não admin-auth) e `compose-event-image` (2 chamadores server-to-server sem sessão de usuário, `scan-event-sources`/`apify-instagram-webhook` — precisa de secret interno compartilhado). Registrados em `docs/PENDENCIAS.md`.
 
 ---
 
@@ -34,7 +36,7 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 | egoi-resources | Retorna listas, remetentes e segmentos da conta E-goi (somente leitura), incluindo contagem real de contatos por lista/segmento (`GET /lists/{id}/contacts/segment/{id}`) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | send-automation-campaign-now | Dispara envio real de um rascunho de automação (digest/agenda/blog) já criado na E-goi | Frontend (admin) | Admin ou cron secret | Padrão `_shared` |
 | send-contact-email | Envia e-mail do formulário de contato do site via Resend | Frontend (anônimo) | Público (rate limit por IP) | Próprio (inline) |
-| send-mass-newsletter | Envia e-mail em massa via Resend para uma lista de destinatários | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
+| send-mass-newsletter | Envia e-mail em massa via Resend para uma lista de destinatários | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | send-podcast-notification | Envia e-mails de confirmação (artista) e notificação (agência) na submissão do podcast | Frontend (formulário público) | Nenhuma ⚠️ | Próprio (inline) |
 | send-event-reminder-campaigns | Poller de cron (de hora em hora) que dispara o e-mail de cada evento ativo/não-recorrente N dias antes da data (`site_settings.event_reminder_*`) | Cron (pg_cron) | Admin ou cron secret no código, mas bloqueado antes disso pelo gateway ⚠️ (ver Gaps acima) | Padrão `_shared` |
 | send-scheduled-email-campaigns | Poller de cron (5 em 5 min) que dispara e-mails agendados (`event_email_campaigns.status='scheduled'`) | Cron (pg_cron) | Admin ou cron secret | Padrão `_shared` |
@@ -48,21 +50,21 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
-| generate-blog-post-v2 | Gera artigo de blog completo por IA a partir dos dados de um evento (scraping opcional + geração de imagem). `publishImmediately`/`generationSource` no body controlam rascunho-vs-publicado e o rótulo de origem gravado em `ai_generated_posts.generation_source` (item #7/#9, 10/08/2026) — chamado pela aba "Gerar", "Sugestões→template", criação/edição de evento e "Gerar artigo" por evento, e pelo Event Watcher | Frontend (admin) e scan-event-sources/apify-instagram-webhook | Nenhuma ⚠️ | Padrão `_shared` |
-| generate-blog-post-from-topic | 2 modos: `open_search` (padrão, busca livre na web via Firecrawl a partir de um termo — usado pelo admin em "Sugestões"/"Por Tema", capa: imagem real da 1ª fonte primeiro, IA só como fallback desde 10/08/2026) ou `mode: 'source_article'` (reescrita fiel de 1 matéria específica já escolhida pelo chamador — usado só por `auto-article-cron`; capa NUNCA por IA aqui, resolvida via `_shared/articleImage.ts` em 2 camadas: og:image da matéria original, depois busca de imagem via Firecrawl). `publishImmediately`/`generationSource` no body controlam rascunho-vs-publicado e origem gravada | Frontend (admin) e auto-article-cron | Nenhuma ⚠️ | Próprio (inline) |
-| generate-blog-suggestions | Sugere e faz scraping leve de tópicos de eventos para geração posterior de artigo (só caminho manual — `auto-article-cron` não usa mais) | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| generate-multi-event-article | Gera 1 artigo cobrindo múltiplos eventos relacionados (ex.: "virada de lote"). Passou a aceitar `publishImmediately` (10/08/2026, item #6 — antes sempre publicava na hora, `published: true` hardcoded); grava `generation_source: 'multi_evento'` | Frontend (admin) | Nenhuma ⚠️ | Padrão `_shared` |
+| generate-blog-post-v2 | Gera artigo de blog completo por IA a partir dos dados de um evento (scraping opcional + geração de imagem). `publishImmediately`/`generationSource` no body controlam rascunho-vs-publicado e o rótulo de origem gravado em `ai_generated_posts.generation_source` (item #7/#9, 10/08/2026) — chamado pela aba "Gerar", "Sugestões→template", criação/edição de evento e "Gerar artigo" por evento, e pelo Event Watcher | Frontend (admin) e scan-event-sources/apify-instagram-webhook | Admin ou service role (chamada interna) | Padrão `_shared` |
+| generate-blog-post-from-topic | 2 modos: `open_search` (padrão, busca livre na web via Firecrawl a partir de um termo — usado pelo admin em "Sugestões"/"Por Tema", capa: imagem real da 1ª fonte primeiro, IA só como fallback desde 10/08/2026) ou `mode: 'source_article'` (reescrita fiel de 1 matéria específica já escolhida pelo chamador — usado só por `auto-article-cron`; capa NUNCA por IA aqui, resolvida via `_shared/articleImage.ts` em 2 camadas: og:image da matéria original, depois busca de imagem via Firecrawl). `publishImmediately`/`generationSource` no body controlam rascunho-vs-publicado e origem gravada | Frontend (admin) e auto-article-cron | Admin ou service role (chamada interna) | Próprio (inline) |
+| generate-blog-suggestions | Sugere e faz scraping leve de tópicos de eventos para geração posterior de artigo (só caminho manual — `auto-article-cron` não usa mais) | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| generate-multi-event-article | Gera 1 artigo cobrindo múltiplos eventos relacionados (ex.: "virada de lote"). Passou a aceitar `publishImmediately` (10/08/2026, item #6 — antes sempre publicava na hora, `published: true` hardcoded); grava `generation_source: 'multi_evento'` | Frontend (admin) | Admin autenticado | Padrão `_shared` |
 | compose-event-image | Aplica marca MDAccula (barra + logo) sobre uma imagem de evento e re-hospeda no Bunny | Interno (scan-event-sources/apify-instagram-webhook) e Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| regenerate-blog-image | Regera a imagem de capa de um post de blog com um novo prompt/estilo de IA | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| preview-topic-sources | Preview leve (sem IA) das fontes que `generate-blog-post-from-topic` encontraria para um termo | Frontend (admin) | Nenhuma ⚠️ | Padrão `_shared` |
-| auto-article-cron | Cron que decide automaticamente quando gerar um novo artigo de blog (controla contagem de falhas/retry). Seleção de fonte com cooldown configurável (evita repetir a mesma fonte cedo demais) e streak seco (alerta quando uma fonte fica sem matéria nova várias execuções seguidas) — item #4/#5/#6, 10/08/2026. Publica de acordo com `auto_publish_auto_cron` (chave própria, não mais compartilhada) e avisa por e-mail (`_shared/autoPublishAlert.ts`) quando publica sem revisão | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
-| verify-sources-weekly | Checagem semanal (segunda 09h BRT) de que cada fonte `content_source=true` ainda tem matéria nova descobrível — sem gerar nem publicar, só grava `event_sources.content_last_verified_at/ok` | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
+| regenerate-blog-image | Regera a imagem de capa de um post de blog com um novo prompt/estilo de IA | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| preview-topic-sources | Preview leve (sem IA) das fontes que `generate-blog-post-from-topic` encontraria para um termo | Frontend (admin) | Admin autenticado | Padrão `_shared` |
+| auto-article-cron | Cron que decide automaticamente quando gerar um novo artigo de blog (controla contagem de falhas/retry). Seleção de fonte com cooldown configurável (evita repetir a mesma fonte cedo demais) e streak seco (alerta quando uma fonte fica sem matéria nova várias execuções seguidas) — item #4/#5/#6, 10/08/2026. Publica de acordo com `auto_publish_auto_cron` (chave própria, não mais compartilhada) e avisa por e-mail (`_shared/autoPublishAlert.ts`) quando publica sem revisão | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
+| verify-sources-weekly | Checagem semanal (segunda 09h BRT) de que cada fonte `content_source=true` ainda tem matéria nova descobrível — sem gerar nem publicar, só grava `event_sources.content_last_verified_at/ok` | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 
 ## Eventos
 
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
-| create-recurring-events | Cron que materializa a próxima instância de cada evento recorrente configurado, com descrição única por edição | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
+| create-recurring-events | Cron que materializa a próxima instância de cada evento recorrente configurado, com descrição única por edição | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 | scan-event-sources | Raspa fontes de eventos cadastradas (sites/Instagram via Apify), extrai por IA e cria rascunhos de artigo. Se `event_watcher_auto_publish` estiver ligado, repete a checagem de qualidade (`isContentSubstantial`) antes de publicar de fato (o insert em `generate-blog-post-v2` sempre nasce rascunho) e avisa por e-mail quando publica sem revisão — item #2/#3, 10/08/2026 | Frontend (admin) / Cron | Admin ou cron secret | Padrão `_shared` |
 | apify-instagram-webhook | Recebe callback da Apify quando encontra post novo de evento no Instagram; extrai, compõe imagem e gera rascunho. Mesma checagem de qualidade + aviso por e-mail antes de publicar que scan-event-sources (item #2/#3, 10/08/2026) | Webhook externo (Apify) | Secret na query string (`internal_cron_secrets`) | Próprio (inline) |
 | geocode-event | Geocodifica venue/cidade/estado de um evento via Google Maps Geocoding API e salva lat/lng | Frontend (admin) / interno / auto-geocode idempotente. Re-geocode forçado (`force: true`) disparado por `useEventFormSubmit` quando venue/cidade/estado mudam num edit — muda lat/lng, o que troca a chave de cache do mapa e força uma imagem nova | Aceita admin, service role ou anônimo (idempotente) | Próprio (inline) |
@@ -71,15 +73,13 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
-| convert-to-webp | Placeholder no-op: conversão real para WebP é feita client-side | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| batch-convert-webp | Comprime imagens em lote (1-3 por chamada) para presets sutil/média/severa, atualizando URLs no banco | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
+| batch-convert-webp | Comprime imagens em lote (1-3 por chamada) para presets sutil/média/severa, atualizando URLs no banco | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | upload-to-bunny | Faz upload de uma imagem para o Bunny Storage (com dedupe por SHA-256) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | migrate-to-bunny | Migra imagens do Supabase Storage para o Bunny CDN, auto-detectando a região correta | Frontend (admin) | Admin autenticado | Próprio (inline) |
-| cleanup-storage | Remove arquivos órfãos/duplicados de um bucket de Storage (com modo dry-run) | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| diagnose-media | Diagnostica URLs de imagem no Bunny CDN quebradas/inconsistentes entre tabelas | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
+| cleanup-storage | Remove arquivos órfãos/duplicados de um bucket de Storage (com modo dry-run) | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| diagnose-media | Diagnostica URLs de imagem no Bunny CDN quebradas/inconsistentes entre tabelas | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | bunny-stats | Centraliza estatísticas oficiais do Bunny (pull zone + storage zone), com cache de 5 min | Frontend (admin) | Admin autenticado | Próprio (inline) |
-| import-storage | Ferramenta de migração one-off: importa arquivos de um projeto Supabase antigo para o atual via manifest | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| fetch-link-metadata | Busca metadados Open Graph (título/imagem) de uma URL pública para preencher um link do Linktree | Frontend (admin) | Nenhuma (valida só que a URL é pública/segura) | Próprio (inline) |
+| fetch-link-metadata | Busca metadados Open Graph (título/imagem) de uma URL pública para preencher um link do Linktree | Frontend (admin) | Admin autenticado | Próprio (inline) |
 
 ## SEO / Público
 
@@ -95,19 +95,19 @@ Várias functions hoje só usadas pelo admin **não têm nenhuma checagem de aut
 
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
-| import-csv-data | Importa dados em massa (eventos, posts, etc.) a partir de CSV já enviado ao Storage | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
-| upload-csv | Faz upload de um arquivo CSV bruto para o bucket de Storage (passo anterior ao import-csv-data) | Frontend (admin) | Nenhuma ⚠️ | Próprio (inline) |
+| import-csv-data | Importa dados em massa (eventos, posts, etc.) a partir de CSV já enviado ao Storage | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| upload-csv | Faz upload de um arquivo CSV bruto para o bucket de Storage (passo anterior ao import-csv-data) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 
 ## Observabilidade / Sistema
 
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
-| systemhealth | Health check agregado: conexão com DB, contagem de tabelas, storage, edge functions | Frontend (admin) / monitor externo | Nenhuma ⚠️ | Próprio (inline) |
+| systemhealth | Health check agregado: conexão com DB, contagem de tabelas, storage, edge functions | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | supabase-usage | Combina Management API (api-counts, health) com queries diretas de DB/Storage/Auth, com cache de 60s | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | metrics-snapshot | Cron que grava snapshot diário de métricas (Supabase + Bunny) em `metrics_snapshots` | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 | egress-alert-cron | Cron diário que compara egress das últimas 24h vs. média dos 7 dias anteriores e dispara alerta por e-mail | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 | persist-logs | Persiste logs de erro/warning e métricas de performance lentas enviadas pelo frontend | Frontend (anônimo) | Público | Próprio (inline) |
-| cleanup-sync-logs | Cron que apaga `sync_logs` com mais de 30 dias (retenção) | Cron (pg_cron) | Nenhuma ⚠️ | Próprio (inline) |
+| cleanup-sync-logs | Cron que apaga `sync_logs` com mais de 30 dias (retenção) | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 
 ## LGPD
 

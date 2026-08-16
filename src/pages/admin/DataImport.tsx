@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import { logger } from '@/lib';
 import { CheckCircle, Loader2, AlertCircle, Upload, ArrowLeft } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
-import LegacyMediaImport from '@/components/admin/data-import/LegacyMediaImport';
 /** RFC 4180 compliant CSV parser that handles quoted fields with commas, newlines, etc. */
 function parseCSV(text: string): Record<string, string>[] {
   const rows: string[][] = [];
@@ -297,10 +296,6 @@ export default function DataImport() {
           '🚀 Importar Tudo Sequencialmente'
         )}
       </Button>
-
-      <div className="mt-8">
-        <LegacyMediaImport />
-      </div>
     </div>
   );
 }

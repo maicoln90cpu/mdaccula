@@ -198,6 +198,8 @@ export function escapeHtml(str: string): string {
 
 ### Endpoints Protegidos (JWT obrigatório)
 
+> ⚠️ Esta seção é de 2026-07-23 e ficou desatualizada: a maioria destes endpoints, na verdade, não tinha NENHUMA checagem de auth no código até a auditoria de admin-auth de 04-16/08/2026 (`docs/PENDENCIAS.md`, "Várias Edge Functions admin não têm checagem de autenticação no código") os corrigir, uma fase por vez. Pra saber o que cada function exige de auth *hoje*, use a coluna **Auth** de `docs/EDGE_FUNCTIONS.md` — é o documento mantido vivo, não este.
+
 | Endpoint | Uso |
 |----------|-----|
 | `generate-blog-post-v2` | Geração IA |
@@ -205,7 +207,6 @@ export function escapeHtml(str: string): string {
 | `generate-multi-event-article` | Artigo multi-datas |
 | `regenerate-blog-image` | Regenerar imagem |
 | `send-mass-newsletter` | Newsletter em massa |
-| `convert-to-webp` | Conversão de imagem |
 | `batch-convert-webp` | Conversão em lote |
 | `cleanup-storage` | Limpeza de storage |
 | `cleanup-sync-logs` | Limpeza de logs |

@@ -378,7 +378,6 @@ recurring_event_configs ── link_groups (N:1 via link_group_id)
 |--------|-----------|------|
 | `sitemap` | Sitemap XML dinâmico | Público |
 | `blog-rss` | Feed RSS do blog | Público |
-| `convert-to-webp` | Converte imagem para WebP | JWT |
 | `batch-convert-webp` | Conversão em lote | JWT |
 | `fetch-link-metadata` | Busca metadados de URLs | JWT |
 | `import-csv-data` | Importação de dados via CSV | JWT |
@@ -461,7 +460,6 @@ Placeholder genérico (dj-performance.jpg ou gradiente CSS)
 ### Conversão WebP
 
 - **Client-side:** `src/lib/webpConverter.ts` converte no upload (ImageUploadWithCrop)
-- **Server-side:** Edge Function `convert-to-webp` para conversão sob demanda
 - **Batch:** Edge Function `batch-convert-webp` para migração de imagens existentes
 
 ---

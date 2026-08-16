@@ -208,7 +208,6 @@ supabase/functions/
 │   └── egress-alert-cron/          # Alerta por e-mail se egress disparar
 │
 ├── Mídia/
-│   ├── convert-to-webp/            # Conversão individual
 │   ├── batch-convert-webp/         # Conversão em lote
 │   ├── upload-to-bunny/            # Upload direto pro Bunny Storage
 │   ├── migrate-to-bunny/           # Migração em lote pro Bunny
@@ -217,7 +216,6 @@ supabase/functions/
 ├── Dados/
 │   ├── import-csv-data/            # Processa CSV importado
 │   ├── upload-csv/                 # Upload de CSV
-│   ├── import-storage/             # Importa arquivos de Storage
 │   └── cleanup-storage/            # Remove imagens órfãs
 │
 └── Utilitários/
@@ -527,7 +525,6 @@ CREATE POLICY "Service insert" ON link_click_events FOR INSERT WITH CHECK (true)
 | Contexto | Método |
 |----------|--------|
 | Upload no admin | `webpConverter.ts` client-side (browser Canvas API) |
-| Imagem existente | Edge Function `convert-to-webp` |
 | Migração em lote | Edge Function `batch-convert-webp` |
 
 ---
