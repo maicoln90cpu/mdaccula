@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 15/08/2026
+**Última atualização:** 16/08/2026
 
 ---
 
@@ -17,6 +17,22 @@
 ---
 
 ## Entradas Detalhadas
+
+### Segurança: definido o novo `CRON_SHARED_SECRET` no painel do Supabase — fecha a rotação de segredos da auditoria de 15/08/2026
+**Descrição:** último passo da rotação de segredos disparada pelo repositório ter ficado público — `CRON_SHARED_SECRET` (usado por `metrics-snapshot`/`daily-metrics-snapshot`) vive nas Secrets de Edge Function do Supabase, não numa tabela do banco, então só o usuário (dono do painel) conseguia definir o valor novo.
+**Confirmado:** testado direto contra a function (`metrics-snapshot`) com o valor novo — `200 OK`; com um valor incorreto de propósito — `401`, confirmando que a validação está ativa e correta.
+**Data:** 16/08/2026
+**Responsável:** usuário definiu o secret no painel; IA confirmou via teste direto na function (não esperou o próximo ciclo do cron, que só roda 1x/dia).
+
+---
+
+### Segurança: removidas 2 secrets órfãs sem nenhuma referência no código (`GOOGLE_SEARCH_CONSOLE_API_KEY`, `GOOGLE_MAPS_TRACKING_ID`)
+**Descrição:** ao mapear quais Edge Functions usam quais secrets, `GOOGLE_SEARCH_CONSOLE_API_KEY` não apareceu em nenhuma busca no repositório (código ou docs), e `GOOGLE_MAPS_TRACKING_ID` só existia sob um nome diferente (`VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_TRACKING_ID`, variável de build do frontend) — nenhuma das duas era lida por `Deno.env.get()` em lugar nenhum.
+**Correção:** as duas secrets foram removidas do painel de Secrets do Supabase — remoção puramente de limpeza, sem código pra alterar (nada as lia).
+**Data:** 15/08/2026
+**Responsável:** usuário, a partir do mapeamento feito pela IA.
+
+---
 
 ### Segurança: unificado `MANAGEMENT_API_PAT`/`MANAGEMENT_API_TOKEN` em uma única secret
 **Descrição:** `metrics-snapshot` e `supabase-usage` liam `MANAGEMENT_API_PAT`, enquanto `egress-alert-cron` já lia `MANAGEMENT_API_TOKEN` — duas secrets diferentes guardando o mesmo tipo de credencial (PAT da Management API do Supabase, escopado à conta/projeto, não a um endpoint específico), descoberto ao mapear quais funções usam quais segredos.
@@ -1366,6 +1382,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 16/08 | Segurança | Definido o novo `CRON_SHARED_SECRET` no painel do Supabase — fecha a rotação de segredos |
 | 15/08 | Segurança | Rotacionado `apify_instagram_webhook`, o 9º e último segredo de cron pendente |
 | 15/08 | Segurança | Confirmada cota diária + alerta de orçamento nas duas chaves do Google Maps |
 | 15/08 | Segurança | Corrige 8 das 11 vulnerabilidades de dependências apontadas pelo CI (R-069) |

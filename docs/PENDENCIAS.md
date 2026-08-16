@@ -4,7 +4,7 @@
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
 > **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 15/08/2026
+**Última atualização:** 16/08/2026
 
 ---
 
@@ -145,15 +145,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 ---
 
 ## 🗳️ Decisões Pendentes do Usuário
-
-### Definir `CRON_SHARED_SECRET` novo no painel do Supabase (repositório ficou público em 15/08/2026)
-**Contexto:** o repositório foi tornado público em 15/08/2026 (pra usar o plano gratuito do GitHub Actions). Auditoria de segurança feita na sequência achou o segredo compartilhado `CRON_SHARED_SECRET` — usado como autenticação de várias Edge Functions de cron (`metrics-snapshot`, e como checagem primária em `weekly-digest-draft`, `blog-digest-draft`, `weekend-agenda-draft`, `send-event-reminder-campaigns`, `send-scheduled-email-campaigns`, `heal-stuck-email-dispatches`, `egoi-campaign-stats`) — gravado em texto puro numa migration antiga (`20260510172108_...sql`), agora visível pra qualquer pessoa no histórico do Git.
-**O que já foi feito:** um valor novo já foi gerado e o cron `daily-metrics-snapshot` (o único que embute esse valor diretamente, sem passar pela tabela `internal_cron_secrets`) já foi atualizado no banco pra usar o valor novo. O valor foi entregue direto pro usuário no chat — nunca gravado em nenhum arquivo do repositório, pra não repetir o mesmo erro.
-**Passos:**
-1. Definir o secret `CRON_SHARED_SECRET` no painel do Supabase (Edge Functions → Secrets) ou via CLI (`supabase secrets set CRON_SHARED_SECRET=<valor combinado no chat>`) com o valor novo.
-2. Até isso ser feito, o cron `daily-metrics-snapshot` (métricas diárias, não crítico) vai falhar de autenticação — os outros crons não são afetados, porque cada um usa seu próprio segredo em `internal_cron_secrets` (já rotacionados) como caminho principal.
-3. Depois de confirmar que o `daily-metrics-snapshot` voltou a rodar sem erro (`function_logs`), este item pode ser encerrado.
-**Responsável:** usuário (só ele tem acesso ao painel de secrets do Supabase).
 
 ### Atualizar `react-router`/`react-router-dom` de 6.30 para 7.x (vulnerabilidade moderada, correção é breaking change)
 **Contexto:** rodando o pipeline de CI inteiro em 15/08/2026 (a pedido do usuário, aproveitando o repositório ainda público), o job "Security Audit" (existente, mas com `continue-on-error: true` — nunca bloqueou merge) apontou 2 CVEs moderadas em `react-router` (open redirect via backslash em `<Link>`/`useNavigate`, injeção de construtor via `deserializeErrors()` no SSR) — ver R-069 em `docs/CHANGELOG.md`. `npm audit fix` sozinho não resolve; precisa de `--force`, que instalaria `react-router-dom@7.18.2` — salto de versão major (v6 → v7) com mudanças reais de comportamento, não é seguro aplicar às cegas num projeto com rotas lazy-loaded em praticamente toda página admin.
