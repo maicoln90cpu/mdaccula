@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { isSelfReferentialSearchQuery, type SourceIdentity } from '../_shared/selfReferentialSourceGuard.ts';
+import { authorizeAdminOrCron } from '../_shared/index.ts';
 
 // ============= EGRESS TRACKING HELPER =============
 function logEgress(supabase: ReturnType<typeof createClient>, apiPath: string, data: unknown) {
@@ -157,6 +158,13 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get('SUPABASE_ANON_KEY')!,
+      cronSecretRowName: 'generate_blog_suggestions_cron',
+      cronJobHeaderValue: 'generate-blog-suggestions',
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? 'Não autorizado', auth.status);
 
     // Buscar configurações de IA do site_settings
     const { data: settings } = await supabase

@@ -152,7 +152,19 @@ export async function scrapeWithFirecrawl(
 export async function authorizeAdminOrCron(
   req: Request,
   admin: SupabaseClient,
-  opts: { anonKey: string; cronSecretRowName: string; cronJobHeaderValue: string },
+  opts: {
+    anonKey: string;
+    cronSecretRowName: string;
+    cronJobHeaderValue: string;
+    /**
+     * Aceita a própria SUPABASE_SERVICE_ROLE_KEY como Authorization Bearer.
+     * Só pra functions chamadas server-to-server por OUTRAS Edge Functions
+     * (que já enviam a service key, sem sessão de usuário nem cron-secret
+     * dedicado) — nunca ligar isso numa function exposta a chamada direta
+     * de frontend/pública sem esse caso de uso real.
+     */
+    allowServiceRole?: boolean;
+  },
 ): Promise<{ authorized: boolean; status: number; message?: string }> {
   const cronSecretHeader = req.headers.get("x-cron-secret");
   const cronJobHeader = req.headers.get("x-cron-job");
@@ -170,9 +182,16 @@ export async function authorizeAdminOrCron(
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return { authorized: false, status: 401, message: "Não autenticado" };
+  const token = authHeader.replace("Bearer ", "");
+
+  if (opts.allowServiceRole) {
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (serviceRoleKey && token === serviceRoleKey) {
+      return { authorized: true, status: 200 };
+    }
+  }
 
   const anonClient = createClient(Deno.env.get("SUPABASE_URL")!, opts.anonKey);
-  const token = authHeader.replace("Bearer ", "");
   const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
   if (userErr || !userData.user) return { authorized: false, status: 401, message: "Token inválido" };
 

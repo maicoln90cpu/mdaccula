@@ -5,6 +5,7 @@ import { searchWithFirecrawl, type FirecrawlSearchResult } from "../_shared/fire
 import { scrapeArticleContent } from "../_shared/sourceArticlePicker.ts";
 import { resolveArticleImage } from "../_shared/articleImage.ts";
 import { isContentSubstantial, stripHtmlTags } from "../_shared/articleQuality.ts";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 // ============= SHARED UTILITIES =============
 const corsHeaders = {
@@ -108,6 +109,14 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "generate_blog_post_from_topic_cron",
+      cronJobHeaderValue: "generate-blog-post-from-topic",
+      allowServiceRole: true,
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
 
     // 1) Buscar + raspar a(s) fonte(s) real(is)
     let sourceUrls: string[];

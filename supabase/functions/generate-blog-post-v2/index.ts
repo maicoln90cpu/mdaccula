@@ -18,6 +18,7 @@ import { generateAndAttachImage } from "../_shared/generateBlogPostV2/imageGener
 import { computeWeekday, computeDateFormatted } from "../_shared/generateBlogPostV2/dateHelpers.ts";
 import { applyTemplateVariables, buildOfficialDataBlock, buildSystemPrompt } from "../_shared/generateBlogPostV2/promptBuilder.ts";
 import { generateUniqueSlug, saveOrUpdatePost, logAiGeneration } from "../_shared/generateBlogPostV2/savePost.ts";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 const FUNCTION_TIMEOUT_MS = 140000; // 140 seconds - margem de segurança de 10s
 
@@ -81,6 +82,14 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "generate_blog_post_v2_cron",
+      cronJobHeaderValue: "generate-blog-post-v2",
+      allowServiceRole: true,
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
 
     // Buscar configurações de IA do site_settings
     const { data: settings } = await supabase
