@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### Segurança: unificado `MANAGEMENT_API_PAT`/`MANAGEMENT_API_TOKEN` em uma única secret
+**Descrição:** `metrics-snapshot` e `supabase-usage` liam `MANAGEMENT_API_PAT`, enquanto `egress-alert-cron` já lia `MANAGEMENT_API_TOKEN` — duas secrets diferentes guardando o mesmo tipo de credencial (PAT da Management API do Supabase, escopado à conta/projeto, não a um endpoint específico), descoberto ao mapear quais funções usam quais segredos.
+**Correção:** `metrics-snapshot` e `supabase-usage` passaram a ler `MANAGEMENT_API_TOKEN` primeiro (com fallback pro nome antigo até a confirmação), deploy automático via push em `main`, testado em `/admin/EgressMonitor` (números de uso + botão "Executar agora" do snapshot) e confirmado funcionando — `MANAGEMENT_API_PAT` removido do painel do Supabase.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário; remoção das secrets no painel confirmada pelo usuário.
+
+---
+
 ### Segurança: rotacionado `apify_instagram_webhook`, o 9º e último segredo de cron pendente
 **Descrição:** único dos 9 segredos de cron ainda não rotacionado na auditoria de segurança de 15/08/2026 (repositório ficou público) — ficara pendente porque parecia exigir coordenação manual com a configuração do webhook na Apify, que só o usuário consegue fazer. Investigando o código (`scan-event-sources/index.ts`) durante a conversa, achado que **não precisa de nenhuma reconfiguração do lado da Apify**: a `webhookUrl` é montada dinamicamente a cada disparo do ator, lendo o segredo direto de `internal_cron_secrets` em tempo real — não é uma URL estática cadastrada uma vez no painel da Apify.
 **Correção:** gerado um novo valor e atualizado `internal_cron_secrets.apify_instagram_webhook` no Supabase — o valor antigo (exposto na migration pública) parou de autenticar imediatamente, e o próximo disparo do `scan-event-sources` já usa o valor novo automaticamente, sem nenhuma ação adicional.
