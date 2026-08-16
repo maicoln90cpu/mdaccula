@@ -26,19 +26,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🔧 Bug conhecido
 
-### Checagem de Storage no egress-alert-cron: credencial OK, mas a API pública de Analytics do Supabase está devolvendo erro consistentemente
-**Contexto:** decisão tomada em 12/08/2026 (ver R-061 no `CHANGELOG.md`) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. Histórico de investigação, na ordem:
-1. `METRICS_API_KEY` (secret antigo) não era um PAT válido (401 "JWT could not be decoded").
-2. Descoberto na prática: o Supabase **bloqueia** nomes de secret de Edge Function contendo "SUPABASE" — por isso `SUPABASE_MANAGEMENT_API_TOKEN` nunca teria funcionado. Usuário gerou um token novo, salvou como `MANAGEMENT_API_TOKEN`.
-3. Com o novo token, a autenticação passou a funcionar (sem mais 401) — mas a chamada para `https://api.supabase.com/v1/projects/{ref}/analytics/endpoints/logs.all` passou a devolver `200 OK` com `{"result":null,"error":"Backend error! Retry your query. Please contact support if this continues."}`.
-4. Código ajustado pra detectar esse campo `error` explicitamente (antes era lido como "0 linhas" silenciosamente) e tentar de novo — primeiro 1 retry, depois 3 tentativas com 1,2s de espera. **Falhou 100% das vezes em 2 rodadas completas (6 tentativas no total, ~4 minutos), sempre com a mesma mensagem.**
-5. Comparação: a mesma consulta SQL exata (`select count(*) as cnt from logs where source = 'storage_logs'`), no mesmo momento, funcionou normalmente via MCP (`query_logs`) — sugere que o caminho usado pelo MCP (provavelmente uma sessão/API interna do Supabase, não a API pública de Management com PAT) é mais confiável do que o endpoint público que a Edge Function usa. Não é algo que mais tentativas dentro de uma mesma chamada resolvem — parece uma diferença real de confiabilidade entre os dois caminhos de acesso, não azar pontual.
-**Estado atual:** a credencial e o código estão corretos e testados; a checagem de Storage continua degradando graciosamente (não quebra o alarme — `ok: true` sempre, `ver R-049`), só não traz o dado extra ainda. O cron real roda 2x/dia (09h e 12h UTC) — cada execução é uma nova tentativa independente, então pode "pegar" um momento em que a API pública do Supabase esteja estável.
-**Passos:**
-1. Monitorar por alguns dias se alguma execução automática do cron traz `storage_requests_24h` != `null` (dá pra conferir em `egress_alerts.details` ou nos logs de `function_logs`).
-2. Se continuar falhando sempre, considerar reportar o erro pro suporte do Supabase (a própria mensagem de erro já sugere isso) ou aceitar que essa checagem específica fica só como bônus oportunista, sem depender dela — a correção da causa raiz (R-061) já está no ar e não depende disso.
-**Responsável:** IA monitora quando solicitado; não é bloqueante pra mais nada.
-
 ### Risco residual do R-062: janela estreita onde o cron de limpeza pode liberar um evento que na verdade já teve campanha criada na E-goi
 **Contexto:** a correção do R-062 (ver `CHANGELOG.md`) fechou a lacuna principal — uma linha `event_email_campaigns` só fica em `in_progress` (o estado que o cron `heal-stuck-email-dispatches` considera "seguro pra liberar") ANTES de qualquer chamada à E-goi. Mas ainda existe uma janela estreita: se a Edge Function morrer bem NO MEIO da chamada à E-goi (depois de enviar a requisição, antes de receber/processar a resposta), não há como saber se a E-goi recebeu e processou o pedido ou não. Nesse caso raro, o cron de limpeza liberaria a reserva achando que nada foi criado, quando pode ter sido — permitindo, em tese, uma recriação/duplicação.
 **Por que não foi resolvido agora:** resolver isso por completo exigiria a E-goi suportar uma chave de idempotência no payload de criação de campanha (pra a mesma requisição, reenviada, nunca criar 2 campanhas) — a API v3 da E-goi não parece expor esse recurso hoje.
@@ -46,26 +33,28 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Passos (se algum dia quiser fechar de vez):** avaliar com a E-goi se existe algum campo de idempotência não documentado, ou aceitar o risco residual (avaliação atual: baixo, dado o tamanho da janela).
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa, é um risco residual conhecido e documentado.
 
-### Pipeline de prerender SEO: nenhum commit de HTML gerado desde a criação do workflow (19/07/2026) — causa raiz ainda não confirmada, mas alarme falso já corrigido
-**Contexto:** o workflow `.github/workflows/prerender.yml` roda agendado 1x/dia (09:00 UTC) desde 19/07/2026 e só commita `public/_prerendered/**` quando há mudança real no HTML gerado. Auditoria de 16/08/2026 confirmou via `git log` que nenhum commit automático desse tipo existe no histórico, e investigação mais funda no mesmo dia achou 2 coisas:
-1. **Bug real, corrigido nesta sessão:** `scripts/prerender.mjs` nunca saía com código de erro, mesmo em falha total (0 de N rotas geradas) — sempre "sucesso" verde na aba Actions, mesmo sem gerar nada. Corrigido: agora sai com `exit code 1` quando 0 páginas são geradas, com log detalhando cada rota que falhou (status HTTP, se detectou um desafio do Cloudflare). Testado localmente simulando falha total (rede indisponível) — confirmado `exit code 1` e log correto; testado também o caminho feliz de novo (3 páginas geradas contra o site real, `mdaccula.lovable.app`) — continua funcionando normal.
-2. **Suspeita levantada, ainda não confirmada:** rodando o script localmente contra o site real, ele funcionou perfeitamente (0 falhas) — descarta bug no script/site em si. Os headers do site mostram `server: cloudflare` + cookie `__cf_bm` (Cloudflare Bot Management, que costuma desafiar navegador headless vindo de IP de datacenter — exatamente o perfil de IP do runner do GitHub Actions). Ainda não é possível confirmar isso como causa raiz sem acesso à aba Actions (bloqueada nesta sessão pelo classificador de permissões).
-**Passos:**
-1. Esperar a próxima execução agendada (ou disparar `workflow_dispatch` manualmente) e olhar o log do step "Gerar HTML pré-renderizado" — agora, se for bloqueio do Cloudflare, o log vai dizer isso explicitamente; se for outra causa, o `exit code 1` + os avisos por rota vão apontar pra ela.
-2. Se for confirmado bloqueio do Cloudflare Bot Management: a correção fica fora do alcance deste repositório (é configuração do lado do Cloudflare/Lovable, ex.: liberar o range de IP do GitHub Actions ou usar um User-Agent/token que o Bot Management reconheça) — decisão e execução do usuário.
-**Responsável:** usuário confere a aba Actions/dispara o workflow; IA investiga mais fundo o log real quando disponível.
-
-### Deploy da Edge Function `mcp` falha com 413 (bundle de 26MB)
-**Status:** 🔧 Contornado (04/08/2026) — pipeline não trava mais, mas a function `mcp` em si segue sem deploy até a causa raiz ser corrigida.
-**Contexto:** `supabase/functions/mcp/index.ts` é auto-gerado por `@lovable.dev/mcp-js@0.24.0`, que traz `esbuild` como dependência direta (não dev). O bundler do Deno inclui os binários nativos do esbuild no pacote final (~26MB) — a API do Supabase rejeita com `413 request entity too large`. Como `.github/workflows/deploy-edge-functions.yml` deployava tudo num comando só (`supabase functions deploy` sem argumentos, ordem alfabética), essa falha derrubava o deploy de TODA function cujo nome vem depois de "mcp" alfabeticamente (`send-mass-newsletter`, `upload-csv`, `sitemap`, `systemhealth`, `track-*`, `weekly/weekend-digest-draft` etc.) — um bug de infraestrutura sério, presente desde antes desta auditoria, achado ao tentar deployar a Fase 1 da correção de auth.
-**Mitigação aplicada:** workflow dividido em 2 passos — todas as functions exceto `mcp` deployam juntas (sem risco de bloqueio); `mcp` deploya isolada com `continue-on-error: true`, então se falhar só ela fica desatualizada, sem travar as outras 56.
-**Passos pra correção definitiva:** avaliar se `defineMcp`/`defineTool` do `@lovable.dev/mcp-js` têm uma forma de importar só o runtime (sem puxar `esbuild`) — ou reescrever `mcp/index.ts` à mão (tomando posse do arquivo removendo o banner "AUTO-GENERATED", conforme o próprio comentário do arquivo permite) implementando os 3 tools (`list_upcoming_events`, `get_event`, `list_blog_posts`) direto com `@supabase/supabase-js`, sem depender do framework de build da lib.
-**Observação desta auditoria (16/08/2026):** existe uma edição local não commitada em `supabase/functions/mcp/index.ts` (reduz o arquivo de 177 para ~2 linhas) — parece um WIP em andamento seguindo exatamente a segunda opção acima (reescrita manual), ainda incompleto e não commitado. Não mexi nele nesta auditoria de documentação.
-**Responsável:** decisão do usuário sobre qual caminho (esperar fix upstream vs. reescrever à mão), depois IA implementa.
-
 ---
 
 ## 👀 Monitoramento
+
+### Checkpoint: pipeline de prerender SEO — aguardando a próxima execução real com o alarme falso já corrigido
+**Checar até:** a próxima execução agendada do workflow (roda todo dia às 09:00 UTC) — ou antes, se disparar `workflow_dispatch` manualmente. Não precisa de mais de 1 execução pra fechar: o log já vai ser conclusivo (gerou HTML = resolvido; `exit code 1` com Cloudflare detectado = causa confirmada; `exit code 1` sem menção a Cloudflare = outra causa a investigar).
+**Contexto:** `.github/workflows/prerender.yml` roda 1x/dia desde 19/07/2026 e nunca gerou um commit de `public/_prerendered/**` — auditoria de 16/08/2026 achou e corrigiu um bug real: `scripts/prerender.mjs` nunca saía com código de erro, mesmo em falha total (0 de N rotas geradas), então o workflow sempre aparecia "sucesso" verde mesmo sem gerar nada, por quase 1 mês sem ninguém perceber. Corrigido nesta sessão: agora sai com `exit code 1` quando 0 páginas são geradas, com log por rota (status HTTP + detecção de desafio do Cloudflare). Testado localmente (falha total simulada → `exit code 1` correto; caminho feliz → 3 páginas geradas contra `mdaccula.lovable.app` real).
+**Suspeita levantada, ainda não confirmada:** rodando o script localmente contra o site real, funcionou perfeitamente — descarta bug no script/site em si. Os headers do site mostram `server: cloudflare` + cookie `__cf_bm` (Cloudflare Bot Management, que costuma desafiar navegador headless vindo de IP de datacenter — perfil do runner do GitHub Actions). Só a próxima execução real confirma ou descarta isso.
+**Passos:**
+1. Depois da próxima execução, abrir o log do step "Gerar HTML pré-renderizado" na aba Actions.
+2. Se confirmar bloqueio do Cloudflare: a correção fica fora deste repositório (configuração do lado do Cloudflare/Lovable — liberar IP do GitHub Actions ou usar User-Agent/token reconhecido) — decisão e execução do usuário.
+3. Se resolver sozinho (gerou HTML normal): encerrar este checkpoint, vira entrada no `CHANGELOG.md`.
+**Responsável:** usuário confere a aba Actions (acesso que esta sessão não tem) e reporta o resultado; IA investiga mais fundo quando tiver o log real.
+
+### Checkpoint: checagem de Storage no egress-alert-cron aguardando a API pública do Supabase estabilizar
+**Checar até:** revisar em ~30/08/2026 (2 semanas) — se continuar falhando 100% das vezes até lá, reportar pro suporte do Supabase ou aceitar como bônus perdido permanentemente (a correção principal, R-061, já está no ar e não depende disso).
+**Contexto:** decisão tomada em 12/08/2026 (R-061) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. A credencial e o código estão corretos e testados (retry com detecção explícita do campo `error`), mas a chamada `https://api.supabase.com/v1/projects/{ref}/analytics/endpoints/logs.all` segue devolvendo `200 OK` com `{"result":null,"error":"Backend error!..."}` 100% das vezes (2 rodadas completas, 6 tentativas, ~4min) — a mesma consulta SQL funciona normal via MCP (`query_logs`), sugerindo que o caminho da API pública de Management é menos confiável que o caminho interno do MCP, não azar pontual.
+**Estado atual:** a checagem de Storage continua degradando graciosamente (não quebra o alarme — `ok: true` sempre, ver R-049), só não traz o dado extra ainda. O cron roda 2x/dia (09h e 12h UTC) — cada execução é uma tentativa independente, então pode "pegar" a API pública estável em algum momento.
+**Passos:**
+1. Conferir em `egress_alerts.details` (ou logs de `function_logs`) se alguma execução do cron trouxe `storage_requests_24h` != `null`.
+2. Se sim, encerrar este checkpoint (vira entrada no `CHANGELOG.md`). Se não, na data de revisão acima, decidir entre reportar ao suporte ou aceitar como perdido.
+**Responsável:** IA monitora quando solicitado; não é bloqueante pra mais nada.
 
 ### Checkpoint: chave antiga do Google Maps continua ativa e exposta publicamente — aguardando o Lovable revogar
 **Checar em:** a cada vez que o usuário confirmar uma resposta do suporte/Discord do Lovable, ou a cada poucos dias enquanto não houver resposta.
@@ -96,7 +85,7 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Responsável:** usuário confere periodicamente; IA investiga mais fundo se voltar a acontecer
 
 ### Checkpoint: confirmar redução de banda do Bunny CDN e decidir sobre Cloudflare
-**Checar em:** ~02/08/2026 (15 dias após o rollout) — já vencido; sem acesso ao painel de billing do Bunny nesta sessão pra reconfirmar
+**Checar até:** sem prazo novo definido — a contagem de 15 dias nem começou de verdade, porque o passo 1 (clicar no botão) ainda não foi feito. Só faz sentido marcar uma data quando isso acontecer; até lá, este checkpoint fica parado esperando a ação do usuário, não o tempo passar.
 **Contexto:** Rollout de variantes de imagem (thumb/medium) concluído em 18/07/2026 — ver entrada no [`CHANGELOG.md`](CHANGELOG.md). Falta confirmar com tráfego real se a banda caiu como esperado.
 **Passos:**
 1. Rodar o botão **"Gerar Variantes para Eventos Ativos"** em `/admin/settings` → aba Mídia (ferramenta pronta, ainda não foi clicado).
@@ -123,6 +112,15 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 ---
 
 ## 🗳️ Decisões Pendentes do Usuário
+
+### Deploy da Edge Function `mcp` falha com 413 (bundle de 26MB) — falta decidir a abordagem definitiva
+**Status:** 🔧 Contornado (04/08/2026) — pipeline não trava mais (deploy dividido em 2 passos, `mcp` isolada com `continue-on-error`), mas a function `mcp` em si segue sem deploy até a causa raiz ser corrigida.
+**Contexto:** `supabase/functions/mcp/index.ts` é auto-gerado por `@lovable.dev/mcp-js@0.24.0`, que traz `esbuild` como dependência direta — o bundler do Deno inclui os binários nativos do esbuild no pacote final (~26MB), e a API do Supabase rejeita com `413 request entity too large`.
+**As 2 opções, já mapeadas — só falta escolher:**
+1. Esperar/investigar se `defineMcp`/`defineTool` do `@lovable.dev/mcp-js` têm uma forma de importar só o runtime, sem puxar `esbuild`.
+2. Reescrever `mcp/index.ts` à mão (tomando posse do arquivo, removendo o banner "AUTO-GENERATED") implementando os 3 tools (`list_upcoming_events`, `get_event`, `list_blog_posts`) direto com `@supabase/supabase-js`, sem o framework de build da lib.
+**Observação (16/08/2026):** existe uma edição local não commitada em `supabase/functions/mcp/index.ts` que parecia um WIP seguindo a opção 2, mas o conteúdo estava quebrado (apontava pra um caminho absoluto do Windows dentro de um import `npm:`, gerado incorretamente pelo próprio plugin auto-gerador durante dev local) — não foi commitada nem tocada.
+**Responsável:** decisão do usuário sobre qual das 2 opções seguir; depois disso IA implementa (opção 2 é um trabalho pequeno e de baixo risco — só 3 ferramentas de leitura, sem escrita no banco).
 
 ### Atualizar `react-router`/`react-router-dom` de 6.30 para 7.x (vulnerabilidade moderada, correção é breaking change)
 **Contexto:** rodando o pipeline de CI inteiro em 15/08/2026 (a pedido do usuário, aproveitando o repositório ainda público), o job "Security Audit" (existente, mas com `continue-on-error: true` — nunca bloqueou merge) apontou 2 CVEs moderadas em `react-router` (open redirect via backslash em `<Link>`/`useNavigate`, injeção de construtor via `deserializeErrors()` no SSR) — ver R-069 em `docs/CHANGELOG.md`. `npm audit fix` sozinho não resolve; precisa de `--force`, que instalaria `react-router-dom@7.18.2` — salto de versão major (v6 → v7) com mudanças reais de comportamento, não é seguro aplicar às cegas num projeto com rotas lazy-loaded em praticamente toda página admin.
