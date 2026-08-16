@@ -19,9 +19,13 @@
  * não reproduzido no site real); o subdomínio `mdaccula.lovable.app` é o
  * output real do build do Lovable e evita essa divergência por completo.
  *
- * Tolerante a falhas por rota: uma rota que falhar (timeout, 404, etc.) é
- * pulada com aviso — nunca derruba o script inteiro. Se a etapa de fetch de
- * dados falhar, encerra com código 0 sem gerar nada (não quebra o build/CI).
+ * Tolerante a falha PONTUAL de rota (timeout numa página específica, 404 etc.)
+ * — só pula aquela rota com aviso, não derruba o script inteiro. Mas falha alta
+ * (exit code != 0) quando o resultado é 0 páginas geradas — seja porque a busca
+ * das rotas dinâmicas falhou, seja porque toda rota tentada não hidratou — pra
+ * aparecer como run vermelha na aba Actions em vez de "sucesso" silencioso sem
+ * gerar nada (foi assim que o pipeline ficou ~1 mês sem gerar HTML nenhum sem
+ * ninguém perceber, até a auditoria de 16/08/2026 achar o buraco).
  */
 import { chromium } from "@playwright/test";
 import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
@@ -90,7 +94,8 @@ async function main() {
   try {
     routes = await getTargetRoutes();
   } catch (err) {
-    console.warn(`[prerender] aviso: falha ao buscar rotas dinâmicas (${err.message}). Nada gerado.`);
+    console.error(`[prerender] ERRO: falha ao buscar rotas dinâmicas (${err.message}) — nada gerado.`);
+    process.exitCode = 1;
     return;
   }
 
@@ -107,7 +112,7 @@ async function main() {
         // waitUntil:'domcontentloaded' de propósito, não 'networkidle' — a
         // app tem conexões persistentes (Supabase Realtime) que nunca ficam
         // "idle", o que faria 'networkidle' sempre estourar o timeout.
-        await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_MS });
+        const response = await page.goto(`${BASE_URL}${route}`, { waitUntil: "domcontentloaded", timeout: PAGE_TIMEOUT_MS });
         // Espera fixa pra hidratação (fetch dos dados da rota + flush do
         // react-helmet-async no <head>) — mais confiável aqui do que
         // waitForSelector no JSON-LD, que tem timing de flush inconsistente.
@@ -115,7 +120,23 @@ async function main() {
 
         const title = await page.title();
         if (!title || title === STATIC_SHELL_TITLE) {
-          console.warn(`[prerender] aviso: ${route} ainda no título genérico do shell após ${HYDRATION_GRACE_MS}ms — pulando (não hidratou).`);
+          // O site roda atrás do Cloudflare (cookie __cf_bm confirmado em
+          // 16/08/2026) — Bot Management costuma desafiar navegador headless
+          // vindo de IP de datacenter (ex.: runner do GitHub Actions), mesmo
+          // quando um fetch simples do mesmo IP passa sem problema. Detectar
+          // isso aqui poupa uma investigação manual no próximo run que falhar.
+          const bodyText = await page.content().catch(() => "");
+          const looksLikeCloudflareChallenge =
+            /Just a moment|cf-browser-verification|challenges\.cloudflare\.com|Attention Required! \| Cloudflare|cf_chl_/i.test(
+              bodyText,
+            );
+          const statusNote = response ? ` HTTP ${response.status()}.` : "";
+          const causeNote = looksLikeCloudflareChallenge
+            ? " Conteúdo bate com um desafio do Cloudflare Bot Management, não com hidratação lenta — provável bloqueio do navegador headless pelo IP do runner."
+            : "";
+          console.warn(
+            `[prerender] aviso: ${route} ainda no título genérico do shell após ${HYDRATION_GRACE_MS}ms.${statusNote}${causeNote} Pulando (não hidratou).`,
+          );
           failed++;
           continue;
         }
@@ -137,8 +158,16 @@ async function main() {
   }
 
   console.log(`[prerender] concluído: ${ok} gerada(s), ${failed} falha(s).`);
+
+  if (ok === 0 && routes.length > 0) {
+    console.error(
+      `[prerender] ERRO: nenhuma das ${routes.length} rota(s) tentada(s) gerou HTML válido — falha total, não uma falha pontual. Veja os avisos acima (procure por menção a Cloudflare/timeout/HTTP status).`,
+    );
+    process.exitCode = 1;
+  }
 }
 
 main().catch((err) => {
-  console.warn(`[prerender] erro inesperado: ${err.message}. Build continua.`);
+  console.error(`[prerender] ERRO inesperado: ${err.message}`);
+  process.exitCode = 1;
 });

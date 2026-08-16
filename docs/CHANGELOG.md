@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Prerender SEO: corrige alarme falso (workflow sempre "sucesso" mesmo gerando 0 páginas) e levanta suspeita de bloqueio do Cloudflare
+**Descrição:** investigação do bug de prerender achado na auditoria de documentação (nenhum commit de `public/_prerendered/**` desde a criação do workflow em 19/07/2026) encontrou um bug real e corrigível: `scripts/prerender.mjs` nunca saía com código de erro, mesmo numa falha total (0 de N rotas geradas) — o workflow sempre aparecia "sucesso" na aba Actions, mesmo sem gerar nada, o que explica por que ninguém percebeu por quase 1 mês. Rodando o script localmente contra o site real de produção (`mdaccula.lovable.app`), ele funcionou perfeitamente (3 páginas geradas, hidratação normal) — descarta bug no script/site. Os headers do site (`server: cloudflare` + cookie `__cf_bm`, típico do Cloudflare Bot Management) levantam a suspeita de que o navegador headless do GitHub Actions está sendo bloqueado/desafiado por vir de IP de datacenter — ainda não confirmado, precisa da aba Actions (bloqueada nesta sessão).
+**Correção:** `scripts/prerender.mjs` agora sai com `exit code 1` quando 0 páginas são geradas (seja por falha ao buscar as rotas do Supabase, seja por toda rota tentada falhar ao hidratar), e o log por rota agora inclui o status HTTP e detecta se o conteúdo da página bate com um desafio conhecido do Cloudflare. Testado localmente: caminho feliz continua gerando 3 páginas normalmente; falha total simulada (host inalcançável) confirma `exit code 1` com o log de erro correto.
+**Data:** 16/08/2026
+**Responsável:** IA, a pedido do usuário — 3 cenários testados localmente (feliz, falha de rede total, e o script real contra produção) antes de considerar a correção pronta.
+
+**Arquivos alterados:** `scripts/prerender.mjs`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Corrige os 3 bugs conhecidos mais simples de PENDENCIAS.md: tipos do deno check, rate limit do podcast, auth do compose-event-image
 **Descrição:** dos 5 bugs conhecidos corrigíveis em `docs/PENDENCIAS.md` (2 outros dependiam de comportamento de API externa fora de controle, e o do prerender precisa da aba Actions do GitHub), os 3 com escopo totalmente fechado foram corrigidos:
 1. **`deno check`**: 8 erros de tipo pré-existentes em `metrics-snapshot`/`supabase-usage` (padrões: `reduce` sem tipar o acumulador, `listUsers` lendo `.total` no branch de erro que não tem esse campo, `.catch()` sobre um `PromiseLike` sem esse método) — corrigidos com anotação de tipo/narrowing puros, sem nenhuma mudança de valor retornado. Confirmado rodando `deno check` de verdade nos dois arquivos (0 erros depois, reproduzia os 8 antes).
@@ -1442,6 +1452,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 16/08 | Bugfix | Prerender SEO: corrige alarme falso (workflow "sucesso" mesmo gerando 0 páginas) e detecta possível bloqueio do Cloudflare |
 | 16/08 | Segurança/Bugfix | Corrige os 3 bugs conhecidos mais simples: tipos do deno check, rate limit do podcast, auth do compose-event-image |
 | 16/08 | Docs | Auditoria de documentação: PENDENCIAS.md reorganizado, checkpoints de e-mail confirmados, novo bug de prerender achado |
 | 16/08 | Segurança | Fases 6, 7 e 8/8 — auditoria de admin-auth concluída, `import-storage`/`convert-to-webp` removidas (R-072) |
