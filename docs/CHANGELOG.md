@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### Segurança: rotacionado `apify_instagram_webhook`, o 9º e último segredo de cron pendente
+**Descrição:** único dos 9 segredos de cron ainda não rotacionado na auditoria de segurança de 15/08/2026 (repositório ficou público) — ficara pendente porque parecia exigir coordenação manual com a configuração do webhook na Apify, que só o usuário consegue fazer. Investigando o código (`scan-event-sources/index.ts`) durante a conversa, achado que **não precisa de nenhuma reconfiguração do lado da Apify**: a `webhookUrl` é montada dinamicamente a cada disparo do ator, lendo o segredo direto de `internal_cron_secrets` em tempo real — não é uma URL estática cadastrada uma vez no painel da Apify.
+**Correção:** gerado um novo valor e atualizado `internal_cron_secrets.apify_instagram_webhook` no Supabase — o valor antigo (exposto na migration pública) parou de autenticar imediatamente, e o próximo disparo do `scan-event-sources` já usa o valor novo automaticamente, sem nenhuma ação adicional.
+**Data:** 15/08/2026
+**Responsável:** IA, a pedido do usuário (durante a mesma conversa em que ele investigava a chave órfã do Google Maps).
+
+---
+
 ### Segurança: confirmada cota diária + alerta de orçamento nas duas chaves do Google Maps
 **Descrição:** pendência aberta durante a divisão da chave do Google Maps em duas (15/08/2026, R-063) — faltava confirmar que a chave pública (browser) e a de servidor tinham, além da restrição de app e escopo de API já aplicados, uma cota diária (Google Cloud Console → Quotas & System Limits) e um alerta de orçamento (Billing → Budgets & alerts) configurados, como proteção matemática contra outro pico de gasto como o de julho/2026.
 **Confirmado pelo usuário:** os dois itens (cota diária em cada chave + alerta de orçamento no projeto) já estavam configurados.
@@ -1350,6 +1358,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Segurança | Rotacionado `apify_instagram_webhook`, o 9º e último segredo de cron pendente |
 | 15/08 | Segurança | Confirmada cota diária + alerta de orçamento nas duas chaves do Google Maps |
 | 15/08 | Segurança | Corrige 8 das 11 vulnerabilidades de dependências apontadas pelo CI (R-069) |
 | 15/08 | Bugfix | Falso-positivo de `fetchPriority` derrubando o CI/CD (E2E) em todo commit de `main` |
