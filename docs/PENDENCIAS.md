@@ -46,6 +46,12 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Passos (se algum dia quiser fechar de vez):** avaliar com a E-goi se existe algum campo de idempotência não documentado, ou aceitar o risco residual (avaliação atual: baixo, dado o tamanho da janela).
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa, é um risco residual conhecido e documentado.
 
+### `deno check` acusa 8 erros de tipo pré-existentes em `metrics-snapshot` e `supabase-usage` (não bloqueiam deploy nem `npm run test:edge`)
+**Contexto:** descoberto em 15/08/2026 ao validar a unificação de `MANAGEMENT_API_PAT`/`MANAGEMENT_API_TOKEN` (ver `CHANGELOG.md`) — rodei `deno check` nos dois arquivos por precaução e os erros já existiam antes da minha edição (confirmado com `git stash` + `deno check` no código original). São 3 padrões: (1) `Array.prototype.reduce` em `FileObject[]` do Supabase Storage sem tipar o acumulador explicitamente, o TS infere errado; (2) `admin.auth.admin.listUsers(...)` — o tipo de retorno da lib não expõe `.total` no branch de erro, mas o código lê `.data?.total` direto; (3) um `.catch()` encadeado em cima de uma `Promise` que o TS só enxerga como `PromiseLike` (sem `.catch`) por causa de um `.then()` anterior. `npm run test:edge` (que roda `deno test`, não `deno check`) passa normal porque nenhum teste importa esses dois arquivos — então isso nunca apareceu no CI.
+**Por que não corrigi agora:** fora do escopo do que foi pedido (unificação de secret), e mexer nos tipos exigiria reescrever os `reduce`/`.then()` com cuidado pra não mudar comportamento — prefiro fazer isso como uma tarefa própria, com teste dedicado.
+**Passos:** tipar explicitamente o acumulador dos `reduce` (`{bytes: number, files: number}` em vez de inferir de `FileObject`), tratar o branch `{users: []}` de `listUsers` sem `.total`, e trocar o `.then().catch()` por `try/catch` ou `.then(fn, errFn)`.
+**Responsável:** ninguém aloca ainda — baixa prioridade (compila e roda hoje; é só o `deno check` isolado que reclama).
+
 ## 👀 Monitoramento
 
 ### Checkpoint: chave antiga do Google Maps continua ativa e exposta publicamente — aguardando o Lovable revogar

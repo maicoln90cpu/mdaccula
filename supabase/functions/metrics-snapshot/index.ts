@@ -10,7 +10,9 @@ const PROJECT_REF = "xfvpuzlspvvsmmunznxw";
 const PULL_ZONE_ID = Deno.env.get("BUNNY_PULL_ZONE_ID");
 const STORAGE_ZONE_ID = Deno.env.get("BUNNY_STORAGE_ZONE_ID");
 const ACCOUNT_KEY = Deno.env.get("BUNNY_ACCOUNT_API_KEY");
-const PAT = Deno.env.get("MANAGEMENT_API_PAT");
+// Prefere MANAGEMENT_API_TOKEN (nome atual, usado também pelo egress-alert-cron);
+// cai para MANAGEMENT_API_PAT (nome legado) até a secret antiga ser removida do painel.
+const PAT = Deno.env.get("MANAGEMENT_API_TOKEN") ?? Deno.env.get("MANAGEMENT_API_PAT");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

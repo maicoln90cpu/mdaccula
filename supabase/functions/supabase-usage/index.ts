@@ -44,9 +44,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    const pat = Deno.env.get("MANAGEMENT_API_PAT");
+    // Prefere MANAGEMENT_API_TOKEN (nome atual, usado também pelo egress-alert-cron);
+    // cai para MANAGEMENT_API_PAT (nome legado) até a secret antiga ser removida do painel.
+    const pat = Deno.env.get("MANAGEMENT_API_TOKEN") ?? Deno.env.get("MANAGEMENT_API_PAT");
     if (!pat) {
-      return new Response(JSON.stringify({ error: "MANAGEMENT_API_PAT not configured" }), {
+      return new Response(JSON.stringify({ error: "MANAGEMENT_API_TOKEN not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
