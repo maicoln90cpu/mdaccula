@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### Segurança: confirmada cota diária + alerta de orçamento nas duas chaves do Google Maps
+**Descrição:** pendência aberta durante a divisão da chave do Google Maps em duas (15/08/2026, R-063) — faltava confirmar que a chave pública (browser) e a de servidor tinham, além da restrição de app e escopo de API já aplicados, uma cota diária (Google Cloud Console → Quotas & System Limits) e um alerta de orçamento (Billing → Budgets & alerts) configurados, como proteção matemática contra outro pico de gasto como o de julho/2026.
+**Confirmado pelo usuário:** os dois itens (cota diária em cada chave + alerta de orçamento no projeto) já estavam configurados.
+**Data:** 15/08/2026
+**Responsável:** usuário (configuração feita direto no Google Cloud Console).
+
+---
+
 ### Segurança: corrige 8 das 11 vulnerabilidades de dependências apontadas pelo CI (R-069)
 **Descrição:** a pedido do usuário, rodado manualmente o workflow `CI/CD Pipeline` inteiro (incluindo o job "Security Audit", que já existia mas roda com `continue-on-error: true` — nunca bloqueou merge, então as vulnerabilidades ficavam acumulando sem ninguém perceber) enquanto o repositório ainda está público (minutos de Actions ilimitados), pra levantar tudo antes de desligar o pipeline por economia de minutos.
 **Correção:** `npm audit fix` resolveu 8 das 11 vulnerabilidades (nanoid, js-yaml, fast-uri, dompurify, hono, postcss, brace-expansion×2) — só `package-lock.json` mudou, nenhuma dependência direta precisou de bump, `tsc`/lint/testes/build confirmados verdes depois.
@@ -1342,6 +1350,8 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 15/08 | Segurança | Confirmada cota diária + alerta de orçamento nas duas chaves do Google Maps |
+| 15/08 | Segurança | Corrige 8 das 11 vulnerabilidades de dependências apontadas pelo CI (R-069) |
 | 15/08 | Bugfix | Falso-positivo de `fetchPriority` derrubando o CI/CD (E2E) em todo commit de `main` |
 | 15/08 | Segurança | 5 Edge Functions passam a exigir admin/cron-secret — `cleanup-storage` + 4 crons (Fases 2-3/8) (R-068) |
 | 15/08 | Bugfix | Grid de e-mail multi-evento não preenchia linha incompleta + nome interno da campanha fixo (R-067) |
