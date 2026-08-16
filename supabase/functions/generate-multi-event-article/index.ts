@@ -21,6 +21,7 @@ import {
   inferMood,
 } from "../_shared/generateMultiEventArticle/prompts.ts";
 import { isContentSubstantial } from "../_shared/articleQuality.ts";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 // Silencia lint: corsHeaders é reexportado apenas para paridade com bundle anterior.
 void corsHeaders;
@@ -69,6 +70,13 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "generate_multi_event_article_cron",
+      cronJobHeaderValue: "generate-multi-event-article",
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
 
     const { data: events, error: eventsError } = await supabase
       .from('events')

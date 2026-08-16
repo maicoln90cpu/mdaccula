@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -184,6 +185,18 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get('SUPABASE_ANON_KEY')!,
+      cronSecretRowName: 'regenerate_blog_image_cron',
+      cronJobHeaderValue: 'regenerate-blog-image',
+    });
+    if (!auth.authorized) {
+      return new Response(
+        JSON.stringify({ error: auth.message ?? 'Não autorizado' }),
+        { status: auth.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Buscar o post
     console.log(`📝 Buscando post ${postId}...`);

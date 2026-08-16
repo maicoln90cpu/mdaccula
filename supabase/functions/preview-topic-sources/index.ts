@@ -1,7 +1,9 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   handleCorsPreFlight,
   jsonError,
   jsonSuccess,
+  authorizeAdminOrCron,
 } from "../_shared/index.ts";
 import { searchWithFirecrawl } from "../_shared/firecrawlSearch.ts";
 
@@ -18,6 +20,18 @@ Deno.serve(async (req) => {
   if (preflightResponse) return preflightResponse;
 
   try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "preview_topic_sources_cron",
+      cronJobHeaderValue: "preview-topic-sources",
+    });
+    if (!auth.authorized) return jsonError(auth.message ?? "Não autorizado", auth.status);
+
     const body = await req.json();
     const query = typeof body?.query === "string" ? body.query.trim() : "";
 
