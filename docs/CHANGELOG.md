@@ -18,6 +18,31 @@
 
 ## Entradas Detalhadas
 
+### Corrige os 3 bugs conhecidos mais simples de PENDENCIAS.md: tipos do deno check, rate limit do podcast, auth do compose-event-image
+**Descrição:** dos 5 bugs conhecidos corrigíveis em `docs/PENDENCIAS.md` (2 outros dependiam de comportamento de API externa fora de controle, e o do prerender precisa da aba Actions do GitHub), os 3 com escopo totalmente fechado foram corrigidos:
+1. **`deno check`**: 8 erros de tipo pré-existentes em `metrics-snapshot`/`supabase-usage` (padrões: `reduce` sem tipar o acumulador, `listUsers` lendo `.total` no branch de erro que não tem esse campo, `.catch()` sobre um `PromiseLike` sem esse método) — corrigidos com anotação de tipo/narrowing puros, sem nenhuma mudança de valor retornado. Confirmado rodando `deno check` de verdade nos dois arquivos (0 erros depois, reproduzia os 8 antes).
+2. **`send-podcast-notification` sem rate limiting**: aplicado o mesmo padrão inline já usado em `send-contact-email`/`request-data-deletion` (rate limit por IP, 3 requisições/hora) — função continua pública de propósito (formulário real em `Podcast.tsx`), só ganhou o limite que faltava.
+3. **`compose-event-image` sem autenticação**: investigação encontrou um 3º chamador real não documentado na pendência original — o botão "Teste manual de marca" em `/admin/settings` (`MediaSettings.tsx`), que chama via `supabase.functions.invoke()` com o JWT do admin logado, além dos 2 chamadores server-to-server (`scan-event-sources`/`apify-instagram-webhook`, que já mandam `SUPABASE_SERVICE_ROLE_KEY` como Bearer). A correção aceita os dois casos (JWT de admin OU service-role), inlinada no próprio arquivo (mesma lógica de `authorizeAdminOrCron()` de `_shared/index.ts`, sem importar o módulo) pra preservar a política deliberada de arquivo single-file da function — essa política é sobre a ferramenta MCP `deploy_edge_function` (que este projeto não usa como caminho normal), não sobre imports `npm:`, então `npm:@supabase/supabase-js` continua seguro de importar. Nenhuma mudança necessária nos 3 chamadores — todos já mandam a credencial certa.
+**Verificação:** `deno check` nos 2 arquivos de tipo (0 erros), `npm run test:edge` (317 testes, verde), `npx tsc --noEmit` (verde). O contract test de `compose-event-image` só passa depois do deploy real (padrão já usado nos outros `-auth.test.ts` da auditoria de admin-auth) — rodado localmente contra o deploy anterior, os 2 casos de auth vieram 200 como esperado (confirma que a correção ainda não subiu, não é falha da correção).
+**Data:** 16/08/2026
+**Responsável:** IA, a pedido do usuário — cada um dos 3 fixes revisado linha a linha via investigação em sub-agentes antes da implementação.
+
+**Arquivos alterados:** `supabase/functions/metrics-snapshot/index.ts`, `supabase/functions/supabase-usage/index.ts`, `supabase/functions/send-podcast-notification/index.ts`, `supabase/functions/compose-event-image/index.ts`, `src/__tests__/contracts/edge-compose-event-image.test.ts`, `docs/PENDENCIAS.md`, `docs/EDGE_FUNCTIONS.md`.
+
+---
+
+### Auditoria de documentação: PENDENCIAS.md reorganizado, checkpoints de e-mail confirmados, novo bug de prerender achado
+**Descrição:** aplicada a skill `auditoria-documentacao` sobre `docs/PENDENCIAS.md` e `docs/CHANGELOG.md` — o arquivo tinha 2 seções `## 🔧 Bug conhecido`/`## 🔧 Bugs Conhecidos` separadas (uma antes de "Monitoramento", outra depois de "Decisões Pendentes"), fragmentando o mesmo tipo de pendência em 2 lugares do documento; consolidadas numa única seção. O item "Leaked Password Protection" foi removido de `PENDENCIAS.md` — é uma decisão já fechada em 03/08/2026 e já documentada em `docs/SECURITY-AUDIT.md` (linha "🚫 Não aplicável — decisão do usuário"), não uma pendência em aberto.
+**Checkpoints de monitoramento fechados nesta auditoria (evidência coletada via SQL direto no banco, não só suposição):** (1) primeiro ciclo real de Digest semanal/Agenda do FDS com histórico ligado — confirmado, `event_email_campaigns` tem linhas `sent` para `weekly_digest` (11/08/2026) e `weekend_agenda` (13/08/2026); (2) primeiro envio de Blog news com histórico ligado — confirmado, linha `sent` para `blog_digest` em 09/08/2026. Os 2 checkpoints saíram de `PENDENCIAS.md`.
+**Achado novo durante a auditoria (virou pendência nova, não corrigido agora):** o checkpoint "confirmar que o prerender SEO está rodando" (vencido desde ~20/07/2026) foi investigado a fundo — `git log` não mostra **nenhum** commit automático `chore(prerender): ...` desde a criação do workflow em 19/07/2026, e a pasta `public/_prerendered/` nem existe no repositório. Reclassificado de checkpoint de monitoramento para bug conhecido em `docs/PENDENCIAS.md` (causa raiz ainda não confirmada — `gh run list` foi bloqueado pelo classificador de permissões desta sessão).
+**Outras atualizações sem mudança de status:** checkpoint do `WeGoOut`/`content_source` reconfirmado estável no banco (segue `false` desde 10/08/2026); checkpoint da Geração por Tema (Fase 1) atualizado com evidência de 5 gerações `auto_cron` recentes (10-14/08/2026) todas apontando pra matéria real, sem repetir os padrões problemáticos dos hotfixes anteriores — ambos continuam em aberto aguardando confirmação final.
+**Data:** 16/08/2026
+**Responsável:** IA, a pedido do usuário — evidência de cada fechamento coletada via `execute_sql` (MCP Supabase) e `git log`, não assumida.
+
+**Arquivos alterados:** `docs/PENDENCIAS.md`, `docs/CHANGELOG.md`.
+
+---
+
 ### Segurança: Fases 6, 7 e 8 de 8 — auditoria de admin-auth concluída (R-072)
 **Descrição:** fecha a auditoria de auth admin (`docs/PENDENCIAS.md`) aberta em 04/08/2026 e retomada em 15-16/08/2026 depois do repositório ficar público. Fase 6: `batch-convert-webp`, `diagnose-media` e `fetch-link-metadata` não tinham nenhuma checagem de auth — `fetch-link-metadata` em particular era um vetor de SSRF-lite (fetch de URL arbitrária, sem exigir login). Fase 7: `systemhealth` expunha contagem de usuários de auth, assinantes de newsletter e atividade recente sem login nenhum. Fase 8 (decisão do usuário, não cópia mecânica do padrão): `import-storage` e `convert-to-webp` foram **removidas** em vez de protegidas — `import-storage` tinha uma anon key de um projeto Supabase antigo (`nzbyyuqvhrwatmydxiag`) em texto puro no código, e esse projeto nem existe mais (DNS não resolve, confirmado via teste direto); `convert-to-webp` é código morto desde sempre (o próprio comentário do arquivo admite que o runtime de Edge Functions não suporta as bibliotecas de conversão, e não tinha nenhum chamador no frontend).
 **Correção:** mesmo padrão `authorizeAdminOrCron()` nas Fases 6-7; remoção completa (function + entrada em `config.toml` + botão "Importar Mídia Legada" no admin + deploy remoto apagado via CLI) na Fase 8.
@@ -1417,6 +1442,8 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 16/08 | Segurança/Bugfix | Corrige os 3 bugs conhecidos mais simples: tipos do deno check, rate limit do podcast, auth do compose-event-image |
+| 16/08 | Docs | Auditoria de documentação: PENDENCIAS.md reorganizado, checkpoints de e-mail confirmados, novo bug de prerender achado |
 | 16/08 | Segurança | Fases 6, 7 e 8/8 — auditoria de admin-auth concluída, `import-storage`/`convert-to-webp` removidas (R-072) |
 | 16/08 | Segurança | Mais 3 functions de conteúdo por IA passam a exigir auth — Fase 5/8 (R-071) |
 | 16/08 | Segurança | 3 functions de geração de conteúdo por IA passam a exigir auth — Fase 4/8 (R-070) |

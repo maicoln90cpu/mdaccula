@@ -88,7 +88,8 @@ Deno.serve(async (req) => {
     // ---- 3. Database size (via RPC pg_database_size) ----
     const dbSizeP = admin.rpc("get_db_size").then(
       (r) => ({ bytes: Number(r.data || 0), error: r.error?.message }),
-    ).catch((e) => ({ bytes: 0, error: (e as Error).message }));
+      (e) => ({ bytes: 0, error: (e as Error).message }),
+    );
 
     // ---- 3b. Edge function invocations (Management API + fallback Logs Explorer) ----
     const edgeInvocationsP = fetch(
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
 
     // ---- 4. Auth users count ----
     const authUsersP = admin.auth.admin.listUsers({ page: 1, perPage: 1 }).then(
-      (r) => ({ total: r.data?.total ?? 0, error: r.error?.message }),
+      (r) => ({ total: r.error ? 0 : (r.data.total ?? 0), error: r.error?.message }),
     ).catch((e) => ({ total: 0, error: e.message }));
 
     // ---- 5. Storage usage per bucket (direct query on storage.objects) ----
@@ -125,7 +126,7 @@ Deno.serve(async (req) => {
             continue;
           }
           const files = data.filter((f) => f.id);
-          const bytes = files.reduce((s, f: { metadata?: { size?: number } }) => s + (f.metadata?.size || 0), 0);
+          const bytes = files.reduce<number>((s, f) => s + (f.metadata?.size || 0), 0);
           results.push({ bucket: b, bytes, files: files.length });
         }
         return results;

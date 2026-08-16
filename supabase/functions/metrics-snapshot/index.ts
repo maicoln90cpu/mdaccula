@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
       for (const b of buckets) {
         const { data } = await admin.storage.from(b).list("", { limit: 1000 });
         const files = (data || []).filter((f) => f.id);
-        const bytes = files.reduce((s, f: { metadata?: { size?: number } }) => s + (f.metadata?.size || 0), 0);
+        const bytes = files.reduce<number>((s, f) => s + (f.metadata?.size || 0), 0);
         bucketResults.push({ bucket: b, bytes, files: files.length });
       }
       supabaseSnapshot.storage = {
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
       // auth users
       const u = await admin.auth.admin.listUsers({ page: 1, perPage: 1 });
-      supabaseSnapshot.users = u.data?.total ?? 0;
+      supabaseSnapshot.users = u.error ? 0 : (u.data.total ?? 0);
     } catch (e) {
       supabaseSnapshot.error = (e as Error).message;
     }

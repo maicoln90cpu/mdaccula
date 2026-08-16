@@ -41,16 +41,29 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ### Risco residual do R-062: janela estreita onde o cron de limpeza pode liberar um evento que na verdade já teve campanha criada na E-goi
 **Contexto:** a correção do R-062 (ver `CHANGELOG.md`) fechou a lacuna principal — uma linha `event_email_campaigns` só fica em `in_progress` (o estado que o cron `heal-stuck-email-dispatches` considera "seguro pra liberar") ANTES de qualquer chamada à E-goi. Mas ainda existe uma janela estreita: se a Edge Function morrer bem NO MEIO da chamada à E-goi (depois de enviar a requisição, antes de receber/processar a resposta), não há como saber se a E-goi recebeu e processou o pedido ou não. Nesse caso raro, o cron de limpeza liberaria a reserva achando que nada foi criado, quando pode ter sido — permitindo, em tese, uma recriação/duplicação.
-**Por que não foi resolvido agora:** resolver isso por completo exigeria a E-goi suportar uma chave de idempotência no payload de criação de campanha (pra a mesma requisição, reenviada, nunca criar 2 campanhas) — a API v3 da E-goi não parece expor esse recurso hoje.
+**Por que não foi resolvido agora:** resolver isso por completo exigiria a E-goi suportar uma chave de idempotência no payload de criação de campanha (pra a mesma requisição, reenviada, nunca criar 2 campanhas) — a API v3 da E-goi não parece expor esse recurso hoje.
 **Mitigação existente:** a janela é muito menor que antes (só durante a chamada de rede em si, não o processo inteiro entre claim e confirmação) e o timeout de 25s em `egoiRequest`/`sendEgoiCampaign` limita seu tamanho máximo. Um evento que passa por essa janela específica muito raramente teria, na pior hipótese, uma campanha duplicada criada na E-goi (nunca um envio duplicado silencioso sem rastro — o histórico sempre registra as duas tentativas).
 **Passos (se algum dia quiser fechar de vez):** avaliar com a E-goi se existe algum campo de idempotência não documentado, ou aceitar o risco residual (avaliação atual: baixo, dado o tamanho da janela).
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa, é um risco residual conhecido e documentado.
 
-### `deno check` acusa 8 erros de tipo pré-existentes em `metrics-snapshot` e `supabase-usage` (não bloqueiam deploy nem `npm run test:edge`)
-**Contexto:** descoberto em 15/08/2026 ao validar a unificação de `MANAGEMENT_API_PAT`/`MANAGEMENT_API_TOKEN` (ver `CHANGELOG.md`) — rodei `deno check` nos dois arquivos por precaução e os erros já existiam antes da minha edição (confirmado com `git stash` + `deno check` no código original). São 3 padrões: (1) `Array.prototype.reduce` em `FileObject[]` do Supabase Storage sem tipar o acumulador explicitamente, o TS infere errado; (2) `admin.auth.admin.listUsers(...)` — o tipo de retorno da lib não expõe `.total` no branch de erro, mas o código lê `.data?.total` direto; (3) um `.catch()` encadeado em cima de uma `Promise` que o TS só enxerga como `PromiseLike` (sem `.catch`) por causa de um `.then()` anterior. `npm run test:edge` (que roda `deno test`, não `deno check`) passa normal porque nenhum teste importa esses dois arquivos — então isso nunca apareceu no CI.
-**Por que não corrigi agora:** fora do escopo do que foi pedido (unificação de secret), e mexer nos tipos exigiria reescrever os `reduce`/`.then()` com cuidado pra não mudar comportamento — prefiro fazer isso como uma tarefa própria, com teste dedicado.
-**Passos:** tipar explicitamente o acumulador dos `reduce` (`{bytes: number, files: number}` em vez de inferir de `FileObject`), tratar o branch `{users: []}` de `listUsers` sem `.total`, e trocar o `.then().catch()` por `try/catch` ou `.then(fn, errFn)`.
-**Responsável:** ninguém aloca ainda — baixa prioridade (compila e roda hoje; é só o `deno check` isolado que reclama).
+### Pipeline de prerender SEO: nenhum commit de HTML gerado desde a criação do workflow (19/07/2026)
+**Contexto:** o workflow `.github/workflows/prerender.yml` roda agendado 1x/dia (09:00 UTC) desde 19/07/2026 e só commita `public/_prerendered/**` quando há mudança real no HTML gerado (`git diff --cached --quiet` → se vazio, não commita). Auditoria de documentação de 16/08/2026 (quase 1 mês depois — bem além do checkpoint original de "~20/07/2026, 1-2 dias após o primeiro agendamento") confirmou via `git log -- public/_prerendered` e `git log --all --grep=prerender -i` que **nenhum commit automático desse tipo existe no histórico**, e a pasta `public/_prerendered/` nem existe localmente no working tree. Já existe um commit de correção anterior, `fix(ci): corrige E2E travado (bun->npm) e conflito de push no prerender` (`4c48e9e`), o que indica que o workflow já tinha falhado antes por conflito de push — mas mesmo depois dessa correção, zero commits novos apareceram.
+**Por que não foi possível confirmar a causa raiz agora:** o comando `gh run list --workflow=prerender.yml` foi bloqueado pelo classificador de permissões desta sessão (ação não autorizada automaticamente); esta sessão não teve acesso direto ao histórico de execuções do GitHub Actions.
+**Passos:**
+1. Abrir a aba Actions do GitHub e conferir o histórico de execuções de "Prerender SEO" — está falhando silenciosamente em algum step, ou simplesmente não está sendo disparada pelo `schedule`?
+2. Se estiver falhando, checar o log dos steps "Gerar HTML pré-renderizado" (`node scripts/prerender.mjs`) e "Commitar HTML gerado".
+3. Se preferir não esperar o próximo agendamento, disparar manualmente via `workflow_dispatch` e observar o resultado ao vivo.
+**Responsável:** usuário confere a aba Actions (acesso que esta sessão não tem); IA investiga o script/workflow se solicitado.
+
+### Deploy da Edge Function `mcp` falha com 413 (bundle de 26MB)
+**Status:** 🔧 Contornado (04/08/2026) — pipeline não trava mais, mas a function `mcp` em si segue sem deploy até a causa raiz ser corrigida.
+**Contexto:** `supabase/functions/mcp/index.ts` é auto-gerado por `@lovable.dev/mcp-js@0.24.0`, que traz `esbuild` como dependência direta (não dev). O bundler do Deno inclui os binários nativos do esbuild no pacote final (~26MB) — a API do Supabase rejeita com `413 request entity too large`. Como `.github/workflows/deploy-edge-functions.yml` deployava tudo num comando só (`supabase functions deploy` sem argumentos, ordem alfabética), essa falha derrubava o deploy de TODA function cujo nome vem depois de "mcp" alfabeticamente (`send-mass-newsletter`, `upload-csv`, `sitemap`, `systemhealth`, `track-*`, `weekly/weekend-digest-draft` etc.) — um bug de infraestrutura sério, presente desde antes desta auditoria, achado ao tentar deployar a Fase 1 da correção de auth.
+**Mitigação aplicada:** workflow dividido em 2 passos — todas as functions exceto `mcp` deployam juntas (sem risco de bloqueio); `mcp` deploya isolada com `continue-on-error: true`, então se falhar só ela fica desatualizada, sem travar as outras 56.
+**Passos pra correção definitiva:** avaliar se `defineMcp`/`defineTool` do `@lovable.dev/mcp-js` têm uma forma de importar só o runtime (sem puxar `esbuild`) — ou reescrever `mcp/index.ts` à mão (tomando posse do arquivo removendo o banner "AUTO-GENERATED", conforme o próprio comentário do arquivo permite) implementando os 3 tools (`list_upcoming_events`, `get_event`, `list_blog_posts`) direto com `@supabase/supabase-js`, sem depender do framework de build da lib.
+**Observação desta auditoria (16/08/2026):** existe uma edição local não commitada em `supabase/functions/mcp/index.ts` (reduz o arquivo de 177 para ~2 linhas) — parece um WIP em andamento seguindo exatamente a segunda opção acima (reescrita manual), ainda incompleto e não commitado. Não mexi nele nesta auditoria de documentação.
+**Responsável:** decisão do usuário sobre qual caminho (esperar fix upstream vs. reescrever à mão), depois IA implementa.
+
+---
 
 ## 👀 Monitoramento
 
@@ -66,6 +79,7 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 ### Checkpoint: acompanhar as próximas execuções reais da Geração por Tema (Fase 1)
 **Checar em:** próximos 3-5 ciclos do cron (a cada intervalo configurado, hoje 48h) ou próximas vezes que "Forçar Geração Agora" for usado
 **Contexto:** Fase 1 (pipeline estrito 1-fonte-1-matéria, R-048) teve 3 hotfixes consecutivos no mesmo dia do deploy — página de listagem escolhida como matéria (Play BPM), plataforma de ticketing escolhida como fonte (Sympla), página utilitária escolhida como matéria (House Mag/login). Os 3 casos foram corrigidos, mas o padrão sugere que a estrutura de link de cada fonte real ainda não foi totalmente validada contra o filtro de descoberta.
+**Atualização (16/08/2026):** as gerações `auto_cron` mais recentes em `ai_generated_posts` (10/08 a 14/08/2026, 5 no total) apontam todas para URLs de matéria específica (djnews, playbpm, alataj×2, housemag) — nenhum dos 3 padrões problemáticos (listagem/plataforma/página institucional) se repetiu desde os hotfixes. Ainda falta a checagem visual em `/admin/blog` (item qualitativo que só o usuário consegue confirmar com segurança) — se o próximo ciclo também vier limpo, dá pra encerrar este checkpoint.
 **Passos:**
 1. Depois de cada geração automática (forçada ou pelo cron), abrir `/admin/blog` e conferir se o artigo gerado corresponde de fato a uma matéria real existente na fonte (a URL em `ai_generated_posts.source_urls` bate com uma matéria específica, não homepage/listagem/institucional).
 2. Se aparecer outro `skipped-source-article-unusable` ou `skipped-no-new-articles` nos logs (`application_logs`, filtro `Auto-geração`) sem nenhum artigo saindo, reportar a URL/fonte específica pra eu ajustar o filtro — mesmo padrão dos 3 hotfixes anteriores.
@@ -75,64 +89,28 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 ### Checkpoint: `event_sources.content_source` do WeGoOut voltou pra `true` sozinho — causa raiz não confirmada
 **Checar em:** próximas 2 semanas — conferir semanalmente se algum artigo saiu de Sympla/Ingresse/WeGoOut de novo
 **Contexto:** em 09/08/2026, corrigi `content_source=false` pras 3 plataformas de ticketing (Sympla, Ingresse, WeGoOut) às 00:22 UTC (confirmado por SELECT logo em seguida). Por volta de 00:34 UTC — 12 minutos depois, sem eu ter rodado nenhum UPDATE nesse intervalo — o `WeGoOut` (só ele, Sympla/Ingresse continuaram corretos) tinha voltado pra `content_source=true`, e o `auto-article-cron` gerou um rascunho reescrevendo uma página de evento do WeGoOut como se fosse notícia (mesmo padrão do bug original). Busquei em todo o código por qualquer INSERT/UPDATE que grave `content_source` — só achei `FontesManager.tsx` (client-side, exige ação manual de um admin no `/admin/fontes`) e as duas queries de leitura (`auto-article-cron`, `generate-blog-suggestions`). Nenhum cron/webhook/trigger no banco escreve nessa coluna. Corrigido de novo às 01:29 UTC (confirmado). Não consegui confirmar a causa raiz — pode ter sido uma edição real no `/admin/fontes` (o toggle novo da coluna "Conteúdo" foi ao ar nesse mesmo commit) enquanto eu testava, ou algo que não encontrei.
+**Atualização (16/08/2026):** conferido direto no banco — as 3 (`Sympla`, `Ingresse`, `WeGoOut`) seguem `content_source=false`, `updated_at` ainda em `2026-08-10 01:29:52 UTC` (a correção de 10/08, sem nenhuma reversão desde então). Já se passou mais de 1 semana das 2 previstas sem repetir o comportamento — se continuar estável até ~23/08/2026, este checkpoint pode ser encerrado.
 **Passos:**
 1. Rodar `select name, type, content_source, updated_at from event_sources where name in ('Sympla','Ingresse','WeGoOut') and type='site';` — as 3 devem estar `false`. Se alguma voltar `true` sem explicação (ninguém mexeu no toggle em `/admin/fontes`), é sinal de um bug real ainda não encontrado — me avisar.
 2. Se acontecer de novo, checar `updated_at` de cada linha pra ver se bate com uma sessão de edição manual conhecida.
 **Responsável:** usuário confere periodicamente; IA investiga mais fundo se voltar a acontecer
 
----
-
-### Checkpoint: confirmar que o prerender SEO está rodando e gerando HTML correto
-**Checar em:** ~20/07/2026 (1-2 dias após o primeiro agendamento)
-**Contexto:** Pipeline de prerender via GitHub Actions (`.github/workflows/prerender.yml`) implementado e testado manualmente em 19/07/2026 contra o site real (título/JSON-LD corretamente hidratados por rota) — ver entrada no [`CHANGELOG.md`](CHANGELOG.md). Falta confirmar que a primeira execução agendada (09:00 UTC / 06:00 BRT) rodou e commitou `public/_prerendered/**` de verdade.
-**Passos:**
-1. Conferir a aba Actions do GitHub (`.github/workflows/prerender.yml`) — a run agendada rodou sem erro?
-2. Conferir se um novo commit `chore(prerender): atualiza HTML pré-renderizado [skip ci]` apareceu no histórico.
-3. `curl -A "facebookexternalhit"` numa rota de evento publicada e confirmar que o HTML já vem com título/JSON-LD específicos, não o genérico da home.
-**Responsável:** IA confere quando solicitado
-
----
-
 ### Checkpoint: confirmar redução de banda do Bunny CDN e decidir sobre Cloudflare
-**Checar em:** ~02/08/2026 (15 dias após o rollout)
+**Checar em:** ~02/08/2026 (15 dias após o rollout) — já vencido; sem acesso ao painel de billing do Bunny nesta sessão pra reconfirmar
 **Contexto:** Rollout de variantes de imagem (thumb/medium) concluído em 18/07/2026 — ver entrada no [`CHANGELOG.md`](CHANGELOG.md). Falta confirmar com tráfego real se a banda caiu como esperado.
 **Passos:**
 1. Rodar o botão **"Gerar Variantes para Eventos Ativos"** em `/admin/settings` → aba Mídia (ferramenta pronta, ainda não foi clicado).
 2. Depois de ~15 dias de tráfego real, comparar em `/admin` → Métricas Reais → aba Bunny CDN a média de bytes/requisição contra o baseline anotado (~337KB/req, ~90GB/mês, ~$4-5/mês do item de banda).
 3. Só reconsiderar Cloudflare-na-frente-do-Bunny se o custo continuar alto mesmo após a queda esperada — origin traffic do Bunny já é só 1,3% da banda total (cache já é eficiente), então o ganho do Cloudflare tende a ser baixo: ele reduziria *quem fatura* a banda, não os bytes entregues. Se o total de ~$10/mês não cair proporcionalmente, conferir também a fatura detalhada do Bunny (pode ter taxa mínima/storage não relacionado a banda).
-**Responsável:** usuário revisa as métricas; IA confere se solicitado
+**Responsável:** usuário revisa as métricas (painel do Bunny); IA confere se solicitado
 
----
-
-### Checkpoint: primeiro ciclo real de Digest semanal / Agenda do FDS com registro de histórico ligado
-**Checar em:** ~11/08/2026 (terça — Digest semanal) e ~13/08/2026 (quinta — Agenda do FDS)
-**Contexto:** o registro de histórico dessas 2 automações em `event_email_campaigns` (via `writeDigestCampaignHistory`) foi ligado em 08/08/2026 — mas como cada uma só roda 1x por semana (terça e quinta), nenhuma teve chance de rodar ainda. O envio de e-mail em si funciona há tempos (confirmado pelo usuário); só a parte de aparecer no Dashboard é nova. Não é bug — só falta o primeiro ciclo pra confirmar que a linha é gravada como esperado.
-**Passos:**
-1. Depois de terça (Digest semanal) e quinta (Agenda do FDS), conferir em `/admin/email-config` → Dashboard se as duas aparecem.
-2. Se alguma não aparecer, checar `event_email_campaigns` direto no banco (`campaign_type` = `weekly_digest`/`weekend_agenda`) pra ver se a linha foi gravada com erro, ou se não foi gravada de jeito nenhum (nesse caso, investigar por que `writeDigestCampaignHistory` não completou).
-**Responsável:** IA confere quando solicitado
-
----
-
-### Checkpoint: primeiro envio de Blog news com registro de histórico ligado
-**Checar em:** 09/08/2026, ~16h UTC (13h BRT) — próximo disparo do cron `blog-digest-cron`
-**Contexto:** `blog-digest-draft` passou a chamar `writeDigestCampaignHistory()` em 09/08/2026 (ver `CHANGELOG.md`), poucas horas antes do disparo semanal (domingo). É o primeiro teste real dessa gravação — o envio de e-mail em si não foi alterado, só o registro depois.
-**Passos:**
-1. Depois do disparo, conferir em `/admin/email-config` → Dashboard/Histórico se "Blog news" aparece.
-2. Se não aparecer, checar `event_email_campaigns` (`campaign_type = 'blog_digest'`) — se a linha não existe, o insert falhou silenciosamente (o e-mail ainda teria sido enviado normalmente, já que a gravação acontece depois).
-**Responsável:** IA confere quando solicitado
-
----
-
-### 👀 Checkpoint: branch de produção com `status: MIGRATIONS_FAILED` — confirmado SEM relação com o bug do disparo manual de e-mail
+### Checkpoint: branch de produção com `status: MIGRATIONS_FAILED` — confirmado SEM relação com o bug do disparo manual de e-mail
 **Checar em:** quando o usuário quiser investigar o branch em si (não é mais bloqueante pra nada)
 **Contexto:** bem no início da investigação do disparo do Sirius (fase do R-053), `list_branches` mostrou o branch padrão/produção do projeto (`project_ref: xfvpuzlspvvsmmunznxw`) com `status: "MIGRATIONS_FAILED"`. Chegou a ser cogitado como relacionado (RLS/grants de `event_email_campaigns` num estado inesperado), mas o R-059 achou e confirmou a causa raiz real do `dispatch_in_progress` (comportamento do PostgREST reaplicando o filtro do claim sobre o valor recém-gravado — nada a ver com RLS, grants ou migrations) — então esse branch fica como um item de infraestrutura independente, sem urgência ligada a este bug.
 **Passos (se/quando o usuário quiser resolver):**
 1. Rodar `list_branches`/`list_migrations` de novo e identificar qual migration específica está travada/falhou.
 2. Decidir com o usuário se vale corrigir esse branch (aplicar/reverter a migration travada) por motivos próprios, independente do disparo de e-mail.
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa impactando nada em produção hoje.
-
----
 
 ### Checkpoint: Apify/Instagram aguardando post real para validar o webhook
 **Checar em:** sem data fixa — depende de quando o Alataj (ou outra fonte reativada) postar algo novo
@@ -151,34 +129,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Já feito (etapa 1 de 2, 15/08/2026):** auditoria do Lovable confirmou o escopo real — 58 arquivos importam do router, só 1 rota splat (`path="*"` do NotFound, `src/App.tsx`, sem rotas relativas dentro dela), nenhum uso de `createBrowserRouter`/loaders/actions/fetchers (só `<Routes>`/`<Route>` clássico). Das 6 future flags que viram padrão na v7, só 2 afetam este projeto de verdade: `v7_startTransition` (por causa do lazy loading pesado — pode mudar o timing de quando o fallback do `Suspense` aparece numa troca de rota) e `v7_relativeSplatPath` (impacto quase nulo aqui). Ativadas as duas no `<BrowserRouter future={{...}}>` (`src/App.tsx`) ainda na v6.30 — separa "mudança de comportamento" de "mudança de versão", pra saber exatamente qual das duas causou algo se aparecer um problema. Testado manualmente (dev local): navegação admin, troca de rota lazy, voltar/avançar do navegador, deep-link direto numa rota lazy (`/admin/email-config`) e a rota 404/splat — sem erro no console, sem regressão visível. `tsc`/testes automatizados também verdes.
 **Ainda falta (etapa 2 — o bump de versão em si):** aplicar `npm audit fix --force` (ou `npm install react-router-dom@7`) numa branch separada, rodar a suíte completa de novo, e repetir a mesma validação manual acima antes de mergear.
 **Responsável:** decisão do usuário — é uma atualização de dependência de peso real, não uma correção pontual.
-
----
-
-## 🔧 Bugs Conhecidos
-
-### Deploy da Edge Function `mcp` falha com 413 (bundle de 26MB)
-**Status:** 🔧 Contornado (04/08/2026) — pipeline não trava mais, mas a function `mcp` em si segue sem deploy até a causa raiz ser corrigida.
-**Contexto:** `supabase/functions/mcp/index.ts` é auto-gerado por `@lovable.dev/mcp-js@0.24.0`, que traz `esbuild` como dependência direta (não dev). O bundler do Deno inclui os binários nativos do esbuild no pacote final (~26MB) — a API do Supabase rejeita com `413 request entity too large`. Como `.github/workflows/deploy-edge-functions.yml` deployava tudo num comando só (`supabase functions deploy` sem argumentos, ordem alfabética), essa falha derrubava o deploy de TODA function cujo nome vem depois de "mcp" alfabeticamente (`send-mass-newsletter`, `upload-csv`, `sitemap`, `systemhealth`, `track-*`, `weekly/weekend-digest-draft` etc.) — um bug de infraestrutura sério, presente desde antes desta auditoria, achado ao tentar deployar a Fase 1 da correção de auth.
-**Mitigação aplicada:** workflow dividido em 2 passos — todas as functions exceto `mcp` deployam juntas (sem risco de bloqueio); `mcp` deploya isolada com `continue-on-error: true`, então se falhar só ela fica desatualizada, sem travar as outras 56.
-**Passos pra correção definitiva:** avaliar se `defineMcp`/`defineTool` do `@lovable.dev/mcp-js` têm uma forma de importar só o runtime (sem puxar `esbuild`) — ou reescrever `mcp/index.ts` à mão (tomando posse do arquivo removendo o banner "AUTO-GENERATED", conforme o próprio comentário do arquivo permite) implementando os 3 tools (`list_upcoming_events`, `get_event`, `list_blog_posts`) direto com `@supabase/supabase-js`, sem depender do framework de build da lib.
-**Responsável:** decisão do usuário sobre qual caminho (esperar fix upstream vs. reescrever à mão), depois IA implementa.
-
-### `send-podcast-notification` sem rate limiting
-**Contexto:** achado durante a auditoria de admin-auth (`docs/PENDENCIAS.md`, encerrada em 16/08/2026 — ver R-072 no `CHANGELOG.md`) — não é um caso de "esqueceram auth", é chamada por um formulário público real (`Podcast.tsx`), então não faz sentido exigir login. O gap real é não ter limite de envio, diferente de `send-contact-email`/`request-data-deletion`, que já têm.
-**Passos:** aplicar o mesmo padrão de rate limiting por IP já usado em `send-contact-email`/`request-data-deletion`.
-**Responsável:** decisão do usuário sobre prioridade — não é uma falha explorada, é uma proteção que falta.
-
-### `compose-event-image` sem autenticação (precisa de secret interno, não JWT de admin)
-**Contexto:** achado durante a auditoria de admin-auth (encerrada em 16/08/2026 — ver R-072 no `CHANGELOG.md`) — tem 2 chamadores server-to-server sem sessão de usuário (`scan-event-sources`, `apify-instagram-webhook`), então exigir JWT de admin quebraria essas automações. Precisa de um secret interno compartilhado (mesma ideia da opção `allowServiceRole` adicionada em `authorizeAdminOrCron()` na Fase 4, ou um secret dedicado em `internal_cron_secrets`), não é cópia mecânica do padrão usado nas outras functions.
-**Passos:** decidir e implementar o mecanismo de auth interno (service role key vs secret dedicado) e aplicar em `compose-event-image`.
-**Responsável:** decisão do usuário sobre qual mecanismo e quando priorizar.
-
-### Leaked Password Protection desabilitado
-**Status:** 🚫 Não aplicável — decisão do usuário (03/08/2026)
-**Contexto:** o recurso exige configuração no painel do Supabase e o projeto não tem assinatura para isso. Fica intencionalmente **OFF**; não reabrir como pendência em auditorias futuras.
-**Mitigação existente:** acesso ao `/admin` é restrito por `user_roles` + `has_role()`; não há cadastro público de usuários no site.
-
-
 
 ---
 

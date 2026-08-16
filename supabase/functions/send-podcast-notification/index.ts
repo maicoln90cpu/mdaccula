@@ -12,6 +12,44 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ============= RATE LIMIT =============
+// Mesmo padrão inline usado em request-data-deletion/send-contact-email — formulário
+// público real (Podcast.tsx), não precisa de auth, mas precisa de limite de envio.
+const rateLimitMap = new Map<string, { count: number; timestamp: number }>();
+const MAX_REQUESTS_PER_HOUR = 3;
+const RATE_LIMIT_WINDOW_MS = 3600000; // 1 hora
+
+function isRateLimited(ip: string, resourceId?: string, maxRequests = 10, windowMs = 60000): boolean {
+  const key = resourceId ? `${ip}:${resourceId}` : ip;
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+
+  if (rateLimitMap.size > 10000) {
+    const cutoff = now - windowMs * 2;
+    for (const [k, e] of rateLimitMap.entries()) {
+      if (e.timestamp < cutoff) rateLimitMap.delete(k);
+    }
+  }
+
+  if (!entry || now - entry.timestamp > windowMs) {
+    rateLimitMap.set(key, { count: 1, timestamp: now });
+    return false;
+  }
+
+  if (entry.count >= maxRequests) return true;
+  entry.count++;
+  return false;
+}
+
+function getClientIP(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
 // ============= TYPES =============
 interface PodcastSubmissionData {
   id: string;
@@ -254,6 +292,15 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const clientIP = getClientIP(req);
+    if (isRateLimited(clientIP, undefined, MAX_REQUESTS_PER_HOUR, RATE_LIMIT_WINDOW_MS)) {
+      console.log(`Rate limited: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ error: "Muitas solicitações. Tente novamente mais tarde.", success: false }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
       throw new Error("RESEND_API_KEY not configured");

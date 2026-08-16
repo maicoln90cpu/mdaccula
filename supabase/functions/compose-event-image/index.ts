@@ -5,13 +5,24 @@
 // também hospedada no Bunny. Usado tanto pelo fluxo de raspagem de sites quanto
 // pelo fluxo de Instagram (Fase B do Event Watcher).
 //
-// Design deliberado: single-file, sem import de ../_shared/ e sem
+// Design deliberado: single-file, sem import relativo de ../_shared/ e sem
 // EdgeRuntime.waitUntil — evita por construção o bug de deploy documentado em
-// scan-event-sources/index.ts (BOOT_ERROR em payload multi-arquivo + waitUntil real).
+// scan-event-sources/index.ts (BOOT_ERROR em payload multi-arquivo + waitUntil real,
+// só reproduzido via ferramenta MCP deploy_edge_function — não usada como caminho
+// normal deste projeto, que deploya via GitHub Actions/CLI oficial). O import
+// `npm:@supabase/supabase-js` abaixo é seguro: não é um import relativo de arquivo
+// local, então não entra no bundling multi-arquivo que causa o BOOT_ERROR.
+//
+// Auth (16/08/2026): checagem inlinada aqui em vez de importada de
+// ../_shared/index.ts (authorizeAdminOrCron), pra manter a política acima —
+// aceita a SUPABASE_SERVICE_ROLE_KEY como Bearer (chamadores server-to-server:
+// scan-event-sources, apify-instagram-webhook) OU um JWT de admin (chamador
+// real: botão de teste manual em /admin/settings, MediaSettings.tsx).
 //
 // Qualquer falha em qualquer etapa cai no fallback: devolve a imagem original sem
 // alteração (composed:false) — nunca lança erro, nunca bloqueia quem chamou.
 import { Image, TextLayout } from "https://deno.land/x/imagescript@1.3.0/mod.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,6 +39,30 @@ function jsonResponse(data: Record<string, unknown>, status = 200): Response {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function checkAuthorized(
+  req: Request,
+): Promise<{ authorized: boolean; status: number; message?: string }> {
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader) return { authorized: false, status: 401, message: "Não autenticado" };
+  const token = authHeader.replace("Bearer ", "");
+
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (serviceRoleKey && token === serviceRoleKey) {
+    return { authorized: true, status: 200 };
+  }
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!);
+  const { data: userData, error: userErr } = await anonClient.auth.getUser(token);
+  if (userErr || !userData.user) return { authorized: false, status: 401, message: "Token inválido" };
+
+  const admin = createClient(supabaseUrl, serviceRoleKey!);
+  const { data: isAdmin } = await admin.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
+  if (!isAdmin) return { authorized: false, status: 403, message: "Apenas admins" };
+
+  return { authorized: true, status: 200 };
 }
 
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number): Promise<Response> {
@@ -156,6 +191,11 @@ async function composeImage(imageUrl: string, title: string): Promise<string> {
 Deno.serve(async (req) => {
   const preflight = handleCorsPreFlight(req);
   if (preflight) return preflight;
+
+  const auth = await checkAuthorized(req);
+  if (!auth.authorized) {
+    return jsonResponse({ error: auth.message ?? "Não autorizado", success: false }, auth.status);
+  }
 
   let body: { imageUrl?: unknown; title?: unknown };
   try {
