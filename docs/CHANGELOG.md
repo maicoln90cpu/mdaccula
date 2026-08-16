@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### Segurança: mais 3 functions de conteúdo por IA passam a exigir auth — Fase 5 de 8 (R-071)
+**Descrição:** continuação da auditoria de auth admin (`docs/PENDENCIAS.md`) — `generate-multi-event-article` (artigo unindo vários eventos), `regenerate-blog-image` (gera nova imagem de capa via IA) e `preview-topic-sources` (busca real via Firecrawl, sem IA) não tinham nenhuma checagem de auth. As 3 são chamadas só pelo painel admin (sem chamador server-to-server), então usam o caminho simples de `authorizeAdminOrCron()`, sem a opção `allowServiceRole` da Fase 4.
+**Correção:** guarda aplicada logo após a criação do client Supabase em cada function, antes de qualquer leitura/escrita real ou chamada de IA/Firecrawl.
+**Data:** 16/08/2026
+**Responsável:** IA, a pedido do usuário — desta vez os contract tests só rodaram depois do deploy confirmado (lição da Fase 4 aplicada), sem nenhum efeito colateral: `select count(*) from blog_posts where created_at > now() - interval '15 minutes'` = 0 antes de declarar a fase concluída.
+**Impacto:** fecha mais 3 pontos sem login. Faltam as Fases 6-8 (6 functions restantes: `diagnose-media`, `batch-convert-webp`, `convert-to-webp`, `import-storage`, `fetch-link-metadata`, `systemhealth`).
+
+**Arquivos alterados:** `supabase/functions/generate-multi-event-article/index.ts`, `supabase/functions/regenerate-blog-image/index.ts`, `supabase/functions/preview-topic-sources/index.ts`, `src/__tests__/contracts/{generate-multi-event-article-auth,regenerate-blog-image-auth,preview-topic-sources-auth}.test.ts` (novos), `docs/PENDENCIAS.md`.
+
+---
+
 ### Segurança: 3 functions de geração de conteúdo por IA passam a exigir auth — Fase 4 de 8 (R-070)
 **Descrição:** continuação da auditoria de auth admin (`docs/PENDENCIAS.md`) — `generate-blog-post-v2`, `generate-blog-post-from-topic` e `generate-blog-suggestions` disparavam geração real por IA (custo direto, publica no blog) sem nenhuma checagem de auth no código. As 2 primeiras têm um complicador que as outras fases não tinham: são chamadas server-to-server por `scan-event-sources`, `apify-instagram-webhook` e `auto-article-cron`, usando a `SUPABASE_SERVICE_ROLE_KEY` como Bearer (sem sessão de usuário real nem cron-secret dedicado) — exigir JWT de admin ali quebraria essas 3 automações.
 **Correção:** `authorizeAdminOrCron()` (`supabase/functions/_shared/index.ts`) ganhou uma opção nova, `allowServiceRole`, que aceita a própria service role key como credencial válida — ligada só nas 2 functions com chamador server-to-server; `generate-blog-suggestions` (só chamada pelo painel admin) usa o caminho simples, sem a opção nova.
@@ -1394,6 +1405,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 16/08 | Segurança | Mais 3 functions de conteúdo por IA passam a exigir auth — Fase 5/8 (R-071) |
 | 16/08 | Segurança | 3 functions de geração de conteúdo por IA passam a exigir auth — Fase 4/8 (R-070) |
 | 16/08 | Segurança | Definido o novo `CRON_SHARED_SECRET` no painel do Supabase — fecha a rotação de segredos |
 | 15/08 | Segurança | Rotacionado `apify_instagram_webhook`, o 9º e último segredo de cron pendente |
