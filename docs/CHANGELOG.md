@@ -18,6 +18,18 @@
 
 ## Entradas Detalhadas
 
+### Segurança: Fases 6, 7 e 8 de 8 — auditoria de admin-auth concluída (R-072)
+**Descrição:** fecha a auditoria de auth admin (`docs/PENDENCIAS.md`) aberta em 04/08/2026 e retomada em 15-16/08/2026 depois do repositório ficar público. Fase 6: `batch-convert-webp`, `diagnose-media` e `fetch-link-metadata` não tinham nenhuma checagem de auth — `fetch-link-metadata` em particular era um vetor de SSRF-lite (fetch de URL arbitrária, sem exigir login). Fase 7: `systemhealth` expunha contagem de usuários de auth, assinantes de newsletter e atividade recente sem login nenhum. Fase 8 (decisão do usuário, não cópia mecânica do padrão): `import-storage` e `convert-to-webp` foram **removidas** em vez de protegidas — `import-storage` tinha uma anon key de um projeto Supabase antigo (`nzbyyuqvhrwatmydxiag`) em texto puro no código, e esse projeto nem existe mais (DNS não resolve, confirmado via teste direto); `convert-to-webp` é código morto desde sempre (o próprio comentário do arquivo admite que o runtime de Edge Functions não suporta as bibliotecas de conversão, e não tinha nenhum chamador no frontend).
+**Correção:** mesmo padrão `authorizeAdminOrCron()` nas Fases 6-7; remoção completa (function + entrada em `config.toml` + botão "Importar Mídia Legada" no admin + deploy remoto apagado via CLI) na Fase 8.
+**Auditoria adicional (16/08/2026):** aproveitado pra corrigir `docs/EDGE_FUNCTIONS.md`, que nunca tinha sido atualizado com o resultado real das correções — 14 functions (das Fases 1 a 7, incluindo `send-mass-newsletter`/`import-csv-data`/`upload-csv` da Fase 1, de 04/08) continuavam listadas como "Nenhuma ⚠️" na coluna Auth mesmo já corrigidas. Também adicionada uma nota em `docs/SECURITY-AUDIT.md` (documento de 23/07/2026) avisando que sua seção "Endpoints Protegidos" está desatualizada e apontando pra `EDGE_FUNCTIONS.md` como fonte viva.
+**Data:** 16/08/2026
+**Responsável:** IA, a pedido do usuário — Fase 8 aprovada via 2 decisões explícitas (remover vs proteger cada function); cada fase confirmada por contract test contra a function já deployada, e a remoção da Fase 8 confirmada via `list_edge_functions` (functions não aparecem mais na lista remota).
+**Impacto:** fecha as 8 fases da auditoria de admin-auth — todas as functions "só admin usa" que tinham zero checagem de auth agora exigem login (ou cron-secret/service-role, conforme o caso), ou foram removidas. Restam só 2 casos à parte com tratamento diferente do padrão mecânico, registrados como pendências próprias: `send-podcast-notification` (precisa de rate limiting) e `compose-event-image` (precisa de secret interno compartilhado).
+
+**Arquivos alterados:** `supabase/functions/{batch-convert-webp,diagnose-media,fetch-link-metadata,systemhealth}/index.ts`, `supabase/functions/{import-storage,convert-to-webp}/` (removidos), `supabase/config.toml`, `src/pages/admin/DataImport.tsx`, `src/components/admin/data-import/LegacyMediaImport.tsx` (removido), `src/__tests__/contracts/{batch-convert-webp-auth,diagnose-media-auth,fetch-link-metadata-auth,systemhealth-auth}.test.ts` (novos), `docs/EDGE_FUNCTIONS.md`, `docs/SECURITY-AUDIT.md`, `docs/SYSTEM-DESIGN.md`, `README.md`, `docs/PENDENCIAS.md`.
+
+---
+
 ### Segurança: mais 3 functions de conteúdo por IA passam a exigir auth — Fase 5 de 8 (R-071)
 **Descrição:** continuação da auditoria de auth admin (`docs/PENDENCIAS.md`) — `generate-multi-event-article` (artigo unindo vários eventos), `regenerate-blog-image` (gera nova imagem de capa via IA) e `preview-topic-sources` (busca real via Firecrawl, sem IA) não tinham nenhuma checagem de auth. As 3 são chamadas só pelo painel admin (sem chamador server-to-server), então usam o caminho simples de `authorizeAdminOrCron()`, sem a opção `allowServiceRole` da Fase 4.
 **Correção:** guarda aplicada logo após a criação do client Supabase em cada function, antes de qualquer leitura/escrita real ou chamada de IA/Firecrawl.
@@ -1405,6 +1417,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 16/08 | Segurança | Fases 6, 7 e 8/8 — auditoria de admin-auth concluída, `import-storage`/`convert-to-webp` removidas (R-072) |
 | 16/08 | Segurança | Mais 3 functions de conteúdo por IA passam a exigir auth — Fase 5/8 (R-071) |
 | 16/08 | Segurança | 3 functions de geração de conteúdo por IA passam a exigir auth — Fase 4/8 (R-070) |
 | 16/08 | Segurança | Definido o novo `CRON_SHARED_SECRET` no painel do Supabase — fecha a rotação de segredos |
