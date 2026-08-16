@@ -48,6 +48,15 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 👀 Monitoramento
 
+### Checkpoint: chave antiga do Google Maps continua ativa e exposta publicamente — aguardando o Lovable revogar
+**Checar em:** a cada vez que o usuário confirmar uma resposta do suporte/Discord do Lovable, ou a cada poucos dias enquanto não houver resposta.
+**Contexto:** 15/08/2026 — GitHub Secret Scanning (ativado nesta mesma auditoria) encontrou a chave `AIzaSyBmvJph4LmrbtW7skeczzpBIyb9WWzFKo4` num commit antigo do `.env` (variável `VITE_LOVABLE_CONNECTOR_GOOGLE_MAPS_BROWSER_KEY`), marcada `publicly_leaked: true`. Testada diretamente contra a API do Google Static Maps via `curl` sem nenhum header de referrer — respondeu `200 OK` com uma imagem PNG válida (18.438 bytes, headers legítimos do Google), confirmando que está **ativa de verdade**, não é só um registro morto no histórico. O usuário procurou essa chave no próprio Google Cloud Console e não encontrou — o prefixo da variável (`VITE_LOVABLE_CONNECTOR_...`) sugere fortemente que ela foi provisionada pelo sistema de Connectors do Lovable (projeto Google Cloud gerenciado por eles), não pela conta pessoal do usuário, o que explica por que ele não tem acesso pra revogar. O usuário tentou excluir mesmo assim (não achou o item exato) e retestou — sem efeito, continua `200 OK` mesmo depois de mais de uma hora (afasta a hipótese de simples atraso de propagação do Google, que costuma ser de minutos). Prompt completo já foi entregue ao usuário pra enviar ao suporte do Lovable, pedindo confirmação de que a chave pertence ao connector deles e a revogação.
+**Passos:**
+1. Testar de novo com `curl` (`https://maps.googleapis.com/maps/api/staticmap?center=Sao+Paulo&zoom=10&size=200x200&key=AIzaSyBmvJph4LmrbtW7skeczzpBIyb9WWzFKo4`) sempre que o usuário confirmar uma resposta do Lovable — sucesso da revogação = a chamada passa a responder erro (`REQUEST_DENIED`/"invalid API key"), não mais `200 OK`.
+2. Depois de confirmada a revogação, encerrar este checkpoint (vira entrada no `CHANGELOG.md`).
+3. Reescrever o histórico do Git (`git filter-repo` ou similar) só faz sentido depois da revogação confirmada — antes disso é só cosmético, a chave exposta já deve ser tratada como comprometida independente do histórico.
+**Responsável:** usuário aciona o suporte do Lovable; IA reconfirma com teste direto quando solicitado.
+
 ### Checkpoint: acompanhar as próximas execuções reais da Geração por Tema (Fase 1)
 **Checar em:** próximos 3-5 ciclos do cron (a cada intervalo configurado, hoje 48h) ou próximas vezes que "Forçar Geração Agora" for usado
 **Contexto:** Fase 1 (pipeline estrito 1-fonte-1-matéria, R-048) teve 3 hotfixes consecutivos no mesmo dia do deploy — página de listagem escolhida como matéria (Play BPM), plataforma de ticketing escolhida como fonte (Sympla), página utilitária escolhida como matéria (House Mag/login). Os 3 casos foram corrigidos, mas o padrão sugere que a estrutura de link de cada fonte real ainda não foi totalmente validada contra o filtro de descoberta.
