@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,6 +61,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "diagnose_media_cron",
+      cronJobHeaderValue: "diagnose-media",
+    });
+    if (!auth.authorized) return json({ error: auth.message ?? "Não autorizado" }, auth.status);
 
     // Collect all Bunny CDN URLs from DB
     const allUrls: { table: string; id: string; url: string }[] = [];

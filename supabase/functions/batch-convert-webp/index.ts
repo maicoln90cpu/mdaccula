@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,6 +69,13 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "batch_convert_webp_cron",
+      cronJobHeaderValue: "batch-convert-webp",
+    });
+    if (!auth.authorized) return json({ error: auth.message ?? "Não autorizado" }, auth.status);
 
     const bucketsToProcess = bucketParam === "all" ? ALL_BUCKETS : [bucketParam];
 

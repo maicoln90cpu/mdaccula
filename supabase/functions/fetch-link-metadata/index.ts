@@ -1,3 +1,6 @@
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/index.ts";
+
 // ============= INLINE SHARED UTILITIES =============
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -63,6 +66,23 @@ Deno.serve(async (req) => {
   if (corsResponse) return corsResponse;
 
   try {
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const auth = await authorizeAdminOrCron(req, supabase, {
+      anonKey: Deno.env.get("SUPABASE_ANON_KEY")!,
+      cronSecretRowName: "fetch_link_metadata_cron",
+      cronJobHeaderValue: "fetch-link-metadata",
+    });
+    if (!auth.authorized) {
+      return new Response(
+        JSON.stringify({ error: auth.message ?? "Não autorizado", success: false }),
+        { status: auth.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { url } = await req.json();
 
     if (!url || typeof url !== 'string') {
