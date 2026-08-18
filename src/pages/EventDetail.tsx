@@ -321,7 +321,7 @@ const EventDetail = () => {
                 </div>
 
                 {/* Mobile Ticket Card */}
-                {(event.ticket_link || event.vip_link) && (
+                {(event.ticket_link || event.vip_link || useDayPicker) && (
                   <TicketCard
                     ref={primaryCtaRef}
                     className="lg:hidden"
@@ -379,7 +379,7 @@ const EventDetail = () => {
               {/* Sidebar */}
               <div className="space-y-6">
                 {/* Ticket Buttons - Desktop only */}
-                {(event.ticket_link || event.vip_link) && (
+                {(event.ticket_link || event.vip_link || useDayPicker) && (
                   <TicketCard
                     className="hidden lg:block"
                     cardTitle={ticketCardTitle}
@@ -413,14 +413,16 @@ const EventDetail = () => {
               </div>
             </div>
             {/* Reserva espaço pra barra fixa mobile não cobrir o último conteúdo */}
-            {event.ticket_link && <div className="h-20 lg:hidden" aria-hidden="true" />}
+            {(event.ticket_link || useDayPicker) && (
+              <div className="h-20 lg:hidden" aria-hidden="true" />
+            )}
           </div>
         </main>
 
         <Footer />
 
         {/* Barra de CTA fixa (mobile): reforça a compra enquanto o usuário rola a página */}
-        {event.ticket_link && (
+        {(event.ticket_link || useDayPicker) && (
           <div
             className={cn(
               'lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 p-3 backdrop-blur transition-transform duration-300',

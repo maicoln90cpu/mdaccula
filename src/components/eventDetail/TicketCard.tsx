@@ -16,6 +16,10 @@ interface TicketCardProps {
   className?: string;
 }
 
+// Um evento mesclado com "um link por dia" abre o modal de seleção — não
+// depende de ter um ticket_link único (fica null de propósito nesse caso,
+// já que o link de cada dia vem do modal, não do card).
+
 export const TicketCard = forwardRef<HTMLDivElement, TicketCardProps>(function TicketCard(
   {
     cardTitle,
@@ -35,7 +39,7 @@ export const TicketCard = forwardRef<HTMLDivElement, TicketCardProps>(function T
         <CardTitle>{cardTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {ticketLink && (
+        {(ticketLink || useDayPicker) && (
           <div ref={primaryCtaRef}>
             <TicketCtaButton
               useDayPicker={useDayPicker}
