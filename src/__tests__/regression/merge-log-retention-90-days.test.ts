@@ -7,25 +7,27 @@
  *   (cron `cleanup-old-logs-daily`, 3h da manhã), incluindo os logs
  *   `action: 'merge_events'` que guardam o snapshot usado pelo
  *   UndoMergeDialog para reconstruir o estado pré-merge. Só que
- *   `MergedEventsTab.tsx` consulta esses logs numa janela de 90 dias — bem
+ *   `MergedEventsTab.tsx` consultava esses logs numa janela de 90 dias — bem
  *   maior que os 7 dias de retenção real. Resultado: qualquer mesclagem com
  *   mais de 7 dias perdia o snapshot e o botão "Desfazer" ficava desabilitado
  *   ("Rollback só é possível via SQL manual"), mesmo com o evento principal
- *   ainda no futuro. Aconteceu de verdade com a mesclagem do evento
- *   "Parador apres. Cat Dealers e+++" (feita em 19/07/2026, log já limpo em
- *   11/08/2026 — só 23 dias depois).
+ *   ainda no futuro.
  *
- * Correção:
+ * Correção original:
  *   Migration supabase/migrations/20260811222558_extend_merge_log_retention_for_undo.sql
  *   recria `cleanup_old_logs()` para reter logs com
- *   `context->>'action' IN ('merge_events', 'undo_merge')` por 90 dias,
- *   igualando a janela que MergedEventsTab consulta. Os demais logs
- *   continuam com 7 dias.
+ *   `context->>'action' IN ('merge_events', 'undo_merge')` por 90 dias.
+ *   Essa migration continua no banco e continua correta — mantida por
+ *   segurança, mesmo não sendo mais usada (ver nota abaixo).
  *
- * Este teste é estático (sem rede): garante que a definição mais recente de
- * `cleanup_old_logs()` nas migrations continua isentando merge_events/
- * undo_merge da limpeza de 7 dias, e que a janela usada por MergedEventsTab
- * continua compatível.
+ * Atualização (R-075, 18/08/2026):
+ *   A mesclagem foi redesenhada pra nunca depender de `application_logs` —
+ *   `MergedEventsTab.tsx` agora lê os grupos direto de `events`
+ *   (`is_merge_shell`/`merged_into_id`), sem nenhum log envolvido. Isso torna
+ *   a classe de bug do R-060 estruturalmente impossível (não existe mais
+ *   nenhuma "janela" pra desalinhar), então o segundo teste abaixo foi
+ *   adaptado pra confirmar exatamente isso, em vez de checar um acoplamento
+ *   que deixou de existir.
  */
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
@@ -59,18 +61,21 @@ describe('Regressão R-060 — retenção de logs de merge_events/undo_merge', (
 
     expect(
       def,
-      'A definição mais recente de cleanup_old_logs() não exclui mais merge_events/undo_merge ' +
-        "da limpeza de 7 dias. Isso REINTRODUZ a regressão R-060 (botão 'Desfazer' mesclagem " +
-        'fica bloqueado antes do previsto). Veja docs/TESTING.md → Regressões cobertas.'
+      "A definição mais recente de cleanup_old_logs() não exclui mais merge_events/undo_merge " +
+        "da limpeza de 7 dias. Isso não quebra mais o desfazer (R-075 removeu essa dependência), " +
+        'mas a migration em si deve continuar correta. Veja docs/TESTING.md → Regressões cobertas.'
     ).toMatch(/'merge_events',\s*'undo_merge'/);
 
-    // A retenção estendida precisa cobrir pelo menos a mesma janela que
-    // MergedEventsTab consulta (90 dias) — senão o descompasso volta.
     expect(def).toMatch(/INTERVAL\s+'90 days'/);
   });
 
-  it('MergedEventsTab continua consultando a mesma janela de 90 dias assumida pelo cleanup', () => {
+  it('MergedEventsTab não depende mais de application_logs pra listar mesclagens (R-075)', () => {
     const c = read('src/components/admin/MergedEventsTab.tsx');
-    expect(c).toMatch(/90\s*\*\s*24\s*\*\s*60\s*\*\s*60\s*\*\s*1000/);
+    expect(
+      c,
+      'MergedEventsTab voltou a consultar application_logs — isso reintroduz a classe de bug ' +
+        'do R-060 (mesclagens somem da lista quando o log expira). Veja R-075 em docs/TESTING.md.'
+    ).not.toMatch(/\.from\(\s*['"]application_logs['"]\s*\)/);
+    expect(c).toMatch(/is_merge_shell/);
   });
 });

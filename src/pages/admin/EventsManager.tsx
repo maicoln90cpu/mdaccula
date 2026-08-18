@@ -96,7 +96,7 @@ const EventsManager = () => {
                       <GitMerge className="w-4 h-4 mr-2" />
                       Mesclar Eventos
                     </Button>
-                    {m.lastMergeLog && (
+                    {m.lastMergeShell && (
                       <Button
                         variant="outline"
                         onClick={() => m.setShowUndoDialog(true)}
@@ -185,7 +185,7 @@ const EventsManager = () => {
                 <MergedEventsTab
                   onChange={() => {
                     m.fetchEvents();
-                    m.fetchLastMergeLog();
+                    m.fetchLastMergeShell();
                   }}
                 />
               </TabsContent>
@@ -221,18 +221,18 @@ const EventsManager = () => {
             m.setSelectedIds(new Set());
             m.setMergeMode(false);
             m.fetchEvents();
-            m.fetchLastMergeLog();
+            m.fetchLastMergeShell();
           }}
         />
 
         <UndoMergeDialog
           open={m.showUndoDialog}
           onOpenChange={m.setShowUndoDialog}
-          log={m.lastMergeLog}
+          shell={m.lastMergeShell}
           onSuccess={() => {
             m.setShowUndoDialog(false);
             m.fetchEvents();
-            m.fetchLastMergeLog();
+            m.fetchLastMergeShell();
           }}
         />
 

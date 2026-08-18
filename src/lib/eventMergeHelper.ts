@@ -4,6 +4,7 @@
  * Nunca muta os eventos recebidos: só lê e retorna um objeto novo.
  */
 import { normalizeLineup } from '@/lib/lineupNormalizer';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface MergeableEventRow {
   id: string;
@@ -54,7 +55,7 @@ export interface MergeShellPayload {
   end_time: string | null;
   genres: string[];
   description: string | null;
-  schedule: MergeSchedulePartDay[];
+  schedule: Json;
   ticket_link: string | null;
   vip_link: string | null;
   pix_button_enabled: boolean;
@@ -67,7 +68,7 @@ export interface MergeShellPayload {
   is_merge_shell: true;
 }
 
-export function hasDistinctTicketLinks(events: Pick<MergeableEventRow, 'ticket_link'>[]): boolean {
+export function hasDistinctTicketLinks(events: { ticket_link?: string | null }[]): boolean {
   const links = events.map((e) => (e.ticket_link || '').trim()).filter(Boolean);
   return new Set(links).size > 1;
 }
@@ -111,7 +112,7 @@ export function buildMergeShellPayload(
     end_time: seed.end_time,
     genres: seed.genres,
     description: seed.description,
-    schedule,
+    schedule: schedule as unknown as Json,
     ticket_link: sharedTicketLink,
     vip_link: seed.vip_link,
     pix_button_enabled: seed.pix_button_enabled,

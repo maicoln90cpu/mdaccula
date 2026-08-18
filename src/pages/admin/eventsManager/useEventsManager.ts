@@ -7,7 +7,7 @@ import { useAutoPublishSettings } from '@/hooks/useAutoPublishSettings';
 import { buildArticlePayload } from '@/lib/eventArticlePayload';
 import { parseLocalDateTime } from '@/lib/dateUtils';
 import { logger } from '@/lib/logger';
-import type { MergeLog } from '@/components/admin/UndoMergeDialog';
+import type { MergeShellSummary } from '@/components/admin/UndoMergeDialog';
 import type { Event, StatusFilter, ArticleFilter } from './types';
 
 export function useEventsManager() {
@@ -24,7 +24,7 @@ export function useEventsManager() {
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showMergeDialog, setShowMergeDialog] = useState(false);
-  const [lastMergeLog, setLastMergeLog] = useState<MergeLog | null>(null);
+  const [lastMergeShell, setLastMergeShell] = useState<MergeShellSummary | null>(null);
   const { settings: publishSettings } = useAutoPublishSettings(['auto_publish_single_event']);
   const [showUndoDialog, setShowUndoDialog] = useState(false);
   const [showMerged, setShowMerged] = useState(false);
@@ -32,28 +32,16 @@ export function useEventsManager() {
   const [mergedPrimaryTitles, setMergedPrimaryTitles] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
-  const fetchLastMergeLog = useCallback(async () => {
-    const { data: merges } = await supabase
-      .from('application_logs')
-      .select('id, logged_at, context')
-      .eq('level', 'info')
-      .gte('logged_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-      .order('logged_at', { ascending: false })
-      .limit(50);
-    if (!merges) {
-      setLastMergeLog(null);
-      return;
-    }
-    const typedMerges = merges as unknown as MergeLog[];
-    const lastMerge = typedMerges.find((l) => l.context?.action === 'merge_events');
-    if (!lastMerge) {
-      setLastMergeLog(null);
-      return;
-    }
-    const undone = typedMerges.find(
-      (l) => l.context?.action === 'undo_merge' && l.context?.source_log_id === lastMerge.id
-    );
-    setLastMergeLog(undone ? null : lastMerge);
+  const fetchLastMergeShell = useCallback(async () => {
+    const { data } = await supabase
+      .from('events')
+      .select('id, title')
+      .eq('is_merge_shell', true)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setLastMergeShell((data as MergeShellSummary | null) || null);
   }, []);
 
   const fetchEvents = useCallback(async () => {
@@ -102,8 +90,8 @@ export function useEventsManager() {
 
   useEffect(() => {
     fetchEvents();
-    fetchLastMergeLog();
-  }, [fetchEvents, fetchLastMergeLog]);
+    fetchLastMergeShell();
+  }, [fetchEvents, fetchLastMergeShell]);
 
   useRealtimeTable('events', () => fetchEvents());
 
@@ -294,13 +282,13 @@ export function useEventsManager() {
     setShowMergeDialog,
     showMultiEventModal,
     setShowMultiEventModal,
-    lastMergeLog,
+    lastMergeShell,
     showUndoDialog,
     setShowUndoDialog,
     showMerged,
     setShowMerged,
     mergedPrimaryTitles,
     fetchEvents,
-    fetchLastMergeLog,
+    fetchLastMergeShell,
   };
 }

@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';
+import { generateSlugFromTitle } from '@/lib';
 import {
   hasDistinctTicketLinks,
   buildMergeShellPayload,
@@ -167,7 +168,7 @@ export const MergeEventsDialog = ({
       logger.debug('[merge] criando card-vitrine', { title: payload.title });
       const { data: shell, error: insertErr } = await supabase
         .from('events')
-        .insert([payload])
+        .insert([{ ...payload, slug: generateSlugFromTitle(payload.title) }])
         .select()
         .single();
       if (insertErr) throw insertErr;

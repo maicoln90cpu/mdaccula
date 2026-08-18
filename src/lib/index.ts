@@ -1,5 +1,5 @@
 // Barrel export for lib utilities
-export { cn } from './utils';
+export { cn, generateSlugFromTitle } from './utils';
 export {
   isEventVisible,
   filterVisibleEvents,
