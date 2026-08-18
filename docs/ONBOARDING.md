@@ -37,11 +37,14 @@ npm test                       # vitest — todos os testes unit/integration/con
 npm run test:coverage:ratchet  # coverage + trava o piso de .coverage-ratchet.json (o que o CI roda)
 npm run test:edge              # testes Deno de supabase/functions/ (precisa do Deno instalado)
 npm run e2e                    # Playwright E2E
-npx tsc --noEmit               # typecheck
+npx tsc --noEmit -p tsconfig.app.json   # typecheck — o tsconfig.json raiz tem files:[] e só
+                                         # references, que o tsc ignora fora de --build; sem
+                                         # -p tsconfig.app.json o comando checa 0 arquivos
 ```
 
 **Checklist antes de qualquer PR** (de `docs/TESTING.md`): `npm test` verde, `npm run
-test:coverage:ratchet` verde (cobertura nunca pode cair mais de 0.5pp), `npx tsc --noEmit` verde, e
+test:coverage:ratchet` verde (cobertura nunca pode cair mais de 0.5pp), `npx tsc --noEmit -p
+tsconfig.app.json` verde, e
 todo bug de produção corrigido ganha uma entrada em "Regressões cobertas" (`docs/TESTING.md`) + um
 teste em `src/__tests__/regression/`.
 

@@ -21,12 +21,12 @@ npm run test:coverage:ratchet  # coverage + enforce .coverage-ratchet.json floor
 npm run test:edge              # Deno tests for supabase/functions/ (needs Deno installed)
 npm run e2e                    # Playwright E2E (boots vite dev server itself)
 npm run e2e:ui                 # Playwright UI mode
-npx tsc --noEmit                # typecheck (part of the pre-merge checklist)
+npx tsc --noEmit -p tsconfig.app.json   # typecheck (part of the pre-merge checklist) — the root tsconfig.json has `files: []` and only `references`, which bare `tsc --noEmit` ignores outside `--build` mode, silently checking 0 files; always pass `-p tsconfig.app.json`
 ```
 
 `predev`/`prebuild` auto-run `scripts/generate-sitemap.mjs` and `scripts/generate-indexnow-keyfile.mjs` — don't invoke build steps out of order expecting those to be skipped.
 
-Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:coverage:ratchet` green (coverage must not drop >0.5pp — it's a versioned ratchet in `.coverage-ratchet.json`, only ever rises), `npx tsc --noEmit` green, and any production bug fix gets a new entry under "Regressões cobertas" in `docs/TESTING.md` plus a test in `src/__tests__/regression/`.
+Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:coverage:ratchet` green (coverage must not drop >0.5pp — it's a versioned ratchet in `.coverage-ratchet.json`, only ever rises), `npx tsc --noEmit -p tsconfig.app.json` green, and any production bug fix gets a new entry under "Regressões cobertas" in `docs/TESTING.md` plus a test in `src/__tests__/regression/`.
 
 ## Architecture
 

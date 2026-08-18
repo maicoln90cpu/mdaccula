@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 17/08/2026
+**Última atualização:** 18/08/2026
 
 ---
 
@@ -17,6 +17,17 @@
 ---
 
 ## Entradas Detalhadas
+
+### Mesclagem de eventos redesenhada: nunca mais muta os eventos originais (R-075)
+**Descrição:** depois da auditoria de 17/08/2026 (revert manual do merge "Parador Reveillon" por falta de snapshot, ver entrada abaixo), a mesclagem de eventos foi reescrita do zero, em 5 fases pequenas (commit+push a cada uma). Mesclar agora **cria um evento novo** ("card-vitrine", `is_merge_shell=true`) em vez de mutar um dos eventos selecionados — o nome/imagem são escolhidos livremente (entre qualquer um dos eventos ou upload novo), e `schedule`/views são agregados. Os eventos escondidos nunca têm nenhum dado próprio alterado — só ficam marcados como inativos, apontando pro card novo. Desfazer (total ou parcial) passou a funcionar sempre, em qualquer mesclagem, sem depender de nenhum log de auditoria — elimina pela raiz a classe de bug que já tinha exigido correção manual duas vezes (R-024, R-073). O botão "Comprar Ingresso" de um festival mesclado agora busca o link de cada dia ao vivo, direto dos eventos escondidos — editar o line-up/link de um dia depois da mesclagem reflete na hora, sem re-mesclar nada. `/links` continua inteiramente fora dessa feature, sem nenhuma mudança de comportamento (confirmado por teste dedicado). O único merge ativo no modelo antigo ("Nostalgia") foi convertido pro modelo novo — mesma URL, mesmo card, nada muda pro público. Uma trava nova em `EventCard.tsx` impede selecionar um card-vitrine ou evento já escondido no modo "Mesclar", evitando mesclagem encadeada.
+**Achado à parte durante a implementação:** o comando `npx tsc --noEmit` (documentado em `CLAUDE.md`/`docs/TESTING.md`/`docs/ONBOARDING.md`) estava checando **zero arquivos** neste projeto — `tsconfig.json` raiz tem `"files": []` e só usa `references`, que o `tsc` ignora fora do modo `--build`. O comando correto é `npx tsc --noEmit -p tsconfig.app.json`; os 3 documentos foram corrigidos. Rodando certo, apareceram 2 bugs reais que tinham passado despercebidos numa fase anterior deste mesmo trabalho (faltava gerar slug pro card novo; `schedule` não batia com o tipo `Json` do Supabase) — corrigidos antes de prosseguir.
+**Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm test` e `npm run test:coverage:ratchet` verdes ao final de cada uma das 5 fases (commit/push independente por fase). Conversão do merge "Nostalgia" conferida direto no banco.
+**Data:** 18/08/2026
+**Responsável:** IA, a pedido do usuário — desenhado com `superpowers:brainstorming` (2 rodadas de perguntas + 10 exemplos práticos aprovados antes de codar) e implementado fase a fase com `superpowers:writing-plans`/`executing-plans`.
+
+**Arquivos alterados:** `supabase/migrations/20260818140000_add_is_merge_shell_to_events.sql`, `src/lib/eventMergeHelper.ts`, `src/lib/utils.ts`, `src/lib/index.ts`, `src/components/admin/MergeEventsDialog.tsx`, `src/components/admin/UndoMergeDialog.tsx`, `src/components/admin/MergedEventsTab.tsx`, `src/components/events/TicketDayPickerModal.tsx`, `src/pages/admin/eventsManager/useEventsManager.ts`, `src/pages/admin/EventsManager.tsx`, `src/pages/admin/eventsManager/EventCard.tsx`, `src/pages/admin/eventsManager/types.ts`, `src/integrations/supabase/types.ts`, `docs/tabelas.md`, `docs/DATABASE_SCHEMA.md`, `docs/TESTING.md`, `CLAUDE.md`, `docs/ONBOARDING.md`.
+
+---
 
 ### Auditoria da mesclagem de eventos: desfeito o merge "Parador Reveillon", imagem escolhível na mesclagem, e 2 bugs de produção corrigidos (R-073, R-074)
 **Descrição:** a pedido do usuário, investigação profunda de todo o fluxo de mesclagem de eventos (`/admin/eventos`) e de por que `/links` não refletia a troca de imagem de um evento. A mesclagem do festival "Parador Reveillon" (feita em 22/07/2026, 4 dias: 28 a 31/12) foi desfeita manualmente no banco — era uma mesclagem antiga sem snapshot em `application_logs`, então o botão "Desfazer" oficial não funcionava nela. Os 4 eventos voltaram a existir separados (com seus títulos, slugs e links de venda originais), os redirects de URL antiga criados pelo merge foram removidos, e 4 cards duplicados em `/links` (bug de duplicação de link na criação do evento, anterior ao merge) foram limpos de quebra.
@@ -1464,6 +1475,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 18/08 | Feature | Mesclagem de eventos redesenhada pra nunca mutar os eventos originais, em 5 fases (R-075) |
 | 17/08 | Bugfix/Feature | Auditoria da mesclagem de eventos: merge "Parador Reveillon" desfeito, imagem escolhível na mesclagem, 2 bugs de produção corrigidos (R-073, R-074) |
 | 16/08 | Bugfix | Prerender SEO: corrige alarme falso (workflow "sucesso" mesmo gerando 0 páginas) e detecta possível bloqueio do Cloudflare |
 | 16/08 | Segurança/Bugfix | Corrige os 3 bugs conhecidos mais simples: tipos do deno check, rate limit do podcast, auth do compose-event-image |
