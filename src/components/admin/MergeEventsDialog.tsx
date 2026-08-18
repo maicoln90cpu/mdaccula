@@ -8,7 +8,6 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -22,7 +21,11 @@ import { logger } from '@/lib/logger';
 import { useQueryClient } from '@tanstack/react-query';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';
-
+import {
+  hasDistinctTicketLinks,
+  buildMergeShellPayload,
+  type MergeableEventRow,
+} from '@/lib/eventMergeHelper';
 
 interface MergeableEvent {
   id: string;
@@ -35,6 +38,8 @@ interface MergeableEvent {
   blog_post_id?: string | null;
   ticket_link?: string | null;
   image_url?: string | null;
+  is_merge_shell?: boolean;
+  merged_into_id?: string | null;
 }
 
 interface MergeEventsDialogProps {
@@ -45,14 +50,12 @@ interface MergeEventsDialogProps {
 }
 
 /**
- * Mescla 2+ eventos em 1 (festival multi-dias).
- * - Usuário escolhe qual será o "evento principal" (sobrevive).
- * - end_date do principal recebe a maior data entre todos.
- * - custom_links que apontavam para os duplicados são repontados ao principal.
- * - Soma views dos duplicados no principal.
- * - blog_post_id do principal é preservado; se principal não tiver, herda do primeiro duplicado que tiver.
- * - Snapshot dos eventos deletados é gravado em application_logs para auditoria/rollback manual.
- * - AÇÃO DESTRUTIVA: confirmação dupla antes de executar.
+ * Mescla 2+ eventos criando 1 evento NOVO ("card-vitrine", is_merge_shell=true)
+ * que herda nome/imagem/venue escolhidos + schedule/views agregados.
+ * Os eventos selecionados NUNCA são alterados — só recebem
+ * status='merged_inactive' + merged_into_id apontando pro card novo.
+ * Desfazer (UndoMergeDialog) é sempre possível, em qualquer momento, porque
+ * não existe nenhum dado original pra restaurar.
  */
 export const MergeEventsDialog = ({
   open,
@@ -60,20 +63,18 @@ export const MergeEventsDialog = ({
   events,
   onSuccess,
 }: MergeEventsDialogProps) => {
-  const [primaryId, setPrimaryId] = useState<string>(events[0]?.id || '');
   const [confirming, setConfirming] = useState(false);
   const [merging, setMerging] = useState(false);
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
   const [mergedTitle, setMergedTitle] = useState<string>('');
   const [titleTouched, setTitleTouched] = useState(false);
   const [imageMode, setImageMode] = useState<'existing' | 'upload'>('existing');
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-
-  const primary = events.find((e) => e.id === primaryId);
-  const duplicates = events.filter((e) => e.id !== primaryId);
+  const seed = events[0];
 
   const dateRange = useMemo(() => {
     if (!events.length) return null;
@@ -83,98 +84,69 @@ export const MergeEventsDialog = ({
     return { start, end };
   }, [events]);
 
-  // Fase 5: detecta links de venda distintos para sugerir default do toggle.
-  const hasDistinctTicketLinks = useMemo(() => {
-    const links = events.map((e) => (e.ticket_link || '').trim()).filter(Boolean);
-    return new Set(links).size > 1;
-  }, [events]);
+  const hasDistinctLinks = useMemo(() => hasDistinctTicketLinks(events), [events]);
 
-  // Inicializa o toggle automaticamente ao abrir o modal.
   useEffect(() => {
     if (open) {
-      setTicketsPerDay(hasDistinctTicketLinks);
+      setTicketsPerDay(hasDistinctLinks);
     }
-  }, [open, hasDistinctTicketLinks]);
+  }, [open, hasDistinctLinks]);
 
-  // Reseta a seleção de principal e o campo de nome sempre que o modal abre
-  // pra um NOVO grupo de eventos (o componente fica montado o tempo todo em
-  // EventsManager, então `events` pode ter sido `[]` no primeiro mount).
+  // Reseta tudo sempre que o modal abre pra um NOVO grupo de eventos (o
+  // componente fica montado o tempo todo em EventsManager).
   const wasOpenRef = useRef(false);
   useEffect(() => {
     if (open && !wasOpenRef.current) {
-      setPrimaryId(events[0]?.id || '');
       setTitleTouched(false);
       setImageMode('existing');
+      setSelectedImageUrl(seed?.image_url ?? null);
       setUploadedImageFile(null);
     }
     wasOpenRef.current = open;
-  }, [open, events]);
+  }, [open, seed]);
 
-  // Sincroniza o campo "nome do festival" com o principal selecionado — MAS
-  // só enquanto o admin não tiver digitado nada. Antes disso usava um ref
-  // que disparava em qualquer troca de principal, apagando o nome já
-  // customizado pelo admin (bug: nome digitado era descartado no merge real).
+  // Sugere o nome com o título do primeiro evento marcado — só enquanto o
+  // admin não tiver digitado nada (mesma proteção da R-024 original).
   useEffect(() => {
-    if (open && primary && !titleTouched) {
-      setMergedTitle(primary.title);
+    if (open && seed && !titleTouched) {
+      setMergedTitle(seed.title);
     }
-  }, [open, primary, titleTouched]);
+  }, [open, seed, titleTouched]);
 
-  const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctTicketLinks;
-  const effectiveTitle = (mergedTitle.trim() || primary?.title || '').trim();
+  const effectiveTicketsPerDay = ticketsPerDay ?? hasDistinctLinks;
+  const effectiveTitle = (mergedTitle.trim() || seed?.title || '').trim();
 
   const handleMerge = async () => {
-    if (!primary || !dateRange) return;
+    if (!seed || !dateRange) return;
+
+    if (events.some((e) => e.is_merge_shell || !!e.merged_into_id)) {
+      toast({
+        variant: 'destructive',
+        title: 'Seleção inválida',
+        description: 'Um dos eventos selecionados já faz parte de outra mesclagem.',
+      });
+      return;
+    }
+
     setMerging(true);
     try {
-      const duplicateIds = duplicates.map((e) => e.id);
-      const allIds = [primary.id, ...duplicateIds];
+      const allIds = events.map((e) => e.id);
 
-      // 0. Buscar dados COMPLETOS de todos os eventos (necessário p/ schedule e snapshot do principal)
-      logger.debug('[merge] step 0 · fetching full events', { allIds });
       const { data: fullEvents, error: fetchErr } = await supabase
         .from('events')
         .select('*')
         .in('id', allIds);
       if (fetchErr) throw fetchErr;
+      if (!fullEvents || fullEvents.length !== allIds.length) {
+        throw new Error('Não foi possível carregar todos os eventos selecionados.');
+      }
 
-      const fullPrimary = fullEvents?.find((e) => e.id === primary.id);
-      const fullDuplicates = (fullEvents || []).filter((e) => e.id !== primary.id);
-      if (!fullPrimary) throw new Error('Evento principal não encontrado.');
-
-      // 0b. Buscar links que serão repontados (precisamos pra rollback)
-      logger.debug('[merge] step 0b · fetching links to repoint');
-      const { data: linksToRepoint } = await supabase
-        .from('custom_links')
-        .select('id, event_id')
-        .in('event_id', duplicateIds);
-
-      // 1. Construir schedule automaticamente: 1 entrada por evento original
-      // Inclui o principal + todos os duplicados, ordenados por data.
-      // Normaliza lineup para corrigir entradas vindas de CSV ("A, B, C" como string única).
-      const { normalizeLineup } = await import('@/lib/lineupNormalizer');
-      const allForSchedule = [...fullEvents!].sort((a, b) => a.date.localeCompare(b.date));
-      const autoSchedule = allForSchedule.map((e) => ({
-        date: e.date,
-        time: e.time,
-        end_time: e.end_time || null,
-        lineup: normalizeLineup(e.lineup),
-      }));
-
-      // 2. Calcular novos valores
-      const totalViews =
-        (fullPrimary.views || 0) + fullDuplicates.reduce((sum, e) => sum + (e.views || 0), 0);
-      const inheritedBlogPostId =
-        fullPrimary.blog_post_id ||
-        fullDuplicates.find((e) => e.blog_post_id)?.blog_post_id ||
-        null;
-
-      // 2b. Imagem do festival: mantém a do principal, a menos que uma nova
-      // tenha sido enviada no modal. O gatilho sync_custom_links_thumbnail_trigger
-      // propaga essa imagem pros custom_links já repontados no passo 4.
-      let effectiveImageUrl: string | null = fullPrimary.image_url ?? null;
-      if (imageMode === 'upload' && uploadedImageFile) {
-        logger.debug('[merge] step 2b · uploading custom festival image');
+      let effectiveImageUrl = selectedImageUrl;
+      if (imageMode === 'upload') {
+        if (!uploadedImageFile) {
+          throw new Error('Selecione uma imagem antes de continuar.');
+        }
+        logger.debug('[merge] fazendo upload da imagem do festival');
         const uploadedUrl = await uploadImageWithThumb(uploadedImageFile, 'event-images', {
           medium: true,
         });
@@ -182,110 +154,36 @@ export const MergeEventsDialog = ({
         effectiveImageUrl = uploadedUrl;
       }
 
-      // 3. Snapshot COMPLETO para rollback (inclui estado pré-merge do principal e mapping de links)
-      logger.debug('[merge] step 3 · inserting snapshot log');
-      await supabase.from('application_logs').insert([
+      const payload = buildMergeShellPayload(
+        fullEvents as unknown as MergeableEventRow[],
+        seed.id,
         {
-          level: 'info',
-          message: `Mesclagem de eventos: ${duplicates.length} → 1`,
-          context: {
-            action: 'merge_events',
-            primary_id: primary.id,
-            primary_title: primary.title,
-            merged_event_ids: duplicateIds,
-            merged_snapshot: JSON.parse(JSON.stringify(fullDuplicates)),
-            primary_pre_merge: JSON.parse(
-              JSON.stringify({
-                id: fullPrimary.id,
-                title: fullPrimary.title,
-                date: fullPrimary.date,
-                end_date: fullPrimary.end_date ?? null,
-                views: fullPrimary.views ?? 0,
-                blog_post_id: fullPrimary.blog_post_id ?? null,
-                schedule: fullPrimary.schedule ?? null,
-                lineup: fullPrimary.lineup ?? [],
-                image_url: fullPrimary.image_url ?? null,
-              })
-            ),
-            new_title: effectiveTitle,
-            new_image_url: effectiveImageUrl,
-            links_repointed: (linksToRepoint || []).map((l) => ({
-              id: l.id,
-              old_event_id: l.event_id,
-            })),
-            new_end_date: dateRange.end,
-            new_start_date: dateRange.start,
-            new_views: totalViews,
-            new_schedule: autoSchedule,
-          },
-        },
-      ]);
+          title: effectiveTitle,
+          imageUrl: effectiveImageUrl,
+          ticketsPerDay: effectiveTicketsPerDay,
+        }
+      );
 
-      // 4. Repontar custom_links dos duplicados → principal
-      if (duplicateIds.length > 0) {
-        logger.debug('[merge] step 4 · repointing custom_links', { count: duplicateIds.length });
-        const { error: linkErr } = await supabase
-          .from('custom_links')
-          .update({ event_id: primary.id, updated_at: new Date().toISOString() })
-          .in('event_id', duplicateIds);
-        if (linkErr) throw linkErr;
-      }
+      logger.debug('[merge] criando card-vitrine', { title: payload.title });
+      const { data: shell, error: insertErr } = await supabase
+        .from('events')
+        .insert([payload])
+        .select()
+        .single();
+      if (insertErr) throw insertErr;
 
-      // 5. Atualizar evento principal: end_date + schedule + views consolidadas + tickets_per_day
-      logger.debug('[merge] step 5 · updating primary event');
+      logger.debug('[merge] escondendo eventos originais', { count: allIds.length });
       const { error: updateErr } = await supabase
         .from('events')
         .update({
-          title: effectiveTitle,
-          end_date: dateRange.end,
-          date: dateRange.start,
-          views: totalViews,
-          blog_post_id: inheritedBlogPostId,
-          schedule: autoSchedule,
-          tickets_per_day: effectiveTicketsPerDay,
-          image_url: effectiveImageUrl,
+          status: 'merged_inactive',
+          merged_into_id: shell.id,
+          merged_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', primary.id);
+        .in('id', allIds);
       if (updateErr) throw updateErr;
 
-      // 6. Preservar URLs antigas
-      if (duplicates.length > 0) {
-        const redirectRows = duplicates
-          .filter((e) => e.slug && e.slug !== primary.slug)
-          .map((e) => ({
-            old_slug: e.slug,
-            event_id: primary.id,
-            reason: `merged into festival "${primary.title}"`,
-          }));
-        if (redirectRows.length > 0) {
-          logger.debug('[merge] step 6 · upserting slug redirects', { count: redirectRows.length });
-          const { error: redirErr } = await supabase
-            .from('event_slug_redirects')
-            .upsert(redirectRows, { onConflict: 'old_slug' });
-          if (redirErr) throw redirErr;
-        }
-      }
-
-      // 7. Soft-delete dos duplicados: marca como merged_inactive em vez de DELETE.
-      // Permite reativar via admin e mantém histórico/FKs intactos.
-      if (duplicateIds.length > 0) {
-        logger.debug('[merge] step 7 · soft-deleting duplicates', { ids: duplicateIds });
-        const { error: delErr } = await supabase
-          .from('events')
-          .update({
-            status: 'merged_inactive',
-            merged_into_id: primary.id,
-            merged_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .in('id', duplicateIds);
-        if (delErr) throw delErr;
-      }
-
-      logger.debug('[merge] step 7 done · todas as operações concluídas com sucesso');
-      // Invalida caches para que o nome novo apareça imediatamente em /eventos,
-      // no admin e em qualquer select que consome a tabela events.
       try {
         localStorage.removeItem('mdaccula-events-cache');
       } catch {
@@ -294,11 +192,9 @@ export const MergeEventsDialog = ({
       await queryClient.invalidateQueries({ queryKey: ['events'] });
       toast({
         title: 'Eventos mesclados!',
-        description: `${duplicates.length + 1} eventos viraram 1 festival de ${formatEventDateRange(dateRange.start, dateRange.end)}.`,
+        description: `${events.length} eventos viraram 1 festival de ${formatEventDateRange(payload.date, payload.end_date)}.`,
       });
 
-      // Fase 6.1: garantir que UI atualize ANTES de fechar o modal,
-      // evitando bug de "precisa atualizar a página"
       try {
         await Promise.resolve(onSuccess());
       } catch (cbErr) {
@@ -307,7 +203,6 @@ export const MergeEventsDialog = ({
       setMerging(false);
       onOpenChange(false);
       setConfirming(false);
-      return;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
       logger.error('[MergeEventsDialog] Erro ao mesclar:', err);
@@ -326,8 +221,6 @@ export const MergeEventsDialog = ({
     <Dialog
       open={open}
       onOpenChange={(o) => {
-        // Fase 6.1: trava o modal durante a operação — impede que realtime/cliques
-        // acidentais fechem o dialog no meio da mesclagem.
         if (merging) return;
         if (!o) setConfirming(false);
         onOpenChange(o);
@@ -337,36 +230,29 @@ export const MergeEventsDialog = ({
         <DialogHeader>
           <DialogTitle>Mesclar {events.length} eventos em 1 festival</DialogTitle>
           <DialogDescription>
-            Resultado: <strong>{formatEventDateRange(dateRange.start, dateRange.end)}</strong>. Os
-            eventos não escolhidos como principal serão inativados (ocultos do site, reativáveis
-            pelo admin), e seus links de venda e contagem de views serão preservados no principal.
+            Cria um evento novo cobrindo{' '}
+            <strong>{formatEventDateRange(dateRange.start, dateRange.end)}</strong>. Os{' '}
+            {events.length} eventos selecionados ficam escondidos (não deletados) — nenhum dado
+            deles é alterado, e você pode desfazer quando quiser.
           </DialogDescription>
         </DialogHeader>
 
         {!confirming ? (
           <>
             <div className="space-y-4 py-2">
-              <Label className="text-base">Escolha o evento principal (que sobreviverá):</Label>
-              <RadioGroup value={primaryId} onValueChange={setPrimaryId}>
+              <div className="rounded-lg border p-3 space-y-1">
+                <Label className="text-base">Eventos selecionados:</Label>
                 {events.map((e) => (
-                  <div key={e.id} className="flex items-start space-x-2 rounded-lg border p-3">
-                    <RadioGroupItem value={e.id} id={e.id} className="mt-1" />
-                    <Label htmlFor={e.id} className="flex-1 cursor-pointer font-normal">
-                      <div className="font-medium">{e.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {e.date}
-                        {e.end_date && e.end_date !== e.date ? ` → ${e.end_date}` : ''} · {e.venue}
-                        {e.views ? ` · ${e.views} views` : ''}
-                        {e.blog_post_id ? ' · com artigo' : ''}
-                      </div>
-                    </Label>
+                  <div key={e.id} className="text-sm text-muted-foreground">
+                    {e.title} — {e.date}
+                    {e.end_date && e.end_date !== e.date ? ` → ${e.end_date}` : ''}
                   </div>
                 ))}
-              </RadioGroup>
+              </div>
 
               <div className="space-y-2 rounded-lg border p-3">
                 <Label htmlFor="merged-title" className="text-base">
-                  Nome do festival (evento final):
+                  Nome do festival (evento novo):
                 </Label>
                 <Input
                   id="merged-title"
@@ -375,19 +261,18 @@ export const MergeEventsDialog = ({
                     setMergedTitle(e.target.value);
                     setTitleTouched(true);
                   }}
-                  placeholder={primary?.title || 'Nome do festival'}
+                  placeholder={seed?.title || 'Nome do festival'}
                   maxLength={200}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Você pode renomear o evento final (ex.: "Festival XYZ 2026"). Se deixar em branco,
-                  usaremos o nome do evento principal selecionado.
+                  Sugerido a partir do primeiro evento marcado — edite livremente.
                 </p>
               </div>
 
               <div className="space-y-2 rounded-lg border p-3">
                 <Label className="text-base flex items-center gap-2">
                   <ImageIcon className="w-4 h-4" />
-                  Imagem do festival (evento final):
+                  Imagem do festival:
                 </Label>
                 <Tabs
                   value={imageMode}
@@ -395,19 +280,41 @@ export const MergeEventsDialog = ({
                   className="w-full"
                 >
                   <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="existing">Usar imagem do principal</TabsTrigger>
+                    <TabsTrigger value="existing">Usar imagem de um dos eventos</TabsTrigger>
                     <TabsTrigger value="upload">Enviar nova imagem</TabsTrigger>
                   </TabsList>
                   <TabsContent value="existing" className="mt-2">
-                    {primary?.image_url ? (
-                      <img
-                        src={primary.image_url}
-                        alt="Imagem atual do evento principal"
-                        className="h-20 w-32 object-cover rounded border"
-                      />
+                    {events.some((e) => e.image_url) ? (
+                      <div className="flex flex-wrap gap-2">
+                        {events.map((e) => (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => setSelectedImageUrl(e.image_url ?? null)}
+                            title={e.title}
+                            className={`rounded border-2 overflow-hidden transition-colors ${
+                              selectedImageUrl === (e.image_url ?? null)
+                                ? 'border-primary'
+                                : 'border-transparent'
+                            }`}
+                          >
+                            {e.image_url ? (
+                              <img
+                                src={e.image_url}
+                                alt={e.title}
+                                className="h-16 w-24 object-cover"
+                              />
+                            ) : (
+                              <span className="flex h-16 w-24 items-center justify-center text-[10px] text-muted-foreground bg-muted px-1 text-center">
+                                Sem imagem
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        O evento principal selecionado não tem imagem.
+                        Nenhum dos eventos selecionados tem imagem.
                       </p>
                     )}
                   </TabsContent>
@@ -446,14 +353,13 @@ export const MergeEventsDialog = ({
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Ação reversível. {duplicates.length} evento(s) serão <strong>inativados</strong>{' '}
-                (não deletados) e poderão ser reativados a qualquer momento pelo admin.
+                Ação totalmente reversível — nenhum evento é alterado ou deletado, só escondido.
               </AlertDescription>
             </Alert>
 
             <div
               className={`flex items-start gap-3 rounded-md border p-3 transition-colors ${
-                hasDistinctTicketLinks
+                hasDistinctLinks
                   ? 'border-amber-500/50 bg-amber-500/5'
                   : 'border-input bg-muted/30'
               }`}
@@ -469,14 +375,15 @@ export const MergeEventsDialog = ({
                   Um link de venda por dia (festival)
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Quando ligado, o botão "Comprar Ingresso" na página do festival abre um{' '}
-                  <strong>modal de seleção do dia</strong> (cada dia abre o seu próprio link).
-                  Quando desligado, o botão vai direto para o link único do evento principal.
+                  Quando ligado, o botão "Comprar Ingresso" abre um{' '}
+                  <strong>modal de seleção do dia</strong>, buscando o link de cada dia direto no
+                  evento escondido correspondente (sempre atualizado). Quando desligado, o botão
+                  vai direto pro link único (precisa ser o mesmo em todos os eventos).
                 </p>
-                {hasDistinctTicketLinks && (
+                {hasDistinctLinks && (
                   <p className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                    Detectamos <strong>links de venda diferentes</strong> nos eventos selecionados —
-                    recomendamos manter ligado.
+                    Detectamos <strong>links de venda diferentes</strong> nos eventos selecionados
+                    — recomendamos manter ligado.
                   </p>
                 )}
               </div>
@@ -486,11 +393,7 @@ export const MergeEventsDialog = ({
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button
-                variant="destructive"
-                onClick={() => setConfirming(true)}
-                disabled={!primaryId}
-              >
+              <Button variant="destructive" onClick={() => setConfirming(true)}>
                 Continuar
               </Button>
             </DialogFooter>
@@ -503,42 +406,12 @@ export const MergeEventsDialog = ({
                 <strong>Confirmação final.</strong> Vou:
                 <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
                   <li>
-                    Renomear o evento principal para <strong>{effectiveTitle}</strong>
-                    {effectiveTitle !== primary?.title ? (
-                      <>
-                        {' '}
-                        (antes: <em>{primary?.title}</em>)
-                      </>
-                    ) : null}{' '}
-                    com data {formatEventDateRange(dateRange.start, dateRange.end)} (vira o
-                    "guarda-chuva" do festival).
-                  </li>
-                  {imageMode === 'upload' && uploadedImageFile ? (
-                    <li>
-                      Usar a <strong>nova imagem enviada</strong> como capa do festival.
-                    </li>
-                  ) : null}
-                  {effectiveTicketsPerDay ? (
-                    <li>
-                      <strong>Preservar</strong> os links de venda originais de cada dia, apenas
-                      reassociando-os ao festival. O botão <strong>Comprar Ingresso</strong> abrirá
-                      um <strong>modal de seleção do dia</strong>, e cada dia abrirá o seu próprio
-                      link.
-                    </li>
-                  ) : (
-                    <li>
-                      Repontar os {duplicates.length} link(s) de venda dos duplicados para o
-                      principal — o botão <strong>Comprar Ingresso</strong> usará o{' '}
-                      <strong>link único</strong> do evento principal.
-                    </li>
-                  )}
-                  <li>
-                    Criar redirect das URLs antigas (visitantes que abrirem o link antigo verão o
-                    festival).
+                    Criar o evento novo <strong>{effectiveTitle}</strong>, cobrindo{' '}
+                    {formatEventDateRange(dateRange.start, dateRange.end)}.
                   </li>
                   <li>
-                    <strong>Inativar</strong> {duplicates.length} evento(s) duplicado(s) (ficam
-                    ocultos do site mas podem ser reativados pelo admin).
+                    Esconder os {events.length} eventos selecionados (continuam existindo,
+                    intactos, reativáveis a qualquer momento).
                   </li>
                   <li>
                     Definir <strong>"Um link de venda por dia"</strong>:{' '}
