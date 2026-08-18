@@ -23,6 +23,7 @@ export interface Event {
   status?: string;
   merged_into_id?: string | null;
   merged_at?: string | null;
+  is_merge_shell?: boolean;
 }
 
 export type StatusFilter = 'todos' | 'ativos' | 'inativos';

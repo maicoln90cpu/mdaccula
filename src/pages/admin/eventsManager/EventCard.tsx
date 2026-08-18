@@ -43,15 +43,17 @@ export function EventCard({
   reactivatingId,
   mergedPrimaryTitles,
 }: Props) {
+  const isMergeable = event.status === 'active' && !event.is_merge_shell;
+
   return (
     <Card
-      className={`overflow-hidden relative transition ${mergeMode && selected ? 'ring-2 ring-primary' : ''}`}
-      onClick={mergeMode ? () => onToggleSelect(event.id) : undefined}
-      style={mergeMode ? { cursor: 'pointer' } : undefined}
+      className={`overflow-hidden relative transition ${mergeMode && selected ? 'ring-2 ring-primary' : ''} ${mergeMode && !isMergeable ? 'opacity-50' : ''}`}
+      onClick={mergeMode && isMergeable ? () => onToggleSelect(event.id) : undefined}
+      style={mergeMode && isMergeable ? { cursor: 'pointer' } : undefined}
     >
       {mergeMode && (
         <div className="absolute top-2 left-2 z-10 bg-background/90 rounded p-1">
-          <Checkbox checked={selected} />
+          <Checkbox checked={selected} disabled={!isMergeable} />
         </div>
       )}
       {event.image_url && (
