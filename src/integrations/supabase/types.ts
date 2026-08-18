@@ -1074,6 +1074,7 @@ export type Database = {
           geocoded_at: string | null
           id: string
           image_url: string | null
+          is_merge_shell: boolean
           latitude: number | null
           lineup: string[] | null
           location_city: string
@@ -1115,6 +1116,7 @@ export type Database = {
           geocoded_at?: string | null
           id?: string
           image_url?: string | null
+          is_merge_shell?: boolean
           latitude?: number | null
           lineup?: string[] | null
           location_city: string
@@ -1156,6 +1158,7 @@ export type Database = {
           geocoded_at?: string | null
           id?: string
           image_url?: string | null
+          is_merge_shell?: boolean
           latitude?: number | null
           lineup?: string[] | null
           location_city?: string

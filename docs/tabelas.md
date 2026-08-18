@@ -163,6 +163,7 @@ CREATE TABLE public.events (
   email_campaign_dispatched_at TIMESTAMP WITH TIME ZONE, -- anti-race do disparo de e-mail (B.6)
   merged_into_id UUID REFERENCES public.events(id), -- evento "guarda-chuva" quando este foi mesclado
   merged_at TIMESTAMP WITH TIME ZONE,
+  is_merge_shell BOOLEAN NOT NULL DEFAULT false, -- true = evento "card-vitrine" criado por mesclagem (nunca um evento original mutado)
   recurring_event_config_id UUID REFERENCES public.recurring_event_configs(id) ON DELETE SET NULL, -- preenchido por create-recurring-events; usado pra excluir recorrentes da automação "Lembrete de evento"
   venue_lat NUMERIC,
   venue_lng NUMERIC,
