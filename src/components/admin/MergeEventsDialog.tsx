@@ -13,12 +13,15 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { AlertTriangle, Loader2, ImageIcon, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 import { formatEventDateRange } from '@/lib/dateUtils';
 import { logger } from '@/lib/logger';
 import { useQueryClient } from '@tanstack/react-query';
+import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
+import { uploadImageWithThumb } from '@/lib/bunnyUploader';
 
 
 interface MergeableEvent {
@@ -31,6 +34,7 @@ interface MergeableEvent {
   views?: number | null;
   blog_post_id?: string | null;
   ticket_link?: string | null;
+  image_url?: string | null;
 }
 
 interface MergeEventsDialogProps {
@@ -62,6 +66,8 @@ export const MergeEventsDialog = ({
   const [ticketsPerDay, setTicketsPerDay] = useState<boolean | null>(null);
   const [mergedTitle, setMergedTitle] = useState<string>('');
   const [titleTouched, setTitleTouched] = useState(false);
+  const [imageMode, setImageMode] = useState<'existing' | 'upload'>('existing');
+  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,6 +104,8 @@ export const MergeEventsDialog = ({
     if (open && !wasOpenRef.current) {
       setPrimaryId(events[0]?.id || '');
       setTitleTouched(false);
+      setImageMode('existing');
+      setUploadedImageFile(null);
     }
     wasOpenRef.current = open;
   }, [open, events]);
@@ -161,6 +169,19 @@ export const MergeEventsDialog = ({
         fullDuplicates.find((e) => e.blog_post_id)?.blog_post_id ||
         null;
 
+      // 2b. Imagem do festival: mantém a do principal, a menos que uma nova
+      // tenha sido enviada no modal. O gatilho sync_custom_links_thumbnail_trigger
+      // propaga essa imagem pros custom_links já repontados no passo 4.
+      let effectiveImageUrl: string | null = fullPrimary.image_url ?? null;
+      if (imageMode === 'upload' && uploadedImageFile) {
+        logger.debug('[merge] step 2b · uploading custom festival image');
+        const uploadedUrl = await uploadImageWithThumb(uploadedImageFile, 'event-images', {
+          medium: true,
+        });
+        if (!uploadedUrl) throw new Error('Falha no upload da imagem do festival.');
+        effectiveImageUrl = uploadedUrl;
+      }
+
       // 3. Snapshot COMPLETO para rollback (inclui estado pré-merge do principal e mapping de links)
       logger.debug('[merge] step 3 · inserting snapshot log');
       await supabase.from('application_logs').insert([
@@ -183,9 +204,11 @@ export const MergeEventsDialog = ({
                 blog_post_id: fullPrimary.blog_post_id ?? null,
                 schedule: fullPrimary.schedule ?? null,
                 lineup: fullPrimary.lineup ?? [],
+                image_url: fullPrimary.image_url ?? null,
               })
             ),
             new_title: effectiveTitle,
+            new_image_url: effectiveImageUrl,
             links_repointed: (linksToRepoint || []).map((l) => ({
               id: l.id,
               old_event_id: l.event_id,
@@ -220,6 +243,7 @@ export const MergeEventsDialog = ({
           blog_post_id: inheritedBlogPostId,
           schedule: autoSchedule,
           tickets_per_day: effectiveTicketsPerDay,
+          image_url: effectiveImageUrl,
           updated_at: new Date().toISOString(),
         })
         .eq('id', primary.id);
@@ -359,6 +383,64 @@ export const MergeEventsDialog = ({
                   usaremos o nome do evento principal selecionado.
                 </p>
               </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <Label className="text-base flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4" />
+                  Imagem do festival (evento final):
+                </Label>
+                <Tabs
+                  value={imageMode}
+                  onValueChange={(v) => setImageMode(v as 'existing' | 'upload')}
+                  className="w-full"
+                >
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="existing">Usar imagem do principal</TabsTrigger>
+                    <TabsTrigger value="upload">Enviar nova imagem</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="existing" className="mt-2">
+                    {primary?.image_url ? (
+                      <img
+                        src={primary.image_url}
+                        alt="Imagem atual do evento principal"
+                        className="h-20 w-32 object-cover rounded border"
+                      />
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        O evento principal selecionado não tem imagem.
+                      </p>
+                    )}
+                  </TabsContent>
+                  <TabsContent value="upload" className="mt-2">
+                    {uploadedImageFile ? (
+                      <div className="flex items-center gap-3 p-2 border rounded-md bg-muted/30">
+                        <img
+                          src={URL.createObjectURL(uploadedImageFile)}
+                          alt="Preview"
+                          className="h-16 w-24 object-cover rounded"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{uploadedImageFile.name}</p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUploadedImageFile(null)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <ImageUploadWithCrop
+                        onImageSelect={setUploadedImageFile}
+                        aspectRatio={16 / 9}
+                        label=""
+                        cropMode="optional"
+                      />
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </div>
             </div>
 
             <Alert>
@@ -431,6 +513,11 @@ export const MergeEventsDialog = ({
                     com data {formatEventDateRange(dateRange.start, dateRange.end)} (vira o
                     "guarda-chuva" do festival).
                   </li>
+                  {imageMode === 'upload' && uploadedImageFile ? (
+                    <li>
+                      Usar a <strong>nova imagem enviada</strong> como capa do festival.
+                    </li>
+                  ) : null}
                   {effectiveTicketsPerDay ? (
                     <li>
                       <strong>Preservar</strong> os links de venda originais de cada dia, apenas

@@ -174,6 +174,16 @@ CREATE TABLE public.events (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+-- Sempre que events.image_url muda, propaga a imagem nova pra todos os
+-- custom_links vinculados ao evento (custom_links.thumbnail_url), sem
+-- depender de nenhuma condição no código do formulário (migration
+-- 20260818015609_sync_custom_links_thumbnail_from_event_image.sql).
+CREATE TRIGGER sync_custom_links_thumbnail_trigger
+AFTER UPDATE OF image_url ON public.events
+FOR EACH ROW
+WHEN (NEW.image_url IS DISTINCT FROM OLD.image_url)
+EXECUTE FUNCTION public.sync_custom_links_thumbnail();
+
 -- ============================================
 -- TABELA: team_members
 -- ============================================
@@ -283,6 +293,10 @@ CREATE TABLE public.custom_links (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Gatilho em public.events (não em custom_links) mantém thumbnail_url em dia
+-- com events.image_url sempre que a imagem do evento vinculado muda — ver
+-- sync_custom_links_thumbnail_trigger logo após a tabela events acima.
 
 -- ============================================
 -- TABELA: event_templates

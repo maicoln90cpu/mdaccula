@@ -231,32 +231,42 @@ export function useEventFormSubmit(opts: UseEventFormSubmitOptions) {
           }
         }
 
-        logger.debug('[EventForm] 🔗 Sincronizando campos com links vinculados...');
-        const linkUpdateData: TablesUpdate<'custom_links'> = {
-          title: data.title,
-          subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
-          override_date: data.date,
-          override_time: data.time || null,
-          updated_at: new Date().toISOString(),
-        };
-
-        if (imageFile && imageUrl) {
-          linkUpdateData.thumbnail_url = imageUrl;
-        }
-
-        if (normalizedTicketLink) {
-          linkUpdateData.url = normalizedTicketLink;
-        }
-
-        const { error: linkUpdateError } = await supabase
+        // Evento com mais de 1 link vinculado é um festival mesclado (1 link de
+        // venda por dia, via override_date) — cada dia precisa manter seu
+        // próprio título/data/link, então não sincronizamos esses campos nesse
+        // caso. A imagem continua igual pra todos os dias e já é mantida em dia
+        // pelo gatilho sync_custom_links_thumbnail_trigger sempre que
+        // events.image_url muda, então não precisa de nada aqui.
+        const { count: linkedLinksCount } = await supabase
           .from('custom_links')
-          .update(linkUpdateData)
+          .select('id', { count: 'exact', head: true })
           .eq('event_id', event.id);
+        const isMultiLinkEvent = (linkedLinksCount ?? 0) > 1;
 
-        if (linkUpdateError) {
-          logger.error('[EventForm] ⚠️ Erro ao sincronizar links:', linkUpdateError);
-        } else {
-          logger.debug('[EventForm] ✅ Campos sincronizados com links vinculados');
+        if (!isMultiLinkEvent) {
+          logger.debug('[EventForm] 🔗 Sincronizando campos com link vinculado...');
+          const linkUpdateData: TablesUpdate<'custom_links'> = {
+            title: data.title,
+            subtitle: data.subtitle || `${data.venue} - ${data.location_city}/${data.location_state}`,
+            override_date: data.date,
+            override_time: data.time || null,
+            updated_at: new Date().toISOString(),
+          };
+
+          if (normalizedTicketLink) {
+            linkUpdateData.url = normalizedTicketLink;
+          }
+
+          const { error: linkUpdateError } = await supabase
+            .from('custom_links')
+            .update(linkUpdateData)
+            .eq('event_id', event.id);
+
+          if (linkUpdateError) {
+            logger.error('[EventForm] ⚠️ Erro ao sincronizar links:', linkUpdateError);
+          } else {
+            logger.debug('[EventForm] ✅ Campos sincronizados com links vinculados');
+          }
         }
 
         logger.debug('[EventForm] ✅ Evento atualizado com sucesso');

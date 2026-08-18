@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 16/08/2026
+**Última atualização:** 17/08/2026
 
 ---
 
@@ -17,6 +17,18 @@
 ---
 
 ## Entradas Detalhadas
+
+### Auditoria da mesclagem de eventos: desfeito o merge "Parador Reveillon", imagem escolhível na mesclagem, e 2 bugs de produção corrigidos (R-073, R-074)
+**Descrição:** a pedido do usuário, investigação profunda de todo o fluxo de mesclagem de eventos (`/admin/eventos`) e de por que `/links` não refletia a troca de imagem de um evento. A mesclagem do festival "Parador Reveillon" (feita em 22/07/2026, 4 dias: 28 a 31/12) foi desfeita manualmente no banco — era uma mesclagem antiga sem snapshot em `application_logs`, então o botão "Desfazer" oficial não funcionava nela. Os 4 eventos voltaram a existir separados (com seus títulos, slugs e links de venda originais), os redirects de URL antiga criados pelo merge foram removidos, e 4 cards duplicados em `/links` (bug de duplicação de link na criação do evento, anterior ao merge) foram limpos de quebra.
+**Bugs de produção corrigidos durante a auditoria:** (1) **R-073** — editar um evento já mesclado bagunçava os links de venda dos outros dias do festival (`useEventFormSubmit.tsx` sincronizava `custom_links` com um `UPDATE` cego, sem filtrar por link — reproduzido nos próprios dados do Parador); (2) **R-074** — a imagem de `/links` não acompanhava de forma confiável a troca de imagem do evento (confirmado ao vivo: evento "Universo Paralello 2026" com imagem divergente) — corrigido com um gatilho no banco (`sync_custom_links_thumbnail_trigger`) que substitui a sincronização frágil que existia só no front-end, com backfill retroativo de todos os casos já divergentes.
+**Melhoria nova:** a tela de mesclar eventos (`MergeEventsDialog.tsx`) ganhou um seletor de imagem do festival — usar a imagem do evento escolhido como principal (padrão) ou enviar uma nova, reaproveitando o mesmo componente de upload/corte já usado no artigo multi-evento. "Desfazer mesclagem" também passou a restaurar a imagem original do evento principal quando disponível no snapshot.
+**Verificação:** `npx tsc --noEmit` e `npm test` (679 testes) verdes; `npm run test:coverage:ratchet` verde. Revert do Parador conferido direto no banco (4 eventos ativos e separados, 4 links únicos, 0 redirects órfãos) e o backfill do gatilho conferido (0 divergências restantes entre `custom_links.thumbnail_url` e `events.image_url`).
+**Data:** 17/08/2026
+**Responsável:** IA, a pedido do usuário — investigação com 2 sub-agentes em paralelo (mecânica da mesclagem + sincronização de `/links`) e leitura direta do banco de produção antes de qualquer alteração.
+
+**Arquivos alterados:** `src/components/events/eventForm/useEventFormSubmit.tsx`, `src/components/admin/MergeEventsDialog.tsx`, `src/components/admin/UndoMergeDialog.tsx`, `supabase/migrations/20260818015609_sync_custom_links_thumbnail_from_event_image.sql`, `src/__tests__/regression/merged-event-edit-overwrites-day-links.test.ts`, `src/__tests__/regression/links-thumbnail-not-synced-with-event-image.test.ts`, `docs/TESTING.md`.
+
+---
 
 ### Prerender SEO: corrige alarme falso (workflow sempre "sucesso" mesmo gerando 0 páginas) e levanta suspeita de bloqueio do Cloudflare
 **Descrição:** investigação do bug de prerender achado na auditoria de documentação (nenhum commit de `public/_prerendered/**` desde a criação do workflow em 19/07/2026) encontrou um bug real e corrigível: `scripts/prerender.mjs` nunca saía com código de erro, mesmo numa falha total (0 de N rotas geradas) — o workflow sempre aparecia "sucesso" na aba Actions, mesmo sem gerar nada, o que explica por que ninguém percebeu por quase 1 mês. Rodando o script localmente contra o site real de produção (`mdaccula.lovable.app`), ele funcionou perfeitamente (3 páginas geradas, hidratação normal) — descarta bug no script/site. Os headers do site (`server: cloudflare` + cookie `__cf_bm`, típico do Cloudflare Bot Management) levantam a suspeita de que o navegador headless do GitHub Actions está sendo bloqueado/desafiado por vir de IP de datacenter — ainda não confirmado, precisa da aba Actions (bloqueada nesta sessão).
@@ -1452,6 +1464,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 17/08 | Bugfix/Feature | Auditoria da mesclagem de eventos: merge "Parador Reveillon" desfeito, imagem escolhível na mesclagem, 2 bugs de produção corrigidos (R-073, R-074) |
 | 16/08 | Bugfix | Prerender SEO: corrige alarme falso (workflow "sucesso" mesmo gerando 0 páginas) e detecta possível bloqueio do Cloudflare |
 | 16/08 | Segurança/Bugfix | Corrige os 3 bugs conhecidos mais simples: tipos do deno check, rate limit do podcast, auth do compose-event-image |
 | 16/08 | Docs | Auditoria de documentação: PENDENCIAS.md reorganizado, checkpoints de e-mail confirmados, novo bug de prerender achado |

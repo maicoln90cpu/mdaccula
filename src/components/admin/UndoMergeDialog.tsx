@@ -33,6 +33,7 @@ export interface MergeLog {
       blog_post_id: string | null;
       schedule: Json;
       lineup: string[];
+      image_url?: string | null;
     };
     links_repointed?: { id: string; old_event_id: string }[];
     /** Presente apenas em logs de undo_merge, apontando para o log de merge_events original. */
@@ -153,9 +154,11 @@ export const UndoMergeDialog = ({ open, onOpenChange, log, onSuccess }: UndoMerg
       const { error: restoreErr } = await supabase
         .from('events')
         .update({
-          // Restaura o título anterior somente se o snapshot preservou (mesclagens
-          // pós-Fase 2). Snapshots antigos não têm title — mantém o atual.
+          // Restaura o título/imagem anteriores somente se o snapshot preservou
+          // (mesclagens mais recentes). Snapshots antigos não têm esses campos —
+          // mantém o valor atual nesse caso.
           ...(pre.title ? { title: pre.title } : {}),
+          ...(pre.image_url !== undefined ? { image_url: pre.image_url } : {}),
           date: pre.date,
           end_date: pre.end_date,
           views: pre.views,

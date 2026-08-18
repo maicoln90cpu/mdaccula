@@ -628,6 +628,18 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Achado adicional (sem ação):** o usuário colou 2 alertas que o próprio Lovable tinha identificado no código. Investigados e confirmados **já resolvidos**, nenhuma ação nova: (a) "multi-event dispatch sempre reporta already dispatched" é exatamente o R-065, já corrigido no mesmo dia; (b) "mapa do e-mail quebra quando o write no Bunny CDN falha" já tinha sido corrigido antes desta sessão, commit `d2939aa` (08/08/2026) — conferido no código atual de `_shared/renderStaticMapCache.ts`, o upload pro Bunny já cai pro Supabase Storage em caso de falha, servindo os bytes de qualquer jeito.
 - **Proteção:** `supabase/functions/_shared/emailBlocks_test.ts` (teste de linha incompleta atualizado + teste novo do teto de largura da imagem); `src/__tests__/lib/blocks-grid-cards.test.ts` (mesmo renderer, reexportado pro admin — assertion do caso columns:3/4 eventos atualizada); `src/__tests__/regression/email-multi-event-internal-name-reflects-template.test.ts` (novo).
 
+### R-073 — Editar um evento mesclado bagunçava os links de venda dos outros dias do festival
+- **Quando:** 17/08/2026, durante auditoria completa do fluxo de mesclagem de eventos pedida pelo usuário (junto com o pedido de desfazer manualmente o merge "Parador Reveillon").
+- **Causa:** `useEventFormSubmit.tsx` sincronizava `custom_links` a cada salvamento de evento com um único `UPDATE custom_links SET title=..., override_date=..., override_time=..., url=... WHERE event_id = <evento>`, sem filtrar por link específico. Um evento resultado de mesclagem (`tickets_per_day=true`) tem 1 `custom_links` por dia, cada um com seu próprio `override_date`/`url` — qualquer edição do evento colapsava todos pro mesmo dia/link. Confirmado nos dados reais do merge "Parador Reveillon": os links dos dias 29, 30 e 31/12 perderam sua identidade própria depois de edições do evento feitas após o merge.
+- **Correção:** antes de montar o update, conta quantos `custom_links` estão vinculados ao `event_id`. Se for mais de 1 (festival mesclado), não sobrescreve `title`/`subtitle`/`override_date`/`override_time`/`url` — cada dia mantém o seu. Continua sincronizando normalmente quando é 0 ou 1 link (caso comum, evento não mesclado).
+- **Proteção:** `src/__tests__/regression/merged-event-edit-overwrites-day-links.test.ts`.
+
+### R-074 — Imagem de um evento em /links não acompanhava a troca da imagem do evento em /eventos
+- **Quando:** 17/08/2026, mesma auditoria do R-073.
+- **Causa:** `custom_links.thumbnail_url` é uma cópia própria da imagem, separada de `events.image_url`. A única sincronização existente rodava em código de front-end, só disparava quando um arquivo NOVO era enviado naquele mesmo salvamento do formulário, e falhava calada (só log) quando não achava nenhum `custom_links` vinculado ao evento. Confirmado ao vivo em produção: o evento "Universo Paralello 2026" estava com `thumbnail_url` divergente de `events.image_url`.
+- **Correção:** migration `supabase/migrations/20260818015609_sync_custom_links_thumbnail_from_event_image.sql` cria um gatilho `AFTER UPDATE OF image_url ON events` que sempre propaga a imagem nova pra todos os `custom_links` daquele evento (não depende mais de nenhuma condição no front-end), e faz o backfill retroativo de todos os casos já divergentes hoje. `useEventFormSubmit.tsx` simplificado: removida a sincronização frágil de `thumbnail_url` que agora é redundante.
+- **Proteção:** `src/__tests__/regression/links-thumbnail-not-synced-with-event-image.test.ts`.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
