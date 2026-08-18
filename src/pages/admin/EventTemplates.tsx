@@ -20,6 +20,9 @@ import { NavLink } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';
+import { useSiteSettings } from '@/hooks';
+
+const GUILHERME_PHONE = '5511997819194';
 
 interface EventTemplate {
   id: string;
@@ -94,6 +97,8 @@ const STATES = [
 ];
 
 const EventTemplates = () => {
+  const { settings } = useSiteSettings();
+  const maicolnPhone = settings.whatsapp_number || '';
   const [templates, setTemplates] = useState<EventTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -274,8 +279,8 @@ const EventTemplates = () => {
 
   const getVipLinkValue = () => {
     if (!formData.vip_link) return 'none';
-    if (formData.vip_link.includes('5511999136884')) return 'maicoln';
-    if (formData.vip_link.includes('5511997819194')) return 'guilherme';
+    if (maicolnPhone && formData.vip_link.includes(maicolnPhone)) return 'maicoln';
+    if (formData.vip_link.includes(GUILHERME_PHONE)) return 'guilherme';
     return 'none';
   };
 
@@ -286,13 +291,13 @@ const EventTemplates = () => {
       const message = `Olá MD, queria ver um camarote para ${formData.title || 'evento'}`;
       setFormData({
         ...formData,
-        vip_link: `https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`,
+        vip_link: `https://api.whatsapp.com/send?phone=${maicolnPhone}&text=${encodeURIComponent(message)}`,
       });
     } else if (value === 'guilherme') {
       const message = `Olá Gui, queria ver um camarote para ${formData.title || 'evento'}`;
       setFormData({
         ...formData,
-        vip_link: `https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`,
+        vip_link: `https://api.whatsapp.com/send?phone=${GUILHERME_PHONE}&text=${encodeURIComponent(message)}`,
       });
     }
   };

@@ -14,10 +14,15 @@ import {
   EVENT_CTA_CONFIG,
   DEFAULT_EVENT_CTA_TYPE,
 } from '@shared/eventCta.ts';
+import { useSiteSettings } from '@/hooks';
 import { normalizeUrl, type EventFormData } from './constants';
+
+const GUILHERME_PHONE = '5511997819194';
 
 export const TicketAndCtaSection = () => {
   const { register, control, watch, setValue } = useFormContext<EventFormData>();
+  const { settings } = useSiteSettings();
+  const maicolnPhone = settings.whatsapp_number || '';
 
   const pixEnabled = watch('pix_button_enabled') === true;
   const vipLinkVal = (watch('vip_link') || '').trim();
@@ -53,9 +58,9 @@ export const TicketAndCtaSection = () => {
             render={({ field }) => (
               <Select
                 value={
-                  field.value?.includes('5511999136884')
+                  maicolnPhone && field.value?.includes(maicolnPhone)
                     ? 'maicoln'
-                    : field.value?.includes('5511997819194')
+                    : field.value?.includes(GUILHERME_PHONE)
                       ? 'guilherme'
                       : field.value
                         ? 'none'
@@ -67,12 +72,12 @@ export const TicketAndCtaSection = () => {
                   } else if (value === 'maicoln') {
                     const message = `Olá MD, queria ver um camarote para ${watch('title') || 'evento'}`;
                     field.onChange(
-                      `https://api.whatsapp.com/send?phone=5511999136884&text=${encodeURIComponent(message)}`
+                      `https://api.whatsapp.com/send?phone=${maicolnPhone}&text=${encodeURIComponent(message)}`
                     );
                   } else if (value === 'guilherme') {
                     const message = `Olá Gui, queria ver um camarote para ${watch('title') || 'evento'}`;
                     field.onChange(
-                      `https://api.whatsapp.com/send?phone=5511997819194&text=${encodeURIComponent(message)}`
+                      `https://api.whatsapp.com/send?phone=${GUILHERME_PHONE}&text=${encodeURIComponent(message)}`
                     );
                   }
                 }}

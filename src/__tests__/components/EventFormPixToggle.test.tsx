@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { EventForm } from '@/components/events/EventForm';
+import { SiteSettingsProvider } from '@/contexts/SiteSettingsContext';
 import { supabase } from '@/integrations/supabase/client';
 
 class ROStub {
@@ -12,7 +14,18 @@ class ROStub {
 (globalThis as any).ResizeObserver = ROStub;
 (window as any).ResizeObserver = ROStub;
 
-const renderForm = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
+const renderForm = (ui: React.ReactElement) => {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <SiteSettingsProvider>
+        <MemoryRouter>{ui}</MemoryRouter>
+      </SiteSettingsProvider>
+    </QueryClientProvider>
+  );
+};
 
 /**
  * Regressão: ao abrir o modal de edição com pix_button_enabled=true,

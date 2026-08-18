@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Botão de Camarote/Pix de 201 eventos apontava pro número de WhatsApp antigo, mesmo após trocar em Configurações (R-076)
+**Descrição:** o usuário trocou o número de WhatsApp em Configurações → Redes Sociais, mas percebeu que os botões "Reservas de Camarote" e "Comprar Sem Taxa via Pix" nas páginas de evento continuavam abrindo o número antigo. Investigação encontrou a causa: o preset "Maicoln Douglas" do campo "Link Camarote" (no formulário de evento e na tela de Templates de Eventos) gerava o link com o número gravado fixo no código, sem nenhuma ligação com a configuração global — trocar o número em Configurações nunca alcançava esse preset. Isso deixou **201 eventos ativos**, **2 templates de evento** e **1 link da página `/links`** presos no número antigo, alguns há meses. Corrigido: os dois arquivos passaram a puxar o número direto de Configurações; os 204 registros afetados foram atualizados no banco pro número correto; e um teste permanente (R-076) impede que um número volte a ser hardcoded no futuro.
+**Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm test` (698 testes) verdes. Conferido direto no banco: 0 eventos/templates/links restantes com o número antigo.
+**Data:** 18/08/2026
+**Responsável:** IA, a pedido do usuário — investigação disparada por relato do usuário ("botão de comprar sem taxa parece ir pro número antigo").
+
+**Arquivos alterados:** `src/components/events/eventForm/TicketAndCtaSection.tsx`, `src/pages/admin/EventTemplates.tsx`, `src/__tests__/components/EventFormPixToggle.test.tsx`, `src/__tests__/regression/event-vip-link-hardcoded-old-phone.test.ts`, `docs/TESTING.md`. Também corrigidos diretamente no banco: `events.vip_link` (201 linhas), `event_templates.vip_link` (2 linhas), `custom_links.url` (1 linha).
+
+---
+
 ### Mesclagem de eventos redesenhada: nunca mais muta os eventos originais (R-075)
 **Descrição:** depois da auditoria de 17/08/2026 (revert manual do merge "Parador Reveillon" por falta de snapshot, ver entrada abaixo), a mesclagem de eventos foi reescrita do zero, em 5 fases pequenas (commit+push a cada uma). Mesclar agora **cria um evento novo** ("card-vitrine", `is_merge_shell=true`) em vez de mutar um dos eventos selecionados — o nome/imagem são escolhidos livremente (entre qualquer um dos eventos ou upload novo), e `schedule`/views são agregados. Os eventos escondidos nunca têm nenhum dado próprio alterado — só ficam marcados como inativos, apontando pro card novo. Desfazer (total ou parcial) passou a funcionar sempre, em qualquer mesclagem, sem depender de nenhum log de auditoria — elimina pela raiz a classe de bug que já tinha exigido correção manual duas vezes (R-024, R-073). O botão "Comprar Ingresso" de um festival mesclado agora busca o link de cada dia ao vivo, direto dos eventos escondidos — editar o line-up/link de um dia depois da mesclagem reflete na hora, sem re-mesclar nada. `/links` continua inteiramente fora dessa feature, sem nenhuma mudança de comportamento (confirmado por teste dedicado). O único merge ativo no modelo antigo ("Nostalgia") foi convertido pro modelo novo — mesma URL, mesmo card, nada muda pro público. Uma trava nova em `EventCard.tsx` impede selecionar um card-vitrine ou evento já escondido no modo "Mesclar", evitando mesclagem encadeada.
 **Achado à parte durante a implementação:** o comando `npx tsc --noEmit` (documentado em `CLAUDE.md`/`docs/TESTING.md`/`docs/ONBOARDING.md`) estava checando **zero arquivos** neste projeto — `tsconfig.json` raiz tem `"files": []` e só usa `references`, que o `tsc` ignora fora do modo `--build`. O comando correto é `npx tsc --noEmit -p tsconfig.app.json`; os 3 documentos foram corrigidos. Rodando certo, apareceram 2 bugs reais que tinham passado despercebidos numa fase anterior deste mesmo trabalho (faltava gerar slug pro card novo; `schedule` não batia com o tipo `Json` do Supabase) — corrigidos antes de prosseguir.
@@ -1475,6 +1485,7 @@
 
 | Data | Tipo | Descrição |
 |------|------|-----------|
+| 18/08 | Bugfix | Botão de Camarote/Pix de 201 eventos apontava pro WhatsApp antigo mesmo após trocar em Configurações (R-076) |
 | 18/08 | Feature | Mesclagem de eventos redesenhada pra nunca mutar os eventos originais, em 5 fases (R-075) |
 | 17/08 | Bugfix/Feature | Auditoria da mesclagem de eventos: merge "Parador Reveillon" desfeito, imagem escolhível na mesclagem, 2 bugs de produção corrigidos (R-073, R-074) |
 | 16/08 | Bugfix | Prerender SEO: corrige alarme falso (workflow "sucesso" mesmo gerando 0 páginas) e detecta possível bloqueio do Cloudflare |
