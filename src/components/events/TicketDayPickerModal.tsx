@@ -31,8 +31,10 @@ interface DayOption {
 
 /**
  * Modal exibido quando um evento mesclado tem `tickets_per_day = true`.
- * Lista os dias do `schedule` cruzados com `custom_links` (mesmo event_id, com override_date).
- * Se não houver link para um dia, mostra fallback (ticket_link principal) com aviso.
+ * Lista os dias do `schedule` cruzados com os eventos escondidos daquele
+ * grupo (`events.merged_into_id = eventId`) — sempre ao vivo, nunca uma
+ * cópia: editar o link de venda de um dia reflete aqui na hora seguinte.
+ * Se não houver link pra um dia, mostra fallback (ticket_link do card) com aviso.
  */
 export const TicketDayPickerModal = ({
   open,
@@ -51,19 +53,18 @@ export const TicketDayPickerModal = ({
 
     (async () => {
       setLoading(true);
-      const { data: links } = await supabase
-        .from('custom_links')
-        .select('title, url, override_date')
-        .eq('event_id', eventId)
-        .eq('enabled', true);
+      const { data: members } = await supabase
+        .from('events')
+        .select('title, date, ticket_link')
+        .eq('merged_into_id', eventId);
 
       if (cancelled) return;
 
       const scheduleDays = parseSchedule(schedule) || [];
       const linkByDate = new Map<string, { url: string; title?: string }>();
-      (links || []).forEach((l) => {
-        if (l.override_date && l.url) {
-          linkByDate.set(l.override_date, { url: l.url, title: l.title });
+      (members || []).forEach((m) => {
+        if (m.date && m.ticket_link) {
+          linkByDate.set(m.date, { url: m.ticket_link, title: m.title });
         }
       });
 
