@@ -4,15 +4,22 @@ Regra geral: **uma fase por vez**, validação manual entre fases, nada de agrup
 
 ---
 
-## Fase 1 — MCP: decidir e limpar (risco: muito baixo)
+## Fase 1 — MCP reescrito leve (DECIDIDO: reescrever) (risco: muito baixo)
 
-**Hoje:** existe um servidor MCP no projeto (`src/lib/mcp/`, `supabase/functions/mcp/`, plugin no `vite.config.ts`, passo extra no CI) que **nunca foi publicado com sucesso** — o pacote gerado passa de 26MB e a Supabase recusa (erro 413). Ou seja: código que só gera ruído no build e no CI.
+**Hoje:** existe um servidor MCP no projeto (`src/lib/mcp/`, `supabase/functions/mcp/`, plugin no `vite.config.ts`, passo extra no CI) que **nunca foi publicado com sucesso** — o pacote gerado passa de 26MB e a Supabase recusa (erro 413).
 
-**Duas saídas (escolher uma):**
-- **1A — Remover de vez:** tirar os 5 pontos (dependência no `package.json`, `src/lib/mcp/`, `supabase/functions/mcp/`, plugin no Vite, passo no workflow). Ganho: build mais limpo, CI sem passo que sempre falha.
-- **1B — Reescrever à mão:** uma Edge Function MCP simples, sem a biblioteca pesada (que é a causa do 26MB). Só vale se você quiser que ChatGPT/Claude consigam consultar eventos e blog do site.
+**Depois:** uma Edge Function MCP enxuta, escrita à mão, sem a biblioteca pesada que causa o 26MB. Mesmas 5 ferramentas públicas (próximos eventos, detalhe de evento, lista de posts, detalhe de post, links).
 
-**Validação:** build e testes verdes; CI sem o aviso de falha do `mcp`.
+**Sub-fases:**
+- **1.1** — Escrever a nova função MCP à mão (protocolo JSON-RPC simples + as 5 consultas já existentes), sem dependências pesadas.
+- **1.2** — Remover o plugin do Vite, a dependência `@lovable.dev/mcp-js` e a pasta `src/lib/mcp/`.
+- **1.3** — Simplificar o CI: o passo separado com `continue-on-error` do `mcp` deixa de ser necessário.
+- **1.4** — Publicar a função e testar a conexão real a partir de um cliente (ChatGPT/Claude).
+
+**Ganho:** o site passa a ser consultável por assistentes de IA (bom para descoberta), build mais leve e CI sem passo que sempre falha.
+
+**Validação:** build e testes verdes; CI todo verde; a função `mcp` aparece publicada e responde.
+
 
 ---
 
@@ -25,11 +32,14 @@ Radix UI (todos), `@fontsource/*`, Playwright, Supabase JS, TanStack Query, `dat
 Só correções compatíveis. Risco quase nulo.
 **Validação:** `npm test`, typecheck, abrir /admin e conferir menus, modais e selects.
 
-### 2B — React Router v6 → v7 (risco médio, fase isolada)
+### 2B — React Router v6 → v7 (DECIDIDO: encarar) (risco médio, fase isolada)
 - Vantagem: suporte ativo, compatível com React 19 no futuro, correções de segurança.
 - Risco: o novo comportamento de transição pode mudar o *timing* visual das telas que carregam sob demanda (praticamente todas as páginas aqui).
-- Caminho seguro: **primeiro ativar as "future flags" ainda na v6** (uma por vez), conferir a navegação, e só depois trocar a versão.
+- **2B.1** — Ativar as "future flags" ainda na v6, **uma por vez**, conferindo a navegação entre cada uma.
+- **2B.2** — Só com todas as flags verdes, trocar para a v7 (a troca vira quase um "não-evento").
+- **2B.3** — Rodar a suíte E2E completa nas rotas públicas e no /admin.
 **Validação:** navegar por todas as rotas públicas + /admin, conferir que não pisca nem trava.
+
 
 ### 2C — Bibliotecas de UI com mudanças de API (uma por vez)
 `@hookform/resolvers` (3 → 5), `recharts`, `sonner`, `vaul`, `next-themes`.
@@ -40,15 +50,23 @@ React 19 e Tailwind 4: são reescritas grandes, sem ganho prático hoje. Ficam r
 
 ---
 
-## Fase 3 — Fechar pendências de e-mail (risco: baixo)
 
-**R-062 (risco residual):** se a função morrer exatamente no meio da conversa com a E-goi, o cron de limpeza pode liberar um evento que já teve campanha criada — em tese, permitindo uma campanha duplicada.
-**Opções:** (a) aceitar formalmente o risco e documentar como decisão encerrada; (b) adicionar uma verificação extra antes de liberar (o cron consulta a E-goi para checar se a campanha existe).
-Recomendo **(b)** — é uma verificação de leitura, não muda o fluxo de envio.
+## Fase 3 — Blindar o disparo de e-mail (DECIDIDO: verificação extra) (risco: baixo)
 
-**Validação:** teste de regressão novo + envio real de teste.
+**Hoje (R-062):** se a função morrer exatamente no meio da conversa com a E-goi, o cron de limpeza pode liberar um evento que já teve campanha criada — em tese, permitindo uma campanha duplicada.
 
----
+**Depois:** antes de liberar qualquer reserva, o cron **pergunta à E-goi** se já existe campanha para aquele evento. Se existir, ele não libera — marca como concluída.
+
+**Sub-fases:**
+- **3.1** — Adicionar a consulta de leitura à E-goi (listar campanhas e casar pelo identificador do evento), com timeout e falha segura (na dúvida, **não** libera).
+- **3.2** — Ligar essa consulta ao cron `heal-stuck-email-dispatches`.
+- **3.3** — Teste de regressão cobrindo os 3 cenários: campanha existe / não existe / E-goi indisponível.
+- **3.4** — Deploy da função e envio de teste real.
+
+**Ganho:** duplicidade de campanha deixa de ser possível mesmo com queda no pior momento.
+
+**Validação:** teste de regressão verde + um envio real de teste conferido no histórico e na E-goi.
+
 
 ## Fase 4 — Monitoramentos abertos (risco: nenhum, é conferência)
 
@@ -67,23 +85,24 @@ Recomendo **(b)** — é uma verificação de leitura, não muda o fluxo de envi
 
 ---
 
-## Ordem sugerida e pontos de parada
+## Ordem de execução e pontos de parada
 
-1. Fase 1 (decisão MCP) → parar e conferir build.
-2. Fase 2A → parar e conferir admin.
-3. Fase 2B → parar e conferir navegação inteira.
-4. Fase 2C (uma lib por vez) → conferir tela a tela.
-5. Fase 3 → conferir envio de e-mail.
+1. Fase 1 (MCP leve) → parar, conferir build e a conexão do MCP.
+2. Fase 2A → parar e conferir o /admin.
+3. Fase 2B (flags uma a uma, depois v7) → parar e conferir a navegação inteira.
+4. Fase 2C (uma biblioteca por vez) → conferir tela a tela.
+5. Fase 3 → conferir envio de e-mail real.
 6. Fases 4 e 5 → conferência e documentação.
 
 ## Detalhes técnicos
 
 - Nenhuma alteração de schema de banco prevista (sem risco de perda de dados).
-- Toda fase é revertível: dependências voltam pela versão anterior no `package.json`; Fase 1A é remoção de código morto; Fase 3 adiciona verificação, não remove nada.
+- Toda fase é revertível: dependências voltam pela versão anterior no `package.json`; a Fase 1 troca código morto por código funcional; a Fase 3 adiciona verificação, não remove nada.
 - Pré-requisito de cada fase: `npm test`, `npx tsc --noEmit -p tsconfig.app.json` e `npm run lint` verdes antes de seguir.
 
-## Decisões que preciso de você
+## Decisões já tomadas
 
-1. Fase 1: remover o MCP (1A) ou reescrever leve (1B)?
-2. Fase 2B: encara a migração do Router v7 agora ou deixa para depois?
-3. Fase 3: aceitar o risco residual do R-062 ou implementar a verificação extra?
+1. **Fase 1:** reescrever o MCP leve (em vez de remover).
+2. **Fase 2B:** encarar a migração para o React Router v7, com flags primeiro.
+3. **Fase 3:** implementar a verificação extra na E-goi (nada de aceitar risco residual).
+
