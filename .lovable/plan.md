@@ -85,23 +85,24 @@ React 19 e Tailwind 4: são reescritas grandes, sem ganho prático hoje. Ficam r
 
 ---
 
-## Ordem sugerida e pontos de parada
+## Ordem de execução e pontos de parada
 
-1. Fase 1 (decisão MCP) → parar e conferir build.
-2. Fase 2A → parar e conferir admin.
-3. Fase 2B → parar e conferir navegação inteira.
-4. Fase 2C (uma lib por vez) → conferir tela a tela.
-5. Fase 3 → conferir envio de e-mail.
+1. Fase 1 (MCP leve) → parar, conferir build e a conexão do MCP.
+2. Fase 2A → parar e conferir o /admin.
+3. Fase 2B (flags uma a uma, depois v7) → parar e conferir a navegação inteira.
+4. Fase 2C (uma biblioteca por vez) → conferir tela a tela.
+5. Fase 3 → conferir envio de e-mail real.
 6. Fases 4 e 5 → conferência e documentação.
 
 ## Detalhes técnicos
 
 - Nenhuma alteração de schema de banco prevista (sem risco de perda de dados).
-- Toda fase é revertível: dependências voltam pela versão anterior no `package.json`; Fase 1A é remoção de código morto; Fase 3 adiciona verificação, não remove nada.
+- Toda fase é revertível: dependências voltam pela versão anterior no `package.json`; a Fase 1 troca código morto por código funcional; a Fase 3 adiciona verificação, não remove nada.
 - Pré-requisito de cada fase: `npm test`, `npx tsc --noEmit -p tsconfig.app.json` e `npm run lint` verdes antes de seguir.
 
-## Decisões que preciso de você
+## Decisões já tomadas
 
-1. Fase 1: remover o MCP (1A) ou reescrever leve (1B)?
-2. Fase 2B: encara a migração do Router v7 agora ou deixa para depois?
-3. Fase 3: aceitar o risco residual do R-062 ou implementar a verificação extra?
+1. **Fase 1:** reescrever o MCP leve (em vez de remover).
+2. **Fase 2B:** encarar a migração para o React Router v7, com flags primeiro.
+3. **Fase 3:** implementar a verificação extra na E-goi (nada de aceitar risco residual).
+
