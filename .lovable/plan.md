@@ -4,15 +4,22 @@ Regra geral: **uma fase por vez**, validação manual entre fases, nada de agrup
 
 ---
 
-## Fase 1 — MCP: decidir e limpar (risco: muito baixo)
+## Fase 1 — MCP reescrito leve (DECIDIDO: reescrever) (risco: muito baixo)
 
-**Hoje:** existe um servidor MCP no projeto (`src/lib/mcp/`, `supabase/functions/mcp/`, plugin no `vite.config.ts`, passo extra no CI) que **nunca foi publicado com sucesso** — o pacote gerado passa de 26MB e a Supabase recusa (erro 413). Ou seja: código que só gera ruído no build e no CI.
+**Hoje:** existe um servidor MCP no projeto (`src/lib/mcp/`, `supabase/functions/mcp/`, plugin no `vite.config.ts`, passo extra no CI) que **nunca foi publicado com sucesso** — o pacote gerado passa de 26MB e a Supabase recusa (erro 413).
 
-**Duas saídas (escolher uma):**
-- **1A — Remover de vez:** tirar os 5 pontos (dependência no `package.json`, `src/lib/mcp/`, `supabase/functions/mcp/`, plugin no Vite, passo no workflow). Ganho: build mais limpo, CI sem passo que sempre falha.
-- **1B — Reescrever à mão:** uma Edge Function MCP simples, sem a biblioteca pesada (que é a causa do 26MB). Só vale se você quiser que ChatGPT/Claude consigam consultar eventos e blog do site.
+**Depois:** uma Edge Function MCP enxuta, escrita à mão, sem a biblioteca pesada que causa o 26MB. Mesmas 5 ferramentas públicas (próximos eventos, detalhe de evento, lista de posts, detalhe de post, links).
 
-**Validação:** build e testes verdes; CI sem o aviso de falha do `mcp`.
+**Sub-fases:**
+- **1.1** — Escrever a nova função MCP à mão (protocolo JSON-RPC simples + as 5 consultas já existentes), sem dependências pesadas.
+- **1.2** — Remover o plugin do Vite, a dependência `@lovable.dev/mcp-js` e a pasta `src/lib/mcp/`.
+- **1.3** — Simplificar o CI: o passo separado com `continue-on-error` do `mcp` deixa de ser necessário.
+- **1.4** — Publicar a função e testar a conexão real a partir de um cliente (ChatGPT/Claude).
+
+**Ganho:** o site passa a ser consultável por assistentes de IA (bom para descoberta), build mais leve e CI sem passo que sempre falha.
+
+**Validação:** build e testes verdes; CI todo verde; a função `mcp` aparece publicada e responde.
+
 
 ---
 
