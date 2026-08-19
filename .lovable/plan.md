@@ -32,11 +32,14 @@ Radix UI (todos), `@fontsource/*`, Playwright, Supabase JS, TanStack Query, `dat
 Só correções compatíveis. Risco quase nulo.
 **Validação:** `npm test`, typecheck, abrir /admin e conferir menus, modais e selects.
 
-### 2B — React Router v6 → v7 (risco médio, fase isolada)
+### 2B — React Router v6 → v7 (DECIDIDO: encarar) (risco médio, fase isolada)
 - Vantagem: suporte ativo, compatível com React 19 no futuro, correções de segurança.
 - Risco: o novo comportamento de transição pode mudar o *timing* visual das telas que carregam sob demanda (praticamente todas as páginas aqui).
-- Caminho seguro: **primeiro ativar as "future flags" ainda na v6** (uma por vez), conferir a navegação, e só depois trocar a versão.
+- **2B.1** — Ativar as "future flags" ainda na v6, **uma por vez**, conferindo a navegação entre cada uma.
+- **2B.2** — Só com todas as flags verdes, trocar para a v7 (a troca vira quase um "não-evento").
+- **2B.3** — Rodar a suíte E2E completa nas rotas públicas e no /admin.
 **Validação:** navegar por todas as rotas públicas + /admin, conferir que não pisca nem trava.
+
 
 ### 2C — Bibliotecas de UI com mudanças de API (uma por vez)
 `@hookform/resolvers` (3 → 5), `recharts`, `sonner`, `vaul`, `next-themes`.
