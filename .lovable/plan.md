@@ -52,13 +52,22 @@ React 19 e Tailwind 4: são reescritas grandes, sem ganho prático hoje. Ficam r
 
 ## Fase 3 — Fechar pendências de e-mail (risco: baixo)
 
-**R-062 (risco residual):** se a função morrer exatamente no meio da conversa com a E-goi, o cron de limpeza pode liberar um evento que já teve campanha criada — em tese, permitindo uma campanha duplicada.
-**Opções:** (a) aceitar formalmente o risco e documentar como decisão encerrada; (b) adicionar uma verificação extra antes de liberar (o cron consulta a E-goi para checar se a campanha existe).
-Recomendo **(b)** — é uma verificação de leitura, não muda o fluxo de envio.
+## Fase 3 — Blindar o disparo de e-mail (DECIDIDO: verificação extra) (risco: baixo)
 
-**Validação:** teste de regressão novo + envio real de teste.
+**Hoje (R-062):** se a função morrer exatamente no meio da conversa com a E-goi, o cron de limpeza pode liberar um evento que já teve campanha criada — em tese, permitindo uma campanha duplicada.
 
----
+**Depois:** antes de liberar qualquer reserva, o cron **pergunta à E-goi** se já existe campanha para aquele evento. Se existir, ele não libera — marca como concluída.
+
+**Sub-fases:**
+- **3.1** — Adicionar a consulta de leitura à E-goi (listar campanhas e casar pelo identificador do evento), com timeout e falha segura (na dúvida, **não** libera).
+- **3.2** — Ligar essa consulta ao cron `heal-stuck-email-dispatches`.
+- **3.3** — Teste de regressão cobrindo os 3 cenários: campanha existe / não existe / E-goi indisponível.
+- **3.4** — Deploy da função e envio de teste real.
+
+**Ganho:** duplicidade de campanha deixa de ser possível mesmo com queda no pior momento.
+
+**Validação:** teste de regressão verde + um envio real de teste conferido no histórico e na E-goi.
+
 
 ## Fase 4 — Monitoramentos abertos (risco: nenhum, é conferência)
 
