@@ -1,57 +1,89 @@
+# Plano completo em fases seguras — pendências, atualizações e limpeza
 
-# Plano — Fechar pendências de segurança
+Regra geral: **uma fase por vez**, validação manual entre fases, nada de agrupar itens de risco alto. Cada fase é reversível.
 
-Tudo abaixo foi confirmado consultando o banco agora. Nenhum item quebra o site: são portas abertas que ninguém usa.
+---
 
-## Fase 1 — Tirar tabelas sensíveis do Realtime (risco: muito baixo)
+## Fase 1 — MCP: decidir e limpar (risco: muito baixo)
 
-**Hoje:** `newsletter_subscribers` e `podcast_submissions` estão publicadas no canal ao vivo (`supabase_realtime`), junto com 12 tabelas de conteúdo (eventos, blog, links — essas ficam como estão).
+**Hoje:** existe um servidor MCP no projeto (`src/lib/mcp/`, `supabase/functions/mcp/`, plugin no `vite.config.ts`, passo extra no CI) que **nunca foi publicado com sucesso** — o pacote gerado passa de 26MB e a Supabase recusa (erro 413). Ou seja: código que só gera ruído no build e no CI.
 
-**Depois:** apenas as tabelas de conteúdo continuam no canal ao vivo.
+**Duas saídas (escolher uma):**
+- **1A — Remover de vez:** tirar os 5 pontos (dependência no `package.json`, `src/lib/mcp/`, `supabase/functions/mcp/`, plugin no Vite, passo no workflow). Ganho: build mais limpo, CI sem passo que sempre falha.
+- **1B — Reescrever à mão:** uma Edge Function MCP simples, sem a biblioteca pesada (que é a causa do 26MB). Só vale se você quiser que ChatGPT/Claude consigam consultar eventos e blog do site.
 
-**Como:** uma migração com `ALTER PUBLICATION supabase_realtime DROP TABLE ...` para as duas tabelas.
+**Validação:** build e testes verdes; CI sem o aviso de falha do `mcp`.
 
-**Ganho:** ninguém consegue mais "escutar" cadastros de e-mail ou inscrições de podcast chegando em tempo real.
+---
 
-**Antes de aplicar:** verifico no código se algum painel admin usa Realtime nessas duas tabelas. Se usar, o painel passa a atualizar ao recarregar/refetch (já é o padrão nas outras telas) e eu ajusto o hook no mesmo passo.
+## Fase 2 — Atualizações de dependências em lotes (risco: baixo → médio)
 
-## Fase 2 — Fechar as 3 funções administrativas (risco: baixo)
+Feito em **3 sub-fases separadas**, nunca tudo junto.
 
-**Hoje:** `get_db_size`, `cleanup_old_logs` e `cleanup_old_egress` podem ser chamadas por visitante anônimo via API.
+### 2A — Lote seguro (correções de bug e patches)
+Radix UI (todos), `@fontsource/*`, Playwright, Supabase JS, TanStack Query, `date-fns`, `dompurify`.
+Só correções compatíveis. Risco quase nulo.
+**Validação:** `npm test`, typecheck, abrir /admin e conferir menus, modais e selects.
 
-**Depois:** só `service_role` (Edge Functions e cron) pode executá-las.
+### 2B — React Router v6 → v7 (risco médio, fase isolada)
+- Vantagem: suporte ativo, compatível com React 19 no futuro, correções de segurança.
+- Risco: o novo comportamento de transição pode mudar o *timing* visual das telas que carregam sob demanda (praticamente todas as páginas aqui).
+- Caminho seguro: **primeiro ativar as "future flags" ainda na v6** (uma por vez), conferir a navegação, e só depois trocar a versão.
+**Validação:** navegar por todas as rotas públicas + /admin, conferir que não pisca nem trava.
 
-**Como:** `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated` + `GRANT EXECUTE ... TO service_role`.
+### 2C — Bibliotecas de UI com mudanças de API (uma por vez)
+`@hookform/resolvers` (3 → 5), `recharts`, `sonner`, `vaul`, `next-themes`.
+Cada uma num passo próprio, com conferência da tela que usa.
 
-**As outras 11 continuam públicas de propósito** (contadores de view/clique/like, `has_role`/`is_admin` usados pelo login do próprio site) — documento essa decisão em vez de deixar como pendência eterna.
+### 2D — Adiado de propósito
+React 19 e Tailwind 4: são reescritas grandes, sem ganho prático hoje. Ficam registradas no roadmap, não são executadas agora.
 
-**Verificação antes:** confirmo em `src/` e `supabase/functions/` quem chama essas 3. Se o painel admin chamar `get_db_size` direto do navegador, crio/uso uma Edge Function como intermediária para não quebrar a tela de métricas.
+---
 
-## Fase 3 — Buckets de imagem: bloquear listagem, manter acesso (risco: baixo)
+## Fase 3 — Fechar pendências de e-mail (risco: baixo)
 
-**Hoje:** as 3 políticas de leitura (`event-images`, `link-thumbnails`, `team-images`) liberam o bucket inteiro, o que inclui listar todos os arquivos.
+**R-062 (risco residual):** se a função morrer exatamente no meio da conversa com a E-goi, o cron de limpeza pode liberar um evento que já teve campanha criada — em tese, permitindo uma campanha duplicada.
+**Opções:** (a) aceitar formalmente o risco e documentar como decisão encerrada; (b) adicionar uma verificação extra antes de liberar (o cron consulta a E-goi para checar se a campanha existe).
+Recomendo **(b)** — é uma verificação de leitura, não muda o fluxo de envio.
 
-**Depois:** abrir uma imagem por URL continua funcionando igual (é o que o site e o Bunny CDN fazem); pedir a lista completa de arquivos deixa de funcionar para o público.
+**Validação:** teste de regressão novo + envio real de teste.
 
-**Ponto de atenção:** telas de admin que fazem "listar arquivos do bucket" (ex.: limpeza de storage) precisam continuar funcionando via admin/service_role. Confirmo isso antes e mantenho a listagem liberada para admin.
+---
 
-## Fase 4 — Documentação e prevenção
+## Fase 4 — Monitoramentos abertos (risco: nenhum, é conferência)
 
-- `PENDENCIAS.MD`: remover os itens resolvidos; manter Leaked Password como **não aplicável (decisão do usuário — sem assinatura Supabase)**.
-- `docs/SECURITY-AUDIT.md`: atualizar as tabelas de RLS/funções com o novo estado e registrar quais funções são públicas *por design*.
-- Adicionar teste em `src/__tests__/database/` que prova que anônimo não executa as 3 funções administrativas (pula sozinho sem credenciais, como os testes atuais).
+- **Prerender SEO:** conferir o log da próxima execução do robô diário e concluir se o Cloudflare está bloqueando. Ação depende do log.
+- **Egress / Storage:** revisar se a API do Supabase voltou a responder; se não, encerrar como "bônus perdido" (não afeta o alarme principal).
+- **Chave antiga do Google Maps:** continua exposta e só o suporte da Lovable pode revogar — acompanhar a resposta deles.
 
-## Ordem de execução e validação
+---
 
-Uma fase por vez, com checklist manual entre elas:
+## Fase 5 — Higiene final do projeto (risco: muito baixo)
 
-1. Fase 1 → conferir `/admin` (newsletter e podcast ainda listam e atualizam).
-2. Fase 2 → conferir tela de métricas e o cron de limpeza de logs.
-3. Fase 3 → conferir imagens de eventos, links e equipe no site, e o upload no admin.
-4. Fase 4 → `npm test` + `npx tsc --noEmit` verdes.
+- Rodar varredura de vulnerabilidades das dependências e corrigir o que sobrou depois da Fase 2.
+- Conferir contagens dos documentos (tabelas, edge functions) contra o estado real do banco.
+- Atualizar `CHANGELOG.md`, `PENDENCIAS.md`, `SECURITY-AUDIT.md`, `TESTING.md` com o que foi feito.
+- Rodar a suíte completa: testes, typecheck, lint, E2E.
+
+---
+
+## Ordem sugerida e pontos de parada
+
+1. Fase 1 (decisão MCP) → parar e conferir build.
+2. Fase 2A → parar e conferir admin.
+3. Fase 2B → parar e conferir navegação inteira.
+4. Fase 2C (uma lib por vez) → conferir tela a tela.
+5. Fase 3 → conferir envio de e-mail.
+6. Fases 4 e 5 → conferência e documentação.
 
 ## Detalhes técnicos
 
-- Tudo em migrações SQL versionadas; nenhuma alteração de schema de dados (sem risco de perda).
-- Fases 1–3 são reversíveis com um comando inverso (`ADD TABLE`, `GRANT`, recriar policy).
-- Nenhuma Edge Function precisa de redeploy, salvo se a Fase 2 exigir intermediária para `get_db_size`.
+- Nenhuma alteração de schema de banco prevista (sem risco de perda de dados).
+- Toda fase é revertível: dependências voltam pela versão anterior no `package.json`; Fase 1A é remoção de código morto; Fase 3 adiciona verificação, não remove nada.
+- Pré-requisito de cada fase: `npm test`, `npx tsc --noEmit -p tsconfig.app.json` e `npm run lint` verdes antes de seguir.
+
+## Decisões que preciso de você
+
+1. Fase 1: remover o MCP (1A) ou reescrever leve (1B)?
+2. Fase 2B: encara a migração do Router v7 agora ou deixa para depois?
+3. Fase 3: aceitar o risco residual do R-062 ou implementar a verificação extra?
