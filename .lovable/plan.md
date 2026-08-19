@@ -50,7 +50,6 @@ React 19 e Tailwind 4: são reescritas grandes, sem ganho prático hoje. Ficam r
 
 ---
 
-## Fase 3 — Fechar pendências de e-mail (risco: baixo)
 
 ## Fase 3 — Blindar o disparo de e-mail (DECIDIDO: verificação extra) (risco: baixo)
 
