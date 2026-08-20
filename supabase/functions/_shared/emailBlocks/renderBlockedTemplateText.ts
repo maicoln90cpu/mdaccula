@@ -3,7 +3,7 @@ import { EMAIL_BLOCK_LIMITS, clamp } from "../emailBlocksLimits.ts";
 import type { Block, EventAnnouncementData, EmailTemplateSettings, ArticleSummary, GlobalBlock } from "./types.ts";
 import { expandGlobalRefs } from "./types.ts";
 import { computePreheader } from "./preheader.ts";
-import { resolveGridCardUrl } from "./utils.ts";
+import { resolveGridCardUrl, stripFlagEmoji } from "./utils.ts";
 
 function stripHtml(html: string): string {
   return html
@@ -91,7 +91,7 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       return "Siga: " + list.map((n) => `${n.label} (${n.url})`).join(" | ");
     }
     case "lineup": {
-      const artists = (event.lineup || []).filter(Boolean);
+      const artists = (event.lineup || []).filter(Boolean).map(stripFlagEmoji);
       if (!artists.length) return "";
       return (block.title || "Line-up").toUpperCase() + ":\n  " + artists.join(", ");
     }

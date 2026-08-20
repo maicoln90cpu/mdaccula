@@ -1,7 +1,7 @@
 // Família "interactive" — botões CTA, ticker, countdown, links sociais, mapa, lineup.
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import type { Block, RenderContext } from "../types.ts";
-import { DEFAULT_SOCIAL_ICON_URLS, escape, proxyForEmail, renderBulletproofButton, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
+import { DEFAULT_SOCIAL_ICON_URLS, escape, proxyForEmail, renderBulletproofButton, resolveCtaUrl, resolveSecondaryUrl, stripFlagEmoji } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 export function renderInteractiveBlock(
@@ -102,7 +102,7 @@ export function renderInteractiveBlock(
     }
 
     case "lineup": {
-      const artists = (event.lineup || []).filter(Boolean);
+      const artists = (event.lineup || []).filter(Boolean).map(stripFlagEmoji);
       if (artists.length === 0) return "";
       const align = block.align ?? "center";
       const titleColor = escape(block.title_color || primary);

@@ -18,6 +18,22 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Bandeira de país no nome do artista virava ícone quebrado no Outlook (R-083)
+
+- **O que:** reportado pelo usuário depois de testar num Outlook real: um dos chips de line-up mostrava um símbolo quadrado ("tofu") no lugar de parte do nome do artista — no Gmail o mesmo e-mail saía perfeito. Pendência aberta desde o R-080 (sem acesso a Outlook real na época pra confirmar).
+- **Causa:** quando o nome do artista vem com um emoji de bandeira de país junto (comum em legenda de Instagram, ex.: "🇧🇷 DJ Fulano"), o Outlook desktop (motor Word) não sabe compor os 2 caracteres que formam esse emoji num glifo só e desenha cada um como um quadrado separado — o Gmail compõe normalmente.
+- **Correção:** nova função `stripFlagEmoji` (`supabase/functions/_shared/emailBlocks/utils.ts`) remove a bandeira do nome do artista na hora de montar o e-mail (HTML e texto simples) — aplicada no bloco avulso "Line-up", nos chips dentro do card do grid, e na versão texto-puro. Corrige tanto nomes já salvos no banco hoje quanto qualquer nome novo, sem precisar mexer na extração por IA nem no formulário do admin.
+- **Validação:** `tsc`, os 745 testes do vitest verdes (5 novos cobrindo os 3 layouts de line-up + chips do card do grid), suíte Deno (317 testes) verde.
+- **Arquivos:** `supabase/functions/_shared/emailBlocks/utils.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, `supabase/functions/_shared/emailBlocks/renderBlockedTemplateText.ts`, `src/__tests__/regression/lineup-flag-emoji-outlook.test.ts`.
+
+### 20/08/2026 — Alinhamento por-item do `weekend_grid` estendido pros layouts "timeline" e "cartaz" (R-082)
+
+- **O que:** o controle de Alinhamento (esquerda/centro/direita) do bloco de agenda do fim de semana só afetava o cabeçalho nos layouts "linha do tempo" e "cartaz" — o conteúdo de cada card (dia, nome, local, botão) ficava sempre à esquerda. Já tinha sido corrigido pro layout "grade" com 2+ eventos (R-080); esta entrada fecha a pendência aberta na época pros outros dois layouts.
+- **Bônus:** o layout "grade" com exatamente 1 evento no fim de semana tinha o mesmo problema (código duplicado do "cartaz", ficou fora do R-080 por engano) — corrigido junto.
+- **Correção:** `text-align:${align};` adicionado nos `<td>`s de conteúdo dos 3 pontos afetados em `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, mesmo padrão já usado no card compartilhado do grid.
+- **Validação:** `tsc` e os 745 testes do vitest verdes (5 novos cobrindo os 3 layouts com alinhamento centro/direita); suíte Deno (317 testes) verde.
+- **Arquivos:** `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, `src/__tests__/regression/grid-card-outlook-order-align.test.ts`.
+
 ### 20/08/2026 — Opção de link (ticketeira x página do site) estendida também pro `weekend_grid`
 
 - **O que:** a entrada anterior (logo abaixo) tinha deixado o `weekend_grid` (grade do resumo de fim de semana) de fora — pedido do usuário nesta sessão pra estender a mesma opção pra lá também.

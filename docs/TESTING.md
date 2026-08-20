@@ -688,6 +688,19 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** trocado `[--variavel]` pela sintaxe nova do Tailwind v4, `(--variavel)` (gera `var(--variavel)` automaticamente), nos 7 usos em `sidebar.tsx` e 1 em `chart.tsx`.
 - **Proteção:** novo teste em `src/__tests__/architecture/tailwind-theme.test.ts` — varre todo `src/**/*.{ts,tsx}` (fora de `__tests__`) e falha se encontrar `[--variavel]` sem `var()`, prevenindo reincidência em qualquer componente futuro, não só nos dois já corrigidos.
 
+### R-082 — alinhamento por-item do `weekend_grid` não valia para os layouts "timeline" e "cartaz" (nem pro caso de 1 evento só no layout "grid")
+- **Quando:** 20/08/2026 — pendência aberta pelo R-080 (que corrigiu só o layout "grid" com 2+ eventos, escopo do screenshot reportado na época) foi fechada nesta sessão.
+- **Sintoma:** escolher "Centro" ou "Direita" no controle de Alinhamento do bloco `weekend_grid` só movia o cabeçalho (etiqueta + título) — o conteúdo de cada card (dia, nome do evento, local, botão) ficava sempre alinhado à esquerda nos layouts "timeline" e "cartaz", e também no caso de exatamente 1 evento no layout "grid" (código duplicado do "cartaz" que também tinha ficado de fora do R-080).
+- **Correção:** `text-align:${align};` adicionado nos `<td>`s de conteúdo dos 3 pontos em `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts` (timeline, grid com 1 evento, cartaz), mesmo padrão já usado no card compartilhado do grid (R-080).
+- **Proteção:** `src/__tests__/regression/grid-card-outlook-order-align.test.ts` (novo describe cobrindo os 3 layouts).
+
+### R-083 — nomes de artista com bandeira de país no line-up viravam ícone quebrado ("tofu") no Outlook
+- **Quando:** 20/08/2026 — pendência aberta na sessão do R-080 (na época não foi possível confirmar em Outlook real) foi fechada nesta sessão.
+- **Sintoma:** Gmail renderizava normal, mas o Outlook desktop mostrava 2 quadrados no lugar de um emoji de bandeira de país (ex.: 🇧🇷) quando o nome do artista vinha com a bandeira colada (comum em legenda de Instagram, extraída por IA ou copiada manualmente no admin).
+- **Causa:** emoji de bandeira Unicode é composto por 2 codepoints "regional indicator symbol" — o motor de renderização do Outlook desktop (Word) não sabe compor os dois num glifo só e desenha cada um como retângulo "tofu" separado. O dado (nome do artista) nunca era sanitizado em nenhum ponto do pipeline de e-mail.
+- **Correção:** `stripFlagEmoji` (novo helper em `supabase/functions/_shared/emailBlocks/utils.ts`) remove o par de regional indicators do nome do artista na hora de montar o e-mail — aplicado nos 3 lugares que renderizam line-up: bloco avulso `lineup` (`renderBlock/interactive.ts`), chips dentro do card do grid (`renderBlock/digest.ts`, `renderGridEventCard`) e versão texto simples (`renderBlockedTemplateText.ts`). Não mexe nos pontos de entrada do dado (extração por IA, formulário do admin) — corrige tanto nomes já salvos no banco quanto novos.
+- **Proteção:** `src/__tests__/regression/lineup-flag-emoji-outlook.test.ts` (novo).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

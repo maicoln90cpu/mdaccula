@@ -34,20 +34,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Passos (se algum dia quiser fechar de vez):** avaliar com a E-goi se existe algum campo de idempotência não documentado, ou aceitar o risco residual (avaliação atual: baixo, dado o tamanho da janela).
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa, é um risco residual conhecido e documentado.
 
-### Alinhamento por-item ainda não estendido para os layouts "timeline" e "cartaz" do `weekend_grid`
-
-**Contexto:** a correção do R-080 (ver `CHANGELOG.md`) fez o alinhamento do bloco (`align`) valer para todo o conteúdo do card no layout "grid" do `weekend_grid`/`event_grid` — o layout que aparecia no screenshot reportado. Os outros dois layouts do `weekend_grid` (`timeline` e `cartaz`) têm o mesmo comportamento antigo: `align` só afeta o `<td>` do cabeçalho, nunca os cards de cada evento.
-**Por que não foi resolvido agora:** fora do escopo pedido — o usuário só reportou o layout "grid".
-**Passos (se algum dia quiser fechar):** aplicar `text-align:${align}` nos `<td>`s internos dos cards desses dois layouts em `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts` (blocos `timeline` e a variante "cartaz"/lista de `weekend_grid`), mesmo padrão usado no layout "grid".
-**Responsável:** decisão do usuário sobre incluir no escopo.
-
-### Símbolo estranho (tipo "tofu"/quadrado) num dos chips de line-up no Outlook pode não ter sumido de vez
-
-**Contexto:** o screenshot original mostrava, além dos nomes colados (corrigido no R-080 com `.join(" ")`), um bloco de caracteres quadrados antes de um dos nomes de artista — possivelmente um emoji/símbolo que o Outlook não sabe desenhar (não há nenhum emoji nos chips de line-up hoje, então a causa mais provável era mesmo o espaçamento; mas não foi possível confirmar num client Outlook real nesta sessão).
-**Por que não foi resolvido agora:** sem acesso a um Outlook real para reproduzir, e a causa mais provável (espaçamento) já foi corrigida — se o símbolo reaparecer depois do R-080, é um problema separado.
-**Passos (se reaparecer):** testar o e-mail corrigido num Outlook real; se o símbolo persistir, decidir entre trocar por texto simples só para `[if mso]` ou investigar a fonte exata do símbolo.
-**Responsável:** usuário confirma no Outlook real após o próximo envio; decisão de abordagem se persistir.
-
 ---
 
 ## 👀 Monitoramento
@@ -90,6 +76,7 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Checar em:** próximos 3-5 ciclos do cron (a cada intervalo configurado, hoje 48h) ou próximas vezes que "Forçar Geração Agora" for usado
 **Contexto:** Fase 1 (pipeline estrito 1-fonte-1-matéria, R-048) teve 3 hotfixes consecutivos no mesmo dia do deploy — página de listagem escolhida como matéria (Play BPM), plataforma de ticketing escolhida como fonte (Sympla), página utilitária escolhida como matéria (House Mag/login). Os 3 casos foram corrigidos, mas o padrão sugere que a estrutura de link de cada fonte real ainda não foi totalmente validada contra o filtro de descoberta.
 **Atualização (16/08/2026):** as gerações `auto_cron` mais recentes em `ai_generated_posts` (10/08 a 14/08/2026, 5 no total) apontam todas para URLs de matéria específica (djnews, playbpm, alataj×2, housemag) — nenhum dos 3 padrões problemáticos (listagem/plataforma/página institucional) se repetiu desde os hotfixes. Ainda falta a checagem visual em `/admin/blog` (item qualitativo que só o usuário consegue confirmar com segurança) — se o próximo ciclo também vier limpo, dá pra encerrar este checkpoint.
+**Atualização (20/08/2026):** conferidas as gerações `auto_cron` de 16/08 (alataj, artigo sobre hipersexualização no meio artístico) e 18/08 (djmagla, matéria sobre selo Aeden Recordings da Anyma) — ambas apontam pra matéria específica legítima, mesmo padrão limpo. A geração de 14/08 (`djmagla.com/top-100`) foi checada com mais cuidado por levantar suspeita (URL parecia listagem/ranking) — o conteúdo publicado confirma que é o ranking real e completo do DJ Mag LA (100 posições, nomes, texto de abertura/fechamento), não uma página vazia de navegação — **não é recorrência do bug antigo**, segue como ciclo limpo. Total: 7 gerações `auto_cron` seguidas sem repetir os 3 padrões problemáticos (listagem/plataforma/página institucional). Falta só a checagem visual em `/admin/blog` pelo usuário pra poder encerrar.
 **Passos:**
 
 1. Depois de cada geração automática (forçada ou pelo cron), abrir `/admin/blog` e conferir se o artigo gerado corresponde de fato a uma matéria real existente na fonte (a URL em `ai_generated_posts.source_urls` bate com uma matéria específica, não homepage/listagem/institucional).
@@ -102,6 +89,7 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Checar em:** próximas 2 semanas — conferir semanalmente se algum artigo saiu de Sympla/Ingresse/WeGoOut de novo
 **Contexto:** em 09/08/2026, corrigi `content_source=false` pras 3 plataformas de ticketing (Sympla, Ingresse, WeGoOut) às 00:22 UTC (confirmado por SELECT logo em seguida). Por volta de 00:34 UTC — 12 minutos depois, sem eu ter rodado nenhum UPDATE nesse intervalo — o `WeGoOut` (só ele, Sympla/Ingresse continuaram corretos) tinha voltado pra `content_source=true`, e o `auto-article-cron` gerou um rascunho reescrevendo uma página de evento do WeGoOut como se fosse notícia (mesmo padrão do bug original). Busquei em todo o código por qualquer INSERT/UPDATE que grave `content_source` — só achei `FontesManager.tsx` (client-side, exige ação manual de um admin no `/admin/fontes`) e as duas queries de leitura (`auto-article-cron`, `generate-blog-suggestions`). Nenhum cron/webhook/trigger no banco escreve nessa coluna. Corrigido de novo às 01:29 UTC (confirmado). Não consegui confirmar a causa raiz — pode ter sido uma edição real no `/admin/fontes` (o toggle novo da coluna "Conteúdo" foi ao ar nesse mesmo commit) enquanto eu testava, ou algo que não encontrei.
 **Atualização (16/08/2026):** conferido direto no banco — as 3 (`Sympla`, `Ingresse`, `WeGoOut`) seguem `content_source=false`, `updated_at` ainda em `2026-08-10 01:29:52 UTC` (a correção de 10/08, sem nenhuma reversão desde então). Já se passou mais de 1 semana das 2 previstas sem repetir o comportamento — se continuar estável até ~23/08/2026, este checkpoint pode ser encerrado.
+**Atualização (20/08/2026):** conferido de novo — as 3 continuam `content_source=false`, `updated_at` ainda `2026-08-10 01:29:52 UTC`, sem nenhuma reversão em 10 dias corridos. Faltam ~4 dias pra completar as 2 semanas previstas (23-24/08).
 **Passos:**
 
 1. Rodar `select name, type, content_source, updated_at from event_sources where name in ('Sympla','Ingresse','WeGoOut') and type='site';` — as 3 devem estar `false`. Se alguma voltar `true` sem explicação (ninguém mexeu no toggle em `/admin/fontes`), é sinal de um bug real ainda não encontrado — me avisar.
@@ -123,6 +111,7 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 **Checar em:** quando o usuário quiser investigar o branch em si (não é mais bloqueante pra nada)
 **Contexto:** bem no início da investigação do disparo do Sirius (fase do R-053), `list_branches` mostrou o branch padrão/produção do projeto (`project_ref: xfvpuzlspvvsmmunznxw`) com `status: "MIGRATIONS_FAILED"`. Chegou a ser cogitado como relacionado (RLS/grants de `event_email_campaigns` num estado inesperado), mas o R-059 achou e confirmou a causa raiz real do `dispatch_in_progress` (comportamento do PostgREST reaplicando o filtro do claim sobre o valor recém-gravado — nada a ver com RLS, grants ou migrations) — então esse branch fica como um item de infraestrutura independente, sem urgência ligada a este bug.
+**Atualização (20/08/2026):** `list_branches` hoje não retorna nenhum branch (lista vazia) — nenhum branch aparece com `MIGRATIONS_FAILED` nem com nenhum outro status. `list_migrations` também não aponta nenhuma migration com falha. Não dá pra confirmar com certeza pelas ferramentas disponíveis se o branch problemático foi removido/mesclado ou se só não aparece mais nessa listagem — mas não há hoje nenhum sinal ativo do problema.
 **Passos (se/quando o usuário quiser resolver):**
 
 1. Rodar `list_branches`/`list_migrations` de novo e identificar qual migration específica está travada/falhou.

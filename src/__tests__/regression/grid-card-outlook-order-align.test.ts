@@ -117,6 +117,51 @@ describe('R-080 — grid card: alinhamento do bloco vale para todo o conteúdo d
   });
 });
 
+describe('Pendência R-080 — alinhamento estendido para weekend_grid "timeline"/"cartaz"/"grid" (1 evento)', () => {
+  it('layout "timeline": align "center" aplica text-align:center no cabeçalho e no <td> de conteúdo do card', () => {
+    const event = { ...MOCK_EVENT_DATA, weekendEvents: [gridItem()] };
+    const blocks: Block[] = [{ id: 'w', kind: 'weekend_grid', layout: 'timeline', align: 'center' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/text-align:center/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('layout "timeline": align "right" não fica preso em left', () => {
+    const event = { ...MOCK_EVENT_DATA, weekendEvents: [gridItem()] };
+    const blocks: Block[] = [{ id: 'w', kind: 'weekend_grid', layout: 'timeline', align: 'right' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/text-align:right/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('layout "grid" com 1 evento só: align "center" aplica no cabeçalho e no <td> do corpo do card', () => {
+    const event = { ...MOCK_EVENT_DATA, weekendEvents: [gridItem()] };
+    const blocks: Block[] = [{ id: 'w', kind: 'weekend_grid', layout: 'grid', align: 'center' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/text-align:center/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('layout "cartaz" com 2 eventos: align "center" aplica no cabeçalho e no <td> do corpo de cada card', () => {
+    const event = {
+      ...MOCK_EVENT_DATA,
+      weekendEvents: [gridItem({ id: 'c1' }), gridItem({ id: 'c2' })],
+    };
+    const blocks: Block[] = [{ id: 'w', kind: 'weekend_grid', layout: 'cartaz', align: 'center' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/text-align:center/g) || []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('layout "cartaz": align "right" não fica preso em left', () => {
+    const event = { ...MOCK_EVENT_DATA, weekendEvents: [gridItem()] };
+    const blocks: Block[] = [{ id: 'w', kind: 'weekend_grid', layout: 'cartaz', align: 'right' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/text-align:right/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe('R-080 — botões do grid/dedge/hero ganham o fallback VML do Outlook', () => {
   it('botão de ingresso do card do grid tem o par VML + HTML (bulletproof button)', () => {
     const event = { ...MOCK_EVENT_DATA, gridEvents: [gridItem()] };

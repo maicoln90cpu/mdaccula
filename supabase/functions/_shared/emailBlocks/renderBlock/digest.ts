@@ -2,7 +2,7 @@
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import { EMAIL_BLOCK_LIMITS, clamp } from "../../emailBlocksLimits.ts";
 import type { Align, Block, RenderContext, WeekendEventItem } from "../types.ts";
-import { escape, proxyForEmail, renderBulletproofButton, resolveGridCardUrl } from "../utils.ts";
+import { escape, proxyForEmail, renderBulletproofButton, resolveGridCardUrl, stripFlagEmoji } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 const gridColumns = (block: { columns?: 2 | 3 }): number => (block.columns === 3 ? 3 : 2);
@@ -69,7 +69,7 @@ function renderGridEventCard(
   const maxNames = columns >= 3
     ? EMAIL_BLOCK_LIMITS.gridCardLineup.maxNamesAt3Cols
     : EMAIL_BLOCK_LIMITS.gridCardLineup.maxNamesAt2Cols;
-  const names = (ev.lineup || []).filter(Boolean);
+  const names = (ev.lineup || []).filter(Boolean).map(stripFlagEmoji);
   const shown = names.slice(0, maxNames);
   const extra = names.length - shown.length;
   const lineupChips = names.length === 0 ? "" : `<div style="margin-bottom:8px;">${shown
@@ -147,7 +147,7 @@ export function renderDigestBlock(
                 <td width="96" style="padding:0;">
                   <a href="${url}" style="text-decoration:none;display:block;"><img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="96" height="96" border="0" style="display:block;width:96px;height:96px;object-fit:cover;border:0;outline:none;"></a>
                 </td>
-                <td style="padding:12px 14px;vertical-align:top;">
+                <td style="padding:12px 14px;vertical-align:top;text-align:${align};">
                   <div style="color:${barColor};font-size:10px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:3px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
                   <div style="color:#ffffff;font-size:15px;font-weight:800;line-height:1.25;margin-bottom:3px;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
                   <div style="color:#a1a1aa;font-size:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
@@ -183,7 +183,7 @@ export function renderDigestBlock(
                   <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
                 </a>
               </td></tr>
-              <tr><td style="padding:16px 18px 18px 18px;">
+              <tr><td style="padding:16px 18px 18px 18px;text-align:${align};">
                 <div style="color:${escape(block.day_bar_color || accent)};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
                 <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
                 <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>
@@ -228,7 +228,7 @@ export function renderDigestBlock(
                 <img src="${escape(proxyForEmail(ev.imageUrl))}" alt="${escape(ev.title)}" width="552" border="0" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;">
               </a>
             </td></tr>
-            <tr><td style="padding:16px 18px 18px 18px;">
+            <tr><td style="padding:16px 18px 18px 18px;text-align:${align};">
               <div style="color:${escape(block.day_bar_color || accent)};font-size:11px;font-weight:800;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:6px;">${escape(ev.dayLabel)}${showTime && ev.timeLabel ? ` · ${escape(ev.timeLabel)}` : ""}</div>
               <div style="color:#ffffff;font-size:19px;font-weight:900;line-height:1.2;margin-bottom:4px;letter-spacing:-0.01em;"><a href="${url}" style="color:#ffffff;text-decoration:none;">${escape(ev.title)}</a></div>
               <div style="color:#a1a1aa;font-size:13px;margin-bottom:12px;">${escape(ev.venue)}${ev.cityState ? ` · ${escape(ev.cityState)}` : ""}</div>

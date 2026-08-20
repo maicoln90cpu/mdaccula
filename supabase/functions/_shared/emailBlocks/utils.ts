@@ -5,6 +5,17 @@ export const escape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/**
+ * Remove emoji de bandeira de país (par de "regional indicator symbols"
+ * Unicode, ex.: 🇧🇷) de um texto. O Outlook desktop (motor Word) não sabe
+ * compor esses 2 codepoints num glifo de bandeira e mostra 2 quadrados
+ * "tofu" no lugar — Gmail renderiza normal. Nomes de artista extraídos de
+ * legenda do Instagram (ou digitados manualmente) às vezes vêm com bandeira
+ * de nacionalidade grudada; removida só na hora de montar o e-mail.
+ */
+export const stripFlagEmoji = (s: string) =>
+  s.replace(/[\u{1F1E6}-\u{1F1FF}]{2}/gu, "").replace(/\s{2,}/g, " ").trim();
+
 export const sanitizeCustomHtml = (raw: string) =>
   raw
     .replace(/<script[\s\S]*?<\/script>/gi, "")
