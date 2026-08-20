@@ -18,6 +18,17 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Fase 2D (parte 2): migração para Tailwind CSS 4 + tokens em `@theme`
+
+- **O que:** `tailwindcss` 3.4 → 4.3.3 com `@tailwindcss/postcss` (autoprefixer removido, já embutido). Em seguida, todos os tokens saíram de `tailwind.config.ts` (arquivo **removido**) para o bloco `@theme` em `src/index.css` (modelo CSS-first do v4).
+- **Equivalências aplicadas:** `darkMode: ["class"]` → `@custom-variant dark (&:is(.dark *))`; plugin de animação → `@plugin 'tailwindcss-animate'`; `theme.container` → `@utility container` (centralizado, padding 2rem, máx. 1400px); keyframes/animations → `--animate-*` + `@keyframes` dentro de `@theme`.
+- **Bug corrigido no caminho:** os tokens `spacing: { xs, 2xl, 3xl }` do config antigo passaram a alimentar também as classes `max-w-*` no v4 — `max-w-2xl` virava 48px e a home, o blog e a MDAccula Radio ficavam com o texto em coluna de uma palavra por linha. Tokens removidos; larguras voltaram aos valores padrão.
+- **Outros ajustes de compatibilidade:** `shadow-sm` (v3) → `shadow-xs`; `flex-shrink-0` → `shrink-0` (~30 usos); camada base restaurando `border-color` cinza (v4 mudou para `currentColor`).
+- **Validação:** `tsc`, build e 714 testes verdes; 8 rotas públicas comparadas pixel a pixel contra o site publicado (v3) — diferenças restantes só de conteúdo dinâmico.
+- **Arquivos:** `src/index.css`, `postcss.config.js`, `components.json`, `package.json`, `tailwind.config.ts` (removido), `src/components/ui/{tabs.tsx,card-variants.ts}`, `src/__tests__/architecture/tailwind-theme.test.ts` (novo).
+
+
+
 ### 20/08/2026 — Fase 2D (parte 1): migração para React 19
 
 - **O que:** `react` e `react-dom` de 18.3.1 → 19.2.8, com `@types/react`/`@types/react-dom` 19.

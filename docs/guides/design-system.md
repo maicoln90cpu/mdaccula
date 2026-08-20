@@ -1,7 +1,7 @@
 # Design System
 
 Guia rápido do sistema visual "dark neon" do MDAccula. Fonte de verdade para os tokens é
-`src/index.css` (variáveis CSS/HSL) + `tailwind.config.ts` (mapeamento pro Tailwind) — este
+`src/index.css` (variáveis CSS/HSL) + bloco `@theme` no próprio `src/index.css` (Tailwind 4 CSS-first) — este
 documento é um resumo de leitura rápida, não substitui esses dois arquivos.
 
 ## Princípios
@@ -47,7 +47,7 @@ Aliases temáticos (`--neon-purple`, `--neon-blue`, `--neon-pink`, `--dark-surfa
 - Escala de espaçamento em `src/index.css`: `--space-xs` (0.25rem) até `--space-section` (5rem),
   mapeados no Tailwind como `section`, `2xl`, `3xl`.
 - Larguras de conteúdo: `--content-sm` (640px) até `--content-xl` (1280px).
-- Breakpoints customizados em `tailwind.config.ts`: `xs: 375px` (extra, além do padrão do Tailwind),
+- Breakpoints customizados no `@theme` (`--breakpoint-*`): `xs: 375px` (extra, além do padrão do Tailwind),
   `sm/md/lg/xl/2xl` no padrão.
 - `--radius: 0.75rem` — base de `rounded-lg`/`rounded-md`/`rounded-sm`.
 
@@ -55,7 +55,7 @@ Aliases temáticos (`--neon-purple`, `--neon-blue`, `--neon-pink`, `--dark-surfa
 
 - Durations: `--transition-fast` (150ms), `--transition-normal` (200ms), `--transition-smooth`
   (300ms, cubic-bezier), `--transition-bounce` (500ms, overshoot).
-- Keyframes custom no Tailwind (`tailwind.config.ts`): `pulse-neon`, `logo-pulse`, `float`, `glow`,
+- Keyframes custom no `@theme` de `src/index.css`: `pulse-neon`, `logo-pulse`, `float`, `glow`,
   `slide-in-up`, `ticket-glow-pulse`, `ticket-glow-shift`, `ticket-scale-pulse`,
   `featured-glow-pulse`, `wave-drift` (+ variantes `slow`/`fast`).
 - Microinterações premium (Framer Motion) documentadas em `docs/CODE_STYLE.md` → seção Animações:
@@ -80,4 +80,4 @@ componentes de domínio (que sabem de eventos, blog, admin etc.) moram em `src/c
 ## Como manter este documento atualizado
 
 Ao adicionar um token novo em `src/index.css` (cor, sombra, espaçamento) ou uma keyframe nova em
-`tailwind.config.ts`, adicione a linha correspondente aqui no mesmo PR.
+`@theme` (em `src/index.css`), adicione a linha correspondente aqui no mesmo PR.

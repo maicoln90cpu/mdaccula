@@ -8,7 +8,167 @@
 @import '@fontsource/jetbrains-mono/500.css';
 
 @import 'tailwindcss';
-@config '../tailwind.config.ts';
+@plugin 'tailwindcss-animate';
+
+/* dark mode por classe (equivalente ao darkMode: ["class"] do v3) */
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   Design tokens (Tailwind v4 CSS-first) — antes em tailwind.config.ts
+   ATENCAO: nao criar tokens --spacing-xs/2xl/3xl aqui: no v4 a escala de
+   espacamento tambem alimenta max-w-*, e isso quebra `max-w-2xl` & cia.
+   ============================================================ */
+@theme {
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
+  --breakpoint-xs: 375px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-primary-glow: hsl(var(--primary-glow));
+
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-secondary-glow: hsl(var(--secondary-glow));
+
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-accent-glow: hsl(var(--accent-glow));
+
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* 'xs' preserva a sombra sutil que o Tailwind v3 chamava de 'shadow-sm' */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-neon: var(--shadow-neon-value);
+  --shadow-glow: var(--shadow-glow-value);
+  --shadow-card: var(--shadow-card-value);
+  --shadow-elevated: var(--shadow-elevated-value);
+
+  --transition-duration-fast: 150ms;
+  --transition-duration-normal: 200ms;
+  --transition-duration-smooth: 300ms;
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-pulse-neon: pulse-neon 2s ease-in-out infinite;
+  --animate-logo-pulse: logo-pulse 2.5s ease-in-out infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-glow: glow 2s ease-in-out infinite;
+  --animate-slide-in-up: slide-in-up 0.5s ease-out;
+  --animate-ticket-glow-pulse: ticket-glow-pulse 2.5s ease-in-out infinite;
+  --animate-ticket-glow-shift: ticket-glow-shift 6s linear infinite;
+  --animate-ticket-scale-pulse: ticket-scale-pulse 2.8s ease-in-out infinite;
+  --animate-featured-glow-pulse: featured-glow-pulse 2.5s ease-in-out infinite;
+  --animate-wave-drift: wave-drift 18s linear infinite;
+  --animate-wave-drift-slow: wave-drift 28s linear infinite reverse;
+  --animate-wave-drift-fast: wave-drift 12s linear infinite;
+
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
+  @keyframes pulse-neon {
+    0%, 100% { opacity: 1; filter: drop-shadow(0 0 10px hsl(var(--neon-purple) / 0.7)); }
+    50% { opacity: 0.8; filter: drop-shadow(0 0 20px hsl(var(--neon-purple) / 1)); }
+  }
+  @keyframes logo-pulse {
+    0%, 100% {
+      opacity: 1;
+      filter: drop-shadow(0 2px 4px hsl(var(--neon-purple) / 0.25)) drop-shadow(0 4px 8px hsl(var(--neon-purple) / 0.2)) drop-shadow(0 6px 12px hsl(var(--neon-purple) / 0.15)) drop-shadow(0 8px 16px hsl(var(--neon-purple) / 0.1)) drop-shadow(0 0 10px hsl(var(--neon-purple) / 0.7));
+    }
+    50% {
+      opacity: 0.9;
+      filter: drop-shadow(0 2px 4px hsl(var(--neon-purple) / 0.25)) drop-shadow(0 4px 8px hsl(var(--neon-purple) / 0.2)) drop-shadow(0 6px 12px hsl(var(--neon-purple) / 0.15)) drop-shadow(0 8px 16px hsl(var(--neon-purple) / 0.1)) drop-shadow(0 0 22px hsl(var(--neon-purple) / 1));
+    }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.3); }
+    50% { box-shadow: 0 0 40px hsl(var(--neon-purple) / 0.8); }
+  }
+  @keyframes slide-in-up {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes ticket-glow-pulse {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--primary) / 0.5); }
+    50% { box-shadow: 0 0 45px hsl(var(--primary) / 0.85), 0 0 30px hsl(var(--accent) / 0.6); }
+  }
+  @keyframes ticket-glow-shift {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+  @keyframes ticket-scale-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+  }
+  @keyframes featured-glow-pulse {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.5); }
+    50% { box-shadow: 0 0 36px hsl(var(--neon-purple) / 0.85); }
+  }
+  @keyframes wave-drift {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+}
+
+/* container centralizado (equivalente ao theme.container do v3) */
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  width: 100%;
+  max-width: 1400px;
+}
+
 
 /* Compatibilidade Tailwind v3 -> v4:
    o v4 mudou a cor padrao das bordas (de cinza para currentColor).
