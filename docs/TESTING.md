@@ -662,6 +662,12 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** ícones de marca próprios em `src/components/icons/brand.tsx` (mesmo traço e mesma API do Lucide) + mapa nome→ícone em `src/components/icons/brandIconMap.ts`, consultados por `StaticIcon` e `DynamicIcon` antes do Lucide.
 - **Proteção:** `src/__tests__/regression/brand-icons-survive-lucide-v1.test.tsx` (falha se qualquer marca deixar de ter componente próprio ou passar a renderizar igual ao fallback genérico).
 
+### R-078 — atualização do `recharts` para a v3 podia apagar gráficos, tooltips e legendas sem quebrar o build
+- **Quando:** 20/08/2026, Fase 2C rodada 2.
+- **Sintoma potencial:** a v3 reescreveu o motor interno e removeu `payload`/`label` dos tipos públicos de Tooltip/Legend, usados pelo wrapper `src/components/ui/chart.tsx`. Um ajuste errado ali não gera erro visível: o gráfico apenas deixa de desenhar (ou some a legenda/tooltip) nos painéis de e-mail, egress, analytics e na página pública `/analytics`.
+- **Correção:** tipos próprios para os itens de tooltip/legend no wrapper e acesso defensivo a `item.payload?.fill`.
+- **Proteção:** `src/__tests__/regression/recharts-v3-charts-still-render.test.tsx` (barras, eixos, grade, linhas, tooltip customizado e legenda customizada precisam continuar renderizando).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
