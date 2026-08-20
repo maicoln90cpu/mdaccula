@@ -1,4 +1,5 @@
-import { Instagram, Music, MessageCircle, Mail } from 'lucide-react';
+import { Music, MessageCircle, Mail } from 'lucide-react';
+import { Instagram } from '@/components/icons/brand';
 import { getBrandColor } from '@/lib';
 
 interface SocialIconsProps {

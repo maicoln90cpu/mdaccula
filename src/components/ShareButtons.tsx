@@ -1,12 +1,10 @@
 import {
-  Twitter,
-  Facebook,
-  Linkedin,
   Link2,
   MessageCircle,
   Send,
   type LucideIcon,
 } from 'lucide-react';
+import { Twitter, Facebook, Linkedin } from '@/components/icons/brand';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getBrandColor } from '@/lib';

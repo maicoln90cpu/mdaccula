@@ -11,12 +11,12 @@ import {
   Music,
   Share2,
   MessageCircle,
-  Instagram,
   Globe,
   Send,
   CheckCircle,
   Loader2,
 } from 'lucide-react';
+import { Instagram } from '@/components/icons/brand';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/useToast';
 

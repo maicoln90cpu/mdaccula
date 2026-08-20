@@ -17,13 +17,13 @@ import {
   Phone,
   MapPin,
   Music,
-  Instagram,
   ChevronDown,
   Save,
   X,
   Loader2,
   ArrowLeft,
 } from 'lucide-react';
+import { Instagram } from '@/components/icons/brand';
 import { NavLink } from 'react-router-dom';
 
 import { supabase } from '@/integrations/supabase/client';
