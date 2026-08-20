@@ -11,8 +11,8 @@
 @config '../tailwind.config.ts';
 
 /* Compatibilidade Tailwind v3 -> v4:
-   o v4 mudou os padroes de borda, ring e placeholder. Restauramos o
-   comportamento do v3 para que nenhuma tela mude de aparencia. */
+   o v4 mudou a cor padrao das bordas (de cinza para currentColor).
+   Restauramos o comportamento do v3 para que nada mude de aparencia. */
 @layer base {
   *,
   ::after,

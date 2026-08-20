@@ -86,6 +86,8 @@ export default {
         '3xl': 'var(--space-3xl)',
       },
       boxShadow: {
+        // 'xs' preserva a sombra sutil que o Tailwind v3 chamava de 'shadow-sm'
+        'xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
         'neon': 'var(--shadow-neon)',
         'glow': 'var(--shadow-glow)',
         'card': 'var(--shadow-card)',
