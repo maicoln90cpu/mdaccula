@@ -132,12 +132,10 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ### Bibliotecas com mudança de API ainda não atualizadas (Fase 2C, 20/08/2026)
 
-**Contexto:** já concluídos na Fase 2C: `@tiptap/*` 3.30.2, `next-themes` 0.4.6 e `lucide-react` 1.33 (com ícones de marca próprios). Continuam na versão antiga, cada um exigindo um passo próprio:
+**Contexto:** já concluídos na Fase 2C: `@tiptap/*` 3.30.2, `next-themes` 0.4.6, `lucide-react` 1.33 (com ícones de marca próprios) e, na rodada 1 de 2, `sonner` 2.0.8 + `vaul` 1.1.2. Falta a rodada 2 (itens de risco alto, um de cada vez):
 
-1. `@hookform/resolvers` 3.10 → 5.9 — muda a assinatura do `zodResolver`; afeta todos os formulários (contato, podcast, admin).
-2. `recharts` 2.15 → 3.10 — reescrita interna dos gráficos do painel de e-mail.
-3. `sonner` 1.7 → 2.0 — avisos de "salvo com sucesso".
-4. `vaul` 0.9 → 1.1 — gavetas (drawers) no celular.
+1. `recharts` 2.15 → 3.10 — reescrita interna dos gráficos do painel de e-mail.
+2. `@hookform/resolvers` 3.10 → 5.9 — muda a assinatura do `zodResolver`; afeta todos os formulários (contato, podcast, admin).
    **Responsável:** IA, uma biblioteca por vez, mediante aprovação.
 
 ---
