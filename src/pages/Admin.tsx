@@ -246,7 +246,7 @@ const Admin = () => {
                   <Card className="hover:border-primary transition-all cursor-pointer h-full min-h-[100px]">
                     <CardHeader className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg bg-muted ${card.color} flex-shrink-0`}>
+                        <div className={`p-2 rounded-lg bg-muted ${card.color} shrink-0`}>
                           <card.icon className="w-5 h-5" />
                         </div>
                         <div className="min-w-0 flex-1">

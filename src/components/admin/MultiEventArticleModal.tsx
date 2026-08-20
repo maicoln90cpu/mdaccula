@@ -414,7 +414,7 @@ export const MultiEventArticleModal = ({
                       <img
                         src={getOptimizedImageUrl(event.image_url)}
                         alt={event.title}
-                        className="w-10 h-10 rounded object-contain flex-shrink-0"
+                        className="w-10 h-10 rounded object-contain shrink-0"
                       />
                     )}
 

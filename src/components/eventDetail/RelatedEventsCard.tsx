@@ -31,7 +31,7 @@ export function RelatedEventsCard({
             <SpotlightCard className="rounded-lg hover:bg-muted/50 transition-colors">
               <div className="flex gap-3 p-3">
                 {relatedEvent.image_url && (
-                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0">
                     <img
                       src={getThumbnailUrl(relatedEvent.image_url)}
                       alt={relatedEvent.title}

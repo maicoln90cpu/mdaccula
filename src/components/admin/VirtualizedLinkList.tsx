@@ -87,13 +87,13 @@ export const VirtualizedLinkList = ({
     >
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <SortableItem id={link.id}>
-          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab flex-shrink-0" />
+          <GripVertical className="w-4 h-4 text-muted-foreground cursor-grab shrink-0" />
         </SortableItem>
         {link.thumbnail_url && (
           <img
             src={getOptimizedImageUrl(link.thumbnail_url)}
             alt={link.title}
-            className="w-10 h-10 rounded object-contain flex-shrink-0"
+            className="w-10 h-10 rounded object-contain shrink-0"
             loading="lazy"
           />
         )}
@@ -116,7 +116,7 @@ export const VirtualizedLinkList = ({
           <p className="text-xs text-muted-foreground">👁️ {link.clicks} clicks</p>
         </div>
       </div>
-      <div className="flex items-center gap-1 flex-shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <Button
           variant="ghost"
           size="icon"

@@ -407,7 +407,7 @@ const BlogManager = () => {
                             <div className="flex gap-3">
                               {/* Thumbnail preview */}
                               <div
-                                className="w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0"
+                                className="w-16 h-16 rounded-md overflow-hidden bg-muted shrink-0"
                                 title={post.image_credit ? `Crédito: ${post.image_credit}` : undefined}
                               >
                                 {post.image_url ? (

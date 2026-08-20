@@ -225,7 +225,7 @@ const Privacidade = () => {
                     <Form {...form}>
                       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                         <div className="p-4 rounded-lg bg-warning/10 border border-warning/20 flex gap-3">
-                          <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                          <AlertTriangle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                           <p className="text-sm text-warning/90">
                             <strong>Atenção:</strong> A exclusão de dados é permanente e inclui:
                             cancelamento da newsletter, remoção de dados de analytics e exclusão de

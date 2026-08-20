@@ -235,7 +235,7 @@ const TeamManager = () => {
                           </CardTitle>
                           <p className="text-sm text-muted-foreground mt-1">{member.position}</p>
                         </div>
-                        <div className="flex gap-1 flex-shrink-0">
+                        <div className="flex gap-1 shrink-0">
                           <Button
                             variant="ghost"
                             size="icon"

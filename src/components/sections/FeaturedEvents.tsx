@@ -76,11 +76,11 @@ const EventCard = ({ event, index }: { event: Event; index: number }) => {
 
           <div className="space-y-1 text-xs font-mono text-muted-foreground mb-3">
             <div className="flex items-center gap-1.5">
-              <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+              <Calendar className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{formatEventDateRange(event.date, event.end_date)}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
               <span className="truncate">{event.location_city}</span>
             </div>
           </div>

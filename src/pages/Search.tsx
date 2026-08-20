@@ -111,7 +111,7 @@ export default function Search() {
                   <Card key={result.id} className="overflow-hidden hover:shadow-lg transition">
                     <a href={`/blog/${result.slug}`} className="flex flex-col md:flex-row">
                       {result.image_url && (
-                        <div className="md:w-48 h-48 md:h-auto flex-shrink-0 bg-muted/20 flex items-center justify-center rounded-lg overflow-hidden">
+                        <div className="md:w-48 h-48 md:h-auto shrink-0 bg-muted/20 flex items-center justify-center rounded-lg overflow-hidden">
                           <OptimizedImage
                             src={result.image_url}
                             alt={result.title}

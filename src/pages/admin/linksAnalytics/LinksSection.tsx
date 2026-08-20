@@ -113,18 +113,18 @@ export const LinksSection = ({ links, groups, totalClicks }: Props) => {
                         <div className="flex items-center gap-2">
                           <p className="font-medium truncate">{link.title}</p>
                           {link.is_internal ? (
-                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded flex-shrink-0">
+                            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded shrink-0">
                               Interno
                             </span>
                           ) : (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded flex-shrink-0">
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded shrink-0">
                               Externo
                             </span>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground">{link.group_name}</p>
                       </div>
-                      <div className="text-right ml-4 flex-shrink-0">
+                      <div className="text-right ml-4 shrink-0">
                         <p className="text-xl font-bold">{link.clicks}</p>
                         <p className="text-xs text-muted-foreground">
                           {totalClicks > 0
