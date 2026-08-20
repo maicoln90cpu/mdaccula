@@ -80,11 +80,11 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      spacing: {
-        'section': 'var(--space-section)',
-        '2xl': 'var(--space-2xl)',
-        '3xl': 'var(--space-3xl)',
-      },
+      // NOTA: nao criar chaves 'xs'/'2xl'/'3xl' em `spacing`. No Tailwind 4 a
+      // escala de espacamento tambem alimenta `max-w-*`, e isso quebrava
+      // larguras como `max-w-2xl` (virava 48px). Os tokens --space-* continuam
+      // disponiveis como variaveis CSS em src/index.css.
+
       boxShadow: {
         // 'xs' preserva a sombra sutil que o Tailwind v3 chamava de 'shadow-sm'
         'xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
