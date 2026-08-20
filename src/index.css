@@ -7,9 +7,22 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config '../tailwind.config.ts';
+
+/* Compatibilidade Tailwind v3 -> v4:
+   o v4 mudou os padroes de borda, ring e placeholder. Restauramos o
+   comportamento do v3 para que nenhuma tela mude de aparencia. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: hsl(var(--border));
+  }
+}
+
 
 /* MDAccula Design System - Electronic Music Agency
 All colors MUST be HSL.
