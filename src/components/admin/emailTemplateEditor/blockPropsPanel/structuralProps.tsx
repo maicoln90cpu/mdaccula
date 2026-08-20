@@ -19,7 +19,7 @@ import { AlignControl, ColorControl } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
-export function renderStructuralProps(block: Block, patch: Patch): JSX.Element | null {
+export function renderStructuralProps(block: Block, patch: Patch): React.JSX.Element | null {
   if (block.kind === 'header') {
     return (
       <div className="space-y-3">

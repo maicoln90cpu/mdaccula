@@ -18,7 +18,7 @@ import { AlignControl, ColorControl, RichHtmlEditor } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
-export function renderTextProps(block: Block, patch: Patch): JSX.Element | null {
+export function renderTextProps(block: Block, patch: Patch): React.JSX.Element | null {
   if (block.kind === 'eyebrow') {
     return (
       <div className="space-y-3">

@@ -18,7 +18,7 @@ import { AlignControl, ColorControl } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
-export function renderActionProps(block: Block, patch: Patch): JSX.Element | null {
+export function renderActionProps(block: Block, patch: Patch): React.JSX.Element | null {
   if (block.kind === 'cta_button') {
     return (
       <div className="space-y-3">
