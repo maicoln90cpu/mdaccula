@@ -675,6 +675,12 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** nenhuma alteração de código foi necessária; a atualização foi validada ponta a ponta.
 - **Proteção:** `src/__tests__/regression/hookform-resolvers-v5-validation-still-works.test.tsx` (campo inválido precisa bloquear o envio e exibir a mensagem do zod; campo válido precisa entregar os dados ao submit).
 
+### R-080 — card do grid de múltiplos eventos saía quebrado no Outlook (botões sem cor, nomes colados), com imagem antes do nome e alinhamento sem efeito nos cards
+- **Quando:** 20/08/2026, reportado pelo usuário com screenshots comparando Gmail (ok) vs. Outlook (quebrado).
+- **Sintoma:** (1) botões do card do grid, do bloco Dedge e do hero da semana viravam links sem cor/formato no Outlook desktop — só `cta_button`/`pix_button` tinham o fallback VML "bulletproof button"; (2) chips de line-up do card do grid usavam `.join("")`, colando os nomes dos artistas (Outlook ignora `inline-block`/margin em e-mail); (3) dentro do card, a imagem vinha antes do nome do evento; (4) o controle de Alinhamento do bloco (`event_grid`/`weekend_grid`) só afetava o cabeçalho — os cards em si nunca respeitavam Centro/Direita.
+- **Correção:** `renderBulletproofButton` (novo helper em `supabase/functions/_shared/emailBlocks/utils.ts`) extrai a técnica VML já usada em `cta_button`/`pix_button` e passa a ser reutilizada em todos os botões de `renderBlock/digest.ts` (card do grid, os 3 layouts do `weekend_grid`, `dedge_block`, `weekly_hero`); chips do card do grid passam a usar `.join(" ")`, igual ao bloco avulso `lineup`; `renderGridEventCard` inverte a ordem (nome antes da imagem) e passa a receber `align`, aplicando `text-align` nos `<td>` internos do card.
+- **Proteção:** `src/__tests__/regression/grid-card-outlook-order-align.test.ts`.
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde

@@ -1,7 +1,7 @@
 // Família "interactive" — botões CTA, ticker, countdown, links sociais, mapa, lineup.
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import type { Block, RenderContext } from "../types.ts";
-import { DEFAULT_SOCIAL_ICON_URLS, escape, proxyForEmail, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
+import { DEFAULT_SOCIAL_ICON_URLS, escape, proxyForEmail, renderBulletproofButton, resolveCtaUrl, resolveSecondaryUrl } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 export function renderInteractiveBlock(
@@ -20,23 +20,25 @@ export function renderInteractiveBlock(
       const fullWidth = block.full_width !== false;
       const bg = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : gradient;
       const bgSolid = block.bg_style === "solid" && block.bg_color ? escape(block.bg_color) : solidPrimary;
-      const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
       const vmlWidth = fullWidth ? 480 : 240;
       const sizePad = block.size === "small" ? "12px 18px" : block.size === "large" ? "22px 30px" : "18px 24px";
       const sizeFont = block.size === "small" ? 13 : block.size === "large" ? 18 : 16;
       const sizeHeight = block.size === "small" ? 44 : block.size === "large" ? 64 : 56;
       const radius = block.shape === "pill" ? 999 : 12;
       const arcsize = block.shape === "pill" ? "50%" : "21%";
-      const vmlButton = `<!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:${sizeHeight}px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="${arcsize}" stroke="f" fillcolor="${bgSolid}">
-          <w:anchorlock/>
-          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:${sizeFont}px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
-        </v:roundrect>
-      <![endif]-->`;
-      const htmlButton = `<!--[if !mso]><!-- -->
-        <a href="${escape(url)}" style="${widthStyle}padding:${sizePad};box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:${sizeFont}px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:${radius}px;mso-hide:all;">${label}</a>
-      <!--<![endif]-->`;
-      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
+      const button = renderBulletproofButton(escape(url), label, {
+        bg,
+        bgSolid,
+        fullWidth,
+        vmlWidth,
+        padding: sizePad,
+        fontSize: sizeFont,
+        height: sizeHeight,
+        radius,
+        arcsize,
+        letterSpacing: "0.15em",
+      });
+      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${button}</td></tr>`;
     }
 
     case "pix_button": {
@@ -47,18 +49,20 @@ export function renderInteractiveBlock(
       const fullWidth = block.full_width !== false;
       const bgSolid = "#25D366";
       const bg = `linear-gradient(90deg, #25D366 0%, #128C7E 100%)`;
-      const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
       const vmlWidth = fullWidth ? 480 : 240;
-      const vmlButton = `<!--[if mso]>
-        <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${escape(url)}" style="height:56px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="21%" stroke="f" fillcolor="${bgSolid}">
-          <w:anchorlock/>
-          <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">${label}</center>
-        </v:roundrect>
-      <![endif]-->`;
-      const htmlButton = `<!--[if !mso]><!-- -->
-        <a href="${escape(url)}" style="${widthStyle}padding:18px 24px;box-sizing:border-box;background-color:${bgSolid};background:${bg};color:#ffffff;font-size:16px;font-weight:900;text-align:center;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;border-radius:12px;mso-hide:all;">${label}</a>
-      <!--<![endif]-->`;
-      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${vmlButton}${htmlButton}</td></tr>`;
+      const button = renderBulletproofButton(escape(url), label, {
+        bg,
+        bgSolid,
+        fullWidth,
+        vmlWidth,
+        padding: "18px 24px",
+        fontSize: 16,
+        height: 56,
+        radius: 12,
+        arcsize: "21%",
+        letterSpacing: "0.15em",
+      });
+      return `<tr><td align="${align}" style="padding:8px 32px 8px 32px;text-align:${align};">${button}</td></tr>`;
     }
 
     case "secondary_link": {

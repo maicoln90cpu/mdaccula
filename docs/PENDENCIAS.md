@@ -4,7 +4,7 @@
 > **Não é changelog** — o que já foi feito vive em [`CHANGELOG.md`](CHANGELOG.md).
 > **Não é roadmap** — feature nova planejada (ainda não iniciada por escolha própria) vive em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 16/08/2026
+**Última atualização:** 20/08/2026
 
 ---
 
@@ -33,6 +33,20 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 **Mitigação existente:** a janela é muito menor que antes (só durante a chamada de rede em si, não o processo inteiro entre claim e confirmação) e o timeout de 25s em `egoiRequest`/`sendEgoiCampaign` limita seu tamanho máximo. Um evento que passa por essa janela específica muito raramente teria, na pior hipótese, uma campanha duplicada criada na E-goi (nunca um envio duplicado silencioso sem rastro — o histórico sempre registra as duas tentativas).
 **Passos (se algum dia quiser fechar de vez):** avaliar com a E-goi se existe algum campo de idempotência não documentado, ou aceitar o risco residual (avaliação atual: baixo, dado o tamanho da janela).
 **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa, é um risco residual conhecido e documentado.
+
+### Alinhamento por-item ainda não estendido para os layouts "timeline" e "cartaz" do `weekend_grid`
+
+**Contexto:** a correção do R-080 (ver `CHANGELOG.md`) fez o alinhamento do bloco (`align`) valer para todo o conteúdo do card no layout "grid" do `weekend_grid`/`event_grid` — o layout que aparecia no screenshot reportado. Os outros dois layouts do `weekend_grid` (`timeline` e `cartaz`) têm o mesmo comportamento antigo: `align` só afeta o `<td>` do cabeçalho, nunca os cards de cada evento.
+**Por que não foi resolvido agora:** fora do escopo pedido — o usuário só reportou o layout "grid".
+**Passos (se algum dia quiser fechar):** aplicar `text-align:${align}` nos `<td>`s internos dos cards desses dois layouts em `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts` (blocos `timeline` e a variante "cartaz"/lista de `weekend_grid`), mesmo padrão usado no layout "grid".
+**Responsável:** decisão do usuário sobre incluir no escopo.
+
+### Símbolo estranho (tipo "tofu"/quadrado) num dos chips de line-up no Outlook pode não ter sumido de vez
+
+**Contexto:** o screenshot original mostrava, além dos nomes colados (corrigido no R-080 com `.join(" ")`), um bloco de caracteres quadrados antes de um dos nomes de artista — possivelmente um emoji/símbolo que o Outlook não sabe desenhar (não há nenhum emoji nos chips de line-up hoje, então a causa mais provável era mesmo o espaçamento; mas não foi possível confirmar num client Outlook real nesta sessão).
+**Por que não foi resolvido agora:** sem acesso a um Outlook real para reproduzir, e a causa mais provável (espaçamento) já foi corrigida — se o símbolo reaparecer depois do R-080, é um problema separado.
+**Passos (se reaparecer):** testar o e-mail corrigido num Outlook real; se o símbolo persistir, decidir entre trocar por texto simples só para `[if mso]` ou investigar a fonte exata do símbolo.
+**Responsável:** usuário confirma no Outlook real após o próximo envio; decisão de abordagem se persistir.
 
 ---
 

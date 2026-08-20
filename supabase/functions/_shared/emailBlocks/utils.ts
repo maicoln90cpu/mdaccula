@@ -80,6 +80,65 @@ export function proxyForEmail(url: string): string {
 }
 
 /**
+ * Botão "à prova de balas" para Outlook desktop (motor Word): gera um par
+ * VML (`<!--[if mso]-->`) + HTML normal (`<!--[if !mso]-->`), igual à técnica
+ * já usada em `cta_button`/`pix_button` (renderBlock/interactive.ts).
+ * Outlook ignora `background`/`border-radius` em `<a>`, então sem o VML o
+ * botão vira um link sem cor nenhuma — bug real reportado (funciona no Gmail,
+ * quebra no Outlook). `url` e `label` devem chegar já escapados pelo chamador
+ * (mesmo padrão dos demais helpers deste arquivo).
+ */
+export interface BulletproofButtonOptions {
+  bg: string;
+  bgSolid: string;
+  fullWidth?: boolean;
+  vmlWidth?: number;
+  padding?: string;
+  fontSize?: number;
+  fontWeight?: number;
+  height?: number;
+  radius?: number;
+  arcsize?: string;
+  letterSpacing?: string;
+  textTransform?: string;
+  border?: string;
+  strokeColor?: string;
+  strokeWeight?: string;
+}
+
+export function renderBulletproofButton(url: string, label: string, opts: BulletproofButtonOptions): string {
+  const {
+    bg,
+    bgSolid,
+    fullWidth = true,
+    vmlWidth = fullWidth ? 480 : 240,
+    padding = "12px 16px",
+    fontSize = 12,
+    fontWeight = 900,
+    height = 46,
+    radius = 8,
+    arcsize = "21%",
+    letterSpacing = "0.12em",
+    textTransform = "uppercase",
+    border,
+    strokeColor,
+    strokeWeight = "1px",
+  } = opts;
+  const widthStyle = fullWidth ? "display:block;width:100%;" : "display:inline-block;width:auto;";
+  const vmlStroke = strokeColor ? `stroke="t" strokecolor="${strokeColor}" strokeweight="${strokeWeight}"` : `stroke="f"`;
+  const vmlButton = `<!--[if mso]>
+    <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${url}" style="height:${height}px;v-text-anchor:middle;width:${vmlWidth}px;" arcsize="${arcsize}" ${vmlStroke} fillcolor="${bgSolid}">
+      <w:anchorlock/>
+      <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:${fontSize}px;font-weight:bold;text-transform:${textTransform};letter-spacing:1px;">${label}</center>
+    </v:roundrect>
+  <![endif]-->`;
+  const htmlButton = `<!--[if !mso]><!-- -->
+    <a href="${url}" style="${widthStyle}padding:${padding};box-sizing:border-box;${border ? `border:${border};` : ""}background-color:${bgSolid};background:${bg};color:#ffffff;font-size:${fontSize}px;font-weight:${fontWeight};text-align:center;text-decoration:none;text-transform:${textTransform};letter-spacing:${letterSpacing};border-radius:${radius}px;mso-hide:all;">${label}</a>
+  <!--<![endif]-->`;
+  return `${vmlButton}${htmlButton}`;
+}
+
+/**
  * Ícones padrão do bloco `social_icons` (style: "icon") por id de rede conhecida.
  * PNG 64x64, hospedados como assets estáticos do site (public/email-icons/) —
  * sem depender de bucket/auth. `icon_url` por rede sobrescreve o padrão.

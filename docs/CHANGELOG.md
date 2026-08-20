@@ -18,6 +18,15 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Corrige card do grid de eventos nos e-mails: Outlook quebrava botões/nomes, ordem imagem/nome invertida e alinhamento sem efeito no card (R-080)
+
+- **O que:** 3 correções no card do grid de múltiplos eventos usado por `event_grid` (virada de lote) e `weekend_grid` layout "grid" (resumo de fim de semana), reportadas com screenshots comparando Gmail (ok) vs. Outlook (quebrado).
+- **Correção 1 (Outlook):** os botões do card do grid, do bloco Dedge e do hero da semana viravam links sem cor/formato no Outlook desktop (Outlook ignora `background`/`border-radius` em `<a>`) — só `cta_button`/`pix_button` já tinham o fallback VML "bulletproof button". Extraído para um helper reutilizável (`renderBulletproofButton`, `supabase/functions/_shared/emailBlocks/utils.ts`) e aplicado em todos os botões que faltavam. Chips de line-up do card do grid também colavam os nomes dos artistas no Outlook (`.join("")` sem espaço, mesmo bug já corrigido no bloco avulso `lineup` mas nunca replicado aqui) — corrigido para `.join(" ")`.
+- **Correção 2 (ordem):** dentro do card, a imagem vinha antes do nome do evento; invertida para nome primeiro, imagem depois.
+- **Correção 3 (alinhamento):** o controle de Alinhamento do bloco só afetava o cabeçalho (etiqueta/título) — os cards em si nunca respeitavam Centro/Direita. `renderGridEventCard` passou a receber `align` e aplicar `text-align` nos `<td>` internos de cada card.
+- **Validação:** `tsc`, `lint` e os 723 testes verdes (9 novos cobrindo os 3 pontos); preview do editor de e-mail conferido visualmente.
+- **Arquivos:** `supabase/functions/_shared/emailBlocks/utils.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/interactive.ts`, `src/__tests__/regression/grid-card-outlook-order-align.test.ts`, `docs/TESTING.md`.
+
 ### 20/08/2026 — Corrige `npm run build`/pipeline de prerender quebrados desde a Fase 2D: `qualityMetrics.ts` empacotava arquivos de teste no bundle de produção
 
 - **O que:** `npm run build` (e, por consequência, o workflow `prerender.yml` inteiro, que depende dele) falhava com `"readFileSync" is not exported by "__vite-browser-external"` em `src/__tests__/architecture/tailwind-theme.test.ts`. Descoberto ao disparar manualmente o `prerender.yml` pela primeira vez (nunca tinha rodado com sucesso — histórico de execuções vazio).
