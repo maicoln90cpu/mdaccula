@@ -50,7 +50,7 @@ export default defineConfig(({ mode }) => ({
           'supabase': ['@supabase/supabase-js'],
           'forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
           'date-utils': ['date-fns'],
-          'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extension-placeholder'],
+          'editor': ['@tiptap/react', '@tiptap/starter-kit', '@tiptap/extensions'],
           'query': ['@tanstack/react-query'],
           'dnd': ['@dnd-kit/core', '@dnd-kit/sortable'],
           'virtual': ['@tanstack/react-virtual'],
