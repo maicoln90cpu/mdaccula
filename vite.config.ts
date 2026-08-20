@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => ({
     port: Number(process.env.VITE_DEV_SERVER_PORT) || 8080,
     strictPort: Boolean(process.env.VITE_DEV_SERVER_PORT),
   },
-  plugins: [react(), mode === "development" && componentTagger(), mcpPlugin()].filter(Boolean),
+  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
