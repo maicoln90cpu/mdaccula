@@ -128,17 +128,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ---
 
-## 🗳️ Decisões Pendentes do Usuário
-
-### Bibliotecas com mudança de API ainda não atualizadas (Fase 2C, 20/08/2026)
-
-**Contexto:** já concluídos na Fase 2C: `@tiptap/*` 3.30.2, `next-themes` 0.4.6, `lucide-react` 1.33 (ícones de marca próprios), `sonner` 2.0.8, `vaul` 1.1.2 e `recharts` 3.10 (rodada 2, item 1). Falta o último item:
-
-1. `@hookform/resolvers` 3.10 → 5.9 — muda a assinatura do `zodResolver`; afeta todos os formulários (contato, podcast, admin).
-   **Responsável:** IA, mediante aprovação.
-
----
-
 ## 📚 Documentos Relacionados
 
 | Documento          | Descrição                                     | Link                                     |

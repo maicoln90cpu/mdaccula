@@ -668,6 +668,12 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** tipos próprios para os itens de tooltip/legend no wrapper e acesso defensivo a `item.payload?.fill`.
 - **Proteção:** `src/__tests__/regression/recharts-v3-charts-still-render.test.tsx` (barras, eixos, grade, linhas, tooltip customizado e legenda customizada precisam continuar renderizando).
 
+### R-079 — atualização do `@hookform/resolvers` para a v5 podia desligar a validação dos formulários em silêncio
+- **Quando:** 20/08/2026, Fase 2C rodada 2 (item 2).
+- **Sintoma potencial:** a v5 mudou a assinatura interna do `zodResolver`. Se a ligação schema↔formulário quebrar, o build passa igual e o formulário ou envia dado inválido ou deixa de mostrar a mensagem de erro (inscrição de DJ em `/MDAcculaRadio` e exclusão de dados em `/privacidade`).
+- **Correção:** nenhuma alteração de código foi necessária; a atualização foi validada ponta a ponta.
+- **Proteção:** `src/__tests__/regression/hookform-resolvers-v5-validation-still-works.test.tsx` (campo inválido precisa bloquear o envio e exibir a mensagem do zod; campo válido precisa entregar os dados ao submit).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
