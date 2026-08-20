@@ -119,7 +119,7 @@ A auditoria de auth admin (`docs/PENDENCIAS.md`) rodou em 8 fases entre 04/08 e 
 
 | Function | Propósito | Trigger | Auth | Envelope |
 |----------|-----------|---------|------|----------|
-| mcp | Servidor MCP auto-gerado (`@lovable.dev/mcp-js`) que expõe ferramentas somente-leitura (eventos, posts) para agentes de IA externos, usando a `anon key` internamente | Agente de IA externo (protocolo MCP) | Público (ferramentas read-only, sem auth de usuário) | Próprio (formato MCP) |
+| mcp | Servidor MCP **escrito à mão** (JSON-RPC 2.0 sobre HTTP, sem `@lovable.dev/mcp-js`) que expõe 5 ferramentas somente-leitura (`list_upcoming_events`, `get_event`, `list_blog_posts`, `get_blog_post`, `list_links`) para agentes de IA externos, usando a `anon key` internamente. Reescrita em 19/08/2026 — a versão auto-gerada nunca subiu (bundle de ~26MB rejeitado com 413). | Agente de IA externo (protocolo MCP) | Público (ferramentas read-only, sem auth de usuário) | Próprio (formato MCP) |
 
 ---
 
