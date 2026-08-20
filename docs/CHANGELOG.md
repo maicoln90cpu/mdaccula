@@ -18,6 +18,13 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Corrige `<title>` duplicado no HTML pré-renderizado (gap descoberto validando o pipeline de prerender)
+
+- **O que:** inspecionando o HTML de verdade gerado pelo primeiro run bem-sucedido do pipeline de prerender, `<title>` apareceu duplicado (a tag estática do `index.html` ao lado da gerada pela rota) — o mesmo mecanismo do R-019/sua reincidência de hoje (react-helmet-async v3 sob React 19 não reconhece tags estáticas pré-existentes), mas `<title>` nunca teve como carregar o atributo `data-rh` usado para limpar as outras tags, então ficou de fora da correção anterior.
+- **Correção:** `index.html` ganhou `<title id="shell-title">`; o mesmo `useEffect` do `SEOHead.tsx` passou a remover esse id também.
+- **Validação:** confirmado no navegador real (`/eventos/heyhoy2108`) — só 1 `<title>` no DOM final, com o conteúdo certo; teste de regressão `seohead-static-tag-duplication.test.tsx` estendido pra cobrir o cenário; `tsc`, `lint` e os 723 testes verdes.
+- **Arquivos:** `index.html`, `src/components/SEOHead.tsx`, `src/__tests__/regression/seohead-static-tag-duplication.test.tsx`, `docs/TESTING.md`.
+
 ### 20/08/2026 — Pipeline de prerender SEO passa a ser incremental, limpa página órfã, e corrige commit quebrado no CI
 
 - **O que:** `scripts/prerender.mjs` (roda no `prerender.yml`, gera HTML estático de `public/_prerendered/**` pra crawlers sem JS como WhatsApp/Facebook/Telegram) deixou de reprocessar TODOS os eventos ativos e posts publicados em toda execução (~300 rotas, ~45min sempre) e passou a comparar a data de atualização (`updated_at`) de cada um contra um registro (`public/_prerendered/.manifest.json`), pulando o que não mudou.

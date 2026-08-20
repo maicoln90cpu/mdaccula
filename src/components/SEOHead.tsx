@@ -51,8 +51,11 @@ export const SEOHead = ({
   // ele nunca mais enxerga/remove as tags estáticas de fallback do index.html, e elas
   // ficariam duplicadas ao lado das que este componente gera. Como o SEOHead cobre todas
   // essas tags em toda rota que o usa, é seguro removê-las assim que o JS assume.
+  // <title> não aceita o atributo data-rh (react-helmet-async só cria uma tag nova ao
+  // lado, nunca reconhece a existente) — removida à parte, pelo id do index.html.
   useEffect(() => {
     document.querySelectorAll('head [data-rh="true"]').forEach((tag) => tag.remove());
+    document.getElementById('shell-title')?.remove();
   }, []);
 
   return (

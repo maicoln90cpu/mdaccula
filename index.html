@@ -49,7 +49,10 @@
     <meta property="og:site_name" content="MDAccula" data-rh="true" />
     <meta name="twitter:card" content="summary_large_image" data-rh="true" />
     <link rel="canonical" href="https://mdaccula.com" data-rh="true" />
-    <title>MDAccula - Música Eletrônica em São Paulo</title>
+    <!-- id="shell-title" pro mesmo motivo do comentário acima: <title> não aceita
+    data-rh (react-helmet-async v3/React 19 só cria uma tag nova ao lado, nunca
+    reconhece/some com esta), então SEOHead.tsx remove pelo id explicitamente. -->
+    <title id="shell-title">MDAccula - Música Eletrônica em São Paulo</title>
 
 
   <meta property="og:image" content="https://mdaccula.com/logo-mdaccula.jpeg" data-rh="true">

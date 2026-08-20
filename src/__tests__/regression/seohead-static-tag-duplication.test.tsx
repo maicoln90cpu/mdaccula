@@ -23,6 +23,7 @@ import { SEOHead } from '@/components/SEOHead';
 
 function seedStaticShellTags() {
   document.head.innerHTML = `
+    <title id="shell-title">MDAccula - Música Eletrônica em São Paulo</title>
     <meta name="description" content="MDAccula - A maior agência de música eletrônica de São Paulo." data-rh="true">
     <meta property="og:title" content="MDAccula - Música Eletrônica em São Paulo" data-rh="true">
     <meta name="twitter:title" content="MDAccula - Música Eletrônica em São Paulo" data-rh="true">
@@ -52,6 +53,12 @@ describe('Regressão — SEOHead substitui (não duplica) as tags estáticas de 
       const ogTitles = document.head.querySelectorAll('meta[property="og:title"]');
       expect(ogTitles).toHaveLength(1);
       expect(ogTitles[0].getAttribute('content')).toBe('Helvétia Open Bar | MDAccula');
+
+      // <title> não aceita data-rh (react-helmet-async só cria uma tag nova ao
+      // lado, nunca reconhece a existente) — a estática é removida à parte, pelo id.
+      const titles = document.head.querySelectorAll('title');
+      expect(titles).toHaveLength(1);
+      expect(titles[0].textContent).toBe('Helvétia Open Bar | MDAccula');
     });
 
     const twitterTitles = document.head.querySelectorAll('meta[name="twitter:title"]');
