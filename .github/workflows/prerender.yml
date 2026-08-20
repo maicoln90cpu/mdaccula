@@ -59,7 +59,16 @@ jobs:
           # sobras não relacionadas ao prerender antes do rebase abaixo, senão
           # ele falha com "cannot rebase: You have unstaged changes" sempre
           # que houver um push concorrente enquanto este job roda (é lento).
-          git checkout -- .
+          #
+          # ⚠️ O pathspec ':!public/_prerendered' é ESSENCIAL: sem ele, este
+          # checkout também reverte as páginas e o .manifest.json que o script
+          # acabou de (re)gerar NESTA MESMA execução (bug real, confirmado em
+          # 20/08/2026 — 2 execuções seguidas "com sucesso" na verdade não
+          # commitaram nenhuma atualização de conteúdo já existente, só páginas
+          # 100% novas, porque git checkout -- . não distingue "sobra do build"
+          # de "saída legítima do prerender": ambas são só "arquivo rastreado
+          # modificado" pro git).
+          git checkout -- . ':!public/_prerendered'
           git add public/_prerendered/
           if git diff --cached --quiet; then
             echo "Nada mudou no prerender — sem commit."

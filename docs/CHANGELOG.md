@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Corrige bug real no `git checkout` do pipeline de prerender: commits "de sucesso" não estavam salvando conteúdo atualizado
+
+- **O que:** o `git checkout -- .` adicionado mais cedo nesta mesma sessão (pra descartar sobras do passo de build antes do rebase) tinha um efeito colateral não percebido: ele também revertia as páginas e o `.manifest.json` que o **próprio script de prerender** tinha acabado de (re)gerar nessa mesma execução — porque `git checkout -- .` não distingue "sobra indesejada do build" de "saída legítima do prerender", ambas são só "arquivo rastreado modificado" pro git.
+- **Impacto real:** as 2 execuções seguintes ao primeiro sucesso ("verdes" na aba Actions) na prática **não commitaram nenhuma atualização de conteúdo já existente** — só a página de um evento 100% novo em cada uma passou, porque arquivo novo (nunca commitado antes) não é afetado por esse checkout. O `.manifest.json` ficou parado com o hash de código de antes da correção do `<title>` duplicado, então mesmo a correção de hoje mais cedo (`<title>`) não tinha realmente chegado no HTML committed.
+- **Como foi descoberto:** inspecionando o HTML de verdade gerado por uma dessas execuções "de sucesso", a página de `heyhoy2108` ainda tinha o `<title>` duplicado — investigação levou direto ao `git checkout -- .` revertendo o trabalho do próprio job.
+- **Correção:** `git checkout -- . ':!public/_prerendered'` — o pathspec de exclusão preserva qualquer coisa dentro de `public/_prerendered/`, só descarta o resto. Testado localmente com um repositório git de teste isolado, simulando exatamente os dois cenários (arquivo fora da pasta modificado por engano vs. dentro da pasta modificado de propósito) antes de subir.
+- **Arquivos:** `.github/workflows/prerender.yml`.
+
 ### 20/08/2026 — Bandeira de país no nome do artista virava ícone quebrado no Outlook (R-083)
 
 - **O que:** reportado pelo usuário depois de testar num Outlook real: um dos chips de line-up mostrava um símbolo quadrado ("tofu") no lugar de parte do nome do artista — no Gmail o mesmo e-mail saía perfeito. Pendência aberta desde o R-080 (sem acesso a Outlook real na época pra confirmar).

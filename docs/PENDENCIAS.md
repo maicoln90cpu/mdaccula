@@ -38,16 +38,16 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 👀 Monitoramento
 
-### Checkpoint: confirmar que o pipeline de prerender completa o ciclo inteiro (gerar + commitar) sem erro depois da correção do rebase
+### Checkpoint: confirmar que o pipeline de prerender realmente commita conteúdo atualizado (não só páginas 100% novas)
 
-**Checar até:** o próximo disparo (agendado, 09:00 UTC, ou manual) depois que os commits desta sessão (fix do rebase + versão incremental) estiverem em `main`.
-**Contexto:** disparado manualmente em 20/08/2026 pela primeira vez com sucesso real — a etapa de gerar HTML funcionou (47min, dezenas de páginas geradas contra `mdaccula.lovable.app`), afastando de vez a suspeita de bloqueio do Cloudflare (não era isso). A etapa seguinte, de commitar o resultado de volta pro repo, falhou com `cannot rebase: You have unstaged changes` — causa raiz: o passo "Build project" roda hooks (`prebuild`) que regeneram `sitemap.xml`/`rss.xml` como efeito colateral, sujando a árvore de trabalho antes do `git rebase origin/main`. Corrigido com um `git checkout -- .` antes do commit. Nesta mesma sessão, o pipeline também ganhou execução incremental (só reprocessa evento/post que mudou desde a última vez, detecta mudança de código relevante automaticamente, e limpa página órfã) — ver `CHANGELOG.md`.
+**Checar até:** o próximo disparo depois do fix do `git checkout -- . ':!public/_prerendered'` (20/08/2026, ver `CHANGELOG.md`).
+**Contexto:** essa é a 3ª rodada de correção no mesmo pipeline no mesmo dia. Resumo: (1) o job de gerar HTML nunca tinha funcionado — corrigido; (2) o commit de volta pro repo falhava por sujeira do passo de build — corrigido com `git checkout -- .`; (3) **esse próprio fix tinha um bug** — `git checkout -- .` sem exclusão também revertia as páginas e o `.manifest.json` que o script tinha acabado de gerar NA MESMA execução (só arquivo 100% novo, nunca commitado antes, sobrevivia). As 2 execuções "verdes" seguintes ao primeiro sucesso, na prática, não salvaram nenhuma atualização de conteúdo já existente — só a página de 1 evento novo em cada uma. Descoberto inspecionando o HTML de verdade (não só o status verde do job) e confirmado testando o comando `git checkout` isolado num repositório de teste antes de corrigir.
 **Passos:**
 
-1. Depois do próximo disparo, conferir se o job completo (gerar + commitar) fica verde e se aparece um commit novo `chore(prerender): atualiza HTML pré-renderizado` em `main`.
-2. Se passar: encerrar este checkpoint, vira entrada no `CHANGELOG.md`.
-3. Se falhar de novo: abrir o log do step que falhou — o comportamento observado até agora não tem mais relação com Cloudflare, então investigar a partir do erro real reportado.
-   **Responsável:** IA confirma no próximo disparo desta mesma sessão (ou o usuário confere a aba Actions depois).
+1. Depois do próximo disparo, **não confiar só no status verde** — abrir uma página de evento específica em `public/_prerendered/` no commit gerado e conferir se o conteúdo bate com o evento real (e se `<title>`/`og:title` aparecem uma única vez cada).
+2. Conferir se o `.manifest.json` tem um `codeHash` novo (diferente de `65cd87b4c083ca7b5eba64cc1e81f879de06b867cf967913d608a0536610e40e`, o valor que ficou "preso" pelas 2 execuções quebradas) e `generatedAt` recente.
+3. Se passar: encerrar este checkpoint, vira entrada no `CHANGELOG.md`.
+   **Responsável:** IA confirma no próximo disparo desta mesma sessão.
 
 ### Checkpoint: checagem de Storage no egress-alert-cron aguardando a API pública do Supabase estabilizar
 
