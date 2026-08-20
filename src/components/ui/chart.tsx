@@ -107,10 +107,15 @@ type ChartTooltipItem = {
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, 'payload' | 'label' | 'formatter'> &
+  Omit<
+    React.ComponentProps<typeof RechartsPrimitive.Tooltip>,
+    'payload' | 'label' | 'formatter' | 'labelFormatter' | 'color'
+  > &
     Omit<React.ComponentProps<'div'>, 'color'> & {
       payload?: ChartTooltipItem[];
       label?: unknown;
+      color?: string;
+      labelFormatter?: (value: React.ReactNode, payload: ChartTooltipItem[]) => React.ReactNode;
       formatter?: (
         value: ChartTooltipItem['value'],
         name: ChartTooltipItem['name'],
@@ -124,6 +129,7 @@ const ChartTooltipContent = React.forwardRef<
       nameKey?: string;
       labelKey?: string;
     }
+
 
 >(
   (
