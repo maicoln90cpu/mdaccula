@@ -71,8 +71,8 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.5",
-    "@tiptap/react": "^3.29.2",
-    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/react": "^3.30.2",
+    "@tiptap/starter-kit": "^3.30.2",
     "@types/dompurify": "^3.2.0",
     "@vitejs/plugin-react": "^5.2.0",
     "browser-image-compression": "^2.0.2",
@@ -107,7 +107,8 @@
     "tailwindcss-animate": "^1.0.7",
     "terser": "^5.50.0",
     "vaul": "^0.9.9",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@tiptap/extensions": "^3.30.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
