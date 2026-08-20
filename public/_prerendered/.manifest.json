@@ -1,6 +1,6 @@
 {
-  "codeHash": "65cd87b4c083ca7b5eba64cc1e81f879de06b867cf967913d608a0536610e40e",
-  "generatedAt": "2026-08-20T17:32:49.330Z",
+  "codeHash": "4e59b1e28ef2bb0cddae7623de46d3cfc00af68ebbdc5e8fac961c661efac776",
+  "generatedAt": "2026-08-20T22:13:47.282Z",
   "routes": {
     "/": {
       "outPath": "index.html",
@@ -12,19 +12,19 @@
     },
     "/eventos/heyhoy2108": {
       "outPath": "eventos/heyhoy2108/index.html",
-      "updatedAt": "2026-08-20T16:37:34.922612+00:00"
+      "updatedAt": "2026-08-20T21:26:09.53247+00:00"
     },
     "/eventos/d-edge-apres-freakchic-tf3rrz": {
       "outPath": "eventos/d-edge-apres-freakchic-tf3rrz/index.html",
-      "updatedAt": "2026-08-19T00:22:06.119104+00:00"
+      "updatedAt": "2026-08-20T18:29:54.303657+00:00"
     },
     "/eventos/boma2208": {
       "outPath": "eventos/boma2208/index.html",
-      "updatedAt": "2026-08-20T16:23:40.179455+00:00"
+      "updatedAt": "2026-08-20T21:14:37.382685+00:00"
     },
     "/eventos/d-edge-apres-nave-glcxns": {
       "outPath": "eventos/d-edge-apres-nave-glcxns/index.html",
-      "updatedAt": "2026-08-19T12:50:22.276752+00:00"
+      "updatedAt": "2026-08-20T18:26:24.225158+00:00"
     },
     "/eventos/d-edge-apres-superafter-vwayib": {
       "outPath": "eventos/d-edge-apres-superafter-vwayib/index.html",
@@ -32,11 +32,11 @@
     },
     "/eventos/sirius2908": {
       "outPath": "eventos/sirius2908/index.html",
-      "updatedAt": "2026-08-20T14:25:41.315413+00:00"
+      "updatedAt": "2026-08-20T18:19:41.813335+00:00"
     },
     "/eventos/atelie2908": {
       "outPath": "eventos/atelie2908/index.html",
-      "updatedAt": "2026-08-20T16:05:29.243328+00:00"
+      "updatedAt": "2026-08-20T19:53:42.057905+00:00"
     },
     "/eventos/parador050926p": {
       "outPath": "eventos/parador050926p/index.html",
@@ -56,23 +56,23 @@
     },
     "/eventos/dretarde1209": {
       "outPath": "eventos/dretarde1209/index.html",
-      "updatedAt": "2026-08-20T16:04:17.421371+00:00"
+      "updatedAt": "2026-08-20T20:22:18.804324+00:00"
     },
     "/eventos/vintagesp1809": {
       "outPath": "eventos/vintagesp1809/index.html",
-      "updatedAt": "2026-08-20T16:36:40.679768+00:00"
+      "updatedAt": "2026-08-20T20:26:57.177438+00:00"
     },
     "/eventos/dnabh26": {
       "outPath": "eventos/dnabh26/index.html",
-      "updatedAt": "2026-08-20T16:22:50.047675+00:00"
+      "updatedAt": "2026-08-20T19:06:48.536755+00:00"
     },
     "/eventos/sun190926": {
       "outPath": "eventos/sun190926/index.html",
-      "updatedAt": "2026-08-20T16:42:53.672267+00:00"
+      "updatedAt": "2026-08-20T20:43:59.532418+00:00"
     },
     "/eventos/grid1909": {
       "outPath": "eventos/grid1909/index.html",
-      "updatedAt": "2026-08-19T13:33:03.656661+00:00"
+      "updatedAt": "2026-08-20T16:50:11.930769+00:00"
     },
     "/eventos/hernan1909": {
       "outPath": "eventos/hernan1909/index.html",
@@ -80,15 +80,15 @@
     },
     "/eventos/piknic2009": {
       "outPath": "eventos/piknic2009/index.html",
-      "updatedAt": "2026-08-20T14:26:30.212793+00:00"
+      "updatedAt": "2026-08-20T20:43:13.563786+00:00"
     },
     "/eventos/xsp260926": {
       "outPath": "eventos/xsp260926/index.html",
-      "updatedAt": "2026-08-20T15:25:07.232444+00:00"
+      "updatedAt": "2026-08-20T20:52:06.220199+00:00"
     },
     "/eventos/mochakk0310": {
       "outPath": "eventos/mochakk0310/index.html",
-      "updatedAt": "2026-08-20T15:40:48.129229+00:00"
+      "updatedAt": "2026-08-20T21:20:51.762195+00:00"
     },
     "/eventos/paradorout26": {
       "outPath": "eventos/paradorout26/index.html",
@@ -96,7 +96,7 @@
     },
     "/eventos/aliga1010": {
       "outPath": "eventos/aliga1010/index.html",
-      "updatedAt": "2026-08-20T16:07:23.960029+00:00"
+      "updatedAt": "2026-08-20T18:50:48.809927+00:00"
     },
     "/eventos/Parador-apres-Dubdogz-e-803103": {
       "outPath": "eventos/Parador-apres-Dubdogz-e-803103/index.html",
@@ -108,15 +108,15 @@
     },
     "/eventos/industria1610": {
       "outPath": "eventos/industria1610/index.html",
-      "updatedAt": "2026-08-20T15:50:10.744001+00:00"
+      "updatedAt": "2026-08-20T20:07:38.785482+00:00"
     },
     "/eventos/crochestra1710": {
       "outPath": "eventos/crochestra1710/index.html",
-      "updatedAt": "2026-08-20T14:26:54.69307+00:00"
+      "updatedAt": "2026-08-20T17:17:53.605217+00:00"
     },
     "/eventos/keinemusiksp": {
       "outPath": "eventos/keinemusiksp/index.html",
-      "updatedAt": "2026-08-20T14:27:01.293354+00:00"
+      "updatedAt": "2026-08-20T21:16:06.05404+00:00"
     },
     "/eventos/solomunsp": {
       "outPath": "eventos/solomunsp/index.html",
@@ -148,7 +148,7 @@
     },
     "/eventos/dna051226": {
       "outPath": "eventos/dna051226/index.html",
-      "updatedAt": "2026-08-20T16:42:26.992459+00:00"
+      "updatedAt": "2026-08-20T21:19:31.610436+00:00"
     },
     "/eventos/mp190926": {
       "outPath": "eventos/mp190926/index.html",
@@ -156,7 +156,7 @@
     },
     "/eventos/up2026": {
       "outPath": "eventos/up2026/index.html",
-      "updatedAt": "2026-08-20T16:45:27.123378+00:00"
+      "updatedAt": "2026-08-20T20:24:21.622205+00:00"
     },
     "/eventos/parador281226": {
       "outPath": "eventos/parador281226/index.html",
@@ -346,10 +346,6 @@
       "outPath": "blog/alem-do-padrao-a-autentica-batida-eletronica-da-australia/index.html",
       "updatedAt": "2026-08-09T09:45:49.324461+00:00"
     },
-    "/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026": {
-      "outPath": "blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026/index.html",
-      "updatedAt": "2026-08-19T23:53:52.29957+00:00"
-    },
     "/blog/festas-queer-reescrevem-as-regras-das-pistas-latino-americanas": {
       "outPath": "blog/festas-queer-reescrevem-as-regras-das-pistas-latino-americanas/index.html",
       "updatedAt": "2026-08-09T09:46:07.882234+00:00"
@@ -385,6 +381,10 @@
     "/blog/punta-del-este-o-verao-que-transformou-o-balneario-em-farol-eletronico-miyldcan": {
       "outPath": "blog/punta-del-este-o-verao-que-transformou-o-balneario-em-farol-eletronico-miyldcan/index.html",
       "updatedAt": "2026-08-09T09:47:29.01677+00:00"
+    },
+    "/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026": {
+      "outPath": "blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026/index.html",
+      "updatedAt": "2026-08-20T19:52:58.007477+00:00"
     },
     "/blog/rock-in-rio-anuncia-venda-extraordinaria-de-ingressos-e-revela-cardapio-com-860-operacoes": {
       "outPath": "blog/rock-in-rio-anuncia-venda-extraordinaria-de-ingressos-e-revela-cardapio-com-860-operacoes/index.html",
@@ -474,6 +474,10 @@
       "outPath": "blog/vintage-culture-em-ribeirao-uma-noite-epica-em-29-de-novembro-de-2025-mi7hjr0j/index.html",
       "updatedAt": "2026-08-09T09:50:20.59015+00:00"
     },
+    "/blog/quando-geezer-butler-usa-ia-licoes-praticas-para-djs-e-produtores-de-techno-e-house": {
+      "outPath": "blog/quando-geezer-butler-usa-ia-licoes-praticas-para-djs-e-produtores-de-techno-e-house/index.html",
+      "updatedAt": "2026-08-09T09:50:31.162342+00:00"
+    },
     "/blog/after-oficial-bloco-do-dre-a-ressaca-eletronica-em-16-04-no-side-sp": {
       "outPath": "blog/after-oficial-bloco-do-dre-a-ressaca-eletronica-em-16-04-no-side-sp/index.html",
       "updatedAt": "2026-08-09T09:50:39.485719+00:00"
@@ -546,10 +550,6 @@
       "outPath": "blog/funk-domina-2025-como-a-batida-brasileira-reconfigura-pistas-globais/index.html",
       "updatedAt": "2026-08-09T09:53:39.916655+00:00"
     },
-    "/blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto": {
-      "outPath": "blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto/index.html",
-      "updatedAt": "2026-08-20T01:22:09.569823+00:00"
-    },
     "/blog/parador-setembro-house-e-edm-dominam-maresias-neste-comeco-de-setembro": {
       "outPath": "blog/parador-setembro-house-e-edm-dominam-maresias-neste-comeco-de-setembro/index.html",
       "updatedAt": "2026-08-20T06:49:02.073454+00:00"
@@ -589,10 +589,6 @@
     "/blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia": {
       "outPath": "blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia/index.html",
       "updatedAt": "2026-08-11T15:35:14.45802+00:00"
-    },
-    "/blog/sun-19-09-2026-arena-caninde-sao-paulo": {
-      "outPath": "blog/sun-19-09-2026-arena-caninde-sao-paulo/index.html",
-      "updatedAt": "2026-08-20T10:44:08.885579+00:00"
     },
     "/blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha": {
       "outPath": "blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha/index.html",
@@ -658,6 +654,10 @@
       "outPath": "blog/nova-era-no-barraco-sp-em-sao-paulo-sabado-25-de-julho-de-2026/index.html",
       "updatedAt": "2026-08-09T22:03:15.646533+00:00"
     },
+    "/blog/sun-19-09-2026-arena-caninde-sao-paulo": {
+      "outPath": "blog/sun-19-09-2026-arena-caninde-sao-paulo/index.html",
+      "updatedAt": "2026-08-20T18:41:01.493325+00:00"
+    },
     "/blog/victor-ruiz-revisita-classico-do-psytrance-e-lanca-remix-de-liquid-hook": {
       "outPath": "blog/victor-ruiz-revisita-classico-do-psytrance-e-lanca-remix-de-liquid-hook/index.html",
       "updatedAt": "2026-08-10T22:43:01.272758+00:00"
@@ -706,6 +706,10 @@
       "outPath": "blog/produtores-latinos-reinventam-o-techno-ao-vivo-com-hardware-e-acustica/index.html",
       "updatedAt": "2026-08-09T09:59:22.120911+00:00"
     },
+    "/blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto": {
+      "outPath": "blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto/index.html",
+      "updatedAt": "2026-08-20T18:31:39.295156+00:00"
+    },
     "/blog/consequencias-multa-milionaria-no-anhangabau-pos-show-eletronico": {
       "outPath": "blog/consequencias-multa-milionaria-no-anhangabau-pos-show-eletronico/index.html",
       "updatedAt": "2026-08-09T09:59:31.238765+00:00"
@@ -745,6 +749,10 @@
     "/blog/solomun-sp-no-parque-villa-lobos-sao-paulo-domingo-1-de-novembro-de-2026": {
       "outPath": "blog/solomun-sp-no-parque-villa-lobos-sao-paulo-domingo-1-de-novembro-de-2026/index.html",
       "updatedAt": "2026-08-19T22:44:36.017752+00:00"
+    },
+    "/blog/boma-traz-whomadewho-e-denis-sulta-para-sao-paulo-em-22-de-agosto": {
+      "outPath": "blog/boma-traz-whomadewho-e-denis-sulta-para-sao-paulo-em-22-de-agosto/index.html",
+      "updatedAt": "2026-08-20T19:01:07.808566+00:00"
     },
     "/blog/piknic-electronik-na-varanda-estaiada-sao-paulo-20-de-setembro-domingo": {
       "outPath": "blog/piknic-electronik-na-varanda-estaiada-sao-paulo-20-de-setembro-domingo/index.html",
@@ -1102,10 +1110,6 @@
       "outPath": "blog/techno-organico-como-instrumentos-acusticos-reconfiguram-pistas-do-underground/index.html",
       "updatedAt": "2026-08-11T15:35:15.440603+00:00"
     },
-    "/blog/top-100-djs-o-ranking-completo-do-dj-mag-la": {
-      "outPath": "blog/top-100-djs-o-ranking-completo-do-dj-mag-la/index.html",
-      "updatedAt": "2026-08-20T06:02:14.722692+00:00"
-    },
     "/blog/sabado-dre-tarde-dre-guazzelli-comanda-a-pista-no-clube-esperia-em-07-03": {
       "outPath": "blog/sabado-dre-tarde-dre-guazzelli-comanda-a-pista-no-clube-esperia-em-07-03/index.html",
       "updatedAt": "2026-08-09T09:49:43.834006+00:00"
@@ -1121,6 +1125,10 @@
     "/blog/messina-lanca-la-bamba-na-botaniq-selo-de-dennis-druz": {
       "outPath": "blog/messina-lanca-la-bamba-na-botaniq-selo-de-dennis-druz/index.html",
       "updatedAt": "2026-08-09T10:14:02.338917+00:00"
+    },
+    "/blog/top-100-djs-o-ranking-completo-do-dj-mag-la": {
+      "outPath": "blog/top-100-djs-o-ranking-completo-do-dj-mag-la/index.html",
+      "updatedAt": "2026-08-20T18:31:11.131814+00:00"
     },
     "/blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas": {
       "outPath": "blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas/index.html",
