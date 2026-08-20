@@ -18,6 +18,21 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Atualiza `react-helmet-async` pra 3.0.0 (suporte real a React 19) e corrige reincidência do R-019
+
+- **O que:** `react-helmet-async` 2.0.5 → 3.0.0 — a v2 só declarava suporte a React até a 18 nos peerDependencies, forçando `npm install`/`npm ci` a falhar com `ERESOLVE` (ver entrada anterior sobre `react-is`); a v3 já declara suporte nativo a React 19.
+- **Bug reintroduzido no caminho (e corrigido na mesma sessão):** a v3, sob React 19, troca o mecanismo interno de renderizar `<title>`/`<meta>`/`<link>` — em vez de substituir no DOM qualquer tag estática com `[data-rh]` (a correção do R-019, ver `docs/TESTING.md`), passa a usar a hoist nativa do React 19, que ignora completamente o atributo `data-rh`. Resultado: a duplicação de `og:title`/`og:description`/`twitter:*`/`meta description`/canonical (R-019) voltaria a acontecer em produção. Pego pelo teste de regressão já existente (`seohead-static-tag-duplication.test.tsx`, ficou vermelho) antes de qualquer deploy.
+- **Correção:** `SEOHead.tsx` ganhou um `useEffect` que remove manualmente as tags `head [data-rh="true"]` do `index.html` assim que monta — como o `SEOHead` cobre todas essas tags em toda rota que o usa (só `Admin.tsx`/`Redirect.tsx` não usam, e nenhuma delas precisa de preview social), é seguro removê-las assim que o JS assume.
+- **Validação:** `npm install` limpo (sem `--legacy-peer-deps`, `node_modules` apagado antes) resolve sem erro; `tsc`, `lint` e os 714 testes verdes; confirmado no navegador real (não só jsdom) em `/eventos` — 0 tags estáticas sobrando, `og:title`/`twitter:title`/canonical únicos e com o conteúdo da rota.
+- **Arquivos:** `package.json`, `package-lock.json`, `src/components/SEOHead.tsx`, `docs/TESTING.md` (nota de reincidência no R-019).
+
+### 20/08/2026 — Corrige `npm run dev` quebrado: `react-is` faltando como dependência direta (peer do `recharts` 3)
+
+- **O que:** `npm run dev` travava com `Could not resolve "react-is"` (falha na otimização de dependências do Vite/esbuild), impedindo o servidor de subir. Causa: o `recharts@3.10.1` (migrado na Fase 2C) declara `react-is` como **peerDependency**, não como dependência transitiva — como o `package.json` nunca listou `react-is` diretamente, ele nunca foi instalado, e passou despercebido até agora porque ninguém tinha feito uma instalação 100% limpa (`node_modules` deletado) desde a migração do recharts.
+- **Correção:** adicionado `"react-is": "^19.2.8"` (mesma major do React instalado) às `dependencies` do `package.json`.
+- **Validação:** `npm run dev` sobe normal na porta 8080; home carregada no navegador (hero, próximos eventos, imagens, sessão admin) sem erro de console relacionado à aplicação.
+- **Arquivos:** `package.json`, `package-lock.json`.
+
 ### 20/08/2026 — Fase 2D (parte 2): migração para Tailwind CSS 4 + tokens em `@theme`
 
 - **O que:** `tailwindcss` 3.4 → 4.3.3 com `@tailwindcss/postcss` (autoprefixer removido, já embutido). Em seguida, todos os tokens saíram de `tailwind.config.ts` (arquivo **removido**) para o bloco `@theme` em `src/index.css` (modelo CSS-first do v4).

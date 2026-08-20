@@ -1,5 +1,5 @@
 import { Helmet } from 'react-helmet-async';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
 interface SEOProps {
@@ -39,6 +39,15 @@ export const SEOHead = ({
   ];
   const allKeywords = [...new Set([...defaultKeywords, ...keywords])];
   const optimizedImage = useMemo(() => getOptimizedImageUrl(image) || image, [image]);
+
+  // react-helmet-async v3, sob React 19, usa a hoist nativa de <title>/<meta>/<link> do
+  // React em vez do mecanismo antigo (substituir no DOM qualquer tag com [data-rh]) — então
+  // ele nunca mais enxerga/remove as tags estáticas de fallback do index.html, e elas
+  // ficariam duplicadas ao lado das que este componente gera. Como o SEOHead cobre todas
+  // essas tags em toda rota que o usa, é seguro removê-las assim que o JS assume.
+  useEffect(() => {
+    document.querySelectorAll('head [data-rh="true"]').forEach((tag) => tag.remove());
+  }, []);
 
   return (
     <Helmet>
