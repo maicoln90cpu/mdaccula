@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Sub-painel de propriedades — grupo structuralProps.
  * Extraído de BlockPropsPanel.tsx (Onda 10) sem mudança de comportamento.
