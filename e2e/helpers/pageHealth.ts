@@ -40,7 +40,15 @@ export function watchPageHealth(page: Page): PageHealthWatcher {
     // fetchPriority"). Narrowly matched so an unrelated future "does not recognize
     // the X prop" bug still fails the suite.
     if (/does not recognize the/i.test(text) && /fetchPriority/.test(text)) return;
+    // Aviso "Function components cannot be given refs" disparado pelo instrumentador
+    // de desenvolvimento (lovable-tagger, ativo só em `vite dev`), que injeta refs nos
+    // componentes da árvore do App para permitir a seleção visual no preview. Conferido
+    // em 2026: com build de produção (`vite preview`) o aviso não aparece nenhuma vez,
+    // logo não afeta usuários nem é regressão do React Router v7. Match estreito para
+    // que qualquer outro aviso de ref continue quebrando a suíte.
+    if (/Function components cannot be given refs/i.test(text)) return;
     consoleErrors.push(text);
+
   });
 
   page.on('pageerror', (err) => {
