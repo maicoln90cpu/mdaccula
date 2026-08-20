@@ -160,7 +160,7 @@ const Navigation = () => {
                     }
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    <item.icon className="w-5 h-5 shrink-0" />
                     <span>{item.name}</span>
                   </NavLink>
                 ))}

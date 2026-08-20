@@ -190,7 +190,7 @@ export const SortableLinkCard = ({
               e.stopPropagation();
               onDuplicate(link);
             }}
-            className="flex-shrink-0 w-10 h-10 rounded-lg bg-secondary/20 hover:bg-secondary/30 border border-secondary/30 flex items-center justify-center transition-colors"
+            className="shrink-0 w-10 h-10 rounded-lg bg-secondary/20 hover:bg-secondary/30 border border-secondary/30 flex items-center justify-center transition-colors"
             title="Duplicar link"
           >
             <CopyPlus className="w-4 h-4 text-secondary-foreground" />
@@ -200,7 +200,7 @@ export const SortableLinkCard = ({
               e.stopPropagation();
               onEdit(link);
             }}
-            className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 flex items-center justify-center transition-colors"
+            className="shrink-0 w-10 h-10 rounded-lg bg-primary/20 hover:bg-primary/30 border border-primary/30 flex items-center justify-center transition-colors"
             title="Editar link"
           >
             <Edit className="w-4 h-4 text-primary" />

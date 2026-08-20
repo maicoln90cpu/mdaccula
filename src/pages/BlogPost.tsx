@@ -229,21 +229,21 @@ const BlogPost = () => {
 
               <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
                 <div className="flex items-center">
-                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 shrink-0" />
                   <Link to="/quem-somos" className="hover:text-primary transition-colors">
                     Por Equipe Editorial MDAccula
                   </Link>
                 </div>
                 <div className="flex items-center">
-                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 shrink-0" />
                   <span>{new Date(post.created_at).toLocaleDateString('pt-BR')}</span>
                 </div>
                 <div className="flex items-center">
-                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <Eye className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 shrink-0" />
                   <span>{post.views} visualizações</span>
                 </div>
                 <div className="flex items-center">
-                  <Heart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 flex-shrink-0" />
+                  <Heart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 shrink-0" />
                   <span>{post.likes} curtidas</span>
                 </div>
               </div>

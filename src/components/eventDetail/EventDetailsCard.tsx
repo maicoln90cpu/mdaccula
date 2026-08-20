@@ -25,7 +25,7 @@ export function EventDetailsCard({ date, endDate, time, endTime, venue, city, st
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-start gap-3">
-          <Calendar className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+          <Calendar className="w-5 h-5 text-primary mt-1 shrink-0" />
           <div>
             <p className="font-medium">Data</p>
             <p className="text-muted-foreground capitalize">
@@ -34,7 +34,7 @@ export function EventDetailsCard({ date, endDate, time, endTime, venue, city, st
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <Clock className="w-5 h-5 text-secondary mt-1 flex-shrink-0" />
+          <Clock className="w-5 h-5 text-secondary mt-1 shrink-0" />
           <div>
             <p className="font-medium">Horário</p>
             <p className="text-muted-foreground">
@@ -44,7 +44,7 @@ export function EventDetailsCard({ date, endDate, time, endTime, venue, city, st
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <MapPin className="w-5 h-5 text-accent mt-1 flex-shrink-0" />
+          <MapPin className="w-5 h-5 text-accent mt-1 shrink-0" />
           <div>
             <p className="font-medium">Local</p>
             <p className="text-muted-foreground">

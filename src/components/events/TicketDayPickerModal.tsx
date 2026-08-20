@@ -121,7 +121,7 @@ export const TicketDayPickerModal = ({
                 {d.url ? (
                   <a href={safeExternalUrl(d.url)} target="_blank" rel="noopener noreferrer">
                     <span className="flex items-center gap-2 capitalize text-left">
-                      <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
+                      <Calendar className="w-4 h-4 text-primary shrink-0" />
                       <span>
                         <span className="block font-medium">{d.label}</span>
                         {d.linkTitle && (
@@ -131,7 +131,7 @@ export const TicketDayPickerModal = ({
                         )}
                       </span>
                     </span>
-                    <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                    <ExternalLink className="w-4 h-4 shrink-0" />
                   </a>
                 ) : (
                   <span className="capitalize">{d.label} (sem link)</span>

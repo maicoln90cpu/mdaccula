@@ -51,12 +51,12 @@ export const RedirectsSection = ({ redirects, totalRedirectClicks }: Props) => {
                       </p>
                     </div>
                     {!redirect.enabled && (
-                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded flex-shrink-0">
+                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded shrink-0">
                         Inativo
                       </span>
                     )}
                   </div>
-                  <div className="text-right ml-4 flex-shrink-0">
+                  <div className="text-right ml-4 shrink-0">
                     <p className="text-xl font-bold">{redirect.clicks}</p>
                     <p className="text-xs text-muted-foreground">
                       {totalRedirectClicks > 0

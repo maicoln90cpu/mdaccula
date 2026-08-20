@@ -479,7 +479,7 @@ const Blog = () => {
                               className={`flex flex-row ${isReversed ? 'flex-row-reverse' : ''}`}
                             >
                               {/* Image lateral */}
-                              <div className="relative flex-shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
+                              <div className="relative shrink-0 w-32 sm:w-40 md:w-48 min-h-[100px] bg-muted/20 overflow-hidden">
                                 <img
                                   src={getThumbnailUrl(post.image_url) || djImage}
                                   alt={post.title}

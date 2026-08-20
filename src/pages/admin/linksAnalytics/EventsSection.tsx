@@ -59,7 +59,7 @@ export const EventsSection = ({ events, totalEventViews }: Props) => {
                       </p>
                     </div>
                   </div>
-                  <div className="text-right ml-4 flex-shrink-0">
+                  <div className="text-right ml-4 shrink-0">
                     <p className="text-xl font-bold">{event.views}</p>
                     <p className="text-xs text-muted-foreground">
                       {totalEventViews > 0

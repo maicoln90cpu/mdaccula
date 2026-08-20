@@ -66,7 +66,7 @@ export const BlogSection = ({ blogPosts }: Props) => {
                           <p className="text-sm text-muted-foreground">{post.category}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                      <div className="flex items-center gap-4 shrink-0 ml-4">
                         <div className="text-right">
                           <div className="flex items-center gap-1">
                             <Eye className="h-4 w-4 text-muted-foreground" />
@@ -124,7 +124,7 @@ export const BlogSection = ({ blogPosts }: Props) => {
                             <p className="text-sm text-muted-foreground">{post.category}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+                        <div className="flex items-center gap-4 shrink-0 ml-4">
                           <div className="text-right">
                             <div className="flex items-center gap-1">
                               <Heart className="h-4 w-4 text-red-500" />

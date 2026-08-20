@@ -46,7 +46,7 @@ export const LinkCardImage = ({
   if (!resolvedImage) {
     return (
       <div
-        className={`${containerClass} flex-shrink-0 rounded-lg bg-white/10 flex items-center justify-center`}
+        className={`${containerClass} shrink-0 rounded-lg bg-white/10 flex items-center justify-center`}
       >
         <StaticIcon name={iconName} className={featured ? 'w-8 h-8' : 'w-6 h-6'} />
       </div>
@@ -54,7 +54,7 @@ export const LinkCardImage = ({
   }
 
   return (
-    <div className={`${containerClass} flex-shrink-0 rounded-lg overflow-hidden bg-white/10`}>
+    <div className={`${containerClass} shrink-0 rounded-lg overflow-hidden bg-white/10`}>
       <img
         src={resolvedImage}
         alt={alt}

@@ -142,7 +142,7 @@ export const CalendarSection = ({
                         onClick={() => onEventClick(event)}
                       >
                         <div className="flex items-start sm:items-center gap-2 sm:space-x-3 flex-1 min-w-0">
-                          <div className="text-center min-w-[45px] sm:min-w-[60px] flex-shrink-0">
+                          <div className="text-center min-w-[45px] sm:min-w-[60px] shrink-0">
                             <div className="text-xs sm:text-sm font-bold text-primary">
                               {parseLocalDate(event.date).getDate()}
                             </div>
@@ -161,7 +161,7 @@ export const CalendarSection = ({
                             </div>
                           </div>
                         </div>
-                        <div className="hidden sm:flex flex-wrap gap-1 flex-shrink-0">
+                        <div className="hidden sm:flex flex-wrap gap-1 shrink-0">
                           {event.genres &&
                             event.genres.length > 0 &&
                             event.genres.slice(0, 2).map((genre: string, idx: number) => (
