@@ -130,14 +130,13 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🗳️ Decisões Pendentes do Usuário
 
-### Pacotes deixados de fora do lote seguro de dependências (Fase 2A, 20/08/2026)
+### `lucide-react` v1 removeu os ícones de marca (Fase 2C, 20/08/2026)
 
-**Contexto:** o lote seguro subiu 30 pacotes sem risco. Três ficaram de fora de propósito e precisam de um passo próprio:
+**Contexto:** TipTap (3.30.2) e `next-themes` (0.4.6) foram atualizados com sucesso na Fase 2C. O `lucide-react` (0.462 → 1.33) foi tentado e **revertido de propósito**: a versão 1 removeu todos os ícones de marca (Instagram, Facebook, Twitter, LinkedIn, YouTube), usados em 10 arquivos — inclusive nos cards da página `/links`, onde o nome do ícone vem do banco. Subir agora faria esses ícones virarem silenciosamente o genérico "link externo".
 
-1. `@tiptap/*` (3.29 → 3.30) — o `npm install` falha com conflito de peer: `@tiptap/extension-placeholder@3.30.2` exige `@tiptap/extensions@3.30.2` exatamente. Precisa subir todos os pacotes TipTap juntos e conferir o editor de artigos do blog.
-2. `lucide-react` (0.462 → 0.577) — salto grande na biblioteca de ícones; nomes de ícones podem ter sido renomeados/removidos. Conferir visualmente o admin depois.
-3. `next-themes` (0.3 → 0.4) — mudança de API; é a Fase 2C.
-   **Responsável:** IA, dentro da Fase 2C do plano (uma biblioteca por vez).
+**Decisão necessária:** manter o `lucide-react` em 0.462 (sem risco, sem CVE aberta) ou fazer uma onda dedicada criando ícones de marca próprios (SVG local, mesma API) e migrar o `DynamicIcon` para o novo carregador da v1.
+**Responsável:** usuário decide; IA executa a onda dedicada se aprovada.
+
 
 ---
 

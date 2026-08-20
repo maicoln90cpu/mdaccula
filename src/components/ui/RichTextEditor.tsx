@@ -1,6 +1,8 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
+// TipTap 3.30: o pacote separado `@tiptap/extension-placeholder` virou apenas um
+// atalho para esta extensão, que agora mora dentro de `@tiptap/extensions`.
+import { Placeholder } from '@tiptap/extensions';
 import { Button } from './button';
 import {
   Bold,
