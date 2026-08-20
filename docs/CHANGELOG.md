@@ -18,6 +18,15 @@
 
 ## Entradas Detalhadas
 
+### lucide-react 0.462 → 1.33 com ícones de marca próprios (Fase 2C)
+
+**Descrição:** a versão 1 do `lucide-react` removeu todos os ícones de marca. Foram criados ícones locais em `src/components/icons/brand.tsx` (Instagram, Facebook, Twitter, LinkedIn, YouTube) com o mesmo traço e a mesma API do Lucide, e o mapa nome→ícone em `src/components/icons/brandIconMap.ts` (arquivo separado para não quebrar o fast refresh). `StaticIcon` e `DynamicIcon` passam a resolver marcas por esse mapa antes de consultar o Lucide, então os cards da `/links` (cujo nome de ícone vem do banco) continuam iguais. Também atualizados rodapé, botões de compartilhar, /contato, /quem-somos, /podcast, PodcastManager e TeamManager.
+**Verificação:** `tsc`, `lint`, `build` e `npm test` (704 testes) verdes; conferência visual de `/links` e `/quem-somos` no navegador com os ícones renderizando na cor da marca.
+**Proteção:** `src/__tests__/regression/brand-icons-survive-lucide-v1.test.tsx` (R-055).
+**Arquivos:** `package.json`, `package-lock.json`, `src/components/icons/brand.tsx`, `src/components/icons/brandIconMap.ts`, `src/components/links/StaticIcon.tsx`, `src/components/links/DynamicIcon.tsx`, `src/components/links/SocialIcons.tsx`, `src/components/ShareButtons.tsx`, `src/components/ui/footer.tsx`, `src/pages/Contato.tsx`, `src/pages/Podcast.tsx`, `src/pages/QuemSomos.tsx`, `src/pages/admin/PodcastManager.tsx`, `src/pages/admin/TeamManager.tsx`.
+**Data:** 20/08/2026
+**Responsável:** IA, a pedido do usuário (onda dedicada aprovada).
+
 ### TipTap 3.30 e next-themes 0.4 (Fase 2C do plano de fases seguras)
 
 **Descrição:** editor de artigos do blog atualizado para `@tiptap/react`, `@tiptap/starter-kit` e `@tiptap/extensions` 3.30.2. O pacote `@tiptap/extension-placeholder` foi descontinuado pelo próprio TipTap e removido — a extensão `Placeholder` agora vem de `@tiptap/extensions` (ajustado em `RichTextEditor.tsx` e no chunk `editor` do `vite.config.ts`). `next-themes` subiu de 0.3.0 para 0.4.6 sem mudança de código (a API usada — `ThemeProvider` e `useTheme` — continua igual).
