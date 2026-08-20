@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Fase 2C rodada 1/2: `sonner` 2.0.8 e `vaul` 1.1.2
+
+- **O que:** atualização das duas bibliotecas de menor risco da Fase 2C — `sonner` (as mensagens de "salvo com sucesso"/"erro" que aparecem no canto da tela) de 1.7.4 → 2.0.8, e `vaul` (as gavetas deslizantes usadas no celular) de 0.9.9 → 1.1.2.
+- **Impacto:** nenhuma mudança visual ou de comportamento; as duas APIs usadas pelo projeto (`<Toaster>` de `src/components/ui/sonner.tsx` e `Drawer.*` de `src/components/ui/drawer.tsx`) continuam iguais nas versões novas.
+- **Validação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm run build` e 704 testes verdes; aviso de "copiar link" conferido renderizando no navegador em um artigo do blog.
+- **Arquivos:** `package.json`, `package-lock.json`.
+
+
 ### lucide-react 0.462 → 1.33 com ícones de marca próprios (Fase 2C)
 
 **Descrição:** a versão 1 do `lucide-react` removeu todos os ícones de marca. Foram criados ícones locais em `src/components/icons/brand.tsx` (Instagram, Facebook, Twitter, LinkedIn, YouTube) com o mesmo traço e a mesma API do Lucide, e o mapa nome→ícone em `src/components/icons/brandIconMap.ts` (arquivo separado para não quebrar o fast refresh). `StaticIcon` e `DynamicIcon` passam a resolver marcas por esse mapa antes de consultar o Lucide, então os cards da `/links` (cujo nome de ícone vem do banco) continuam iguais. Também atualizados rodapé, botões de compartilhar, /contato, /quem-somos, /podcast, PodcastManager e TeamManager.
