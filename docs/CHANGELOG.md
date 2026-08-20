@@ -18,6 +18,12 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Pipeline de prerender SEO confirmado funcionando ponta a ponta, com prova real (não só status verde)
+
+- **O que:** depois do fix do `git checkout -- . ':!public/_prerendered'` (entrada anterior), disparo manual do `prerender.yml` completou com sucesso e desta vez o conteúdo commitado é o correto de verdade — inspecionado diretamente o HTML gerado pra `heyhoy2108`, não só o status verde do job (a lição das 2 rodadas anteriores foi exatamente que "verde" não bastava).
+- **Confirmado:** `.manifest.json` com `codeHash` novo (`4e59b1e2...`, batendo com o hash esperado do código atual) e `generatedAt` recente; 307 rotas rastreadas; `<title>` e `og:title` da página de evento aparecem exatamente 1 vez cada, com o conteúdo certo do evento (não mais o genérico do site nem duplicado).
+- **Fecha o dia de trabalho no pipeline de prerender**, que envolveu 3 bugs reais encontrados e corrigidos em sequência (job nunca rodava com sucesso → commit quebrado por sujeira do build → o próprio fix do commit revertendo o trabalho do job) — nenhum deles visível sem inspecionar o comportamento real, não só o resultado reportado.
+
 ### 20/08/2026 — Corrige bug real no `git checkout` do pipeline de prerender: commits "de sucesso" não estavam salvando conteúdo atualizado
 
 - **O que:** o `git checkout -- .` adicionado mais cedo nesta mesma sessão (pra descartar sobras do passo de build antes do rebase) tinha um efeito colateral não percebido: ele também revertia as páginas e o `.manifest.json` que o **próprio script de prerender** tinha acabado de (re)gerar nessa mesma execução — porque `git checkout -- .` não distingue "sobra indesejada do build" de "saída legítima do prerender", ambas são só "arquivo rastreado modificado" pro git.
