@@ -32,8 +32,20 @@ const statusFor = (score: number): MetricStatus =>
  */
 function computeTestCoverage(): number {
   try {
-    const tests = import.meta.glob('/src/__tests__/**/*.{ts,tsx}', { eager: false });
-    const sources = import.meta.glob('/src/**/*.{ts,tsx}', { eager: false });
+    // query: '?raw' faz o Vite tratar cada arquivo como texto puro (nunca transformado/
+    // empacotado como módulo JS) — só precisamos da CONTAGEM de arquivos, e sem isso o
+    // build de produção tentava empacotar os arquivos de teste em si, quebrando sempre
+    // que um deles usasse uma API só de Node (ex.: node:fs) incompatível com o navegador.
+    const tests = import.meta.glob('/src/__tests__/**/*.{ts,tsx}', {
+      eager: false,
+      query: '?raw',
+      import: 'default',
+    });
+    const sources = import.meta.glob('/src/**/*.{ts,tsx}', {
+      eager: false,
+      query: '?raw',
+      import: 'default',
+    });
     const testCount = Object.keys(tests).length;
     const sourceCount = Object.keys(sources).length - testCount;
     if (sourceCount === 0) return 0;

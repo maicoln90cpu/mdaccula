@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Corrige `npm run build`/pipeline de prerender quebrados desde a Fase 2D: `qualityMetrics.ts` empacotava arquivos de teste no bundle de produção
+
+- **O que:** `npm run build` (e, por consequência, o workflow `prerender.yml` inteiro, que depende dele) falhava com `"readFileSync" is not exported by "__vite-browser-external"` em `src/__tests__/architecture/tailwind-theme.test.ts`. Descoberto ao disparar manualmente o `prerender.yml` pela primeira vez (nunca tinha rodado com sucesso — histórico de execuções vazio).
+- **Causa:** `src/lib/qualityMetrics.ts` (usado pelo painel `TechDebtDashboard`, admin) usa `import.meta.glob('/src/__tests__/**/*.{ts,tsx}', ...)` só pra **contar** quantos arquivos de teste existem (heurística de "cobertura de testes" exibida no admin) — mas por padrão isso faz o Vite tentar empacotar o conteúdo de cada arquivo encontrado no bundle do navegador, inclusive testes de arquitetura que usam `node:fs`/`node:path` (APIs que não existem no navegador). Isso gerava um monte de avisos silenciosos há tempos; só quebrou de vez quando o teste novo do Tailwind v4 (`tailwind-theme.test.ts`, desta mesma Fase 2D) usou uma forma de importar (`import { readFileSync } from 'node:fs'`) que o Vite não conseguia mais só avisar — virou erro fatal de build.
+- **Correção:** os dois `import.meta.glob` em `computeTestCoverage()` passaram a usar `{ query: '?raw', import: 'default' }` — o Vite trata cada arquivo como texto puro (nunca transforma/empacota como módulo JS real), suficiente pra só contar (`Object.keys(...).length`), sem nunca precisar entender o conteúdo.
+- **Validação:** `npm run build` completa com sucesso (antes falhava sempre); `tsc`, `lint` e os 714 testes verdes; `prerender.yml` disparado manualmente no GitHub Actions após a correção.
+- **Arquivos:** `src/lib/qualityMetrics.ts`.
+
 ### 20/08/2026 — Atualiza `react-helmet-async` pra 3.0.0 (suporte real a React 19) e corrige reincidência do R-019
 
 - **O que:** `react-helmet-async` 2.0.5 → 3.0.0 — a v2 só declarava suporte a React até a 18 nos peerDependencies, forçando `npm install`/`npm ci` a falhar com `ERESOLVE` (ver entrada anterior sobre `react-is`); a v3 já declara suporte nativo a React 19.
