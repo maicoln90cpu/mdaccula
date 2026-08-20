@@ -1,0 +1,1226 @@
+{
+  "codeHash": "65cd87b4c083ca7b5eba64cc1e81f879de06b867cf967913d608a0536610e40e",
+  "generatedAt": "2026-08-20T17:32:49.330Z",
+  "routes": {
+    "/": {
+      "outPath": "index.html",
+      "updatedAt": null
+    },
+    "/eventos/d-edge-apres-moving-n08hv0": {
+      "outPath": "eventos/d-edge-apres-moving-n08hv0/index.html",
+      "updatedAt": "2026-08-19T13:20:18.803341+00:00"
+    },
+    "/eventos/heyhoy2108": {
+      "outPath": "eventos/heyhoy2108/index.html",
+      "updatedAt": "2026-08-20T16:37:34.922612+00:00"
+    },
+    "/eventos/d-edge-apres-freakchic-tf3rrz": {
+      "outPath": "eventos/d-edge-apres-freakchic-tf3rrz/index.html",
+      "updatedAt": "2026-08-19T00:22:06.119104+00:00"
+    },
+    "/eventos/boma2208": {
+      "outPath": "eventos/boma2208/index.html",
+      "updatedAt": "2026-08-20T16:23:40.179455+00:00"
+    },
+    "/eventos/d-edge-apres-nave-glcxns": {
+      "outPath": "eventos/d-edge-apres-nave-glcxns/index.html",
+      "updatedAt": "2026-08-19T12:50:22.276752+00:00"
+    },
+    "/eventos/d-edge-apres-superafter-vwayib": {
+      "outPath": "eventos/d-edge-apres-superafter-vwayib/index.html",
+      "updatedAt": "2026-08-18T20:14:49.641851+00:00"
+    },
+    "/eventos/sirius2908": {
+      "outPath": "eventos/sirius2908/index.html",
+      "updatedAt": "2026-08-20T14:25:41.315413+00:00"
+    },
+    "/eventos/atelie2908": {
+      "outPath": "eventos/atelie2908/index.html",
+      "updatedAt": "2026-08-20T16:05:29.243328+00:00"
+    },
+    "/eventos/parador050926p": {
+      "outPath": "eventos/parador050926p/index.html",
+      "updatedAt": "2026-08-17T03:00:58.381037+00:00"
+    },
+    "/eventos/parador050926": {
+      "outPath": "eventos/parador050926/index.html",
+      "updatedAt": "2026-08-20T01:59:22.252266+00:00"
+    },
+    "/eventos/Parador-apres-Chemical-Surf-e-359393": {
+      "outPath": "eventos/Parador-apres-Chemical-Surf-e-359393/index.html",
+      "updatedAt": "2026-08-20T01:59:22.252266+00:00"
+    },
+    "/eventos/johnsummit1109": {
+      "outPath": "eventos/johnsummit1109/index.html",
+      "updatedAt": "2026-08-20T16:03:38.487682+00:00"
+    },
+    "/eventos/dretarde1209": {
+      "outPath": "eventos/dretarde1209/index.html",
+      "updatedAt": "2026-08-20T16:04:17.421371+00:00"
+    },
+    "/eventos/vintagesp1809": {
+      "outPath": "eventos/vintagesp1809/index.html",
+      "updatedAt": "2026-08-20T16:36:40.679768+00:00"
+    },
+    "/eventos/dnabh26": {
+      "outPath": "eventos/dnabh26/index.html",
+      "updatedAt": "2026-08-20T16:22:50.047675+00:00"
+    },
+    "/eventos/sun190926": {
+      "outPath": "eventos/sun190926/index.html",
+      "updatedAt": "2026-08-20T16:42:53.672267+00:00"
+    },
+    "/eventos/grid1909": {
+      "outPath": "eventos/grid1909/index.html",
+      "updatedAt": "2026-08-19T13:33:03.656661+00:00"
+    },
+    "/eventos/hernan1909": {
+      "outPath": "eventos/hernan1909/index.html",
+      "updatedAt": "2026-08-18T12:59:57.774173+00:00"
+    },
+    "/eventos/piknic2009": {
+      "outPath": "eventos/piknic2009/index.html",
+      "updatedAt": "2026-08-20T14:26:30.212793+00:00"
+    },
+    "/eventos/xsp260926": {
+      "outPath": "eventos/xsp260926/index.html",
+      "updatedAt": "2026-08-20T15:25:07.232444+00:00"
+    },
+    "/eventos/mochakk0310": {
+      "outPath": "eventos/mochakk0310/index.html",
+      "updatedAt": "2026-08-20T15:40:48.129229+00:00"
+    },
+    "/eventos/paradorout26": {
+      "outPath": "eventos/paradorout26/index.html",
+      "updatedAt": "2026-08-19T05:09:12.261057+00:00"
+    },
+    "/eventos/aliga1010": {
+      "outPath": "eventos/aliga1010/index.html",
+      "updatedAt": "2026-08-20T16:07:23.960029+00:00"
+    },
+    "/eventos/Parador-apres-Dubdogz-e-803103": {
+      "outPath": "eventos/Parador-apres-Dubdogz-e-803103/index.html",
+      "updatedAt": "2026-08-18T18:50:45.076848+00:00"
+    },
+    "/eventos/Parador-apres-Victor-Lou-Fatsync-e-091876": {
+      "outPath": "eventos/Parador-apres-Victor-Lou-Fatsync-e-091876/index.html",
+      "updatedAt": "2026-08-18T18:48:04.218968+00:00"
+    },
+    "/eventos/industria1610": {
+      "outPath": "eventos/industria1610/index.html",
+      "updatedAt": "2026-08-20T15:50:10.744001+00:00"
+    },
+    "/eventos/crochestra1710": {
+      "outPath": "eventos/crochestra1710/index.html",
+      "updatedAt": "2026-08-20T14:26:54.69307+00:00"
+    },
+    "/eventos/keinemusiksp": {
+      "outPath": "eventos/keinemusiksp/index.html",
+      "updatedAt": "2026-08-20T14:27:01.293354+00:00"
+    },
+    "/eventos/solomunsp": {
+      "outPath": "eventos/solomunsp/index.html",
+      "updatedAt": "2026-08-20T16:07:05.707455+00:00"
+    },
+    "/eventos/musicon0711": {
+      "outPath": "eventos/musicon0711/index.html",
+      "updatedAt": "2026-08-19T04:05:30.192233+00:00"
+    },
+    "/eventos/parador201126": {
+      "outPath": "eventos/parador201126/index.html",
+      "updatedAt": "2026-08-20T14:27:21.532386+00:00"
+    },
+    "/eventos/Parador-Novembro-Pacote-2-dias-088503": {
+      "outPath": "eventos/Parador-Novembro-Pacote-2-dias-088503/index.html",
+      "updatedAt": "2026-08-18T17:40:08.400708+00:00"
+    },
+    "/eventos/gridunreal": {
+      "outPath": "eventos/gridunreal/index.html",
+      "updatedAt": "2026-08-20T14:27:27.861571+00:00"
+    },
+    "/eventos/parador211126": {
+      "outPath": "eventos/parador211126/index.html",
+      "updatedAt": "2026-08-20T14:27:16.000189+00:00"
+    },
+    "/eventos/onelife281126": {
+      "outPath": "eventos/onelife281126/index.html",
+      "updatedAt": "2026-08-18T18:40:11.428106+00:00"
+    },
+    "/eventos/dna051226": {
+      "outPath": "eventos/dna051226/index.html",
+      "updatedAt": "2026-08-20T16:42:26.992459+00:00"
+    },
+    "/eventos/mp190926": {
+      "outPath": "eventos/mp190926/index.html",
+      "updatedAt": "2026-08-20T06:57:26.151467+00:00"
+    },
+    "/eventos/up2026": {
+      "outPath": "eventos/up2026/index.html",
+      "updatedAt": "2026-08-20T16:45:27.123378+00:00"
+    },
+    "/eventos/parador281226": {
+      "outPath": "eventos/parador281226/index.html",
+      "updatedAt": "2026-08-18T02:13:25.580192+00:00"
+    },
+    "/eventos/paradorrev27": {
+      "outPath": "eventos/paradorrev27/index.html",
+      "updatedAt": "2026-08-18T01:55:40.364914+00:00"
+    },
+    "/eventos/parador291226": {
+      "outPath": "eventos/parador291226/index.html",
+      "updatedAt": "2026-08-18T18:49:33.150244+00:00"
+    },
+    "/eventos/parador301226": {
+      "outPath": "eventos/parador301226/index.html",
+      "updatedAt": "2026-08-18T01:53:18.71841+00:00"
+    },
+    "/eventos/dnasc26": {
+      "outPath": "eventos/dnasc26/index.html",
+      "updatedAt": "2026-08-18T21:33:08.338936+00:00"
+    },
+    "/eventos/parador311226": {
+      "outPath": "eventos/parador311226/index.html",
+      "updatedAt": "2026-08-18T02:13:42.043652+00:00"
+    },
+    "/blog/como-o-audiovisual-remodela-a-experiencia-do-techno-nas-pistas": {
+      "outPath": "blog/como-o-audiovisual-remodela-a-experiencia-do-techno-nas-pistas/index.html",
+      "updatedAt": "2026-08-09T09:53:12.885132+00:00"
+    },
+    "/blog/parador-pascoa-2026-imersao-musical-inesquecivel-em-maresias": {
+      "outPath": "blog/parador-pascoa-2026-imersao-musical-inesquecivel-em-maresias/index.html",
+      "updatedAt": "2026-08-09T10:00:24.550329+00:00"
+    },
+    "/blog/festas-de-selo-como-selos-e-gravadoras-estao-redesenhando-o-calendario-cultural": {
+      "outPath": "blog/festas-de-selo-como-selos-e-gravadoras-estao-redesenhando-o-calendario-cultural/index.html",
+      "updatedAt": "2026-08-09T09:39:49.786543+00:00"
+    },
+    "/blog/noites-sensoriais-redefinem-clubes-e-abrem-pistas-inclusivas": {
+      "outPath": "blog/noites-sensoriais-redefinem-clubes-e-abrem-pistas-inclusivas/index.html",
+      "updatedAt": "2026-08-09T09:40:07.875207+00:00"
+    },
+    "/blog/rmx-ignite-a-revolucao-dos-efeitos-em-tempo-real-que-acende-a-pista": {
+      "outPath": "blog/rmx-ignite-a-revolucao-dos-efeitos-em-tempo-real-que-acende-a-pista/index.html",
+      "updatedAt": "2026-08-09T09:40:16.646682+00:00"
+    },
+    "/blog/todayland-anuncia-edicao-faraonica-com-solardo-e-illusionize-em-dezembro-mi5dqz3o": {
+      "outPath": "blog/todayland-anuncia-edicao-faraonica-com-solardo-e-illusionize-em-dezembro-mi5dqz3o/index.html",
+      "updatedAt": "2026-08-09T09:40:25.517514+00:00"
+    },
+    "/blog/como-a-inteligencia-artificial-esta-remodelando-o-trabalho-dos-djs": {
+      "outPath": "blog/como-a-inteligencia-artificial-esta-remodelando-o-trabalho-dos-djs/index.html",
+      "updatedAt": "2026-08-09T09:40:34.749263+00:00"
+    },
+    "/blog/psy-techno-a-fusao-hipnotica-que-reconstroi-as-pistas-de-danca-globais": {
+      "outPath": "blog/psy-techno-a-fusao-hipnotica-que-reconstroi-as-pistas-de-danca-globais/index.html",
+      "updatedAt": "2026-08-09T09:40:43.924305+00:00"
+    },
+    "/blog/do-kurt-cobain-ao-club-como-produtores-brasileiros-reinventam-icones-da-spin-40-nas-pistas": {
+      "outPath": "blog/do-kurt-cobain-ao-club-como-produtores-brasileiros-reinventam-icones-da-spin-40-nas-pistas/index.html",
+      "updatedAt": "2026-08-09T09:40:52.68756+00:00"
+    },
+    "/blog/como-o-warm-global-dance-radio-chart-pode-redesenhar-a-rota-de-exportacao-dos-djs-brasileiros": {
+      "outPath": "blog/como-o-warm-global-dance-radio-chart-pode-redesenhar-a-rota-de-exportacao-dos-djs-brasileiros/index.html",
+      "updatedAt": "2026-08-09T09:41:01.530655+00:00"
+    },
+    "/blog/red-room-jan-blomqvist-e-equipe-incendeiam-varanda-estaiada-em-novembro-mhtx2o9t": {
+      "outPath": "blog/red-room-jan-blomqvist-e-equipe-incendeiam-varanda-estaiada-em-novembro-mhtx2o9t/index.html",
+      "updatedAt": "2026-08-09T09:41:10.321209+00:00"
+    },
+    "/blog/pistas-diurnas-como-a-cena-eletronica-ocupa-coworkings-galerias-e-parques": {
+      "outPath": "blog/pistas-diurnas-como-a-cena-eletronica-ocupa-coworkings-galerias-e-parques/index.html",
+      "updatedAt": "2026-08-09T09:41:19.736631+00:00"
+    },
+    "/blog/psicodelia-urbana-apresenta-blazy-caos-club-campinas-16-05-2026": {
+      "outPath": "blog/psicodelia-urbana-apresenta-blazy-caos-club-campinas-16-05-2026/index.html",
+      "updatedAt": "2026-08-09T09:41:28.548885+00:00"
+    },
+    "/blog/dna-art-car-vintage-culture-incendeia-a-pista-em-6-de-dezembro-de-2025-mi7ghj62": {
+      "outPath": "blog/dna-art-car-vintage-culture-incendeia-a-pista-em-6-de-dezembro-de-2025-mi7ghj62/index.html",
+      "updatedAt": "2026-08-09T09:53:22.382909+00:00"
+    },
+    "/blog/turnes-hibridas-reinventam-o-circuito-eletronico-latino-com-alcance-digital": {
+      "outPath": "blog/turnes-hibridas-reinventam-o-circuito-eletronico-latino-com-alcance-digital/index.html",
+      "updatedAt": "2026-08-09T10:10:09.318338+00:00"
+    },
+    "/blog/coletivos-perifericos-redesenham-o-mapa-das-noites-no-brasil": {
+      "outPath": "blog/coletivos-perifericos-redesenham-o-mapa-das-noites-no-brasil/index.html",
+      "updatedAt": "2026-08-09T09:41:46.852318+00:00"
+    },
+    "/blog/d-nox-on-board-a-magia-do-progressive-house-em-floripa-15-fev-2026": {
+      "outPath": "blog/d-nox-on-board-a-magia-do-progressive-house-em-floripa-15-fev-2026/index.html",
+      "updatedAt": "2026-08-09T09:41:55.689699+00:00"
+    },
+    "/blog/exclusivo-illusionize-comanda-a-noite-no-caos-club-em-campinas-28-02": {
+      "outPath": "blog/exclusivo-illusionize-comanda-a-noite-no-caos-club-em-campinas-28-02/index.html",
+      "updatedAt": "2026-08-09T09:42:05.098097+00:00"
+    },
+    "/blog/piknic-electronik-varanda-estaiada-sao-paulo-11-04-2026": {
+      "outPath": "blog/piknic-electronik-varanda-estaiada-sao-paulo-11-04-2026/index.html",
+      "updatedAt": "2026-08-09T09:42:13.810145+00:00"
+    },
+    "/blog/looper-e-o-novo-mercado-como-plataformas-estao-transformando-a-vida-de-djs-e-contratantes-mj1or6dl": {
+      "outPath": "blog/looper-e-o-novo-mercado-como-plataformas-estao-transformando-a-vida-de-djs-e-contratantes-mj1or6dl/index.html",
+      "updatedAt": "2026-08-09T09:42:22.367943+00:00"
+    },
+    "/blog/red-room-na-casa-aragon-em-sao-paulo-na-sexta-feira-12-de-junho": {
+      "outPath": "blog/red-room-na-casa-aragon-em-sao-paulo-na-sexta-feira-12-de-junho/index.html",
+      "updatedAt": "2026-08-09T09:42:31.71023+00:00"
+    },
+    "/blog/a-quarta-dimensao-como-o-v-a-da-not-therapy-redesenha-a-cena-independente-mj7gorno": {
+      "outPath": "blog/a-quarta-dimensao-como-o-v-a-da-not-therapy-redesenha-a-cena-independente-mj7gorno/index.html",
+      "updatedAt": "2026-08-09T09:42:40.903678+00:00"
+    },
+    "/blog/surreal-park-beatport-live-east-end-dubs-na-area-para-quebrar-tudo-em-sp-mi63brkd": {
+      "outPath": "blog/surreal-park-beatport-live-east-end-dubs-na-area-para-quebrar-tudo-em-sp-mi63brkd/index.html",
+      "updatedAt": "2026-08-09T09:42:49.583878+00:00"
+    },
+    "/blog/pistinha-summer-espaco-taal-barueri-21-03-2026": {
+      "outPath": "blog/pistinha-summer-espaco-taal-barueri-21-03-2026/index.html",
+      "updatedAt": "2026-08-09T09:42:58.485935+00:00"
+    },
+    "/blog/boma-bsb-no-museu-nacional-da-republica-01-05-2026-brasilia": {
+      "outPath": "blog/boma-bsb-no-museu-nacional-da-republica-01-05-2026-brasilia/index.html",
+      "updatedAt": "2026-08-09T09:43:07.588029+00:00"
+    },
+    "/blog/superfa-conectado-o-webinar-que-esta-redesenhando-turnes-de-djs-e-monetizando-comunidades-mjdaqmg6": {
+      "outPath": "blog/superfa-conectado-o-webinar-que-esta-redesenhando-turnes-de-djs-e-monetizando-comunidades-mjdaqmg6/index.html",
+      "updatedAt": "2026-08-09T09:43:16.438688+00:00"
+    },
+    "/blog/no-meio-do-transito-como-raves-itinerantes-requalificam-pracas-pontes-e-areas-industriais": {
+      "outPath": "blog/no-meio-do-transito-como-raves-itinerantes-requalificam-pracas-pontes-e-areas-industriais/index.html",
+      "updatedAt": "2026-08-09T09:57:16.358577+00:00"
+    },
+    "/blog/boris-brejcha-reflete-em-curitiba-a-noite-de-high-tech-minimal-de-2025-mid41hiv": {
+      "outPath": "blog/boris-brejcha-reflete-em-curitiba-a-noite-de-high-tech-minimal-de-2025-mid41hiv/index.html",
+      "updatedAt": "2026-08-09T09:43:43.917056+00:00"
+    },
+    "/blog/winter-sessions-pousada-c-turismo-campos-do-jordao-04-06-2026": {
+      "outPath": "blog/winter-sessions-pousada-c-turismo-campos-do-jordao-04-06-2026/index.html",
+      "updatedAt": "2026-08-09T09:43:52.581308+00:00"
+    },
+    "/blog/gliese-apres-gabe-espaco-taal-barueri-25-04-2026": {
+      "outPath": "blog/gliese-apres-gabe-espaco-taal-barueri-25-04-2026/index.html",
+      "updatedAt": "2026-08-09T09:44:01.513078+00:00"
+    },
+    "/blog/industria-apresenta-dr-lektroluv-high-club-sao-paulo-15-05-2026": {
+      "outPath": "blog/industria-apresenta-dr-lektroluv-high-club-sao-paulo-15-05-2026/index.html",
+      "updatedAt": "2026-08-09T09:44:10.3626+00:00"
+    },
+    "/blog/circoloco-sao-paulo-2025-a-lendaria-festa-de-ibiza-desembarca-no-brasil-em-15-de-novembro": {
+      "outPath": "blog/circoloco-sao-paulo-2025-a-lendaria-festa-de-ibiza-desembarca-no-brasil-em-15-de-novembro/index.html",
+      "updatedAt": "2026-08-09T09:44:19.374674+00:00"
+    },
+    "/blog/microfestivais-de-bairro-como-festas-pequenas-reprogramam-a-cidade": {
+      "outPath": "blog/microfestivais-de-bairro-como-festas-pequenas-reprogramam-a-cidade/index.html",
+      "updatedAt": "2026-08-09T09:44:28.341648+00:00"
+    },
+    "/blog/abracadabra-em-20-dez-2025-uma-noite-magica-com-blond-ish-e-mais-mifwujpj": {
+      "outPath": "blog/abracadabra-em-20-dez-2025-uma-noite-magica-com-blond-ish-e-mais-mifwujpj/index.html",
+      "updatedAt": "2026-08-09T09:44:37.038925+00:00"
+    },
+    "/blog/como-coletivos-femininos-estao-redesenhando-a-cena-eletronica-brasileira": {
+      "outPath": "blog/como-coletivos-femininos-estao-redesenhando-a-cena-eletronica-brasileira/index.html",
+      "updatedAt": "2026-08-09T09:44:46.247489+00:00"
+    },
+    "/blog/quando-o-banco-vira-gravadora-a-plataforma-musical-do-itau-e-o-novo-mercado-de-curadoria": {
+      "outPath": "blog/quando-o-banco-vira-gravadora-a-plataforma-musical-do-itau-e-o-novo-mercado-de-curadoria/index.html",
+      "updatedAt": "2026-08-09T09:44:55.395144+00:00"
+    },
+    "/blog/surreal-apres-trotamundo-bells-surreal-park-camboriu-16-01-2026": {
+      "outPath": "blog/surreal-apres-trotamundo-bells-surreal-park-camboriu-16-01-2026/index.html",
+      "updatedAt": "2026-08-09T09:45:04.33801+00:00"
+    },
+    "/blog/toca-apresenta-liu-noite-epica-de-progressive-house-em-12-de-dezembro-de-2025-mid3xojk": {
+      "outPath": "blog/toca-apresenta-liu-noite-epica-de-progressive-house-em-12-de-dezembro-de-2025-mid3xojk/index.html",
+      "updatedAt": "2026-08-09T09:45:13.171587+00:00"
+    },
+    "/blog/clubs-2-0-como-som-imersivo-iluminacao-inteligente-e-dados-estao-redesenhando-os-venues-mire6plh": {
+      "outPath": "blog/clubs-2-0-como-som-imersivo-iluminacao-inteligente-e-dados-estao-redesenhando-os-venues-mire6plh/index.html",
+      "updatedAt": "2026-08-09T09:45:21.946258+00:00"
+    },
+    "/blog/carnaval-na-cidade-2026-a-explosao-sonora-que-sao-paulo-esperava": {
+      "outPath": "blog/carnaval-na-cidade-2026-a-explosao-sonora-que-sao-paulo-esperava/index.html",
+      "updatedAt": "2026-08-09T09:45:40.082673+00:00"
+    },
+    "/blog/alem-do-padrao-a-autentica-batida-eletronica-da-australia": {
+      "outPath": "blog/alem-do-padrao-a-autentica-batida-eletronica-da-australia/index.html",
+      "updatedAt": "2026-08-09T09:45:49.324461+00:00"
+    },
+    "/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026": {
+      "outPath": "blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026/index.html",
+      "updatedAt": "2026-08-19T23:53:52.29957+00:00"
+    },
+    "/blog/festas-queer-reescrevem-as-regras-das-pistas-latino-americanas": {
+      "outPath": "blog/festas-queer-reescrevem-as-regras-das-pistas-latino-americanas/index.html",
+      "updatedAt": "2026-08-09T09:46:07.882234+00:00"
+    },
+    "/blog/solomun-no-alexandra-palace-duas-noites-esgotadas-e-o-poder-do-melodic-house-em-londres": {
+      "outPath": "blog/solomun-no-alexandra-palace-duas-noites-esgotadas-e-o-poder-do-melodic-house-em-londres/index.html",
+      "updatedAt": "2026-08-09T10:04:27.986978+00:00"
+    },
+    "/blog/odisseia-carnaval-sp-2026-imersao-sonora-na-varanda-estaiada": {
+      "outPath": "blog/odisseia-carnaval-sp-2026-imersao-sonora-na-varanda-estaiada/index.html",
+      "updatedAt": "2026-08-09T09:46:16.66331+00:00"
+    },
+    "/blog/pista-em-transicao-como-mulheres-40-estao-redesenhando-a-cena-eletronica-brasileira": {
+      "outPath": "blog/pista-em-transicao-como-mulheres-40-estao-redesenhando-a-cena-eletronica-brasileira/index.html",
+      "updatedAt": "2026-08-09T09:46:34.593386+00:00"
+    },
+    "/blog/do-ski-ao-beat-licoes-do-sound-escape-para-festivais-de-inverno": {
+      "outPath": "blog/do-ski-ao-beat-licoes-do-sound-escape-para-festivais-de-inverno/index.html",
+      "updatedAt": "2026-08-09T09:46:43.76536+00:00"
+    },
+    "/blog/vintage-culture-guaruja-golf-club-guaruja-29-12-2025-mjh58f7f": {
+      "outPath": "blog/vintage-culture-guaruja-golf-club-guaruja-29-12-2025-mjh58f7f/index.html",
+      "updatedAt": "2026-08-09T09:46:52.936428+00:00"
+    },
+    "/blog/the-grid-apres-44-techno-de-peso-no-komplexo-tempo-mi630cfs": {
+      "outPath": "blog/the-grid-apres-44-techno-de-peso-no-komplexo-tempo-mi630cfs/index.html",
+      "updatedAt": "2026-08-09T09:47:02.040532+00:00"
+    },
+    "/blog/batidas-do-bem-djs-brasileiros-e-o-ritmo-da-transformacao-social-e-ambiental": {
+      "outPath": "blog/batidas-do-bem-djs-brasileiros-e-o-ritmo-da-transformacao-social-e-ambiental/index.html",
+      "updatedAt": "2026-08-09T09:47:10.775272+00:00"
+    },
+    "/blog/punta-del-este-o-verao-que-transformou-o-balneario-em-farol-eletronico-miyldcan": {
+      "outPath": "blog/punta-del-este-o-verao-que-transformou-o-balneario-em-farol-eletronico-miyldcan/index.html",
+      "updatedAt": "2026-08-09T09:47:29.01677+00:00"
+    },
+    "/blog/rock-in-rio-anuncia-venda-extraordinaria-de-ingressos-e-revela-cardapio-com-860-operacoes": {
+      "outPath": "blog/rock-in-rio-anuncia-venda-extraordinaria-de-ingressos-e-revela-cardapio-com-860-operacoes/index.html",
+      "updatedAt": "2026-08-17T12:19:54.843876+00:00"
+    },
+    "/blog/parador-carnaval-2026-pacote-completo-de-folia-e-e-music-em-14-02-2026-mi8zy4sw": {
+      "outPath": "blog/parador-carnaval-2026-pacote-completo-de-folia-e-e-music-em-14-02-2026-mi8zy4sw/index.html",
+      "updatedAt": "2026-08-09T10:02:48.482101+00:00"
+    },
+    "/blog/breve-historia-do-techno-de-detroit-as-pistas-globais": {
+      "outPath": "blog/breve-historia-do-techno-de-detroit-as-pistas-globais/index.html",
+      "updatedAt": "2026-08-11T17:26:29.336509+00:00"
+    },
+    "/blog/corona-apres-antdot-um-fechamento-de-ano-inesquecivel-em-20-de-dezembro-de-2025-mihjg0j3": {
+      "outPath": "blog/corona-apres-antdot-um-fechamento-de-ano-inesquecivel-em-20-de-dezembro-de-2025-mihjg0j3/index.html",
+      "updatedAt": "2026-08-09T09:47:46.811174+00:00"
+    },
+    "/blog/gv-apres-vintage-culture-e-green-valley-camboriu-14-02-2026-mk42l466": {
+      "outPath": "blog/gv-apres-vintage-culture-e-green-valley-camboriu-14-02-2026-mk42l466/index.html",
+      "updatedAt": "2026-08-09T09:47:56.086988+00:00"
+    },
+    "/blog/palco-sem-fio-como-a-estreia-movida-por-baterias-no-ultra-pode-reinventar-grandes-festivais": {
+      "outPath": "blog/palco-sem-fio-como-a-estreia-movida-por-baterias-no-ultra-pode-reinventar-grandes-festivais/index.html",
+      "updatedAt": "2026-08-09T09:48:05.220549+00:00"
+    },
+    "/blog/sirius-amine-edge-comanda-a-pista-na-fazenda-moinho-em-21-de-marco": {
+      "outPath": "blog/sirius-amine-edge-comanda-a-pista-na-fazenda-moinho-em-21-de-marco/index.html",
+      "updatedAt": "2026-08-09T09:48:13.64752+00:00"
+    },
+    "/blog/sasha-john-digweed-o-encontro-epico-no-brasil-05-12-2025-mi63occ1": {
+      "outPath": "blog/sasha-john-digweed-o-encontro-epico-no-brasil-05-12-2025-mi63occ1/index.html",
+      "updatedAt": "2026-08-09T09:48:22.811352+00:00"
+    },
+    "/blog/errorr-sao-paulo-2025-techno-melodico-e-imersao-audiovisual-no-komplexo-tempo-15-11": {
+      "outPath": "blog/errorr-sao-paulo-2025-techno-melodico-e-imersao-audiovisual-no-komplexo-tempo-15-11/index.html",
+      "updatedAt": "2026-08-09T09:48:31.921189+00:00"
+    },
+    "/blog/toca-apres-kvsh-uma-experiencia-imersiva-em-sao-paulo-19-11-2025-mi6bawzd": {
+      "outPath": "blog/toca-apres-kvsh-uma-experiencia-imersiva-em-sao-paulo-19-11-2025-mi6bawzd/index.html",
+      "updatedAt": "2026-08-09T09:48:40.569848+00:00"
+    },
+    "/blog/surreal-4-anos-a-celebracao-epica-com-honey-dijon-e-loco-dice-em-dezembro-mi7brnh9": {
+      "outPath": "blog/surreal-4-anos-a-celebracao-epica-com-honey-dijon-e-loco-dice-em-dezembro-mi7brnh9/index.html",
+      "updatedAt": "2026-08-09T09:48:49.425155+00:00"
+    },
+    "/blog/reveillon-surreal-2025-celebre-a-virada-com-traumer-eli-nissan-e-mais-mi7e6v1l": {
+      "outPath": "blog/reveillon-surreal-2025-celebre-a-virada-com-traumer-eli-nissan-e-mais-mi7e6v1l/index.html",
+      "updatedAt": "2026-08-09T09:48:58.621139+00:00"
+    },
+    "/blog/incendio-em-goa-licoes-urgentes-para-seguranca-em-casas-noturnas-e-beach-clubs-miyni1k9": {
+      "outPath": "blog/incendio-em-goa-licoes-urgentes-para-seguranca-em-casas-noturnas-e-beach-clubs-miyni1k9/index.html",
+      "updatedAt": "2026-08-09T09:49:07.775107+00:00"
+    },
+    "/blog/djs-brasileiros-adotam-sets-hibridos-som-sintetizadores-e-performance": {
+      "outPath": "blog/djs-brasileiros-adotam-sets-hibridos-som-sintetizadores-e-performance/index.html",
+      "updatedAt": "2026-08-09T10:06:33.913731+00:00"
+    },
+    "/blog/rooftech-2025-sonzeira-rara-com-bruno-furlan-agita-sonora-garden-em-nov-mi7b8isy": {
+      "outPath": "blog/rooftech-2025-sonzeira-rara-com-bruno-furlan-agita-sonora-garden-em-nov-mi7b8isy/index.html",
+      "updatedAt": "2026-08-09T10:10:18.205918+00:00"
+    },
+    "/blog/a-ascensao-global-e-local-do-minimal-techno-de-berlim-as-pistas-brasileiras-mi7ctorm": {
+      "outPath": "blog/a-ascensao-global-e-local-do-minimal-techno-de-berlim-as-pistas-brasileiras-mi7ctorm/index.html",
+      "updatedAt": "2026-08-09T09:49:16.513218+00:00"
+    },
+    "/blog/surreal-park-festival-soul-em-camboriu-03-04-2026": {
+      "outPath": "blog/surreal-park-festival-soul-em-camboriu-03-04-2026/index.html",
+      "updatedAt": "2026-08-09T09:49:25.396776+00:00"
+    },
+    "/blog/d-edge-moving-a-vibe-continua-em-27-de-novembro-de-2025-migt9z4n": {
+      "outPath": "blog/d-edge-moving-a-vibe-continua-em-27-de-novembro-de-2025-migt9z4n/index.html",
+      "updatedAt": "2026-08-09T09:49:34.641342+00:00"
+    },
+    "/blog/intimidade-na-pista-44-ardent-e-justy-e-o-storytelling-que-redefine-o-house-em-2025-mirfprku": {
+      "outPath": "blog/intimidade-na-pista-44-ardent-e-justy-e-o-storytelling-que-redefine-o-house-em-2025-mirfprku/index.html",
+      "updatedAt": "2026-08-09T09:49:52.585186+00:00"
+    },
+    "/blog/caos-campinas-apresenta-patrice-baumel-caos-club-24-01-2026": {
+      "outPath": "blog/caos-campinas-apresenta-patrice-baumel-caos-club-24-01-2026/index.html",
+      "updatedAt": "2026-08-09T09:50:02.589071+00:00"
+    },
+    "/blog/todayland-sao-paulo-a-forca-da-curadoria-hibrida-entre-talentos-locais-e-headliners-globais-miygza2b": {
+      "outPath": "blog/todayland-sao-paulo-a-forca-da-curadoria-hibrida-entre-talentos-locais-e-headliners-globais-miygza2b/index.html",
+      "updatedAt": "2026-08-09T09:50:11.375632+00:00"
+    },
+    "/blog/vintage-culture-em-ribeirao-uma-noite-epica-em-29-de-novembro-de-2025-mi7hjr0j": {
+      "outPath": "blog/vintage-culture-em-ribeirao-uma-noite-epica-em-29-de-novembro-de-2025-mi7hjr0j/index.html",
+      "updatedAt": "2026-08-09T09:50:20.59015+00:00"
+    },
+    "/blog/after-oficial-bloco-do-dre-a-ressaca-eletronica-em-16-04-no-side-sp": {
+      "outPath": "blog/after-oficial-bloco-do-dre-a-ressaca-eletronica-em-16-04-no-side-sp/index.html",
+      "updatedAt": "2026-08-09T09:50:39.485719+00:00"
+    },
+    "/blog/club-verde-como-casas-noturnas-eletronicas-reinventam-sustentabilidade-sem-perder-a-batida": {
+      "outPath": "blog/club-verde-como-casas-noturnas-eletronicas-reinventam-sustentabilidade-sem-perder-a-batida/index.html",
+      "updatedAt": "2026-08-09T09:50:57.644735+00:00"
+    },
+    "/blog/vivi-seixas-amplia-a-narrativa-sonora-com-o-ep-i-m-lost": {
+      "outPath": "blog/vivi-seixas-amplia-a-narrativa-sonora-com-o-ep-i-m-lost/index.html",
+      "updatedAt": "2026-08-09T09:51:24.481167+00:00"
+    },
+    "/blog/o-perfil-do-publico-e-os-numeros-por-tras-da-cena-eletronica-brasileira": {
+      "outPath": "blog/o-perfil-do-publico-e-os-numeros-por-tras-da-cena-eletronica-brasileira/index.html",
+      "updatedAt": "2026-08-09T09:51:33.64981+00:00"
+    },
+    "/blog/zero-gravity-music-como-o-primeiro-selo-100-dolby-atmos-da-america-latina-quer-reescrever-o-som-dos-clubes-miyj7zua": {
+      "outPath": "blog/zero-gravity-music-como-o-primeiro-selo-100-dolby-atmos-da-america-latina-quer-reescrever-o-som-dos-clubes-miyj7zua/index.html",
+      "updatedAt": "2026-08-09T10:11:56.667032+00:00"
+    },
+    "/blog/como-selos-independentes-latino-americanos-conquistaram-o-mercado-global": {
+      "outPath": "blog/como-selos-independentes-latino-americanos-conquistaram-o-mercado-global/index.html",
+      "updatedAt": "2026-08-09T09:51:15.74695+00:00"
+    },
+    "/blog/raves-sustentaveis-ganham-espaco-como-a-cena-eletronica-se-adapta": {
+      "outPath": "blog/raves-sustentaveis-ganham-espaco-como-a-cena-eletronica-se-adapta/index.html",
+      "updatedAt": "2026-08-09T09:51:42.56789+00:00"
+    },
+    "/blog/corona-apres-malive-pista-2002-campinas-31-jan-2025-mjhd788v": {
+      "outPath": "blog/corona-apres-malive-pista-2002-campinas-31-jan-2025-mjhd788v/index.html",
+      "updatedAt": "2026-08-09T09:51:51.30128+00:00"
+    },
+    "/blog/de-repente-carnaval-2026-sp-a-revolucao-sonora-na-casa-aragon": {
+      "outPath": "blog/de-repente-carnaval-2026-sp-a-revolucao-sonora-na-casa-aragon/index.html",
+      "updatedAt": "2026-08-09T09:52:00.45642+00:00"
+    },
+    "/blog/le-yora-radiohead-releituras-e-a-maestria-dos-produtores-na-cena-eletronica": {
+      "outPath": "blog/le-yora-radiohead-releituras-e-a-maestria-dos-produtores-na-cena-eletronica/index.html",
+      "updatedAt": "2026-08-09T09:52:09.988539+00:00"
+    },
+    "/blog/quando-o-dj-vai-ao-oriente-como-djs-brasileiros-recalibram-sets-para-o-japao": {
+      "outPath": "blog/quando-o-dj-vai-ao-oriente-como-djs-brasileiros-recalibram-sets-para-o-japao/index.html",
+      "updatedAt": "2026-08-09T09:52:18.693909+00:00"
+    },
+    "/blog/dancar-ate-amanhecer-corpo-prevencao-e-a-cultura-viva-dos-after-parties-mirda7zd": {
+      "outPath": "blog/dancar-ate-amanhecer-corpo-prevencao-e-a-cultura-viva-dos-after-parties-mirda7zd/index.html",
+      "updatedAt": "2026-08-09T09:52:27.423127+00:00"
+    },
+    "/blog/boladona-viral-como-tati-quebra-barraco-virou-referencia-nas-pistas-gringas-mk2jjm2u": {
+      "outPath": "blog/boladona-viral-como-tati-quebra-barraco-virou-referencia-nas-pistas-gringas-mk2jjm2u/index.html",
+      "updatedAt": "2026-08-09T09:52:36.686395+00:00"
+    },
+    "/blog/sp-christmas-sao-paulo-local-a-confirmar-24-12-2025-miu8uihq": {
+      "outPath": "blog/sp-christmas-sao-paulo-local-a-confirmar-24-12-2025-miu8uihq/index.html",
+      "updatedAt": "2026-08-09T09:52:54.61782+00:00"
+    },
+    "/blog/corona-apres-ashibah-pista-2002-campinas-02-04-2026": {
+      "outPath": "blog/corona-apres-ashibah-pista-2002-campinas-02-04-2026/index.html",
+      "updatedAt": "2026-08-09T09:53:03.538705+00:00"
+    },
+    "/blog/ultra-buenos-aires-2026-a-fase-2-que-redesenha-o-mapa-dos-festivais-na-latam-mirewdf2": {
+      "outPath": "blog/ultra-buenos-aires-2026-a-fase-2-que-redesenha-o-mapa-dos-festivais-na-latam-mirewdf2/index.html",
+      "updatedAt": "2026-08-09T13:46:46.755815+00:00"
+    },
+    "/blog/gemini-na-pratica-como-produtores-brasileiros-estao-criando-faixas-com-ia-no-estudio-caseiro": {
+      "outPath": "blog/gemini-na-pratica-como-produtores-brasileiros-estao-criando-faixas-com-ia-no-estudio-caseiro/index.html",
+      "updatedAt": "2026-08-09T09:53:31.000054+00:00"
+    },
+    "/blog/funk-domina-2025-como-a-batida-brasileira-reconfigura-pistas-globais": {
+      "outPath": "blog/funk-domina-2025-como-a-batida-brasileira-reconfigura-pistas-globais/index.html",
+      "updatedAt": "2026-08-09T09:53:39.916655+00:00"
+    },
+    "/blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto": {
+      "outPath": "blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto/index.html",
+      "updatedAt": "2026-08-20T01:22:09.569823+00:00"
+    },
+    "/blog/parador-setembro-house-e-edm-dominam-maresias-neste-comeco-de-setembro": {
+      "outPath": "blog/parador-setembro-house-e-edm-dominam-maresias-neste-comeco-de-setembro/index.html",
+      "updatedAt": "2026-08-20T06:49:02.073454+00:00"
+    },
+    "/blog/m-e-g-a-nervo-dre-guazzelli-e-mais-incendeiam-a-pista-em-13-de-dezembro-miettgwv": {
+      "outPath": "blog/m-e-g-a-nervo-dre-guazzelli-e-mais-incendeiam-a-pista-em-13-de-dezembro-miettgwv/index.html",
+      "updatedAt": "2026-08-09T09:53:48.844036+00:00"
+    },
+    "/blog/dna-art-car-arena-open-camboriu-17-01-2026-mj8s3fhx": {
+      "outPath": "blog/dna-art-car-arena-open-camboriu-17-01-2026-mj8s3fhx/index.html",
+      "updatedAt": "2026-08-09T09:54:06.659878+00:00"
+    },
+    "/blog/de-repente-carnaval-casa-aragon-sao-paulo-28-02-2026": {
+      "outPath": "blog/de-repente-carnaval-casa-aragon-sao-paulo-28-02-2026/index.html",
+      "updatedAt": "2026-08-09T09:54:15.882648+00:00"
+    },
+    "/blog/modular-brasileiro-como-os-synths-modulares-estao-redesenhando-o-som-nas-pistas": {
+      "outPath": "blog/modular-brasileiro-como-os-synths-modulares-estao-redesenhando-o-som-nas-pistas/index.html",
+      "updatedAt": "2026-08-09T09:54:24.587717+00:00"
+    },
+    "/blog/d-edge-em-sao-paulo-24-01-2026-no-d-edge-club": {
+      "outPath": "blog/d-edge-em-sao-paulo-24-01-2026-no-d-edge-club/index.html",
+      "updatedAt": "2026-08-09T09:54:34.227363+00:00"
+    },
+    "/blog/quando-o-bass-house-cruza-fronteiras-avi-sic-costel-van-dein-e-o-impacto-de-no-tears": {
+      "outPath": "blog/quando-o-bass-house-cruza-fronteiras-avi-sic-costel-van-dein-e-o-impacto-de-no-tears/index.html",
+      "updatedAt": "2026-08-09T09:54:42.733225+00:00"
+    },
+    "/blog/parador-maresias-carnaval-2026-viva-uma-experiencia-unica-a-beira-mar": {
+      "outPath": "blog/parador-maresias-carnaval-2026-viva-uma-experiencia-unica-a-beira-mar/index.html",
+      "updatedAt": "2026-08-09T09:54:51.555109+00:00"
+    },
+    "/blog/nant-em-goiania-como-a-estreia-autoral-de-anneto-reacende-a-cena-local-mjadqnre": {
+      "outPath": "blog/nant-em-goiania-como-a-estreia-autoral-de-anneto-reacende-a-cena-local-mjadqnre/index.html",
+      "updatedAt": "2026-08-09T09:55:00.935692+00:00"
+    },
+    "/blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia": {
+      "outPath": "blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia/index.html",
+      "updatedAt": "2026-08-11T15:35:14.45802+00:00"
+    },
+    "/blog/sun-19-09-2026-arena-caninde-sao-paulo": {
+      "outPath": "blog/sun-19-09-2026-arena-caninde-sao-paulo/index.html",
+      "updatedAt": "2026-08-20T10:44:08.885579+00:00"
+    },
+    "/blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha": {
+      "outPath": "blog/boma-carna-rio-2026-o-carnaval-eletronico-que-transforma-o-museu-do-amanha/index.html",
+      "updatedAt": "2026-08-09T09:55:28.11643+00:00"
+    },
+    "/blog/ame-laroc-festival-o-rito-eletronico-que-redefine-o-carnaval-em-valinhos": {
+      "outPath": "blog/ame-laroc-festival-o-rito-eletronico-que-redefine-o-carnaval-em-valinhos/index.html",
+      "updatedAt": "2026-08-09T09:55:36.940146+00:00"
+    },
+    "/blog/albuns-em-capitulos-como-o-lancamento-seriado-refaz-a-narrativa-na-musica-eletronica": {
+      "outPath": "blog/albuns-em-capitulos-como-o-lancamento-seriado-refaz-a-narrativa-na-musica-eletronica/index.html",
+      "updatedAt": "2026-08-09T09:55:46.294486+00:00"
+    },
+    "/blog/set-hibrido-por-que-produtores-brasileiros-estao-adotando-o-analogico-nas-pistas": {
+      "outPath": "blog/set-hibrido-por-que-produtores-brasileiros-estao-adotando-o-analogico-nas-pistas/index.html",
+      "updatedAt": "2026-08-09T09:55:55.037751+00:00"
+    },
+    "/blog/residencias-de-bairro-como-laboratorios-sonoros-por-dentro-do-experimento-local": {
+      "outPath": "blog/residencias-de-bairro-como-laboratorios-sonoros-por-dentro-do-experimento-local/index.html",
+      "updatedAt": "2026-08-09T09:56:03.895884+00:00"
+    },
+    "/blog/carnaval-eletronico-no-coracao-do-rio-boma-unifica-cultura-e-batida-eletrizante-no-museu-do-amanha": {
+      "outPath": "blog/carnaval-eletronico-no-coracao-do-rio-boma-unifica-cultura-e-batida-eletrizante-no-museu-do-amanha/index.html",
+      "updatedAt": "2026-08-09T09:56:12.816917+00:00"
+    },
+    "/blog/mess-magnolia-pocket-club-sao-paulo-17-01-2026": {
+      "outPath": "blog/mess-magnolia-pocket-club-sao-paulo-17-01-2026/index.html",
+      "updatedAt": "2026-08-09T09:56:22.228141+00:00"
+    },
+    "/blog/halo-2026-em-campos-do-jordao-house-e-sunsets-no-haras-itapeva": {
+      "outPath": "blog/halo-2026-em-campos-do-jordao-house-e-sunsets-no-haras-itapeva/index.html",
+      "updatedAt": "2026-08-09T09:56:31.060849+00:00"
+    },
+    "/blog/caos-apres-dax-j-all-night-long-no-caos-club-campinas": {
+      "outPath": "blog/caos-apres-dax-j-all-night-long-no-caos-club-campinas/index.html",
+      "updatedAt": "2026-08-09T09:56:48.766429+00:00"
+    },
+    "/blog/manhas-em-alta-como-raves-e-afters-reconfiguram-a-noite": {
+      "outPath": "blog/manhas-em-alta-como-raves-e-afters-reconfiguram-a-noite/index.html",
+      "updatedAt": "2026-08-09T09:56:58.657293+00:00"
+    },
+    "/blog/gv-apres-boris-brejcha-green-valley-camboriu-02-05-2026": {
+      "outPath": "blog/gv-apres-boris-brejcha-green-valley-camboriu-02-05-2026/index.html",
+      "updatedAt": "2026-08-09T09:57:07.466915+00:00"
+    },
+    "/blog/dedge-drete-carnaval-2026-mergulhe-na-vibracao-eletronica-de-sp": {
+      "outPath": "blog/dedge-drete-carnaval-2026-mergulhe-na-vibracao-eletronica-de-sp/index.html",
+      "updatedAt": "2026-08-18T15:58:11.395079+00:00"
+    },
+    "/blog/keinemusik-em-sao-paulo-festa-sabado-17-de-outubro-ao-meio-dia": {
+      "outPath": "blog/keinemusik-em-sao-paulo-festa-sabado-17-de-outubro-ao-meio-dia/index.html",
+      "updatedAt": "2026-08-19T00:59:16.430795+00:00"
+    },
+    "/blog/a-liga-no-sonora-garden-sao-paulo-sabado-10-de-outubro-de-2026": {
+      "outPath": "blog/a-liga-no-sonora-garden-sao-paulo-sabado-10-de-outubro-de-2026/index.html",
+      "updatedAt": "2026-08-19T19:24:40.883296+00:00"
+    },
+    "/blog/fronteiras-sonoras-por-que-coletivos-transfronteiricos-dominam-o-circuito-festivalero": {
+      "outPath": "blog/fronteiras-sonoras-por-que-coletivos-transfronteiricos-dominam-o-circuito-festivalero/index.html",
+      "updatedAt": "2026-08-09T09:57:25.457621+00:00"
+    },
+    "/blog/nova-era-no-barraco-sp-em-sao-paulo-sabado-25-de-julho-de-2026": {
+      "outPath": "blog/nova-era-no-barraco-sp-em-sao-paulo-sabado-25-de-julho-de-2026/index.html",
+      "updatedAt": "2026-08-09T22:03:15.646533+00:00"
+    },
+    "/blog/victor-ruiz-revisita-classico-do-psytrance-e-lanca-remix-de-liquid-hook": {
+      "outPath": "blog/victor-ruiz-revisita-classico-do-psytrance-e-lanca-remix-de-liquid-hook/index.html",
+      "updatedAt": "2026-08-10T22:43:01.272758+00:00"
+    },
+    "/blog/a-ascensao-do-afro-house-global-ritmos-ancestrais-conquistam-as-pistas-internacionais-mi7drhyo": {
+      "outPath": "blog/a-ascensao-do-afro-house-global-ritmos-ancestrais-conquistam-as-pistas-internacionais-mi7drhyo/index.html",
+      "updatedAt": "2026-08-09T09:57:34.6172+00:00"
+    },
+    "/blog/corona-apres-malive-noite-eletrizante-na-pista-2002-em-campinas-31-01": {
+      "outPath": "blog/corona-apres-malive-noite-eletrizante-na-pista-2002-em-campinas-31-01/index.html",
+      "updatedAt": "2026-08-09T09:57:43.46443+00:00"
+    },
+    "/blog/reveillon-na-praia-parador-maresias-reune-house-e-edm-para-fechar-o-ano": {
+      "outPath": "blog/reveillon-na-praia-parador-maresias-reune-house-e-edm-para-fechar-o-ano/index.html",
+      "updatedAt": "2026-08-09T09:58:01.037429+00:00"
+    },
+    "/blog/carnaval-2026-no-green-valley-mergulhe-na-magia-da-eletronica": {
+      "outPath": "blog/carnaval-2026-no-green-valley-mergulhe-na-magia-da-eletronica/index.html",
+      "updatedAt": "2026-08-09T09:58:10.866732+00:00"
+    },
+    "/blog/psicodelia-urbana-apres-phaxe-caos-club-campinas-31-01-2026": {
+      "outPath": "blog/psicodelia-urbana-apres-phaxe-caos-club-campinas-31-01-2026/index.html",
+      "updatedAt": "2026-08-09T09:58:19.39252+00:00"
+    },
+    "/blog/xxxperience-2026-celebracao-epica-com-gigantes-do-psytrance-em-25-de-abril-mi7hhz4r": {
+      "outPath": "blog/xxxperience-2026-celebracao-epica-com-gigantes-do-psytrance-em-25-de-abril-mi7hhz4r/index.html",
+      "updatedAt": "2026-08-09T09:58:37.301886+00:00"
+    },
+    "/blog/ame-laroc-festival-carnaval-2026-a-odisseia-eletronica-que-vai-marcar-epoca": {
+      "outPath": "blog/ame-laroc-festival-carnaval-2026-a-odisseia-eletronica-que-vai-marcar-epoca/index.html",
+      "updatedAt": "2026-08-09T09:58:46.559718+00:00"
+    },
+    "/blog/do-por-do-sol-a-madrugada-por-que-o-formato-day-to-night-virou-padrao-nos-grandes-shows": {
+      "outPath": "blog/do-por-do-sol-a-madrugada-por-que-o-formato-day-to-night-virou-padrao-nos-grandes-shows/index.html",
+      "updatedAt": "2026-08-09T09:58:55.189881+00:00"
+    },
+    "/blog/r-ar-chus-e-adnan-sharif-comandam-a-pista-em-um-domingo-epico-mi5d43fe": {
+      "outPath": "blog/r-ar-chus-e-adnan-sharif-comandam-a-pista-em-um-domingo-epico-mi5d43fe/index.html",
+      "updatedAt": "2026-08-09T09:59:04.028002+00:00"
+    },
+    "/blog/undr-no-arca-sao-paulo-sp-03-04-2026-illusiozine-cat-dealers-e-mais": {
+      "outPath": "blog/undr-no-arca-sao-paulo-sp-03-04-2026-illusiozine-cat-dealers-e-mais/index.html",
+      "updatedAt": "2026-08-09T09:59:12.85324+00:00"
+    },
+    "/blog/produtores-latinos-reinventam-o-techno-ao-vivo-com-hardware-e-acustica": {
+      "outPath": "blog/produtores-latinos-reinventam-o-techno-ao-vivo-com-hardware-e-acustica/index.html",
+      "updatedAt": "2026-08-09T09:59:22.120911+00:00"
+    },
+    "/blog/consequencias-multa-milionaria-no-anhangabau-pos-show-eletronico": {
+      "outPath": "blog/consequencias-multa-milionaria-no-anhangabau-pos-show-eletronico/index.html",
+      "updatedAt": "2026-08-09T09:59:31.238765+00:00"
+    },
+    "/blog/noite-hibrida-teatro-audiovisual-e-a-pista-que-se-dissolve": {
+      "outPath": "blog/noite-hibrida-teatro-audiovisual-e-a-pista-que-se-dissolve/index.html",
+      "updatedAt": "2026-08-09T09:59:40.072099+00:00"
+    },
+    "/blog/playlists-colaborativas-redesenham-sets-fas-selos-e-djs-co-criam-pistas": {
+      "outPath": "blog/playlists-colaborativas-redesenham-sets-fas-selos-e-djs-co-criam-pistas/index.html",
+      "updatedAt": "2026-08-09T09:59:48.893394+00:00"
+    },
+    "/blog/nora-en-pure-no-brasil-deep-house-no-parque-mi62xof8": {
+      "outPath": "blog/nora-en-pure-no-brasil-deep-house-no-parque-mi62xof8/index.html",
+      "updatedAt": "2026-08-09T09:59:58.044421+00:00"
+    },
+    "/blog/do-coracao-da-africa-ao-brasil-a-trajetoria-e-o-impacto-do-afro-house-na-cena-eletronica": {
+      "outPath": "blog/do-coracao-da-africa-ao-brasil-a-trajetoria-e-o-impacto-do-afro-house-na-cena-eletronica/index.html",
+      "updatedAt": "2026-08-09T10:00:06.967963+00:00"
+    },
+    "/blog/toca-chemical-surf-gui-accula-e-mais-em-28-11-2025-o-futuro-do-house-mi7hrge1": {
+      "outPath": "blog/toca-chemical-surf-gui-accula-e-mais-em-28-11-2025-o-futuro-do-house-mi7hrge1/index.html",
+      "updatedAt": "2026-08-09T10:00:15.849764+00:00"
+    },
+    "/blog/como-a-hipersexualizacao-reduz-o-trabalho-de-mulheres-na-cena-artistica": {
+      "outPath": "blog/como-a-hipersexualizacao-reduz-o-trabalho-de-mulheres-na-cena-artistica/index.html",
+      "updatedAt": "2026-08-18T06:46:12.349527+00:00"
+    },
+    "/blog/crochestra-no-komplexo-tempo-sao-paulo-sabado-17-de-outubro-de-2026": {
+      "outPath": "blog/crochestra-no-komplexo-tempo-sao-paulo-sabado-17-de-outubro-de-2026/index.html",
+      "updatedAt": "2026-08-19T18:16:05.724143+00:00"
+    },
+    "/blog/good-times-varanda-estaiada-sao-paulo-09-05-2026": {
+      "outPath": "blog/good-times-varanda-estaiada-sao-paulo-09-05-2026/index.html",
+      "updatedAt": "2026-08-09T10:00:34.130637+00:00"
+    },
+    "/blog/solomun-sp-no-parque-villa-lobos-sao-paulo-domingo-1-de-novembro-de-2026": {
+      "outPath": "blog/solomun-sp-no-parque-villa-lobos-sao-paulo-domingo-1-de-novembro-de-2026/index.html",
+      "updatedAt": "2026-08-19T22:44:36.017752+00:00"
+    },
+    "/blog/piknic-electronik-na-varanda-estaiada-sao-paulo-20-de-setembro-domingo": {
+      "outPath": "blog/piknic-electronik-na-varanda-estaiada-sao-paulo-20-de-setembro-domingo/index.html",
+      "updatedAt": "2026-08-10T11:47:28.142423+00:00"
+    },
+    "/blog/acustica-como-arma-secreta-por-que-clubes-brasileiros-estao-reformando-o-som": {
+      "outPath": "blog/acustica-como-arma-secreta-por-que-clubes-brasileiros-estao-reformando-o-som/index.html",
+      "updatedAt": "2026-08-09T10:00:42.994886+00:00"
+    },
+    "/blog/parador-setembro-2026-finais-de-semana-eletronicos-em-maresias": {
+      "outPath": "blog/parador-setembro-2026-finais-de-semana-eletronicos-em-maresias/index.html",
+      "updatedAt": "2026-08-18T05:03:21.996637+00:00"
+    },
+    "/blog/caos-club-d-nox-graziano-raffa-gui-accula-e-zac-incendeiam-a-pista-em-13-12-2025-miheryo9": {
+      "outPath": "blog/caos-club-d-nox-graziano-raffa-gui-accula-e-zac-incendeiam-a-pista-em-13-12-2025-miheryo9/index.html",
+      "updatedAt": "2026-08-09T10:00:51.862369+00:00"
+    },
+    "/blog/piknic-electronik-em-sao-paulo-varanda-estaiada-11-04-2026": {
+      "outPath": "blog/piknic-electronik-em-sao-paulo-varanda-estaiada-11-04-2026/index.html",
+      "updatedAt": "2026-08-09T10:01:00.869563+00:00"
+    },
+    "/blog/surreal-apres-old-is-cool-surreal-park-camboriu-09-01-2026": {
+      "outPath": "blog/surreal-apres-old-is-cool-surreal-park-camboriu-09-01-2026/index.html",
+      "updatedAt": "2026-08-09T10:01:18.770173+00:00"
+    },
+    "/blog/caos-apres-adam-sellouk-caos-club-campinas-25-abr-2026": {
+      "outPath": "blog/caos-apres-adam-sellouk-caos-club-campinas-25-abr-2026/index.html",
+      "updatedAt": "2026-08-09T10:01:27.572331+00:00"
+    },
+    "/blog/baile-lotadao-komplexo-tempo-sao-paulo-25-04-2026": {
+      "outPath": "blog/baile-lotadao-komplexo-tempo-sao-paulo-25-04-2026/index.html",
+      "updatedAt": "2026-08-09T10:01:46.101001+00:00"
+    },
+    "/blog/como-prefeituras-redesenham-a-vida-noturna-e-transformam-os-clubes-urbanos": {
+      "outPath": "blog/como-prefeituras-redesenham-a-vida-noturna-e-transformam-os-clubes-urbanos/index.html",
+      "updatedAt": "2026-08-09T10:02:03.809065+00:00"
+    },
+    "/blog/bonjour-party-campinas-sp-25-04-2026": {
+      "outPath": "blog/bonjour-party-campinas-sp-25-04-2026/index.html",
+      "updatedAt": "2026-08-09T10:02:12.642633+00:00"
+    },
+    "/blog/clubes-de-periferia-redesenham-a-noite-com-diversidade-e-resistencia": {
+      "outPath": "blog/clubes-de-periferia-redesenham-a-noite-com-diversidade-e-resistencia/index.html",
+      "updatedAt": "2026-08-09T10:02:21.772909+00:00"
+    },
+    "/blog/hey-hoy-all-black-espaco-taal-barueri-sp-11-abr-2026": {
+      "outPath": "blog/hey-hoy-all-black-espaco-taal-barueri-sp-11-abr-2026/index.html",
+      "updatedAt": "2026-08-09T10:02:30.598729+00:00"
+    },
+    "/blog/politicos-tentam-barrar-farmar-aura-enquanto-tendencia-viraliza-entre-jovens": {
+      "outPath": "blog/politicos-tentam-barrar-farmar-aura-enquanto-tendencia-viraliza-entre-jovens/index.html",
+      "updatedAt": "2026-08-11T17:24:27.306983+00:00"
+    },
+    "/blog/royalties-sinteticos-como-ia-e-plays-falsos-estao-remodelando-a-economia-da-musica-eletronica": {
+      "outPath": "blog/royalties-sinteticos-como-ia-e-plays-falsos-estao-remodelando-a-economia-da-musica-eletronica/index.html",
+      "updatedAt": "2026-08-09T09:39:58.52392+00:00"
+    },
+    "/blog/sunset-strip-no-hangar-campo-de-marte-sao-paulo-19-de-setembro": {
+      "outPath": "blog/sunset-strip-no-hangar-campo-de-marte-sao-paulo-19-de-setembro/index.html",
+      "updatedAt": "2026-08-12T17:26:04.951114+00:00"
+    },
+    "/blog/meiotempo-e-a-diaspora-sonora-brasileiros-que-reinventam-a-pista-em-londres": {
+      "outPath": "blog/meiotempo-e-a-diaspora-sonora-brasileiros-que-reinventam-a-pista-em-londres/index.html",
+      "updatedAt": "2026-08-09T10:02:57.822442+00:00"
+    },
+    "/blog/raves-do-litoral-nordestino-como-festas-clandestinas-viraram-rota-turistica": {
+      "outPath": "blog/raves-do-litoral-nordestino-como-festas-clandestinas-viraram-rota-turistica/index.html",
+      "updatedAt": "2026-08-09T10:03:06.707653+00:00"
+    },
+    "/blog/sirius-no-espaco-taal-em-barueri-sabado-29-de-agosto": {
+      "outPath": "blog/sirius-no-espaco-taal-em-barueri-sabado-29-de-agosto/index.html",
+      "updatedAt": "2026-08-16T19:35:33.661544+00:00"
+    },
+    "/blog/museu-do-amanha-na-pista-patrimonio-pulse-e-boma-carnaval-no-rio": {
+      "outPath": "blog/museu-do-amanha-na-pista-patrimonio-pulse-e-boma-carnaval-no-rio/index.html",
+      "updatedAt": "2026-08-09T10:03:15.396401+00:00"
+    },
+    "/blog/4x4-guia-pratico-para-distinguir-disco-house-techno-e-minimal": {
+      "outPath": "blog/4x4-guia-pratico-para-distinguir-disco-house-techno-e-minimal/index.html",
+      "updatedAt": "2026-08-14T08:17:56.682656+00:00"
+    },
+    "/blog/a-nova-obsessao-analogica-dvds-blu-rays-e-vinis-redefinem-a-cena-eletronica": {
+      "outPath": "blog/a-nova-obsessao-analogica-dvds-blu-rays-e-vinis-redefinem-a-cena-eletronica/index.html",
+      "updatedAt": "2026-08-09T10:03:33.389989+00:00"
+    },
+    "/blog/timewarp-2026-chega-a-arena-neo-quimica-duas-noites-imperdiveis-em-sp": {
+      "outPath": "blog/timewarp-2026-chega-a-arena-neo-quimica-duas-noites-imperdiveis-em-sp/index.html",
+      "updatedAt": "2026-08-09T10:03:42.80883+00:00"
+    },
+    "/blog/promotoras-queer-a-nova-vanguarda-que-reconstroi-os-clubes-brasileiros": {
+      "outPath": "blog/promotoras-queer-a-nova-vanguarda-que-reconstroi-os-clubes-brasileiros/index.html",
+      "updatedAt": "2026-08-09T10:03:51.652153+00:00"
+    },
+    "/blog/industria-festival-uma-jornada-eletronica-inesquecivel-em-23-de-novembro-de-2025-mi8ynpt2": {
+      "outPath": "blog/industria-festival-uma-jornada-eletronica-inesquecivel-em-23-de-novembro-de-2025-mi8ynpt2/index.html",
+      "updatedAt": "2026-08-09T10:04:00.794175+00:00"
+    },
+    "/blog/tantrarosa-no-varanda-estaiada-sao-paulo-23-05-2026": {
+      "outPath": "blog/tantrarosa-no-varanda-estaiada-sao-paulo-23-05-2026/index.html",
+      "updatedAt": "2026-08-09T10:04:09.817237+00:00"
+    },
+    "/blog/mega-funk-como-o-hibrido-entre-funk-e-club-music-esta-redesenhando-as-pistas-brasileiras": {
+      "outPath": "blog/mega-funk-como-o-hibrido-entre-funk-e-club-music-esta-redesenhando-as-pistas-brasileiras/index.html",
+      "updatedAt": "2026-08-09T09:41:37.71423+00:00"
+    },
+    "/blog/titulo-do-artigo-baseado-em-title-mip7ujsn": {
+      "outPath": "blog/titulo-do-artigo-baseado-em-title-mip7ujsn/index.html",
+      "updatedAt": "2026-08-09T09:43:34.213177+00:00"
+    },
+    "/blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro": {
+      "outPath": "blog/dna-art-car-agita-sao-paulo-com-vintage-culture-em-dezembro/index.html",
+      "updatedAt": "2026-08-20T16:45:11.247285+00:00"
+    },
+    "/blog/solomun-acende-parque-villa-lobos-em-sao-paulo-domingo-1-de-novembro": {
+      "outPath": "blog/solomun-acende-parque-villa-lobos-em-sao-paulo-domingo-1-de-novembro/index.html",
+      "updatedAt": "2026-08-17T22:41:30.826073+00:00"
+    },
+    "/blog/coletivos-femininos-reconfiguram-lineups-e-cultura-do-eletronico": {
+      "outPath": "blog/coletivos-femininos-reconfiguram-lineups-e-cultura-do-eletronico/index.html",
+      "updatedAt": "2026-08-09T10:04:36.58783+00:00"
+    },
+    "/blog/dunya-espaco-taal-barueri-sp-09-05-2026": {
+      "outPath": "blog/dunya-espaco-taal-barueri-sp-09-05-2026/index.html",
+      "updatedAt": "2026-08-09T10:04:45.97169+00:00"
+    },
+    "/blog/laurent-garnier-no-warehouse-uma-noite-epica-em-sao-paulo-17-04": {
+      "outPath": "blog/laurent-garnier-no-warehouse-uma-noite-epica-em-sao-paulo-17-04/index.html",
+      "updatedAt": "2026-08-09T10:04:54.672965+00:00"
+    },
+    "/blog/sabado-dre-tarde-sao-paulo-12-de-setembro-de-2026": {
+      "outPath": "blog/sabado-dre-tarde-sao-paulo-12-de-setembro-de-2026/index.html",
+      "updatedAt": "2026-08-18T09:40:36.276526+00:00"
+    },
+    "/blog/por-que-os-extended-sets-conceituais-estao-dominando-as-noites-dos-clubes": {
+      "outPath": "blog/por-que-os-extended-sets-conceituais-estao-dominando-as-noites-dos-clubes/index.html",
+      "updatedAt": "2026-08-09T10:05:12.363191+00:00"
+    },
+    "/blog/do-continente-mae-as-pistas-brasileiras-a-explosao-do-afro-house-no-cenario-eletronico-nacional": {
+      "outPath": "blog/do-continente-mae-as-pistas-brasileiras-a-explosao-do-afro-house-no-cenario-eletronico-nacional/index.html",
+      "updatedAt": "2026-08-09T10:05:21.644393+00:00"
+    },
+    "/blog/raves-em-cidades-medias-reinventam-a-cena-eletronica-brasileira": {
+      "outPath": "blog/raves-em-cidades-medias-reinventam-a-cena-eletronica-brasileira/index.html",
+      "updatedAt": "2026-08-09T10:05:30.778428+00:00"
+    },
+    "/blog/a-liga-sonora-garden-sao-paulo-13-02-2026-mk42j8b8": {
+      "outPath": "blog/a-liga-sonora-garden-sao-paulo-13-02-2026-mk42j8b8/index.html",
+      "updatedAt": "2026-08-09T10:05:39.689194+00:00"
+    },
+    "/blog/raves-clandestinas-ressurgem-nas-cidades-medias-criatividade-em-choque-com-a-regulamentacao": {
+      "outPath": "blog/raves-clandestinas-ressurgem-nas-cidades-medias-criatividade-em-choque-com-a-regulamentacao/index.html",
+      "updatedAt": "2026-08-09T10:07:27.245826+00:00"
+    },
+    "/blog/festas-diurnas-nas-periferias-renovam-cena-eletronica-com-comunidade-ativa": {
+      "outPath": "blog/festas-diurnas-nas-periferias-renovam-cena-eletronica-com-comunidade-ativa/index.html",
+      "updatedAt": "2026-08-09T10:07:36.30296+00:00"
+    },
+    "/blog/fireup-2026-tres-dias-intensos-de-eletronica-em-campos-do-jordao": {
+      "outPath": "blog/fireup-2026-tres-dias-intensos-de-eletronica-em-campos-do-jordao/index.html",
+      "updatedAt": "2026-08-09T10:07:45.449317+00:00"
+    },
+    "/blog/m-e-g-a-no-espaco-usine-sao-paulo-19-04-2026": {
+      "outPath": "blog/m-e-g-a-no-espaco-usine-sao-paulo-19-04-2026/index.html",
+      "updatedAt": "2026-08-09T10:07:54.644348+00:00"
+    },
+    "/blog/so-track-boa-2026-autodromo-de-interlagos-sao-paulo-05-06-2026-mj35rg9f": {
+      "outPath": "blog/so-track-boa-2026-autodromo-de-interlagos-sao-paulo-05-06-2026-mj35rg9f/index.html",
+      "updatedAt": "2026-08-09T10:06:06.802059+00:00"
+    },
+    "/blog/fronteiras-sonoras-foz-do-iguacu-polo-de-festas-transnacionais": {
+      "outPath": "blog/fronteiras-sonoras-foz-do-iguacu-polo-de-festas-transnacionais/index.html",
+      "updatedAt": "2026-08-13T15:15:50.734506+00:00"
+    },
+    "/blog/d-edge-rio-e-a-nova-cartografia-dos-festivais-no-brasil": {
+      "outPath": "blog/d-edge-rio-e-a-nova-cartografia-dos-festivais-no-brasil/index.html",
+      "updatedAt": "2026-08-09T10:06:15.656317+00:00"
+    },
+    "/blog/industria-apres-blazy-e-omiki-no-high-club-sao-paulo-16-de-outubro": {
+      "outPath": "blog/industria-apres-blazy-e-omiki-no-high-club-sao-paulo-16-de-outubro/index.html",
+      "updatedAt": "2026-08-11T11:05:05.446028+00:00"
+    },
+    "/blog/nostalgia-dubdogz-no-novo-varanda-estaiada-sao-paulo-30-05-2026": {
+      "outPath": "blog/nostalgia-dubdogz-no-novo-varanda-estaiada-sao-paulo-30-05-2026/index.html",
+      "updatedAt": "2026-08-09T10:06:24.468715+00:00"
+    },
+    "/blog/sound-systems-artesanais-redefinem-a-forma-como-brasileiros-dancam": {
+      "outPath": "blog/sound-systems-artesanais-redefinem-a-forma-como-brasileiros-dancam/index.html",
+      "updatedAt": "2026-08-09T10:06:42.544136+00:00"
+    },
+    "/blog/por-que-festivais-europeus-apostam-em-artistas-brasileiros": {
+      "outPath": "blog/por-que-festivais-europeus-apostam-em-artistas-brasileiros/index.html",
+      "updatedAt": "2026-08-09T10:06:51.911031+00:00"
+    },
+    "/blog/verao-em-santa-catarina-como-o-por-do-sol-eletronico-vira-motor-economico-miyrrux9": {
+      "outPath": "blog/verao-em-santa-catarina-como-o-por-do-sol-eletronico-vira-motor-economico-miyrrux9/index.html",
+      "updatedAt": "2026-08-09T10:07:00.43178+00:00"
+    },
+    "/blog/radar-em-pauta-como-as-arenas-de-emergentes-reconstruiram-a-estetica-dos-festivais": {
+      "outPath": "blog/radar-em-pauta-como-as-arenas-de-emergentes-reconstruiram-a-estetica-dos-festivais/index.html",
+      "updatedAt": "2026-08-09T10:07:09.636462+00:00"
+    },
+    "/blog/gv-apres-camelphat-artbat-no-green-valley-16-02-2026-camboriu": {
+      "outPath": "blog/gv-apres-camelphat-artbat-no-green-valley-16-02-2026-camboriu/index.html",
+      "updatedAt": "2026-08-09T10:07:18.858496+00:00"
+    },
+    "/blog/john-summit-agita-arca-em-sao-paulo-na-sexta-feira-11-de-setembro": {
+      "outPath": "blog/john-summit-agita-arca-em-sao-paulo-na-sexta-feira-11-de-setembro/index.html",
+      "updatedAt": "2026-08-16T16:02:34.736829+00:00"
+    },
+    "/blog/klandestine-invade-a-fabriketa-com-tiga-e-acraze-em-14-de-marco": {
+      "outPath": "blog/klandestine-invade-a-fabriketa-com-tiga-e-acraze-em-14-de-marco/index.html",
+      "updatedAt": "2026-08-17T01:02:32.822386+00:00"
+    },
+    "/blog/stb26-em-interlagos-dois-dias-epicos-de-house-techno-e-trance": {
+      "outPath": "blog/stb26-em-interlagos-dois-dias-epicos-de-house-techno-e-trance/index.html",
+      "updatedAt": "2026-08-09T10:08:03.517096+00:00"
+    },
+    "/blog/ephigenia-c-zac-em-sao-paulo-sexta-feira-7-de-agosto-23h": {
+      "outPath": "blog/ephigenia-c-zac-em-sao-paulo-sexta-feira-7-de-agosto-23h/index.html",
+      "updatedAt": "2026-08-09T10:08:12.252541+00:00"
+    },
+    "/blog/residencias-intimistas-como-microfestas-estao-redesenhando-a-noite": {
+      "outPath": "blog/residencias-intimistas-como-microfestas-estao-redesenhando-a-noite/index.html",
+      "updatedAt": "2026-08-09T10:08:30.267138+00:00"
+    },
+    "/blog/contra-de-skrillex-no-berlin-atonal-reacende-a-cena-experimental": {
+      "outPath": "blog/contra-de-skrillex-no-berlin-atonal-reacende-a-cena-experimental/index.html",
+      "updatedAt": "2026-08-09T10:08:39.028108+00:00"
+    },
+    "/blog/como-a-inteligencia-artificial-esta-remodelando-o-set-dos-djs": {
+      "outPath": "blog/como-a-inteligencia-artificial-esta-remodelando-o-set-dos-djs/index.html",
+      "updatedAt": "2026-08-09T10:08:47.915743+00:00"
+    },
+    "/blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira": {
+      "outPath": "blog/nostalgia-apres-nostalgia-na-casa-aragon-sao-paulo-quinta-feira/index.html",
+      "updatedAt": "2026-08-09T10:08:57.5836+00:00"
+    },
+    "/blog/winter-days-campos-do-jordao-eletronica-quente-no-frio-do-prana-park": {
+      "outPath": "blog/winter-days-campos-do-jordao-eletronica-quente-no-frio-do-prana-park/index.html",
+      "updatedAt": "2026-08-09T10:09:15.219059+00:00"
+    },
+    "/blog/bailes-de-periferia-moldam-a-nova-geracao-musical-brasileira": {
+      "outPath": "blog/bailes-de-periferia-moldam-a-nova-geracao-musical-brasileira/index.html",
+      "updatedAt": "2026-08-09T10:09:24.062068+00:00"
+    },
+    "/blog/the-grid-apres-klangkuenstler-na-arca-sao-paulo-sabado-19": {
+      "outPath": "blog/the-grid-apres-klangkuenstler-na-arca-sao-paulo-sabado-19/index.html",
+      "updatedAt": "2026-08-09T10:09:33.132445+00:00"
+    },
+    "/blog/industria-apres-cg-agita-high-club-sao-paulo-em-7-de-agosto": {
+      "outPath": "blog/industria-apres-cg-agita-high-club-sao-paulo-em-7-de-agosto/index.html",
+      "updatedAt": "2026-08-09T10:09:41.914075+00:00"
+    },
+    "/blog/joyce-muniz-traz-o-house-dos-anos-90-de-volta-em-nostalgia-92-pela-permanent-vacation": {
+      "outPath": "blog/joyce-muniz-traz-o-house-dos-anos-90-de-volta-em-nostalgia-92-pela-permanent-vacation/index.html",
+      "updatedAt": "2026-08-09T10:09:50.602394+00:00"
+    },
+    "/blog/sabado-dre-tarde-transforma-clube-esperia-em-pista-em-sao-paulo": {
+      "outPath": "blog/sabado-dre-tarde-transforma-clube-esperia-em-pista-em-sao-paulo/index.html",
+      "updatedAt": "2026-08-09T10:09:59.833494+00:00"
+    },
+    "/blog/moonphazes-remix-o-talento-brasileiro-que-reimaginou-satisfaction-e-conquistou-benny-benassi": {
+      "outPath": "blog/moonphazes-remix-o-talento-brasileiro-que-reimaginou-satisfaction-e-conquistou-benny-benassi/index.html",
+      "updatedAt": "2026-08-14T02:02:59.571005+00:00"
+    },
+    "/blog/lollapalooza-brasil-2026-a-sinfonia-eletronica-que-redefine-o-festival-multigenero": {
+      "outPath": "blog/lollapalooza-brasil-2026-a-sinfonia-eletronica-que-redefine-o-festival-multigenero/index.html",
+      "updatedAt": "2026-08-09T09:47:19.994404+00:00"
+    },
+    "/blog/d-edge-festival-carl-craig-b2b-moodymann-lideram-noite-epica-no-komplexo-tempo": {
+      "outPath": "blog/d-edge-festival-carl-craig-b2b-moodymann-lideram-noite-epica-no-komplexo-tempo/index.html",
+      "updatedAt": "2026-08-09T10:10:27.040213+00:00"
+    },
+    "/blog/new-age-na-pista-como-produtores-transformam-espiritualidade-em-techno": {
+      "outPath": "blog/new-age-na-pista-como-produtores-transformam-espiritualidade-em-techno/index.html",
+      "updatedAt": "2026-08-09T10:10:35.984034+00:00"
+    },
+    "/blog/d-edge-sao-paulo-4-noites-de-techno-imperdivel-15-18-jan": {
+      "outPath": "blog/d-edge-sao-paulo-4-noites-de-techno-imperdivel-15-18-jan/index.html",
+      "updatedAt": "2026-08-09T10:10:44.913771+00:00"
+    },
+    "/blog/microclubes-impulsionam-turismo-musical-nas-capitais-com-noites-intimas": {
+      "outPath": "blog/microclubes-impulsionam-turismo-musical-nas-capitais-com-noites-intimas/index.html",
+      "updatedAt": "2026-08-09T10:10:54.174918+00:00"
+    },
+    "/blog/x-em-xeque-a-batalha-de-copyright-que-ameaca-mudar-o-jogo-para-musicos": {
+      "outPath": "blog/x-em-xeque-a-batalha-de-copyright-que-ameaca-mudar-o-jogo-para-musicos/index.html",
+      "updatedAt": "2026-08-09T10:11:02.924257+00:00"
+    },
+    "/blog/clubes-sustentaveis-redesenham-a-noite-como-praticas-verdes-transformam-a-cena-eletronica": {
+      "outPath": "blog/clubes-sustentaveis-redesenham-a-noite-como-praticas-verdes-transformam-a-cena-eletronica/index.html",
+      "updatedAt": "2026-08-09T10:11:11.80161+00:00"
+    },
+    "/blog/xtc-selecta-no-edificio-martinelli-sao-paulo-25-04-2026": {
+      "outPath": "blog/xtc-selecta-no-edificio-martinelli-sao-paulo-25-04-2026/index.html",
+      "updatedAt": "2026-08-09T10:11:21.053438+00:00"
+    },
+    "/blog/por-dentro-do-ep-experimental-de-heydoc-tecnicas-que-desafiam-o-house-mj4jne01": {
+      "outPath": "blog/por-dentro-do-ep-experimental-de-heydoc-tecnicas-que-desafiam-o-house-mj4jne01/index.html",
+      "updatedAt": "2026-08-09T10:11:29.829731+00:00"
+    },
+    "/blog/who-we-are-em-sao-paulo-sexta-feira-3-de-julho-noite-progressive": {
+      "outPath": "blog/who-we-are-em-sao-paulo-sexta-feira-3-de-julho-noite-progressive/index.html",
+      "updatedAt": "2026-08-09T10:11:38.636678+00:00"
+    },
+    "/blog/warehouse-no-sonora-garden-17-04-2026-sao-paulo": {
+      "outPath": "blog/warehouse-no-sonora-garden-17-04-2026-sao-paulo/index.html",
+      "updatedAt": "2026-08-09T10:11:47.559479+00:00"
+    },
+    "/blog/aurea-em-barueri-louie-cut-e-convidados-agitam-espaco-taal-em-7-de-fevereiro": {
+      "outPath": "blog/aurea-em-barueri-louie-cut-e-convidados-agitam-espaco-taal-em-7-de-fevereiro/index.html",
+      "updatedAt": "2026-08-09T09:47:37.683296+00:00"
+    },
+    "/blog/warung-day-festival-magia-na-pedreira-paulo-leminski-em-2-de-maio-de-2026": {
+      "outPath": "blog/warung-day-festival-magia-na-pedreira-paulo-leminski-em-2-de-maio-de-2026/index.html",
+      "updatedAt": "2026-08-09T10:12:06.164995+00:00"
+    },
+    "/blog/melody-flip-e-a-nova-curva-criativa-como-assistentes-de-ia-estao-redesenhando-a-producao-eletronica": {
+      "outPath": "blog/melody-flip-e-a-nova-curva-criativa-como-assistentes-de-ia-estao-redesenhando-a-producao-eletronica/index.html",
+      "updatedAt": "2026-08-09T10:12:14.476738+00:00"
+    },
+    "/blog/surreal-apres-carnaval-surreal-park-camboriu-25-fev-2026": {
+      "outPath": "blog/surreal-apres-carnaval-surreal-park-camboriu-25-fev-2026/index.html",
+      "updatedAt": "2026-08-09T10:12:23.325519+00:00"
+    },
+    "/blog/caos-apres-blackartel-victor-lou-visage-e-flux-zone-em-campinas-06-03": {
+      "outPath": "blog/caos-apres-blackartel-victor-lou-visage-e-flux-zone-em-campinas-06-03/index.html",
+      "updatedAt": "2026-08-09T10:12:33.027541+00:00"
+    },
+    "/blog/coletivos-em-ascensao-como-redes-independentes-estao-redesenhando-o-mapa-das-pistas": {
+      "outPath": "blog/coletivos-em-ascensao-como-redes-independentes-estao-redesenhando-o-mapa-das-pistas/index.html",
+      "updatedAt": "2026-08-09T10:12:41.738305+00:00"
+    },
+    "/blog/ketzal-em-punta-del-este-o-resgate-da-sofisticacao-na-musica-eletronica": {
+      "outPath": "blog/ketzal-em-punta-del-este-o-resgate-da-sofisticacao-na-musica-eletronica/index.html",
+      "updatedAt": "2026-08-09T10:12:50.677835+00:00"
+    },
+    "/blog/produtores-independentes-adotam-sets-hibridos-por-que-isso-importa": {
+      "outPath": "blog/produtores-independentes-adotam-sets-hibridos-por-que-isso-importa/index.html",
+      "updatedAt": "2026-08-09T10:12:59.517082+00:00"
+    },
+    "/blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026": {
+      "outPath": "blog/dna-art-car-bh-em-belo-horizonte-vintage-culture-no-sabado-19-de-setembro-de-2026/index.html",
+      "updatedAt": "2026-08-18T23:55:18.187345+00:00"
+    },
+    "/blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho": {
+      "outPath": "blog/rooftech-agita-sonora-garden-em-sao-paulo-no-sabado-25-de-julho/index.html",
+      "updatedAt": "2026-08-09T10:13:17.871448+00:00"
+    },
+    "/blog/mochakk-calling-no-mercado-pago-hall-sao-paulo-sabado-3-de-outubro-de-2026": {
+      "outPath": "blog/mochakk-calling-no-mercado-pago-hall-sao-paulo-sabado-3-de-outubro-de-2026/index.html",
+      "updatedAt": "2026-08-19T20:19:01.601978+00:00"
+    },
+    "/blog/techno-organico-como-instrumentos-acusticos-reconfiguram-pistas-do-underground": {
+      "outPath": "blog/techno-organico-como-instrumentos-acusticos-reconfiguram-pistas-do-underground/index.html",
+      "updatedAt": "2026-08-11T15:35:15.440603+00:00"
+    },
+    "/blog/top-100-djs-o-ranking-completo-do-dj-mag-la": {
+      "outPath": "blog/top-100-djs-o-ranking-completo-do-dj-mag-la/index.html",
+      "updatedAt": "2026-08-20T06:02:14.722692+00:00"
+    },
+    "/blog/sabado-dre-tarde-dre-guazzelli-comanda-a-pista-no-clube-esperia-em-07-03": {
+      "outPath": "blog/sabado-dre-tarde-dre-guazzelli-comanda-a-pista-no-clube-esperia-em-07-03/index.html",
+      "updatedAt": "2026-08-09T09:49:43.834006+00:00"
+    },
+    "/blog/djs-e-ia-dividem-a-pista-como-a-tecnologia-muda-o-protagonismo": {
+      "outPath": "blog/djs-e-ia-dividem-a-pista-como-a-tecnologia-muda-o-protagonismo/index.html",
+      "updatedAt": "2026-08-09T10:13:44.745309+00:00"
+    },
+    "/blog/o-circuito-diy-latino-esta-reescrevendo-a-cena-dos-clubes": {
+      "outPath": "blog/o-circuito-diy-latino-esta-reescrevendo-a-cena-dos-clubes/index.html",
+      "updatedAt": "2026-08-09T10:13:53.548286+00:00"
+    },
+    "/blog/messina-lanca-la-bamba-na-botaniq-selo-de-dennis-druz": {
+      "outPath": "blog/messina-lanca-la-bamba-na-botaniq-selo-de-dennis-druz/index.html",
+      "updatedAt": "2026-08-09T10:14:02.338917+00:00"
+    },
+    "/blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas": {
+      "outPath": "blog/ritual-digital-como-playlists-e-algoritmos-reescrevem-a-liturgia-das-pistas/index.html",
+      "updatedAt": "2026-08-09T10:14:20.702021+00:00"
+    },
+    "/blog/clubes-de-bairro-como-laboratorios-sonoros-por-que-a-experimentacao-domina-a-cena-local": {
+      "outPath": "blog/clubes-de-bairro-como-laboratorios-sonoros-por-que-a-experimentacao-domina-a-cena-local/index.html",
+      "updatedAt": "2026-08-09T10:14:29.666562+00:00"
+    },
+    "/blog/wearables-hapticos-como-eles-vao-reinventar-a-experiencia-na-pista": {
+      "outPath": "blog/wearables-hapticos-como-eles-vao-reinventar-a-experiencia-na-pista/index.html",
+      "updatedAt": "2026-08-09T10:14:38.274022+00:00"
+    },
+    "/blog/the-grid-unreal-em-arca-sao-paulo-sabado-21-de-novembro-de-2026": {
+      "outPath": "blog/the-grid-unreal-em-arca-sao-paulo-sabado-21-de-novembro-de-2026/index.html",
+      "updatedAt": "2026-08-13T21:06:17.658367+00:00"
+    },
+    "/blog/rooftech-celebra-edicao-de-aniversario-no-sonora-garden-em-22-de-novembro-mhtwy8br": {
+      "outPath": "blog/rooftech-celebra-edicao-de-aniversario-no-sonora-garden-em-22-de-novembro-mhtwy8br/index.html",
+      "updatedAt": "2026-08-09T10:14:47.661573+00:00"
+    },
+    "/blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026": {
+      "outPath": "blog/adriatique-apres-x-vale-do-anhangabau-sao-paulo-26-09-2026/index.html",
+      "updatedAt": "2026-08-19T09:37:15.373451+00:00"
+    },
+    "/blog/recriar-o-brilho-como-a-ia-esta-redesenhando-a-identidade-visual-das-festas": {
+      "outPath": "blog/recriar-o-brilho-como-a-ia-esta-redesenhando-a-identidade-visual-das-festas/index.html",
+      "updatedAt": "2026-08-09T10:14:56.717993+00:00"
+    },
+    "/blog/quando-os-headliners-voltam-como-a-volta-de-grandes-nomes-redefine-as-cenas-das-capitais": {
+      "outPath": "blog/quando-os-headliners-voltam-como-a-volta-de-grandes-nomes-redefine-as-cenas-das-capitais/index.html",
+      "updatedAt": "2026-08-09T10:15:05.470401+00:00"
+    },
+    "/blog/vintage-culture-sp-no-komplexo-tempo-sao-paulo-sexta-feira": {
+      "outPath": "blog/vintage-culture-sp-no-komplexo-tempo-sao-paulo-sexta-feira/index.html",
+      "updatedAt": "2026-08-19T13:45:49.367139+00:00"
+    },
+    "/blog/alem-das-pickups-por-que-djs-estao-redesenhando-turnes-horarios-e-o-autocuidado": {
+      "outPath": "blog/alem-das-pickups-por-que-djs-estao-redesenhando-turnes-horarios-e-o-autocuidado/index.html",
+      "updatedAt": "2026-08-09T09:51:06.766336+00:00"
+    },
+    "/blog/krush-na-casa-aragon-sao-paulo-sexta-feira-17-de-julho-de-2026": {
+      "outPath": "blog/krush-na-casa-aragon-sao-paulo-sexta-feira-17-de-julho-de-2026/index.html",
+      "updatedAt": "2026-08-09T10:15:14.431791+00:00"
+    },
+    "/blog/happiness-is-so-sad-o-paradoxo-emocional-do-novo-single-do-swedish-house-mafia": {
+      "outPath": "blog/happiness-is-so-sad-o-paradoxo-emocional-do-novo-single-do-swedish-house-mafia/index.html",
+      "updatedAt": "2026-08-10T22:03:31.082423+00:00"
+    },
+    "/blog/one-life-na-arena-pinheiros-sao-paulo-sabado-28-de-novembro": {
+      "outPath": "blog/one-life-na-arena-pinheiros-sao-paulo-sabado-28-de-novembro/index.html",
+      "updatedAt": "2026-08-11T15:35:15.462041+00:00"
+    },
+    "/blog/por-que-clubes-adotam-energia-renovavel-e-como-isso-muda-a-noite": {
+      "outPath": "blog/por-que-clubes-adotam-energia-renovavel-e-como-isso-muda-a-noite/index.html",
+      "updatedAt": "2026-08-09T10:15:32.434326+00:00"
+    },
+    "/blog/music-on-no-vale-do-anhangabau-em-sao-paulo-sabado-7-de-novembro": {
+      "outPath": "blog/music-on-no-vale-do-anhangabau-em-sao-paulo-sabado-7-de-novembro/index.html",
+      "updatedAt": "2026-08-09T10:15:41.139059+00:00"
+    },
+    "/blog/buenos-aires-como-laboratorio-final-por-que-djs-latino-americanos-testam-seus-sets-na-ultima-parada": {
+      "outPath": "blog/buenos-aires-como-laboratorio-final-por-que-djs-latino-americanos-testam-seus-sets-na-ultima-parada/index.html",
+      "updatedAt": "2026-08-09T10:15:49.974633+00:00"
+    },
+    "/blog/errorr-transforma-o-pavilhao-anhembi-em-techno-na-sexta-feira": {
+      "outPath": "blog/errorr-transforma-o-pavilhao-anhembi-em-techno-na-sexta-feira/index.html",
+      "updatedAt": "2026-08-09T10:15:58.766804+00:00"
+    },
+    "/blog/ricck-e-a-ascensao-nacional-beginner-na-indie-beats-e-o-brilho-de-um-primeiro-ano": {
+      "outPath": "blog/ricck-e-a-ascensao-nacional-beginner-na-indie-beats-e-o-brilho-de-um-primeiro-ano/index.html",
+      "updatedAt": "2026-08-09T10:16:08.453018+00:00"
+    },
+    "/blog/industria-pres-gabe-victor-lou-e-high-club-sp-06-02-2026-mj20ieth": {
+      "outPath": "blog/industria-pres-gabe-victor-lou-e-high-club-sp-06-02-2026-mj20ieth/index.html",
+      "updatedAt": "2026-08-15T00:57:38.656428+00:00"
+    },
+    "/blog/alataj-lanca-quiz-para-testar-conhecimento-em-dance-music-mundial": {
+      "outPath": "blog/alataj-lanca-quiz-para-testar-conhecimento-em-dance-music-mundial/index.html",
+      "updatedAt": "2026-08-10T16:44:23.728034+00:00"
+    },
+    "/blog/vintage-culture-sp-no-komplexo-tempo-em-sao-paulo-sexta-feira-18-de-setembro": {
+      "outPath": "blog/vintage-culture-sp-no-komplexo-tempo-em-sao-paulo-sexta-feira-18-de-setembro/index.html",
+      "updatedAt": "2026-08-15T12:11:07.402575+00:00"
+    },
+    "/blog/anyma-lanca-den-recordings-e-estreia-com-colaboracao-com-volkoder": {
+      "outPath": "blog/anyma-lanca-den-recordings-e-estreia-com-colaboracao-com-volkoder/index.html",
+      "updatedAt": "2026-08-19T21:30:59.337277+00:00"
+    },
+    "/blog/hey-hoy-apres-dubdogz-no-espaco-taal-em-barueri-sexta-feira": {
+      "outPath": "blog/hey-hoy-apres-dubdogz-no-espaco-taal-em-barueri-sexta-feira/index.html",
+      "updatedAt": "2026-08-19T23:09:23.629899+00:00"
+    },
+    "/blog/alok-domina-o-mainstage-do-tomorrowland-com-set-autoral-e-homenagem-aos-pais": {
+      "outPath": "blog/alok-domina-o-mainstage-do-tomorrowland-com-set-autoral-e-homenagem-aos-pais/index.html",
+      "updatedAt": "2026-08-11T17:28:43.414012+00:00"
+    },
+    "/blog/piknic-electronik-volta-ao-varanda-com-deep-dish-stephan-jolk-e-d-marco": {
+      "outPath": "blog/piknic-electronik-volta-ao-varanda-com-deep-dish-stephan-jolk-e-d-marco/index.html",
+      "updatedAt": "2026-08-11T17:38:30.069641+00:00"
+    }
+  }
+}
