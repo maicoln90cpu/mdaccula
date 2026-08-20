@@ -99,6 +99,21 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
           />
           <Label className="text-xs">Mostrar horário nos cards</Label>
         </div>
+        <div>
+          <Label className="text-xs">Link dos cards (imagem, nome e botão)</Label>
+          <Select
+            value={block.link_target || 'ticket_link'}
+            onValueChange={(v) => patch({ link_target: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ticket_link">Direto pra ticketeira (padrão)</SelectItem>
+              <SelectItem value="event_url">Página do evento no site</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <AlignControl value={block.align} onChange={(v) => patch({ align: v })} />
       </div>
     );

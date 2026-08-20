@@ -32,18 +32,18 @@ const gridColWidthPct = (index: number, rowLength: number): number => {
  * line-up e botão — ordem pedida para dar mais destaque ao nome antes da
  * imagem carregar.
  *
- * `linkTarget` (só usado por `event_grid`, ver `resolveGridCardUrl`) escolhe
- * um destino único pra imagem+nome+botão: ticketeira externa ou página do
- * evento no site. Quando não informado (uso do `weekend_grid`, fora de
- * escopo desta opção), mantém o comportamento antigo: imagem/nome sempre
- * pra `eventUrl`, botão sempre pra `ticketUrl` (dois destinos distintos).
+ * `linkTarget` (ver `resolveGridCardUrl`) escolhe um destino único pra
+ * imagem, nome e botão: ticketeira externa (`ticket_link`, padrão) ou
+ * página do evento no site (`event_url`) — mesma escolha nos três, tanto no
+ * `event_grid` quanto no `weekend_grid` (cada um com sua própria
+ * propriedade `link_target` no bloco).
  */
 function renderGridEventCard(
   ev: WeekendEventItem,
-  opts: { columns: number; accentColor: string; gradient: string; solidPrimary: string; defaultCtaLabel: string; showTime: boolean; align?: Align; linkTarget?: "ticket_link" | "event_url" },
+  opts: { columns: number; accentColor: string; gradient: string; solidPrimary: string; defaultCtaLabel: string; showTime: boolean; align?: Align; linkTarget: "ticket_link" | "event_url" },
 ): string {
   const { columns, accentColor, gradient, solidPrimary, defaultCtaLabel, showTime, align = "left", linkTarget } = opts;
-  const url = escape(linkTarget ? resolveGridCardUrl(ev, linkTarget) || "#" : ev.eventUrl || "#");
+  const url = escape(resolveGridCardUrl(ev, linkTarget) || "#");
   const ctaLabel = escape(ev.ctaLabel || defaultCtaLabel);
 
   // Largura máxima da imagem derivada da largura útil do e-mail (552px) menos
@@ -51,7 +51,7 @@ function renderGridEventCard(
   // valor fixo de antes), em 3 colunas dá 168.
   const imgMaxWidth = Math.floor((552 - columns * 16) / columns);
 
-  const btnUrl = linkTarget ? resolveGridCardUrl(ev, linkTarget) : ev.ticketUrl;
+  const btnUrl = resolveGridCardUrl(ev, linkTarget);
   const btn = btnUrl
     ? renderBulletproofButton(escape(btnUrl), ctaLabel, {
       bg: gradient,
@@ -116,6 +116,7 @@ export function renderDigestBlock(
       const showArticle = block.show_article_link !== false;
       const layout = block.layout || "cartaz";
       const showTime = block.show_time !== false;
+      const linkTarget = block.link_target ?? "ticket_link";
 
       if (list.length === 0) {
         if (!ctx.preview) return "";
@@ -135,7 +136,7 @@ export function renderDigestBlock(
       if (layout === "timeline") {
         const barColor = escape(block.day_bar_color || accent);
         const rows = list.map((ev) => {
-          const url = escape(ev.eventUrl || "#");
+          const url = escape(resolveGridCardUrl(ev, linkTarget) || "#");
           const article = showArticle && ev.articleUrl
             ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-top:6px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Ler matéria →</a>`
             : "";
@@ -163,16 +164,17 @@ export function renderDigestBlock(
       if (layout === "grid") {
         if (list.length === 1) {
           const ev = list[0];
-          const url = escape(ev.eventUrl || "#");
+          const url = escape(resolveGridCardUrl(ev, linkTarget) || "#");
           const article = showArticle && ev.articleUrl
             ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
             : "";
           const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
           const multiCtas = (ev.ctas && ev.ctas.length > 1) ? ev.ctas : null;
+          const singleBtnUrl = resolveGridCardUrl(ev, linkTarget);
           const ticketBtn = multiCtas
             ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;">${renderBulletproofButton(escape(c.url), escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : "")) + " — " + singleCtaLabel, { bg: gradient, bgSolid: solidPrimary, fullWidth: true, vmlWidth: 480, padding: "12px 16px", fontSize: 12, height: 46, radius: 8, letterSpacing: "0.12em" })}</td></tr>`).join("")}</table>`
-            : (ev.ticketUrl
-              ? renderBulletproofButton(escape(ev.ticketUrl), singleCtaLabel, { bg: gradient, bgSolid: solidPrimary, fullWidth: false, vmlWidth: 220, padding: "10px 18px", fontSize: 12, height: 42, radius: 8, letterSpacing: "0.15em" })
+            : (singleBtnUrl
+              ? renderBulletproofButton(escape(singleBtnUrl), singleCtaLabel, { bg: gradient, bgSolid: solidPrimary, fullWidth: false, vmlWidth: 220, padding: "10px 18px", fontSize: 12, height: 42, radius: 8, letterSpacing: "0.15em" })
               : "");
           const singleCard = `<tr><td style="padding:10px 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">
@@ -199,7 +201,7 @@ export function renderDigestBlock(
         for (let i = 0; i < list.length; i += columns) {
           const group = list.slice(i, i + columns);
           const cells = group
-            .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns: group.length, accentColor, gradient, solidPrimary, defaultCtaLabel, showTime, align })}</td>`)
+            .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns: group.length, accentColor, gradient, solidPrimary, defaultCtaLabel, showTime, align, linkTarget })}</td>`)
             .join("");
           gridRows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
         }
@@ -207,16 +209,17 @@ export function renderDigestBlock(
       }
 
       const cards = list.map((ev) => {
-        const url = escape(ev.eventUrl || "#");
+        const url = escape(resolveGridCardUrl(ev, linkTarget) || "#");
         const article = showArticle && ev.articleUrl
           ? `<a href="${escape(ev.articleUrl)}" style="display:inline-block;margin-left:12px;color:${primary};font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:0.15em;">📰 Matéria →</a>`
           : "";
         const singleCtaLabel = escape(ev.ctaLabel || settings.cta_label || "Garantir ingresso");
         const multiCtas = (ev.ctas && ev.ctas.length > 1) ? ev.ctas : null;
+        const singleBtnUrl = resolveGridCardUrl(ev, linkTarget);
         const ticketBtn = multiCtas
           ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:4px;">${multiCtas.map((c) => `<tr><td style="padding:4px 0;">${renderBulletproofButton(escape(c.url), escape((c.dayLabel ? c.dayLabel + " · " : "") + c.label + (c.timeLabel ? " · " + c.timeLabel : "")) + " — " + singleCtaLabel, { bg: gradient, bgSolid: solidPrimary, fullWidth: true, vmlWidth: 480, padding: "12px 16px", fontSize: 12, height: 46, radius: 8, letterSpacing: "0.12em" })}</td></tr>`).join("")}</table>`
-          : (ev.ticketUrl
-            ? renderBulletproofButton(escape(ev.ticketUrl), singleCtaLabel, { bg: gradient, bgSolid: solidPrimary, fullWidth: false, vmlWidth: 220, padding: "10px 18px", fontSize: 12, height: 42, radius: 8, letterSpacing: "0.15em" })
+          : (singleBtnUrl
+            ? renderBulletproofButton(escape(singleBtnUrl), singleCtaLabel, { bg: gradient, bgSolid: solidPrimary, fullWidth: false, vmlWidth: 220, padding: "10px 18px", fontSize: 12, height: 42, radius: 8, letterSpacing: "0.15em" })
             : "");
         return `<tr><td style="padding:10px 32px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0d0d0d;border:1px solid rgba(255,255,255,0.08);border-radius:14px;overflow:hidden;">

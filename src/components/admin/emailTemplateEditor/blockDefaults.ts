@@ -117,6 +117,7 @@ export const defaultForKind = (kind: Block['kind']): Block => {
         show_article_link: true,
         align: 'left',
         columns: 2,
+        link_target: 'ticket_link',
       };
     case 'weekly_hero':
       return {

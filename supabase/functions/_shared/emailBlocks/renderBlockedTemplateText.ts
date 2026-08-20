@@ -107,8 +107,11 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       const list = event.weekendEvents || [];
       if (!list.length) return "";
       const header = (block.title || "O que rola no fds").toUpperCase();
+      // Mesmo destino escolhido em `block.link_target` que o HTML usa —
+      // ticketeira externa por padrão, ou a página do evento no site.
+      const weekendLinkTarget = block.link_target ?? "ticket_link";
       const rows = list.map((ev) =>
-        `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue}${ev.cityState ? " (" + ev.cityState + ")" : ""} — ${ev.eventUrl}`
+        `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue}${ev.cityState ? " (" + ev.cityState + ")" : ""} — ${resolveGridCardUrl(ev, weekendLinkTarget)}`
       );
       return `${header}\n${rows.join("\n")}`;
     }
