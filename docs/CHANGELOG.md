@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Lote seguro de atualização de dependências (Fase 2A do plano de fases seguras)
+**Descrição:** 30 pacotes atualizados apenas dentro da mesma versão maior (correções de bug e melhorias compatíveis, sem mudança de API): `typescript` 5.8→5.9, `vite` 7.0→7.3, `vitest`/`@vitest/coverage-v8` 4.1.10→4.1.11, `eslint` 9.32→9.39, `typescript-eslint` 8.38→8.67, `prettier` 3.7→3.9, `react-hook-form` 7.61→7.85, `framer-motion` 12.42→12.43, `dompurify` 3.4.12→3.4.14, `tailwindcss` 3.4.17→3.4.19, `postcss`, `autoprefixer`, `terser`, `lightningcss`, `react-router-dom`/`react-router` 6.30.4→6.30.6 (ainda v6 — o salto para v7 é a Fase 2B), `react-day-picker`, `react-easy-crop`, `input-otp`, `tailwind-merge`, `@vitejs/plugin-react`, `lovable-tagger`, `@testing-library/*`, `@types/*`. Radix UI, `@fontsource/*`, Playwright, `@supabase/supabase-js`, TanStack Query e `date-fns` já estavam na última versão compatível — nada a fazer. **Ficaram de fora de propósito:** os pacotes `@tiptap/*` (3.29→3.30 exige subir o peer `@tiptap/extensions` junto — conflito de dependência, vira passo próprio), `lucide-react` (0.462→0.577, salto grande de biblioteca de ícones) e `next-themes` (0.3→0.4, mudança de API) — os dois últimos entram na Fase 2C.
+**Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm test` (702 testes) e `npm run build` verdes; preview local respondendo 200.
+**Data:** 20/08/2026
+**Responsável:** IA, a pedido do usuário (Fase 2A aprovada).
+
+**Arquivos alterados:** `package.json`, `package-lock.json`.
+
+---
+
 ### Servidor MCP reescrito à mão — sai a biblioteca de 26MB, entra uma function enxuta (Fase 1 do plano de fases seguras)
 **Descrição:** a Edge Function `mcp` nunca tinha subido: era auto-gerada por `@lovable.dev/mcp-js`, que arrastava os binários nativos do `esbuild` para dentro do pacote (~26MB) e a API da Supabase rejeitava com `413`. Para contornar, o workflow de deploy isolava a `mcp` num passo com `continue-on-error` — ou seja, um passo que sempre falhava. Agora `supabase/functions/mcp/index.ts` é escrita à mão: implementa o mínimo do protocolo MCP (JSON-RPC 2.0 sobre HTTP: `initialize`, `ping`, `tools/list`, `tools/call`, notificações e lote) e expõe as mesmas 5 ferramentas públicas somente-leitura (`list_upcoming_events`, `get_event`, `list_blog_posts`, `get_blog_post`, `list_links`), usando apenas `@supabase/supabase-js` com a `anon key`. Removidos o plugin do Vite, a pasta `src/lib/mcp/` e a dependência `@lovable.dev/mcp-js`; o workflow voltou a ter um único passo de deploy para todas as functions.
 **Verificação:** `npx tsc --noEmit -p tsconfig.app.json` e `npx tsc --noEmit -p tsconfig.node.json` limpos; `npm test` verde (702 testes). Deploy real acontece no push (GitHub Actions).
