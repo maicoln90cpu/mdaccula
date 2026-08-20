@@ -269,11 +269,19 @@ const ChartLegend = RechartsPrimitive.Legend;
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<'div'> &
-    Pick<RechartsPrimitive.LegendProps, 'payload' | 'verticalAlign'> & {
+  React.ComponentProps<'div'> & {
+      /** recharts 3 removeu `payload`/`verticalAlign` dos tipos públicos da Legend. */
+      payload?: Array<{
+        value?: string | number;
+        dataKey?: string | number;
+        color?: string;
+        payload?: Record<string, unknown>;
+      }>;
+      verticalAlign?: 'top' | 'middle' | 'bottom';
       hideIcon?: boolean;
       nameKey?: string;
     }
+
 >(({ className, hideIcon = false, payload, verticalAlign = 'bottom', nameKey }, ref) => {
   const { config } = useChart();
 
