@@ -25,26 +25,13 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy de todas as Edge Functions (exceto mcp)
-        # `mcp` é excluída deste passo — ver o próximo passo e docs/PENDENCIAS.md.
+      - name: Deploy de todas as Edge Functions
+        # `mcp` voltou a entrar no deploy normal: foi reescrita à mão (sem a
+        # biblioteca @lovable.dev/mcp-js, que arrastava binários do esbuild e
+        # gerava um bundle de ~26MB rejeitado com 413 pela API da Supabase).
         run: |
-          FUNCS=$(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name _shared ! -name mcp -exec basename {} \;)
+          FUNCS=$(find supabase/functions -mindepth 1 -maxdepth 1 -type d ! -name _shared -exec basename {} \;)
           supabase functions deploy --project-ref xfvpuzlspvvsmmunznxw $FUNCS
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
-      - name: Deploy de mcp (não bloqueia o pipeline)
-        # supabase/functions/mcp/index.ts é auto-gerado por @lovable.dev/mcp-js,
-        # que traz `esbuild` como dependência direta (não dev) — o bundler do
-        # Deno inclui os binários nativos do esbuild no pacote final (~26MB),
-        # e a API do Supabase rejeita com 413 "request entity too large".
-        # Isolado num passo próprio com continue-on-error pra não derrubar o
-        # deploy de TODAS as outras functions (o bug real: antes desta mudança,
-        # qualquer function cujo nome venha depois de "mcp" em ordem alfabética
-        # nunca era deployada). Ver docs/PENDENCIAS.md para o fix definitivo.
-        run: |
-          supabase functions deploy mcp --project-ref xfvpuzlspvvsmmunznxw \
-            || echo "::warning::Deploy de 'mcp' falhou (bundle > tamanho máximo, causa raiz em docs/PENDENCIAS.md) — não bloqueando o restante do pipeline."
-        continue-on-error: true
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
