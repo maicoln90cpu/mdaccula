@@ -119,13 +119,13 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/dretarde1209</loc>
-    <lastmod>2026-08-18</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/vintagesp1809</loc>
-    <lastmod>2026-08-19</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -137,7 +137,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/sun190926</loc>
-    <lastmod>2026-08-19</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -179,7 +179,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/aliga1010</loc>
-    <lastmod>2026-08-19</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -257,7 +257,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/eventos/dna051226</loc>
-    <lastmod>2026-08-19</lastmod>
+    <lastmod>2026-08-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -556,6 +556,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/festas-queer-reescrevem-as-regras-das-pistas-latino-americanas</loc>
     <lastmod>2026-08-09</lastmod>
     <changefreq>monthly</changefreq>
@@ -612,12 +618,6 @@
   <url>
     <loc>https://mdaccula.com/blog/rock-in-rio-anuncia-venda-extraordinaria-de-ingressos-e-revela-cardapio-com-860-operacoes</loc>
     <lastmod>2026-08-17</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/boma-presents-the-moment-em-sao-paulo-sabado-22-de-agosto-de-2026</loc>
-    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -916,14 +916,14 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto</loc>
-    <lastmod>2026-08-19</lastmod>
+    <loc>https://mdaccula.com/blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia</loc>
+    <lastmod>2026-08-11</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://mdaccula.com/blog/produtores-paulistanos-reconfiguram-contratos-enquanto-fortalecem-independencia</loc>
-    <lastmod>2026-08-11</lastmod>
+    <loc>https://mdaccula.com/blog/atelie-apres-sven-vath-na-fabriketa-em-sao-paulo-sabado-29-de-agosto</loc>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1006,6 +1006,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://mdaccula.com/blog/a-liga-no-sonora-garden-sao-paulo-sabado-10-de-outubro-de-2026</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://mdaccula.com/blog/fronteiras-sonoras-por-que-coletivos-transfronteiricos-dominam-o-circuito-festivalero</loc>
     <lastmod>2026-08-09</lastmod>
     <changefreq>monthly</changefreq>
@@ -1014,12 +1020,6 @@
   <url>
     <loc>https://mdaccula.com/blog/nova-era-no-barraco-sp-em-sao-paulo-sabado-25-de-julho-de-2026</loc>
     <lastmod>2026-08-09</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://mdaccula.com/blog/a-liga-no-sonora-garden-sao-paulo-sabado-10-de-outubro-de-2026</loc>
-    <lastmod>2026-08-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1151,7 +1151,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/solomun-sp-no-parque-villa-lobos-sao-paulo-domingo-1-de-novembro-de-2026</loc>
-    <lastmod>2026-08-17</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1679,7 +1679,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/mochakk-calling-no-mercado-pago-hall-sao-paulo-sabado-3-de-outubro-de-2026</loc>
-    <lastmod>2026-08-14</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -1847,7 +1847,7 @@
   </url>
   <url>
     <loc>https://mdaccula.com/blog/anyma-lanca-den-recordings-e-estreia-com-colaboracao-com-volkoder</loc>
-    <lastmod>2026-08-18</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
