@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Fase 2C encerrada: `@hookform/resolvers` 5.2
+
+- **O que:** a peça que liga os formulários às suas regras de preenchimento (`zodResolver`) saiu da 3.10 para a 5.2. Usada em `src/pages/Podcast.tsx` (inscrição de DJ) e `src/pages/Privacidade.tsx` (pedido de exclusão de dados).
+- **Resultado:** nenhuma mudança de código foi necessária nos formulários — a assinatura usada no projeto continua válida na v5.
+- **Validação:** `tsc`, `lint`, `build` e 710 testes verdes; formulário de `/MDAcculaRadio` testado no navegador (envio vazio devolve todas as mensagens: nome, e-mail, cidade, telefone, projeto etc.).
+- **Proteção:** novo teste R-079 (`src/__tests__/regression/hookform-resolvers-v5-validation-still-works.test.tsx`).
+- **Fecha a Fase 2C:** tiptap, next-themes, lucide-react, sonner, vaul, recharts e hookform/resolvers todos atualizados.
+- **Arquivos:** `package.json`, `package-lock.json`, `src/__tests__/regression/hookform-resolvers-v5-validation-still-works.test.tsx`, `docs/TESTING.md`, `docs/PENDENCIAS.md`.
+
+
 ### 20/08/2026 — Fase 2C rodada 2 (item 1): `recharts` 3.10
 
 - **O que:** biblioteca de gráficos atualizada de 2.15.4 → 3.10, usada nos painéis de e-mail, egress, analytics de IA, conteúdo, eventos e na página pública `/analytics`.
