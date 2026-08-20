@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Instagram, MessageCircle, Music, Mail, MapPin, Clock } from 'lucide-react';
+import { MessageCircle, Music, Mail, MapPin, Clock } from 'lucide-react';
+import { Instagram } from '@/components/icons/brand';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 
 const contactSchema = z.object({

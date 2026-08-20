@@ -21,7 +21,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/useToast';
-import { Loader2, Plus, Edit, Trash2, Instagram, ArrowLeft } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, ArrowLeft } from 'lucide-react';
+import { Instagram } from '@/components/icons/brand';
 import { NavLink } from 'react-router-dom';
 import { ImageUploadWithCrop } from '@/components/ui/ImageUploadWithCrop';
 import { uploadImageWithThumb } from '@/lib/bunnyUploader';

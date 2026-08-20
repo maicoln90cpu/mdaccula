@@ -1,4 +1,5 @@
-import { Instagram, MessageCircle, Music, Link2, Mic } from 'lucide-react';
+import { MessageCircle, Music, Link2, Mic } from 'lucide-react';
+import { Instagram } from '@/components/icons/brand';
 import { Link } from 'react-router-dom';
 import { useSiteSettings } from '@/hooks/useSiteSettings';
 import { Button } from '@/components/ui/button';

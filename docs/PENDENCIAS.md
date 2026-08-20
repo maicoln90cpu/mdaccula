@@ -130,13 +130,15 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🗳️ Decisões Pendentes do Usuário
 
-### `lucide-react` v1 removeu os ícones de marca (Fase 2C, 20/08/2026)
+### Bibliotecas com mudança de API ainda não atualizadas (Fase 2C, 20/08/2026)
 
-**Contexto:** TipTap (3.30.2) e `next-themes` (0.4.6) foram atualizados com sucesso na Fase 2C. O `lucide-react` (0.462 → 1.33) foi tentado e **revertido de propósito**: a versão 1 removeu todos os ícones de marca (Instagram, Facebook, Twitter, LinkedIn, YouTube), usados em 10 arquivos — inclusive nos cards da página `/links`, onde o nome do ícone vem do banco. Subir agora faria esses ícones virarem silenciosamente o genérico "link externo".
+**Contexto:** já concluídos na Fase 2C: `@tiptap/*` 3.30.2, `next-themes` 0.4.6 e `lucide-react` 1.33 (com ícones de marca próprios). Continuam na versão antiga, cada um exigindo um passo próprio:
 
-**Decisão necessária:** manter o `lucide-react` em 0.462 (sem risco, sem CVE aberta) ou fazer uma onda dedicada criando ícones de marca próprios (SVG local, mesma API) e migrar o `DynamicIcon` para o novo carregador da v1.
-**Responsável:** usuário decide; IA executa a onda dedicada se aprovada.
-
+1. `@hookform/resolvers` 3.10 → 5.9 — muda a assinatura do `zodResolver`; afeta todos os formulários (contato, podcast, admin).
+2. `recharts` 2.15 → 3.10 — reescrita interna dos gráficos do painel de e-mail.
+3. `sonner` 1.7 → 2.0 — avisos de "salvo com sucesso".
+4. `vaul` 0.9 → 1.1 — gavetas (drawers) no celular.
+   **Responsável:** IA, uma biblioteca por vez, mediante aprovação.
 
 ---
 
