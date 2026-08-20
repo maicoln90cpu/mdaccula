@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Sub-painel de propriedades — grupo textProps.
  * Extraído de BlockPropsPanel.tsx (Onda 10) sem mudança de comportamento.
@@ -18,7 +19,7 @@ import { AlignControl, ColorControl, RichHtmlEditor } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
-export function renderTextProps(block: Block, patch: Patch): React.JSX.Element | null {
+export function renderTextProps(block: Block, patch: Patch): JSX.Element | null {
   if (block.kind === 'eyebrow') {
     return (
       <div className="space-y-3">

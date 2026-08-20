@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Sub-painel de propriedades — grupo structuralProps.
  * Extraído de BlockPropsPanel.tsx (Onda 10) sem mudança de comportamento.
@@ -19,7 +20,7 @@ import { AlignControl, ColorControl } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
-export function renderStructuralProps(block: Block, patch: Patch): React.JSX.Element | null {
+export function renderStructuralProps(block: Block, patch: Patch): JSX.Element | null {
   if (block.kind === 'header') {
     return (
       <div className="space-y-3">

@@ -1,3 +1,4 @@
+import type { JSX } from 'react';
 /**
  * Sub-painel de propriedades — grupo actionProps.
  * Extraído de BlockPropsPanel.tsx (Onda 10) sem mudança de comportamento.
@@ -18,7 +19,7 @@ import { AlignControl, ColorControl } from '../controls';
 
 type Patch = (p: Record<string, unknown>) => void;
 
-export function renderActionProps(block: Block, patch: Patch): React.JSX.Element | null {
+export function renderActionProps(block: Block, patch: Patch): JSX.Element | null {
   if (block.kind === 'cta_button') {
     return (
       <div className="space-y-3">
