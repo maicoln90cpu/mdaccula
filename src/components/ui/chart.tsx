@@ -92,16 +92,39 @@ ${colorConfig
 
 const ChartTooltip = RechartsPrimitive.Tooltip;
 
+/**
+ * recharts 3 deixou de expor `payload`/`label` nos tipos públicos do Tooltip
+ * (eles passaram a vir de contexto interno). Redeclaramos aqui apenas a forma
+ * que este componente realmente lê, mantendo o comportamento em runtime.
+ */
+type ChartTooltipItem = {
+  dataKey?: string | number;
+  name?: string | number;
+  value?: string | number;
+  color?: string;
+  payload?: Record<string, unknown> & { fill?: string };
+};
+
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<'div'> & {
+  Omit<React.ComponentProps<typeof RechartsPrimitive.Tooltip>, 'payload' | 'label' | 'formatter'> &
+    Omit<React.ComponentProps<'div'>, 'color'> & {
+      payload?: ChartTooltipItem[];
+      label?: unknown;
+      formatter?: (
+        value: ChartTooltipItem['value'],
+        name: ChartTooltipItem['name'],
+        item: ChartTooltipItem,
+        index: number,
+        rawPayload: ChartTooltipItem['payload']
+      ) => React.ReactNode;
       hideLabel?: boolean;
       hideIndicator?: boolean;
       indicator?: 'line' | 'dot' | 'dashed';
       nameKey?: string;
       labelKey?: string;
     }
+
 >(
   (
     {
