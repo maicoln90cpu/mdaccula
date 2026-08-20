@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { render } from '@testing-library/react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
@@ -25,6 +25,24 @@ const config = {
   enviados: { label: 'Enviados', color: 'hsl(var(--primary))' },
   abertos: { label: 'Abertos', color: 'hsl(var(--accent))' },
 };
+
+// O ResponsiveContainer do recharts mede o elemento via ResizeObserver; no
+// jsdom o mock global devolve 0x0 e nada seria desenhado dentro do
+// ChartContainer. Aqui devolvemos um tamanho fixo.
+beforeAll(() => {
+  class SizedResizeObserver {
+    constructor(private cb: ResizeObserverCallback) {}
+    observe(target: Element) {
+      this.cb(
+        [{ target, contentRect: { width: 400, height: 200 } } as unknown as ResizeObserverEntry],
+        this as unknown as ResizeObserver
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  }
+  (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = SizedResizeObserver;
+});
 
 describe('R-078: gráficos continuam desenhando após o recharts 3', () => {
   it('renderiza barras, eixos e grade', () => {
