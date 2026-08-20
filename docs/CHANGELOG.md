@@ -18,6 +18,16 @@
 
 ## Entradas Detalhadas
 
+### Servidor MCP reescrito à mão — sai a biblioteca de 26MB, entra uma function enxuta (Fase 1 do plano de fases seguras)
+**Descrição:** a Edge Function `mcp` nunca tinha subido: era auto-gerada por `@lovable.dev/mcp-js`, que arrastava os binários nativos do `esbuild` para dentro do pacote (~26MB) e a API da Supabase rejeitava com `413`. Para contornar, o workflow de deploy isolava a `mcp` num passo com `continue-on-error` — ou seja, um passo que sempre falhava. Agora `supabase/functions/mcp/index.ts` é escrita à mão: implementa o mínimo do protocolo MCP (JSON-RPC 2.0 sobre HTTP: `initialize`, `ping`, `tools/list`, `tools/call`, notificações e lote) e expõe as mesmas 5 ferramentas públicas somente-leitura (`list_upcoming_events`, `get_event`, `list_blog_posts`, `get_blog_post`, `list_links`), usando apenas `@supabase/supabase-js` com a `anon key`. Removidos o plugin do Vite, a pasta `src/lib/mcp/` e a dependência `@lovable.dev/mcp-js`; o workflow voltou a ter um único passo de deploy para todas as functions.
+**Verificação:** `npx tsc --noEmit -p tsconfig.app.json` e `npx tsc --noEmit -p tsconfig.node.json` limpos; `npm test` verde (702 testes). Deploy real acontece no push (GitHub Actions).
+**Data:** 19/08/2026
+**Responsável:** IA, a pedido do usuário (decisão registrada no plano: reescrever leve em vez de remover).
+
+**Arquivos alterados:** `supabase/functions/mcp/index.ts` (reescrito), `vite.config.ts`, `package.json`, `.github/workflows/deploy-edge-functions.yml`, `docs/EDGE_FUNCTIONS.md`, `docs/PENDENCIAS.md`. Removidos: `src/lib/mcp/**`.
+
+---
+
 ### Botão de Camarote/Pix de 201 eventos apontava pro número de WhatsApp antigo, mesmo após trocar em Configurações (R-076)
 **Descrição:** o usuário trocou o número de WhatsApp em Configurações → Redes Sociais, mas percebeu que os botões "Reservas de Camarote" e "Comprar Sem Taxa via Pix" nas páginas de evento continuavam abrindo o número antigo. Investigação encontrou a causa: o preset "Maicoln Douglas" do campo "Link Camarote" (no formulário de evento e na tela de Templates de Eventos) gerava o link com o número gravado fixo no código, sem nenhuma ligação com a configuração global — trocar o número em Configurações nunca alcançava esse preset. Isso deixou **201 eventos ativos**, **2 templates de evento** e **1 link da página `/links`** presos no número antigo, alguns há meses. Corrigido: os dois arquivos passaram a puxar o número direto de Configurações; os 204 registros afetados foram atualizados no banco pro número correto; e um teste permanente (R-076) impede que um número volte a ser hardcoded no futuro.
 **Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm test` (698 testes) verdes. Conferido direto no banco: 0 eventos/templates/links restantes com o número antigo.
