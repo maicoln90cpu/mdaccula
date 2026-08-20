@@ -113,14 +113,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 🗳️ Decisões Pendentes do Usuário
 
-### Deploy da Edge Function `mcp` falha com 413 (bundle de 26MB) — falta decidir a abordagem definitiva
-**Status:** 🔧 Contornado (04/08/2026) — pipeline não trava mais (deploy dividido em 2 passos, `mcp` isolada com `continue-on-error`), mas a function `mcp` em si segue sem deploy até a causa raiz ser corrigida.
-**Contexto:** `supabase/functions/mcp/index.ts` é auto-gerado por `@lovable.dev/mcp-js@0.24.0`, que traz `esbuild` como dependência direta — o bundler do Deno inclui os binários nativos do esbuild no pacote final (~26MB), e a API do Supabase rejeita com `413 request entity too large`.
-**As 2 opções, já mapeadas — só falta escolher:**
-1. Esperar/investigar se `defineMcp`/`defineTool` do `@lovable.dev/mcp-js` têm uma forma de importar só o runtime, sem puxar `esbuild`.
-2. Reescrever `mcp/index.ts` à mão (tomando posse do arquivo, removendo o banner "AUTO-GENERATED") implementando os 3 tools (`list_upcoming_events`, `get_event`, `list_blog_posts`) direto com `@supabase/supabase-js`, sem o framework de build da lib.
-**Observação (16/08/2026):** existe uma edição local não commitada em `supabase/functions/mcp/index.ts` que parecia um WIP seguindo a opção 2, mas o conteúdo estava quebrado (apontava pra um caminho absoluto do Windows dentro de um import `npm:`, gerado incorretamente pelo próprio plugin auto-gerador durante dev local) — não foi commitada nem tocada.
-**Responsável:** decisão do usuário sobre qual das 2 opções seguir; depois disso IA implementa (opção 2 é um trabalho pequeno e de baixo risco — só 3 ferramentas de leitura, sem escrita no banco).
 
 ### Atualizar `react-router`/`react-router-dom` de 6.30 para 7.x (vulnerabilidade moderada, correção é breaking change)
 **Contexto:** rodando o pipeline de CI inteiro em 15/08/2026 (a pedido do usuário, aproveitando o repositório ainda público), o job "Security Audit" (existente, mas com `continue-on-error: true` — nunca bloqueou merge) apontou 2 CVEs moderadas em `react-router` (open redirect via backslash em `<Link>`/`useNavigate`, injeção de construtor via `deserializeErrors()` no SSR) — ver R-069 em `docs/CHANGELOG.md`. `npm audit fix` sozinho não resolve; precisa de `--force`, que instalaria `react-router-dom@7.18.2` — salto de versão major (v6 → v7) com mudanças reais de comportamento, não é seguro aplicar às cegas num projeto com rotas lazy-loaded em praticamente toda página admin.
