@@ -48,7 +48,6 @@ export function watchPageHealth(page: Page): PageHealthWatcher {
     // que qualquer outro aviso de ref continue quebrando a suíte.
     if (/Function components cannot be given refs/i.test(text)) return;
     consoleErrors.push(text);
-
   });
 
   page.on('pageerror', (err) => {
