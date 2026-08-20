@@ -18,6 +18,15 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Fase 2C rodada 2 (item 1): `recharts` 3.10
+
+- **O que:** biblioteca de gráficos atualizada de 2.15.4 → 3.10, usada nos painéis de e-mail, egress, analytics de IA, conteúdo, eventos e na página pública `/analytics`.
+- **Ajuste necessário:** o recharts 3 removeu `payload`/`label` dos tipos públicos de Tooltip e Legend; o wrapper `src/components/ui/chart.tsx` passou a declarar esses campos por conta própria (mesmo comportamento em tela) e ficou tolerante a item sem `payload` (`item.payload?.fill`).
+- **Validação:** `tsc`, `lint`, `build` e 708 testes verdes; página `/analytics` conferida no navegador com o gráfico de barras "Top 10 Posts Mais Lidos" desenhando normalmente.
+- **Proteção:** novo teste R-078 (`src/__tests__/regression/recharts-v3-charts-still-render.test.tsx`).
+- **Arquivos:** `package.json`, `package-lock.json`, `src/components/ui/chart.tsx`, `src/__tests__/regression/recharts-v3-charts-still-render.test.tsx`, `docs/TESTING.md`.
+
+
 ### 20/08/2026 — Fase 2C rodada 1/2: `sonner` 2.0.8 e `vaul` 1.1.2
 
 - **O que:** atualização das duas bibliotecas de menor risco da Fase 2C — `sonner` (as mensagens de "salvo com sucesso"/"erro" que aparecem no canto da tela) de 1.7.4 → 2.0.8, e `vaul` (as gavetas deslizantes usadas no celular) de 0.9.9 → 1.1.2.
