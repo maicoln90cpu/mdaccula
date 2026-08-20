@@ -18,6 +18,15 @@
 
 ## Entradas Detalhadas
 
+### TipTap 3.30 e next-themes 0.4 (Fase 2C do plano de fases seguras)
+
+**Descrição:** editor de artigos do blog atualizado para `@tiptap/react`, `@tiptap/starter-kit` e `@tiptap/extensions` 3.30.2. O pacote `@tiptap/extension-placeholder` foi descontinuado pelo próprio TipTap e removido — a extensão `Placeholder` agora vem de `@tiptap/extensions` (ajustado em `RichTextEditor.tsx` e no chunk `editor` do `vite.config.ts`). `next-themes` subiu de 0.3.0 para 0.4.6 sem mudança de código (a API usada — `ThemeProvider` e `useTheme` — continua igual).
+**Fora do lote:** `lucide-react` foi tentado (1.33) e revertido para 0.462 porque a v1 removeu os ícones de marca (Instagram, Facebook, Twitter, LinkedIn, YouTube) usados em 10 arquivos, incluindo os cards da `/links`. Registrado como decisão em `PENDENCIAS.md`.
+**Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm run build` e `npm test` (702 testes, 1 pulado) verdes.
+**Arquivos:** `package.json`, `package-lock.json`, `src/components/ui/RichTextEditor.tsx`, `vite.config.ts`, `docs/PENDENCIAS.md`.
+**Data:** 20/08/2026
+**Responsável:** IA, a pedido do usuário (Fase 2C).
+
 ### React Router v6.30 → v7.18 (Fase 2B do plano de fases seguras)
 
 **Descrição:** `react-router` e `react-router-dom` migrados para a versão 7. Como as duas future flags relevantes (`v7_startTransition`, `v7_relativeSplatPath`) já estavam ativas desde 15/08, o comportamento não mudou na virada — o prop `future={{...}}` foi removido do `<BrowserRouter>` (`src/App.tsx`) porque na v7 esses comportamentos já são padrão. Fecha as 2 CVEs moderadas do router (open redirect via backslash e `deserializeErrors()`).
