@@ -28,12 +28,26 @@
  * ninguém perceber, até a auditoria de 16/08/2026 achar o buraco).
  */
 import { chromium } from "@playwright/test";
-import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync, rmSync } from "node:fs";
 import { resolve, dirname } from "node:path";
+import { createHash } from "node:crypto";
 
 const OUT_DIR = resolve("public/_prerendered");
+const MANIFEST_PATH = resolve(OUT_DIR, ".manifest.json");
 const PAGE_TIMEOUT_MS = 15000;
 const HYDRATION_GRACE_MS = 8000;
+
+// --- arquivos que afetam o CONTEÚDO das páginas pré-renderizadas (título,
+// meta tags, JSON-LD) — mudar qualquer um deles força uma varredura completa
+// no próximo run, mesmo que nenhum evento/post tenha mudado no banco.
+//
+// ⚠️ LEMBRETE: se você criar ou mexer num componente que também gera/afeta
+// title/meta/JSON-LD renderizado nessas páginas (og:*, twitter:*, canonical,
+// structured data), adicione o caminho dele aqui — senão o cache incremental
+// vai continuar servindo HTML desatualizado achando que nada mudou. Isso é
+// checado por hash de conteúdo, não por data de arquivo — funciona com
+// qualquer editor/IDE/CI.
+const SEO_TEMPLATE_FILES = ["index.html", "src/components/SEOHead.tsx", "src/components/StructuredData.tsx"];
 // Título estático do shell (index.html) antes de qualquer hidratação — se
 // ainda for esse depois da espera, a rota não carregou dados reais.
 // StructuredData usa react-helmet-async, cujas tags de <script>/JSON-LD têm
@@ -75,18 +89,65 @@ async function getTargetRoutes() {
   // isso, roda todas as rotas ativas/publicadas (comportamento de produção).
   const limit = env.PRERENDER_LIMIT ? parseInt(env.PRERENDER_LIMIT, 10) : null;
   const [events, posts] = await Promise.all([
-    fetchRows(`events?select=slug&status=eq.active&date=gte.${today}&slug=not.is.null&limit=5000`),
-    fetchRows("blog_posts?select=slug&published=eq.true&slug=not.is.null&limit=5000"),
+    fetchRows(`events?select=slug,updated_at&status=eq.active&date=gte.${today}&slug=not.is.null&limit=5000`),
+    fetchRows("blog_posts?select=slug,updated_at&published=eq.true&slug=not.is.null&limit=5000"),
   ]);
 
-  const eventRoutes = events.filter((e) => e.slug).map((e) => ({ route: `/eventos/${e.slug}`, outPath: `eventos/${e.slug}/index.html` }));
-  const postRoutes = posts.filter((p) => p.slug).map((p) => ({ route: `/blog/${p.slug}`, outPath: `blog/${p.slug}/index.html` }));
+  const eventRoutes = events
+    .filter((e) => e.slug)
+    .map((e) => ({ route: `/eventos/${e.slug}`, outPath: `eventos/${e.slug}/index.html`, updatedAt: e.updated_at }));
+  const postRoutes = posts
+    .filter((p) => p.slug)
+    .map((p) => ({ route: `/blog/${p.slug}`, outPath: `blog/${p.slug}/index.html`, updatedAt: p.updated_at }));
 
   return [
-    { route: "/", outPath: "index.html" },
+    // A home não tem um "updated_at" próprio (mostra os eventos mais recentes
+    // em geral) — sempre reprocessada, é só 1 rota, custo desprezível.
+    { route: "/", outPath: "index.html", updatedAt: null },
     ...(limit ? eventRoutes.slice(0, limit) : eventRoutes),
     ...(limit ? postRoutes.slice(0, limit) : postRoutes),
   ];
+}
+
+// --- registro incremental (public/_prerendered/.manifest.json) ---
+
+function computeSeoTemplateHash() {
+  const hash = createHash("sha256");
+  for (const file of SEO_TEMPLATE_FILES) {
+    hash.update(file);
+    hash.update("\0");
+    hash.update(existsSync(file) ? readFileSync(file, "utf8") : "");
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
+function loadManifest() {
+  if (!existsSync(MANIFEST_PATH)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+    if (!parsed || typeof parsed !== "object" || typeof parsed.routes !== "object" || parsed.routes === null) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveManifest(manifest) {
+  mkdirSync(OUT_DIR, { recursive: true });
+  writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+// Decisão pura (sem I/O) — dá pra pular esta rota nesta execução? Só pula se
+// não for a home, não for uma varredura forçada (código mudou) e já existir
+// um registro anterior com a MESMA data de atualização do conteúdo — ou seja,
+// nada mudou desde a última vez que essa rota foi gerada com sucesso.
+export function shouldSkipRoute({ route, updatedAt }, previousManifestRoutes, forceFullRun) {
+  if (route === "/" || forceFullRun) return false;
+  const previous = previousManifestRoutes[route];
+  return Boolean(previous) && previous.updatedAt === updatedAt;
 }
 
 async function main() {
@@ -99,14 +160,59 @@ async function main() {
     return;
   }
 
-  console.log(`[prerender] ${routes.length} rota(s)-alvo contra ${BASE_URL} (home + eventos ativos + posts publicados).`);
+  const codeHash = computeSeoTemplateHash();
+  const previousManifest = loadManifest();
+  const previousRoutes = previousManifest?.routes ?? {};
+  const forceFullRun = !previousManifest || previousManifest.codeHash !== codeHash;
+
+  if (forceFullRun) {
+    console.log(
+      previousManifest
+        ? "[prerender] arquivo(s) que afetam o SEO das páginas mudaram desde a última execução — varredura completa (ignorando o cache incremental)."
+        : "[prerender] sem registro de execução anterior (primeira vez, ou registro perdido/corrompido) — varredura completa.",
+    );
+  }
+
+  const targetRouteSet = new Set(routes.map((r) => r.route));
+  const toProcess = routes.filter((r) => !shouldSkipRoute(r, previousRoutes, forceFullRun));
+  const skipped = routes.length - toProcess.length;
+
+  console.log(
+    `[prerender] ${routes.length} rota(s)-alvo contra ${BASE_URL} (home + eventos ativos + posts publicados) — ${toProcess.length} pra processar, ${skipped} já atualizada(s) (pulando).`,
+  );
+
+  // Registro novo parte do antigo, mas só carrega adiante as rotas que estão
+  // sendo PULADAS (confirmadamente em dia) — as que vão ser (re)processadas
+  // abaixo só entram no registro novo se realmente tiverem sucesso. Isso
+  // evita que uma rota que falhe numa varredura forçada fique marcada como
+  // "em dia" só porque o conteúdo dela no banco não mudou (ela não foi de
+  // fato regenerada com o código novo, então precisa ser tentada de novo).
+  const toProcessRouteSet = new Set(toProcess.map((r) => r.route));
+  const newManifestRoutes = {};
+  let orphansRemoved = 0;
+  for (const [oldRoute, entry] of Object.entries(previousRoutes)) {
+    if (!targetRouteSet.has(oldRoute)) {
+      const fullOutPath = resolve(OUT_DIR, entry.outPath);
+      if (existsSync(fullOutPath)) {
+        rmSync(fullOutPath);
+        orphansRemoved++;
+      }
+      continue;
+    }
+    if (!toProcessRouteSet.has(oldRoute)) {
+      newManifestRoutes[oldRoute] = entry;
+    }
+  }
+  if (orphansRemoved > 0) {
+    console.log(`[prerender] ${orphansRemoved} página(s) órfã(s) removida(s) (evento/post não é mais alvo válido).`);
+  }
 
   const browser = await chromium.launch();
   let ok = 0;
   let failed = 0;
 
   try {
-    for (const { route, outPath } of routes) {
+    for (const { route, outPath, updatedAt } of toProcess) {
       const page = await browser.newPage();
       try {
         // waitUntil:'domcontentloaded' de propósito, não 'networkidle' — a
@@ -145,10 +251,14 @@ async function main() {
         const fullOutPath = resolve(OUT_DIR, outPath);
         mkdirSync(dirname(fullOutPath), { recursive: true });
         writeFileSync(fullOutPath, html);
+        newManifestRoutes[route] = { outPath, updatedAt };
         ok++;
       } catch (err) {
         console.warn(`[prerender] aviso: falha em ${route} (${err.message}). Pulando.`);
         failed++;
+        // Não atualiza o registro dessa rota — se ela já tinha uma versão
+        // válida de antes, o HTML antigo continua no disco (não é apagado
+        // por uma falha pontual) e será tentada de novo na próxima execução.
       } finally {
         await page.close();
       }
@@ -157,11 +267,13 @@ async function main() {
     await browser.close();
   }
 
-  console.log(`[prerender] concluído: ${ok} gerada(s), ${failed} falha(s).`);
+  console.log(`[prerender] concluído: ${ok} gerada(s), ${skipped} pulada(s) (sem mudança), ${failed} falha(s).`);
 
-  if (ok === 0 && routes.length > 0) {
+  saveManifest({ codeHash, generatedAt: new Date().toISOString(), routes: newManifestRoutes });
+
+  if (toProcess.length > 0 && ok === 0) {
     console.error(
-      `[prerender] ERRO: nenhuma das ${routes.length} rota(s) tentada(s) gerou HTML válido — falha total, não uma falha pontual. Veja os avisos acima (procure por menção a Cloudflare/timeout/HTTP status).`,
+      `[prerender] ERRO: nenhuma das ${toProcess.length} rota(s) tentada(s) gerou HTML válido — falha total, não uma falha pontual. Veja os avisos acima (procure por menção a Cloudflare/timeout/HTTP status).`,
     );
     process.exitCode = 1;
   }

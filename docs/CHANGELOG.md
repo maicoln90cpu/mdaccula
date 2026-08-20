@@ -18,6 +18,15 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Pipeline de prerender SEO passa a ser incremental, limpa página órfã, e corrige commit quebrado no CI
+
+- **O que:** `scripts/prerender.mjs` (roda no `prerender.yml`, gera HTML estático de `public/_prerendered/**` pra crawlers sem JS como WhatsApp/Facebook/Telegram) deixou de reprocessar TODOS os eventos ativos e posts publicados em toda execução (~300 rotas, ~45min sempre) e passou a comparar a data de atualização (`updated_at`) de cada um contra um registro (`public/_prerendered/.manifest.json`), pulando o que não mudou.
+- **Detecção automática de mudança de código:** o registro também guarda um hash do conteúdo de `index.html`, `SEOHead.tsx` e `StructuredData.tsx` (`SEO_TEMPLATE_FILES`) — se qualquer um mudar (ex.: a correção do react-helmet-async desta mesma sessão), a próxima execução detecta sozinha e faz a varredura completa de novo, sem precisar de ação manual. Comentário de lembrete adicionado nesses 3 arquivos e no próprio script, apontando pra manter essa lista atualizada se um componente novo passar a afetar SEO.
+- **Limpeza de página órfã:** evento/post que sai da lista de ativos/publicados (excluído, despublicado, ou data já passou) agora tem sua página antiga apagada de `public/_prerendered/` e removida do registro — antes ficava esquecida lá pra sempre.
+- **Bug real encontrado e corrigido no caminho — pipeline nunca tinha completado um ciclo:** o primeiro disparo manual desta sessão (a própria motivação de investigar tudo isso) revelou que a etapa de gerar HTML *funciona* (confirmado: 47min, dezenas de páginas geradas contra o site real), mas a etapa de commitar de volta sempre falhava com `cannot rebase: You have unstaged changes` — o passo "Build project" do workflow roda hooks (`prebuild`) que regeneram `sitemap.xml`/`rss.xml` como efeito colateral, sujando a árvore de trabalho antes do rebase. Corrigido com um `git checkout -- .` logo antes do commit em `prerender.yml`. Isso (não o Cloudflare, suspeita anterior já descartada) provavelmente é a causa raiz real de o pipeline nunca ter gerado um commit em ~1 mês.
+- **Validação:** testado localmente contra o site real (`mdaccula.lovable.app`) em 4 cenários — primeira execução (varredura completa), execução repetida sem mudança (pula tudo menos a home), mudança simulada em `SEOHead.tsx` (detecta e força varredura completa sozinho), e rota removida do alvo (limpa a página órfã do disco e do registro); `tsc`, `lint` e os 723 testes verdes.
+- **Arquivos:** `scripts/prerender.mjs`, `.github/workflows/prerender.yml`, `index.html`, `src/components/SEOHead.tsx`, `src/components/StructuredData.tsx`.
+
 ### 20/08/2026 — Corrige card do grid de eventos nos e-mails: Outlook quebrava botões/nomes, ordem imagem/nome invertida e alinhamento sem efeito no card (R-080)
 
 - **O que:** 3 correções no card do grid de múltiplos eventos usado por `event_grid` (virada de lote) e `weekend_grid` layout "grid" (resumo de fim de semana), reportadas com screenshots comparando Gmail (ok) vs. Outlook (quebrado).

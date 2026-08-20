@@ -37,6 +37,10 @@
       canonical nunca refletiam a página específica pra ninguém que executa JS (usuário
       real, Googlebot, o prerender) — só valores fixos da home. Ver PENDENCIAS.MD/
       CHANGELOG.md (bug "og:title não muda por rota").
+
+      ⚠️ Este arquivo está listado em SEO_TEMPLATE_FILES (scripts/prerender.mjs) — mudar
+      essas tags invalida automaticamente o cache incremental do pipeline de prerender
+      (força uma varredura completa no próximo run).
     -->
     <meta name="description" content="MDAccula - A maior agência de música eletrônica de São Paulo. Eventos, festas, DJs e conteúdo sobre techno, house e cultura eletrônica." data-rh="true">
     <meta name="keywords" content="música eletrônica, techno, house, são paulo, eventos, festas, dj, mdaccula" data-rh="true">

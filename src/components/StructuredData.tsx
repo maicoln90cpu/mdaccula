@@ -1,5 +1,11 @@
 import { Helmet } from 'react-helmet-async';
 
+// ⚠️ Este arquivo está listado em SEO_TEMPLATE_FILES (scripts/prerender.mjs)
+// — mudanças aqui invalidam automaticamente o cache incremental do pipeline
+// de prerender (força uma varredura completa no próximo run). Se você criar
+// um componente NOVO que também gera/afeta title/meta/JSON-LD renderizado
+// nas páginas públicas, adicione o caminho dele em SEO_TEMPLATE_FILES lá.
+
 interface BreadcrumbItem {
   name: string;
   url: string;

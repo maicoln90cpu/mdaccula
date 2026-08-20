@@ -53,6 +53,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # O passo de build acima roda hooks (prebuild: generate-sitemap.mjs,
+          # generate-indexnow-keyfile.mjs) que regeneram arquivos versionados
+          # (sitemap.xml, rss.xml, etc) como efeito colateral — descarta essas
+          # sobras não relacionadas ao prerender antes do rebase abaixo, senão
+          # ele falha com "cannot rebase: You have unstaged changes" sempre
+          # que houver um push concorrente enquanto este job roda (é lento).
+          git checkout -- .
           git add public/_prerendered/
           if git diff --cached --quiet; then
             echo "Nada mudou no prerender — sem commit."

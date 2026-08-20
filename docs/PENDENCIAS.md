@@ -52,17 +52,16 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 👀 Monitoramento
 
-### Checkpoint: pipeline de prerender SEO — aguardando a próxima execução real com o alarme falso já corrigido
+### Checkpoint: confirmar que o pipeline de prerender completa o ciclo inteiro (gerar + commitar) sem erro depois da correção do rebase
 
-**Checar até:** a próxima execução agendada do workflow (roda todo dia às 09:00 UTC) — ou antes, se disparar `workflow_dispatch` manualmente. Não precisa de mais de 1 execução pra fechar: o log já vai ser conclusivo (gerou HTML = resolvido; `exit code 1` com Cloudflare detectado = causa confirmada; `exit code 1` sem menção a Cloudflare = outra causa a investigar).
-**Contexto:** `.github/workflows/prerender.yml` roda 1x/dia desde 19/07/2026 e nunca gerou um commit de `public/_prerendered/**` — auditoria de 16/08/2026 achou e corrigiu um bug real: `scripts/prerender.mjs` nunca saía com código de erro, mesmo em falha total (0 de N rotas geradas), então o workflow sempre aparecia "sucesso" verde mesmo sem gerar nada, por quase 1 mês sem ninguém perceber. Corrigido nesta sessão: agora sai com `exit code 1` quando 0 páginas são geradas, com log por rota (status HTTP + detecção de desafio do Cloudflare). Testado localmente (falha total simulada → `exit code 1` correto; caminho feliz → 3 páginas geradas contra `mdaccula.lovable.app` real).
-**Suspeita levantada, ainda não confirmada:** rodando o script localmente contra o site real, funcionou perfeitamente — descarta bug no script/site em si. Os headers do site mostram `server: cloudflare` + cookie `__cf_bm` (Cloudflare Bot Management, que costuma desafiar navegador headless vindo de IP de datacenter — perfil do runner do GitHub Actions). Só a próxima execução real confirma ou descarta isso.
+**Checar até:** o próximo disparo (agendado, 09:00 UTC, ou manual) depois que os commits desta sessão (fix do rebase + versão incremental) estiverem em `main`.
+**Contexto:** disparado manualmente em 20/08/2026 pela primeira vez com sucesso real — a etapa de gerar HTML funcionou (47min, dezenas de páginas geradas contra `mdaccula.lovable.app`), afastando de vez a suspeita de bloqueio do Cloudflare (não era isso). A etapa seguinte, de commitar o resultado de volta pro repo, falhou com `cannot rebase: You have unstaged changes` — causa raiz: o passo "Build project" roda hooks (`prebuild`) que regeneram `sitemap.xml`/`rss.xml` como efeito colateral, sujando a árvore de trabalho antes do `git rebase origin/main`. Corrigido com um `git checkout -- .` antes do commit. Nesta mesma sessão, o pipeline também ganhou execução incremental (só reprocessa evento/post que mudou desde a última vez, detecta mudança de código relevante automaticamente, e limpa página órfã) — ver `CHANGELOG.md`.
 **Passos:**
 
-1. Depois da próxima execução, abrir o log do step "Gerar HTML pré-renderizado" na aba Actions.
-2. Se confirmar bloqueio do Cloudflare: a correção fica fora deste repositório (configuração do lado do Cloudflare/Lovable — liberar IP do GitHub Actions ou usar User-Agent/token reconhecido) — decisão e execução do usuário.
-3. Se resolver sozinho (gerou HTML normal): encerrar este checkpoint, vira entrada no `CHANGELOG.md`.
-   **Responsável:** usuário confere a aba Actions (acesso que esta sessão não tem) e reporta o resultado; IA investiga mais fundo quando tiver o log real.
+1. Depois do próximo disparo, conferir se o job completo (gerar + commitar) fica verde e se aparece um commit novo `chore(prerender): atualiza HTML pré-renderizado` em `main`.
+2. Se passar: encerrar este checkpoint, vira entrada no `CHANGELOG.md`.
+3. Se falhar de novo: abrir o log do step que falhou — o comportamento observado até agora não tem mais relação com Cloudflare, então investigar a partir do erro real reportado.
+   **Responsável:** IA confirma no próximo disparo desta mesma sessão (ou o usuário confere a aba Actions depois).
 
 ### Checkpoint: checagem de Storage no egress-alert-cron aguardando a API pública do Supabase estabilizar
 

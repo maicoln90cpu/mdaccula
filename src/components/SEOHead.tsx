@@ -2,6 +2,12 @@ import { Helmet } from 'react-helmet-async';
 import { useEffect, useMemo } from 'react';
 import { getOptimizedImageUrl } from '@/lib/imageUtils';
 
+// ⚠️ Este arquivo está listado em SEO_TEMPLATE_FILES (scripts/prerender.mjs)
+// — mudanças aqui invalidam automaticamente o cache incremental do pipeline
+// de prerender (força uma varredura completa no próximo run). Se você criar
+// um componente NOVO que também gera/afeta title/meta/JSON-LD renderizado
+// nas páginas públicas, adicione o caminho dele em SEO_TEMPLATE_FILES lá.
+
 interface SEOProps {
   title: string;
   description: string;
