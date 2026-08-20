@@ -80,13 +80,3 @@ export const Youtube = createBrandIcon(
     <path d="m10 15 5-3-5-3z" />
   </>
 );
-
-/** Nome normalizado (minúsculo, sem espaços) -> componente do ícone de marca. */
-export const brandIconMap = {
-  instagram: Instagram,
-  facebook: Facebook,
-  twitter: Twitter,
-  x: Twitter,
-  linkedin: Linkedin,
-  youtube: Youtube,
-} as const;

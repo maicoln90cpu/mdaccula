@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { ExternalLink } from 'lucide-react';
 import dynamicIconImports from 'lucide-react/dynamicIconImports';
 import type { LucideProps } from 'lucide-react';
-import { brandIconMap } from '@/components/icons/brand';
+import { brandIconMap } from '@/components/icons/brandIconMap';
 
 interface DynamicIconProps extends Omit<LucideProps, 'ref'> {
   name: string;
