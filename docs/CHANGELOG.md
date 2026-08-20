@@ -18,6 +18,15 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Fase 2D (parte 1): migração para React 19
+
+- **O que:** `react` e `react-dom` de 18.3.1 → 19.2.8, com `@types/react`/`@types/react-dom` 19.
+- **Ajuste necessário:** o React 19 removeu o namespace global `JSX`. Os 5 sub-painéis de propriedades do editor de e-mail (`src/components/admin/emailTemplateEditor/blockPropsPanel/*.tsx`) passaram a importar `JSX` do próprio React (`import type { JSX } from 'react'`). Nenhuma outra mudança de código foi necessária — `createRoot` já era usado em `src/main.tsx`.
+- **Validação:** `tsc`, `lint`, `build` e 710 testes verdes; 9 páginas públicas abertas no navegador (`/`, `/eventos`, `/blog`, `/links`, `/analytics`, `/MDAcculaRadio`, `/quem-somos`, `/contato`, `/privacidade`) — todas renderizando, sem erro de React no console.
+- **Observação:** dependências como Radix, dnd-kit e recharts ainda declaram peer de React 18; funcionam normalmente, mas o `npm install` pode exigir `--legacy-peer-deps` até que atualizem os metadados.
+- **Arquivos:** `package.json`, `package-lock.json`, `src/components/admin/emailTemplateEditor/blockPropsPanel/{textProps,eventProps,digestProps,structuralProps,actionProps}.tsx`.
+
+
 ### 20/08/2026 — Fase 2C encerrada: `@hookform/resolvers` 5.2
 
 - **O que:** a peça que liga os formulários às suas regras de preenchimento (`zodResolver`) saiu da 3.10 para a 5.2. Usada em `src/pages/Podcast.tsx` (inscrição de DJ) e `src/pages/Privacidade.tsx` (pedido de exclusão de dados).

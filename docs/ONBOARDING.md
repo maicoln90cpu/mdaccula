@@ -50,7 +50,7 @@ teste em `src/__tests__/regression/`.
 
 ## 4. Como o código está organizado
 
-- **Frontend**: React 18 + TypeScript + Vite + Tailwind + Shadcn/UI. Toda página é lazy-loaded em
+- **Frontend**: React 19 + TypeScript + Vite + Tailwind + Shadcn/UI. Toda página é lazy-loaded em
   `src/App.tsx` (ver `docs/FEATURE_MAP.md` para a lista completa de rotas). TanStack Query pra estado
   de servidor.
 - **Aliases**: `@/*` → `src/*`, `@shared/*` → `supabase/functions/_shared/*` (mesmo alias em

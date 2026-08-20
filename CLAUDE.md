@@ -30,7 +30,7 @@ Pre-merge checklist (from `docs/TESTING.md`): `npm test` green, `npm run test:co
 
 ## Architecture
 
-**Frontend**: React 18 + TypeScript + Vite + Tailwind + Shadcn/UI, React Router with every page lazy-loaded in `src/App.tsx`, TanStack Query for server state. Path aliases: `@/*` → `src/*`, `@shared/*` → `supabase/functions/_shared/*` (same aliases in both `tsconfig.json` and `vitest.config.ts`).
+**Frontend**: React 19 + TypeScript + Vite + Tailwind + Shadcn/UI, React Router with every page lazy-loaded in `src/App.tsx`, TanStack Query for server state. Path aliases: `@/*` → `src/*`, `@shared/*` → `supabase/functions/_shared/*` (same aliases in both `tsconfig.json` and `vitest.config.ts`).
 
 **Backend**: Supabase/Lovable Cloud — PostgreSQL (42 tables, RLS everywhere — see `docs/DATABASE_SCHEMA.md` and `docs/tabelas.md` for full DDL), 57 Deno Edge Functions in `supabase/functions/` (see `docs/EDGE_FUNCTIONS.md` — note several admin-only functions still lack server-side auth checks, tracked in `docs/PENDENCIAS.md`), Storage for images, pg_cron for scheduled jobs (recurring events, AI article generation, log cleanup). `supabase/config.toml`, `src/integrations/supabase/client.ts`, and `src/integrations/supabase/types.ts` are auto-managed/generated — never hand-edit them.
 
