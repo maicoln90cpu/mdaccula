@@ -4,12 +4,12 @@ import { StaticIcon } from '@/components/links/StaticIcon';
 import { brandIconMap } from '@/components/icons/brandIconMap';
 
 /**
- * R-055 — o `lucide-react` v1 removeu os ícones de marca (Instagram, Facebook,
+ * R-077 — o `lucide-react` v1 removeu os ícones de marca (Instagram, Facebook,
  * Twitter, LinkedIn, YouTube). Como o nome do ícone dos cards de /links vem do
  * banco, uma remoção silenciosa faria todos virarem o genérico "link externo".
  * Este teste garante que cada marca continua com um ícone próprio e distinto.
  */
-describe('R-055: ícones de marca não caem no fallback genérico', () => {
+describe('R-077: ícones de marca não caem no fallback genérico', () => {
   const brands = ['instagram', 'facebook', 'twitter', 'linkedin', 'youtube'] as const;
 
   it('mantém um componente próprio para cada marca', () => {
