@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Corrige menu admin flutuando por cima do conteúdo — regressão silenciosa da migração Tailwind v4 (R-081)
+
+- **O que:** reportado pelo usuário com print: o menu lateral do `/admin` aparecia flutuando por cima do conteúdo da página (texto e primeira coluna de cards cortados atrás do menu), em vez de empurrar o conteúdo pra o lado.
+- **Causa:** a sintaxe `w-[--minha-var]` (usada pelo componente `sidebar.tsx` do shadcn/ui para reservar o espaço do menu) era um atalho do Tailwind v3 que virava `width: var(--minha-var)`. A migração pro Tailwind v4 (commit anterior) não tocou nesse componente, mas o v4 parou de fazer essa conversão automática — a classe passou a compilar pra `width: --minha-var` (CSS inválido), o navegador descarta a regra, e o elemento perde a largura. Sem essa largura reservada, o menu (que é posicionado fixo, técnica normal do componente) passou a flutuar por cima do conteúdo. O mesmo padrão existia também em `chart.tsx` (cor do indicador dos gráficos).
+- **Correção:** trocada a sintaxe antiga `[--variavel]` pela nova do Tailwind v4, `(--variavel)`, em 7 pontos de `src/components/ui/sidebar.tsx` e 1 de `src/components/ui/chart.tsx`.
+- **Validação:** confirmado direto no CSS compilado (regra inválida antes, válida depois) e com um teste E2E autenticado real no `/admin` — bounding box do menu e do conteúdo sobrepostos antes, lado a lado depois; `tsc`, `lint` e os 724 testes verdes.
+- **Arquivos:** `src/components/ui/sidebar.tsx`, `src/components/ui/chart.tsx`, `src/__tests__/architecture/tailwind-theme.test.ts` (guarda nova contra o padrão inválido em qualquer arquivo futuro), `docs/TESTING.md`.
+
 ### 20/08/2026 — Corrige `<title>` duplicado no HTML pré-renderizado (gap descoberto validando o pipeline de prerender)
 
 - **O que:** inspecionando o HTML de verdade gerado pelo primeiro run bem-sucedido do pipeline de prerender, `<title>` apareceu duplicado (a tag estática do `index.html` ao lado da gerada pela rota) — o mesmo mecanismo do R-019/sua reincidência de hoje (react-helmet-async v3 sob React 19 não reconhece tags estáticas pré-existentes), mas `<title>` nunca teve como carregar o atributo `data-rh` usado para limpar as outras tags, então ficou de fora da correção anterior.
