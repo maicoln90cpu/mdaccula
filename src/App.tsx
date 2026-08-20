@@ -95,12 +95,9 @@ const App = () => (
                 </Suspense>
                 <Toaster />
                 <Sonner />
-                <BrowserRouter
-                  future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true,
-                  }}
-                >
+                {/* React Router v7: os comportamentos das antigas flags
+                    v7_startTransition / v7_relativeSplatPath já são padrão. */}
+                <BrowserRouter>
                   <Suspense fallback={<PageLoader />}>
                     <Routes>
                       {/* Public Pages */}
