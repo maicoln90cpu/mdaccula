@@ -2,7 +2,7 @@
 // Extraído de renderBlock.ts (Onda 23) sem alterar HTML gerado.
 import { EMAIL_BLOCK_LIMITS, clamp } from "../../emailBlocksLimits.ts";
 import type { Align, Block, RenderContext, WeekendEventItem } from "../types.ts";
-import { escape, proxyForEmail, renderBulletproofButton } from "../utils.ts";
+import { escape, proxyForEmail, renderBulletproofButton, resolveGridCardUrl } from "../utils.ts";
 import type { RenderStyle } from "./style.ts";
 
 const gridColumns = (block: { columns?: 2 | 3 }): number => (block.columns === 3 ? 3 : 2);
@@ -31,13 +31,19 @@ const gridColWidthPct = (index: number, rowLength: number): number => {
  * fundo em gradiente escuro), imagem logo abaixo, e por fim dia/hora,
  * line-up e botão — ordem pedida para dar mais destaque ao nome antes da
  * imagem carregar.
+ *
+ * `linkTarget` (só usado por `event_grid`, ver `resolveGridCardUrl`) escolhe
+ * um destino único pra imagem+nome+botão: ticketeira externa ou página do
+ * evento no site. Quando não informado (uso do `weekend_grid`, fora de
+ * escopo desta opção), mantém o comportamento antigo: imagem/nome sempre
+ * pra `eventUrl`, botão sempre pra `ticketUrl` (dois destinos distintos).
  */
 function renderGridEventCard(
   ev: WeekendEventItem,
-  opts: { columns: number; accentColor: string; gradient: string; solidPrimary: string; defaultCtaLabel: string; showTime: boolean; align?: Align },
+  opts: { columns: number; accentColor: string; gradient: string; solidPrimary: string; defaultCtaLabel: string; showTime: boolean; align?: Align; linkTarget?: "ticket_link" | "event_url" },
 ): string {
-  const { columns, accentColor, gradient, solidPrimary, defaultCtaLabel, showTime, align = "left" } = opts;
-  const url = escape(ev.eventUrl || "#");
+  const { columns, accentColor, gradient, solidPrimary, defaultCtaLabel, showTime, align = "left", linkTarget } = opts;
+  const url = escape(linkTarget ? resolveGridCardUrl(ev, linkTarget) || "#" : ev.eventUrl || "#");
   const ctaLabel = escape(ev.ctaLabel || defaultCtaLabel);
 
   // Largura máxima da imagem derivada da largura útil do e-mail (552px) menos
@@ -45,8 +51,9 @@ function renderGridEventCard(
   // valor fixo de antes), em 3 colunas dá 168.
   const imgMaxWidth = Math.floor((552 - columns * 16) / columns);
 
-  const btn = ev.ticketUrl
-    ? renderBulletproofButton(escape(ev.ticketUrl), ctaLabel, {
+  const btnUrl = linkTarget ? resolveGridCardUrl(ev, linkTarget) : ev.ticketUrl;
+  const btn = btnUrl
+    ? renderBulletproofButton(escape(btnUrl), ctaLabel, {
       bg: gradient,
       bgSolid: solidPrimary,
       fullWidth: true,
@@ -252,11 +259,12 @@ export function renderDigestBlock(
 
       const columns = gridColumns(block);
       const defaultCtaLabel = settings.cta_label || "Garantir ingresso";
+      const linkTarget = block.link_target ?? "ticket_link";
       const rows: string[] = [];
       for (let i = 0; i < list.length; i += columns) {
         const group = list.slice(i, i + columns);
         const cells = group
-          .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns: group.length, accentColor: accent, gradient, solidPrimary, defaultCtaLabel, showTime: true, align })}</td>`)
+          .map((ev, idx) => `<td width="${gridColWidthPct(idx, group.length)}%" style="padding:8px;vertical-align:top;">${renderGridEventCard(ev, { columns: group.length, accentColor: accent, gradient, solidPrimary, defaultCtaLabel, showTime: true, align, linkTarget })}</td>`)
           .join("");
         rows.push(`<tr><td style="padding:2px 24px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>${cells}</tr></table></td></tr>`);
       }

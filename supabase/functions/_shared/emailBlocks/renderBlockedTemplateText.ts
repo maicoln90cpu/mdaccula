@@ -3,6 +3,7 @@ import { EMAIL_BLOCK_LIMITS, clamp } from "../emailBlocksLimits.ts";
 import type { Block, EventAnnouncementData, EmailTemplateSettings, ArticleSummary, GlobalBlock } from "./types.ts";
 import { expandGlobalRefs } from "./types.ts";
 import { computePreheader } from "./preheader.ts";
+import { resolveGridCardUrl } from "./utils.ts";
 
 function stripHtml(html: string): string {
   return html
@@ -118,8 +119,11 @@ function renderBlockText(block: Block, event: EventAnnouncementData, settings: E
       // um cabeçalho genérico que o HTML não tem.
       const headerLines = [block.eyebrow, block.title].filter(Boolean).map((t) => (t as string).toUpperCase());
       const header = headerLines.length ? `${headerLines.join("\n")}\n` : "";
+      // Mesmo destino escolhido em `block.link_target` que o HTML usa —
+      // ticketeira externa por padrão, ou a página do evento no site.
+      const linkTarget = block.link_target ?? "ticket_link";
       const rows = list.map((ev) =>
-        `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue} — ${ev.ticketUrl || ev.eventUrl}`
+        `- ${ev.dayLabel}${ev.timeLabel ? " " + ev.timeLabel : ""} · ${ev.title} @ ${ev.venue} — ${resolveGridCardUrl(ev, linkTarget)}`
       );
       return `${header}${rows.join("\n")}`;
     }

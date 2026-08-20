@@ -127,6 +127,21 @@ export function renderDigestProps(block: Block, patch: Patch): JSX.Element | nul
           </Select>
         </div>
         <div>
+          <Label className="text-xs">Link dos cards (imagem, nome e botão)</Label>
+          <Select
+            value={block.link_target || 'ticket_link'}
+            onValueChange={(v) => patch({ link_target: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ticket_link">Direto pra ticketeira (padrão)</SelectItem>
+              <SelectItem value="event_url">Página do evento no site</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label className="text-xs">Etiqueta (topo — opcional)</Label>
           <Input
             value={block.eyebrow || ''}

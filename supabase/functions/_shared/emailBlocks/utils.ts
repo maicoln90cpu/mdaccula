@@ -1,5 +1,5 @@
 // Utilidades puras usadas pelo renderer HTML. Extraído sem mudanças.
-import type { Block, EventAnnouncementData } from "./types.ts";
+import type { Block, EventAnnouncementData, WeekendEventItem } from "./types.ts";
 
 export const escape = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -46,6 +46,18 @@ export const resolveCtaUrl = (block: Extract<Block, { kind: "cta_button" }>, eve
       return event.ticketUrl;
   }
 };
+
+/**
+ * Link usado pelo card do grid de eventos (`event_grid`) — imagem, título e
+ * botão seguem o mesmo destino, escolhido no bloco: direto pra ticketeira
+ * (Sympla/Ingresse/etc, comportamento padrão/antigo) ou pra página do
+ * evento dentro do site mdaccula. Sempre cai pro outro valor se o escolhido
+ * estiver vazio (ex.: evento sem ticket_link cadastrado).
+ */
+export const resolveGridCardUrl = (ev: WeekendEventItem, linkTarget?: "ticket_link" | "event_url") =>
+  linkTarget === "event_url"
+    ? (ev.eventUrl || ev.ticketUrl)
+    : (ev.ticketUrl || ev.eventUrl);
 
 export const resolveSecondaryUrl = (block: Extract<Block, { kind: "secondary_link" }>, event: EventAnnouncementData) => {
   switch (block.url_field) {

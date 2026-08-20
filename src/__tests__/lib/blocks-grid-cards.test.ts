@@ -155,4 +155,69 @@ describe('weekend_grid — layout "grid" com 2+ eventos usa o mesmo card compart
     expect(html).not.toContain('background-image:linear-gradient(180deg, rgba(0,0,0,0.62)');
     expect(html).not.toContain('DJ SOLO');
   });
+
+  it('não recebe link_target do event_grid — imagem/nome sempre em eventUrl, botão sempre em ticketUrl (comportamento antigo preservado)', () => {
+    const event = {
+      ...MOCK_EVENT_DATA,
+      weekendEvents: [
+        gridItem({ eventUrl: 'https://mdaccula.com/eventos/krush', ticketUrl: 'https://sympla.com.br/krush' }),
+        gridItem({ id: 'ev-2' }),
+      ],
+    };
+    const blocks: Block[] = [{ id: 'w', kind: 'weekend_grid', layout: 'grid' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect(html).toContain('href="https://mdaccula.com/eventos/krush"');
+    expect(html).toContain('https://sympla.com.br/krush');
+  });
+});
+
+describe('event_grid — link_target: escolher entre ticketeira externa e página do evento no site', () => {
+  it('sem link_target definido, mantém o padrão antigo: imagem/nome e botão vão pra ticketeira (compat. com templates salvos)', () => {
+    const event = {
+      ...MOCK_EVENT_DATA,
+      gridEvents: [gridItem({ eventUrl: 'https://mdaccula.com/eventos/krush', ticketUrl: 'https://sympla.com.br/krush' })],
+    };
+    const blocks: Block[] = [{ id: 'g', kind: 'event_grid' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect(html).not.toContain('href="https://mdaccula.com/eventos/krush"');
+    expect((html.match(/https:\/\/sympla\.com\.br\/krush/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('link_target explícito "ticket_link" também manda imagem/nome/botão pra ticketeira', () => {
+    const event = {
+      ...MOCK_EVENT_DATA,
+      gridEvents: [gridItem({ eventUrl: 'https://mdaccula.com/eventos/krush', ticketUrl: 'https://sympla.com.br/krush' })],
+    };
+    const blocks: Block[] = [{ id: 'g', kind: 'event_grid', link_target: 'ticket_link' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/https:\/\/sympla\.com\.br\/krush/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(html).not.toContain('mdaccula.com/eventos/krush');
+  });
+
+  it('link_target "event_url" manda imagem, nome e botão pra página do evento no site', () => {
+    const event = {
+      ...MOCK_EVENT_DATA,
+      gridEvents: [gridItem({ eventUrl: 'https://mdaccula.com/eventos/krush', ticketUrl: 'https://sympla.com.br/krush' })],
+    };
+    const blocks: Block[] = [{ id: 'g', kind: 'event_grid', link_target: 'event_url' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect((html.match(/mdaccula\.com\/eventos\/krush/g) || []).length).toBeGreaterThanOrEqual(2);
+    expect(html).not.toContain('sympla.com.br/krush');
+  });
+
+  it('link_target "event_url" sem ticketUrl cadastrado ainda mostra o botão (cai pra eventUrl)', () => {
+    const event = {
+      ...MOCK_EVENT_DATA,
+      gridEvents: [gridItem({ eventUrl: 'https://mdaccula.com/eventos/krush', ticketUrl: undefined })],
+    };
+    const blocks: Block[] = [{ id: 'g', kind: 'event_grid', link_target: 'event_url' }];
+    const html = renderBlockedTemplate(blocks, event, null, null, { preview: true });
+
+    expect(html).toMatch(/garantir ingresso/i);
+    expect(html).toContain('mdaccula.com/eventos/krush');
+  });
 });

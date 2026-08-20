@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### 20/08/2026 — Grid de eventos (virada de lote) ganha opção de link: ticketeira externa ou página do evento no site
+
+- **O que:** o bloco `event_grid` (grade de múltiplos eventos usada na "virada de lote") sempre mandava o clique no card inteiro (imagem, nome e botão "Garantir ingresso") direto pra ticketeira externa (Sympla, Ingresse, etc). Agora dá pra escolher, por bloco, entre esse comportamento (padrão, sem mudança pra quem já usa) ou mandar tudo pra página do próprio evento dentro do site mdaccula.
+- **Onde mexer:** editor de e-mail → bloco "Grid de evento..." → propriedade nova "Link dos cards (imagem, nome e botão)".
+- **Correção:** nova propriedade `link_target` (`ticket_link` | `event_url`, padrão `ticket_link`) no bloco `event_grid`; um resolvedor único (`resolveGridCardUrl`, `supabase/functions/_shared/emailBlocks/utils.ts`) decide a URL usada tanto pela versão HTML (imagem, nome e botão do card, `renderGridEventCard` em `renderBlock/digest.ts`) quanto pela versão texto-puro (`renderBlockedTemplateText.ts`) do e-mail — sempre a mesma escolha nos dois. Não mexe no `weekend_grid` (fora do pedido), que continua com o comportamento de sempre (imagem/nome na página do site, botão na ticketeira).
+- **Validação:** `tsc`, `lint` e os 729 testes verdes (5 novos cobrindo os 2 modos + compatibilidade com templates salvos sem a propriedade).
+- **Arquivos:** `supabase/functions/_shared/emailBlocks/types.ts`, `supabase/functions/_shared/emailBlocks/utils.ts`, `supabase/functions/_shared/emailBlocks/renderBlock/digest.ts`, `supabase/functions/_shared/emailBlocks/renderBlockedTemplateText.ts`, `src/components/admin/emailTemplateEditor/blockPropsPanel/digestProps.tsx`, `src/components/admin/emailTemplateEditor/blockDefaults.ts`, `src/__tests__/lib/blocks-grid-cards.test.ts`.
+
 ### 20/08/2026 — Corrige menu admin flutuando por cima do conteúdo — regressão silenciosa da migração Tailwind v4 (R-081)
 
 - **O que:** reportado pelo usuário com print: o menu lateral do `/admin` aparecia flutuando por cima do conteúdo da página (texto e primeira coluna de cards cortados atrás do menu), em vez de empurrar o conteúdo pra o lado.
