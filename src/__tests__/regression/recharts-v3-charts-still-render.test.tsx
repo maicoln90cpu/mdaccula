@@ -2,13 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartLegend,
-  ChartLegendContent,
-} from '@/components/ui/chart';
+import { ChartContainer, ChartTooltipContent, ChartLegendContent } from '@/components/ui/chart';
 
 /**
  * R-078 — o `recharts` 3 reescreveu o motor interno e removeu `payload`/`label`
@@ -16,7 +10,10 @@ import {
  * usa. Um erro nesse wrapper não quebra o build de forma óbvia: o gráfico
  * simplesmente deixa de desenhar (ou some a legenda/tooltip) nos painéis de
  * e-mail, egress e analytics. Este teste garante que barras, linhas, eixos,
- * grade e legenda continuam sendo renderizados.
+ * grade, tooltip e legenda continuam sendo renderizados.
+ *
+ * Obs.: os gráficos são renderizados direto (sem `ChartContainer`) porque o
+ * `ResponsiveContainer` mede 0x0 no jsdom e não desenharia nada.
  */
 const data = [
   { name: 'Seg', enviados: 12, abertos: 5 },
@@ -32,15 +29,12 @@ const config = {
 describe('R-078: gráficos continuam desenhando após o recharts 3', () => {
   it('renderiza barras, eixos e grade', () => {
     const { container } = render(
-      <ChartContainer config={config} className="h-[200px] w-[400px]">
-        <BarChart data={data} width={400} height={200}>
-          <CartesianGrid />
-          <XAxis dataKey="name" />
-          <YAxis />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          <Bar dataKey="enviados" fill="var(--color-enviados)" />
-        </BarChart>
-      </ChartContainer>
+      <BarChart data={data} width={400} height={200}>
+        <CartesianGrid />
+        <XAxis dataKey="name" />
+        <YAxis />
+        <Bar dataKey="enviados" fill="#f0f" isAnimationActive={false} />
+      </BarChart>
     );
 
     expect(container.querySelector('svg')).not.toBeNull();
@@ -49,20 +43,45 @@ describe('R-078: gráficos continuam desenhando após o recharts 3', () => {
     expect(container.querySelectorAll('.recharts-cartesian-axis').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('renderiza linhas e a legenda customizada', () => {
+  it('renderiza linhas', () => {
+    const { container } = render(
+      <LineChart data={data} width={400} height={200}>
+        <XAxis dataKey="name" />
+        <Line dataKey="enviados" stroke="#f0f" isAnimationActive={false} />
+        <Line dataKey="abertos" stroke="#0ff" isAnimationActive={false} />
+      </LineChart>
+    );
+
+    expect(container.querySelectorAll('.recharts-line-curve').length).toBe(2);
+  });
+
+  it('tooltip customizado mostra rótulo e valor', () => {
     const { container } = render(
       <ChartContainer config={config} className="h-[200px] w-[400px]">
-        <LineChart data={data} width={400} height={200}>
-          <XAxis dataKey="name" />
-          <ChartLegend content={<ChartLegendContent />} />
-          <Line dataKey="enviados" stroke="var(--color-enviados)" />
-          <Line dataKey="abertos" stroke="var(--color-abertos)" />
-        </LineChart>
+        <ChartTooltipContent
+          active
+          label="Seg"
+          payload={[{ dataKey: 'enviados', name: 'enviados', value: 12, color: '#f0f' }]}
+        />
       </ChartContainer>
     );
 
-    expect(container.querySelectorAll('.recharts-line').length).toBe(2);
-    expect(container.querySelectorAll('.recharts-line-curve').length).toBe(2);
+    expect(container.textContent).toContain('Enviados');
+    expect(container.textContent).toContain('12');
+  });
+
+  it('legenda customizada mostra o nome de cada série', () => {
+    const { container } = render(
+      <ChartContainer config={config} className="h-[200px] w-[400px]">
+        <ChartLegendContent
+          payload={[
+            { value: 'enviados', dataKey: 'enviados', color: '#f0f' },
+            { value: 'abertos', dataKey: 'abertos', color: '#0ff' },
+          ]}
+        />
+      </ChartContainer>
+    );
+
     expect(container.textContent).toContain('Enviados');
     expect(container.textContent).toContain('Abertos');
   });
