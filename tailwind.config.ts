@@ -80,11 +80,6 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
-      spacing: {
-        'section': 'var(--space-section)',
-        '2xl': 'var(--space-2xl)',
-        '3xl': 'var(--space-3xl)',
-      },
       boxShadow: {
         // 'xs' preserva a sombra sutil que o Tailwind v3 chamava de 'shadow-sm'
         'xs': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
