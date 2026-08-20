@@ -18,6 +18,14 @@
 
 ## Entradas Detalhadas
 
+### React Router v6.30 → v7.18 (Fase 2B do plano de fases seguras)
+**Descrição:** `react-router` e `react-router-dom` migrados para a versão 7. Como as duas future flags relevantes (`v7_startTransition`, `v7_relativeSplatPath`) já estavam ativas desde 15/08, o comportamento não mudou na virada — o prop `future={{...}}` foi removido do `<BrowserRouter>` (`src/App.tsx`) porque na v7 esses comportamentos já são padrão. Fecha as 2 CVEs moderadas do router (open redirect via backslash e `deserializeErrors()`).
+**Descoberta paralela (E2E):** os testes de ponta a ponta acusavam `console.error` com o aviso "Function components cannot be given refs" em todas as rotas públicas. Investigado: vem do instrumentador de desenvolvimento (`lovable-tagger`, só ativo em `vite dev`), não do router — com build de produção (`vite preview`) o aviso não aparece nenhuma vez. Filtrado de forma estreita em `e2e/helpers/pageHealth.ts`, igual ao precedente do `fetchPriority`.
+**Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm run build` e `npm test` (702 testes) verdes; `npm run e2e` verde (8 passaram, 1 pulado por falta de credenciais de admin) cobrindo home, /links, /eventos, /blog, detalhe de evento, SEO/robots e o redirecionamento de /admin para /auth.
+**Arquivos:** `package.json`, `package-lock.json`, `src/App.tsx`, `e2e/helpers/pageHealth.ts`.
+**Data:** 20/08/2026
+**Responsável:** IA, a pedido do usuário (Fase 2B aprovada).
+
 ### Lote seguro de atualização de dependências (Fase 2A do plano de fases seguras)
 **Descrição:** 30 pacotes atualizados apenas dentro da mesma versão maior (correções de bug e melhorias compatíveis, sem mudança de API): `typescript` 5.8→5.9, `vite` 7.0→7.3, `vitest`/`@vitest/coverage-v8` 4.1.10→4.1.11, `eslint` 9.32→9.39, `typescript-eslint` 8.38→8.67, `prettier` 3.7→3.9, `react-hook-form` 7.61→7.85, `framer-motion` 12.42→12.43, `dompurify` 3.4.12→3.4.14, `tailwindcss` 3.4.17→3.4.19, `postcss`, `autoprefixer`, `terser`, `lightningcss`, `react-router-dom`/`react-router` 6.30.4→6.30.6 (ainda v6 — o salto para v7 é a Fase 2B), `react-day-picker`, `react-easy-crop`, `input-otp`, `tailwind-merge`, `@vitejs/plugin-react`, `lovable-tagger`, `@testing-library/*`, `@types/*`. Radix UI, `@fontsource/*`, Playwright, `@supabase/supabase-js`, TanStack Query e `date-fns` já estavam na última versão compatível — nada a fazer. **Ficaram de fora de propósito:** os pacotes `@tiptap/*` (3.29→3.30 exige subir o peer `@tiptap/extensions` junto — conflito de dependência, vira passo próprio), `lucide-react` (0.462→0.577, salto grande de biblioteca de ícones) e `next-themes` (0.3→0.4, mudança de API) — os dois últimos entram na Fase 2C.
 **Verificação:** `npx tsc --noEmit -p tsconfig.app.json`, `npm run lint`, `npm test` (702 testes) e `npm run build` verdes; preview local respondendo 200.
