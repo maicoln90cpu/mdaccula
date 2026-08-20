@@ -1,15 +1,10 @@
 import {
   ExternalLink,
-  Instagram,
   Music,
   MessageCircle,
   Calendar,
   FileText,
   Mail,
-  Youtube,
-  Twitter,
-  Facebook,
-  Linkedin,
   Globe,
   Ticket,
   MapPin,
@@ -32,6 +27,7 @@ import {
   type LucideProps,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
+import { Instagram, Twitter, Facebook, Linkedin, Youtube } from '@/components/icons/brand';
 import { getBrandColor } from '@/lib';
 
 /**
