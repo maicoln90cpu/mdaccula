@@ -656,6 +656,12 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Proteção:** `src/__tests__/regression/event-vip-link-hardcoded-old-phone.test.ts` (guard estático — falha se o número antigo voltar a aparecer hardcoded em qualquer um dos dois arquivos, ou se deixarem de usar `useSiteSettings`).
 - **Proteção:** `src/__tests__/lib/eventMergeHelper.test.ts`, `src/__tests__/regression/merge-events-dialog-title-preserved.test.tsx`, `src/__tests__/regression/ticket-day-picker-reads-live-members.test.tsx`, `src/__tests__/regression/undo-merge-dialog-reads-group-live.test.tsx`, `src/__tests__/regression/event-card-blocks-remerging-shell.test.tsx`, `src/__tests__/regression/merge-shell-column-and-nostalgia-migration.test.ts`, `src/__tests__/regression/links-query-not-filtered-by-merge-status.test.ts`, `src/__tests__/regression/ticket-card-shows-button-for-day-picker-without-link.test.tsx`.
 
+### R-077 — `lucide-react` v1 removeu os ícones de marca (Instagram, Facebook, Twitter, LinkedIn, YouTube)
+- **Quando:** 20/08/2026, durante a Fase 2C de atualização de dependências.
+- **Sintoma potencial:** ao subir o `lucide-react` de 0.462 para 1.33, os imports de marca somem da biblioteca. Nos cards da `/links` o nome do ícone vem do banco, então não haveria erro de compilação — todos virariam silenciosamente o ícone genérico de "link externo".
+- **Correção:** ícones de marca próprios em `src/components/icons/brand.tsx` (mesmo traço e mesma API do Lucide) + mapa nome→ícone em `src/components/icons/brandIconMap.ts`, consultados por `StaticIcon` e `DynamicIcon` antes do Lucide.
+- **Proteção:** `src/__tests__/regression/brand-icons-survive-lucide-v1.test.tsx` (falha se qualquer marca deixar de ter componente próprio ou passar a renderizar igual ao fallback genérico).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
