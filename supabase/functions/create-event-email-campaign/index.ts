@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { cacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import { beginInProgressHistoryRow, finalizeHistoryRow } from '../_shared/emailDispatchHistory.ts';
+import { withDispatchMarker } from '../_shared/egoiCampaignLookup.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

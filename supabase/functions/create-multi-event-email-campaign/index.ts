@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { safeCacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { beginInProgressHistoryRows, finalizeHistoryRows } from '../_shared/emailDispatchHistory.ts';
+import { withDispatchMarker } from '../_shared/egoiCampaignLookup.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -220,7 +221,7 @@ Deno.serve(async (req) => {
     const internalName = `MDAccula • ${templateLabel} (${eventIds.length} eventos) • ${now.slice(0, 10)}`;
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
-      internal_name: internalName,
+      internal_name: withDispatchMarker(internalName, historyRowIds[0]),
       subject,
       sender_id: Number(cfg.sender_id),
       content: {
