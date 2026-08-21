@@ -701,6 +701,12 @@ Catálogo de bugs de produção que foram corrigidos e ganharam teste permanente
 - **Correção:** `stripFlagEmoji` (novo helper em `supabase/functions/_shared/emailBlocks/utils.ts`) remove o par de regional indicators do nome do artista na hora de montar o e-mail — aplicado nos 3 lugares que renderizam line-up: bloco avulso `lineup` (`renderBlock/interactive.ts`), chips dentro do card do grid (`renderBlock/digest.ts`, `renderGridEventCard`) e versão texto simples (`renderBlockedTemplateText.ts`). Não mexe nos pontos de entrada do dado (extração por IA, formulário do admin) — corrige tanto nomes já salvos no banco quanto novos.
 - **Proteção:** `src/__tests__/regression/lineup-flag-emoji-outlook.test.ts` (novo).
 
+### R-085 — cron de limpeza podia liberar um evento cuja campanha JÁ existia na E-goi (risco residual do R-062)
+- **Quando:** 21/08/2026 — Fase 3 do plano de fases seguras; fecha o item "risco residual do R-062" que estava em `PENDENCIAS.md`.
+- **Sintoma (potencial):** se `create-event-email-campaign` morresse entre o `POST /campaigns/email` e a gravação do resultado, a linha ficava `in_progress` e o cron `heal-stuck-email-dispatches` liberava `events.email_campaign_dispatched_at` — abrindo espaço pra uma campanha duplicada.
+- **Correção:** toda campanha criada leva um marcador estável no `internal_name` (`[ref:<8 primeiros do id da linha de histórico>]`, via `withDispatchMarker`). Antes de liberar qualquer reserva, o cron consulta a E-goi (`findEgoiCampaignForDispatch`, novo `supabase/functions/_shared/egoiCampaignLookup.ts`): campanha encontrada → finaliza a linha como `draft`/`sent` e **não** libera; não encontrada → comportamento antigo; E-goi indisponível/erro → `unknown`, **não** libera (falha segura, tenta de novo no próximo ciclo).
+- **Proteção:** `src/__tests__/regression/heal-stuck-dispatch-egoi-verification.test.ts` (novo, cobre os 3 cenários + guarda estática de que o caminho "found" nunca empurra o evento pra lista de liberação).
+
 ## Checklist antes de mergear
 
 - [ ] `npm test` verde
