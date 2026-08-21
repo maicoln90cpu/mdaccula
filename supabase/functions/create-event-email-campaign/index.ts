@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
 
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
-      internal_name: internalName,
+      internal_name: withDispatchMarker(internalName, historyRowId),
       subject: finalSubject,
       sender_id: Number(cfg.sender_id),
       content: {
