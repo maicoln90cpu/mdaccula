@@ -10,6 +10,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 import { egoiRequest, sendEgoiCampaign } from '../_shared/egoiClient.ts';
 import { cacheStaticMapImagesInHtml } from '../_shared/renderStaticMapCache.ts';
 import { beginInProgressHistoryRow, finalizeHistoryRow } from '../_shared/emailDispatchHistory.ts';
+import { withDispatchMarker } from '../_shared/egoiCampaignLookup.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -320,7 +321,7 @@ Deno.serve(async (req) => {
 
     const createPayload: Record<string, unknown> = {
       list_id: Number(cfg.list_id),
-      internal_name: internalName,
+      internal_name: withDispatchMarker(internalName, historyRowId),
       subject: finalSubject,
       sender_id: Number(cfg.sender_id),
       content: {

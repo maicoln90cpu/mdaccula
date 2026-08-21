@@ -4,7 +4,7 @@
 > Itens em aberto (decisões pendentes, bugs conhecidos, checkpoints de monitoramento) ficam em [`PENDENCIAS.md`](PENDENCIAS.md).
 > Features novas planejadas (ainda não construídas) ficam em [`ROADMAP.md`](ROADMAP.md).
 
-**Última atualização:** 20/08/2026
+**Última atualização:** 21/08/2026
 
 ---
 
@@ -17,6 +17,13 @@
 ---
 
 ## Entradas Detalhadas
+
+### 21/08/2026 — Fase 3: verificação extra na E-goi antes de liberar disparo preso (fecha o risco residual do R-062) + tokens de espaçamento com prefixo próprio
+
+- **O que:** o cron `heal-stuck-email-dispatches` agora **pergunta à E-goi** se já existe campanha para a linha presa antes de liberar a reserva do evento. Cada campanha criada passa a levar um marcador estável no `internal_name` (`[ref:xxxxxxxx]`, derivado do id da linha de histórico), o que torna a consulta possível.
+- **Comportamento:** encontrada → linha finalizada como `draft`/`sent`, reserva **mantida** (impede duplicidade); não encontrada → libera como antes; E-goi fora do ar/erro → **não libera** (falha segura, reavalia no próximo ciclo de 5 min).
+- **Extra:** os tokens CSS genéricos `--space-*` e `--content-*` viraram `--md-space-*` / `--md-content-*` — nomes genéricos colidem com namespaces do Tailwind v4 (foi assim que `max-w-2xl` virou 48px). Guarda de arquitetura adicionada.
+- **Arquivos:** `supabase/functions/_shared/egoiCampaignLookup.ts` (novo), `supabase/functions/heal-stuck-email-dispatches/index.ts`, `supabase/functions/create-event-email-campaign/index.ts`, `supabase/functions/create-multi-event-email-campaign/index.ts`, `src/index.css`, `src/__tests__/regression/heal-stuck-dispatch-egoi-verification.test.ts`, `src/__tests__/architecture/tailwind-theme.test.ts`.
 
 ### 20/08/2026 — Corrige os crons `cleanup-storage-weekly` e `cleanup-sync-logs-weekly`: rodavam toda semana desde maio e sempre falhavam com 401, silenciosamente
 

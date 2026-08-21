@@ -22,6 +22,18 @@ describe('tailwind v4 theme', () => {
     expect(css).not.toMatch(/--spacing-(xs|sm|md|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl)\s*:/);
   });
 
+  /**
+   * Tokens de espacamento/largura usam prefixo `--md-` de proposito: nomes
+   * genericos (`--space-2xl`, `--content-lg`) colidem com namespaces do
+   * Tailwind v4 e ja quebraram o layout uma vez.
+   */
+  it('nao reintroduz tokens genericos --space-* / --content-*', () => {
+    expect(css).not.toMatch(/^\s*--space-[\w-]+\s*:/m);
+    expect(css).not.toMatch(/^\s*--content-[\w-]+\s*:/m);
+    expect(css).toContain('--md-space-2xl:');
+    expect(css).toContain('--md-content-lg:');
+  });
+
   it('usa CSS-first (@theme) e nao o config legado', () => {
     expect(css).toContain('@theme');
     expect(css).not.toContain('@config');

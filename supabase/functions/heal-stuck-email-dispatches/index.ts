@@ -26,6 +26,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeaders, handleCorsPreFlight } from '../_shared/index.ts';
 import { HISTORY_IN_PROGRESS_STALE_MS } from '../_shared/emailDispatchHistory.ts';
+import { findEgoiCampaignForDispatch } from '../_shared/egoiCampaignLookup.ts';
 
 const BATCH_LIMIT = 50;
 
@@ -90,7 +91,7 @@ Deno.serve(async (req) => {
 
     const rows = (staleRows ?? []) as StuckRow[];
     if (rows.length === 0) {
-      return json({ ok: true, healed: 0, skipped: 0, checked: 0 });
+      return json({ ok: true, healed: 0, skipped: 0, confirmed: 0, checked: 0 });
     }
 
     const staleMessage =
@@ -100,9 +101,54 @@ Deno.serve(async (req) => {
 
     let healed = 0;
     let skipped = 0;
+    let confirmed = 0;
     const eventIdsToRelease: string[] = [];
 
+    // Fase 3 — verificação extra na E-goi antes de liberar qualquer reserva.
+    // Sem chave configurada não há como perguntar: mantém o comportamento
+    // anterior (a linha 'in_progress' só é criada ANTES de qualquer contato
+    // com a E-goi, então liberar continua sendo o padrão seguro).
+    const egoiApiKey = Deno.env.get('EGOI_API_KEY') ?? null;
+
     for (const row of rows) {
+      if (egoiApiKey) {
+        const lookup = await findEgoiCampaignForDispatch(egoiApiKey, row.id);
+        if (lookup.result === 'unknown') {
+          // Na dúvida NÃO libera — tenta de novo no próximo ciclo do cron.
+          console.warn(
+            '[heal-stuck-email-dispatches] E-goi indisponível, mantendo reserva:',
+            row.id,
+            lookup.reason,
+          );
+          skipped++;
+          continue;
+        }
+        if (lookup.result === 'found') {
+          // A campanha existe de verdade na E-goi: a function morreu DEPOIS de
+          // criá-la. Finaliza a linha como concluída e NÃO libera o claim do
+          // evento (liberar permitiria uma campanha duplicada).
+          const egoiStatus = String(lookup.campaign.status ?? '').toLowerCase();
+          const finalStatus = egoiStatus === 'sent' ? 'sent' : 'draft';
+          const { error: confirmErr } = await admin
+            .from('event_email_campaigns')
+            .update({
+              status: finalStatus,
+              egoi_campaign_id: lookup.campaign.campaign_hash ?? null,
+              error_message:
+                'Disparo interrompido, mas a campanha foi encontrada na E-goi — ' +
+                'reserva mantida para evitar campanha duplicada.',
+            })
+            .eq('id', row.id)
+            .eq('updated_at', row.updated_at);
+          if (confirmErr) {
+            console.error('[heal-stuck-email-dispatches] Falha ao confirmar campanha existente:', row.id, confirmErr);
+            continue;
+          }
+          confirmed++;
+          continue;
+        }
+      }
+
       // Lock otimista: só finaliza se `updated_at` não mudou desde a leitura
       // acima — se mudou, alguém (um reenvio manual) reaproveitou essa linha
       // nesse meio-tempo, e este poller não deve mexer nela nem no claim do
@@ -134,7 +180,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, healed, skipped, checked: rows.length, event_ids: eventIdsToRelease });
+    return json({ ok: true, healed, skipped, confirmed, checked: rows.length, event_ids: eventIdsToRelease });
   } catch (e) {
     console.error('[heal-stuck-email-dispatches]', e);
     return json({ error: (e as Error).message }, 500);
