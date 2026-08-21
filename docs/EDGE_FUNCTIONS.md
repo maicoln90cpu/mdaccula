@@ -1,6 +1,6 @@
 # Edge Functions
 
-Índice de referência das 57 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 16/08/2026, após a remoção de `import-storage` (ferramenta de migração one-off cujo projeto de origem já não existe mais — DNS nem resolve) e `convert-to-webp` (placeholder que nunca fez a conversão de verdade, sem nenhum chamador no frontend) — ver `docs/CHANGELOG.md`.
+Índice de referência das 58 Edge Functions ativas em `supabase/functions/` (a pasta `_shared/` não conta como function — é código Deno compartilhado importado pelas demais). Contagem confirmada via `list_edge_functions` do MCP Supabase em 16/08/2026 (57), após a remoção de `import-storage` (ferramenta de migração one-off cujo projeto de origem já não existe mais — DNS nem resolve) e `convert-to-webp` (placeholder que nunca fez a conversão de verdade, sem nenhum chamador no frontend), **+1 em 20/08/2026** com a criação de `cron-health-check` (ver `docs/CHANGELOG.md`).
 
 **Todas as 57 têm `verify_jwt: false`** no gateway do Supabase — o gateway não exige JWT antes de invocar nenhuma delas. Isso significa que a autenticação real de cada function é feita manualmente dentro do próprio código: lendo o header `Authorization` e validando via `supabase.auth.getUser()` + RPC `has_role()`, checando um `x-cron-secret` contra `CRON_SHARED_SECRET`/tabela `internal_cron_secrets`, aceitando a própria `SUPABASE_SERVICE_ROLE_KEY` como Bearer (só pra chamadas server-to-server de outra Edge Function confiável), ou sendo deliberadamente pública/anônima (tracking, SEO, LGPD). A coluna **Auth** abaixo documenta o que cada function realmente faz — não o que o gateway faz.
 
@@ -76,7 +76,7 @@ A auditoria de auth admin (`docs/PENDENCIAS.md`) rodou em 8 fases entre 04/08 e 
 | batch-convert-webp | Comprime imagens em lote (1-3 por chamada) para presets sutil/média/severa, atualizando URLs no banco | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | upload-to-bunny | Faz upload de uma imagem para o Bunny Storage (com dedupe por SHA-256) | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | migrate-to-bunny | Migra imagens do Supabase Storage para o Bunny CDN, auto-detectando a região correta | Frontend (admin) | Admin autenticado | Próprio (inline) |
-| cleanup-storage | Remove arquivos órfãos/duplicados de um bucket de Storage (com modo dry-run) | Frontend (admin) | Admin autenticado | Próprio (inline) |
+| cleanup-storage | Remove arquivos órfãos/duplicados de um bucket de Storage (com modo dry-run) | Frontend (admin) + Cron (pg_cron, semanal) | Admin autenticado ou cron secret | Próprio (inline) |
 | diagnose-media | Diagnostica URLs de imagem no Bunny CDN quebradas/inconsistentes entre tabelas | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | bunny-stats | Centraliza estatísticas oficiais do Bunny (pull zone + storage zone), com cache de 5 min | Frontend (admin) | Admin autenticado | Próprio (inline) |
 | fetch-link-metadata | Busca metadados Open Graph (título/imagem) de uma URL pública para preencher um link do Linktree | Frontend (admin) | Admin autenticado | Próprio (inline) |
@@ -108,6 +108,7 @@ A auditoria de auth admin (`docs/PENDENCIAS.md`) rodou em 8 fases entre 04/08 e 
 | egress-alert-cron | Cron diário que compara egress das últimas 24h vs. média dos 7 dias anteriores e dispara alerta por e-mail | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 | persist-logs | Persiste logs de erro/warning e métricas de performance lentas enviadas pelo frontend | Frontend (anônimo) | Público | Próprio (inline) |
 | cleanup-sync-logs | Cron que apaga `sync_logs` com mais de 30 dias (retenção) | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
+| cron-health-check | Cron diário (R-084) que compara `cron_job_health.last_success_at` com o atraso esperado de cada cron e dispara alerta por e-mail se algum parar de rodar | Cron (pg_cron) | Admin ou cron secret | Próprio (inline) |
 
 ## LGPD
 

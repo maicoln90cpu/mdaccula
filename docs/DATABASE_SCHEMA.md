@@ -2,7 +2,7 @@
 
 Índice de leitura rápida do schema `public` do MDAccula. Para a DDL completa (CREATE TABLE, policies RLS, triggers, funções, índices), a fonte de verdade é **[tabelas.md](tabelas.md)**.
 
-**Contagem confirmada agora via Supabase MCP (`list_tables`): 42 tabelas no schema `public`, RLS habilitada em 100% delas.**
+**Contagem confirmada agora via Supabase MCP (`list_tables`): 44 tabelas no schema `public`, RLS habilitada em 100% delas** (42 + `cron_job_health`/`cron_health_alerts`, criadas em 20/08/2026 — ver seção de migrations abaixo).
 
 ## ✅ Gap de DDL resolvido em 04/08/2026
 
@@ -14,6 +14,24 @@ retroativamente na seção "1.2-B Tabelas adicionadas em 04/08/2026" de `tabelas
 A contagem de "18 tabelas" e as instruções de sync (`/admin/backup-sync`, ver
 `docs/README-SYNC.md`) no restante de `tabelas.md` seguem sem confirmação separada — se esse fluxo
 de sync externo ainda está em uso é uma pergunta em aberto, não coberta por esta correção.
+
+## ⚠️ Histórico de migrations: manter `supabase_migrations.schema_migrations` sincronizado
+
+Em 20/08/2026, descobriu-se que 66 arquivos de `supabase/migrations/*.sql` (14/09/2025 a
+18/02/2026) nunca tinham sido registrados na tabela de controle
+`supabase_migrations.schema_migrations` — o schema real já refletia essas migrations (as tabelas
+já existiam), só o "carimbo" de controle é que nunca foi gravado. Esse é o padrão clássico que faz
+o Supabase falhar (`MIGRATIONS_FAILED`) ao tentar criar um branch de preview, porque o processo de
+criação reaplica a sequência de migrations dos arquivos contra um banco novo e trava quando o
+histórico de controle da produção está incompleto. Corrigido com um backfill (`INSERT ... ON
+CONFLICT DO NOTHING` com `version`+`name` de cada arquivo faltante, sem reexecutar SQL nenhum — ver
+`docs/CHANGELOG.md`, 20/08/2026).
+
+**Hábito para não repetir:** sempre que uma migration for aplicada por um caminho que não seja
+"commitar o arquivo em `supabase/migrations/` e deixar o pipeline padrão aplicar" (ex.: `apply_migration`
+via MCP/Lovable fora de uma sessão que depois commita o arquivo correspondente), conferir se ela
+ficou registrada em `supabase_migrations.schema_migrations` — é a mesma causa raiz deste incidente.
+Comparar rapidamente: `list_migrations` (MCP) deve ter o mesmo total que `ls supabase/migrations/*.sql | wc -l`.
 
 ---
 
@@ -90,6 +108,8 @@ de sync externo ainda está em uso é uma pergunta em aberto, não coberta por e
 | internal_cron_secrets | name, secret, created_at, updated_at | name | Segredos usados para autenticar chamadas internas de cron/webhook às Edge Functions (não é acessível ao público) |
 | egress_alerts | id, triggered_at, reason, api_path, source, window_bytes, baseline_bytes, ratio, threshold_mb, email_sent, email_error, details | id | Alertas disparados quando o egress/banda ultrapassa um limiar configurado, com envio de e-mail de notificação |
 | email_global_blocks | id, name, description, category, block, created_by | id | Bloqueios globais de envio de e-mail (ex.: categoria/tipo de e-mail suspenso administrativamente) |
+| cron_job_health | job_name, last_success_at, expected_max_gap_hours, created_at | job_name | Heartbeat de cron (R-084, 20/08/2026): gravado por `authorizeAdminOrCron` toda vez que um cron autentica com sucesso; usado por `cron-health-check` pra detectar cron silenciosamente quebrado |
+| cron_health_alerts | id, created_at, stale_jobs, email_sent, email_error | id | Histórico de alertas disparados pelo `cron-health-check` quando algum cron passa do atraso esperado sem rodar |
 
 ## Outros
 

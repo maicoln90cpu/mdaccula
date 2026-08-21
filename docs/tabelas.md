@@ -1182,6 +1182,46 @@ CREATE POLICY "Admins can view egress alerts"
   USING (is_admin());
 
 -- ============================================
+-- TABELA: cron_job_health
+-- ============================================
+-- R-084 (20/08/2026) — heartbeat de cron. Gravado por authorizeAdminOrCron
+-- (supabase/functions/_shared/index.ts) toda vez que um cron autentica com
+-- sucesso via x-cron-secret. Usado por cron-health-check pra detectar cron
+-- silenciosamente quebrado (padrão do incidente cleanup-storage-weekly /
+-- cleanup-sync-logs-weekly, que ficaram meses recebendo 401 sem alerta
+-- porque pg_cron marca net.http_post como "succeeded" independente da
+-- resposta HTTP real). Sem policies — só service role lê/escreve, mesmo
+-- padrão de internal_cron_secrets.
+CREATE TABLE public.cron_job_health (
+  job_name TEXT PRIMARY KEY,
+  last_success_at TIMESTAMP WITH TIME ZONE,
+  expected_max_gap_hours NUMERIC NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.cron_job_health ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- TABELA: cron_health_alerts
+-- ============================================
+-- Histórico de alertas disparados pelo cron-health-check quando algum cron
+-- passa do atraso esperado (cron_job_health.expected_max_gap_hours) sem
+-- gravar heartbeat novo.
+CREATE TABLE public.cron_health_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  stale_jobs JSONB NOT NULL,
+  email_sent BOOLEAN NOT NULL DEFAULT false,
+  email_error TEXT
+);
+
+ALTER TABLE public.cron_health_alerts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins podem ver alertas de saúde de cron"
+  ON public.cron_health_alerts FOR SELECT
+  USING (is_admin());
+
+-- ============================================
 -- TABELA: email_global_blocks
 -- ============================================
 -- Bloqueios globais de envio de e-mail (ex.: categoria/tipo de e-mail

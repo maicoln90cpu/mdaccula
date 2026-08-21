@@ -176,6 +176,19 @@ export async function authorizeAdminOrCron(
       .eq("name", opts.cronSecretRowName)
       .maybeSingle();
     if (row?.secret && row.secret === cronSecretHeader) {
+      // Heartbeat de saúde do cron (R-084) — grava só quando o auth via
+      // cron-secret passa de verdade, pra detectar exatamente o tipo de
+      // falha silenciosa que passou meses sem alerta (401 recorrente que o
+      // pg_cron sempre marca como "succeeded", ver docs/PENDENCIAS.md).
+      // Best-effort: nunca deve derrubar a chamada real por causa disso.
+      try {
+        await admin
+          .from("cron_job_health")
+          .update({ last_success_at: new Date().toISOString() })
+          .eq("job_name", opts.cronSecretRowName);
+      } catch (err) {
+        console.warn("authorizeAdminOrCron: falha ao gravar heartbeat (seguindo sem ela):", err);
+      }
       return { authorized: true, status: 200 };
     }
   }

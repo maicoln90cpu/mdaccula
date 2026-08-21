@@ -41,7 +41,14 @@ Deno.serve(async (req) => {
       return jsonSuccess({ success: true, message: "No files found in bucket", result: { orphanedDeleted: [], duplicatesDeleted: [], errors: [], totalFreedBytes: 0 } });
     }
 
-    console.log(`Found ${files.length} files in ${bucket}`);
+    // O storage.list() do Supabase devolve subpastas como itens com id=null
+    // (placeholder, não é um arquivo de verdade) — sem esse filtro, uma
+    // pasta como "blog-images" nunca bate com nenhuma referência em
+    // events/blog_posts e acaba marcada como "arquivo órfão" (achado em
+    // 20/08/2026 rodando em dry-run, ver docs/PENDENCIAS.md).
+    const realFiles = files.filter((f) => f.id !== null);
+
+    console.log(`Found ${realFiles.length} files in ${bucket} (${files.length - realFiles.length} pasta(s) ignorada(s))`);
 
     // 2. Get all referenced image URLs from events and blog_posts
     const [eventsResult, postsResult] = await Promise.all([
@@ -74,8 +81,8 @@ Deno.serve(async (req) => {
     console.log(`Found ${referencedUrls.size} referenced images in DB`);
 
     // 3. Find duplicates by size (files with identical sizes are likely duplicates)
-    const sizeMap = new Map<number, typeof files>();
-    for (const file of files) {
+    const sizeMap = new Map<number, typeof realFiles>();
+    for (const file of realFiles) {
       const size = file.metadata?.size || 0;
       if (size > 0) {
         if (!sizeMap.has(size)) {
@@ -93,7 +100,7 @@ Deno.serve(async (req) => {
     };
 
     // 4. Identify orphaned files (not referenced by any event or blog_post)
-    const orphanedFiles = files.filter(file => {
+    const orphanedFiles = realFiles.filter(file => {
       const isReferenced = referencedUrls.has(file.name);
       return !isReferenced;
     });
@@ -101,7 +108,7 @@ Deno.serve(async (req) => {
     console.log(`Found ${orphanedFiles.length} orphaned files`);
 
     // 5. Identify duplicate groups (same size, keep only one)
-    const duplicateFiles: typeof files = [];
+    const duplicateFiles: typeof realFiles = [];
     for (const [size, group] of sizeMap.entries()) {
       if (group.length > 1 && size > 100 * 1024) { // Only flag duplicates > 100KB
         // Keep the first one that is referenced, or just the first one
@@ -175,7 +182,7 @@ Deno.serve(async (req) => {
       success: true,
       dryRun,
       bucket,
-      totalFiles: files.length,
+      totalFiles: realFiles.length,
       referencedFiles: referencedUrls.size,
       summary: {
         orphanedCount: result.orphanedDeleted.length,

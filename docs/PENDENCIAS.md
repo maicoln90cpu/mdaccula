@@ -38,11 +38,23 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 
 ## 👀 Monitoramento
 
+### Scanner externo varrendo sistematicamente todas as Edge Functions do projeto
+
+**Contexto:** 20/08/2026 — durante a investigação do bug de auth do `cleanup-storage`, os logs (`function_edge_logs`) revelaram que o `401` recorrente daquela função fazia parte de um padrão bem mais amplo: alguém está batendo em praticamente todas as ~57 Edge Functions do projeto, sempre na mesma ordem, em rajadas de poucos segundos, repetidas a cada ~1h-1h30 (18h34, 19h54, 20h09, 20h22, 21h28, 22h38 no dia observado). Uma das chamadas incluía `apify-instagram-webhook?source_id=00000000-0000-0000-0000-000000000000&secret=obviamente-invalido` — o texto "obviamente-invalido" sugere um teste deliberado (humano ou script), não tráfego orgânico.
+**Auditoria feita (20/08/2026):** rodei um grep em todas as 57 functions procurando qualquer forma de proteção (`authorizeAdminOrCron`, checagem de secret/header, `has_role`/`is_admin`, `Authorization`). 54 têm alguma checagem inline. As 3 sem nenhuma são intencionalmente públicas, com justificativa documentada no próprio código: `public-maps-config` (só devolve a chave do Google Maps já restrita por referrer, não é secreta), `indexnow-notify` (chave IndexNow é pública por design; o pior uso indevido é notificar o Bing/Yandex sobre URLs irrelevantes do próprio domínio — sem risco de dado exposto) e `render-static-map` (proxy de imagem de mapa, GET-only, cache-first, decisão documentada no próprio arquivo). Confirmado: nenhuma function está vazando dado sem querer.
+**Risco:** o projeto é open-source no GitHub (nomes das 57 functions em `supabase/config.toml` são públicos), o que torna trivial montar essa lista pra qualquer um testar. Enquanto toda função continuar exigindo auth corretamente, o risco prático é baixo — mas vale ficar de olho, porque é reconhecimento ativo de superfície de ataque.
+**Passos:**
+
+1. **Decisão pendente do usuário:** considerar rate limiting por IP agregado entre functions (hoje `isRateLimited` em `_shared/index.ts` limita por function individualmente, não por IP batendo em várias functions diferentes) — não implementado agora porque é uma mudança de maior alcance (afeta a camada compartilhada usada por todas as functions) e não há vulnerabilidade confirmada que a justifique com urgência; é uma decisão de custo/benefício do usuário, não um bug a corrigir.
+2. Repetir esse mesmo grep de auditoria sempre que uma function nova for criada, pra garantir que continua em 54/57 (ou mais) com proteção.
+   **Responsável:** decisão do usuário sobre o rate limiting; IA reaudita quando solicitado.
+
 ### Checkpoint: checagem de Storage no egress-alert-cron aguardando a API pública do Supabase estabilizar
 
 **Checar até:** revisar em ~30/08/2026 (2 semanas) — se continuar falhando 100% das vezes até lá, reportar pro suporte do Supabase ou aceitar como bônus perdido permanentemente (a correção principal, R-061, já está no ar e não depende disso).
 **Contexto:** decisão tomada em 12/08/2026 (R-061) — implementadas as opções 2 e 3 pra fechar o ponto cego do monitor de egress pra Supabase Storage/CDN. A credencial e o código estão corretos e testados (retry com detecção explícita do campo `error`), mas a chamada `https://api.supabase.com/v1/projects/{ref}/analytics/endpoints/logs.all` segue devolvendo `200 OK` com `{"result":null,"error":"Backend error!..."}` 100% das vezes (2 rodadas completas, 6 tentativas, ~4min) — a mesma consulta SQL funciona normal via MCP (`query_logs`), sugerindo que o caminho da API pública de Management é menos confiável que o caminho interno do MCP, não azar pontual.
 **Estado atual:** a checagem de Storage continua degradando graciosamente (não quebra o alarme — `ok: true` sempre, ver R-049), só não traz o dado extra ainda. O cron roda 2x/dia (09h e 12h UTC) — cada execução é uma tentativa independente, então pode "pegar" a API pública estável em algum momento.
+**Atualização (20/08/2026):** conferidas as 2 execuções de hoje (09h e 12h UTC) em `function_logs` — as duas ainda falham com o mesmo erro de sempre (`Backend error! Retry your query. Please contact support if this continues.`), sem mudança de comportamento. Faltam ~10 dias pra data de revisão (30/08).
 **Passos:**
 
 1. Conferir em `egress_alerts.details` (ou logs de `function_logs`) se alguma execução do cron trouxe `storage_requests_24h` != `null`.
@@ -95,17 +107,6 @@ Se o que você quer registrar é uma feature nova ainda não iniciada (não uma 
 2. Depois de ~15 dias de tráfego real, comparar em `/admin` → Métricas Reais → aba Bunny CDN a média de bytes/requisição contra o baseline anotado (~337KB/req, ~90GB/mês, ~$4-5/mês do item de banda).
 3. Só reconsiderar Cloudflare-na-frente-do-Bunny se o custo continuar alto mesmo após a queda esperada — origin traffic do Bunny já é só 1,3% da banda total (cache já é eficiente), então o ganho do Cloudflare tende a ser baixo: ele reduziria _quem fatura_ a banda, não os bytes entregues. Se o total de ~$10/mês não cair proporcionalmente, conferir também a fatura detalhada do Bunny (pode ter taxa mínima/storage não relacionado a banda).
    **Responsável:** usuário revisa as métricas (painel do Bunny); IA confere se solicitado
-
-### Checkpoint: branch de produção com `status: MIGRATIONS_FAILED` — confirmado SEM relação com o bug do disparo manual de e-mail
-
-**Checar em:** quando o usuário quiser investigar o branch em si (não é mais bloqueante pra nada)
-**Contexto:** bem no início da investigação do disparo do Sirius (fase do R-053), `list_branches` mostrou o branch padrão/produção do projeto (`project_ref: xfvpuzlspvvsmmunznxw`) com `status: "MIGRATIONS_FAILED"`. Chegou a ser cogitado como relacionado (RLS/grants de `event_email_campaigns` num estado inesperado), mas o R-059 achou e confirmou a causa raiz real do `dispatch_in_progress` (comportamento do PostgREST reaplicando o filtro do claim sobre o valor recém-gravado — nada a ver com RLS, grants ou migrations) — então esse branch fica como um item de infraestrutura independente, sem urgência ligada a este bug.
-**Atualização (20/08/2026):** `list_branches` hoje não retorna nenhum branch (lista vazia) — nenhum branch aparece com `MIGRATIONS_FAILED` nem com nenhum outro status. `list_migrations` também não aponta nenhuma migration com falha. Não dá pra confirmar com certeza pelas ferramentas disponíveis se o branch problemático foi removido/mesclado ou se só não aparece mais nessa listagem — mas não há hoje nenhum sinal ativo do problema.
-**Passos (se/quando o usuário quiser resolver):**
-
-1. Rodar `list_branches`/`list_migrations` de novo e identificar qual migration específica está travada/falhou.
-2. Decidir com o usuário se vale corrigir esse branch (aplicar/reverter a migration travada) por motivos próprios, independente do disparo de e-mail.
-   **Responsável:** decisão do usuário sobre prioridade — não é uma falha ativa impactando nada em produção hoje.
 
 ### Checkpoint: Apify/Instagram aguardando post real para validar o webhook
 
