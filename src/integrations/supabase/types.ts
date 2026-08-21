@@ -267,6 +267,51 @@ export type Database = {
           },
         ]
       }
+      cron_health_alerts: {
+        Row: {
+          created_at: string
+          email_error: string | null
+          email_sent: boolean
+          id: string
+          stale_jobs: Json
+        }
+        Insert: {
+          created_at?: string
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          stale_jobs: Json
+        }
+        Update: {
+          created_at?: string
+          email_error?: string | null
+          email_sent?: boolean
+          id?: string
+          stale_jobs?: Json
+        }
+        Relationships: []
+      }
+      cron_job_health: {
+        Row: {
+          created_at: string
+          expected_max_gap_hours: number
+          job_name: string
+          last_success_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expected_max_gap_hours: number
+          job_name: string
+          last_success_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expected_max_gap_hours?: number
+          job_name?: string
+          last_success_at?: string | null
+        }
+        Relationships: []
+      }
       custom_links: {
         Row: {
           card_height: number | null
